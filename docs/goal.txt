@@ -1,0 +1,106 @@
+::ILANG::v5.0
+[PROTOCOL:iLang|v=5.0|fallback=4.0|degrade=warn]
+[TYPE:prompt][ID:TILERT-ASCEND-A3-REAL][VERSION:3.1][DATE:2026-10-28][LANG:en]
+[FROM:@USER][TO:@AGENT]
+
+::STATE{@AGENT, role:autonomous_systems_researcher, authority:proposal}
+::STATE{@REPO, kind:git_worktree, path:"~/repo/tile-ai/tilert-ascend", origin:"https://github.com/tsukiyokai/tilert-ascend.git", upstream:"https://github.com/tile-ai/TileRT.git"}
+::STATE{@TILELANG_ASCEND, kind:git_worktree, path:"~/repo/tile-ai/tilelang-ascend", upstream:"https://github.com/tile-ai/tilelang-ascend.git"}
+::STATE{@TILELANG, kind:git_worktree, path:"~/repo/tile-ai/tilelang", upstream:"https://github.com/tile-ai/tilelang.git"}
+::STATE{@UPSTREAM_TARGETS, tile_rt:"https://github.com/tile-ai/TileRT.git", tilelang_ascend:"https://github.com/tile-ai/tilelang-ascend.git", vllm_ascend:"https://github.com/tsukiyokai/vllm-ascend.git", cann_all:"https://gitcode.com/cann/*", cann_forks:"https://gitcode.com/fan33/*", shmem_fork:"https://gitcode.com/fan33/shmem.git", cann_pr_skill:"~/.gemini/antigravity-cli/skills/vibe-pr/SKILL.md"}
+::STATE{@LAB_ENV, probe_cmd:"~/dotfiles/harness/skills/vibe-iris/scripts/experiment/kbenv", inventory:"~/dotfiles/harness/skills/vibe-iris/references/env/lsenv.md", method:"~/dotfiles/harness/skills/vibe-iris/references/method/experiment.md", generation:A3, chip:"Ascend910_9392_or_9382", arch:dav_2201, dies:16}
+::STATE{@A3_NODE, kind:remote_npu_host, pool:free_A3_dies_or_longest_idle_16_of_16_host, prefix:"trt-bench"}
+::STATE{@ELITE_ARCHIVE, kind:map_elites_grid, axes:"comm_topology(hccl|discrete_shmem|in_kernel_shmem)xexec_envelope(multi_op_graph|fused_layer_bricks|persistent_megakernel)", ledger:"docs/probe.md"}
+::STATE{@DOCS, plan:"docs/plan.md", lesson:"docs/lesson.md", probe:"docs/probe.md", readme:"docs/readme.md"}
+::STATE{@STANDARDS, clean_code:"~/note/inbox/clean-code.md", pep8:"~/note/inbox/pep-0008.rst", git_conv:"~/note/inbox/git-conv.md"}
+::STATE{@OBJECTIVE, ref:g_a3_decode}
+::STATE{@RUBRIC, ref:r_a3_decode}
+::STATE{@CANDIDATE, kind:experiment_arm, state:ready}
+::STATE{@DELIVERABLES, anchor:g_a3_decode}
+::STATE{@EVIDENCE_SET, anchor:g_a3_decode}
+::STATE{@AUDIT_REPORT, anchor:g_a3_decode}
+
+::OBJECTIVE{id:g_a3_decode|owner:@USER|trust:trusted|version:4|status:active}
+  target: Drive tilert-ascend GLM-5.2-W4A8C8 decode on real Ascend A3 hardware (any 9392 or 9382 host, TP16, batch=1, 8K prefix, 1024 output tokens) from the 12.413 ms internal baseline down to <=2.x ms dual-clock p50/p95 TPOT (passes_2ms), while continuously harvesting shippable stepping-stone wins and upstream PRs across all GitCode cann/* repositories, vllm-ascend, tilelang-ascend, and TileRT. Treat docs/plan.md as a revisable hypothesis map rather than fixed dogma: any compiler/ISA stack (tilelang-ascend, AscendC, PTO-ISA, CATLASS), reduction topology (oneshot flat, two-stage, or tree), or persistent execution structure that satisfies numerical truth and cuts wall-clock latency may supersede intermediate milestones.
+  ACCEPT: headline decode TPOT claims are measured on 16-die Ascend A3 with recorded SKU/driver/CANN/ELF/checkpoint provenance, pass precision_gate.py + 16-rank state agreement + non-degenerate token/bigram diversity on 8 frozen 8K inputs, and win profiler-off isolated-cache same-host paired A/B; standalone kernel, ISA, collective, runtime, or cann/* stepping-stone wins are verified strictly on real Ascend A3 dies (1, few, or 16 free dies as needed) with matching numerical validation and paired A/B latency gains
+  NON_GOALS: running hardware, ISA, or chip-level verification on A2 (avoid cross-generation non-transferability); waiting idly for a full 16/16 A3 host when 1 or a few free A3 dies suffice for the experiment at hand; halting at CPU-only proxies when usable A3 dies are reachable; degenerate low-diversity looping outputs inflating speculative acceptance; shipping binary-patched vendor .o blobs instead of source-level kernels or cann/* fixes
+  DONE_WHEN: dual-clock 32-request online P/D p50/p95 TPOT <= 2.x ms (passes_2ms) and replay verification pass on 16-die Ascend A3 with clean commits pushed to @REPO
+
+::RUBRIC{id:r_a3_decode|objective:g_a3_decode|threshold:1.00|mode:weighted}
+  R:real_a3_execution|weight:0.30|check:verified_strictly_on_real_Ascend_A3_dies_with_16_of_16_required_for_headline_TPOT_and_recorded_SKU_ELF_provenance
+  R:numerical_and_state_truth|weight:0.25|check:precision_gate_16_rank_agreement_and_diversity_pass_on_8x8K_for_model_claims_or_exact_reference_tolerance_for_op_claims
+  R:paired_wallclock_gain|weight:0.25|check:profiler_off_isolated_cache_same_host_paired_AB_demonstrates_reproducible_latency_reduction_or_new_archive_cell_floor_breakthrough
+  R:sublatable_craft|weight:0.10|check:conforms_to_STANDARDS_zero_dead_code_and_advances_either_2ms_megakernel_path_or_upstream_targets
+  R:ledger_and_persistence|weight:0.10|check:raw_receipts_archive_cell_coordinates_and_slack_updates_recorded_in_DOCS_and_persisted_with_conventional_commits
+
+::BOUNDARY{never:include_personal_user_names_in_remote_container_names_process_names_tmux_sessions_or_paths|scope:global}
+::BOUNDARY{never:commit_plaintext_passwords_tokens_or_private_keys_into_any_git_repository|scope:global}
+::BOUNDARY{never:kill_signal_stop_or_evict_any_other_users_processes_or_containers_on_shared_hosts|scope:global}
+::BOUNDARY{never:use_A2_or_non_A3_hardware_for_chip_ISA_kernel_or_interconnect_verification|scope:global}
+::BOUNDARY{never:claim_verified_complete_or_complete_or_emit_by_RUNTIME_authority_commit|scope:global}
+
+::IMMUNE{cpu_only_or_non_A3_proxy_claimed_as_A3_latency_win⇒REJECT}
+::IMMUNE{degenerate_low_diversity_loop_claimed_as_speedup⇒REJECT}
+::IMMUNE{shared_static_kernel_cache_between_AB_arms⇒REJECT}
+::IMMUNE{mutating_exhausted_roofline_slack_component_already_near_physical_floor⇒REJECT}
+::IMMUNE{near_duplicate_knob_tweak_isomorphic_to_prior_probe_without_dataflow_memory_or_sync_change⇒REJECT}
+::IMMUNE{cotenant_activity_or_warmup_container_detected_on_bound_dies⇒SANDBOX}
+
+::FACT{key:a3_roofline|value:"GLM-5.2-W4A8C8 TP16 reads ~4.056 GB/rank (~3.62 ms at 70% A3 HBM bandwidth); w32-lookup baseline is 12.413 ms median internal TPOT (~70 ms round, 5.721 accepted/round); Cube/Vector active math <5%; 2.x ms TPOT is physically open"|conf:confirmed}
+::FACT{key:dav2201_a3_physics|value:"24 AIC and 48 AIV have no L0C->UB path (must transit L2/GM with DataSyncBarrier<DDR>); CrossCoreSetFlag has 16 4-bit counters saturating at 15; PIPE_S GetValue issues unconditional DcciReadCache (~108-197 cycles); Fixpipe clears low 13 bits of FP32 scale; A3 dual-die package, UB/HCCS/SIO interconnect, and L2/HBM ratios differ from A2 so all device evidence must come from A3"|conf:confirmed}
+::FACT{key:lab_access|value:"Probe hosts with kbenv (@LAB_ENV probe_cmd). Any Ascend A3 (9392 or 9382) qualifies; never fall back to A2. Judge availability by the 卡 (free/seen dies) and die strip (· glyphs) columns plus npu-smi process absence rather than 态 alone (态 may read 占用 when cached weights lower host RAM <15% while 16/16 dies are clear, and 部分 hosts with k free · dies can immediately run 1-die or few-die kernel/SHMEM/ISA experiments via ASCEND_RT_VISIBLE_DEVICES without waiting for a full 16/16 machine, provided no <3min warmup container is expanding). For full TP16 runs, pick the longest-idle 16/16 A3 host first"|conf:confirmed}
+
+::GENE{polite_opportunistic_a3_execution|conf:confirmed|scope:project}
+  ::PRIOR{completion:assume_incomplete}
+  ::PRIOR{execution:act_when_safe}
+  ::PRIOR{user_claims:verify_first}
+  ::PRIOR{output:precision_over_recall}
+  T:execute_all_hardware_ISA_kernel_and_collective_verifications_exclusively_on_Ascend_A3_9392_or_9382
+  T:seize_any_available_free_A3_dies_immediately_via_kbenv_cards_and_die_strip_binding_exact_free_die_IDs_in_ASCEND_RT_VISIBLE_DEVICES_for_1die_or_fewcard_experiments_instead_of_waiting_for_whole_machine_idle
+  T:prefer_longest_idle_A3_hosts_first_and_reserve_16_of_16_clear_A3_hosts_for_TP16_and_headline_wallclock_AB
+  T:use_existing_fast_local_storage_or_dev_shm_opportunistically_under_anonymized_trt_paths_without_mandating_378GB_ramdisk_copies
+  T:keep_warm_containers_alive_across_back_to_back_sprint_iterations_on_idle_dies_and_clean_up_containers_and_HBM_upon_cotenant_yield_host_switch_or_session_end
+  A:halting_at_cpu_or_waiting_for_16_dies_when_1_or_few_free_A3_dies_can_validate_the_mechanism⇒needs_revision
+  A:killing_disturbing_or_competing_with_other_users_processes_or_touching_occupied_dies⇒boundary_breach
+  A:abandoning_idle_session_with_leaked_containers_or_wedged_HBM⇒boundary_breach
+
+::GENE{anti_local_optima_search|conf:confirmed|scope:project}
+  T:maintain_ELITE_ARCHIVE_across_orthogonal_structural_axes_comm_topology_by_exec_envelope_preserving_the_best_branch_per_cell_and_sampling_parents_across_cells_rather_than_greedily_mutating_a_single_best_TPOT_branch
+  T:protect_nascent_architectural_cells_across_fitness_valleys_by_judging_initial_stepping_stones_against_their_component_physical_floor_before_end_to_end_TP16_tournament
+  T:maintain_additive_roofline_slack_accounting_HBM_floor_host_sync_PIPE_S_stall_comm_rendezvous_and_unfused_GM_traffic_banning_further_edits_to_exhausted_components_and_forcing_representation_shifts_down_to_C_IR_ISA_or_up_to_cross_step_co_design_when_gains_flatten
+  T:enforce_Lakatosian_degeneration_gate_with_Luby_restart_schedule_1_1_2_1_1_2_4_truncating_any_lineage_after_two_consecutive_ad_hoc_revisions_without_confirmed_novel_physical_predictions_and_cold_starting_an_isolated_context_on_an_underexplored_or_incompatible_cell
+  T:block_near_duplicate_knob_variants_against_DOCS_probe_before_NPU_execution_and_dedicate_fixed_scout_budget_to_unranked_cann_star_and_disassembly_walks_plus_CUDA_NVSHMEM_FlashInfer_DeepEP_structural_translations
+  A:greedy_single_branch_hill_climbing_or_soft_adaptive_lingering_on_a_degenerating_lineage⇒waste_resource
+  A:discarding_a_structurally_novel_cell_solely_because_its_unoptimized_v0_trails_a_polished_local_optimum⇒overengineer
+
+::GENE{open_ended_sublation_and_upstreaming|conf:confirmed|scope:project}
+  T:treat_plan_md_milestones_and_reduction_trees_as_falsifiable_hypotheses_subordinated_to_precision_gate_and_wallclock_TPOT
+  T:commit_push_and_harvest_verified_incremental_wins_immediately_whether_end_to_end_TP16_TPOT_drops_new_ELITE_ARCHIVE_cells_open_or_standalone_kernels_and_cann_star_fixes_land
+  T:fork_target_GitCode_cann_star_repos_on_demand_under_fan33_and_drive_PRs_via_vibe_pr_skill_alongside_vllm_ascend_tilelang_ascend_and_TileRT
+  T:use_binary_disassembly_freely_for_ISA_diagnosis_while_shipping_clean_source_implementations
+
+::GENE{lakatosian_measurement_rigor|conf:confirmed|scope:project}
+  T:state_a_falsifiable_quantitative_hypothesis_for_the_target_physical_component_before_each_benchmark
+  T:isolate_compile_and_kernel_caches_between_AB_arms_and_verify_loaded_artifact_provenance
+  T:exceed_192MB_L2_working_set_and_vary_shmem_payload_periods_when_running_standalone_op_or_collective_microbenchmarks
+  T:preserve_reusable_test_harnesses_and_per_cell_elite_branches_while_recording_falsified_mechanisms_in_probe_md
+  A:effort_tokens_or_unverified_memory_cited_as_progress⇒reject
+  A:profiling_enabled_during_headline_wallclock_measurement⇒invalid_evidence
+
+::GENE{clean_code_and_persistence|conf:confirmed|scope:project}
+  T:enforce_STANDARDS_clean_code_and_pep8_with_zero_defensive_bloat_and_zero_dead_code
+  T:keep_DOCS_plan_lesson_probe_ultra_terse_factual_and_linked_to_raw_receipts
+  A:cosmetic_churn_or_unattributed_multi_knob_diffs⇒reformat
+
+::RULE{conformance}
+  Operate at L1/L2 advisory-to-tool-verified rigor (SPEC-v4.0 §0, §4, §7): perceive the 11-dimension vector before external actions and route via f_v5; act autonomously under M1/M2 on reversible isolated A3 runs when co-tenant ext >= 0.90; emit ::EVIDENCE backed by @TOOL receipts; emit ::STATUS{@TASK|...|by:@SELF|authority:proposal} only.
+::RULE{proxy_signals⇒insufficient}
+::RULE{effort_not_evidence⇒reject}
+::RULE{memory_not_evidence⇒reject}
+::RULE{budget_pressure_completion⇒forbidden}
+
+::FALLBACK{chosen_A3_dies_acquire_cotenant_load⇒release_own_containers_politely_and_switch_via_kbenv_cards_column_to_other_free_A3_dies_or_next_longest_idle_A3_host}
+::FALLBACK{candidate_trails_global_TPOT_but_opens_new_ELITE_ARCHIVE_cell_near_component_floor⇒retain_branch_in_cell_archive_instead_of_reverting}
+::FALLBACK{candidate_fails_truth_gate_or_regresses_within_same_cell⇒record_receipt_in_probe_md_revert_only_regressed_mechanism_and_advance_Luby_counter}
+
+[READ:@DOCS|path="docs/{plan,lesson,probe}.md"]=>[SCAN:@ELITE_ARCHIVE|whr="roofline_slack_ledger_and_underexplored_or_incompatible_structural_cells"]=>[DECI:@ELITE_ARCHIVE|whr="Lakatos_degeneration_check_and_Luby_1_1_2_1_1_2_4_truncate_restart_or_cell_selection"]=>[GET:@GH|whr="unranked_cann_star_source_walk_and_cross_ecosystem_CUDA_NVSHMEM_FlashInfer_DeepEP_translation"]=>[PLAN:@CANDIDATE|pri=p0,scp=strict]=>[FILT:@CANDIDATE|src=@DOCS,whr="reject_near_duplicate_mechanism_and_exhausted_roofline_slack_dimension"]=>[FIX:@REPO|whr="minimal_clean_source_implementation"]=>[TEST:@LOCAL|whr="fast_host_or_compiler_preflight_matching_change_scope"]=>[RUN:@LAB_ENV|path="kbenv --once",whr="A3_only_9392_or_9382_by_cards_and_die_strip_seizing_1_or_few_free_dies_immediately_or_longest_idle_16_of_16_with_zero_eviction"]=>[SYNC:@A3_NODE|src=@REPO,exc=".git"]=>[RUN:@A3_NODE|whr="bind_verified_free_A3_dies_via_ASCEND_RT_VISIBLE_DEVICES_with_anonymized_trt_prefix_and_warm_sprint_reuse"]=>[BNCH:@A3_NODE|whr="profiler_off_isolated_cache_same_host_paired_AB_and_truth_gate"]=>[SET:@ELITE_ARCHIVE|whr="update_per_cell_elite_QD_coverage_and_roofline_slack_ledger"]=>[WRIT:@DOCS|fmt=md,len=short]=>[SAVE:@REPO|whr="incremental_conventional_commit_push_and_upstream_PR_staging_including_all_cann_star"]=>[LOOP:@TASK|whr="P3_passes_2ms_not_yet_verified_and_free_A3_dies_available"]=>[EXTC:@OBJECTIVE|typ=deliverables]=>[AUDT:@DELIVERABLES|typ=evidence_map]=>[VALD:@EVIDENCE_SET|src=@OBJECTIVE]=>[SCOR|src=@RUBRIC]=>[CHEK:@AUDIT_REPORT|whr="score>=1.00,no_unknown,no_fail"]=>[Ω]

@@ -12,6 +12,7 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 from importlib.metadata import version
 import json
+import inspect
 import os
 from pathlib import Path
 import platform
@@ -65,6 +66,8 @@ class MeasuredRank(CannRankEngine):
         self.group = group
         self.requests = []
         self.current = None
+        self.round_capture = None
+        self.profile_request_total = None
 
 
     @property
@@ -85,9 +88,19 @@ class MeasuredRank(CannRankEngine):
         }
         self.requests.append(self.current)
 
+    def start_mtp(self, first_token, max_tokens, width, eos_tokens):
+        super().start_mtp(first_token, max_tokens, width, eos_tokens)
+        if (self.round_capture is not None
+                and len(self.requests) == self.profile_request_total):
+            self.round_capture.start()
+
     def advance_mtp(self):
         start = perf_counter_ns()
-        result = super().advance_mtp()
+        if self.round_capture is not None and self.round_capture.active:
+            with self.round_capture.round():
+                result = super().advance_mtp()
+        else:
+            result = super().advance_mtp()
         end = perf_counter_ns()
         commit = result.commit
         self.current["rounds"].append({
@@ -106,6 +119,8 @@ class MeasuredRank(CannRankEngine):
         return result
 
     def finish_mtp(self, retained_position):
+        if self.round_capture is not None and self.round_capture.active:
+            self.round_capture.close()
         super().finish_mtp(retained_position)
         self.current["finished"] = [self.position, self.draft_position]
 
@@ -179,6 +194,9 @@ def arguments():
                         help="Capture the device on the last request only,"
                              " at the real width and after the caches have"
                              " settled; exclude that request from TPOT")
+    parser.add_argument("--profile-rounds", type=int, choices=range(6), default=0,
+                        help="Capture at most N rounds of the last request on"
+                             " every rank, with CPU/NPU activities")
     parser.add_argument("--tree", action="store_true",
                         help="Draft a tree rather than a chain; the round"
                              " verifies it under a per-row attention mask and"
@@ -226,6 +244,8 @@ def arguments():
         parser.error("Require >=2 outputs, >=0 warmup and >=1 requests")
     if args.profile_last and args.requests < 2:
         parser.error("--profile-last requires an unprofiled measured request")
+    if args.profile_rounds and not args.profile_last:
+        parser.error("--profile-rounds requires --profile-last")
     if args.rounds_per_command < 1:
         parser.error("--rounds-per-command must be positive")
     if (args.target_graph or args.draft_graph) and args.warmup < 1:
@@ -270,7 +290,7 @@ def drive(backend, first, args):
                 session.inject(PrefixRequest(f"mtp-bench-{number}",
                                              PREFIX_LENGTH))
                 capture = nullcontext()
-                if profiled:
+                if profiled and not getattr(args, "profile_rounds", 0):
                     import torch_npu
                     capture = torch_npu.profiler.profile(
                         activities=[torch_npu.profiler.ProfilerActivity.NPU],
@@ -287,7 +307,7 @@ def drive(backend, first, args):
                         sampling={"temperature": 0.0, "ignore_eos": True},
                         on_token=deliver,
                     )
-                if profiled:
+                if profiled and not getattr(args, "profile_rounds", 0):
                     # Parsing produces kernel_details.csv from the raw trace.
                     import torch_npu
                     torch_npu.profiler.profiler.analyse(
@@ -423,6 +443,24 @@ def validate_local(report, args):
         if (graph["captures"] != 1 or graph["replays"] != sum(
                 len(history["rounds"]) for history in histories)):
             raise ValueError("M4 conditioned graph counts differ")
+    if getattr(args, "profile_rounds", 0):
+        capture = report["bounded_capture"]
+        expected = min(args.profile_rounds,
+                       len(report["rank_requests"][-1]["rounds"]))
+        spans = capture["ranges"]
+        rounds = [span for span in spans if span["name"] == "trt.round"]
+        if (not capture["started"] or not capture["closed"]
+                or capture["active"] or capture["error"] is not None
+                or capture["rank"] != report["rank"]
+                or capture["limit"] != args.profile_rounds
+                or capture["completed"] != expected or len(rounds) != expected
+                or [span["index"] for span in rounds] != list(range(expected))
+                or any(not span["completed"]
+                       or span["end_ns"] < span["start_ns"] for span in spans)
+                or any(sum(span["name"] == phase for span in spans) != expected
+                       for phase in ("trt.verify", "trt.metadata", "trt.head",
+                                     "trt.host_tokens"))):
+            raise ValueError("Bounded rank profile coverage differs")
     if report["rank"] == 0:
         validate_delivery(report["requests"], histories, args)
     return histories
@@ -527,6 +565,8 @@ def run(args, report):
     )):
         raise ValueError("Run this measurement without profiling")
     torch.set_num_threads(1)
+    if args.profile_rounds:
+        torch.npu.matmul.allow_hf32 = False
     checkpoint = checkpoint_fingerprint(args.checkpoint)
     main, mtp, parent, first, inputs = load_inputs(args, rank, checkpoint)
     if inputs["initial_position"] != PREFIX_LENGTH:
@@ -554,7 +594,7 @@ def run(args, report):
                        hoist_metadata=args.hoist_metadata,
                        hoist_forward_context=args.hoist_forward_context,
                        packed_host_inputs=args.packed_host_inputs)
-    draft = None
+    draft, engine = None, None
     try:
         draft = create_draft(target, args)
         report["draft_model_loaded"] = draft is not None
@@ -580,6 +620,13 @@ def run(args, report):
             drafter=("tree" if args.tree else
                      "automaton" if args.automaton else "lookup"),
         )
+        if args.profile_rounds:
+            from bounded_round_profile import RoundCapture
+
+            engine.round_capture = RoundCapture(
+                args.output, rank, args.profile_rounds, target,
+            )
+            engine.profile_request_total = args.warmup + args.requests
         prefix = FullRankPrefix(main, mtp, parent.to(target.device), 8192)
         opening = first
         with torch.inference_mode():
@@ -688,9 +735,17 @@ def run(args, report):
                 ROOT / "tilert/models/glm_5_2_ascend/session.py",
             ):
                 sources[str(path)] = digest(path)
+            if args.profile_rounds:
+                from bounded_round_profile import RoundCapture
+                from profile_native_session import make_profiler, npu_range
+
+                for value in (RoundCapture, make_profiler, npu_range):
+                    path = Path(inspect.getfile(inspect.unwrap(value)))
+                    sources[str(path)] = digest(path)
             report.update(
                 inputs=inputs, checkpoint_sha256=checkpoint,
                 source_sha256=sources, model_tp_reduction=target.tp_reduction,
+                matmul_allow_hf32=bool(torch.npu.matmul.allow_hf32),
                 packages={name: version(name) for name in
                           ("torch", "torch-npu", "vllm", "vllm-ascend")},
                 device=str(target.device), runtime_env={
@@ -743,6 +798,8 @@ def run(args, report):
                              "input_addresses": entry.input_addresses}
                             for key, entry in graph.wrapper
                             .concrete_aclgraph_entries.items()]},
+            bounded_capture=(None if engine.round_capture is None
+                             else engine.round_capture.receipt()),
         )
         # Validate before saving: the checks are what add the output's digest
         # and its distinct-token count, and a record written ahead of them
@@ -803,6 +860,7 @@ def run(args, report):
                 "hoist_metadata": args.hoist_metadata,
                 "hoist_forward_context": args.hoist_forward_context,
                 "packed_host_inputs": args.packed_host_inputs,
+                "profile_rounds": args.profile_rounds,
                 "compile_target": args.compile_target,
                 "super_kernel": args.super_kernel,
                 "attention_kernel": args.attention_kernel,
@@ -818,9 +876,17 @@ def run(args, report):
             atomic_json(args.output / "summary.json", summary)
         return passed
     finally:
-        if draft is not None:
-            draft.close()
-        target.shutdown()
+        try:
+            if engine is not None and engine.round_capture is not None:
+                if engine.round_capture.active:
+                    engine.round_capture.close(sys.exc_info()[1])
+                report["bounded_capture"] = engine.round_capture.receipt()
+        finally:
+            try:
+                if draft is not None:
+                    draft.close()
+            finally:
+                target.shutdown()
 
 def main():
     args = arguments()
@@ -840,6 +906,7 @@ def main():
         "hoist_metadata": args.hoist_metadata,
         "hoist_forward_context": args.hoist_forward_context,
         "packed_host_inputs": args.packed_host_inputs,
+        "profile_rounds": args.profile_rounds,
         "compile_target": args.compile_target,
         "super_kernel": args.super_kernel,
         "attention_kernel": args.attention_kernel,

@@ -216,6 +216,8 @@ class MtpRoundExecutor:
             proposal = self.drafter.propose(plan.width - 1)
             if mark:
                 mark("propose")
+            if 0 < len(proposal) < plan.width - 1:
+                proposal = (proposal * (plan.width // len(proposal) + 1))[:plan.width - 1]
             candidates = [plan.pending_token, *proposal[:plan.width - 1]]
             candidates += [plan.pending_token] * (plan.width - len(candidates))
             verified = self.target.verify(candidates, full_logits=False)

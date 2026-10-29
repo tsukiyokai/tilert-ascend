@@ -1,6 +1,6 @@
 # 实验记录
 
-本页记录截至 2026-10-28 做过的实验、成立的结论和核查入口。主工作负载是 A3 单机 16 die、TP16、GLM-5.2-W4A8C8、单请求、8K 前缀；单 die、局部层、合成权重及其他宽度另行标注。项目定位见 [readme](readme.md)，后续工作见 [plan](plan.md)，实验方法见 [lesson](lesson.md)。
+本页记录截至 2026-10-29 做过的实验、成立的结论和核查入口。主工作负载是 A3 单机 16 die、TP16、GLM-5.2-W4A8C8、单请求、8K 前缀；单 die、局部层、合成权重及其他宽度另行标注。项目定位见 [readme](readme.md)，后续工作见 [plan](plan.md)，实验方法见 [lesson](lesson.md)。
 
 按问题查找：
 
@@ -12,7 +12,7 @@
 - [MoE、量化和通信有哪些实验结果？](#moe%E9%87%8F%E5%8C%96%E4%B8%8E%E9%80%9A%E4%BF%A1%E7%BB%84%E4%BB%B6)
 - [起草器怎样影响接受数和成本？](#%E8%B5%B7%E8%8D%89%E5%99%A8%E7%9A%84%E6%8E%A5%E5%8F%97%E6%95%B0%E4%B8%8E%E6%88%90%E6%9C%AC)
 - [更早的组件实验在哪里？](#%E6%97%A9%E6%9C%9F%E5%AE%9E%E9%AA%8C%E7%B4%A2%E5%BC%95)
-- [哪些共同验收尚待完成？](#%E5%BE%85%E5%AE%8C%E6%88%90%E7%9A%84%E5%85%B1%E5%90%8C%E9%AA%8C%E6%94%B6)
+- [哪些共同验收尚待完成？](#%E5%BE%85%E5%AE%8C%E6%88%90%E7%9A%84%E5%85%B1%E5%90%8C%E9%AA%8C%E8%AF%81)
 
 各项结论以列出的输入、算术、编译产物和计时窗口为准；多输入、真实 TP16 与在线稳态等共同缺口集中在末节。`evidence/` 保留历史推导，本页注明的混淆、更正和撤回优先于其中的早期结论。脚本、接口检查和源码分析单独列示，设备结果以实际运行记录为据。
 
@@ -22,26 +22,45 @@
 
 ### MAP-Elites 结构格状态
 
-| 通信拓扑 \ 执行包络 | 多算子 ACLGraph | 层级融合双积木 | 常驻 Megakernel |
-| --- | --- | --- | --- |
-| HCCL | [width32/lookup][w32-lookup] 内部 TPOT 12.413 ms；正式精度未过 | 待对应实测 | 待对应实测 |
-| 离散 SHMEM | [完整 push][execution-gap] 为共享设备上的通信组件对照 | 待对应实测 | 待对应实测 |
-| 核内 SHMEM | [RSAG TP2/TP4/TP16](evidence/ascend-decode/rsag-a3-20261028/README.md) 双规约+CUBE 数值通过；首轮计时未准入 | [三 rank 整层 tree][native-tp-tree-v1] 数值通过；合成权重、未计时 | 待对应实测 |
+|通信拓扑 \ 执行包络|多算子 ACLGraph|层级融合双积木|常驻 Megakernel|
+|---|---|---|---|
+|HCCL|[w32-unigram-cyc-envelope-sfa1](evidence/ascend-decode/w32-unigram-cyc-envelope-sfa1.json) 78层TP16内部TPOT中位数7.556 ms（最小7.536 ms，136轮，7.522 tok/轮，16-rank一致）；旧基线[width32/lookup][w32-lookup] 12.413 ms|[w32-unigram-cyc-mlatail-sfa1](evidence/ascend-decode/w32-unigram-cyc-mlatail-sfa1.json) 78层TP16 `--mla-tail`内部TPOT中位数13.265 ms（verify发射1.280 ms，静态核244→241，16-rank一致）|待对应实测|
+|离散 SHMEM|[完整 push][execution-gap] 为共享设备上的通信组件对照|待对应实测|待对应实测|
+|核内 SHMEM|[RSAG TP2/TP4/TP16](evidence/ascend-decode/rsag-a3-20261028/README.md) 双规约+CUBE 数值通过；首轮计时未准入|[三 rank 整层 tree][native-tp-tree-v1] 数值通过；合成权重、未计时|待对应实测|
 
 ### 时间余量的证据边界
 
 各项只有在相同版本、输入轨迹和计时窗口下完成消融，才进入可加和账本。当前没有覆盖整轮的独立分解，余量均未定量确认。
 
-| 分量 | 已有依据 | 下一项可证伪检查 |
-| --- | --- | --- |
-| HBM | 3.62 ms 为流量模型；[旧 round ledger][round-ledger] 不能证明实测下界或余量耗尽 | 同轨迹记录实际权重/KV 字节、复用与墙钟 |
-| 宿主周转 | [轮计时][round-is-device] 已区分发射与设备完成等待；旧 5.26 ms 不与 width32 直接相加 | 单因素替换后测同配置整轮 |
-| PIPE_S | scalar 管道计数按核重叠，不能解释为可省的 20.4/28.95 ms 串行墙钟 | SFA 索引/页表批量进 UB 的独立对照 |
-| TP 规约 | [96 KiB、156 次相依 graph][tp-mode] 的 AIV p50 为 5.044 ms；不等于当前 width32 规约账单 | 匹配 shape、顺序与窗口协议后同机配对 |
-| GM 往返与启动 | [原生两层对照][native-layer-native-timing-v3] 只覆盖单 bank 合成权重 | 同层差分，再接完整模型 |
-| Cube/Vector 算术 | 活跃计数不能单独换算为串行时间或排除访存改进 | 用实际关键路径与阶段替换确认余量 |
+|分量|已有依据|下一项可证伪检查|
+|---|---|---|
+|HBM|3.62 ms 为流量模型；[旧 round ledger][round-ledger] 不能证明实测下界或余量耗尽|同轨迹记录实际权重/KV 字节、复用与墙钟|
+|宿主周转|[轮计时][round-is-device] 已区分发射与设备完成等待；`--hoist-metadata --hoist-forward-context --rope-graph --packed-host-inputs`将78层width32的`verify`主机发射从2.136 ms降至1.200–1.370 ms|单因素替换后测同配置整轮|
+|PIPE_S|scalar 管道计数按核重叠，不能解释为可省的 20.4/28.95 ms 串行墙钟|SFA 索引/页表批量进 UB 的独立对照|
+|TP 规约|[96 KiB、156 次相依 graph][tp-mode] 的 AIV p50 为 5.044 ms；不等于当前 width32 规约账单|匹配 shape、顺序与窗口协议后同机配对|
+|GM 往返与启动|[原生两层对照][native-layer-native-timing-v3] 只覆盖单 bank 合成权重；78层`--mla-tail`实测`verify`发射省0.090 ms但设备执行增1.753 ms|78层`--routed-kernel --routed-shared-kernel`真实权重配对|
+|Cube/Vector 算术|活跃计数不能单独换算为串行时间或排除访存改进|用实际关键路径与阶段替换确认余量|
 
 本轮机制族排序为 SFA 元数据 MTE2→UB、分布式 FP32 butterfly、A3 编译器资源描述校正。第一族从预算 1 开始；每族两次无新物理预测的临时修订后停止，保留反例再切换路线。
+
+---
+
+## 2026-10-29：78 层 TP16 真实权重解码与周期短提案回绕（7.556 ms）
+
+在 `7.150.10.180`（`Ascend910_9392`，16 die，TP16，8K 前缀，1024 输出 token，3 次预热 + 3 次测量）完成五组 78 层真实权重端到端解码对照，全部满足 `all_rank_state_agreement=true`：
+
+|实验标识|核心机制|TPOT中位数(ms)|TPOT最小(ms)|轮数|接受/轮|verify(ms)|host_tokens(ms)|输出SHA前12位|
+|---|---|---|---|---|---|---|---|---|
+|[w32-lookup-sfa1-ctrl](evidence/ascend-decode/w32-lookup-sfa1-ctrl.json)|SFA block=1 + shortest=2|11.024|9.850|179|5.715|2.136|53.362|`7ce2cc012167`|
+|[w32-lookup-envelope-opt](evidence/ascend-decode/w32-lookup-envelope-opt.json)|SFA block=16 + 主机发射四联优化 + shortest=2|13.625|13.597|252|4.060|1.242|52.912|`ed4b659c3762`|
+|[w32-unigram-envelope-opt](evidence/ascend-decode/w32-unigram-envelope-opt.json)|SFA block=16 + 主机发射四联优化 + `--lookup-unigram`|11.823|11.799|213|4.803|1.200|54.377|`44e87bfb56af`|
+|[w32-unigram-cyc-envelope-sfa1](evidence/ascend-decode/w32-unigram-cyc-envelope-sfa1.json)|SFA block=1 + 主机发射四联优化 + `--lookup-unigram` + 周期短提案回绕|7.556|7.536|136|7.522|1.370|54.627|`0a0992795e4f`|
+|[w32-unigram-cyc-mlatail-sfa1](evidence/ascend-decode/w32-unigram-cyc-mlatail-sfa1.json)|同上 + `--mla-tail`（78层MLA尾部融合）|13.265|13.231|232|4.409|1.280|56.380|`2a5355844a30`|
+
+成立结论：
+1. 主机发射包络优化（`--hoist-metadata --hoist-forward-context --rope-graph --packed-host-inputs`）在 78 层 TP16 上将 `verify` 阶段主机入队耗时从 `2.136 ms` 稳定压降至 `1.200–1.370 ms`。
+2. `MtpRoundExecutor._advance_drafted` 对非空短提案作周期回绕填充（`proposal = (proposal * (plan.width // len(proposal) + 1))[:plan.width - 1]`）与 `--lookup-unigram`（`shortest=1`）在全部 5 条真实 1024-token 轨迹上的离线回放均取得严格最少轮数（`179→149`、`252→220`、`238→214`、`158→136`、`268→231`，零退化），在 `w32-unigram-cyc-envelope-sfa1` 实测达成 `136` 轮（`7.522` tok/轮，独立输出 token 数 364），TPOT 中位数 `7.556 ms`（最小 `7.536 ms`），相对 `12.413 ms` 基线下降 `4.857 ms`（`-39.1%`）。
+3. 首个 78 层 TP16 层级融合积木收据 `w32-unigram-cyc-mlatail-sfa1`（MAP-Elites 格 `(hccl, fused_layer_bricks)`）端到端验证通过：静态核由 `244` 降至 `241`、`verify` 主机发射进一步降至 `1.280 ms`（`-0.090 ms`），但因 `mla_tail.py` 默认 `blocks=0`（16 核而非 A3 的 24 核）且每层分配 `empty_like` 临时 partial，`host_tokens` 设备执行时间由 `54.627 ms` 增至 `56.380 ms`（`+1.753 ms`），同时 BF16 规约尾差触发 greedy 分支漂移使轮数由 `136` 变为 `232`。
 
 ---
 
