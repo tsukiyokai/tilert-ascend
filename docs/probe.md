@@ -1,6 +1,6 @@
 # 实验记录
 
-本页记录截至 2026-10-29 做过的实验、成立的结论和核查入口。主工作负载是 A3 单机 16 die、TP16、GLM-5.2-W4A8C8、单请求、8K 前缀；单 die、局部层、合成权重及其他宽度另行标注。项目定位见 [readme](readme.md)，后续工作见 [plan](plan.md)，实验方法见 [lesson](lesson.md)。
+本页记录截至 2026-11-01 做过的实验、成立的结论和核查入口。主工作负载是 A3 单机 16 die（TP16 或 TP8+EP8）、GLM-5.2-W4A8C8、单请求、8K 前缀；单 die、局部层、合成权重及其他宽度另行标注。项目定位见 [readme](readme.md)，后续工作见 [plan](plan.md)，实验方法见 [lesson](lesson.md)。
 
 按问题查找：
 
@@ -24,8 +24,8 @@
 
 |通信拓扑 \ 执行包络|多算子 ACLGraph|层级融合双积木|常驻 Megakernel|
 |---|---|---|---|
-|HCCL|[w32-unigram-cyc-envelope-sfa1](evidence/ascend-decode/w32-unigram-cyc-envelope-sfa1.json) 78层TP16内部TPOT中位数7.556 ms（最小7.536 ms，136轮，7.522 tok/轮，16-rank一致）；旧基线[width32/lookup][w32-lookup] 12.413 ms|[w32-unigram-cyc-mlatail-sfa1](evidence/ascend-decode/w32-unigram-cyc-mlatail-sfa1.json) 78层TP16 `--mla-tail`内部TPOT中位数13.265 ms（verify发射1.280 ms，静态核244→241，16-rank一致）|待对应实测|
-|离散 SHMEM|[完整 push][execution-gap] 为共享设备上的通信组件对照|待对应实测|待对应实测|
+|HCCL|[w80-tp8-ep8-sfa-sk-formal](evidence/ascend-decode/w80-tp8-ep8-sfa-sk-formal.json) 78层TP8+EP8（`9392`）冻结分母（220轮，4.655 tok/轮，SHA `f35b9bd1a857`）内部TPOT最小8.3532 ms（中位数8.3589 ms，`host_tokens=37.977 ms`，单轮总耗时38.842 ms，8-rank一致）；[w73-tp8-ep8-sfa-v2-sk-formal](evidence/ascend-decode/w73-tp8-ep8-sfa-v2-sk-formal.json) 最小8.654 ms（中位数8.671 ms，`host_tokens=39.104 ms`）；[w72-tp8-ep8-sfa-exact-sk-formal](evidence/ascend-decode/w72-tp8-ep8-sfa-exact-sk-formal.json) 中位数8.947 ms；旧TP8+EP8基线12.273 ms（单轮56.51 ms）；TP16对照见[w32-lookup-sfa1-ctrl](evidence/ascend-decode/w32-lookup-sfa1-ctrl.json) 11.024 ms|[w32-unigram-cyc-mlatail-sfa1](evidence/ascend-decode/w32-unigram-cyc-mlatail-sfa1.json) 78层TP16 `--mla-tail`内部TPOT中位数13.265 ms（verify发射1.280 ms，静态核244→241，16-rank一致）|待对应实测|
+|离散 SHMEM|[w32-unigram-cyc-onesided-sfa1](evidence/ascend-decode/w32-unigram-cyc-onesided-sfa1.json) 78层TP16 `--onesided-reduce`实测`host_tokens=61.256 ms`（较HCCL AIV慢6.63 ms/轮）且SuperKernel下跨步无屏障致数值退化（输出仅2种token）；[完整 push][execution-gap]为组件对照|待对应实测|待对应实测|
 |核内 SHMEM|[RSAG TP2/TP4/TP16](evidence/ascend-decode/rsag-a3-20261028/README.md) 双规约+CUBE 数值通过；首轮计时未准入|[三 rank 整层 tree][native-tp-tree-v1] 数值通过；合成权重、未计时|待对应实测|
 
 ### 时间余量的证据边界
@@ -45,22 +45,55 @@
 
 ---
 
-## 2026-10-29：78 层 TP16 真实权重解码与周期短提案回绕（7.556 ms）
+## 2026-10-31 至 2026-11-01：78 层 TP8+EP8 算子级重构（56.51→38.84 ms/轮，TPOT 12.273→8.353 ms）与编译器/微架构意外发现
 
-在 `7.150.10.180`（`Ascend910_9392`，16 die，TP16，8K 前缀，1024 输出 token，3 次预热 + 3 次测量）完成五组 78 层真实权重端到端解码对照，全部满足 `all_rank_state_agreement=true`：
+在 `7.150.11.149` 与 `7.150.10.180`（`Ascend910_9392`）上固定 78 层 `TP8+EP8`（`world_size=8, expert_parallel=True`）、8K 前缀 `case-00`、1024 输出 token、`width=32` 及完全冻结的起草器分母（`first_token=6500`、220 轮、`E[accept]=4.655`、输出 SHA `f35b9bd1a8578fd0e61dfc3823631b47e38bb730f876128ffb29dce70f4e8c45`），严格通过削减每轮 NPU 执行时间 $T_{\text{round}}$ 推进端到端 TPOT：
 
-|实验标识|核心机制|TPOT中位数(ms)|TPOT最小(ms)|轮数|接受/轮|verify(ms)|host_tokens(ms)|输出SHA前12位|
-|---|---|---|---|---|---|---|---|---|
-|[w32-lookup-sfa1-ctrl](evidence/ascend-decode/w32-lookup-sfa1-ctrl.json)|SFA block=1 + shortest=2|11.024|9.850|179|5.715|2.136|53.362|`7ce2cc012167`|
-|[w32-lookup-envelope-opt](evidence/ascend-decode/w32-lookup-envelope-opt.json)|SFA block=16 + 主机发射四联优化 + shortest=2|13.625|13.597|252|4.060|1.242|52.912|`ed4b659c3762`|
-|[w32-unigram-envelope-opt](evidence/ascend-decode/w32-unigram-envelope-opt.json)|SFA block=16 + 主机发射四联优化 + `--lookup-unigram`|11.823|11.799|213|4.803|1.200|54.377|`44e87bfb56af`|
-|[w32-unigram-cyc-envelope-sfa1](evidence/ascend-decode/w32-unigram-cyc-envelope-sfa1.json)|SFA block=1 + 主机发射四联优化 + `--lookup-unigram` + 周期短提案回绕|7.556|7.536|136|7.522|1.370|54.627|`0a0992795e4f`|
-|[w32-unigram-cyc-mlatail-sfa1](evidence/ascend-decode/w32-unigram-cyc-mlatail-sfa1.json)|同上 + `--mla-tail`（78层MLA尾部融合）|13.265|13.231|232|4.409|1.280|56.380|`2a5355844a30`|
+|实验标识|机型|核心机制|TPOT最小(ms)|TPOT中位数(ms)|轮数|接受/轮|单轮总耗时(ms)|host_tokens(ms)|输出SHA前12位|
+|---|---|---|---|---|---|---|---|---|---|
+|TP8+EP8 sfa1 基线|9392|TP8+EP8 初始 sfa1 静态核|12.251|12.273|220|4.655|56.510|55.120|`f35b9bd1a857`|
+|[w70b-tp8-ep8-gmm12-sk-formal](evidence/ascend-decode/w70b-tp8-ep8-gmm12-sk-formal.json)|9392|Prolog/Quant 向量化 + GMM1/GMM2 W4A8 分块重构 + 静态核重编|9.247|9.259|220|4.655|42.473|42.148|`f35b9bd1a857`|
+|[w72-tp8-ep8-sfa-exact-sk-formal](evidence/ascend-decode/w72-tp8-ep8-sfa-exact-sk-formal.json)|9392|同上 + SFA 24 核全量协同 `CoopMergeKv`/`ComputeMm1CoopTile`（`mtp_m1: 112→58.85 µs, target_m32: 196→153.98 µs`）|8.941|8.947|220|4.655|41.038|40.715|`f35b9bd1a857`|
+|[w73-tp8-ep8-sfa-v2-sk-formal](evidence/ascend-decode/w73-tp8-ep8-sfa-v2-sk-formal.json)|9392|同上 + SFA 64位 `CeilDiv`/`CeilAlign` 修正 + `PreloadPipeline` 合一 + 两阶段 6 块辅助核卸载（`target_m32: 153.98→127.58 µs`）|8.654|8.671|220|4.655|40.320|39.104|`f35b9bd1a857`|
+|[w80-tp8-ep8-sfa-sk-formal](evidence/ascend-decode/w80-tp8-ep8-sfa-sk-formal.json)|9392|同上 + `QuantLightningIndexer` 单遍就地归并 + 16行批量 `ProcessVD` + `MlaPrologV3` 静态核融合进 SuperKernel `sk_14`|8.353|8.359|220|4.655|38.842|37.977|`f35b9bd1a857`|
+
+在 [sfa-fast-iter-20261031](evidence/ascend-decode/sfa-fast-iter-20261031/) 及后续静态核重构中，单算子 `mtp_m1` 从 `112 µs` 压至 `55.22 µs`（`-50.7%`）、`target_m32` 从 `196 µs` 压至 `125.10 µs`（`-36.2%`，`max_diff=0.00e+00`）、`QuantLightningIndexer` 从 `90.61 µs` 压至 `29.10 µs`（`-67.9%`），期间捕获并验证七项关键意外发现：
+
+|发现编号|意外发现与根因机制|定量效应与验证证据|
+|---|---|---|
+|1. CANN `CeilDiv`/`CeilAlign` 16位隐式截断陷阱|CANN 9.2.0 的 `batch_matmul_utils.h`（被 `using namespace matmul;` 引入全局）仅定义 `uint16_t CeilDiv(uint16_t, uint16_t)` 与 `uint16_t CeilAlign(uint16_t, uint16_t)`。`SFAVectorService` 中全部 11 处 `int64_t` 调用被静默截断为 `uint16_t`（生成 `AND.b64 #65535` 与 32 位有符号除法），诱发寄存器溢出并多生成 41 条指令（164 B）|在 [sparse_flash_attention_common.h](evidence/ascend-decode/sfa-fast-iter-20261031/src/sparse_flash_attention_common.h) 补齐泛型 64 位 `CeilDiv`/`CeilAlign` 后，`target_m32` 从 `153.98 µs` 降至 `142.39 µs`（`-11.59 µs`），`mtp_m1` 从 `58.85 µs` 降至 `56.53 µs`（`-2.32 µs`），`max_diff=0.00e+00`|
+|2. `PreloadPipeline` 双重内联膨胀与 L1 I-Cache 越界|`Process()` 同时内联 `ProcessBalanceCoop()->RunSingleToken()->PreloadPipeline()` 与 `ProcessBalance()->PreloadPipeline()`，加之辅助核二次内联 `MergeKv`，使 `mix_aiv` 暴涨至 `71,440 B`（越过 64 KB L1 指令缓存边界）、`mix_aic` 达 `34,636 B`，导致 `mtp_m1` 回退 `+2.2 µs`|在 [sparse_flash_attention_kernel_mla.h](evidence/ascend-decode/sfa-fast-iter-20261031/src/arch22/sparse_flash_attention_kernel_mla.h) 将两套入口合一并复用 `MergeKvCoop`，`mix_aiv` 缩减 `51.9%` 至 `34,376 B`、`mix_aic` 缩减 `36.3%` 至 `22,048 B`，`mtp_m1` 降至 `55.22 µs`，`target_m32` 降至 `127.58 µs`|
+|3. 双通道 `bisheng` + `ld.lld -r` 的 `noinline` 弱符号碰撞与标量提升失效|MIX 算子分两次编译 `aic.o`（`dav-c220-cube`）与 `aiv.o`（`dav-c220-vec`）后由 `ld.lld -r` 合并；未按 `g_coreType` 模板特化的 `__attribute__((noinline))` 成员函数在两目标文件中产生同名 `WEAK` 符号，`ld.lld` 丢弃 `aiv.o` 版本导致 Vector 核跳入 Cube 指令流触发 `507015` 异常；即便加 `template<int32_t CT=g_coreType>` 消歧，切断 `Init()` 与 `ProcessBalance()` 内联边界仍阻碍 `this->constInfo` 标量提升|`noinline` 消歧版使 `target_m32` 从 `142.4 µs` 退化至 `168.4 µs`（`+26.0 µs`）；确立规则：MIX 算子内部通过消除重复调用点而非 `noinline` 控制代码体积|
+|4. `target_m32` 邻接双 token 分核映射（`[2*c, 2*c+1]`）|`InitCalcParamsEach()` 按 `avgBaseNum = (32+24-1)/24 = 2` 将 32 个 query token 连续分配给 `Cores 0..15`：核 `c` 的 Wave 0 为 `qIdx = 2*c`、Wave 1 为 `qIdx = 2*c + 1`（而非跨步的 `16 + c`），`Cores 16..23` 因 `bN2Start=1 > bN2End=0` 完全闲置|修正前按 `16 + c` 卸载导致 Wave 1 读错 token（`max_diff=6.64e-01`）；修正为 `qIdx = 2*c + 1` 后精确闭合|
+|5. `PreloadPipeline` 1 拍延迟真相（`(loop-1)%3`）与两阶段 6 块辅助核卸载（`s2Idx=0,1,3`）|1) `extraInfo2`（驱动 `Vec1L + ComputeMm2`）下标为 `(loop+2)%3 == (loop-1)%3`，即 `MergeKv+Mm1` 到 `Vec1L+Mm2` 实为 **1 拍延迟（`loop-1`）** 而非 2 拍（仅 `Vec2` 为 `(loop-2)%3`）；故 `gloop=4,5,7`（Wave 1 的 `s2=0,1,3`）分别在 `gloop=5,6,8` 被消费；2) `RunInfo extraInfo[3]` 按 `loop%3` 复用且 `CalcParams` 不清零扩展字段，必须显式 `else` 复位 `useCoopMm1`；3) 在 `gloop==5` 之前由 `Cores 16..23` 卸载 4 块（`s2=0,1`），在 `gloop==5..8` 之间趁 `Cores 0..15` 自算 `s2=2`（`gloop=6`）时复用已释放的 `kvSlot=4*c+0`/`mm1Slot=2*c+1` 再卸载 2 块（`s2=3, gloop=7`），实现 `16` 主核各算 `5` 块 + `8` 辅助核各算 `6` 块的精确负载均衡|4 块卸载（`s2=0,1`）将 `target_m32` 从 `142.39 µs` 降至 `137.85 µs`；两阶段 6 块卸载（`s2=0,1,3`）进一步将 `target_m32` 压至 **`127.58 µs`**（`-26.40 µs` vs `w72`），8 块卸载（`149.33 µs`）反证 `6` 块为精确平衡极值点，`max_diff=0.00e+00`|
+|6. `8.6s` 直连 `bisheng` 编译与 `0.096s` `LD_PRELOAD` 热重载守护进程|1) 绕过 `opc` Python/TBE 包装，直接并行调用 `bisheng` 编译 `aiv.o`/`aic.o` 并配合 `-DSFA_FORCE_BF16=1` 与轻量 [matmul_intf.h](evidence/ascend-decode/sfa-fast-iter-20261031/fast_build/inc/lib/matmul_intf.h)，将编译耗时从 `14.5s` 压至 `8.6s`、回滚从 `14.5s` 压至 `0.001s`；2) 通过 [hotreload_sfa.c](evidence/ascend-decode/sfa-fast-iter-20261031/hotreload_sfa.c) 拦截 `aclrtBinaryLoadFromData` 与 `aclrtBinaryGetFunctionByEntry`，在常驻进程 [sfa_daemon.py](evidence/ascend-decode/sfa-fast-iter-20261031/sfa_daemon.py) 内以 `0.19 ms` 热替换 `.o` 内核二进制|单次 `NPUGraph` 计时 + `max_diff` 校验从冷启动 `8.0s` 降至 `0.096s`（提速 `83x`），端到端实验周期从 `22.5s` 降至 `8.7s`|
+|7. `QuantLightningIndexer` 16行批量 `ProcessVD` 与 `S2_BASE_SIZE=2048` 单遍就地 Top-K|`ProcessVD` 原先逐行循环发射 16 次 `Cast/Mul/ReduceSum` 与 `WaitFlag`；合并为 16×64 整块向量运算后消除 15/16 标量发射。进一步在 `cuS2Len == cuS2LenVecAlign`（`S2_BASE_SIZE=2048 == kCount`）时跳过 `Sort32` + 双缓冲 `MrgSort` 树，直接在 `reduceOutBuff` 上执行单遍 `ArithProgression` 索引生成与就地写入，消除约 65% Vector 排序指令并保持平局索引偏序一致|单算子耗时从 `90.61 µs` 压至 `29.10 µs`（`-67.9%`），在 78 层整模静态核 [w80-tp8-ep8-sfa-sk-formal](evidence/ascend-decode/w80-tp8-ep8-sfa-sk-formal.json) 中保持 220 轮与输出 SHA 完全一致，将单轮 `host_tokens` 从 `39.104 ms` 压至 `37.977 ms`，TPOT 最小降至 `8.3532 ms`（中位数 `8.3589 ms`）|
+
+---
+
+## 2026-10-29：78 层 TP16 单轮分子（55.6–56.1 ms）与单样本尾部重复分母对账
+
+在 `7.150.10.180`（`Ascend910_9392`）与 `7.150.11.49`（`Ascend910_9382`）单机 16 die、TP16、8K 前缀 `case-00`、1024 输出 token（`ignore_eos=True`）、3 次预热 + 3 次测量下完成九组 78 层真实权重端到端解码对照，按单轮总耗时分子 $T_{\text{round}}$ 与接受率分母 $E[\text{accept}]$ 拆解如下：
+
+|实验标识|机型|核心机制|TPOT中位数(ms)|轮数|接受/轮|单轮总耗时(ms)|verify(ms)|host_tokens(ms)|输出SHA前12位|
+|---|---|---|---|---|---|---|---|---|---|
+|[w32-lookup-sfa1-ctrl](evidence/ascend-decode/w32-lookup-sfa1-ctrl.json)|9392|SFA block=1 + shortest=2|11.024|179|5.715|55.593|2.136|53.362|`7ce2cc012167`|
+|[w32-lookup-envelope-opt](evidence/ascend-decode/w32-lookup-envelope-opt.json)|9392|SFA block=16 + 主机发射四联优化 + shortest=2|13.625|252|4.060|54.236|1.242|52.912|`ed4b659c3762`|
+|[w32-unigram-envelope-opt](evidence/ascend-decode/w32-unigram-envelope-opt.json)|9392|SFA block=16 + 主机发射四联优化 + `--lookup-unigram`|11.823|213|4.803|55.662|1.200|54.377|`44e87bfb56af`|
+|[w32-unigram-cyc-envelope-sfa1](evidence/ascend-decode/w32-unigram-cyc-envelope-sfa1.json)|9392|SFA block=1 + 主机发射四联优化 + `--lookup-unigram` + 周期短提案回绕|7.556|136|7.522|56.077|1.370|54.627|`0a0992795e4f`|
+|[w32-unigram-cyc-envelope-sfa1-9382](evidence/ascend-decode/w32-unigram-cyc-envelope-sfa1-9382.json)|9382|同上（`9382` 跨机复现）|7.547|136|7.522|55.980|1.258|54.643|`0a0992795e4f`|
+|[w32-unigram-cyc-recskip-sfa1](evidence/ascend-decode/w32-unigram-cyc-recskip-sfa1.json)|9392|同上 + 近邻优先退避与跳1回退|6.941|125|8.192|56.089|1.297|54.701|`0a0992795e4f`|
+|[w32-tree-envelope-sfa1](evidence/ascend-decode/w32-tree-envelope-sfa1.json)|9392|SFA block=1 + 主机发射四联优化 + `--tree`（树状起草+行级掩码+compact）|19.287|250|4.092|76.971|1.919|67.152|`0a0992795e4f`|
+|[w32-unigram-cyc-mlatail-sfa1](evidence/ascend-decode/w32-unigram-cyc-mlatail-sfa1.json)|9392|同上 + `--mla-tail`（78层MLA尾部融合，默认8核）|13.265|232|4.409|57.738|1.280|56.380|`2a5355844a30`|
+|[w32-unigram-cyc-onesided-sfa1](evidence/ascend-decode/w32-unigram-cyc-onesided-sfa1.json)|9392|同上 + `--onesided-reduce`（离散SHMEM单边规约）|fail（数值退化）|33|31.000|63.308|1.425|61.256|退化（2种token）|
 
 成立结论：
-1. 主机发射包络优化（`--hoist-metadata --hoist-forward-context --rope-graph --packed-host-inputs`）在 78 层 TP16 上将 `verify` 阶段主机入队耗时从 `2.136 ms` 稳定压降至 `1.200–1.370 ms`。
-2. `MtpRoundExecutor._advance_drafted` 对非空短提案作周期回绕填充（`proposal = (proposal * (plan.width // len(proposal) + 1))[:plan.width - 1]`）与 `--lookup-unigram`（`shortest=1`）在全部 5 条真实 1024-token 轨迹上的离线回放均取得严格最少轮数（`179→149`、`252→220`、`238→214`、`158→136`、`268→231`，零退化），在 `w32-unigram-cyc-envelope-sfa1` 实测达成 `136` 轮（`7.522` tok/轮，独立输出 token 数 364），TPOT 中位数 `7.556 ms`（最小 `7.536 ms`），相对 `12.413 ms` 基线下降 `4.857 ms`（`-39.1%`）。
-3. 首个 78 层 TP16 层级融合积木收据 `w32-unigram-cyc-mlatail-sfa1`（MAP-Elites 格 `(hccl, fused_layer_bricks)`）端到端验证通过：静态核由 `244` 降至 `241`、`verify` 主机发射进一步降至 `1.280 ms`（`-0.090 ms`），但因 `mla_tail.py` 默认 `blocks=0`（16 核而非 A3 的 24 核）且每层分配 `empty_like` 临时 partial，`host_tokens` 设备执行时间由 `54.627 ms` 增至 `56.380 ms`（`+1.753 ms`），同时 BF16 规约尾差触发 greedy 分支漂移使轮数由 `136` 变为 `232`。
+1. 分子与分母严格分离：`7.547 ms`（136 轮）与 `6.941 ms`（125 轮）的单轮设备耗时 `host_tokens` 为 `54.627–54.701 ms`（单轮总耗时 `55.98–56.09 ms`），较 `w32-lookup-sfa1-ctrl` 的 `53.362 ms` 未降反升；其表观 TPOT 下降完全来自单条校准样本 `case-00` 在 `ignore_eos=True` 强制生成 1024 token 后半程进入代码周期重复段（独立 token 数 364/1024），被短提案周期回绕与近邻退避连续命中 31 槽，不能外推为非循环语料（稳态接受率 `5.4–6.3` tok/轮）的端到端速度。停止在 CPU 字符串起草规则上继续刷单样本分母。
+2. 主机发射包络（`--hoist-metadata --hoist-forward-context --rope-graph --packed-host-inputs`）的真实收益边界已锁定：在 78 层 TP16 上将 `verify` 阶段主机准备与入队耗时从 `2.136 ms` 压降至 `1.200–1.370 ms`（每轮省 `0.84–0.94 ms`），证明 CPU 侧发射余量已近物理地板，整轮唯一主矛盾是 `53.4–54.7 ms` 的 78 层 NPU 设备执行时间（`host_tokens`）。
+3. 树状起草器对照（[w32-tree-envelope-sfa1](evidence/ascend-decode/w32-tree-envelope-sfa1.json)）证伪当前未融合形态下的树验证：在 `width=32` 预算下，分支占用行预算将最大深度限制在 16，且行级 `tree_mask` 与 KV cache `compact` 使单轮耗时从 `56.08 ms` 恶化至 `76.97 ms`（`host_tokens=67.152 ms`），轮数退至 `250`。
+4. 78 层 `--mla-tail` 首跑（[w32-unigram-cyc-mlatail-sfa1](evidence/ascend-decode/w32-unigram-cyc-mlatail-sfa1.json)，MAP-Elites 格 `(hccl, fused_layer_bricks)`）证实：静态核由 `244` 降至 `241`、`verify` 发射降至 `1.280 ms`，但因 `mla_tail_binding.cpp` 在 `blocks=0` 时硬编码上限为 `std::min(8, maximum_blocks)`（仅用 A3 24 个 AIC 中的 8 个，使 `o_proj` 24 个输出 tile 串行跑 3 波），导致单轮 `host_tokens` 增加 `1.753 ms`（`+22.5 µs`/层）。
+5. 78 层 `--onesided-reduce` 首跑（[w32-unigram-cyc-onesided-sfa1](evidence/ascend-decode/w32-unigram-cyc-onesided-sfa1.json)，MAP-Elites 格 `(discrete_shmem, multi_op_graph)`）证实：156 次离散单边规约在 `SuperKernel` 下单轮 `host_tokens` 达 `61.256 ms`（较 HCCL AIV 慢 `6.629 ms`），且因缺少跨轮 epoch 屏障导致对称窗口写覆盖，输出坍缩为常量循环（每轮 31 槽全中刷出虚假的 `2.090 ms`）并被反退化门禁拦截。
+6. 定位并修复 `--routed-kernel` / `--routed-shared-kernel` 在非阻塞模式（`ASCEND_LAUNCH_BLOCKING=0`）下触发 `507015` AICore 异常（`The GM address accessed by scalar exceeds 48 bits`）的根因：`routed_int4_binding.cpp` 的 `UploadTiling` 在 `at::empty` 从 `NPUCachingAllocator` 复用刚释放的显存块后，未排空 `torch_npu` 后台 C++ 主机任务队列即直接执行同步 `aclrtMemcpy`，随后 `Execute` 触发 `c10_npu::getCurrentNPUStream().stream(true)` 将先前排队的算子刷入 NPU 流并覆盖 `scratch[kGateTiling]`（使 `gu_tiling` 变为激活值 `0x30339c7be5`）；同时 `torch_npu` 的 `static_kernel` 在 `_aclop_start_dump` 期间禁止分配新显存。通过在 `UploadTiling` / `Prepare` 中先执行 `aclrtSynchronizeStream(c10_npu::getCurrentNPUStream().stream(true))` 并在 `CannModel.__init__` 预热工作区池，单卡 `davinci2` 复现用例验证通过。
 
 ---
 

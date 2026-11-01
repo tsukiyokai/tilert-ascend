@@ -204,3 +204,9 @@ runtime 日志在命令前设置 `ASCEND_GLOBAL_LOG_LEVEL=1 ASCEND_SLOG_PRINT_TO
 编译输出直接保存到日志文件，失败时连同警告一起检查；直接接到 `head` 会因 SIGPIPE 中断编译器。框架只报告准备步骤失败时，用它实际传入的参数单独执行该步骤，保存退出码。SHMEM 初始化失败时，打开 `SHMEM_LOG_LEVEL` 并读取 SDK 日志，定位具体失败调用和参数，再选择修复；`-4` 或 `507015` 本身只标识失败，可能对应多个原因。
 
 量化预测与实测变化分别记录。[合包输入](evidence/ascend-decode/host-inputs-a3-20261029/README.md)的20%双钟预测失败，墙钟18.082%的下降仍按原始数据保留；不删除共同CPU成本以改判通过。真实模型接线另做数值对照，结果不升级为TPOT。
+
+核对 AscendC 算子二进制时，同时用 `readelf -sW` 与 `llvm-objdump -d` 检查 `mix_aic`/`mix_aiv` 符号体积、隐式类型截断与链接合并行为（见 [SFA 快速迭代与编译器发现](evidence/ascend-decode/sfa-fast-iter-20261031/)）：
+1. 警惕 `using namespace matmul;` 引入的窄类型工具函数：CANN `batch_matmul_utils.h` 中的 `matmul::CeilDiv(uint16_t, uint16_t)` 与 `CeilAlign(uint16_t, uint16_t)` 会静默截断 `int64_t` 参数并产生额外掩码指令与寄存器溢出，算子公共头应提供保留宽度的泛型模板。
+2. 控制 MIX 算子单一入口的内联膨胀与 I-Cache 边界：多个分派分支分别内联同一重型流水线（如 `PreloadPipeline` 或 `MergeKv`）会使 `mix_aiv` 突破 64 KB L1 指令缓存并劣化寄存器分配；应合并主循环入口以保证核心流水线仅内联一次。
+3. 禁止在双通道 MIX 编译（`dav-c220-cube` 与 `dav-c220-vec` 经 `ld.lld -r` 合并）中对未以 `g_coreType` 作为模板参数的类成员函数使用 `__attribute__((noinline))`：两编译通道会生成同名 `WEAK` 符号并由链接器丢弃其一，导致异构核执行错误指令集触发 `507015` 异常；即便按 `g_coreType` 模板消歧，跨 `Init()` 与主循环切断内联也会阻碍成员常量标量提升。
+4. 环状任务缓存（`RunInfo extraInfo[3]`）在跨阶段复用时，所有条件覆写字段须具备完备的 `else` 复位分支；闲置核协同卸载前须先从 `InitCalcParamsEach()` 核对 `gS1Start..gS1End` 的真实连续分核映射，严格区分 3 槽环状缓冲中 `(loop + 2) % 3 == (loop - 1) % 3`（1 拍延迟，如 `Vec1L + ComputeMm2`）与 `(loop - 2) % 3`（2 拍延迟，如 `Vec2`）的真实消费拍点，并将 `SyncAll<true>()` 精确锚定于消费者读取协同槽位的那一拍与槽位生命周期释放点。

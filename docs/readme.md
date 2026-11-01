@@ -20,7 +20,7 @@ TileRT-Ascend 是 Ascend 上的专用低时延 decode 后端。它接收成熟�
 
 当前整模型路径使用 [CannModel][cann-model]，复用 vLLM-Ascend 的模型、量化和 CANN 算子。[CANN P/D 入口][cann-pd] 将它接到 TP 命令循环与 HTTP；[Ascend connector][connector] 和 HIXL 交接历史状态缓存（KV cache）。框架内适配与独立 decode 池计划沿用同一执行核心，按接入需求验证各自的生命周期。
 
-其他团队应能复现完整请求，再替换一个执行片段。首个采用案例检验接入成本、输出质量、请求完成时间与每卡吞吐；后续采用案例决定哪些接口值得通用化。上游在相同负载下达到同等质量、成本与时延后，收敛重复维护。任务与验收顺序见 [plan](plan.md)。
+其他团队应能复现完整请求，再替换一个执行片段。首个采用案例检验接入成本、输出质量、请求完成时间与每卡吞吐；后续采用案例决定哪些接口值得通用化。通用机制成果沿途回流全部 GitCode `cann/*` 仓库、vLLM-Ascend、TileLang-Ascend 与 TileRT。任务与验收顺序见 [plan](plan.md)，正交探索档案与时间账本见 [probe](probe.md)。
 
 ## 已验证到哪里
 
