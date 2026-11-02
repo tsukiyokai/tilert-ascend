@@ -577,7 +577,7 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
     }
     const int64_t worker = fast_8x48 ? (core >> 3) : (core / pe_size);
     const int64_t peer = fast_8x48 ? ((my_pe + (core & 7)) & 7) : ((my_pe + (core % pe_size)) % pe_size);
-    const bool one_hop = (routed_slice == nullptr && fast_8x48 && active_elements <= 24576);
+    const bool one_hop = (fast_8x48 && active_elements <= 24576);
     const int64_t slice_elems =
         (!one_hop && routed_slice == nullptr && routed_full == nullptr && fast_8x48 && (active_elements % 768) == 0)
             ? (active_elements >> 3)
@@ -620,12 +620,22 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
         const int64_t src_off = one_hop ? peer_w_off : (peer * slice_elems + peer_w_off);
         src.SetGlobalBuffer(partial + src_off, peer_w_elems);
         DataCopy(stage_buf, src, peer_w_elems);
+        if (one_hop && routed_slice != nullptr && my_pe == 0) {
+            GlobalTensor<bfloat16_t> r_src;
+            r_src.SetGlobalBuffer(routed_slice + peer_w_off, peer_w_elems);
+            DataCopy(stage_buf[4096], r_src, peer_w_elems);
+        }
         SetFlag<AscendC::HardEvent::MTE2_MTE3>(EVENT_ID0);
         WaitFlag<AscendC::HardEvent::MTE2_MTE3>(EVENT_ID0);
 
         GlobalTensor<bfloat16_t> dst;
         dst.SetGlobalBuffer(remote_rs_win + my_pe * slice_elems + peer_w_off, peer_w_elems);
         DataCopy(dst, stage_buf, peer_w_elems);
+        if (one_hop && routed_slice != nullptr && my_pe == 0) {
+            GlobalTensor<bfloat16_t> r_dst;
+            r_dst.SetGlobalBuffer(remote_ag_win + peer_w_off, peer_w_elems);
+            DataCopy(r_dst, stage_buf[4096], peer_w_elems);
+        }
         SetFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
         WaitFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
         aclshmemi_signal_set(flag_rs + my_pe * SIGNAL_SLOT_INT32, (int)peer, count);
@@ -642,12 +652,13 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
     const LocalTensor<bfloat16_t> second = narrow[chunk];
     const int64_t my_global_off = one_hop ? w_off : (my_pe * slice_elems + w_off);
     const bool preload_local = (w_elems > 0) && (w_elems <= (STAGE_UB_BYTES / static_cast<int64_t>(sizeof(float))));
+    const bool remote_routed = (one_hop && routed_slice != nullptr && my_pe != 0);
 
     if (preload_local) {
         GlobalTensor<bfloat16_t> my_src;
         my_src.SetGlobalBuffer(partial + my_global_off, w_elems);
         DataCopy(stage_buf, my_src, w_elems);
-        if (routed_slice != nullptr || routed_full != nullptr) {
+        if (!remote_routed && (routed_slice != nullptr || routed_full != nullptr)) {
             GlobalTensor<bfloat16_t> r_src;
             r_src.SetGlobalBuffer((routed_slice != nullptr) ? (routed_slice + w_off) : (routed_full + my_global_off),
                                   w_elems);
@@ -655,7 +666,7 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
         }
         SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
         WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
-        if (routed_slice != nullptr || routed_full != nullptr) {
+        if (!remote_routed && (routed_slice != nullptr || routed_full != nullptr)) {
             Cast(stage_second, stage_buf[4096], AscendC::RoundMode::CAST_NONE, w_elems);
             if (scale != 1.0f) {
                 PipeBarrier<PIPE_V>();
@@ -684,6 +695,11 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
                                                 : (local_rs_win + w_off + offset),
                                    c);
             DataCopy(first, source, c);
+            if (remote_routed) {
+                GlobalTensor<bfloat16_t> r_src;
+                r_src.SetGlobalBuffer(local_ag_win + w_off + offset, c);
+                DataCopy(stage_buf[4096], r_src, c);
+            }
             SetFlag<AscendC::HardEvent::MTE2_V>(events[0]);
         }
 
@@ -742,6 +758,18 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
         if (preload_local) {
             WaitFlag<AscendC::HardEvent::V_MTE2>(events[0]);
             WaitFlag<AscendC::HardEvent::V_MTE2>(events[1]);
+            if (remote_routed) {
+                Cast(stage_second, stage_buf[4096], AscendC::RoundMode::CAST_NONE, c);
+                if (scale != 1.0f) {
+                    PipeBarrier<PIPE_V>();
+                    Muls(stage_second, stage_second, scale, c);
+                    PipeBarrier<PIPE_V>();
+                    Cast(stage_buf[4096], stage_second, AscendC::RoundMode::CAST_RINT, c);
+                    PipeBarrier<PIPE_V>();
+                    Cast(stage_second, stage_buf[4096], AscendC::RoundMode::CAST_NONE, c);
+                }
+                PipeBarrier<PIPE_V>();
+            }
             if (routed_slice != nullptr || routed_full != nullptr) {
                 Cast(first, acc, AscendC::RoundMode::CAST_RINT, c);
                 PipeBarrier<PIPE_V>();
