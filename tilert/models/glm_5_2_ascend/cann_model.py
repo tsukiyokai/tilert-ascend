@@ -1,6 +1,6 @@
 """GLM-5.2 execution through the pinned vLLM-Ascend model and CANN."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import hashlib
 import os
 from pathlib import Path
@@ -111,21 +111,16 @@ class CannStep:
 def create_config(checkpoint, capacity=9344, gpu_memory_utilization=0.85,
                   *, compile_target=False, super_kernel=False,
                   expert_parallel=False, graph_width=4, index_topk=None,
-                  mtp_tokens=0, layers=None):
-    """Construct TP16 config, optionally compiling the M4 target backbone.
+                  mtp_tokens=0, layers=None, tp_size=None):
+    """Construct TP8+EP8 or TP16 config, optionally compiling the M4 target backbone.
 
-    ``expert_parallel`` reshards the 256 routed experts over the sixteen
-    ranks (EP16, sixteen full experts each, intermediate stays 2048) and
-    selects the fused MC2 MoE: dispatch, both GMMs, SwiGLU and combine in
-    one vendor operator per layer, removing the MoE's TP reduction.
-
-    `enable_fused_mc2` is 2 rather than 1 deliberately. vLLM-Ascend rolls
-    megamoe back for 1 and reaches `dispatch_ffn_combine` instead; only 2
-    leaves `_MEGA_MOE_SUPPORTED` true, after which it rewrites the value to
-    1 itself (`ascend_config.py:663-673`).
+    ``expert_parallel`` reshards the 256 routed experts over the active ranks
+    (32 full experts per rank at TP8+EP8, 16 at EP16, intermediate stays 2048).
     """
     if super_kernel and not compile_target:
         raise ValueError("SuperKernel requires the compiled M4 target")
+    if tp_size is None:
+        tp_size = int(os.environ.get("WORLD_SIZE", "8" if expert_parallel else "16"))
 
     from vllm.config import CompilationMode, CUDAGraphMode
     from vllm.engine.arg_utils import EngineArgs
@@ -135,7 +130,7 @@ def create_config(checkpoint, capacity=9344, gpu_memory_utilization=0.85,
     return EngineArgs(
         model=str(Path(checkpoint).resolve()), trust_remote_code=True,
         dtype="bfloat16", quantization="ascend",
-        tensor_parallel_size=16, pipeline_parallel_size=1,
+        tensor_parallel_size=tp_size, pipeline_parallel_size=1,
         data_parallel_size=1,
         distributed_executor_backend="external_launcher",
         attention_config={"indexer_kv_dtype": "int8"},
@@ -158,6 +153,7 @@ def create_config(checkpoint, capacity=9344, gpu_memory_utilization=0.85,
         # model does not have, and `is_pp_missing_parameter` does not cover it
         # at one pipeline stage.
         load_format="dummy" if layers else "auto",
+        safetensors_load_strategy="lazy",
         kv_cache_dtype="auto", block_size=PAGE_SIZE,
         # AscendCompiler filters static token buckets by this sequence limit.
         max_num_seqs=max(4, graph_width) if super_kernel else 1,
@@ -178,9 +174,14 @@ def create_config(checkpoint, capacity=9344, gpu_memory_utilization=0.85,
             # covers its draft, and an adaptive drafter's proposals are mostly
             # short. One size costs 0.66 ms a row by the round model where the
             # operators cost between 0 and -0.02.
-            "cudagraph_capture_sizes": sorted(
-                {size for size in (2, 4, 8, 16, 24, 32, 48, 64)
-                 if size <= graph_width} | {graph_width}),
+            "cudagraph_capture_sizes": (
+                sorted(
+                    {size for size in (2, 4, 8, 16, 24, 32, 48, 64)
+                     if size <= graph_width} | {graph_width}
+                )
+                if os.environ.get("TRT_MULTI_CAPTURE_SIZES") == "1"
+                else [graph_width]
+            ),
             "max_cudagraph_capture_size": graph_width,
             "custom_ops": ["all"],
         } if compile_target else {},
@@ -192,10 +193,21 @@ def create_config(checkpoint, capacity=9344, gpu_memory_utilization=0.85,
         additional_config={
             "enable_flashcomm1": False, "enable_dsa_cp": False,
             "enable_shared_expert_dp": False,
-            "enable_fused_mc2": 2 if expert_parallel else 0,
+            "enable_prefill_mc2": bool(expert_parallel),
+            "multistream_overlap_shared_expert": bool(
+                int(os.environ.get("TRT_OVERLAP_SHARED", "0"))
+            ),
+            "enable_fused_mc2": int(os.environ.get(
+                "TRT_FUSED_MC2",
+                "0" if tp_size == 8 else ("2" if expert_parallel else "0"),
+            )),
             "ascend_compilation_config": {
                 "enable_static_kernel": super_kernel,
-                "enable_super_kernel": super_kernel,
+                "enable_super_kernel": (
+                    super_kernel
+                    and os.environ.get("VLLM_ASCEND_ENABLE_SUPER_KERNEL", "1")
+                    == "1"
+                ),
                 # Preserve BF16 norm rounding before INT8 quantization.
                 "fuse_norm_quant": False,
             },
@@ -251,8 +263,13 @@ class CannModel:
         hoist_metadata=False, hoist_forward_context=False,
         packed_host_inputs=False,
     ):
-        if type(rank) is not int or not 0 <= rank < 16:
+        world_size = int(os.environ.get("WORLD_SIZE", "16"))
+        if world_size not in (8, 16):
+            raise ValueError("Launch 8 or 16 ranks")
+        if type(rank) is not int or not 0 <= rank < world_size:
             raise ValueError("GLM-5.2 requires a logical TP rank in [0, 16)")
+        if world_size == 8:
+            expert_parallel = True
         routed_kernel = routed_kernel or routed_shared_kernel
         if routed_kernel and expert_parallel:
             raise ValueError("The routed kernel requires TP16 with EP off")
@@ -271,14 +288,13 @@ class CannModel:
         _choose_collective_engine(aiv_collectives)
         self.rope_graph = rope_graph
         self._rope_graphs = {}
+        self._head_graphs = {}
         # None keeps the bound where the measurement is bit-exact; a caller
         # raising it accepts a bf16 unit in the last place on the attention
         # output, which is a question about tokens rather than floats.
         self.gather_fia_max_width = gather_fia_max_width
         if capacity < 128:
             raise ValueError("Capacity must be at least one 128-token page")
-        if int(os.environ.get("WORLD_SIZE", "16")) != 16:
-            raise ValueError("Launch exactly 16 ranks")
         if attention_kernel not in ("sfa", "gather_fia", "shared_fia"):
             raise ValueError("Unknown attention kernel")
         if attention_kernel == "shared_fia" and graph_width not in (8, 16, 32):
@@ -302,6 +318,7 @@ class CannModel:
         if self.device.type != "npu" or self.device.index not in range(16):
             raise ValueError("device must name one of the 16 visible NPUs")
         self.rank = rank
+        self.tp_size = world_size
         self.capacity = capacity
         self.position = 0
         self.attention_kernel = attention_kernel
@@ -324,6 +341,7 @@ class CannModel:
             compile_target=compile_target, super_kernel=super_kernel,
             expert_parallel=expert_parallel, graph_width=graph_width,
             index_topk=index_topk, mtp_tokens=mtp_tokens, layers=layers,
+            tp_size=world_size,
         )
         # A tree's rows need a per-row index set, and the operator's selection
         # width is what the checkpoint's `index_topk` sets -- the argument only
@@ -374,11 +392,12 @@ class CannModel:
         if plain_moe_combine:
             from .moe_combine import install
 
-            self._restore_combine = install()
+            self._restore_combine = install(self.model)
         if routed_kernel:
             self._install_routed_kernel()
         if routed_shared_kernel:
             self._install_routed_shared_kernel()
+        self._prepare_fused_workspaces(self.graph_width)
 
     def _install_routed_kernel(self):
         """Send the routed experts to the hand-written kernel.
@@ -426,22 +445,29 @@ class CannModel:
         """Reserve native storage before the wrapper enters graph capture."""
         import torch
 
-        if self._routed_workspace_pool is not None:
-            rows = torch.empty(width, 6144, dtype=torch.int8,
-                               device=self.device)
-            self._routed_workspace_pool.reserve_capture(rows)
-        if self._routed_shared_workspace_pool is not None:
-            rows = torch.empty(width, 6144, dtype=torch.int8,
-                               device=self.device)
-            self._routed_shared_workspace_pool.reserve_capture(rows)
-        if self._mla_tail_workspace_pool is not None:
-            latent = torch.empty(width, 4, 512, dtype=torch.bfloat16,
-                                 device=self.device)
-            self._mla_tail_workspace_pool.reserve_capture(latent)
+        torch.npu.synchronize(self.device)
+        pools = (
+            (self._routed_workspace_pool, (6144,), torch.int8),
+            (self._routed_shared_workspace_pool, (6144,), torch.int8),
+            (self._mla_tail_workspace_pool,
+             (64 // self.tp_size, 512), torch.bfloat16),
+            (self._native_attention_workspace_pool, (6144,), torch.bfloat16),
+        )
+        for pool, shape, dtype in pools:
+            if pool is None:
+                continue
+            for size in {1, width}:
+                sample = torch.empty(size, *shape, dtype=dtype,
+                                     device=self.device)
+                pool.get(sample)
+                if size == width:
+                    pool.reserve_capture(sample)
         if self._native_attention_workspace_pool is not None:
-            hidden = torch.empty(width, 6144, dtype=torch.bfloat16,
-                                 device=self.device)
-            self._native_attention_workspace_pool.reserve_capture(hidden)
+            for size in {1, width}:
+                self._native_attention_workspace_pool.live_slots(
+                    self._input_buffers[size][2],
+                )
+        torch.npu.synchronize(self.device)
 
     def _install_tp_sum(self):
         from vllm.distributed import get_tp_group
@@ -477,6 +503,19 @@ class CannModel:
 
     def shutdown(self):
         """Restore the TP group's original reduction and stop the worker."""
+        import torch
+
+        if hasattr(getattr(torch.ops, "tilert", None),
+                   "set_active_tokens_ptr"):
+            torch.ops.tilert.set_active_tokens_ptr(
+                self._dyn_lens_dev[self.graph_width], False, False,
+            )
+        for graph, _ in self._head_graphs.values():
+            graph.reset()
+        self._head_graphs.clear()
+        for captured in self._rope_graphs.values():
+            captured.graph.reset()
+        self._rope_graphs.clear()
         if self.graph is not None:
             self.graph.close()
         self._restore_tp_sum()
@@ -517,9 +556,8 @@ class CannModel:
         self.storage = torch.empty(
             self.layout["nbytes"], dtype=torch.uint8, device=self.device,
         )
-        if self.attention_kernel == "shared_fia":
-            # Dense FIA reads masked rows too; 0 * NaN would poison PV.
-            self.storage.zero_()
+        # Zero-initialize cache storage so masked/unwritten rows never hold NaN.
+        self.storage.zero_()
         self.views = {}
         for name, region in self.layout["regions"].items():
             start = region["offset"]
@@ -680,6 +718,39 @@ class CannModel:
             self.layout["capacity_tokens"] // PAGE_SIZE,
             dtype=torch.int32, device=self.device,
         ).unsqueeze(0)
+        self._dynamic_mc2_mask = (
+            os.environ.get("TRT_DYNAMIC_MC2_MASK", "1") == "1"
+        )
+        self._dynamic_sfa_len = (
+            os.environ.get("TRT_DYNAMIC_SFA_LEN", "1") == "1"
+        )
+        self._dynamic_sfa_max = int(
+            os.environ.get("TRT_DYNAMIC_SFA_MAX", "32")
+        )
+        self._dynamic_idx_max = int(
+            os.environ.get("TRT_DYNAMIC_IDX_MAX", "16")
+        )
+        self._mc2_host_masks = {}
+        self._last_mc2_active = {}
+        self._dyn_lens_dev = {}
+        for width in widths:
+            dyn_buf = torch.zeros(2, 8, dtype=torch.int32, device=self.device)
+            dyn_buf[0, 0] = width
+            dyn_buf[0, 1] = width
+            self._dyn_lens_dev[width] = dyn_buf
+        self._sfa_len_slots = tuple(
+            torch.zeros(2, 8, dtype=torch.int32).pin_memory()
+            for _ in range(LENGTH_SLOTS)
+        )
+        self._sfa_len_idx = 0
+        if self._dynamic_mc2_mask:
+            for width in widths:
+                table = torch.zeros(
+                    width + 1, width, dtype=torch.bool, pin_memory=True,
+                )
+                for k in range(1, width + 1):
+                    table[k, :k] = True
+                self._mc2_host_masks[width] = tuple(table.unbind())
 
     def inject(self, prefixes):
         """Copy all P main rows; the next consumed token has position P."""
@@ -743,6 +814,49 @@ class CannModel:
         computed_cpu = torch.tensor([self.position], dtype=torch.int32)
         hoisted = self._hoisted.get(width) if graphed else None
         if hoisted is not None:
+            if (self.graph is not None and self.graph.capture_count
+                    and host_values is not None and depths is None
+                    and width > 1):
+                k = width
+                p0 = host_values[0]
+                while k > 1 and host_values[k - 1] == p0:
+                    k -= 1
+                active = 1 if k == 1 else min(width, k + 1)
+            else:
+                active = width
+            self._active_rows = active
+            if (self._dynamic_mc2_mask and self.graph is not None
+                    and self.graph.capture_count
+                    and self._last_mc2_active.get(width, width) != active):
+                from vllm_ascend.ascend_forward_context import (
+                    _hoisted_mc2_masks, get_mc2_mask,
+                )
+                mask = (
+                    _hoisted_mc2_masks.get((width, width))
+                    if _hoisted_mc2_masks is not None
+                    else None
+                )
+                if mask is None:
+                    reserved = get_mc2_mask()
+                    if reserved is not None:
+                        mask = reserved[:width]
+                if mask is not None:
+                    mask.copy_(
+                        self._mc2_host_masks[width][active],
+                        non_blocking=True,
+                    )
+                self._last_mc2_active[width] = active
+            if self._dynamic_sfa_len:
+                sfa_a = active if active <= self._dynamic_sfa_max else width
+                idx_a = active if active <= self._dynamic_idx_max else width
+                s_idx = self._sfa_len_idx % LENGTH_SLOTS
+                self._sfa_len_idx += 1
+                s_len = self._sfa_len_slots[s_idx]
+                s_len[0, 0] = sfa_a
+                s_len[1, 0] = self.position + sfa_a
+                s_len[0, 1] = idx_a
+                s_len[1, 1] = self.position + idx_a
+                self._dyn_lens_dev[width].copy_(s_len, non_blocking=True)
             metadata, values, _ = hoisted
             for value in values:
                 value.max_seq_len = self.position + width
@@ -769,10 +883,68 @@ class CannModel:
         result = {}
         for names, builder in self.builders:
             metadata = builder.build(0, common)
-            result.update((name, metadata) for name in names)
+            if (hasattr(metadata, "actual_seq_lengths_query")
+                    and self._dynamic_idx_max > 0):
+                c8_meta = replace(
+                    metadata,
+                    cum_query_lens=metadata.cum_query_lens.clone(),
+                    seq_lens=metadata.seq_lens.clone(),
+                    actual_seq_lengths_query=(
+                        metadata.actual_seq_lengths_query.clone()
+                    ),
+                    actual_seq_lengths_key=(
+                        metadata.actual_seq_lengths_key.clone()
+                    ),
+                )
+                c8_meta._is_c8_idx = True
+                for name in names:
+                    m = re.search(r"(?:^|\.)layers\.(\d+)\.", name)
+                    result[name] = (
+                        c8_meta
+                        if m and int(m[1]) in INT8_INDEX_LAYERS
+                        else metadata
+                    )
+            else:
+                result.update((name, metadata) for name in names)
         if graphed and self.hoist_metadata:
             values = list({id(value): value for value in result.values()}
                           .values())
+            if self._dynamic_sfa_len:
+                dyn = self._dyn_lens_dev[width]
+                pos_w = self.position + width
+                s_idx = self._sfa_len_idx % LENGTH_SLOTS
+                self._sfa_len_idx += 1
+                s_len = self._sfa_len_slots[s_idx]
+                s_len[0, 0] = width
+                s_len[1, 0] = pos_w
+                s_len[0, 1] = width
+                s_len[1, 1] = pos_w
+                dyn.copy_(s_len, non_blocking=True)
+                if hasattr(getattr(torch.ops, "tilert", None),
+                           "set_active_tokens_ptr"):
+                    en_shmem = (
+                        os.environ.get("TRT_DYNAMIC_SHMEM", "1") == "1"
+                    )
+                    en_idx = (
+                        os.environ.get("TRT_DYNAMIC_IDXPREP", "1") == "1"
+                    )
+                    torch.ops.tilert.set_active_tokens_ptr(
+                        dyn, en_shmem, en_idx,
+                    )
+                q_view = dyn[0, :1]
+                kv_view = dyn[1, :1]
+                iq_view = dyn[0, 1:2]
+                ikv_view = dyn[1, 1:2]
+                for value in values:
+                    if hasattr(value, "actual_seq_lengths_query"):
+                        if getattr(value, "_is_c8_idx", False):
+                            value.cum_query_lens = iq_view
+                            value.seq_lens = ikv_view
+                            value.actual_seq_lengths_query = iq_view
+                            value.actual_seq_lengths_key = ikv_view
+                    else:
+                        value.cum_query_lens = q_view
+                        value.seq_lens = kv_view
             self._hoisted[width] = (
                 result, values, rope_destinations(values, width),
             )
@@ -796,11 +968,22 @@ class CannModel:
             refresh_rope(positions, width, hoisted[2])
             return
         captured = self._rope_graphs.get(width)
-        if captured is None:
+        slots_i64 = (
+            self.graph.slots_i64
+            if self.graph is not None and self.graph.width == width
+            else None
+        )
+        if captured is None or (
+            slots_i64 is not None and not captured.handles_slots
+        ):
             from .rope_graph import RopeGraph
 
-            captured = RopeGraph(positions, width, hoisted[2])
+            captured = RopeGraph(
+                positions, width, hoisted[2], self.slots, slots_i64
+            )
             self._rope_graphs[width] = captured
+            if self.graph is not None and self.graph.width == width:
+                self.graph._rope_handles_slots = captured.handles_slots
         captured.refresh()
 
     def enable_graph(self, width=1):
@@ -854,21 +1037,75 @@ class CannModel:
             set_ascend_forward_context,
         )
 
-        with torch.npu.device(self.device), torch.inference_mode(), (
-            set_current_vllm_config(self.config)
-        ):
+        with torch.npu.device(self.device), torch.inference_mode():
             width, metadata = self._prepare_inputs(tokens, depths=depths)
             use_graph = self.graph is not None and self.graph.width == width
-            with set_ascend_forward_context(
-                metadata, self.config, num_tokens=width,
-                num_actual_tokens=width,
-                model_instance=self.model,
+            if use_graph and self.graph.capture_count:
+                hidden = self.graph.forward(metadata)
+                processor = getattr(self.model, "logits_processor", None)
+                if (not full_logits and self.fp32_head
+                        and self._onesided is not None
+                        and processor is not None
+                        and hasattr(getattr(torch.ops, "tilert", None),
+                                    "onesided_top_tokens")):
+                    if hasattr(self.model.compute_logits, "__wrapped__"):
+                        processor._top_tokens_mode = True
+                        try:
+                            token_ids = self.model.compute_logits(hidden)
+                        finally:
+                            processor._top_tokens_mode = False
+                    else:
+                        head_entry = self._head_graphs.get(width)
+                        if head_entry is None:
+                            processor._top_tokens_mode = True
+                            try:
+                                self.model.compute_logits(hidden)
+                                torch.npu.synchronize()
+                                head_graph = torch.npu.NPUGraph()
+                                with torch.npu.graph(head_graph):
+                                    token_ids = self.model.compute_logits(
+                                        hidden,
+                                    )
+                                torch.npu.synchronize()
+                            finally:
+                                processor._top_tokens_mode = False
+                            head_entry = (head_graph, token_ids)
+                            self._head_graphs[width] = head_entry
+                        head_graph, token_ids = head_entry
+                        head_graph.replay()
+                    logits = None
+                else:
+                    logits = self.model.compute_logits(hidden)
+                    token_ids = logits.argmax(dim=-1)
+                self.position += width
+                return CannStep(
+                    logits if full_logits else None, hidden, token_ids,
+                )
+            with set_current_vllm_config(self.config), (
+                set_ascend_forward_context(
+                    metadata, self.config, num_tokens=width,
+                    num_actual_tokens=width,
+                    model_instance=self.model,
+                )
             ):
                 hidden = (self.model(self.input_ids, self.positions)
                           if not use_graph
                           else self.graph.forward(metadata))
-                logits = self.model.compute_logits(hidden)
-                token_ids = logits.argmax(dim=-1)
+                processor = getattr(self.model, "logits_processor", None)
+                if (not full_logits and self.fp32_head
+                        and self._onesided is not None
+                        and processor is not None
+                        and hasattr(getattr(torch.ops, "tilert", None),
+                                    "onesided_top_tokens")):
+                    processor._top_tokens_mode = True
+                    try:
+                        token_ids = self.model.compute_logits(hidden)
+                    finally:
+                        processor._top_tokens_mode = False
+                    logits = None
+                else:
+                    logits = self.model.compute_logits(hidden)
+                    token_ids = logits.argmax(dim=-1)
             self.position += width
             return CannStep(
                 logits if full_logits else None, hidden, token_ids,

@@ -169,8 +169,8 @@ __aicore__ inline void QLIVector<QLIT>::InitBuffers(TPipe *pipe)
     pipe->InitBuffer(kScaleBuf_, s2BaseSize_ * sizeof(float));
     pipe->InitBuffer(inQueue_, 2, s2BaseSize_ * sizeof(float) * 2);                                    // 32KB
     pipe->InitBuffer(outQueue_, 1, BASE_TOPK * sizeof(float));                                         // 8 KB
-    pipe->InitBuffer(indexBuf_, s2BaseSize_ * sizeof(int32_t));                                        // 8 KB
     pipe->InitBuffer(tmpBuf_, 64 * 1024);                                                              // 64KB
+    pipe->InitBuffer(indexBuf_, s2BaseSize_ * sizeof(int32_t));                                        // 8 KB
     pipe->InitBuffer(sortOutBuf_, CeilDiv(s1BaseSize_, 2) * BASE_TOPK_VALUE_IDX_SIZE * sizeof(float)); // 32KB
 
     globalTopkIndice_ = indexBuf_.Get<int32_t>();
@@ -203,7 +203,6 @@ __aicore__ inline void QLIVector<QLIT>::InitLDBuffers(TPipe *pipe)
     pipe->Reset();
     pipe->InitBuffer(ldToBeMrgBuf_, BASE_TOPK_VALUE_IDX_SIZE * mrgListNum_ * sizeof(float));
     pipe->InitBuffer(ldTmpBuf_, BASE_TOPK_VALUE_IDX_SIZE * mrgListNum_ * sizeof(float));
-    pipe->InitBuffer(ldOutValueBuf_, BASE_TOPK * sizeof(float));
     pipe->InitBuffer(ldOutIdxBuf_, BASE_TOPK * sizeof(int32_t));
 }
 
@@ -362,7 +361,7 @@ __aicore__ inline void QLIVector<QLIT>::ProcessVec1(const QLICommon::RunInfo &in
         int32_t cuS1Idx = cuS1BeginIdxPerAiv + innerS1Idx;
         if (cuRealAcSeq > 0 && cuS2Len > 0) {
             bool isFirstSegBlock = (info.loop == 0) || (info.s2Idx == 0);
-            int32_t cuS2LenVecAlign = (cuS2Len <= 128) ? 128 : ((cuS2Len <= 512) ? 512 : s2BaseSize_);
+            int32_t cuS2LenVecAlign = (cuS2Len <= 128) ? 128 : ((cuS2Len <= 512) ? 512 : ((cuS2Len <= 1024) ? 1024 : s2BaseSize_));
             LocalTensor<float> mmInUb = inQueue_.AllocTensor<float>();
             LocalTensor<float> kScaleUb = kScaleBuf_.Get<float>();
             LocalTensor<half> kScaleTUb = mmInUb[s2BaseSize_].template ReinterpretCast<half>();
@@ -387,37 +386,31 @@ __aicore__ inline void QLIVector<QLIT>::ProcessVec1(const QLICommon::RunInfo &in
                 AscendC::Cast(kScaleUb, kScaleTUb, RoundMode::CAST_NONE, maxS2Len);
                 PipeBarrier<PIPE_V>();
             }
-            LocalTensor<float> sortBuff = tmpBuf_.Get<float>();
+            LocalTensor<float> dstTopk = globalTopkUb_[innerS1Idx * BASE_TOPK_VALUE_IDX_SIZE];
+            LocalTensor<float> sortBuff = isFirstSegBlock ? dstTopk : tmpBuf_.Get<float>();
             LocalTensor<float> sortScoreUb = sortBuff;
             LocalTensor<float> sortIndiceUb = sortBuff[cuS2LenVecAlign];
             LocalTensor<int32_t> sortIndiceUbInt = sortIndiceUb.template ReinterpretCast<int32_t>();
             if (cuS2LenVecAlign != cuS2Len) {
-                Duplicate(sortScoreUb.template ReinterpretCast<int32_t>(), QLIServiceVec::NEG_INF, cuS2LenVecAlign);
-                Duplicate(sortIndiceUbInt, -1, cuS2LenVecAlign);
+                int32_t padOffset = cuS2Len & ~7;
+                int32_t padLen = cuS2LenVecAlign - padOffset;
+                Duplicate(sortScoreUb[padOffset].template ReinterpretCast<int32_t>(), QLIServiceVec::NEG_INF, padLen);
+                Duplicate(sortIndiceUbInt[padOffset], -1, padLen);
                 PipeBarrier<PIPE_V>();
             }
             AscendC::Mul(sortScoreUb, mmInUb, kScaleUb, cuS2Len);
             inQueue_.FreeTensor(mmInUb);
             Adds(sortIndiceUbInt, globalTopkIndice_, static_cast<int32_t>(cuBaseS2Idx), cuS2Len);
             PipeBarrier<PIPE_V>();
-            LocalTensor<float> tmpSortBuf = sortBuff[2 * s2BaseSize_];
+            LocalTensor<float> tmpSortBuf = (isFirstSegBlock && innerS1Idx == 1) ? tmpBuf_.Get<float>() : tmpBuf_.Get<float>()[2 * s2BaseSize_];
             QLIServiceVec::SortAll(sortBuff, tmpSortBuf, cuS2LenVecAlign);
             PipeBarrier<PIPE_V>();
             bool isS2End = cuBaseS2Idx + s2BaseSize_ >= cuRealAcSeq;
             bool needCopyOutGm = blockS2StartIdx_ == 0 && isS2End;
             bool needCopyWsGm = info.isAllLoopEnd || isS2End;
-            LocalTensor<float> dstTopk = globalTopkUb_[innerS1Idx * BASE_TOPK_VALUE_IDX_SIZE];
             bool isLastInner = (innerS1Idx == cuS1ProcNumPerAiv - 1);
             if (isFirstSegBlock) {
-                if (cuS2LenVecAlign == BASE_TOPK) {
-                    if ((needCopyOutGm || needCopyWsGm) && isLastInner && info.isAllLoopEnd) {
-                        dstTopk = sortBuff;
-                    } else {
-                        AscendC::DataCopy(dstTopk, sortBuff, BASE_TOPK_VALUE_IDX_SIZE);
-                        PipeBarrier<PIPE_V>();
-                    }
-                } else {
-                    AscendC::DataCopy(dstTopk, sortBuff, cuS2LenVecAlign * 2);
+                if (cuS2LenVecAlign != BASE_TOPK) {
                     InitSortOutBuf(dstTopk[cuS2LenVecAlign * 2], BASE_TOPK_VALUE_IDX_SIZE - cuS2LenVecAlign * 2);
                 }
             } else {
@@ -569,18 +562,21 @@ __aicore__ inline void QLIVector<QLIT>::ProcessLD(int32_t ldCubeId, uint32_t ldI
         isS2End = vec1ParamGm.GetValue(wsInfoOffset + 4);
         outOffset = vec1ParamGm.GetValue(wsInfoOffset + 8);
 
+        bool resInTmp = false;
+        const bool isSingleBlk5 =
+            (curCubeId == static_cast<int32_t>((blockId_ / s1BaseSize_) * 5)) && (curCubeId < 20);
+        const uint32_t midMrgLimit = (isSingleBlk5 && ((curCubeId & 1) == 1)) ? 3U : mrgListNum_;
         while (needFd == 1) {
             // 搬入头规约数据
             wsOffset = tmpCubeId * s1BaseSize_ * 2 * BASE_TOPK_VALUE_IDX_SIZE + // 2个AIV共同地址偏移
                        innerS1Idx * 2 * BASE_TOPK_VALUE_IDX_SIZE;
-            SetWaitFlag<HardEvent::V_MTE2>(HardEvent::V_MTE2);
             DataCopyPad(curValueIdxUb[valueOffset], vec1ResGm[wsOffset],
                         {1, static_cast<uint16_t>(BASE_TOPK_VALUE_IDX_SIZE * sizeof(int32_t)), 0, 0}, {true, 0, 0, 0});
             valueOffset += BASE_TOPK_VALUE_IDX_SIZE;
             acc_list_num++;
 
             // 每满4个list，聚合  前2K为mrg结果
-            if (acc_list_num == mrgListNum_) {
+            if (acc_list_num == midMrgLimit && (!isSingleBlk5 || isS2End == 0)) {
                 // MrgSort 四条2048的队列，Mrg成一条
                 AscendC::MrgSort4Info params;
                 params.elementLengths[0] = BASE_TOPK;
@@ -588,21 +584,40 @@ __aicore__ inline void QLIVector<QLIT>::ProcessLD(int32_t ldCubeId, uint32_t ldI
                 params.elementLengths[2] = BASE_TOPK;
                 params.elementLengths[3] = BASE_TOPK;
                 params.ifExhaustedSuspension = true;
-                params.validBit = 0b1111;
+                params.validBit = (midMrgLimit == 3U) ? 0b0111 : 0b1111;
                 params.repeatTimes = 1;
 
                 AscendC::MrgSortSrcList<float> srcList;
-                srcList.src1 = curValueIdxUb[0];
-                srcList.src2 = curValueIdxUb[BASE_TOPK_VALUE_IDX_SIZE];
-                srcList.src3 = curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
-                srcList.src4 = curValueIdxUb[3 * BASE_TOPK_VALUE_IDX_SIZE];
+                if (isSingleBlk5 && isS2End == 0) {
+                    if (midMrgLimit == 3U) {
+                        srcList.src1 = curValueIdxUb[0];
+                        srcList.src2 = curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
+                        srcList.src3 = curValueIdxUb[BASE_TOPK_VALUE_IDX_SIZE];
+                        srcList.src4 = curValueIdxUb[3 * BASE_TOPK_VALUE_IDX_SIZE];
+                    } else {
+                        srcList.src1 = curValueIdxUb[BASE_TOPK_VALUE_IDX_SIZE];
+                        srcList.src2 = curValueIdxUb[0];
+                        srcList.src3 = curValueIdxUb[3 * BASE_TOPK_VALUE_IDX_SIZE];
+                        srcList.src4 = curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
+                    }
+                } else {
+                    srcList.src1 = curValueIdxUb[0];
+                    srcList.src2 = curValueIdxUb[BASE_TOPK_VALUE_IDX_SIZE];
+                    srcList.src3 = curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
+                    srcList.src4 = curValueIdxUb[3 * BASE_TOPK_VALUE_IDX_SIZE];
+                }
                 SetWaitFlag<HardEvent::MTE2_V>(HardEvent::MTE2_V);
                 MrgSort(tmpUb, srcList, params);
                 PipeBarrier<PIPE_V>();
-                DataCopy(curValueIdxUb, tmpUb, BASE_TOPK_VALUE_IDX_SIZE);
-                PipeBarrier<PIPE_V>();
                 acc_list_num = 1;
                 valueOffset = BASE_TOPK_VALUE_IDX_SIZE;
+                if (isS2End == 1) {
+                    resInTmp = true;
+                    break;
+                }
+                DataCopy(curValueIdxUb, tmpUb, BASE_TOPK_VALUE_IDX_SIZE);
+                PipeBarrier<PIPE_V>();
+                SetWaitFlag<HardEvent::V_MTE2>(HardEvent::V_MTE2);
             }
 
             // reduce到S2末尾，则跳出
@@ -633,18 +648,23 @@ __aicore__ inline void QLIVector<QLIT>::ProcessLD(int32_t ldCubeId, uint32_t ldI
 
             AscendC::MrgSortSrcList<float> srcList;
             srcList.src1 = curValueIdxUb[0];
-            srcList.src2 = curValueIdxUb[BASE_TOPK_VALUE_IDX_SIZE];
-            srcList.src3 = curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
+            if (isSingleBlk5 && ((curCubeId & 1) == 1) && acc_list_num == 3) {
+                srcList.src2 = curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
+                srcList.src3 = curValueIdxUb[BASE_TOPK_VALUE_IDX_SIZE];
+            } else {
+                srcList.src2 = curValueIdxUb[BASE_TOPK_VALUE_IDX_SIZE];
+                srcList.src3 = curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
+            }
             srcList.src4 = curValueIdxUb[3 * BASE_TOPK_VALUE_IDX_SIZE];
             SetWaitFlag<HardEvent::MTE2_V>(HardEvent::MTE2_V);
             MrgSort(tmpUb, srcList, params);
             PipeBarrier<PIPE_V>();
+            resInTmp = true;
         }
 
         // 搬出
-        LocalTensor<float> outValueUb = ldOutValueBuf_.Get<float>();
         LocalTensor<uint32_t> outIdxUb = ldOutIdxBuf_.Get<uint32_t>();
-        Extract(outValueUb, outIdxUb, (acc_list_num != 1) ? tmpUb : curValueIdxUb, (BASE_TOPK / 32));
+        QLIServiceVec::ExtractIndex(outIdxUb, (resInTmp ? tmpUb : curValueIdxUb).template ReinterpretCast<uint32_t>(), BASE_TOPK);
         LocalTensor<int32_t> idxULocal1 = outIdxUb.template ReinterpretCast<int32_t>();
         SetWaitFlag<HardEvent::V_MTE3>(HardEvent::V_MTE3);
         SetWaitFlag<HardEvent::S_MTE3>(HardEvent::S_MTE3);

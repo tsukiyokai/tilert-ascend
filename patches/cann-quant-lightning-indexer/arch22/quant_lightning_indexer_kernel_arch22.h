@@ -462,7 +462,9 @@ __aicore__ inline void QLIPreload<QLIT>::Init(__gm__ uint8_t *query, __gm__ uint
         keyGm.SetGlobalBuffer((__gm__ K_T *)key);
         matmulService.InitMm1GlobalTensor(blockTableGm, keyGm, queryGm, mm1ResGm, weightWorkspaceGm);
     }
-    InitBuffers();
+    if (aiCoreIdx < usedCoreNum) {
+        InitBuffers();
+    }
 }
 
 template <typename QLIT>
@@ -722,8 +724,10 @@ template <typename QLIT>
 __aicore__ inline void QLIPreload<QLIT>::ProcessDecode()
 {
     if ASCEND_IS_AIV {
-        vectorService.InitLDBuffers(pipe);
-        ICachePreLoad(LD_PREFETCH_LEN);
+        if (splitCoreInfo.isLD) {
+            vectorService.InitLDBuffers(pipe);
+            ICachePreLoad(LD_PREFETCH_LEN);
+        }
         SyncAll();
         if (splitCoreInfo.isLD) {
             vectorService.ProcessLD(splitCoreInfo.ldCubeId, splitCoreInfo.ldInnerS1Idx);

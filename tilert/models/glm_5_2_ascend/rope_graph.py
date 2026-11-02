@@ -21,20 +21,25 @@ unchanged and removes its dispatch.
 class RopeGraph:
     """One captured refresh a width; replay before the model's own graph."""
 
-    def __init__(self, positions, width, destinations):
+    def __init__(self, positions, width, destinations, slots=None, slots_i64=None):
         import torch
 
         from .cann_model import refresh_rope
 
         self.width = width
         self.replays = 0
+        self.handles_slots = slots is not None and slots_i64 is not None
         # Warm the operators before capture: a first call allocates workspace
         # and that allocation cannot happen inside a capture.
         refresh_rope(positions, width, destinations)
+        if self.handles_slots:
+            slots_i64.copy_(slots, non_blocking=True)
         torch.npu.synchronize()
         self.graph = torch.npu.NPUGraph()
         with torch.npu.graph(self.graph):
             refresh_rope(positions, width, destinations)
+            if self.handles_slots:
+                slots_i64.copy_(slots, non_blocking=True)
         torch.npu.synchronize()
 
     def refresh(self):

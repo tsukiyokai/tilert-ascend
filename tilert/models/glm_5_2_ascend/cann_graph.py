@@ -139,6 +139,7 @@ class CannGraph:
         entry = self.wrapper.concrete_aclgraph_entries[self.descriptor]
         if entry.aclgraph is None:
             raise RuntimeError("The wrapper did not create an ACL graph")
+        self._entry = entry
         # Ascend capture records tasks; its output is not a completed forward.
         get_forward_context().capturing = False
         hidden = self.wrapper(self.tokens, self.positions)
@@ -156,6 +157,12 @@ class CannGraph:
 
         if self._closed:
             raise RuntimeError("CannGraph is closed")
+        if self.capture_count:
+            if not getattr(self, "_rope_handles_slots", False):
+                self.slots_i64.copy_(self.slots, non_blocking=True)
+            self._entry.aclgraph.replay()
+            self.replay_count += 1
+            return self._entry.output
         with torch.npu.device(self.device), torch.inference_mode(), (
             set_current_vllm_config(self.config)
         ):
