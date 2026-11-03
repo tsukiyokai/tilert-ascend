@@ -565,7 +565,7 @@ ACLSHMEM_DEVICE void TpPushRmsNormQuantRow(
     __gm__ bfloat16_t* res_out_gm,
     __gm__ bfloat16_t* gamma_gm, __gm__ bfloat16_t* beta_gm,
     __gm__ bfloat16_t* norm_out_gm, __gm__ int8_t* quant_out_gm,
-    __gm__ float* scale_out_gm, int64_t core, int64_t norm_rows,
+    __gm__ float* scale_out_gm, int64_t row_idx, int64_t norm_rows,
     __gm__ int32_t* core_sync, int32_t count, float eps,
     const LocalTensor<bfloat16_t>& x1Local,
     const LocalTensor<bfloat16_t>& x2Local,
@@ -753,17 +753,17 @@ ACLSHMEM_DEVICE void TpPushRmsNormQuantRow(
 
         const int32_t scale_seq = count;
         auto* quant_sync = core_sync + 64 * SIGNAL_SLOT_INT32;
-        if (core != 0 && core != 16) {
-            auto* my_slot = quant_sync + core * SIGNAL_SLOT_INT32;
+        if (row_idx != 0 && row_idx != 16) {
+            auto* my_slot = quant_sync + row_idx * SIGNAL_SLOT_INT32;
             ((__gm__ float*)my_slot)[1] = row_scale;
             dcci_cacheline((__gm__ uint8_t*)my_slot);
             aclshmemi_signal_set((__gm__ int32_t*)my_slot, scale_seq);
         } else {
-            const int64_t end_row = (core == 0)
+            const int64_t end_row = (row_idx == 0)
                                         ? ((norm_rows < 16) ? norm_rows : 16)
                                         : norm_rows;
-            scale_out_gm[core] = row_scale;
-            for (int64_t i = core + 1; i < end_row; ++i) {
+            scale_out_gm[row_idx] = row_scale;
+            for (int64_t i = row_idx + 1; i < end_row; ++i) {
                 auto* slot_i = quant_sync + i * SIGNAL_SLOT_INT32;
                 aclshmem_signal_wait_until((__gm__ int32_t*)slot_i, ACLSHMEM_CMP_GE, scale_seq);
                 scale_out_gm[i] = ((__gm__ float*)slot_i)[1];
@@ -772,7 +772,7 @@ ACLSHMEM_DEVICE void TpPushRmsNormQuantRow(
             for (int64_t i = end_row; i < pad_end; ++i) {
                 scale_out_gm[i] = 0.0f;
             }
-            dcci_cacheline((__gm__ uint8_t*)(scale_out_gm + core));
+            dcci_cacheline((__gm__ uint8_t*)(scale_out_gm + row_idx));
         }
     }
 }
@@ -865,9 +865,7 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
         WaitFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID0);
     }
     if (one_hop && peer != my_pe) {
-        if (gamma == nullptr) {
-            return;
-        }
+        return;
     } else {
         const int64_t chunk = REDUCE_UB_BYTES / static_cast<int64_t>(sizeof(float));
         const event_t events[2] = {EVENT_ID0, EVENT_ID1};
@@ -1072,68 +1070,70 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
         const int64_t num_sync_cores = (cores < 48) ? cores : 48;
         const int32_t arrive_seq = count * 2 - 1;
         const int32_t release_seq = count * 2;
-        if (core < num_sync_cores) {
-            aclshmemi_signal_set(core_sync + core * SIGNAL_SLOT_INT32, arrive_seq);
-        }
-        const int64_t active_rows = active_elements / 6144;
-        const int64_t norm_rows = active_rows;
-        if (norm_rows == 1) {
-            if (core == 0) {
-                const int64_t step = one_hop ? 8 : 1;
-                for (int64_t c = step; c < num_sync_cores; c += step) {
-                    aclshmem_signal_wait_until(
-                        core_sync + c * SIGNAL_SLOT_INT32,
-                        ACLSHMEM_CMP_GE, arrive_seq);
-                }
-            }
-        } else if (num_sync_cores == 48) {
-            if (core < 8) {
-                for (int64_t c = core + 8; c < 48; c += 8) {
-                    aclshmem_signal_wait_until(
-                        core_sync + c * SIGNAL_SLOT_INT32,
-                        ACLSHMEM_CMP_GE, arrive_seq);
-                }
-                if (core > 0) {
-                    aclshmemi_signal_set(
-                        core_sync + (48 + core) * SIGNAL_SLOT_INT32,
-                        arrive_seq);
-                } else {
-                    for (int64_t r = 1; r < 8; ++r) {
+        const int64_t norm_rows = active_elements / 6144;
+        if (fast_8x48 && (one_hop || ((slice_elems % 6144) == 0 && (slice_elems / 6144) <= 6))) {
+            const int64_t rows_per_peer = one_hop ? norm_rows : (slice_elems / 6144);
+            const int64_t peer_row_base = one_hop ? 0 : (peer * rows_per_peer);
+            const int64_t col_rem_rows = norm_rows - peer_row_base;
+            const int64_t col_norm_rows =
+                (col_rem_rows <= 0) ? 0 : ((col_rem_rows < rows_per_peer) ? col_rem_rows : rows_per_peer);
+            if (col_norm_rows > 0) {
+                if (worker > 0) {
+                    aclshmemi_signal_set(core_sync + core * SIGNAL_SLOT_INT32, arrive_seq);
+                    if (worker < col_norm_rows) {
                         aclshmem_signal_wait_until(
-                            core_sync + (48 + r) * SIGNAL_SLOT_INT32,
+                            core_sync + core * SIGNAL_SLOT_INT32,
+                            ACLSHMEM_CMP_GE, release_seq);
+                    }
+                } else {
+                    for (int64_t c = core + 8; c < 48; c += 8) {
+                        aclshmem_signal_wait_until(
+                            core_sync + c * SIGNAL_SLOT_INT32,
                             ACLSHMEM_CMP_GE, arrive_seq);
                     }
-                    for (int64_t c = 1; c < norm_rows; ++c) {
+                    for (int64_t w = 1; w < col_norm_rows; ++w) {
                         aclshmemi_signal_set(
-                            core_sync + c * SIGNAL_SLOT_INT32,
+                            core_sync + (core + (w << 3)) * SIGNAL_SLOT_INT32,
                             release_seq);
                     }
                 }
+                if (worker < col_norm_rows) {
+                    const int64_t row_idx = peer_row_base + worker;
+                    SetFlag<AscendC::HardEvent::S_MTE2>(EVENT_ID0);
+                    WaitFlag<AscendC::HardEvent::S_MTE2>(EVENT_ID0);
+                    TpPushRmsNormQuantRow(
+                        out + row_idx * 6144, residual + row_idx * 6144,
+                        (res_out != nullptr) ? (res_out + row_idx * 6144) : nullptr,
+                        gamma, beta,
+                        (norm_out != nullptr) ? (norm_out + row_idx * 6144) : nullptr,
+                        (quant_out != nullptr) ? (quant_out + row_idx * 6144) : nullptr,
+                        scale_out, row_idx, norm_rows, core_sync, count,
+                        eps, stage_buf, stage_second.ReinterpretCast<bfloat16_t>(),
+                        acc, term, narrow.ReinterpretCast<float>());
+                }
             }
-            if (core > 0 && core < norm_rows) {
-                aclshmem_signal_wait_until(
-                    core_sync + core * SIGNAL_SLOT_INT32,
-                    ACLSHMEM_CMP_GE, release_seq);
+        } else {
+            if (core < num_sync_cores) {
+                aclshmemi_signal_set(core_sync + core * SIGNAL_SLOT_INT32, arrive_seq);
             }
-        } else if (core < norm_rows) {
-            for (int64_t c = 0; c < num_sync_cores; ++c) {
-                aclshmem_signal_wait_until(
-                    core_sync + c * SIGNAL_SLOT_INT32,
-                    ACLSHMEM_CMP_GE, arrive_seq);
+            if (core < norm_rows) {
+                for (int64_t c = 0; c < num_sync_cores; ++c) {
+                    aclshmem_signal_wait_until(
+                        core_sync + c * SIGNAL_SLOT_INT32,
+                        ACLSHMEM_CMP_GE, arrive_seq);
+                }
+                SetFlag<AscendC::HardEvent::S_MTE2>(EVENT_ID0);
+                WaitFlag<AscendC::HardEvent::S_MTE2>(EVENT_ID0);
+                TpPushRmsNormQuantRow(
+                    out + core * 6144, residual + core * 6144,
+                    (res_out != nullptr) ? (res_out + core * 6144) : nullptr,
+                    gamma, beta,
+                    (norm_out != nullptr) ? (norm_out + core * 6144) : nullptr,
+                    (quant_out != nullptr) ? (quant_out + core * 6144) : nullptr,
+                    scale_out, core, norm_rows, core_sync, count,
+                    eps, stage_buf, stage_second.ReinterpretCast<bfloat16_t>(),
+                    acc, term, narrow.ReinterpretCast<float>());
             }
-        }
-        if (core < norm_rows) {
-            SetFlag<AscendC::HardEvent::S_MTE2>(EVENT_ID0);
-            WaitFlag<AscendC::HardEvent::S_MTE2>(EVENT_ID0);
-            TpPushRmsNormQuantRow(
-                out + core * 6144, residual + core * 6144,
-                (res_out != nullptr) ? (res_out + core * 6144) : nullptr,
-                gamma, beta,
-                (norm_out != nullptr) ? (norm_out + core * 6144) : nullptr,
-                (quant_out != nullptr) ? (quant_out + core * 6144) : nullptr,
-                scale_out, core, norm_rows, core_sync, count,
-                eps, stage_buf, stage_second.ReinterpretCast<bfloat16_t>(),
-                acc, term, narrow.ReinterpretCast<float>());
         }
     }
 }

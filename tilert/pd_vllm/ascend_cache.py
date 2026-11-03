@@ -2,6 +2,7 @@
 
 from collections import namedtuple
 from dataclasses import dataclass
+import gc
 import hashlib
 import importlib
 from pathlib import Path
@@ -268,11 +269,21 @@ class AscendRankEngine:
 
     def _clear_request(self):
         self._request_prompt = self.lookup_prompt
+        self._prepared_drafter = None
         self.parent_hidden = None
         self.first_token_id = None
         self._prompt_length = None
         self._decode_mode = None
         self._mtp = None
+
+    def _build_drafter(self):
+        if self._request_prompt is None:
+            return None
+        spec = DRAFTERS[self.drafter_name]
+        Drafter = getattr(importlib.import_module(spec.module), spec.name)
+        bounds = ({spec.tail_keyword: self.lookup_min_ngram}
+                  if spec.tail_keyword else {})
+        return Drafter(self._request_prompt, **bounds)
 
     @property
     def position(self):
@@ -299,6 +310,7 @@ class AscendRankEngine:
         self.parent_hidden = result.last_hidden
         self.first_token_id = int(result.token_ids[0].item())
         self._prompt_length = prefix.seq_len
+        self._prepared_drafter = self._build_drafter()
 
     def step(self, token):
         if self._decode_mode == "mtp":
@@ -315,13 +327,11 @@ class AscendRankEngine:
             raise RuntimeError("MTP must start before any decode operation")
         if type(first_token) is not int or first_token != self.first_token_id:
             raise ValueError("First token differs from the injected prefix")
-        drafter = None
-        if self._request_prompt is not None:
-            spec = DRAFTERS[self.drafter_name]
-            Drafter = getattr(importlib.import_module(spec.module), spec.name)
-            bounds = ({spec.tail_keyword: self.lookup_min_ngram}
-                      if spec.tail_keyword else {})
-            drafter = Drafter(self._request_prompt, **bounds)
+        drafter = self._prepared_drafter
+        self._prepared_drafter = None
+        if drafter is None and self._request_prompt is not None:
+            drafter = self._build_drafter()
+        if drafter is not None:
             drafter.commit((first_token,))
         if self.round_phases is not None:
             self.round_phases.reset()
@@ -376,6 +386,7 @@ class AscendRankEngine:
 
     def reset(self):
         self._clear_request()
+        gc.collect()
         self.target.reset()
         if self.draft is not None:
             self.draft.reset()
@@ -399,3 +410,4 @@ class CannRankEngine(AscendRankEngine):
         result = self.target.predict(self.parent_hidden)
         self.first_token_id = int(result.token_ids[0].item())
         self._prompt_length = prefix.seq_len
+        self._prepared_drafter = self._build_drafter()

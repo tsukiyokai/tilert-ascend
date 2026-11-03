@@ -142,7 +142,7 @@ public:
                                              uint32_t &copyRowCnt, int64_t &idInTopK);
     __aicore__ inline void ComputeMm1(const RunInfo &info, const MSplitInfo mSplitInfo);
     __aicore__ inline void ComputeMm1Coop(const RunInfo &info, const MSplitInfo mSplitInfo, uint32_t cIdx, uint32_t mm1Slot = 0xFFFFFFFFU);
-    __aicore__ inline void ComputeMm1CoopTile(const RunInfo &info, const MSplitInfo mSplitInfo, uint32_t cIdx, uint32_t nL1Start, uint32_t nL1Count = 1U);
+    __aicore__ inline void ComputeMm1CoopTile(const RunInfo &info, const MSplitInfo mSplitInfo, uint32_t cIdx, uint32_t nL1);
     __aicore__ inline void ComputeMm2(const RunInfo &info, const MSplitInfo mSplitInfo);
 
 private:
@@ -1489,7 +1489,7 @@ __aicore__ inline void SFAMatmulService<SFAT>::ComputeMm1Coop(const RunInfo &inf
 
 
 template <typename SFAT>
-__aicore__ inline void SFAMatmulService<SFAT>::ComputeMm1CoopTile(const RunInfo &info, const MSplitInfo mSplitInfo, uint32_t cIdx, uint32_t nL1Start, uint32_t nL1Count)
+__aicore__ inline void SFAMatmulService<SFAT>::ComputeMm1CoopTile(const RunInfo &info, const MSplitInfo mSplitInfo, uint32_t cIdx, uint32_t nL1)
 {
     uint32_t mSize = mSplitInfo.nBufferDealM;
     uint32_t mL1Size = M_SPLIT_SIZE;
@@ -1498,10 +1498,11 @@ __aicore__ inline void SFAMatmulService<SFAT>::ComputeMm1CoopTile(const RunInfo 
 
     uint32_t nSize = info.actualSingleProcessSInnerSize;
     uint32_t nL1Loops = (nSize + N_SPLIT_SIZE - 1) / N_SPLIT_SIZE;
-    uint32_t nL1End = (nL1Start + nL1Count < nL1Loops) ? (nL1Start + nL1Count) : nL1Loops;
-    if (nL1Start >= nL1End) {
+    if (nL1 >= nL1Loops) {
         return;
     }
+    uint32_t nL1Size = (nL1 == (nL1Loops - 1)) ? (nSize - (nL1Loops - 1) * N_SPLIT_SIZE) : N_SPLIT_SIZE;
+    uint32_t nL1SizeAlign = SFAAlign(nL1Size, 16U);
 
     uint32_t kSize = 576;
     uint32_t kL1Size = 288;
@@ -1514,138 +1515,130 @@ __aicore__ inline void SFAMatmulService<SFAT>::ComputeMm1CoopTile(const RunInfo 
     uint64_t kvBase = static_cast<uint64_t>(cIdx) * N_WORKSPACE_SIZE * kSize;
     uint64_t mm1Base = static_cast<uint64_t>(cIdx) * constInfo.mmResUbSize;
 
-    for (uint32_t nL1 = nL1Start; nL1 < nL1End; nL1++) {
-        uint32_t nL1Size = (nL1 == (nL1Loops - 1)) ? (nSize - (nL1Loops - 1) * N_SPLIT_SIZE) : N_SPLIT_SIZE;
-        uint32_t nL1SizeAlign = SFAAlign(nL1Size, 16U);
-        for (uint32_t kL1 = 0; kL1 < kL1Loops; kL1++) {
-            kvL1BufIter++;
-            uint32_t kb = kvL1BufIter % 3;
-            WaitFlag<HardEvent::MTE1_MTE2>(mte21KVIds[kb]);
-            bL1Tensor = l1KVTensor[kb * L1_BLOCK_OFFSET];
+    for (uint32_t kL1 = 0; kL1 < kL1Loops; kL1++) {
+        kvL1BufIter++;
+        uint32_t kb = kvL1BufIter % 3;
+        WaitFlag<HardEvent::MTE1_MTE2>(mte21KVIds[kb]);
+        bL1Tensor = l1KVTensor[kb * L1_BLOCK_OFFSET];
+        if (kL1 == 0) {
+            Nd2NzParams nd2nzPara;
+            nd2nzPara.ndNum = 1;
+            nd2nzPara.nValue = nL1Size;
+            nd2nzPara.dValue = constInfo.headDim >> 1;
+            nd2nzPara.srcDValue = constInfo.headDim;
+            nd2nzPara.dstNzC0Stride = nL1SizeAlign;
+            nd2nzPara.dstNzNStride = 1;
+            nd2nzPara.srcNdMatrixStride = 0;
+            nd2nzPara.dstNzMatrixStride = 0;
+            DataCopy(bL1Tensor,
+                     kvMergeBaseGm_[kvBase + nL1 * N_SPLIT_SIZE * constInfo.headDim],
+                     nd2nzPara);
+            nd2nzPara.dValue = constInfo.headDimRope >> 1;
+            nd2nzPara.srcDValue = constInfo.headDimRope;
+            DataCopy(
+                bL1Tensor[nL1SizeAlign * (constInfo.headDim >> 1)],
+                kvMergeBaseGm_[kvBase + N_WORKSPACE_SIZE * constInfo.headDim +
+                               nL1 * N_SPLIT_SIZE * constInfo.headDimRope],
+                nd2nzPara);
+        } else {
+            LocalTensor<Q_T> kTmpTensor = bL1Tensor[(constInfo.headDimRope >> 1) * nL1SizeAlign];
+            Nd2NzParams nd2nzPara;
+            nd2nzPara.ndNum = 1;
+            nd2nzPara.nValue = nL1Size;
+            nd2nzPara.dValue = constInfo.headDim >> 1;
+            nd2nzPara.srcDValue = constInfo.headDim;
+            nd2nzPara.dstNzC0Stride = nL1SizeAlign;
+            nd2nzPara.dstNzNStride = 1;
+            nd2nzPara.srcNdMatrixStride = 0;
+            nd2nzPara.dstNzMatrixStride = 0;
+            DataCopy(kTmpTensor,
+                     kvMergeBaseGm_[kvBase + (constInfo.headDim >> 1) +
+                                    nL1 * N_SPLIT_SIZE * constInfo.headDim],
+                     nd2nzPara);
+            nd2nzPara.dValue = constInfo.headDimRope >> 1;
+            nd2nzPara.srcDValue = constInfo.headDimRope;
+            DataCopy(
+                bL1Tensor,
+                kvMergeBaseGm_[kvBase + N_WORKSPACE_SIZE * constInfo.headDim +
+                               (constInfo.headDimRope >> 1) + nL1 * N_SPLIT_SIZE * constInfo.headDimRope],
+                nd2nzPara);
+        }
+        SetFlag<HardEvent::MTE2_MTE1>(mte21KVIds[kb]);
+        WaitFlag<HardEvent::MTE2_MTE1>(mte21KVIds[kb]);
+        mL1Size = M_SPLIT_SIZE;
+        mL1SizeAlign = SFAAlign(M_SPLIT_SIZE, 16U);
+        for (uint32_t mL1 = 0; mL1 < mL1Loops; mL1++) {
+            uint32_t aL1PaddingSize = 0;
+            if (mL1 == (mL1Loops - 1)) {
+                mL1Size = mSize - (mL1Loops - 1) * M_SPLIT_SIZE;
+                mL1SizeAlign = SFAAlign(mL1Size, 16U);
+                aL1PaddingSize = (M_SPLIT_SIZE - mL1SizeAlign) * 288;
+            }
+            uint32_t mIdx = qpL1BufIter + mL1;
+            ka = GetQPL1RealIdx(mIdx, kL1);
+            LocalTensor<Q_T> aL1Tensor =
+                l1QPTensor[ka * L1_BLOCK_OFFSET + (1 - kL1) * aL1PaddingSize];
             if (kL1 == 0) {
-                Nd2NzParams nd2nzPara;
-                nd2nzPara.ndNum = 1;
-                nd2nzPara.nValue = nL1Size;
-                nd2nzPara.dValue = constInfo.headDim >> 1;
-                nd2nzPara.srcDValue = constInfo.headDim;
-                nd2nzPara.dstNzC0Stride = nL1SizeAlign;
-                nd2nzPara.dstNzNStride = 1;
-                nd2nzPara.srcNdMatrixStride = 0;
-                nd2nzPara.dstNzMatrixStride = 0;
-                DataCopy(bL1Tensor,
-                         kvMergeBaseGm_[kvBase + nL1 * N_SPLIT_SIZE * constInfo.headDim],
-                         nd2nzPara);
-                nd2nzPara.dValue = constInfo.headDimRope >> 1;
-                nd2nzPara.srcDValue = constInfo.headDimRope;
-                DataCopy(
-                    bL1Tensor[nL1SizeAlign * (constInfo.headDim >> 1)],
-                    kvMergeBaseGm_[kvBase + N_WORKSPACE_SIZE * constInfo.headDim +
-                                   nL1 * N_SPLIT_SIZE * constInfo.headDimRope],
-                    nd2nzPara);
+                WaitFlag<HardEvent::MTE1_MTE2>(mte21QPIds[ka]);
+                WaitFlag<HardEvent::MTE1_MTE2>(mte21QPIds[ka + 1]);
+                CopyInMm1AToL1(aL1Tensor, info, mSplitInfo.nBufferStartM + mL1 * M_SPLIT_SIZE, mL1Size, 256, 0);
+                LocalTensor<Q_T> qRopeTensor = aL1Tensor[mL1SizeAlign * 256];
+                CopyInMm1ARopeToL1(qRopeTensor, info, mSplitInfo.nBufferStartM + mL1 * M_SPLIT_SIZE, mL1Size);
             } else {
-                LocalTensor<Q_T> kTmpTensor = bL1Tensor[(constInfo.headDimRope >> 1) * nL1SizeAlign];
-                Nd2NzParams nd2nzPara;
-                nd2nzPara.ndNum = 1;
-                nd2nzPara.nValue = nL1Size;
-                nd2nzPara.dValue = constInfo.headDim >> 1;
-                nd2nzPara.srcDValue = constInfo.headDim;
-                nd2nzPara.dstNzC0Stride = nL1SizeAlign;
-                nd2nzPara.dstNzNStride = 1;
-                nd2nzPara.srcNdMatrixStride = 0;
-                nd2nzPara.dstNzMatrixStride = 0;
-                DataCopy(kTmpTensor,
-                         kvMergeBaseGm_[kvBase + (constInfo.headDim >> 1) +
-                                        nL1 * N_SPLIT_SIZE * constInfo.headDim],
-                         nd2nzPara);
-                nd2nzPara.dValue = constInfo.headDimRope >> 1;
-                nd2nzPara.srcDValue = constInfo.headDimRope;
-                DataCopy(
-                    bL1Tensor,
-                    kvMergeBaseGm_[kvBase + N_WORKSPACE_SIZE * constInfo.headDim +
-                                   (constInfo.headDimRope >> 1) + nL1 * N_SPLIT_SIZE * constInfo.headDimRope],
-                    nd2nzPara);
+                LocalTensor<Q_T> qTmpTensor = aL1Tensor[mL1SizeAlign * 32];
+                CopyInMm1AToL1(qTmpTensor, info, mSplitInfo.nBufferStartM + mL1 * M_SPLIT_SIZE, mL1Size, 256, 256);
             }
-            SetFlag<HardEvent::MTE2_MTE1>(mte21KVIds[kb]);
-            WaitFlag<HardEvent::MTE2_MTE1>(mte21KVIds[kb]);
-            mL1Size = M_SPLIT_SIZE;
-            mL1SizeAlign = SFAAlign(M_SPLIT_SIZE, 16U);
-            for (uint32_t mL1 = 0; mL1 < mL1Loops; mL1++) {
-                uint32_t aL1PaddingSize = 0;
-                if (mL1 == (mL1Loops - 1)) {
-                    mL1Size = mSize - (mL1Loops - 1) * M_SPLIT_SIZE;
-                    mL1SizeAlign = SFAAlign(mL1Size, 16U);
-                    aL1PaddingSize = (M_SPLIT_SIZE - mL1SizeAlign) * 288;
-                }
-                uint32_t mIdx = qpL1BufIter + mL1;
-                ka = GetQPL1RealIdx(mIdx, kL1);
-                LocalTensor<Q_T> aL1Tensor =
-                    l1QPTensor[ka * L1_BLOCK_OFFSET + (1 - kL1) * aL1PaddingSize];
-                if (nL1 == nL1Start) {
-                    if (kL1 == 0) {
-                        WaitFlag<HardEvent::MTE1_MTE2>(mte21QPIds[ka]);
-                        WaitFlag<HardEvent::MTE1_MTE2>(mte21QPIds[ka + 1]);
-                        CopyInMm1AToL1(aL1Tensor, info, mSplitInfo.nBufferStartM + mL1 * M_SPLIT_SIZE, mL1Size, 256, 0);
-                        LocalTensor<Q_T> qRopeTensor = aL1Tensor[mL1SizeAlign * 256];
-                        CopyInMm1ARopeToL1(qRopeTensor, info, mSplitInfo.nBufferStartM + mL1 * M_SPLIT_SIZE, mL1Size);
-                    } else {
-                        LocalTensor<Q_T> qTmpTensor = aL1Tensor[mL1SizeAlign * 32];
-                        CopyInMm1AToL1(qTmpTensor, info, mSplitInfo.nBufferStartM + mL1 * M_SPLIT_SIZE, mL1Size, 256, 256);
-                    }
-                    SetFlag<HardEvent::MTE2_MTE1>(mte21QPIds[ka]);
-                    WaitFlag<HardEvent::MTE2_MTE1>(mte21QPIds[ka]);
-                }
+            SetFlag<HardEvent::MTE2_MTE1>(mte21QPIds[ka]);
+            WaitFlag<HardEvent::MTE2_MTE1>(mte21QPIds[ka]);
 
-                LocalTensor cL0Tensor =
-                    cL0TensorPingPong[(cL0BufIter % 2) * (L0C_PP_SIZE / sizeof(MM_OUT_T))];
-                for (uint32_t kL0 = 0; kL0 < kL0Loops; kL0++) {
-                    WaitFlag<HardEvent::M_MTE1>(Mte1MmABEventId(abL0BufIter % 2));
-                    LocalTensor<KV_T> aL0Tensor = aL0TensorPingPong[(abL0BufIter % 2) * (L0A_PP_SIZE / sizeof(KV_T))];
-                    LoadDataMm1A(aL0Tensor, aL1Tensor, kL0, kL0Size, mL1SizeAlign, kL0Size);
-                    LocalTensor<KV_T> bL0Tensor = bL0TensorPingPong[(abL0BufIter % 2) * (L0B_PP_SIZE / sizeof(KV_T))];
-                    LoadDataMm1B(bL0Tensor, bL1Tensor, kL0, kL0Size, kL0Size, nL1SizeAlign);
-                    SetFlag<HardEvent::MTE1_M>(Mte1MmABEventId(abL0BufIter % 2));
-                    WaitFlag<HardEvent::MTE1_M>(Mte1MmABEventId(abL0BufIter % 2));
+            LocalTensor cL0Tensor =
+                cL0TensorPingPong[(cL0BufIter % 2) * (L0C_PP_SIZE / sizeof(MM_OUT_T))];
+            for (uint32_t kL0 = 0; kL0 < kL0Loops; kL0++) {
+                WaitFlag<HardEvent::M_MTE1>(Mte1MmABEventId(abL0BufIter % 2));
+                LocalTensor<KV_T> aL0Tensor = aL0TensorPingPong[(abL0BufIter % 2) * (L0A_PP_SIZE / sizeof(KV_T))];
+                LoadDataMm1A(aL0Tensor, aL1Tensor, kL0, kL0Size, mL1SizeAlign, kL0Size);
+                LocalTensor<KV_T> bL0Tensor = bL0TensorPingPong[(abL0BufIter % 2) * (L0B_PP_SIZE / sizeof(KV_T))];
+                LoadDataMm1B(bL0Tensor, bL1Tensor, kL0, kL0Size, kL0Size, nL1SizeAlign);
+                SetFlag<HardEvent::MTE1_M>(Mte1MmABEventId(abL0BufIter % 2));
+                WaitFlag<HardEvent::MTE1_M>(Mte1MmABEventId(abL0BufIter % 2));
 
-                    MmadParams mmadParams;
-                    mmadParams.m = mL1SizeAlign;
-                    mmadParams.n = nL1SizeAlign;
-                    mmadParams.k = kL0Size;
-                    mmadParams.cmatrixInitVal = (kL1 == 0 && kL0 == 0);
-                    mmadParams.cmatrixSource = false;
-                    mmadParams.unitFlag = (kL1 == 1 && kL0 == (kL0Loops - 1)) ? 0b11 : 0b10;
-                    Mmad(cL0Tensor, aL0Tensor, bL0Tensor, mmadParams);
+                MmadParams mmadParams;
+                mmadParams.m = mL1SizeAlign;
+                mmadParams.n = nL1SizeAlign;
+                mmadParams.k = kL0Size;
+                mmadParams.cmatrixInitVal = (kL1 == 0 && kL0 == 0);
+                mmadParams.cmatrixSource = false;
+                mmadParams.unitFlag = (kL1 == 1 && kL0 == (kL0Loops - 1)) ? 0b11 : 0b10;
+                Mmad(cL0Tensor, aL0Tensor, bL0Tensor, mmadParams);
 
-                    if ((mmadParams.m / 16) * (mmadParams.n / 16) < 10) {
-                        PipeBarrier<PIPE_M>();
-                    }
-                    SetFlag<HardEvent::M_MTE1>(Mte1MmABEventId(abL0BufIter % 2));
-                    abL0BufIter++;
+                if ((mmadParams.m / 16) * (mmadParams.n / 16) < 10) {
+                    PipeBarrier<PIPE_M>();
                 }
-                if (nL1 == (nL1End - 1)) {
-                    SetFlag<HardEvent::MTE1_MTE2>(mte21QPIds[ka]);
-                }
-                if (kL1 == 1) {
-                    FixpipeParamsV220 fixParams;
-                    fixParams.nSize = nL1SizeAlign;
-                    fixParams.mSize = mL1SizeAlign;
-                    fixParams.srcStride = mL1SizeAlign;
-                    fixParams.dstStride = info.actualSingleProcessSInnerSizeAlign;
-                    fixParams.unitFlag = 0b11;
-                    fixParams.ndNum = 1;
-                    Fixpipe(mm1ResBaseGm_[mm1Base + nL1 * N_SPLIT_SIZE +
-                                          (mSplitInfo.nBufferStartM + mL1 * M_SPLIT_SIZE) *
-                                              info.actualSingleProcessSInnerSizeAlign],
-                            cL0Tensor, fixParams);
-                }
-                if (mL1Loops == 2) {
-                    cL0BufIter++;
-                }
+                SetFlag<HardEvent::M_MTE1>(Mte1MmABEventId(abL0BufIter % 2));
+                abL0BufIter++;
             }
-            SetFlag<HardEvent::MTE1_MTE2>(mte21KVIds[kb]);
+            SetFlag<HardEvent::MTE1_MTE2>(mte21QPIds[ka]);
+            if (kL1 == 1) {
+                FixpipeParamsV220 fixParams;
+                fixParams.nSize = nL1SizeAlign;
+                fixParams.mSize = mL1SizeAlign;
+                fixParams.srcStride = mL1SizeAlign;
+                fixParams.dstStride = info.actualSingleProcessSInnerSizeAlign;
+                fixParams.unitFlag = 0b11;
+                fixParams.ndNum = 1;
+                Fixpipe(mm1ResBaseGm_[mm1Base + nL1 * N_SPLIT_SIZE +
+                                      (mSplitInfo.nBufferStartM + mL1 * M_SPLIT_SIZE) *
+                                          info.actualSingleProcessSInnerSizeAlign],
+                        cL0Tensor, fixParams);
+            }
+            if (mL1Loops == 2) {
+                cL0BufIter++;
+            }
         }
-        if (mL1Loops == 1) {
-            cL0BufIter++;
-        }
+        SetFlag<HardEvent::MTE1_MTE2>(mte21KVIds[kb]);
+    }
+    if (mL1Loops == 1) {
+        cL0BufIter++;
     }
     qpL1BufIter += mL1Loops;
 }

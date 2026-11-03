@@ -795,32 +795,7 @@ template <typename SFAT>
 __aicore__ inline void SparseFlashAttentionMla<SFAT>::CoopMergeKv(uint32_t tokenBase, uint32_t tokenCount, bool firstWave)
 {
     bool needBlkLoad = firstWave;
-    bool canSubSplit = (tempLoopInfo.curActualSeqLenOri >= constInfo.s2BaseSize * 4U &&
-                        constInfo.sparseBlockSize == 1U);
-    uint32_t baseShare = (canSubSplit && tokenCount <= 3U)
-                             ? ((tokenCount == 1U) ? 6U : ((tokenCount == 2U) ? 3U : 2U))
-                             : 1U;
-    uint32_t totalUnits = tokenCount * 8U * baseShare;
-    bool splitWave2 = (canSubSplit && tokenCount >= 7U && tokenCount <= 9U);
-    if (splitWave2) {
-        totalUnits = 48U + (tokenCount * 8U - 48U) * 2U;
-    }
-    for (uint32_t uIdx = tmpBlockIdx; uIdx < totalUnits; uIdx += 48U) {
-        uint32_t hIdx = uIdx / baseShare;
-        uint32_t subIdx = uIdx % baseShare;
-        uint32_t subShare = baseShare;
-        if (splitWave2) {
-            if (uIdx < 48U) {
-                hIdx = uIdx;
-                subIdx = 0U;
-                subShare = 1U;
-            } else {
-                uint32_t remIdx = uIdx - 48U;
-                hIdx = 48U + (remIdx >> 1U);
-                subIdx = remIdx & 1U;
-                subShare = 2U;
-            }
-        }
+    for (uint32_t hIdx = tmpBlockIdx; hIdx < tokenCount * 8U; hIdx += 48U) {
         uint32_t dstCore = hIdx / 8U;
         uint32_t s2Idx = (hIdx / 2U) % 4U;
         uint32_t halfIdx = hIdx % 2U;
@@ -850,7 +825,7 @@ __aicore__ inline void SparseFlashAttentionMla<SFAT>::CoopMergeKv(uint32_t token
             coopInfo.tensorBRopeOffset = 0;
             uint64_t remS2 = curActSeqLen - sInnerOffset;
             coopInfo.actualSingleProcessSInnerSize = (remS2 > constInfo.s2BaseSize) ? constInfo.s2BaseSize : remS2;
-            vectorService.MergeKvCoop(coopInfo, dstCore, halfIdx, subIdx, subShare);
+            vectorService.MergeKvCoop(coopInfo, dstCore, halfIdx);
         }
     }
 }
@@ -858,15 +833,13 @@ __aicore__ inline void SparseFlashAttentionMla<SFAT>::CoopMergeKv(uint32_t token
 template <typename SFAT>
 __aicore__ inline void SparseFlashAttentionMla<SFAT>::CoopComputeMm1(uint32_t tokenBase, uint32_t tokenCount)
 {
-    if (tokenCount <= 3U) {
-        uint32_t tilesPerCIdx = (tokenCount == 1U) ? 4U : 2U;
-        uint32_t nL1Step = (tokenCount == 1U) ? 1U : 2U;
-        if (aiCoreIdx < tokenCount * 4U * tilesPerCIdx) {
-            uint32_t cIdx = aiCoreIdx / tilesPerCIdx;
-            uint32_t nL1Start = (aiCoreIdx % tilesPerCIdx) * nL1Step;
-            uint32_t dstCore = cIdx / 4U;
-            uint32_t s2Idx = cIdx % 4U;
-            uint32_t qIdx = tokenBase + dstCore;
+    if (tokenCount == 1U) {
+        if (aiCoreIdx < 16U) {
+            uint32_t cIdx = aiCoreIdx / 4U;
+            uint32_t nL1 = aiCoreIdx % 4U;
+            uint32_t dstCore = 0U;
+            uint32_t s2Idx = cIdx;
+            uint32_t qIdx = tokenBase;
 
             int64_t thresh = tempLoopInfo.curActualSeqLenOri;
             if (constInfo.sparseMode == 3) {
@@ -893,23 +866,12 @@ __aicore__ inline void SparseFlashAttentionMla<SFAT>::CoopComputeMm1(uint32_t to
                 MSplitInfo mSplitInfo{};
                 mSplitInfo.nBufferStartM = 0;
                 mSplitInfo.nBufferDealM = constInfo.mBaseSize;
-                matmulService.ComputeMm1CoopTile(coopInfo, mSplitInfo, cIdx, nL1Start, nL1Step);
+                matmulService.ComputeMm1CoopTile(coopInfo, mSplitInfo, cIdx, nL1);
             }
         }
         return;
     }
-    bool splitWave2 = (tokenCount >= 7U && tokenCount <= 9U);
-    uint32_t totalUnits = splitWave2 ? (24U + (tokenCount * 4U - 24U) * 2U) : (tokenCount * 4U);
-    for (uint32_t uIdx = aiCoreIdx; uIdx < totalUnits; uIdx += 24U) {
-        uint32_t cIdx = uIdx;
-        uint32_t nL1Start = 0U;
-        uint32_t nL1Count = 4U;
-        if (splitWave2 && uIdx >= 24U) {
-            uint32_t remIdx = uIdx - 24U;
-            cIdx = 24U + (remIdx >> 1U);
-            nL1Start = (remIdx & 1U) * 2U;
-            nL1Count = 2U;
-        }
+    for (uint32_t cIdx = aiCoreIdx; cIdx < tokenCount * 4U; cIdx += 24U) {
         uint32_t dstCore = cIdx / 4U;
         uint32_t s2Idx = cIdx % 4U;
         uint32_t qIdx = tokenBase + dstCore;
@@ -939,11 +901,7 @@ __aicore__ inline void SparseFlashAttentionMla<SFAT>::CoopComputeMm1(uint32_t to
             MSplitInfo mSplitInfo{};
             mSplitInfo.nBufferStartM = 0;
             mSplitInfo.nBufferDealM = constInfo.mBaseSize;
-            if (nL1Count < 4U) {
-                matmulService.ComputeMm1CoopTile(coopInfo, mSplitInfo, cIdx, nL1Start, nL1Count);
-            } else {
-                matmulService.ComputeMm1Coop(coopInfo, mSplitInfo, cIdx);
-            }
+            matmulService.ComputeMm1Coop(coopInfo, mSplitInfo, cIdx);
         }
     }
 }
@@ -1056,8 +1014,7 @@ template <typename SFAT> __aicore__ inline void SparseFlashAttentionMla<SFAT>::P
                          constInfo.mBaseSize == constInfo.gSize && constInfo.s2Start == 0U &&
                          constInfo.headDimRope > 0U);
         useCoopMtp = isSimple && (usedCoreNum > 0U && usedCoreNum <= 12U && usedCoreNum < GetBlockNum());
-        useHelperOffload = isSimple && (usedCoreNum == 24U &&
-                                        tempLoopInfo.actS1Size >= 25U && tempLoopInfo.actS1Size <= 32U &&
+        useHelperOffload = isSimple && (usedCoreNum == 24U && tempLoopInfo.actS1Size == 32U &&
                                         tempLoopInfo.curActualSeqLenOri >= constInfo.s2BaseSize * 4U);
     }
     if (useCoopMtp) {
@@ -1090,15 +1047,12 @@ template <typename SFAT> __aicore__ inline void SparseFlashAttentionMla<SFAT>::P
     }
     if (useHelperOffload && aiCoreIdx >= 16U) {
         uint32_t k = aiCoreIdx - 16U;
-        uint32_t waitC1V1 = 0U;
-        bool needBlkLoad = true;
         for (uint32_t slot = 0U; slot < 6U; slot++) {
             if (slot == 4U) {
                 if ASCEND_IS_AIV {
-                    for (uint32_t w = 0U; w < waitC1V1; w++) {
+                    for (uint32_t w = 0U; w < 4U; w++) {
                         CrossCoreWaitFlag(constInfo.syncC1V1);
                     }
-                    waitC1V1 = 0U;
                     AscendC::SyncAll<true>();
                 }
             }
@@ -1106,68 +1060,63 @@ template <typename SFAT> __aicore__ inline void SparseFlashAttentionMla<SFAT>::P
             uint32_t s2Idx = (slot < 4U) ? (slot & 1U) : 3U;
             uint32_t c = 2U * k + isUpper;
             uint32_t qIdx = 2U * c + 1U;
-            if (qIdx < tempLoopInfo.actS1Size) {
-                uint32_t dstCore = (slot < 4U) ? aiCoreIdx : c;
-                uint32_t hLoop = (slot < 4U) ? slot : 0U;
+            uint32_t dstCore = (slot < 4U) ? aiCoreIdx : c;
+            uint32_t hLoop = (slot < 4U) ? slot : 0U;
 
-                int64_t thresh = tempLoopInfo.curActualSeqLenOri;
-                if (constInfo.sparseMode == 3) {
-                    thresh = static_cast<int64_t>(tempLoopInfo.nextTokensPerBatch) + qIdx + 1;
-                }
-                uint64_t curActSeqLen = (constInfo.sparseBlockCount * constInfo.sparseBlockSize > thresh) ?
-                                        thresh : (constInfo.sparseBlockCount * constInfo.sparseBlockSize);
-                uint64_t sInnerOffset = static_cast<uint64_t>(s2Idx) * constInfo.s2BaseSize;
-                uint64_t remS2 = (curActSeqLen > sInnerOffset) ? (curActSeqLen - sInnerOffset) : 0ULL;
-                uint32_t actSInner = (remS2 > constInfo.s2BaseSize) ? constInfo.s2BaseSize : static_cast<uint32_t>(remS2);
+            int64_t thresh = tempLoopInfo.curActualSeqLenOri;
+            if (constInfo.sparseMode == 3) {
+                thresh = static_cast<int64_t>(tempLoopInfo.nextTokensPerBatch) + qIdx + 1;
+            }
+            uint64_t curActSeqLen = (constInfo.sparseBlockCount * constInfo.sparseBlockSize > thresh) ?
+                                    thresh : (constInfo.sparseBlockCount * constInfo.sparseBlockSize);
+            uint64_t sInnerOffset = static_cast<uint64_t>(s2Idx) * constInfo.s2BaseSize;
+            uint64_t remS2 = (curActSeqLen > sInnerOffset) ? (curActSeqLen - sInnerOffset) : 0ULL;
+            uint32_t actSInner = (remS2 > constInfo.s2BaseSize) ? constInfo.s2BaseSize : static_cast<uint32_t>(remS2);
 
-                RunInfo hInfo{};
-                hInfo.loop = hLoop;
-                hInfo.bIdx = 0U;
-                hInfo.gS1Idx = qIdx * constInfo.mBaseSize;
-                hInfo.s2Idx = s2Idx;
-                hInfo.isFirstSInnerLoop = needBlkLoad;
-                needBlkLoad = false;
-                hInfo.curActualSeqLenOri = tempLoopInfo.curActualSeqLenOri;
-                hInfo.actS1Size = tempLoopInfo.actS1Size;
-                hInfo.actMBaseSize = constInfo.mBaseSize;
-                hInfo.actualSingleProcessSInnerSize = actSInner;
-                hInfo.actualSingleProcessSInnerSizeAlign =
-                    SFAAlign(actSInner, static_cast<uint32_t>(SFAVectorService<SFAT>::BYTE_BLOCK));
-                hInfo.tndBIdxOffsetForQ = 0ULL;
-                hInfo.tensorAOffset = hInfo.gS1Idx * headDim;
-                hInfo.tensorARopeOffset = hInfo.gS1Idx * constInfo.headDimRope;
-                hInfo.tensorBOffset = 0ULL;
-                hInfo.tensorBRopeOffset = 0ULL;
+            RunInfo hInfo{};
+            hInfo.loop = hLoop;
+            hInfo.bIdx = 0U;
+            hInfo.gS1Idx = qIdx * constInfo.mBaseSize;
+            hInfo.s2Idx = s2Idx;
+            hInfo.isFirstSInnerLoop = (slot == 0U);
+            hInfo.curActualSeqLenOri = tempLoopInfo.curActualSeqLenOri;
+            hInfo.actS1Size = tempLoopInfo.actS1Size;
+            hInfo.actMBaseSize = constInfo.mBaseSize;
+            hInfo.actualSingleProcessSInnerSize = actSInner;
+            hInfo.actualSingleProcessSInnerSizeAlign =
+                SFAAlign(actSInner, static_cast<uint32_t>(SFAVectorService<SFAT>::BYTE_BLOCK));
+            hInfo.tndBIdxOffsetForQ = 0ULL;
+            hInfo.tensorAOffset = hInfo.gS1Idx * headDim;
+            hInfo.tensorARopeOffset = hInfo.gS1Idx * constInfo.headDimRope;
+            hInfo.tensorBOffset = 0ULL;
+            hInfo.tensorBRopeOffset = 0ULL;
 
-                if ASCEND_IS_AIV {
-                    vectorService.MergeKvCoop(hInfo, dstCore, tmpBlockIdx & 1U);
-                    CrossCoreSetFlag<ConstInfo::SFA_SYNC_MODE2, PIPE_MTE3>(constInfo.syncV0C1);
-                    waitC1V1++;
-                }
-                if ASCEND_IS_AIC {
-                    CrossCoreWaitFlag(constInfo.syncV0C1);
-                    uint32_t kvSlot = (slot < 4U) ? (64U + 2U * c + s2Idx) : (4U * c);
-                    uint32_t mm1Slot = (slot < 4U) ? (((c & 1U) == 0U ? 32U : 103U) + c + s2Idx) : (2U * c + 1U);
-                    uint32_t nBufferLoopTimes = (hInfo.actMBaseSize + constInfo.nBufferMBaseSize - 1U) / constInfo.nBufferMBaseSize;
-                    uint32_t nBufferTail = hInfo.actMBaseSize - (nBufferLoopTimes - 1U) * constInfo.nBufferMBaseSize;
-                    for (uint32_t i = 0U; i < nBufferLoopTimes; i++) {
-                        MSplitInfo mSplitInfo;
-                        mSplitInfo.nBufferStartM = i * constInfo.nBufferMBaseSize;
-                        mSplitInfo.nBufferDealM = (i + 1U != nBufferLoopTimes) ? constInfo.nBufferMBaseSize : nBufferTail;
-                        matmulService.ComputeMm1Coop(hInfo, mSplitInfo, kvSlot, mm1Slot);
-                        CrossCoreSetFlag<ConstInfo::SFA_SYNC_MODE2, PIPE_FIX>(constInfo.syncC1V1);
-                    }
+            if ASCEND_IS_AIV {
+                vectorService.MergeKvCoop(hInfo, dstCore, tmpBlockIdx & 1U);
+                CrossCoreSetFlag<ConstInfo::SFA_SYNC_MODE2, PIPE_MTE3>(constInfo.syncV0C1);
+            }
+            if ASCEND_IS_AIC {
+                CrossCoreWaitFlag(constInfo.syncV0C1);
+                uint32_t kvSlot = (slot < 4U) ? (64U + 2U * c + s2Idx) : (4U * c);
+                uint32_t mm1Slot = (slot < 4U) ? (((c & 1U) == 0U ? 32U : 103U) + c + s2Idx) : (2U * c + 1U);
+                uint32_t nBufferLoopTimes = (hInfo.actMBaseSize + constInfo.nBufferMBaseSize - 1U) / constInfo.nBufferMBaseSize;
+                uint32_t nBufferTail = hInfo.actMBaseSize - (nBufferLoopTimes - 1U) * constInfo.nBufferMBaseSize;
+                for (uint32_t i = 0U; i < nBufferLoopTimes; i++) {
+                    MSplitInfo mSplitInfo;
+                    mSplitInfo.nBufferStartM = i * constInfo.nBufferMBaseSize;
+                    mSplitInfo.nBufferDealM = (i + 1U != nBufferLoopTimes) ? constInfo.nBufferMBaseSize : nBufferTail;
+                    matmulService.ComputeMm1Coop(hInfo, mSplitInfo, kvSlot, mm1Slot);
+                    CrossCoreSetFlag<ConstInfo::SFA_SYNC_MODE2, PIPE_FIX>(constInfo.syncC1V1);
                 }
             }
         }
         if ASCEND_IS_AIV {
-            for (uint32_t w = 0U; w < waitC1V1; w++) {
+            for (uint32_t w = 0U; w < 2U; w++) {
                 CrossCoreWaitFlag(constInfo.syncC1V1);
             }
             AscendC::SyncAll<true>();
         }
     }
-    bool hasTwoTokens = (2U * aiCoreIdx + 1U < tempLoopInfo.actS1Size);
     for (uint32_t bN2LoopIdx = constInfo.bN2Start; bN2LoopIdx <= constInfo.bN2End; bN2LoopIdx++) {
         GetBN2Idx(bN2LoopIdx, tempLoopInfo.bIdx, tempLoopInfo.n2Idx);
         GetActualSeqLen(tempLoopInfo.bIdx); // 获取actualSeqLength及ActualSeqLengthKV
@@ -1199,7 +1148,7 @@ template <typename SFAT> __aicore__ inline void SparseFlashAttentionMla<SFAT>::P
             uint32_t curTopKIdx = 0;
             uint64_t curOffsetInSparseBlock = 0;
             for (int s2LoopIdx = constInfo.s2Start; s2LoopIdx < (tempLoopInfo.s2LoopTimes + extraLoop); s2LoopIdx++) {
-                bool skipStage0 = useCoopMtp || (useHelperOffload && hasTwoTokens && (gloop == 4U || gloop == 5U || gloop == 7U));
+                bool skipStage0 = useCoopMtp || (useHelperOffload && (gloop == 4U || gloop == 5U || gloop == 7U));
                 if (useHelperOffload && (gloop == 5U || gloop == 8U)) {
                     if ASCEND_IS_AIV {
                         AscendC::SyncAll<true>();
@@ -1212,16 +1161,6 @@ template <typename SFAT> __aicore__ inline void SparseFlashAttentionMla<SFAT>::P
             constInfo.s2Start = 0;
         }
         constInfo.gS1Start = 0;
-    }
-    if (useHelperOffload && aiCoreIdx < 16U) {
-        if ASCEND_IS_AIV {
-            if (gloop <= 5U) {
-                AscendC::SyncAll<true>();
-            }
-            if (gloop <= 8U) {
-                AscendC::SyncAll<true>();
-            }
-        }
     }
     if ASCEND_IS_AIV {
         CrossCoreWaitFlag(constInfo.syncC2V1);
@@ -1248,7 +1187,7 @@ SparseFlashAttentionMla<SFAT>::PreloadPipeline(uint32_t loop, uint64_t s2Start, 
     CalcSinnerTopKBegin(extraInfo0, curTopKIdx, curOffsetInSparseBlock);
     if (skipMm1) {
         extraInfo0.useCoopMm1 = true;
-        if (skipMergeKv && usedCoreNum == 24U && tempLoopInfo.actS1Size >= 25U && tempLoopInfo.actS1Size <= 32U) {
+        if (skipMergeKv && usedCoreNum == 24U && tempLoopInfo.actS1Size == 32U) {
             extraInfo0.useCoopKv = true;
             if (extraInfo0.s2Idx == 3U) {
                 extraInfo0.coopKvSlot = 4U * aiCoreIdx;

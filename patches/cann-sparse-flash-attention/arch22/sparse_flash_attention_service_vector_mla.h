@@ -63,8 +63,7 @@ public:
                                    uint32_t dealRowCount, uint32_t columnCount, uint32_t actualColumnCount);
     // ================================Vector0==========================================
     __aicore__ inline void MergeKv(const RunInfo &runInfo);
-    __aicore__ inline void MergeKvCoop(const RunInfo &runInfo, uint32_t dstCore, uint32_t halfIdx,
-                                       uint32_t subIdx = 0U, uint32_t subShare = 1U);
+    __aicore__ inline void MergeKvCoop(const RunInfo &runInfo, uint32_t dstCore, uint32_t halfIdx);
     __aicore__ inline int64_t GetKeyGmOffset(int64_t realS2Idx, const RunInfo &runInfo, int64_t s2IdLimit);
     __aicore__ inline int64_t GetKeyRopeGmOffset(int64_t realS2Idx, const RunInfo &runInfo, int64_t s2IdLimit);
     __aicore__ inline void GetRealS2Idx(int64_t s2GmOffset, int64_t &realS2Idx, int64_t topkGmBaseOffset,
@@ -1593,8 +1592,7 @@ SFAVectorService<SFAT>::RowMuls(LocalTensor<T> dstUb, LocalTensor<T> src0Ub, Loc
 
 
 template <typename SFAT>
-__aicore__ inline void SFAVectorService<SFAT>::MergeKvCoop(const RunInfo &runInfo, uint32_t dstCore, uint32_t halfIdx,
-                                                           uint32_t subIdx, uint32_t subShare)
+__aicore__ inline void SFAVectorService<SFAT>::MergeKvCoop(const RunInfo &runInfo, uint32_t dstCore, uint32_t halfIdx)
 {
     int64_t s2ProcessSize = runInfo.actualSingleProcessSInnerSize;
     int64_t s2Pair = CeilDiv(s2ProcessSize, 2L * constInfo.sparseBlockSize);
@@ -1617,38 +1615,10 @@ __aicore__ inline void SFAVectorService<SFAT>::MergeKvCoop(const RunInfo &runInf
     SetFlag<AscendC::HardEvent::MTE3_MTE2>(0);
     SetFlag<AscendC::HardEvent::MTE3_MTE2>(1);
     uint64_t coreBase = (static_cast<uint64_t>(dstCore) * 4ULL + (runInfo.loop & 3U)) * 512ULL * 576ULL;
-    int64_t halfStart = (halfIdx == 0) ? 0 : CeilDiv(s2Pair, 2L) * 2 * constInfo.sparseBlockSize;
-    int64_t halfLimit = (halfIdx == 0) ? CeilDiv(s2Pair, 2L) * 2 * constInfo.sparseBlockSize : s2ProcessSize;
-    if (halfLimit > s2ProcessSize) {
-        halfLimit = s2ProcessSize;
-    }
-    int64_t halfTotal = (halfLimit > halfStart) ? (halfLimit - halfStart) : 0;
-    int64_t s2GmStartOffset = halfStart;
-    int64_t s2GmLimit = halfLimit;
-    if (subShare > 1U) {
-        int64_t subStart = 0;
-        int64_t subLen = halfTotal;
-        if (subShare == 6U) {
-            subStart = (subIdx < 4U) ? (static_cast<int64_t>(subIdx) * 40L) : (160L + static_cast<int64_t>(subIdx - 4U) * 48L);
-            subLen = (subIdx < 4U) ? 40L : 48L;
-        } else if (subShare == 4U) {
-            subStart = static_cast<int64_t>(subIdx) * 64L;
-            subLen = 64L;
-        } else if (subShare == 3U) {
-            subStart = (subIdx < 2U) ? (static_cast<int64_t>(subIdx) * 88L) : 176L;
-            subLen = (subIdx < 2U) ? 88L : 80L;
-        } else {
-            subStart = static_cast<int64_t>(subIdx) * 128L;
-            subLen = 128L;
-        }
-        s2GmStartOffset = halfStart + subStart;
-        if (s2GmStartOffset > halfLimit) {
-            s2GmStartOffset = halfLimit;
-        }
-        s2GmLimit = s2GmStartOffset + subLen;
-        if (s2GmLimit > halfLimit) {
-            s2GmLimit = halfLimit;
-        }
+    int64_t s2GmStartOffset = (halfIdx == 0) ? 0 : CeilDiv(s2Pair, 2L) * 2 * constInfo.sparseBlockSize;
+    int64_t s2GmLimit = (halfIdx == 0) ? CeilDiv(s2Pair, 2L) * 2 * constInfo.sparseBlockSize : s2ProcessSize;
+    if (s2GmLimit > s2ProcessSize) {
+        s2GmLimit = s2ProcessSize;
     }
     if constexpr (PAGE_ATTENTION) {
         if (constInfo.sparseBlockSize == 1 && constInfo.kvCacheBlockSize == 128 && constInfo.kvHeadNum == 1 &&
@@ -1825,16 +1795,13 @@ __aicore__ inline void SFAVectorService<SFAT>::MergeKvCoop(const RunInfo &runInf
     }
     WaitFlag<AscendC::HardEvent::MTE3_MTE2>(0);
     WaitFlag<AscendC::HardEvent::MTE3_MTE2>(1);
-    if (subIdx == 0U) {
-        int64_t validOutSize = (subShare > 1U) ? halfTotal : mte2Size;
-        v0ValidSizeUb_.SetValue(runInfo.loop % MERGE_CACHE_GM_BUF_NUM, validOutSize);
-        v0ValidSizeUb_.SetValue(runInfo.s2Idx & 3U, validOutSize);
-        SetFlag<AscendC::HardEvent::S_MTE3>(1);
-        WaitFlag<AscendC::HardEvent::S_MTE3>(1);
-        uint64_t validBase = (static_cast<uint64_t>(dstCore) * 4ULL + (runInfo.loop % MERGE_CACHE_GM_BUF_NUM)) * 256ULL;
-        DataCopy(kvValidSizeBaseGm_[validBase + halfIdx * 128ULL], v0ValidSizeUb_, 128);
-        SetFlag<AscendC::HardEvent::MTE3_S>(SYNC_INPUT_V0BUF_FLAG);
-        WaitFlag<AscendC::HardEvent::MTE3_S>(SYNC_INPUT_V0BUF_FLAG);
-    }
+    v0ValidSizeUb_.SetValue(runInfo.loop % MERGE_CACHE_GM_BUF_NUM, mte2Size);
+    v0ValidSizeUb_.SetValue(runInfo.s2Idx & 3U, mte2Size);
+    SetFlag<AscendC::HardEvent::S_MTE3>(1);
+    WaitFlag<AscendC::HardEvent::S_MTE3>(1);
+    uint64_t validBase = (static_cast<uint64_t>(dstCore) * 4ULL + (runInfo.loop % MERGE_CACHE_GM_BUF_NUM)) * 256ULL;
+    DataCopy(kvValidSizeBaseGm_[validBase + halfIdx * 128ULL], v0ValidSizeUb_, 128);
+    SetFlag<AscendC::HardEvent::MTE3_S>(SYNC_INPUT_V0BUF_FLAG);
+    WaitFlag<AscendC::HardEvent::MTE3_S>(SYNC_INPUT_V0BUF_FLAG);
 }
 #endif
