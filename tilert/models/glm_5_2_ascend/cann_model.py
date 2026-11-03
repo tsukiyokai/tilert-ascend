@@ -261,7 +261,7 @@ class CannModel:
         gather_fia_max_width=None,
         mtp_tokens=0, layers=None,
         hoist_metadata=False, hoist_forward_context=False,
-        packed_host_inputs=False,
+        packed_host_inputs=False, whole_layer=None,
     ):
         world_size = int(os.environ.get("WORLD_SIZE", "16"))
         if world_size not in (8, 16):
@@ -275,6 +275,17 @@ class CannModel:
             raise ValueError("The routed kernel requires TP16 with EP off")
         if native_attention and (mla_tail or attention_kernel != "sfa"):
             raise ValueError("Native attention includes the MLA tail and requires SFA")
+        if whole_layer is not None:
+            if (world_size != 16 or expert_parallel or compile_target
+                    or attention_kernel != "sfa" or mla_tail
+                    or routed_kernel or plain_moe_combine):
+                raise ValueError(
+                    "Whole-layer requires eager TP16 SFA without routed/compile hooks"
+                )
+        self.whole_layer_path = (
+            Path(whole_layer).resolve() if whole_layer is not None else None
+        )
+        self._whole_layer = None
         self._mla_tail_enabled = mla_tail
         self._native_attention_enabled = native_attention
         self._routed_workspace_pool = None
@@ -397,7 +408,27 @@ class CannModel:
             self._install_routed_kernel()
         if routed_shared_kernel:
             self._install_routed_shared_kernel()
+        if self.whole_layer_path is not None:
+            self._install_whole_layer()
         self._prepare_fused_workspaces(self.graph_width)
+
+    def _install_whole_layer(self):
+        from vllm.config import set_current_vllm_config
+        from .whole_layer import Libraries, WholeLayerManager
+
+        libraries = Libraries.from_json(self.whole_layer_path)
+        endpoint = (
+            self.onesided_endpoint
+            or os.environ.get("TILERT_WHOLE_LAYER_ENDPOINT",
+                              "tcp://127.0.0.1:29590")
+        )
+        with set_current_vllm_config(self.config):
+            manager = WholeLayerManager(
+                self.config, libraries, device=self.device,
+                rank=self.rank, ranks=self.tp_size, endpoint=endpoint,
+                target_width=self.graph_width,
+            )
+            self._whole_layer = manager.install_model(self.model)
 
     def _install_routed_kernel(self):
         """Send the routed experts to the hand-written kernel.
@@ -467,7 +498,18 @@ class CannModel:
                 self._native_attention_workspace_pool.live_slots(
                     self._input_buffers[size][2],
                 )
+        if self._whole_layer is not None:
+            from vllm.forward_context import is_forward_context_available
+
+            if is_forward_context_available():
+                sample = torch.empty(width, 6144, dtype=torch.bfloat16,
+                                     device=self.device)
+                self._whole_layer.reserve_capture(sample)
         torch.npu.synchronize(self.device)
+
+    def _validate_fused_capture(self, width):
+        if self._whole_layer is not None:
+            self._whole_layer.validate_capture(width)
 
     def _install_tp_sum(self):
         from vllm.distributed import get_tp_group
@@ -518,6 +560,9 @@ class CannModel:
         self._rope_graphs.clear()
         if self.graph is not None:
             self.graph.close()
+        if self._whole_layer is not None:
+            self._whole_layer.close_after_graphs()
+            self._whole_layer = None
         self._restore_tp_sum()
         if self._restore_combine is not None:
             self._restore_combine()
@@ -640,21 +685,38 @@ class CannModel:
         if self._mla_tail_enabled:
             from .mla_tail import WorkspacePool, install, load
 
-            load()
+            load(self.tp_size)
             self._mla_tail_workspace_pool = WorkspacePool()
             context = self.config.compilation_config.static_forward_context
             self._restore_mla_tail = [
                 install(context[name].impl, self._mla_tail_workspace_pool)
                 for name in attention_names
             ]
+        if self.whole_layer_path is not None:
+            from .whole_layer import Libraries
+
+            wl_libs = Libraries.from_json(self.whole_layer_path)
+            os.environ.setdefault("TILERT_INDEXED_ATTENTION_LIBRARY",
+                                  str(wl_libs.indexed))
+            os.environ.setdefault("TILERT_SHARED_ATTENTION_LIBRARY",
+                                  str(wl_libs.shared))
         if self._native_attention_enabled:
             from .attention_native import WorkspacePool, install, load
 
-            load()
+            load(self.tp_size)
             self._native_attention_workspace_pool = WorkspacePool()
             context = self.config.compilation_config.static_forward_context
+            hf = self.config.model_config.hf_config
+            first_k = getattr(hf, "first_k_dense_replace", 0)
+            freq = getattr(hf, "moe_layer_freq", 1)
+            target_names = [
+                name for name in attention_names
+                if self.whole_layer_path is None
+                or int(re.search(r"(?:^|\.)layers\.(\d+)\.", name)[1]) < first_k
+                or int(re.search(r"(?:^|\.)layers\.(\d+)\.", name)[1]) % freq != 0
+            ]
             try:
-                for name in attention_names:
+                for name in target_names:
                     self._restore_native_attention.append(install(
                         context[name], self._native_attention_workspace_pool,
                     ))
@@ -724,11 +786,13 @@ class CannModel:
         self._dynamic_sfa_len = (
             os.environ.get("TRT_DYNAMIC_SFA_LEN", "1") == "1"
         )
-        self._dynamic_sfa_max = int(
-            os.environ.get("TRT_DYNAMIC_SFA_MAX", "32")
+        self._dynamic_sfa_max = (
+            0 if self.whole_layer_path is not None
+            else int(os.environ.get("TRT_DYNAMIC_SFA_MAX", "32"))
         )
-        self._dynamic_idx_max = int(
-            os.environ.get("TRT_DYNAMIC_IDX_MAX", "16")
+        self._dynamic_idx_max = (
+            0 if self.whole_layer_path is not None
+            else int(os.environ.get("TRT_DYNAMIC_IDX_MAX", "0"))
         )
         self._mc2_host_masks = {}
         self._last_mc2_active = {}
@@ -1301,7 +1365,13 @@ class CannModel:
             from . import attention_native, mla_tail
 
             objects.extend((attention_native, mla_tail))
-            native_libraries.extend(attention_native.library_paths())
+            native_libraries.extend(attention_native.library_paths(self.tp_size))
+        if self._whole_layer is not None:
+            from . import attention_native, routed_shared, whole_layer, whole_layer_abi
+
+            objects.extend((attention_native, routed_shared,
+                            whole_layer, whole_layer_abi))
+            native_libraries.extend(self._whole_layer.libraries.paths())
         if (self._routed_shared_workspace_pool is not None
                 or self._mla_tail_workspace_pool is not None
                 or self._native_attention_workspace_pool is not None):

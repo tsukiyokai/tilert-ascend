@@ -17,6 +17,14 @@ void tp_push_demo(uint32_t block_dim, void* stream, uint64_t fftsAddr,
                   int rows, int hidden, int rounds, int round_base, int stage,
                   const int32_t* active_ptr = nullptr);
 
+void tp_push_rmsnorm_quant(uint32_t block_dim, void* stream, uint64_t fftsAddr,
+                           float* partial, float* out, uint8_t* window,
+                           int32_t* routed, int numel, int scale_bits,
+                           int round_base, int stage, const int32_t* active_ptr,
+                           const void* residual, void* res_out, const void* gamma, const void* beta,
+                           void* norm_out, void* quant_out, void* scale_out,
+                           float eps);
+
 void launch_indexer_prep_qk(uint32_t block_dim, void* stream, void* kw,
                             void* q_in, void* cos_gm, void* sin_gm,
                             void* ln_weight, void* ln_bias, void* slot_mapping,
@@ -44,7 +52,7 @@ void launch_tree_splice_topk(uint32_t block_dim, void* stream, void* topk_indice
 
 namespace {
 
-constexpr int64_t kDefaultCapacity = 4LL * 1024 * 1024;
+constexpr int64_t kDefaultCapacity = 1024LL * 1024;
 constexpr uint32_t kDefaultBlocks = 48;
 
 struct ShmemState {
@@ -72,8 +80,8 @@ struct ShmemState {
             TORCH_CHECK(errors != nullptr, "aclshmem_malloc(errors) failed");
         }
         capacity = std::max(numel, kDefaultCapacity);
-        const size_t window_bytes =
-            64 + static_cast<size_t>((capacity * 4 + 31) & ~31LL) * 32;
+        const size_t stride_bytes = static_cast<size_t>((capacity * 4 + 31) & ~31LL);
+        const size_t window_bytes = 16384 + stride_bytes * 64;
         window = static_cast<uint8_t*>(aclshmem_malloc(window_bytes));
         TORCH_CHECK(window != nullptr, "aclshmem_malloc(window) failed");
         if (ffts == 0) {
@@ -378,6 +386,77 @@ at::Tensor& TreeSpliceTopkMeta(at::Tensor& topk_indices,
     return topk_indices;
 }
 
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor>
+OneSidedAllReduceRmsNormQuant(const at::Tensor& partial, at::Tensor& out,
+                              const c10::optional<at::Tensor>& routed,
+                              double scale, const at::Tensor& residual,
+                              const at::Tensor& gamma,
+                              const c10::optional<at::Tensor>& beta, double eps,
+                              bool need_norm_out, bool need_quant) {
+    const c10::OptionalDeviceGuard device_guard(partial.device());
+    const int64_t numel = partial.numel();
+    const int64_t rows = numel / 6144;
+    auto& state = GetState();
+    state.Ensure(numel);
+    void* stream = c10_npu::getCurrentNPUStream().stream(true);
+    const int round = state.round++;
+    union {
+        float f;
+        int32_t i;
+    } scale_bits = {static_cast<float>(scale)};
+    int stage = 10;
+    int32_t* routed_ptr = state.errors;
+    if (routed.has_value() && routed->defined()) {
+        stage = (routed->numel() == numel) ? 13 : 15;
+        routed_ptr = reinterpret_cast<int32_t*>(routed->data_ptr());
+    }
+    const int32_t* act_ptr =
+        (numel == 196608) ? state.active_shmem_ptr : nullptr;
+    at::Tensor norm_out = at::empty_like(residual);
+    at::Tensor res_out = at::empty_like(residual);
+    at::Tensor quant_out = need_quant
+        ? at::empty(residual.sizes(), residual.options().dtype(at::kChar))
+        : at::Tensor();
+    at::Tensor full_scale_out = need_quant
+        ? at::empty({std::max<int64_t>(rows, 8LL)}, residual.options().dtype(at::kFloat))
+        : at::Tensor();
+    const void* beta_ptr =
+        (beta.has_value() && beta->defined()) ? beta->data_ptr() : nullptr;
+    void* norm_ptr = need_norm_out ? norm_out.data_ptr() : nullptr;
+    void* res_out_ptr = res_out.data_ptr();
+    void* quant_ptr = need_quant ? quant_out.data_ptr() : nullptr;
+    void* scale_ptr = need_quant ? full_scale_out.data_ptr() : nullptr;
+    tp_push_rmsnorm_quant(
+        kDefaultBlocks, stream, state.ffts,
+        reinterpret_cast<float*>(partial.data_ptr()),
+        reinterpret_cast<float*>(out.data_ptr()), state.window, routed_ptr,
+        static_cast<int>(numel), scale_bits.i, round, stage, act_ptr,
+        residual.data_ptr(), res_out_ptr, gamma.data_ptr(), beta_ptr, norm_ptr, quant_ptr,
+        scale_ptr, static_cast<float>(eps));
+    at::Tensor scale_out = need_quant ? full_scale_out.narrow(0, 0, rows) : at::Tensor();
+    return {norm_out, res_out, quant_out, scale_out};
+}
+
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor>
+OneSidedAllReduceRmsNormQuantMeta(const at::Tensor& partial, at::Tensor& out,
+                                  const c10::optional<at::Tensor>& routed,
+                                  double scale, const at::Tensor& residual,
+                                  const at::Tensor& gamma,
+                                  const c10::optional<at::Tensor>& beta,
+                                  double eps, bool need_norm_out,
+                                  bool need_quant) {
+    const int64_t rows = partial.numel() / 6144;
+    at::Tensor norm_out = at::empty_like(residual);
+    at::Tensor res_out = at::empty_like(residual);
+    at::Tensor quant_out = need_quant
+        ? at::empty(residual.sizes(), residual.options().dtype(at::kChar))
+        : at::Tensor();
+    at::Tensor scale_out = need_quant
+        ? at::empty({rows}, residual.options().dtype(at::kFloat))
+        : at::Tensor();
+    return {norm_out, res_out, quant_out, scale_out};
+}
+
 }  // namespace
 
 TORCH_LIBRARY_FRAGMENT(tilert, m) {
@@ -385,6 +464,8 @@ TORCH_LIBRARY_FRAGMENT(tilert, m) {
     m.def("onesided_all_reduce_out(Tensor partial, Tensor(a!) out) -> Tensor(a!)");
     m.def(
         "onesided_all_reduce_scale_add(Tensor partial, Tensor routed, float scale) -> Tensor");
+    m.def(
+        "onesided_all_reduce_rmsnorm_quant(Tensor partial, Tensor(a!) out, Tensor? routed, float scale, Tensor residual, Tensor gamma, Tensor? beta, float eps, bool need_norm_out, bool need_quant) -> (Tensor, Tensor, Tensor, Tensor)");
     m.def(
         "onesided_top_tokens(Tensor local_max, Tensor local_idx, int vocab_offset) -> Tensor");
     m.def(
@@ -403,6 +484,7 @@ TORCH_LIBRARY_IMPL(tilert, PrivateUse1, m) {
     m.impl("onesided_all_reduce", &OneSidedAllReduce);
     m.impl("onesided_all_reduce_out", &OneSidedAllReduceOut);
     m.impl("onesided_all_reduce_scale_add", &OneSidedAllReduceScaleAdd);
+    m.impl("onesided_all_reduce_rmsnorm_quant", &OneSidedAllReduceRmsNormQuant);
     m.impl("onesided_top_tokens", &OneSidedTopTokens);
     m.impl("indexer_prep_qk", &IndexerPrepQk);
     m.impl("indexer_split_cast_scatter_c8", &IndexerSplitCastScatterC8);
@@ -415,6 +497,7 @@ TORCH_LIBRARY_IMPL(tilert, Meta, m) {
     m.impl("onesided_all_reduce", &OneSidedAllReduceMeta);
     m.impl("onesided_all_reduce_out", &OneSidedAllReduceOutMeta);
     m.impl("onesided_all_reduce_scale_add", &OneSidedAllReduceScaleAddMeta);
+    m.impl("onesided_all_reduce_rmsnorm_quant", &OneSidedAllReduceRmsNormQuantMeta);
     m.impl("onesided_top_tokens", &OneSidedTopTokensMeta);
     m.impl("indexer_prep_qk", &IndexerPrepQkMeta);
     m.impl("indexer_split_cast_scatter_c8", &IndexerSplitCastScatterC8Meta);
