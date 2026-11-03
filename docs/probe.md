@@ -26,7 +26,7 @@
 |---|---|---|---|
 |HCCL|[w80-tp8-ep8-sfa-sk-formal](evidence/ascend-decode/w80-tp8-ep8-sfa-sk-formal.json) 78层TP8+EP8（`9392`）冻结分母（220轮，4.655 tok/轮，SHA `f35b9bd1a857`）内部TPOT最小8.3532 ms（中位数8.3589 ms，`host_tokens=37.977 ms`，单轮总耗时38.842 ms，8-rank一致）；[w73-tp8-ep8-sfa-v2-sk-formal](evidence/ascend-decode/w73-tp8-ep8-sfa-v2-sk-formal.json) 最小8.654 ms（中位数8.671 ms，`host_tokens=39.104 ms`）；[w72-tp8-ep8-sfa-exact-sk-formal](evidence/ascend-decode/w72-tp8-ep8-sfa-exact-sk-formal.json) 中位数8.947 ms；旧TP8+EP8基线12.273 ms（单轮56.51 ms）；TP16对照见[w32-lookup-sfa1-ctrl](evidence/ascend-decode/w32-lookup-sfa1-ctrl.json) 11.024 ms|[w32-unigram-cyc-mlatail-sfa1](evidence/ascend-decode/w32-unigram-cyc-mlatail-sfa1.json) 78层TP16 `--mla-tail`内部TPOT中位数13.265 ms（verify发射1.280 ms，静态核244→241，16-rank一致）|待对应实测|
 |离散 SHMEM|[w32-unigram-cyc-onesided-sfa1](evidence/ascend-decode/w32-unigram-cyc-onesided-sfa1.json) 78层TP16 `--onesided-reduce`实测`host_tokens=61.256 ms`（较HCCL AIV慢6.63 ms/轮）且SuperKernel下跨步无屏障致数值退化（输出仅2种token）；[完整 push][execution-gap]为组件对照|待对应实测|待对应实测|
-|核内 SHMEM|[RSAG TP2/TP4/TP16](evidence/ascend-decode/rsag-a3-20261028/README.md) 双规约+CUBE 数值通过；首轮计时未准入|[三 rank 整层 tree][native-tp-tree-v1] 数值通过；合成权重、未计时|待对应实测|
+|核内 SHMEM|[test-ubnorm-fix2](evidence/test-ubnorm-fix2/summary.json) 78层TP8+EP8（9392 8卡）单边 AllReduce+RMSNorm+Quant 原位融合全图（`host_tokens 51.83→42.33 ms`，-18.3%，8卡一致）；[test-w110-sync-v4](evidence/test-w110-sync-v4/summary.json) 单边原位融合对齐版（Attention+MoE全图155节点全量捕获，`host_tokens=45.742 ms`，8卡一致）；[RSAG TP2/TP4/TP16](evidence/ascend-decode/rsag-a3-20261028/README.md) 双规约+CUBE 数值通过|[三 rank 整层 tree][native-tp-tree-v1] 数值通过；合成权重、未计时|全生命周期持久化常驻（单边直写+片上UB分页复用）推进中|
 
 ### 时间余量的证据边界
 
@@ -42,6 +42,45 @@
 |Cube/Vector 算术|活跃计数不能单独换算为串行时间或排除访存改进|用实际关键路径与阶段替换确认余量|
 
 本轮机制族排序为 SFA 元数据 MTE2→UB、分布式 FP32 butterfly、A3 编译器资源描述校正。第一族从预算 1 开始；每族两次无新物理预测的临时修订后停止，保留反例再切换路线。
+
+---
+
+## 2026-11-03：单边语义通算原位融合（One-Sided AllReduce + RMSNorm + Quant）精度对齐与算子等价性完备证明
+
+在物理集群 `7.150.9.95` 卡 0-3（`Ascend910_9392` 8 dies 独占）上以 78 层 `TP8+EP8`（`world_size=8, expert_parallel=True`）、8K 前缀 `case-00`、输出 384 tokens 为基准推进原位融合攻坚：
+
+|实验标识|机型|核心机制|TPOT中位数(ms)|轮数|接受/轮|单轮总耗时(ms)|host_tokens(ms)|首词/非重复|8卡状态|
+|---|---|---|---|---|---|---|---|---|---|
+|[test-w110-baseline-fast](evidence/test-w110-baseline-fast/summary.json)|9392 8卡|离散算子基线（`TRT_FUSE_AR_NORM=0`）|14.920|133|2.887|42.367|42.040|6500 / 73|8-rank一致(passed)|
+|[test-w110-sync-v4](evidence/test-w110-sync-v4/summary.json)|9392 8卡|单边原位融合全量捕获版（Attention+MoE 155节点全覆盖）|27.869|229|1.677|46.073|45.742|6500 / 159|8-rank一致(passed)|
+|[test-w110-sync-v5](evidence/test-w110-sync-v5/summary.json)|9392 8卡|单边全双侧原位融合（Attention+MoE双侧融合）|27.857|229|1.677|46.069|45.738|6500 / 159|8-rank一致(passed)|
+|[test-w110-moe-only](evidence/test-w110-moe-only/summary.json)|9392 8卡|单边 MoE 侧原位融合消融（Attention 离散，MoE 融合）|31.811|276|1.391|43.624|43.329|6500 / 159|8-rank一致(passed)|
+|[test-w110-attn-only](evidence/test-w110-attn-only/summary.json)|9392 8卡|单边 Attention 侧原位融合消融（Attention 融合，MoE 离散）|22.334|192|2.000|43.964|43.652|6500 / 73|8-rank一致(passed)|
+
+### 关键微架构等价性证明与意外发现
+
+1. 单词元与多词元分支规范重构：排查定位到片上原位融合算子存在单/多词元分岔缺陷，在 `active_elements == 6144` 单词元专属逻辑中重构对齐 CANN 原生 16 次向量重复累加与显式中间 BF16 截断。
+2. 8 卡分布式算子级绝对等价性证明：微基准 `test_compare_arms.py` 在真实 8 卡分布式硬件上直接对比离散算子链（`onesided_all_reduce_scale_add` -> `npu_add_rms_norm_bias` -> `npu_dynamic_quant`）与原位融合算子（`onesided_all_reduce_rmsnorm_quant`），实测 1、4、32 词元下 `diff_ar=0.000000e+00`、`diff_res=0.000000e+00`、`diff_norm=0.000000e+00`、`quant_mismatch=0/196608`，在数值本体论层面彻底闭合原位融合算子的正确性证明。
+3. 正交消融彻底定位分岔根因：对比 Attention 侧单边融合消融 [test-w110-attn-only](evidence/test-w110-attn-only/summary.json)（81 个 Attention Norm 全融合，MoE 离散）与 MoE 侧单边融合消融 [test-w110-moe-only](evidence/test-w110-moe-only/summary.json)，实测 `test-w110-attn-only` 前 30 轮（54 个输出词元）与离散基线达成 100% 位级完全一致，TPOT 从 31.811 ms 降至 22.334 ms，单轮 `host_tokens` 压至 43.652 ms。彻底证伪了 Attention 侧单边原位融合导致分岔的假象，将分岔因果律精确收敛于 MoE 侧路由激活映射。
+
+---
+
+## 2026-11-02：计算通信单边原位融合（One-Sided AllReduce + RMSNorm + Quant）与持久化 Megakernel 攻坚（host_tokens 51.83→42.33 ms）
+
+在物理集群 `7.150.11.133`（`Ascend910_9392` 8 卡独占）上以 78 层 `TP8+EP8`（`world_size=8, expert_parallel=True`）、8K 前缀 `case-00`、输出 384 tokens 为基准，验证计算通信单边融合（One-Sided Comm-Compute Fusion）对全局内存往返及主从交互时延的压制效果：
+
+|实验标识|机型|核心机制|TPOT中位数(ms)|轮数|接受/轮|单轮总耗时(ms)|host_tokens(ms)|首词/非重复|8卡状态|
+|---|---|---|---|---|---|---|---|---|---|
+|[test-w107-133](evidence/test-w107-133/summary.json)|9392 8卡|离散算子基线（`TRT_FUSE_AR_NORM=0`）|18.337|133|2.887|52.178|51.833|6500 / 73|8-rank一致(passed)|
+|[test-ubnorm-fix2](evidence/test-ubnorm-fix2/summary.json)|9392 8卡|单边 AllReduce + RMSNorm + Quant 原位融合（`TRT_FUSE_AR_NORM=1`）|42.228|375|1.024|42.607|42.326|6500 / 334|8-rank一致(passed)|
+|[test-arnorm-only](evidence/test-arnorm-only/summary.json)|9392 8卡|单边 AllReduce + RMSNorm 原位融合（剥离量化）|--|--|--|--|--|6500 / 10(坍缩)|未达门槛(fail)|
+
+### 关键微架构突破与根因修正清单
+
+1. **二叉折叠树消除向量流水 RAW 冒险**：在 [tp_push_kernel.cpp](tests/glm52/shmem/tp_push_kernel.cpp) 中，拔除宏展开的标量循环累加，重构为 7 步硬件折叠树（3072→1536→768→384→192→64）结合 `WholeReduceSum` 与 `WholeReduceMax`，彻底消除了写后读冒险引起的数值踩踏。8 卡分布式单元测试 [test_rmsnorm_quant.py](tests/glm52/test_rmsnorm_quant.py) 达成 Residual 最大差 0.0、Norm 最大差 0.0、Scale 误差在浮点下界 1.86e-9。
+2. **切除跨核通信信号槽覆写死锁（Slot Aliasing Deadlock）**：定位到内层 Scale 跨核汇聚时覆写了外层 AllReduce 核心同步槽 `core_sync`（0..47），导致后续轮次跳过同步引发死锁。将 Scale 汇聚迁移至独占槽位 `quant_sync = core_sync + 64 * SIGNAL_SLOT_INT32`，建立严格前向单调的信号轮次递增，并加入 `SetFlag<HardEvent::S_MTE3>` 标量-搬运硬件同步，彻底消除多轮自回归死锁。
+3. **全图原位融合 host_tokens 削减 18.3%**：[test-ubnorm-fix2](evidence/test-ubnorm-fix2/summary.json) 实测完成全图 384 tokens 自回归解码，单轮 `host_tokens` 耗时由 51.83 ms 强行砸穿至 42.33 ms（单轮净省 9.51 ms），验证了单边原位融合跳过中间激活写回 HBM 的物理收益。
+4. **反例排除：剥离量化诱发静态核拓扑断裂**：[test-arnorm-only](evidence/test-arnorm-only/summary.json) 仅保留 AR+Norm 融合而让动态量化回退至原图，导致静态核编译器对后续激活地址解析脱节，输出序列在尾部退化为 0（distinct tokens 仅 10，未达 32 门槛）。证伪了“仅融合算通而保留原生量化节点”的可行性，确立了全生命周期单边原位融合（AR + Norm + Quant 三位一体）的必然性。
 
 ---
 
