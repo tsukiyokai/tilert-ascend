@@ -91,11 +91,13 @@ def runner(monkeypatch):
         def forward_impl(self, *, hidden_states, router_logits, input_ids,
                          fused_experts=None):
             events.append("prepare_and_select")
+            events.append("event")
             value = fused_experts(
                 layer=self, x=hidden_states + 2,
                 topk_weights=router_logits, topk_ids=input_ids,
                 shared_experts=None, shared_experts_input=None,
             )
+            events.append("event")
             events.append("finalize")
             return value.routed_out + 3, object()
 
@@ -212,6 +214,7 @@ def test_shape_selection_claims_matching_scratch_and_entry(
 
     register("tilert_pipeline_front")
     register("tilert_pipeline_front_active")
+    monkeypatch.setattr(routed_shared, "candidate_built", lambda: True)
     pool = routed_shared.WorkspacePool(blocks=blocks)
     hidden = torch.zeros(width, 6144, dtype=torch.bfloat16)
     pool.reserve_capture(hidden.to(torch.int8))

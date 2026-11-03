@@ -428,6 +428,7 @@ def test_capture_reservation_uses_own_indexer_metadata(layer_factory, monkeypatc
     monkeypatch.setitem(sys.modules, "vllm.forward_context", SimpleNamespace(
         get_forward_context=lambda: SimpleNamespace(
             attn_metadata={layer.impl.layer_name: main}),
+        is_forward_context_available=lambda: True,
     ))
     pool.reserve_capture(torch.zeros(2, 6144, dtype=torch.bfloat16))
     assert npu.allocations == [(2, 4, 3, 5, 2, True)]
