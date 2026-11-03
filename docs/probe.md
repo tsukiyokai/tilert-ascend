@@ -57,6 +57,7 @@
 |[test-w110-moe-only](evidence/test-w110-moe-only/summary.json)|9392 8卡|单边 MoE 侧原位融合消融（Attention 离散，MoE 融合）|31.811|276|1.391|43.624|43.329|6500 / 159|8-rank一致(passed)|
 |[test-w110-attn-only](evidence/test-w110-attn-only/summary.json)|9392 8卡|单边 Attention 侧原位融合消融（Attention 融合，MoE 离散）|22.334|192|2.000|43.964|43.652|6500 / 73|8-rank一致(passed)|
 |[test-w110-sync-v6](evidence/test-w110-sync-v6/summary.json)|9392 8卡|MoE动态切片步长修正后全双侧原位融合（Attention+MoE全覆盖）|28.087|229|1.677|46.402|46.101|6500 / 159|8-rank一致(passed)|
+|[test-w110-formal](evidence/test-w110-formal/summary.json)|9392 8卡|194空闲节点1024词元正式基线（`TRT_FUSE_AR_NORM=0`，SuperKernel使能）|9.394|220|4.655|43.147|42.837|6500 / 185|8-rank一致(passed)|
 
 ### 关键微架构等价性证明与意外发现
 
@@ -67,6 +68,7 @@
 5. 常驻持久化 Megakernel 前序融合（megakernel_front）实机零误差与物理压降验证：在物理机 7.150.10.194（Ascend910_9392）真实 NPU 上验证 [megakernel_front.so](tests/glm52/megakernel/build.sh) 原生混编 AIC/AIV Launch 消除多算子调度碎片与全局内存往返开销。在 8 组输入全量测试中达成位级零误差（`diff=0.0`，SHA 逐位对齐）。实测数据：
 - Hidden 四合一（Query + KV/RoPE + Indexer + Router，3040 列，K=6144，rows=12）：[hidden_split.json](evidence/ascend-decode/megakernel-front-20261103/hidden_split.json) 81.80 µs -> [hidden_fused.json](evidence/ascend-decode/megakernel-front-20261103/hidden_fused.json) 31.65 µs，单层净省 50.15 µs，全模型 78 层外推单轮净削减 3.91 ms。
 - Prolog 二合一（Query + KV/RoPE，2624 列，K=6144，rows=12）：[prolog_split.json](evidence/ascend-decode/megakernel-front-20261103/prolog_split.json) 57.60 µs -> [prolog_fused.json](evidence/ascend-decode/megakernel-front-20261103/prolog_fused.json) 30.73 µs，单层净省 26.87 µs，全模型 78 层外推单轮净削减 2.10 ms。证明脱离 multi_op_graph 象限、跃迁至持久化常驻 Megakernel 的物理必然性与绝对可行性。
+6. 新空闲节点（7.150.10.194）1024 词元正式基线复现与闭环：在全新独占节点 7.150.10.194 卡 0-3（8 dies TP8+EP8）上完成 1024 词元正式评测 [test-w110-formal](evidence/test-w110-formal/summary.json)（3 预热 + 3 测量请求）。实测 8 卡状态完全一致（`all_rank_state_agreement: true`），首词为 6500，输出 SHA256 为 `f35b9bd1a857`，严格冻结起草分母达成 220 轮（E[accept]=4.655 tokens/轮）；实测单轮 `host_tokens` 为 42.837 ms，中位数 TPOT 为 9.394 ms（最小 9.387 ms，P95 9.396 ms）。成功在新机器物理环境上确立了纯正的硬件与基线坐标系。
 
 ---
 
