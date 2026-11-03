@@ -58,6 +58,7 @@
 |[test-w110-attn-only](evidence/test-w110-attn-only/summary.json)|9392 8卡|单边 Attention 侧原位融合消融（Attention 融合，MoE 离散）|22.334|192|2.000|43.964|43.652|6500 / 73|8-rank一致(passed)|
 |[test-w110-sync-v6](evidence/test-w110-sync-v6/summary.json)|9392 8卡|MoE动态切片步长修正后全双侧原位融合（Attention+MoE全覆盖）|28.087|229|1.677|46.402|46.101|6500 / 159|8-rank一致(passed)|
 |[test-w110-formal](evidence/test-w110-formal/summary.json)|9392 8卡|194空闲节点1024词元正式基线（`TRT_FUSE_AR_NORM=0`，SuperKernel使能）|9.394|220|4.655|43.147|42.837|6500 / 185|8-rank一致(passed)|
+|[test-w110-mlatail-fast](evidence/test-w110-mlatail-fast/summary.json)|9392 8卡|全图使能 `--mla-tail`（值展开+量化+局部输出投影核内单发，`TRT_FUSE_AR_NORM=0`）|15.555|133|2.887|44.168|43.831|6500 / 73|8-rank一致(passed)|
 
 ### 关键微架构等价性证明与意外发现
 
@@ -69,6 +70,9 @@
 - Hidden 四合一（Query + KV/RoPE + Indexer + Router，3040 列，K=6144，rows=12）：[hidden_split.json](evidence/ascend-decode/megakernel-front-20261103/hidden_split.json) 81.80 µs -> [hidden_fused.json](evidence/ascend-decode/megakernel-front-20261103/hidden_fused.json) 31.65 µs，单层净省 50.15 µs，全模型 78 层外推单轮净削减 3.91 ms。
 - Prolog 二合一（Query + KV/RoPE，2624 列，K=6144，rows=12）：[prolog_split.json](evidence/ascend-decode/megakernel-front-20261103/prolog_split.json) 57.60 µs -> [prolog_fused.json](evidence/ascend-decode/megakernel-front-20261103/prolog_fused.json) 30.73 µs，单层净省 26.87 µs，全模型 78 层外推单轮净削减 2.10 ms。证明脱离 multi_op_graph 象限、跃迁至持久化常驻 Megakernel 的物理必然性与绝对可行性。
 6. 新空闲节点（7.150.10.194）1024 词元正式基线复现与闭环：在全新独占节点 7.150.10.194 卡 0-3（8 dies TP8+EP8）上完成 1024 词元正式评测 [test-w110-formal](evidence/test-w110-formal/summary.json)（3 预热 + 3 测量请求）。实测 8 卡状态完全一致（`all_rank_state_agreement: true`），首词为 6500，输出 SHA256 为 `f35b9bd1a857`，严格冻结起草分母达成 220 轮（E[accept]=4.655 tokens/轮）；实测单轮 `host_tokens` 为 42.837 ms，中位数 TPOT 为 9.394 ms（最小 9.387 ms，P95 9.396 ms）。成功在新机器物理环境上确立了纯正的硬件与基线坐标系。
+7. 整模挂载 MLA 尾部融合算子（--mla-tail）端到端轨迹严格对齐：在 194 节点卡 0-3（8 dies TP8+EP8 独占）上以 384 tokens、133 轮为基准执行 [test-w110-mlatail-fast](evidence/test-w110-mlatail-fast/summary.json)，全量激活 [mla_tail_torch.so](tests/glm52/mla_tail/build/mla_tail_torch.so) 与 [mla_tail.py](tilert/models/glm_5_2_ascend/mla_tail.py)。实测 8 卡状态一致（all_rank_state_agreement: true），生成 384 词元与离散基线 [test-w110-baseline-fast](evidence/test-w110-baseline-fast/summary.json) 达成 100% 位级零分歧（diff count: 0，first diff: None，首词 6500，非重复词元 73 种完全对齐），确证了核内核外混合执行的数值绝对保真。
+8. 图执行包络切分税的实机二次验证与拉卡托斯判决：实测 [test-w110-mlatail-fast](evidence/test-w110-mlatail-fast/summary.json) 的 host_tokens 为 43.831 ms（较基线 42.040 ms 净增 1.791 ms，单层增 22.9 µs），中位数 TPOT 为 15.555 ms。该物理退化与 TP16 历史记录（增 1.753 ms）高度一致，机理在于：CANN SuperKernel 会将 SFA、量化与输出投影在图内自动编排重组，而外部注入独立算子强制在 SFA 与 mla_tail_out 之间切断流水线，引入跨核同步屏障。此负证据再次以无可辩驳的物理数据终结了在 multi_op_graph 象限内单点插入自定义算子的退化假说，彻底倒逼向整层常驻 Persistent Megakernel 演进。
+9. 常驻前序大核 query_norm 阶段实机测试闭环：在 194 节点实机运行 [check.py](tests/glm52/megakernel/check.py)（--level query_norm --rows 12），覆盖 Query_up（1024 列）与 Indexer_query（4096 列）共 5120 列，8 组动态输入与浮点参考绝对吻合（max_absolute_difference: 0.0），实测融合核单发耗时 35.11 µs 对照拆分发射 35.54 µs，全量位级零误差。
 
 ---
 
