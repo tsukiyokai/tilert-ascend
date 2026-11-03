@@ -56,12 +56,14 @@
 |[test-w110-sync-v5](evidence/test-w110-sync-v5/summary.json)|9392 8卡|单边全双侧原位融合（Attention+MoE双侧融合）|27.857|229|1.677|46.069|45.738|6500 / 159|8-rank一致(passed)|
 |[test-w110-moe-only](evidence/test-w110-moe-only/summary.json)|9392 8卡|单边 MoE 侧原位融合消融（Attention 离散，MoE 融合）|31.811|276|1.391|43.624|43.329|6500 / 159|8-rank一致(passed)|
 |[test-w110-attn-only](evidence/test-w110-attn-only/summary.json)|9392 8卡|单边 Attention 侧原位融合消融（Attention 融合，MoE 离散）|22.334|192|2.000|43.964|43.652|6500 / 73|8-rank一致(passed)|
+|[test-w110-sync-v6](evidence/test-w110-sync-v6/summary.json)|9392 8卡|MoE动态切片步长修正后全双侧原位融合（Attention+MoE全覆盖）|28.087|229|1.677|46.402|46.101|6500 / 159|8-rank一致(passed)|
 
 ### 关键微架构等价性证明与意外发现
 
 1. 单词元与多词元分支规范重构：排查定位到片上原位融合算子存在单/多词元分岔缺陷，在 `active_elements == 6144` 单词元专属逻辑中重构对齐 CANN 原生 16 次向量重复累加与显式中间 BF16 截断。
 2. 8 卡分布式算子级绝对等价性证明：微基准 `test_compare_arms.py` 在真实 8 卡分布式硬件上直接对比离散算子链（`onesided_all_reduce_scale_add` -> `npu_add_rms_norm_bias` -> `npu_dynamic_quant`）与原位融合算子（`onesided_all_reduce_rmsnorm_quant`），实测 1、4、32 词元下 `diff_ar=0.000000e+00`、`diff_res=0.000000e+00`、`diff_norm=0.000000e+00`、`quant_mismatch=0/196608`，在数值本体论层面彻底闭合原位融合算子的正确性证明。
 3. 正交消融彻底定位分岔根因：对比 Attention 侧单边融合消融 [test-w110-attn-only](evidence/test-w110-attn-only/summary.json)（81 个 Attention Norm 全融合，MoE 离散）与 MoE 侧单边融合消融 [test-w110-moe-only](evidence/test-w110-moe-only/summary.json)，实测 `test-w110-attn-only` 前 30 轮（54 个输出词元）与离散基线达成 100% 位级完全一致，TPOT 从 31.811 ms 降至 22.334 ms，单轮 `host_tokens` 压至 43.652 ms。彻底证伪了 Attention 侧单边原位融合导致分岔的假象，将分岔因果律精确收敛于 MoE 侧路由激活映射。
+4. 算子切片动态步长修正与持久化常驻路线确立：在 [tp_push_kernel.cpp](tests/glm52/shmem/tp_push_kernel.cpp) 中清除了 `slice_elems` 在 `routed_slice != nullptr` 时回退至静态 `layout.elements/pe_size`（24576）的缺陷，统一为动态 `active_elements >> 3`（768），并在 8 卡集群上实测 Stage 15 达成 1、4、32 词元绝对零误差；在 [test-w110-sync-v6](evidence/test-w110-sync-v6/summary.json) 全图双侧融合中，全图 155 个 RMSNorm 节点全部原位捕获并全量消费。实验确立物理结论：在多算子 ACLGraph 框架内，局部算子替换因图切分与跨核信号同步难以进一步压缩单轮墙钟（~46 ms），必须坚决推进持久化常驻 Megakernel 路线，在芯片核心内完成计算、通信与归约的端到端持久化流式执行。
 
 ---
 

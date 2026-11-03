@@ -560,6 +560,470 @@ ACLSHMEM_DEVICE void TpPushReduceBf16(const TpPushLayout& layout, __gm__ bfloat1
     }
 }
 
+ACLSHMEM_DEVICE void TpPushRmsNormQuantRow(
+    __gm__ bfloat16_t* x1_gm, const __gm__ bfloat16_t* res_in_gm,
+    __gm__ bfloat16_t* res_out_gm,
+    __gm__ bfloat16_t* gamma_gm, __gm__ bfloat16_t* beta_gm,
+    __gm__ bfloat16_t* norm_out_gm, __gm__ int8_t* quant_out_gm,
+    __gm__ float* scale_out_gm, int64_t core, int64_t norm_rows,
+    __gm__ int32_t* core_sync, int32_t count, float eps,
+    const LocalTensor<bfloat16_t>& x1Local,
+    const LocalTensor<bfloat16_t>& x2Local,
+    const LocalTensor<float>& xFp32Local,
+    const LocalTensor<float>& sqxLocal,
+    const LocalTensor<float>& tmpLocal)
+{
+    constexpr int32_t numCol = 6144;
+    constexpr float avgFactor = 1.0f / 6144.0f;
+    PipeBarrier<PIPE_ALL>();
+
+    GlobalTensor<bfloat16_t> x1Gm, x2Gm, gammaGm, betaGm, yGm;
+    x1Gm.SetGlobalBuffer(x1_gm, numCol);
+    x2Gm.SetGlobalBuffer(const_cast<__gm__ bfloat16_t*>(res_in_gm), numCol);
+    gammaGm.SetGlobalBuffer(gamma_gm, numCol);
+
+    DataCopy(x1Local, x1Gm, numCol);
+    SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+    DataCopy(x2Local, x2Gm, numCol);
+    SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID1);
+    WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+    Cast(xFp32Local, x1Local, AscendC::RoundMode::CAST_NONE, numCol);
+    WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID1);
+    Cast(sqxLocal, x2Local, AscendC::RoundMode::CAST_NONE, numCol);
+    PipeBarrier<PIPE_V>();
+    Add(xFp32Local, xFp32Local, sqxLocal, numCol);
+    PipeBarrier<PIPE_V>();
+    Cast(x1Local, xFp32Local, AscendC::RoundMode::CAST_RINT, numCol);
+    PipeBarrier<PIPE_V>();
+
+    SetFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID0);
+    WaitFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID0);
+    DataCopy(x2Local, gammaGm, numCol);
+    SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID1);
+
+    if (res_out_gm != nullptr) {
+        GlobalTensor<bfloat16_t> resOutGm;
+        resOutGm.SetGlobalBuffer(res_out_gm, numCol);
+        SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+        DataCopy(resOutGm, x1Local, numCol);
+        SetFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID0);
+    }
+
+    Cast(xFp32Local, x1Local, AscendC::RoundMode::CAST_NONE, numCol);
+    PipeBarrier<PIPE_V>();
+    Mul(sqxLocal, xFp32Local, xFp32Local, numCol);
+    PipeBarrier<PIPE_V>();
+    Muls(sqxLocal, sqxLocal, avgFactor, numCol);
+    PipeBarrier<PIPE_V>();
+
+    AscendC::BinaryRepeatParams repeatParams;
+    repeatParams.src0RepStride = 8;
+    repeatParams.src0BlkStride = 1;
+    repeatParams.src1RepStride = 0;
+    repeatParams.src1BlkStride = 1;
+    repeatParams.dstRepStride = 0;
+    repeatParams.dstBlkStride = 1;
+    Duplicate(tmpLocal, 0.0f, 64);
+    PipeBarrier<PIPE_V>();
+    Add(tmpLocal, sqxLocal, tmpLocal, 64, 96, repeatParams);
+    PipeBarrier<PIPE_V>();
+
+    AscendCUtils::SetMask<float>(64);
+    WholeReduceSum<float, false>(tmpLocal, tmpLocal, AscendC::MASK_PLACEHOLDER, 1, 0, 1, 0);
+    PipeBarrier<PIPE_V>();
+    ResetMask();
+
+    Adds(tmpLocal, tmpLocal, eps, 1);
+    PipeBarrier<PIPE_V>();
+    Sqrt(tmpLocal, tmpLocal, 1);
+    Duplicate(sqxLocal, 1.0f, 1);
+    PipeBarrier<PIPE_V>();
+    Div(tmpLocal, sqxLocal, tmpLocal, 1);
+    PipeBarrier<PIPE_V>();
+    SetFlag<AscendC::HardEvent::V_S>(EVENT_ID0);
+    WaitFlag<AscendC::HardEvent::V_S>(EVENT_ID0);
+    const float rstdValue = tmpLocal.GetValue(0);
+    SetFlag<AscendC::HardEvent::S_V>(EVENT_ID0);
+    WaitFlag<AscendC::HardEvent::S_V>(EVENT_ID0);
+
+    Muls(xFp32Local, xFp32Local, rstdValue, numCol);
+    PipeBarrier<PIPE_V>();
+    WaitFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID0);
+    Cast(x1Local, xFp32Local, AscendC::RoundMode::CAST_RINT, numCol);
+    PipeBarrier<PIPE_V>();
+    Cast(xFp32Local, x1Local, AscendC::RoundMode::CAST_NONE, numCol);
+    PipeBarrier<PIPE_V>();
+    WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID1);
+    Cast(sqxLocal, x2Local, AscendC::RoundMode::CAST_NONE, numCol);
+    PipeBarrier<PIPE_V>();
+    Mul(xFp32Local, xFp32Local, sqxLocal, numCol);
+    if (beta_gm != nullptr) {
+        betaGm.SetGlobalBuffer(beta_gm, numCol);
+        SetFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::V_MTE2>(EVENT_ID0);
+        DataCopy(x2Local, betaGm, numCol);
+        SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+        Cast(sqxLocal, x2Local, AscendC::RoundMode::CAST_NONE, numCol);
+        PipeBarrier<PIPE_V>();
+        Add(xFp32Local, xFp32Local, sqxLocal, numCol);
+    }
+    PipeBarrier<PIPE_V>();
+    Cast(x1Local, xFp32Local, AscendC::RoundMode::CAST_RINT, numCol);
+    if (norm_out_gm != nullptr) {
+        yGm.SetGlobalBuffer(norm_out_gm, numCol);
+        SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+        DataCopy(yGm, x1Local, numCol);
+        SetFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID0);
+    }
+    if (quant_out_gm != nullptr && scale_out_gm != nullptr) {
+        PipeBarrier<PIPE_V>();
+        Cast(xFp32Local, x1Local, AscendC::RoundMode::CAST_NONE, numCol);
+        PipeBarrier<PIPE_V>();
+        Abs(sqxLocal, xFp32Local, numCol);
+        PipeBarrier<PIPE_V>();
+
+        Max(sqxLocal, sqxLocal, sqxLocal[3072], 3072);
+        PipeBarrier<PIPE_V>();
+        Max(sqxLocal, sqxLocal, sqxLocal[1536], 1536);
+        PipeBarrier<PIPE_V>();
+        Max(sqxLocal, sqxLocal, sqxLocal[768], 768);
+        PipeBarrier<PIPE_V>();
+        Max(sqxLocal, sqxLocal, sqxLocal[384], 384);
+        PipeBarrier<PIPE_V>();
+        Max(sqxLocal, sqxLocal, sqxLocal[192], 192);
+        PipeBarrier<PIPE_V>();
+        Max(sqxLocal, sqxLocal, sqxLocal[64], 64);
+        PipeBarrier<PIPE_V>();
+        Max(sqxLocal, sqxLocal, sqxLocal[128], 64);
+        PipeBarrier<PIPE_V>();
+
+        LocalTensor<float> scalar = x2Local.ReinterpretCast<float>();
+        AscendCUtils::SetMask<float>(64);
+        WholeReduceMax<float, false>(scalar, sqxLocal, AscendC::MASK_PLACEHOLDER, 1, 0, 1, 0);
+        PipeBarrier<PIPE_V>();
+        ResetMask();
+
+        SetFlag<AscendC::HardEvent::V_S>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::V_S>(EVENT_ID0);
+        const float maximum = scalar.GetValue(0);
+        SetFlag<AscendC::HardEvent::S_V>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::S_V>(EVENT_ID0);
+
+        const float row_scale = (maximum == 0.0f) ? 0.0f : (maximum / 127.0f);
+
+        Duplicate(sqxLocal, (maximum == 0.0f) ? 1.0f : maximum, numCol);
+        Duplicate(tmpLocal, 127.0f, numCol);
+        PipeBarrier<PIPE_V>();
+        Div(tmpLocal, tmpLocal, sqxLocal, numCol);
+        PipeBarrier<PIPE_V>();
+        Mul(xFp32Local, xFp32Local, tmpLocal, numCol);
+        PipeBarrier<PIPE_V>();
+        Mins(xFp32Local, xFp32Local, 127.0f, numCol);
+        PipeBarrier<PIPE_V>();
+        Maxs(xFp32Local, xFp32Local, -127.0f, numCol);
+        PipeBarrier<PIPE_V>();
+
+        LocalTensor<int32_t> integers = tmpLocal.ReinterpretCast<int32_t>();
+        Cast(integers, xFp32Local, AscendC::RoundMode::CAST_RINT, numCol);
+        PipeBarrier<PIPE_V>();
+        SetDeqScale(static_cast<half>(1.0f));
+        PipeBarrier<PIPE_V>();
+        LocalTensor<half> fp16 = x1Local.ReinterpretCast<half>();
+        Cast(fp16, integers, AscendC::RoundMode::CAST_NONE, numCol);
+        PipeBarrier<PIPE_V>();
+        LocalTensor<int8_t> codes = x2Local.ReinterpretCast<int8_t>();
+        Cast(codes, fp16, AscendC::RoundMode::CAST_TRUNC, numCol);
+
+        SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+        GlobalTensor<int8_t> dstQuant;
+        dstQuant.SetGlobalBuffer(quant_out_gm, numCol);
+        DataCopy(dstQuant, codes, numCol);
+        SetFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID0);
+
+        const int32_t scale_seq = count;
+        auto* quant_sync = core_sync + 64 * SIGNAL_SLOT_INT32;
+        auto* my_slot = quant_sync + core * SIGNAL_SLOT_INT32;
+        ((__gm__ float*)my_slot)[1] = row_scale;
+        dcci_cacheline((__gm__ uint8_t*)my_slot);
+        aclshmemi_signal_set((__gm__ int32_t*)my_slot, scale_seq);
+
+        if (core == 0) {
+            scale_out_gm[0] = row_scale;
+            for (int64_t i = 1; i < norm_rows; ++i) {
+                auto* slot_i = quant_sync + i * SIGNAL_SLOT_INT32;
+                aclshmem_signal_wait_until((__gm__ int32_t*)slot_i, ACLSHMEM_CMP_GE, scale_seq);
+                dcci_cacheline((__gm__ uint8_t*)slot_i);
+                scale_out_gm[i] = ((__gm__ float*)slot_i)[1];
+            }
+            const int64_t pad_count = ((norm_rows + 7) / 8) * 8;
+            for (int64_t i = norm_rows; i < pad_count; ++i) {
+                scale_out_gm[i] = 0.0f;
+            }
+            for (int64_t c = 0; c < pad_count; c += 16) {
+                dcci_cacheline((__gm__ uint8_t*)(scale_out_gm + c));
+            }
+        }
+    }
+}
+
+ACLSHMEM_DEVICE void TpPushInUbRmsNormQuant(
+    int64_t worker, int32_t count, __gm__ int32_t* core_sync,
+    const __gm__ bfloat16_t* residual, __gm__ bfloat16_t* res_out,
+    __gm__ bfloat16_t* gamma, __gm__ bfloat16_t* beta,
+    __gm__ bfloat16_t* norm_out, __gm__ int8_t* quant_out, __gm__ float* scale_out,
+    float eps,
+    const LocalTensor<float>& acc,
+    const LocalTensor<float>& term,
+    const LocalTensor<float>& stage_second,
+    const LocalTensor<bfloat16_t>& first,
+    const LocalTensor<bfloat16_t>& second,
+    const LocalTensor<bfloat16_t>& stage_buf)
+{
+    constexpr int32_t numCol = 1024;
+    constexpr float avgFactor = 1.0f / 6144.0f;
+    const int64_t w_off = worker * numCol;
+
+    GlobalTensor<bfloat16_t> resGm;
+    resGm.SetGlobalBuffer(const_cast<__gm__ bfloat16_t*>(residual) + w_off, numCol);
+    DataCopy(second, resGm, numCol);
+    SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+    WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+
+    Cast(term, second, AscendC::RoundMode::CAST_NONE, numCol);
+    PipeBarrier<PIPE_V>();
+    Add(acc, acc, term, numCol);
+    PipeBarrier<PIPE_V>();
+    Cast(first, acc, AscendC::RoundMode::CAST_RINT, numCol);
+    PipeBarrier<PIPE_V>();
+
+    if (res_out != nullptr) {
+        GlobalTensor<bfloat16_t> resOutGm;
+        resOutGm.SetGlobalBuffer(res_out + w_off, numCol);
+        SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+        DataCopy(resOutGm, first, numCol);
+        SetFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID0);
+    }
+
+    Cast(acc, first, AscendC::RoundMode::CAST_NONE, numCol);
+    PipeBarrier<PIPE_V>();
+
+    Mul(term, acc, acc, numCol);
+    PipeBarrier<PIPE_V>();
+    Muls(term, term, avgFactor, numCol);
+    PipeBarrier<PIPE_V>();
+
+    AscendC::BinaryRepeatParams repeatParams;
+    repeatParams.src0RepStride = 8;
+    repeatParams.src0BlkStride = 1;
+    repeatParams.src1RepStride = 0;
+    repeatParams.src1BlkStride = 1;
+    repeatParams.dstRepStride = 0;
+    repeatParams.dstBlkStride = 1;
+    Duplicate(stage_second, 0.0f, 64);
+    PipeBarrier<PIPE_V>();
+    Add(stage_second, term, stage_second, 64, 16, repeatParams);
+    PipeBarrier<PIPE_V>();
+
+    AscendCUtils::SetMask<float>(64);
+    WholeReduceSum<float, false>(stage_second, stage_second, AscendC::MASK_PLACEHOLDER, 1, 0, 1, 0);
+    PipeBarrier<PIPE_V>();
+    ResetMask();
+
+    SetFlag<AscendC::HardEvent::V_S>(EVENT_ID0);
+    WaitFlag<AscendC::HardEvent::V_S>(EVENT_ID0);
+    const float local_sum = stage_second.GetValue(0);
+    SetFlag<AscendC::HardEvent::S_V>(EVENT_ID0);
+    WaitFlag<AscendC::HardEvent::S_V>(EVENT_ID0);
+
+    const int32_t seq = count * 8;
+    auto* norm_sync = core_sync + 48 * SIGNAL_SLOT_INT32;
+    auto* my_slot = norm_sync + worker * SIGNAL_SLOT_INT32;
+    ((__gm__ float*)my_slot)[1] = local_sum;
+    dcci_cacheline((__gm__ uint8_t*)my_slot);
+    aclshmemi_signal_set((__gm__ int32_t*)my_slot, seq + 1);
+
+    float rstd = 0.0f;
+    if (worker == 0) {
+        float sum_sq = local_sum;
+        for (int i = 1; i < 6; ++i) {
+            auto* s = norm_sync + i * SIGNAL_SLOT_INT32;
+            aclshmem_signal_wait_until((__gm__ int32_t*)s, ACLSHMEM_CMP_GE, seq + 1);
+            dcci_cacheline((__gm__ uint8_t*)s);
+            sum_sq += ((__gm__ float*)s)[1];
+        }
+        Duplicate(term, sum_sq, 1);
+        Adds(term, term, eps, 1);
+        PipeBarrier<PIPE_V>();
+        Sqrt(term, term, 1);
+        Duplicate(stage_second, 1.0f, 1);
+        PipeBarrier<PIPE_V>();
+        Div(term, stage_second, term, 1);
+        PipeBarrier<PIPE_V>();
+        SetFlag<AscendC::HardEvent::V_S>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::V_S>(EVENT_ID0);
+        rstd = term.GetValue(0);
+        SetFlag<AscendC::HardEvent::S_V>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::S_V>(EVENT_ID0);
+
+        auto* s0 = norm_sync + 0 * SIGNAL_SLOT_INT32;
+        ((__gm__ float*)s0)[2] = rstd;
+        dcci_cacheline((__gm__ uint8_t*)s0);
+        aclshmemi_signal_set((__gm__ int32_t*)s0, seq + 2);
+    } else {
+        auto* s0 = norm_sync + 0 * SIGNAL_SLOT_INT32;
+        aclshmem_signal_wait_until((__gm__ int32_t*)s0, ACLSHMEM_CMP_GE, seq + 2);
+        dcci_cacheline((__gm__ uint8_t*)s0);
+        rstd = ((__gm__ float*)s0)[2];
+    }
+
+    Muls(acc, acc, rstd, numCol);
+    PipeBarrier<PIPE_V>();
+    Cast(first, acc, AscendC::RoundMode::CAST_RINT, numCol);
+    PipeBarrier<PIPE_V>();
+    Cast(acc, first, AscendC::RoundMode::CAST_NONE, numCol);
+    PipeBarrier<PIPE_V>();
+
+    GlobalTensor<bfloat16_t> gammaGm;
+    gammaGm.SetGlobalBuffer(gamma + w_off, numCol);
+    DataCopy(second, gammaGm, numCol);
+    SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+    WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+
+    Cast(term, second, AscendC::RoundMode::CAST_NONE, numCol);
+    PipeBarrier<PIPE_V>();
+    Mul(acc, acc, term, numCol);
+
+    if (beta != nullptr) {
+        GlobalTensor<bfloat16_t> betaGm;
+        betaGm.SetGlobalBuffer(beta + w_off, numCol);
+        DataCopy(second, betaGm, numCol);
+        SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+        Cast(term, second, AscendC::RoundMode::CAST_NONE, numCol);
+        PipeBarrier<PIPE_V>();
+        Add(acc, acc, term, numCol);
+    }
+    PipeBarrier<PIPE_V>();
+    Cast(first, acc, AscendC::RoundMode::CAST_RINT, numCol);
+    PipeBarrier<PIPE_V>();
+
+    if (norm_out != nullptr) {
+        GlobalTensor<bfloat16_t> normGm;
+        normGm.SetGlobalBuffer(norm_out + w_off, numCol);
+        SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+        DataCopy(normGm, first, numCol);
+        SetFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID0);
+    }
+
+    if (quant_out != nullptr && scale_out != nullptr) {
+        Cast(term, first, AscendC::RoundMode::CAST_NONE, numCol);
+        PipeBarrier<PIPE_V>();
+        Abs(stage_second, term, numCol);
+        PipeBarrier<PIPE_V>();
+
+        AscendC::BinaryRepeatParams maxParams;
+        maxParams.src0RepStride = 8;
+        maxParams.src0BlkStride = 1;
+        maxParams.src1RepStride = 0;
+        maxParams.src1BlkStride = 1;
+        maxParams.dstRepStride = 0;
+        maxParams.dstBlkStride = 1;
+        Duplicate(term, 0.0f, 64);
+        PipeBarrier<PIPE_V>();
+        Max(term, stage_second, term, 64, 16, maxParams);
+        PipeBarrier<PIPE_V>();
+
+        LocalTensor<float> scalar = second.ReinterpretCast<float>();
+        AscendCUtils::SetMask<float>(64);
+        WholeReduceMax<float, false>(scalar, term, AscendC::MASK_PLACEHOLDER, 1, 0, 1, 0);
+        PipeBarrier<PIPE_V>();
+        ResetMask();
+
+        SetFlag<AscendC::HardEvent::V_S>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::V_S>(EVENT_ID0);
+        const float local_max = scalar.GetValue(0);
+        SetFlag<AscendC::HardEvent::S_V>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::S_V>(EVENT_ID0);
+
+        ((__gm__ float*)my_slot)[1] = local_max;
+        dcci_cacheline((__gm__ uint8_t*)my_slot);
+        aclshmemi_signal_set((__gm__ int32_t*)my_slot, seq + 3);
+
+        float inv_scale = 127.0f;
+        if (worker == 0) {
+            float global_max = local_max;
+            for (int i = 1; i < 6; ++i) {
+                auto* s = norm_sync + i * SIGNAL_SLOT_INT32;
+                aclshmem_signal_wait_until((__gm__ int32_t*)s, ACLSHMEM_CMP_GE, seq + 3);
+                dcci_cacheline((__gm__ uint8_t*)s);
+                float m = ((__gm__ float*)s)[1];
+                if (m > global_max) global_max = m;
+            }
+            const float scale = (global_max == 0.0f) ? 1.0f : (global_max / 127.0f);
+            const float inv_scale = (scale == 0.0f) ? 1.0f : (1.0f / scale);
+            scalar.SetValue(0, scale);
+            for (int j = 1; j < 8; ++j) {
+                scalar.SetValue(j, 0.0f);
+            }
+            SetFlag<AscendC::HardEvent::S_MTE3>(EVENT_ID0);
+            WaitFlag<AscendC::HardEvent::S_MTE3>(EVENT_ID0);
+            GlobalTensor<float> dstScale;
+            dstScale.SetGlobalBuffer(scale_out, 8);
+            DataCopy(dstScale, scalar, 8);
+            SetFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID0);
+            WaitFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID0);
+
+            auto* s0 = norm_sync + 0 * SIGNAL_SLOT_INT32;
+            ((__gm__ float*)s0)[2] = inv_scale;
+            dcci_cacheline((__gm__ uint8_t*)s0);
+            aclshmemi_signal_set((__gm__ int32_t*)s0, seq + 4);
+        } else {
+            auto* s0 = norm_sync + 0 * SIGNAL_SLOT_INT32;
+            aclshmem_signal_wait_until((__gm__ int32_t*)s0, ACLSHMEM_CMP_GE, seq + 4);
+            dcci_cacheline((__gm__ uint8_t*)s0);
+            inv_scale = ((__gm__ float*)s0)[2];
+        }
+
+        Cast(term, first, AscendC::RoundMode::CAST_NONE, numCol);
+        PipeBarrier<PIPE_V>();
+        Muls(term, term, inv_scale, numCol);
+        PipeBarrier<PIPE_V>();
+        Mins(term, term, 127.0f, numCol);
+        PipeBarrier<PIPE_V>();
+        Maxs(term, term, -127.0f, numCol);
+        PipeBarrier<PIPE_V>();
+
+        LocalTensor<int32_t> integers = stage_second.ReinterpretCast<int32_t>();
+        Cast(integers, term, AscendC::RoundMode::CAST_RINT, numCol);
+        PipeBarrier<PIPE_V>();
+        SetDeqScale(static_cast<half>(1.0f));
+        PipeBarrier<PIPE_V>();
+        LocalTensor<half> fp16 = stage_buf.ReinterpretCast<half>();
+        Cast(fp16, integers, AscendC::RoundMode::CAST_NONE, numCol);
+        PipeBarrier<PIPE_V>();
+        LocalTensor<int8_t> codes = second.ReinterpretCast<int8_t>();
+        Cast(codes, fp16, AscendC::RoundMode::CAST_TRUNC, numCol);
+
+        GlobalTensor<int8_t> dstQuant;
+        dstQuant.SetGlobalBuffer(quant_out + w_off, numCol);
+        SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+        DataCopy(dstQuant, codes, numCol);
+        SetFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID0);
+    }
+}
+
 ACLSHMEM_DEVICE void TpPushRsAgBf16(
     const TpPushLayout& layout, __gm__ bfloat16_t* partial, __gm__ bfloat16_t* out,
     int64_t core, int64_t cores, int64_t my_pe, int64_t pe_size,
@@ -568,7 +1032,12 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
     const LocalTensor<float>& acc, const LocalTensor<float>& term,
     const LocalTensor<bfloat16_t>& narrow,
     __gm__ bfloat16_t* routed_full, __gm__ bfloat16_t* routed_slice, float scale,
-    int64_t active_elements)
+    int64_t active_elements,
+    const __gm__ bfloat16_t* residual = nullptr, __gm__ bfloat16_t* res_out = nullptr,
+    __gm__ bfloat16_t* gamma = nullptr,
+    __gm__ bfloat16_t* beta = nullptr, __gm__ bfloat16_t* norm_out = nullptr,
+    __gm__ int8_t* quant_out = nullptr, __gm__ float* scale_out = nullptr,
+    float eps = 1e-5f)
 {
     const bool fast_8x48 = (pe_size == 8 && cores == 48);
     const int64_t workers = fast_8x48 ? 6 : (cores / pe_size);
@@ -577,9 +1046,9 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
     }
     const int64_t worker = fast_8x48 ? (core >> 3) : (core / pe_size);
     const int64_t peer = fast_8x48 ? ((my_pe + (core & 7)) & 7) : ((my_pe + (core % pe_size)) % pe_size);
-    const bool one_hop = (fast_8x48 && active_elements <= 24576);
+    const bool one_hop = false;
     const int64_t slice_elems =
-        (!one_hop && routed_slice == nullptr && routed_full == nullptr && fast_8x48 && (active_elements % 768) == 0)
+        (!one_hop && fast_8x48 && (active_elements % 768) == 0)
             ? (active_elements >> 3)
             : (layout.elements / pe_size);
 
@@ -600,7 +1069,7 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
     auto counter_slot = (__gm__ int32_t*)aclshmemi_get_team_sync_counter(1 + core);
     const int32_t count = aclshmemi_load(counter_slot) + 1;
     aclshmemi_store(counter_slot, count);
-    if (w_elems == 0 && peer_w_elems == 0) {
+    if (gamma == nullptr && w_elems == 0 && peer_w_elems == 0) {
         return;
     }
 
@@ -643,201 +1112,244 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
         WaitFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID0);
     }
     if (one_hop && peer != my_pe) {
-        return;
-    }
-
-    const int64_t chunk = REDUCE_UB_BYTES / static_cast<int64_t>(sizeof(float));
-    const event_t events[2] = {EVENT_ID0, EVENT_ID1};
-    const LocalTensor<bfloat16_t> first = narrow[0];
-    const LocalTensor<bfloat16_t> second = narrow[chunk];
-    const int64_t my_global_off = one_hop ? w_off : (my_pe * slice_elems + w_off);
-    const bool preload_local = (w_elems > 0) && (w_elems <= (STAGE_UB_BYTES / static_cast<int64_t>(sizeof(float))));
-    const bool remote_routed = (one_hop && routed_slice != nullptr && my_pe != 0);
-
-    if (preload_local) {
-        GlobalTensor<bfloat16_t> my_src;
-        my_src.SetGlobalBuffer(partial + my_global_off, w_elems);
-        DataCopy(stage_buf, my_src, w_elems);
-        if (!remote_routed && (routed_slice != nullptr || routed_full != nullptr)) {
-            GlobalTensor<bfloat16_t> r_src;
-            r_src.SetGlobalBuffer((routed_slice != nullptr) ? (routed_slice + w_off) : (routed_full + my_global_off),
-                                  w_elems);
-            DataCopy(stage_buf[4096], r_src, w_elems);
+        if (gamma == nullptr || core >= (active_elements / 6144)) {
+            return;
         }
-        SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
-        WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
-        if (!remote_routed && (routed_slice != nullptr || routed_full != nullptr)) {
-            Cast(stage_second, stage_buf[4096], AscendC::RoundMode::CAST_NONE, w_elems);
-            if (scale != 1.0f) {
-                PipeBarrier<PIPE_V>();
-                Muls(stage_second, stage_second, scale, w_elems);
-                PipeBarrier<PIPE_V>();
-                Cast(stage_buf[4096], stage_second, AscendC::RoundMode::CAST_RINT, w_elems);
-                PipeBarrier<PIPE_V>();
-                Cast(stage_second, stage_buf[4096], AscendC::RoundMode::CAST_NONE, w_elems);
-            }
-            PipeBarrier<PIPE_V>();
-        }
-    }
+    } else {
+        const int64_t chunk = REDUCE_UB_BYTES / static_cast<int64_t>(sizeof(float));
+        const event_t events[2] = {EVENT_ID0, EVENT_ID1};
+        const LocalTensor<bfloat16_t> first = narrow[0];
+        const LocalTensor<bfloat16_t> second = narrow[chunk];
+        const int64_t my_global_off = one_hop ? w_off : (my_pe * slice_elems + w_off);
+        const bool preload_local = (w_elems > 0) && (w_elems <= (STAGE_UB_BYTES / static_cast<int64_t>(sizeof(float))));
+        const bool remote_routed = (one_hop && routed_slice != nullptr && my_pe != 0);
 
-    for (int64_t offset = 0; offset < w_elems; offset += chunk) {
-        const int64_t c = (w_elems - offset < chunk) ? (w_elems - offset) : chunk;
-        SetFlag<AscendC::HardEvent::V_MTE2>(events[0]);
-        SetFlag<AscendC::HardEvent::V_MTE2>(events[1]);
-
-        GlobalTensor<bfloat16_t> source;
-        if (!(preload_local && my_pe == 0)) {
-            if (offset == 0 && my_pe != 0) {
-                aclshmem_signal_wait_until(flag_rs, ACLSHMEM_CMP_GE, count);
-            }
-            WaitFlag<AscendC::HardEvent::V_MTE2>(events[0]);
-            source.SetGlobalBuffer((my_pe == 0) ? (partial + my_global_off + offset)
-                                                : (local_rs_win + w_off + offset),
-                                   c);
-            DataCopy(first, source, c);
-            if (remote_routed) {
+        if (preload_local) {
+            GlobalTensor<bfloat16_t> my_src;
+            my_src.SetGlobalBuffer(partial + my_global_off, w_elems);
+            DataCopy(stage_buf, my_src, w_elems);
+            if (!remote_routed && (routed_slice != nullptr || routed_full != nullptr)) {
                 GlobalTensor<bfloat16_t> r_src;
-                r_src.SetGlobalBuffer(local_ag_win + w_off + offset, c);
-                DataCopy(stage_buf[4096], r_src, c);
+                r_src.SetGlobalBuffer((routed_slice != nullptr) ? (routed_slice + w_off) : (routed_full + my_global_off),
+                                      w_elems);
+                DataCopy(stage_buf[4096], r_src, w_elems);
             }
-            SetFlag<AscendC::HardEvent::MTE2_V>(events[0]);
+            SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+            WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+            if (!remote_routed && (routed_slice != nullptr || routed_full != nullptr)) {
+                Cast(stage_second, stage_buf[4096], AscendC::RoundMode::CAST_NONE, w_elems);
+                if (scale != 1.0f) {
+                    PipeBarrier<PIPE_V>();
+                    Muls(stage_second, stage_second, scale, w_elems);
+                    PipeBarrier<PIPE_V>();
+                    Cast(stage_buf[4096], stage_second, AscendC::RoundMode::CAST_RINT, w_elems);
+                    PipeBarrier<PIPE_V>();
+                    Cast(stage_second, stage_buf[4096], AscendC::RoundMode::CAST_NONE, w_elems);
+                }
+                PipeBarrier<PIPE_V>();
+            }
         }
 
-        for (int64_t pe = 0; pe < pe_size; ++pe) {
-            const int64_t current = pe % 2;
-            const int64_t next = (pe + 1) % 2;
-            const LocalTensor<bfloat16_t>& ready = (current == 0) ? first : second;
-            const LocalTensor<bfloat16_t>& incoming = (next == 0) ? first : second;
+        for (int64_t offset = 0; offset < w_elems; offset += chunk) {
+            const int64_t c = (w_elems - offset < chunk) ? (w_elems - offset) : chunk;
+            SetFlag<AscendC::HardEvent::V_MTE2>(events[0]);
+            SetFlag<AscendC::HardEvent::V_MTE2>(events[1]);
 
-            if (pe + 1 < pe_size) {
-                if (!(preload_local && (pe + 1) == my_pe)) {
-                    if (offset == 0 && (pe + 1) != my_pe) {
-                        aclshmem_signal_wait_until(flag_rs + (pe + 1) * SIGNAL_SLOT_INT32, ACLSHMEM_CMP_GE, count);
+            GlobalTensor<bfloat16_t> source;
+            if (!(preload_local && my_pe == 0)) {
+                if (offset == 0 && my_pe != 0) {
+                    aclshmem_signal_wait_until(flag_rs, ACLSHMEM_CMP_GE, count);
+                }
+                WaitFlag<AscendC::HardEvent::V_MTE2>(events[0]);
+                source.SetGlobalBuffer((my_pe == 0) ? (partial + my_global_off + offset)
+                                                    : (local_rs_win + w_off + offset),
+                                       c);
+                DataCopy(first, source, c);
+                if (remote_routed) {
+                    GlobalTensor<bfloat16_t> r_src;
+                    r_src.SetGlobalBuffer(local_ag_win + w_off + offset, c);
+                    DataCopy(stage_buf[4096], r_src, c);
+                }
+                SetFlag<AscendC::HardEvent::MTE2_V>(events[0]);
+            }
+
+            for (int64_t pe = 0; pe < pe_size; ++pe) {
+                const int64_t current = pe % 2;
+                const int64_t next = (pe + 1) % 2;
+                const LocalTensor<bfloat16_t>& ready = (current == 0) ? first : second;
+                const LocalTensor<bfloat16_t>& incoming = (next == 0) ? first : second;
+
+                if (pe + 1 < pe_size) {
+                    if (!(preload_local && (pe + 1) == my_pe)) {
+                        if (offset == 0 && (pe + 1) != my_pe) {
+                            aclshmem_signal_wait_until(flag_rs + (pe + 1) * SIGNAL_SLOT_INT32, ACLSHMEM_CMP_GE, count);
+                        }
+                        WaitFlag<AscendC::HardEvent::V_MTE2>(events[next]);
+                        source.SetGlobalBuffer(((pe + 1) == my_pe)
+                                                   ? (partial + my_global_off + offset)
+                                                   : (local_rs_win + (pe + 1) * slice_elems + w_off + offset),
+                                               c);
+                        DataCopy(incoming, source, c);
+                        SetFlag<AscendC::HardEvent::MTE2_V>(events[next]);
                     }
+                } else if (!preload_local && (routed_slice != nullptr || routed_full != nullptr)) {
                     WaitFlag<AscendC::HardEvent::V_MTE2>(events[next]);
-                    source.SetGlobalBuffer(((pe + 1) == my_pe)
-                                               ? (partial + my_global_off + offset)
-                                               : (local_rs_win + (pe + 1) * slice_elems + w_off + offset),
+                    source.SetGlobalBuffer((routed_slice != nullptr)
+                                               ? (routed_slice + w_off + offset)
+                                               : (routed_full + my_global_off + offset),
                                            c);
                     DataCopy(incoming, source, c);
                     SetFlag<AscendC::HardEvent::MTE2_V>(events[next]);
                 }
-            } else if (!preload_local && (routed_slice != nullptr || routed_full != nullptr)) {
-                WaitFlag<AscendC::HardEvent::V_MTE2>(events[next]);
-                source.SetGlobalBuffer((routed_slice != nullptr)
-                                           ? (routed_slice + w_off + offset)
-                                           : (routed_full + my_global_off + offset),
-                                       c);
-                DataCopy(incoming, source, c);
-                SetFlag<AscendC::HardEvent::MTE2_V>(events[next]);
-            }
-            if (preload_local && pe == my_pe) {
-                if (pe == 0) {
-                    Cast(acc, stage_buf, AscendC::RoundMode::CAST_NONE, c);
+                if (preload_local && pe == my_pe) {
+                    if (pe == 0) {
+                        Cast(acc, stage_buf, AscendC::RoundMode::CAST_NONE, c);
+                    } else {
+                        Cast(term, stage_buf, AscendC::RoundMode::CAST_NONE, c);
+                        PipeBarrier<PIPE_V>();
+                        Add(acc, acc, term, c);
+                    }
                 } else {
-                    Cast(term, stage_buf, AscendC::RoundMode::CAST_NONE, c);
-                    PipeBarrier<PIPE_V>();
-                    Add(acc, acc, term, c);
-                }
-            } else {
-                WaitFlag<AscendC::HardEvent::MTE2_V>(events[current]);
-                if (pe == 0) {
-                    Cast(acc, ready, AscendC::RoundMode::CAST_NONE, c);
-                    SetFlag<AscendC::HardEvent::V_MTE2>(events[current]);
-                } else {
-                    Cast(term, ready, AscendC::RoundMode::CAST_NONE, c);
-                    SetFlag<AscendC::HardEvent::V_MTE2>(events[current]);
-                    PipeBarrier<PIPE_V>();
-                    Add(acc, acc, term, c);
-                }
-            }
-            PipeBarrier<PIPE_V>();
-        }
-        const int64_t r_slot = pe_size % 2;
-        const LocalTensor<bfloat16_t>& r_buf = (r_slot == 0) ? first : second;
-        if (preload_local) {
-            WaitFlag<AscendC::HardEvent::V_MTE2>(events[0]);
-            WaitFlag<AscendC::HardEvent::V_MTE2>(events[1]);
-            if (remote_routed) {
-                Cast(stage_second, stage_buf[4096], AscendC::RoundMode::CAST_NONE, c);
-                if (scale != 1.0f) {
-                    PipeBarrier<PIPE_V>();
-                    Muls(stage_second, stage_second, scale, c);
-                    PipeBarrier<PIPE_V>();
-                    Cast(stage_buf[4096], stage_second, AscendC::RoundMode::CAST_RINT, c);
-                    PipeBarrier<PIPE_V>();
-                    Cast(stage_second, stage_buf[4096], AscendC::RoundMode::CAST_NONE, c);
+                    WaitFlag<AscendC::HardEvent::MTE2_V>(events[current]);
+                    if (pe == 0) {
+                        Cast(acc, ready, AscendC::RoundMode::CAST_NONE, c);
+                        SetFlag<AscendC::HardEvent::V_MTE2>(events[current]);
+                    } else {
+                        Cast(term, ready, AscendC::RoundMode::CAST_NONE, c);
+                        SetFlag<AscendC::HardEvent::V_MTE2>(events[current]);
+                        PipeBarrier<PIPE_V>();
+                        Add(acc, acc, term, c);
+                    }
                 }
                 PipeBarrier<PIPE_V>();
             }
-            if (routed_slice != nullptr || routed_full != nullptr) {
+            const int64_t r_slot = pe_size % 2;
+            const LocalTensor<bfloat16_t>& r_buf = (r_slot == 0) ? first : second;
+            if (preload_local) {
+                WaitFlag<AscendC::HardEvent::V_MTE2>(events[0]);
+                WaitFlag<AscendC::HardEvent::V_MTE2>(events[1]);
+                if (remote_routed) {
+                    Cast(stage_second, stage_buf[4096], AscendC::RoundMode::CAST_NONE, c);
+                    if (scale != 1.0f) {
+                        PipeBarrier<PIPE_V>();
+                        Muls(stage_second, stage_second, scale, c);
+                        PipeBarrier<PIPE_V>();
+                        Cast(stage_buf[4096], stage_second, AscendC::RoundMode::CAST_RINT, c);
+                        PipeBarrier<PIPE_V>();
+                        Cast(stage_second, stage_buf[4096], AscendC::RoundMode::CAST_NONE, c);
+                    }
+                    PipeBarrier<PIPE_V>();
+                }
+                if (routed_slice != nullptr || routed_full != nullptr) {
+                    Cast(first, acc, AscendC::RoundMode::CAST_RINT, c);
+                    PipeBarrier<PIPE_V>();
+                    Cast(acc, first, AscendC::RoundMode::CAST_NONE, c);
+                    PipeBarrier<PIPE_V>();
+                    Add(acc, acc, stage_second, c);
+                    PipeBarrier<PIPE_V>();
+                }
+            } else if (routed_slice != nullptr || routed_full != nullptr) {
+                WaitFlag<AscendC::HardEvent::V_MTE2>(events[1 - r_slot]);
+                WaitFlag<AscendC::HardEvent::MTE2_V>(events[r_slot]);
+                Cast(term, r_buf, AscendC::RoundMode::CAST_NONE, c);
+                PipeBarrier<PIPE_V>();
                 Cast(first, acc, AscendC::RoundMode::CAST_RINT, c);
+                if (scale != 1.0f) {
+                    Muls(term, term, scale, c);
+                    PipeBarrier<PIPE_V>();
+                    Cast(second, term, AscendC::RoundMode::CAST_RINT, c);
+                    PipeBarrier<PIPE_V>();
+                    Cast(term, second, AscendC::RoundMode::CAST_NONE, c);
+                }
                 PipeBarrier<PIPE_V>();
                 Cast(acc, first, AscendC::RoundMode::CAST_NONE, c);
                 PipeBarrier<PIPE_V>();
-                Add(acc, acc, stage_second, c);
+                Add(acc, acc, term, c);
                 PipeBarrier<PIPE_V>();
+            } else {
+                WaitFlag<AscendC::HardEvent::V_MTE2>(events[0]);
+                WaitFlag<AscendC::HardEvent::V_MTE2>(events[1]);
             }
-        } else if (routed_slice != nullptr || routed_full != nullptr) {
-            WaitFlag<AscendC::HardEvent::V_MTE2>(events[1 - r_slot]);
-            WaitFlag<AscendC::HardEvent::MTE2_V>(events[r_slot]);
-            Cast(term, r_buf, AscendC::RoundMode::CAST_NONE, c);
-            PipeBarrier<PIPE_V>();
             Cast(first, acc, AscendC::RoundMode::CAST_RINT, c);
-            if (scale != 1.0f) {
-                Muls(term, term, scale, c);
-                PipeBarrier<PIPE_V>();
-                Cast(second, term, AscendC::RoundMode::CAST_RINT, c);
-                PipeBarrier<PIPE_V>();
-                Cast(term, second, AscendC::RoundMode::CAST_NONE, c);
-            }
-            PipeBarrier<PIPE_V>();
-            Cast(acc, first, AscendC::RoundMode::CAST_NONE, c);
-            PipeBarrier<PIPE_V>();
-            Add(acc, acc, term, c);
-            PipeBarrier<PIPE_V>();
-        } else {
-            WaitFlag<AscendC::HardEvent::V_MTE2>(events[0]);
-            WaitFlag<AscendC::HardEvent::V_MTE2>(events[1]);
-        }
-        Cast(first, acc, AscendC::RoundMode::CAST_RINT, c);
-        SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
-        WaitFlag<AscendC::HardEvent::V_MTE3>(events[0]);
+            SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+            WaitFlag<AscendC::HardEvent::V_MTE3>(events[0]);
 
-        GlobalTensor<bfloat16_t> sink;
-        if (peer == my_pe) {
-            sink.SetGlobalBuffer(out + my_global_off + offset, c);
-        } else {
-            sink.SetGlobalBuffer(remote_ag_win + my_global_off + offset, c);
+            GlobalTensor<bfloat16_t> sink;
+            if (peer == my_pe) {
+                if (gamma != nullptr && one_hop && active_elements == 6144) {
+                    __gm__ int32_t* core_sync = (__gm__ int32_t*)aclshmemi_get_core_sync_pool();
+                    TpPushInUbRmsNormQuant(
+                        worker, count, core_sync,
+                        residual, res_out, gamma, beta, norm_out, quant_out, scale_out, eps,
+                        acc, term, stage_second, first, second, stage_buf);
+                    return;
+                }
+                sink.SetGlobalBuffer(out + my_global_off + offset, c);
+            } else {
+                sink.SetGlobalBuffer(remote_ag_win + my_global_off + offset, c);
+            }
+            DataCopy(sink, first, c);
+            SetFlag<AscendC::HardEvent::MTE3_V>(events[0]);
+            WaitFlag<AscendC::HardEvent::MTE3_V>(events[0]);
+            SetFlag<AscendC::HardEvent::MTE3_MTE2>(events[0]);
+            WaitFlag<AscendC::HardEvent::MTE3_MTE2>(events[0]);
         }
-        DataCopy(sink, first, c);
-        SetFlag<AscendC::HardEvent::MTE3_V>(events[0]);
-        WaitFlag<AscendC::HardEvent::MTE3_V>(events[0]);
-        SetFlag<AscendC::HardEvent::MTE3_MTE2>(events[0]);
-        WaitFlag<AscendC::HardEvent::MTE3_MTE2>(events[0]);
+
+        if (peer != my_pe) {
+            if (w_elems > 0) {
+                SetFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
+                WaitFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
+                aclshmemi_signal_set(flag_ag + my_pe * SIGNAL_SLOT_INT32, (int)peer, count);
+            }
+
+            if (peer_w_elems > 0) {
+                aclshmem_signal_wait_until(flag_ag + peer * SIGNAL_SLOT_INT32, ACLSHMEM_CMP_GE, count);
+                const int64_t peer_global_off = peer * slice_elems + peer_w_off;
+                GlobalTensor<bfloat16_t> ag_src;
+                ag_src.SetGlobalBuffer(local_ag_win + peer_global_off, peer_w_elems);
+                DataCopy(stage_buf, ag_src, peer_w_elems);
+                SetFlag<AscendC::HardEvent::MTE2_MTE3>(EVENT_ID0);
+                WaitFlag<AscendC::HardEvent::MTE2_MTE3>(EVENT_ID0);
+
+                GlobalTensor<bfloat16_t> ag_dst;
+                ag_dst.SetGlobalBuffer(out + peer_global_off, peer_w_elems);
+                DataCopy(ag_dst, stage_buf, peer_w_elems);
+                SetFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID0);
+                WaitFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID0);
+            }
+        }
     }
 
-    if (peer != my_pe) {
-        if (w_elems > 0) {
-            SetFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
-            WaitFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
-            aclshmemi_signal_set(flag_ag + my_pe * SIGNAL_SLOT_INT32, (int)peer, count);
+    if (gamma != nullptr) {
+        if (one_hop && active_elements == 6144) {
+            return;
         }
-
-        if (peer_w_elems > 0) {
-            aclshmem_signal_wait_until(flag_ag + peer * SIGNAL_SLOT_INT32, ACLSHMEM_CMP_GE, count);
-            const int64_t peer_global_off = peer * slice_elems + peer_w_off;
-            GlobalTensor<bfloat16_t> ag_src;
-            ag_src.SetGlobalBuffer(local_ag_win + peer_global_off, peer_w_elems);
-            DataCopy(stage_buf, ag_src, peer_w_elems);
-            SetFlag<AscendC::HardEvent::MTE2_MTE3>(EVENT_ID0);
-            WaitFlag<AscendC::HardEvent::MTE2_MTE3>(EVENT_ID0);
-
-            GlobalTensor<bfloat16_t> ag_dst;
-            ag_dst.SetGlobalBuffer(out + peer_global_off, peer_w_elems);
-            DataCopy(ag_dst, stage_buf, peer_w_elems);
-            SetFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID0);
-            WaitFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID0);
+        __gm__ int32_t* core_sync = (__gm__ int32_t*)aclshmemi_get_core_sync_pool();
+        SetFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
+        const int64_t num_sync_cores = (cores < 48) ? cores : 48;
+        if (core < num_sync_cores) {
+            aclshmemi_signal_set(core_sync + core * SIGNAL_SLOT_INT32, count);
+        }
+        const int64_t active_rows = active_elements / 6144;
+        const int64_t norm_rows = active_rows;
+        if (core < norm_rows) {
+            for (int64_t c = 0; c < num_sync_cores; ++c) {
+                aclshmem_signal_wait_until(
+                    core_sync + c * SIGNAL_SLOT_INT32,
+                    ACLSHMEM_CMP_GE, count);
+            }
+            SetFlag<AscendC::HardEvent::S_MTE2>(EVENT_ID0);
+            WaitFlag<AscendC::HardEvent::S_MTE2>(EVENT_ID0);
+            TpPushRmsNormQuantRow(
+                out + core * 6144, residual + core * 6144,
+                (res_out != nullptr) ? (res_out + core * 6144) : nullptr,
+                gamma, beta,
+                (norm_out != nullptr) ? (norm_out + core * 6144) : nullptr,
+                (quant_out != nullptr) ? (quant_out + core * 6144) : nullptr,
+                scale_out, core, norm_rows, core_sync, count,
+                eps, stage_buf, stage_second.ReinterpretCast<bfloat16_t>(),
+                acc, term, narrow.ReinterpretCast<float>());
         }
     }
 }
@@ -1101,6 +1613,73 @@ void tp_push_demo(uint32_t block_dim, void* stream, uint64_t fftsAddr, float* pa
 {
     tp_push_demo(block_dim, stream, fftsAddr, partial, out, window, errors, rows, hidden, rounds, round_base, stage,
                  nullptr);
+}
+
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__ void tp_push_rmsnorm_quant_kernel(
+    uint64_t fftsAddr, __gm__ float* partial, __gm__ float* out, __gm__ uint8_t* window, __gm__ int32_t* routed,
+    int numel, int scale_bits, int round_base, int stage, const __gm__ int32_t* active_ptr,
+    const __gm__ bfloat16_t* residual, __gm__ bfloat16_t* res_out, __gm__ bfloat16_t* gamma, __gm__ bfloat16_t* beta,
+    __gm__ bfloat16_t* norm_out, __gm__ int8_t* quant_out, __gm__ float* scale_out, float eps)
+{
+    util_set_ffts_config(fftsAddr);
+    TPipe pipe;
+    TBuf<TPosition::VECCALC> staging;
+    TBuf<TPosition::VECCALC> staging_second;
+    TBuf<TPosition::VECCALC> addend_second;
+    TBuf<TPosition::VECCALC> accumulator;
+    TBuf<TPosition::VECCALC> addend;
+    pipe.InitBuffer(staging, STAGE_UB_BYTES);
+    pipe.InitBuffer(staging_second, STAGE_UB_BYTES);
+    pipe.InitBuffer(addend_second, REDUCE_UB_BYTES);
+    pipe.InitBuffer(accumulator, REDUCE_UB_BYTES);
+    pipe.InitBuffer(addend, REDUCE_UB_BYTES);
+    LocalTensor<float> stage_tensor = staging.Get<float>();
+    LocalTensor<float> stage_second = staging_second.Get<float>();
+    LocalTensor<float> term_second = addend_second.Get<float>();
+    LocalTensor<float> acc = accumulator.Get<float>();
+    LocalTensor<float> term = addend.Get<float>();
+
+    union {
+        int32_t i;
+        float f;
+    } sb = {scale_bits};
+    const float scale = (stage == 13 || stage == 15) ? sb.f : 1.0f;
+
+    const int64_t core = GetBlockIdx();
+    const int64_t cores = GetBlockNum();
+    const int64_t my_pe = aclshmem_my_pe();
+    const int64_t pe_size = aclshmem_n_pes();
+    const int64_t plane = static_cast<int64_t>(round_base) % PLANES;
+    const TpPushLayout layout = TpPushPlane(window, 1, numel, pe_size, plane);
+
+    int64_t active_elements = layout.elements;
+    if (active_ptr != nullptr && layout.elements == 196608) {
+        dcci((__gm__ uint64_t*)active_ptr, SINGLE_CACHE_LINE, CACHELINE_OUT);
+        const int a = *active_ptr;
+        if (a >= 1 && a <= 32) {
+            active_elements = static_cast<int64_t>(a) * 6144;
+        }
+    }
+    __gm__ bfloat16_t* routed_full = (stage == 13) ? (__gm__ bfloat16_t*)routed : nullptr;
+    __gm__ bfloat16_t* routed_slice = (stage == 15) ? (__gm__ bfloat16_t*)routed : nullptr;
+    TpPushRsAgBf16(layout, (__gm__ bfloat16_t*)partial, (__gm__ bfloat16_t*)out,
+                   core, cores, my_pe, pe_size,
+                   stage_tensor.ReinterpretCast<bfloat16_t>(), stage_second, acc, term,
+                   term_second.ReinterpretCast<bfloat16_t>(),
+                   routed_full, routed_slice, scale, active_elements,
+                   residual, res_out, gamma, beta, norm_out, quant_out, scale_out, eps);
+}
+
+void tp_push_rmsnorm_quant(uint32_t block_dim, void* stream, uint64_t fftsAddr, float* partial, float* out,
+                           uint8_t* window, int32_t* routed, int numel, int scale_bits, int round_base, int stage,
+                           const int32_t* active_ptr, const void* residual, void* res_out, const void* gamma, const void* beta,
+                           void* norm_out, void* quant_out, void* scale_out, float eps)
+{
+    tp_push_rmsnorm_quant_kernel<<<block_dim, nullptr, stream>>>(
+        fftsAddr, partial, out, window, routed, numel, scale_bits, round_base, stage,
+        (const __gm__ int32_t*)active_ptr,
+        (const __gm__ bfloat16_t*)residual, (__gm__ bfloat16_t*)res_out, (__gm__ bfloat16_t*)gamma, (__gm__ bfloat16_t*)beta,
+        (__gm__ bfloat16_t*)norm_out, (__gm__ int8_t*)quant_out, (__gm__ float*)scale_out, eps);
 }
 
 extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__ void indexer_prep_qk_kernel(
