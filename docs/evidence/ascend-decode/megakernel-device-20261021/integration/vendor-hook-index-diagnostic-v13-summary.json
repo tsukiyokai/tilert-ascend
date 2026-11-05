@@ -1,0 +1,116 @@
+{
+  "scope": "Actual outer attention diagnostic, A3 physical die 4, pinned 2.10 runtime; no timing claim",
+  "reports": {
+    "bf16": {
+      "report": "vendor-hook-index-diagnostic-bf16-v13-a3-194/outer-index-diagnostic.json",
+      "sha256": "3495f8f52c66f69c29a8abd528ea19959cf7f062bb49de05833a8ac7bf7fa48c",
+      "original_failure_reproduced": true,
+      "first_differing_boundary": "WK BF16 projection",
+      "projection_differences": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "native": 0.0035552978515625,
+          "vendor": 0.0035400390625
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "native": 0.0126953125,
+          "vendor": 0.01275634765625
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "native": 0.162109375,
+          "vendor": 0.1611328125
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "native": 0.037353515625,
+          "vendor": 0.03759765625
+        }
+      ],
+      "weights_difference": [
+        {
+          "coordinate": [
+            6,
+            25
+          ],
+          "native": 0.0126953125,
+          "vendor": 0.01275634765625
+        }
+      ],
+      "key_cache_elements": 2,
+      "all_query_stages_byte_equal": true,
+      "each_arm_rope_matches_own_input_oracle": true,
+      "cpu_only_helper_ranks": 15,
+      "outer_forward_pass": false
+    },
+    "int8": {
+      "report": "vendor-hook-index-diagnostic-int8-v13-a3-194/outer-index-diagnostic.json",
+      "sha256": "8e936204527e29746c183e6d11a21b1195f58a27a76b94f43bdf388cd9c180ac",
+      "original_failure_reproduced": true,
+      "first_differing_boundary": "WK BF16 projection",
+      "projection_differences": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "native": 0.0035552978515625,
+          "vendor": 0.0035400390625
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "native": 0.0126953125,
+          "vendor": 0.01275634765625
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "native": 0.162109375,
+          "vendor": 0.1611328125
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "native": 0.037353515625,
+          "vendor": 0.03759765625
+        }
+      ],
+      "weights_difference": [
+        {
+          "coordinate": [
+            6,
+            25
+          ],
+          "native": 0.0126953125,
+          "vendor": 0.01275634765625
+        }
+      ],
+      "key_cache_elements": 2,
+      "all_query_stages_byte_equal": true,
+      "each_arm_rope_matches_own_input_oracle": true,
+      "cpu_only_helper_ranks": 15,
+      "outer_forward_pass": false
+    }
+  },
+  "interpretation": "Both modes first differ at the same four WK BF16 outputs; one is an attention weight at query row6. Matching RoPE for each arm localizes its differences upstream. CPU FP64 WK is auxiliary and disagrees with both implementations at different outputs; greater dot precision alone is not the production equivalence contract."
+}

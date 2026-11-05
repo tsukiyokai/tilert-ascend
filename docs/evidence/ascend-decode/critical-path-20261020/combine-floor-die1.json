@@ -1,0 +1,101 @@
+{
+  "status": "pass",
+  "created_at": "2026-10-20T01:38:28.382034+00:00",
+  "command": [
+    "/opt/trt-asc/venv/bin/python3",
+    "tests/glm52/bench_kernel_floor.py",
+    "--output",
+    "/workspace/experiments/combine-floor-20261020/die1.json",
+    "--device",
+    "1",
+    "--calls",
+    "50",
+    "--warmup",
+    "50",
+    "--batches",
+    "20"
+  ],
+  "hostname": "trt-asc",
+  "device": 1,
+  "calls": 50,
+  "warmup": 50,
+  "batches": 20,
+  "hidden": 6144,
+  "scope": "one die, one rank, shared with another tenant",
+  "issue_note": "calls are back to back with one synchronize per batch",
+  "results": [
+    {
+      "operation": "add_1_element",
+      "median_us": 9.10055,
+      "min_us": 8.52752,
+      "p90_us": 10.04838
+    },
+    {
+      "operation": "add_1_row",
+      "median_us": 9.17605,
+      "min_us": 8.43412,
+      "p90_us": 9.90278
+    },
+    {
+      "operation": "add_4_rows",
+      "median_us": 9.01613,
+      "min_us": 8.431719999999999,
+      "p90_us": 9.837579999999999
+    },
+    {
+      "operation": "rms_norm_1_row",
+      "median_us": 23.26798,
+      "min_us": 22.59466,
+      "p90_us": 24.120099999999997
+    },
+    {
+      "operation": "index_select_1_row",
+      "median_us": 10.82,
+      "min_us": 9.90438,
+      "p90_us": 11.713239999999999
+    },
+    {
+      "operation": "empty_like_1_row",
+      "median_us": 4.6799800000000005,
+      "min_us": 4.59298,
+      "p90_us": 4.77458
+    },
+    {
+      "operation": "foreach_add_1_row",
+      "median_us": 38.70406,
+      "min_us": 36.8018,
+      "p90_us": 39.6607
+    },
+    {
+      "operation": "add_8_rows",
+      "median_us": 9.52016,
+      "min_us": 8.80472,
+      "p90_us": 10.201600000000001
+    },
+    {
+      "operation": "foreach_add_8_rows",
+      "median_us": 38.48955,
+      "min_us": 36.90858,
+      "p90_us": 39.16408
+    },
+    {
+      "operation": "add_32_rows",
+      "median_us": 9.68107,
+      "min_us": 8.928120000000002,
+      "p90_us": 10.406
+    },
+    {
+      "operation": "foreach_add_32_rows",
+      "median_us": 38.31835,
+      "min_us": 36.20736,
+      "p90_us": 39.09088
+    },
+    {
+      "operation": "cast_round_trip_8_rows",
+      "median_us": 21.853520000000003,
+      "min_us": 21.04418,
+      "p90_us": 23.25968
+    }
+  ],
+  "combine_bit_exact": true
+}

@@ -1,0 +1,49 @@
+{
+  "scope": "Real outer indexer diagnostic; frozen before NPU execution",
+  "sources": {
+    "vendor_hook_device.py": "16d1b936af443debbf13fbe81580588b3de144527c877424fdda215d817e12ad",
+    "vendor_hook_index_diagnostic.py": "382aa5cdc23dacf3617bacd4de94c7ba37e273f894863842f5351d9b63bbfbe6",
+    "vendor_hook_index_diagnostic_test.py": "d623efa69c0126bf95d2df42b08bb1f0e3b2140a156fb18e2ae461a224149c72",
+    "vendor_hook_forward.py": "376411d2c57501ac1661fb81b0d6f7c2ec571c9d83d2e8b65ddcbb0a68ba4b58",
+    "vendor_hook_diagnostic.py": "d797c12d06fa714f9aa4756115020b3ae822d76e8ba17497aeec3b350c5e76b3",
+    "vendor_hook_graph.py": "17fa65a25911db777e10ed335400e772f4a336d94255f92ae419a26e3eee992c",
+    "vendor_hook_run.sh": "a18be18f28fbc2bab670052edb0f3ed80606f6e5f0f9aed6302e3e8a4ed7d495"
+  },
+  "adapter_sha256": "336eaff0de153d32439d4d2b0557522b313a24a7e5bef82b8dc11f1257511c01",
+  "device_status": "not run at freeze",
+  "image": "sha256:9afbed90a0f92e228cc1ba13adf3cee2e89e34f1dd4cad1ed8eb5ce8c091b4af",
+  "runtime": "Torch2.10.0+cpu and TorchNPU2.10.0.post2, CANN9.2",
+  "library_selection": "Independent O CombinedScales candidate; unchanged indexed and shared libraries from ../attention-o-combined-build-v1/manifest.json",
+  "cpu_report": "../vendor-hook-index-diagnostic-cpu-v1/report.json",
+  "cpu_first_import_failure": "First CPU invocation omitted read-only driver library mounts and failed to import libascend_hal.so; cpu-v2.log records the same tests with CANN and driver libraries mounted, no device nodes. No NPU initialization occurred.",
+  "contract": {
+    "vendor_taps": [
+      "actual W8 query-norm input",
+      "actual WK BF16 output",
+      "actual LayerNorm FP32 input/output",
+      "BF16 K norm and Q projection before in-place RoPE",
+      "actual Q/K RoPE",
+      "C8 Hadamard BF16 and DynamicQuant codes/FP32 and FP16 scales"
+    ],
+    "native_taps": "Retained prefix plus tiled WQ INT32/WK FP32 accumulator storage decoded from actual binding Describe offsets; reused vendor arenas are excluded",
+    "perturbation": "Two device clones per vendor call preserve Q/K inputs before the official in-place RoPE; all other tensors are retained references; no timing claim",
+    "reproduction": "Same hidden, metadata and every baseline/native output/cache/topk byte as original parent failure dump",
+    "oracles": "CPU INT64 WQ dot with checked INT32 range, auxiliary FP64 WK dot, interleaved RoPE with separate FP32 products/sums and BF16 output",
+    "layout_tests": 3
+  },
+  "parents": {
+    "bf16": {
+      "path": "/evidence/vendor-hook-forward-o-combined-v11-bf16-wide/outer-forward-bf16-m32-r5.pt",
+      "sha256": "6e466ee270060b32686f123e38328c2fecf27fc4154b3aa4d9d7c770ec35f0b4"
+    },
+    "int8": {
+      "path": "/evidence/vendor-hook-forward-o-combined-v11-int8-wide/outer-forward-int8-m32-r5.pt",
+      "sha256": "61b9ffd0aeb210afe1b29a43c266603e2f57f9b9e4b530f3c1edacb2807efae2"
+    }
+  },
+  "runtime_library_paths": {
+    "indexed": "/workspace/logs/attention-o-combined-v1/indexed/whole_layer_indexed_attention.so",
+    "shared": "/workspace/logs/attention-o-combined-v1/shared/whole_layer_full_attention.so"
+  },
+  "launch_preflight": "The first command used host build-directory paths under /workspace/tests, absent from the runtime mount. File validation rejected it before NPU initialization; only the two CLI library paths were corrected."
+}

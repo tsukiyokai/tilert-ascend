@@ -1,0 +1,372 @@
+{
+  "candidate_library_sha256": "a81d1987b617d255d96c4eff90221d382ac9c9bf41bd2f6d9a14514a304db005",
+  "baseline_library_sha256": "6588e1dcde9dd843c10479ce1276ae069d89a9e60c16bc296f20ba4afb7c1c34",
+  "source_build": "attention-indexed-shadow-v2-build/provenance.json",
+  "harness": "attention-indexed-shadow-v2-harness/source-identities.json",
+  "scope": "One indexed-attention TP16 local shard before all-reduce; synthetic inputs; sequence 8192; per-call shadow update included, full initialization excluded.",
+  "numerical_reports": [
+    {
+      "report": "attention-indexed-shadow-v2-smoke.json",
+      "sha256": "5f46e7897e595f6e4aef1244e66e894bde6bdf0dd5829fc175dff5bebcddc6f3",
+      "cases": 1,
+      "changing_replays": 2
+    },
+    {
+      "report": "attention-indexed-shadow-v2-numerics.json",
+      "sha256": "789a5125cd84058d0a6fb0369be871e2f447eea030bc13742c82490cac12bc15",
+      "cases": 16,
+      "changing_replays": 128
+    },
+    {
+      "report": "attention-indexed-shadow-v2-negative-slots.json",
+      "sha256": "0fa0cf148e119340ef253eb8e348c133709f438dd9a494298a99628b039c8607",
+      "cases": 6,
+      "changing_replays": 48
+    }
+  ],
+  "timing_cases": [
+    {
+      "report": "attention-indexed-shadow-v2-m12-bank8.json",
+      "report_sha256": "1fc75ac9fcbc893755b5a0dfe50f0e4cc5eafc9163c795df537eb8f7fc2e2d17",
+      "mode": "int8",
+      "rows": 12,
+      "blocks": 24,
+      "weight_banks": 8,
+      "calls_per_graph": 16,
+      "event_pairs": 30,
+      "replays_per_event": 30,
+      "same_arena": {
+        "A": {
+          "medians_us": {
+            "ordinary": 292.26245880126953,
+            "candidate": 309.7745259602865
+          },
+          "median_ordinary_minus_candidate_us": -17.452414830525697,
+          "candidate_wins": 0,
+          "statistics": {
+            "ordinary": {
+              "p50_us": 292.26245880126953,
+              "p90_us": 292.72648493448895,
+              "p99_us": 292.9636507034302,
+              "std_us": 0.6853642114007349
+            },
+            "candidate": {
+              "p50_us": 309.7745259602865,
+              "p90_us": 310.6857935587565,
+              "p99_us": 311.0425434112549,
+              "std_us": 1.883988545168569
+            }
+          },
+          "paired_savings_statistics": {
+            "p50_us": -17.452414830525697,
+            "p90_us": -15.336888631184863,
+            "p99_us": -12.072484970092805,
+            "std_us": 1.7571346694696213
+          }
+        },
+        "B": {
+          "medians_us": {
+            "ordinary": 294.0349578857422,
+            "candidate": 308.38735898335773
+          },
+          "median_ordinary_minus_candidate_us": -14.046351114908816,
+          "candidate_wins": 0,
+          "statistics": {
+            "ordinary": {
+              "p50_us": 294.0349578857422,
+              "p90_us": 294.6862093607585,
+              "p99_us": 294.8391927083333,
+              "std_us": 0.7582196423961437
+            },
+            "candidate": {
+              "p50_us": 308.38735898335773,
+              "p90_us": 309.1229057312012,
+              "p99_us": 309.53614139556885,
+              "std_us": 1.89542714014733
+            }
+          },
+          "paired_savings_statistics": {
+            "p50_us": -14.046351114908816,
+            "p90_us": -11.419035593668632,
+            "p99_us": -8.788195927937807,
+            "std_us": 1.7852039391378145
+          }
+        }
+      },
+      "independent_arena_statistics": {
+        "ordinary": {
+          "p50_us": 294.66285705566406,
+          "p90_us": 294.7804832458496,
+          "p99_us": 294.9911340077718,
+          "std_us": 0.0951943835463234
+        },
+        "shadow": {
+          "p50_us": 311.84803644816077,
+          "p90_us": 311.9154453277588,
+          "p99_us": 311.9464480082194,
+          "std_us": 0.06535463219413974
+        }
+      },
+      "shadow_bytes": 10027008,
+      "all_production_bytes_pass": true
+    },
+    {
+      "report": "attention-indexed-shadow-v2-m12-bank8.json",
+      "report_sha256": "1fc75ac9fcbc893755b5a0dfe50f0e4cc5eafc9163c795df537eb8f7fc2e2d17",
+      "mode": "bf16",
+      "rows": 12,
+      "blocks": 24,
+      "weight_banks": 8,
+      "calls_per_graph": 16,
+      "event_pairs": 30,
+      "replays_per_event": 30,
+      "same_arena": {
+        "A": {
+          "medians_us": {
+            "ordinary": 279.8869927724203,
+            "candidate": 299.97897148132324
+          },
+          "median_ordinary_minus_candidate_us": -19.999821980794252,
+          "candidate_wins": 0,
+          "statistics": {
+            "ordinary": {
+              "p50_us": 279.8869927724203,
+              "p90_us": 280.1542663574219,
+              "p99_us": 280.46025021870935,
+              "std_us": 0.30457490115463504
+            },
+            "candidate": {
+              "p50_us": 299.97897148132324,
+              "p90_us": 300.9191608428955,
+              "p99_us": 301.11630789438885,
+              "std_us": 1.836483247993533
+            }
+          },
+          "paired_savings_statistics": {
+            "p50_us": -19.999821980794252,
+            "p90_us": -18.372084299723298,
+            "p99_us": -14.188194274902335,
+            "std_us": 1.765995760843042
+          }
+        },
+        "B": {
+          "medians_us": {
+            "ordinary": 276.9554138183594,
+            "candidate": 295.45888900756836
+          },
+          "median_ordinary_minus_candidate_us": -18.596569697062165,
+          "candidate_wins": 0,
+          "statistics": {
+            "ordinary": {
+              "p50_us": 276.9554138183594,
+              "p90_us": 277.2131888071696,
+              "p99_us": 277.509893099467,
+              "std_us": 0.3269175304221827
+            },
+            "candidate": {
+              "p50_us": 295.45888900756836,
+              "p90_us": 296.3600444793701,
+              "p99_us": 296.6824210484823,
+              "std_us": 2.0620625751942048
+            }
+          },
+          "paired_savings_statistics": {
+            "p50_us": -18.596569697062165,
+            "p90_us": -13.870662053426075,
+            "p99_us": -12.694138526916504,
+            "std_us": 1.9601134373673268
+          }
+        }
+      },
+      "independent_arena_statistics": {
+        "ordinary": {
+          "p50_us": 287.5833988189697,
+          "p90_us": 287.6321601867676,
+          "p99_us": 287.81883494059247,
+          "std_us": 0.07009369108032655
+        },
+        "shadow": {
+          "p50_us": 296.0820039113363,
+          "p90_us": 296.2474759419759,
+          "p99_us": 296.26594638824463,
+          "std_us": 0.09279191436470736
+        }
+      },
+      "shadow_bytes": 10027008,
+      "all_production_bytes_pass": true
+    },
+    {
+      "report": "attention-indexed-shadow-v2-m32-bank8.json",
+      "report_sha256": "9934fe90f19ea815595fd82e52653cfd3350695a657438ce56b0912c302b3903",
+      "mode": "int8",
+      "rows": 32,
+      "blocks": 24,
+      "weight_banks": 8,
+      "calls_per_graph": 16,
+      "event_pairs": 30,
+      "replays_per_event": 30,
+      "same_arena": {
+        "A": {
+          "medians_us": {
+            "ordinary": 407.7935218811035,
+            "candidate": 444.76068814595544
+          },
+          "median_ordinary_minus_candidate_us": -36.95718447367352,
+          "candidate_wins": 0,
+          "statistics": {
+            "ordinary": {
+              "p50_us": 407.7935218811035,
+              "p90_us": 408.6516284942627,
+              "p99_us": 409.2249279022217,
+              "std_us": 0.6416144200229589
+            },
+            "candidate": {
+              "p50_us": 444.76068814595544,
+              "p90_us": 445.8654181162516,
+              "p99_us": 446.24254322052,
+              "std_us": 0.6375786056043576
+            }
+          },
+          "paired_savings_statistics": {
+            "p50_us": -36.95718447367352,
+            "p90_us": -36.20180130004884,
+            "p99_us": -35.9224589665731,
+            "std_us": 0.7566297582014181
+          }
+        },
+        "B": {
+          "medians_us": {
+            "ordinary": 411.21875445048016,
+            "candidate": 448.6548741658529
+          },
+          "median_ordinary_minus_candidate_us": -37.33366330464679,
+          "candidate_wins": 0,
+          "statistics": {
+            "ordinary": {
+              "p50_us": 411.21875445048016,
+              "p90_us": 412.5437577565511,
+              "p99_us": 412.7032165527344,
+              "std_us": 0.75403540259029
+            },
+            "candidate": {
+              "p50_us": 448.6548741658529,
+              "p90_us": 449.84387715657556,
+              "p99_us": 450.0776351292928,
+              "std_us": 0.6351012210241869
+            }
+          },
+          "paired_savings_statistics": {
+            "p50_us": -37.33366330464679,
+            "p90_us": -36.45434697469079,
+            "p99_us": -36.20584392547611,
+            "std_us": 0.7595551529883586
+          }
+        }
+      },
+      "independent_arena_statistics": {
+        "ordinary": {
+          "p50_us": 407.5531482696533,
+          "p90_us": 407.70751635233563,
+          "p99_us": 407.8951482772827,
+          "std_us": 0.11862091578390105
+        },
+        "shadow": {
+          "p50_us": 449.45947329203284,
+          "p90_us": 449.590581258138,
+          "p99_us": 449.67737770080566,
+          "std_us": 0.09476190253296547
+        }
+      },
+      "shadow_bytes": 10027008,
+      "all_production_bytes_pass": true
+    },
+    {
+      "report": "attention-indexed-shadow-v2-m32-bank8.json",
+      "report_sha256": "9934fe90f19ea815595fd82e52653cfd3350695a657438ce56b0912c302b3903",
+      "mode": "bf16",
+      "rows": 32,
+      "blocks": 24,
+      "weight_banks": 8,
+      "calls_per_graph": 16,
+      "event_pairs": 30,
+      "replays_per_event": 30,
+      "same_arena": {
+        "A": {
+          "medians_us": {
+            "ordinary": 382.4323972066244,
+            "candidate": 408.4659894307455
+          },
+          "median_ordinary_minus_candidate_us": -25.934537251790346,
+          "candidate_wins": 0,
+          "statistics": {
+            "ordinary": {
+              "p50_us": 382.4323972066244,
+              "p90_us": 383.1344795227051,
+              "p99_us": 383.31961313883465,
+              "std_us": 0.3819324243453967
+            },
+            "candidate": {
+              "p50_us": 408.4659894307455,
+              "p90_us": 409.76394335428876,
+              "p99_us": 409.962121963501,
+              "std_us": 0.8544016862445974
+            }
+          },
+          "paired_savings_statistics": {
+            "p50_us": -25.934537251790346,
+            "p90_us": -25.341672897338885,
+            "p99_us": -24.648149490356445,
+            "std_us": 0.7930524310352668
+          }
+        },
+        "B": {
+          "medians_us": {
+            "ordinary": 381.3898404439291,
+            "candidate": 409.5176696777344
+          },
+          "median_ordinary_minus_candidate_us": -28.10373306274414,
+          "candidate_wins": 0,
+          "statistics": {
+            "ordinary": {
+              "p50_us": 381.3898404439291,
+              "p90_us": 381.76198323567706,
+              "p99_us": 382.10083866119385,
+              "std_us": 0.40375221042600556
+            },
+            "candidate": {
+              "p50_us": 409.5176696777344,
+              "p90_us": 410.81359545389813,
+              "p99_us": 411.03818003336585,
+              "std_us": 0.7672192961380807
+            }
+          },
+          "paired_savings_statistics": {
+            "p50_us": -28.10373306274414,
+            "p90_us": -27.478148142496746,
+            "p99_us": -27.142695426940932,
+            "std_us": 0.7320540300991445
+          }
+        }
+      },
+      "independent_arena_statistics": {
+        "ordinary": {
+          "p50_us": 382.2710990905762,
+          "p90_us": 382.3504829406738,
+          "p99_us": 382.3855978647868,
+          "std_us": 0.24064953108449355
+        },
+        "shadow": {
+          "p50_us": 408.62793922424316,
+          "p90_us": 408.8018862406413,
+          "p99_us": 408.86831601460773,
+          "std_us": 0.11887425637478662
+        }
+      },
+      "shadow_bytes": 10027008,
+      "all_production_bytes_pass": true
+    }
+  ],
+  "decision": "Do not select packed-gather-and-merge v2. Every paired same-arena comparison regresses across both widths, index-cache modes and arenas.",
+  "initialization_report": "sfa-shadow-pack.json",
+  "scope_limit": "Eight equal-valued weight banks at distinct addresses; independent calls; retained numerical boundaries belong to the final call. No whole-model or TP-reduction timing."
+}

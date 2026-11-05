@@ -1,0 +1,84 @@
+{
+  "scope": "CPU C ABI recorder and actual generated benchmark poison/check functions; no NPU operation",
+  "pass": true,
+  "tests_per_architecture": 4,
+  "architectures": {
+    "x86_64": {
+      "exit_code": 0,
+      "elapsed_seconds": 1.025
+    },
+    "aarch64": {
+      "host": "a3-78",
+      "exit_code": 0,
+      "elapsed_seconds": 2.234,
+      "torch_backend_autoload": false,
+      "torch_npu_imported": false
+    }
+  },
+  "paired_abi_combinations": 24,
+  "recorded_common_abi_calls": 48,
+  "rows": [
+    1,
+    12,
+    32
+  ],
+  "blocks": [
+    16,
+    24
+  ],
+  "layouts": [
+    0,
+    1
+  ],
+  "common_scratch_pointers": 32,
+  "shared_input_bytes": 112,
+  "active": {
+    "body_pointers": 21,
+    "dispatch_input_bytes": 64,
+    "extra_bytes": 1056
+  },
+  "profile": {
+    "body_pointers": 20,
+    "dispatch_input_bytes": 56,
+    "trace": "separate trailing pointer"
+  },
+  "counterexample": "Writing E and active IDs without clearing reserved and unused words is rejected after v3 fills all 264 words with 1 and sets E to 0.",
+  "parents": {
+    "base": {
+      "path": "docs/evidence/ascend-decode/megakernel-device-20261021/a3-194/ffn-composed-build-v2",
+      "manifest_sha256": "7dcebee1eb56200a292c87deba3689e6f9f8ba8a2126648f1cc6938d64d858d8",
+      "contract_sha256": "e2a488082610c9e82066b47390988ffc748824b2890653b021efb2a925485787",
+      "verified_source_files": 61
+    },
+    "active": {
+      "path": "docs/evidence/ascend-decode/megakernel-device-20261021/a3-194/ffn-active-build-v1",
+      "manifest_sha256": "f51d7143e448f915da14b1b8ea13c7523f45e1cbd076575fafa9bc254baa7e4e",
+      "contract_sha256": "e23dd7ed2ef0ca99d8140d1f142c8391ff73f8b94a3a4627a4d312622e21e084",
+      "verified_source_files": 69
+    },
+    "profile": {
+      "path": "docs/evidence/ascend-decode/megakernel-device-20261021/a3-194/ffn-profile-build-v1",
+      "manifest_sha256": "aa62d69ea46ee227e8aa5589ba73bd65d671e049c53930267a1fbd54993382a1",
+      "contract_sha256": "ac1e5557482115b97df583b3917fe65c682727123472af706d899a9064787415",
+      "verified_source_files": 64
+    }
+  },
+  "sources": {
+    "test_variant_bench.py": "69d671c488cca0ea7ba6c48be43e2db4a2f0633471c3d60f5c2e0de5f9825d02",
+    "variant_abi_probe.cpp": "d368df235f0238e71194e3cb2c7b1476d120276f1e8056436c0ca0e16c583f34",
+    "bench.py": "15ed8ad01e71e34703fb3628403f067568a0aabcd3db08d6a74d5402a592eb58",
+    "arm-environment.json": "0de4e34d18214faddb8970432ab4f91eb8d9a6203db7a21351facb6cfd6b3244"
+  },
+  "reproduction": {
+    "interpreter": "/tmp/tilert-megakernel-cpu/bin/python",
+    "test": "tests/glm52/whole_layer/ffn_composed/test_variant_bench.py",
+    "environment": {
+      "FFN_VARIANT_BENCH": "docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-variant-abi-v1/bench.py",
+      "FFN_BUILD_EVIDENCE": "docs/evidence/ascend-decode/megakernel-device-20261021/a3-194",
+      "TORCH_DEVICE_BACKEND_AUTOLOAD": "0"
+    },
+    "arguments": [
+      "-v"
+    ]
+  }
+}

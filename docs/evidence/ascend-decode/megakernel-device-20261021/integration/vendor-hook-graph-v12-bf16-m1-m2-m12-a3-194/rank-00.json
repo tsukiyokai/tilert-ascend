@@ -1,0 +1,377 @@
+{
+  "rank": 0,
+  "stages": [
+    {
+      "name": "platform_registration",
+      "success": true,
+      "class": "vllm_ascend.platform.NPUPlatform",
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/platform.py",
+      "sha256": "686eb5c4d7e744053def9fe51caf743e79e6a3cbeddebd3c47949d6f13e503cd"
+    },
+    {
+      "name": "real_groups",
+      "success": true,
+      "tp_world_size": 16,
+      "tp_rank": 0,
+      "cpu_rank_sum": 120,
+      "expected_rank_sum": 120,
+      "coordinator": {
+        "class": "vllm.distributed.parallel_state.GroupCoordinator",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982/vllm/distributed/parallel_state.py",
+        "sha256": "0e47cff9a89717183bdce6403f0454961848247f51306a0f1dfbe3d6e1b93336"
+      },
+      "device_communicator": null,
+      "registration": "actual coordinators assigned to version-scoped parallel_state fields",
+      "singleton_fields": [
+        "_DCP",
+        "_PCP",
+        "_PP",
+        "_DP",
+        "_EP"
+      ]
+    },
+    {
+      "name": "npu_bind",
+      "success": true,
+      "device_count": 1,
+      "logical_device": 0,
+      "device_name": "Ascend910_9392"
+    },
+    {
+      "name": "engine_config_tp16",
+      "success": true,
+      "tp": 16,
+      "pp": 1,
+      "dp": 1,
+      "synthetic_checkpoint": true,
+      "indexer_mode": "bf16"
+    },
+    {
+      "name": "real_worker_registration",
+      "success": true
+    },
+    {
+      "name": "official_triton_device_properties",
+      "success": true,
+      "initializer": {
+        "class": "vllm_ascend.ops.triton.triton_utils.init_device_properties_triton",
+        "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/ops/triton/triton_utils.py",
+        "sha256": "cd918c79138a5f93294a7b25a47a8e5fcda2f6291e726bca94c0a76237881225"
+      },
+      "logical_device": 0,
+      "aicore_count": 24,
+      "vectorcore_count": 48,
+      "ub_size_bytes": 196608,
+      "driver_properties": {
+        "max_shared_mem": 1,
+        "num_aicore": 24,
+        "num_vectorcore": 48
+      }
+    },
+    {
+      "name": "real_attention_constructor",
+      "success": true,
+      "outer": {
+        "class": "vllm.model_executor.models.deepseek_v2.DeepseekV2MLAAttention",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/models/deepseek_v2.py",
+        "sha256": "96f4f755f62caa85869fb884209e7f8869882ddb6efbd40c930778b27bd3e39d"
+      },
+      "wrapper": {
+        "class": "vllm_ascend.ops.mla.AscendMultiHeadLatentAttention",
+        "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/ops/mla.py",
+        "sha256": "e14080c6c0106f2734f5441254e285e7a39fd8980046febe5232b4c9dba75400"
+      },
+      "attention": {
+        "class": "vllm_ascend.attention.mla_v1.AscendMLAAttention",
+        "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/attention/mla_v1.py",
+        "sha256": "4065d7ee10cc7009dc8136680bd6ec191c6fd3f120557aefb306b94f11bca566"
+      },
+      "impl": {
+        "class": "vllm_ascend.attention.sfa_v1.AscendSFAImpl",
+        "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/attention/sfa_v1.py",
+        "sha256": "b3e7bc578fdc00cddca3dd066af49c353a5abdc75571d7fa602340a4aece1e2b"
+      },
+      "indexer": {
+        "class": "vllm_ascend.ops.mla.IndexerWrapper",
+        "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/ops/mla.py",
+        "sha256": "e14080c6c0106f2734f5441254e285e7a39fd8980046febe5232b4c9dba75400"
+      },
+      "indexer_backend": {
+        "class": "vllm_ascend.attention.indexer.AscendSFAIndexerBackend",
+        "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/attention/indexer.py",
+        "sha256": "47a47b06cf144bda4a87e80ef632144eeb86a4547e17d09f69f011ef565baefa"
+      },
+      "tp_size": 16,
+      "local_heads": 4,
+      "reduce_results": false,
+      "initial_preprocess": "PreprocessType.NATIVE",
+      "quant_config": {
+        "class": "vllm_ascend.quantization.configs.modelslim_config.AscendModelSlimConfig",
+        "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/quantization/configs/modelslim_config.py",
+        "sha256": "acaf01c519ac4eb9343f2728d1875881cb0a475e2010585139ed9b857fc8eb9a"
+      }
+    },
+    {
+      "name": "synthetic_parameter_fill",
+      "success": true,
+      "seed": 41021
+    },
+    {
+      "name": "move_real_parameters",
+      "success": true,
+      "source_parameter_bytes": 36761856,
+      "parameters": [
+        {
+          "name": "fused_qkv_a_proj.weight",
+          "shape": [
+            2624,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "bytes": 16121856
+        },
+        {
+          "name": "fused_qkv_a_proj.weight_scale",
+          "shape": [
+            2624,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 5248
+        },
+        {
+          "name": "fused_qkv_a_proj.weight_offset",
+          "shape": [
+            2624,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 5248
+        },
+        {
+          "name": "q_a_layernorm.weight",
+          "shape": [
+            2048
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 4096
+        },
+        {
+          "name": "q_b_proj.weight",
+          "shape": [
+            1024,
+            2048
+          ],
+          "dtype": "torch.int8",
+          "bytes": 2097152
+        },
+        {
+          "name": "q_b_proj.weight_scale",
+          "shape": [
+            1024,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 2048
+        },
+        {
+          "name": "q_b_proj.weight_offset",
+          "shape": [
+            1024,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 2048
+        },
+        {
+          "name": "kv_a_layernorm.weight",
+          "shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 1024
+        },
+        {
+          "name": "kv_b_proj.weight",
+          "shape": [
+            1792,
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 1835008
+        },
+        {
+          "name": "o_proj.weight",
+          "shape": [
+            6144,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "bytes": 6291456
+        },
+        {
+          "name": "o_proj.weight_scale",
+          "shape": [
+            6144,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 12288
+        },
+        {
+          "name": "o_proj.weight_offset",
+          "shape": [
+            6144,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 12288
+        },
+        {
+          "name": "indexer.wq_b.weight",
+          "shape": [
+            4096,
+            2048
+          ],
+          "dtype": "torch.int8",
+          "bytes": 8388608
+        },
+        {
+          "name": "indexer.wq_b.weight_scale",
+          "shape": [
+            4096,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 8192
+        },
+        {
+          "name": "indexer.wq_b.weight_offset",
+          "shape": [
+            4096,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 8192
+        },
+        {
+          "name": "indexer.wk_weights_proj.weight",
+          "shape": [
+            160,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 1966080
+        },
+        {
+          "name": "indexer.k_norm.weight",
+          "shape": [
+            128
+          ],
+          "dtype": "torch.float32",
+          "bytes": 512
+        },
+        {
+          "name": "indexer.k_norm.bias",
+          "shape": [
+            128
+          ],
+          "dtype": "torch.float32",
+          "bytes": 512
+        }
+      ]
+    },
+    {
+      "name": "official_weight_postprocessing",
+      "success": true,
+      "loader": {
+        "class": "vllm.model_executor.model_loader.utils.process_weights_after_loading",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/model_loader/utils.py",
+        "sha256": "3091a9f64cbe42ad0e7fc0907fbbcb9197d2d56d5da4008779c5a16d9b8649a6"
+      }
+    },
+    {
+      "name": "official_cache_binding",
+      "success": true,
+      "function": {
+        "class": "vllm_ascend.patch.worker.patch_bind_kv_cache.bind_kv_cache",
+        "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/patch/worker/patch_bind_kv_cache.py",
+        "sha256": "3076e899374cb26848f1360eaa2584161c9c97a2e6bcbeb91ac833c889046974"
+      },
+      "cache_names": [
+        "model.layers.0.self_attn.attn",
+        "model.layers.0.self_attn.indexer.k_cache"
+      ],
+      "pages": 66,
+      "page_size": 128
+    },
+    {
+      "name": "load_torch210_libraries",
+      "success": true,
+      "paths": [
+        "/workspace/logs/attention-o-combined-v1/indexed/whole_layer_indexed_attention.so",
+        "/workspace/logs/attention-o-combined-v1/shared/whole_layer_full_attention.so"
+      ],
+      "sha256": [
+        "9aa71e6a385752824050368930f76a1d9d8d4989a484dbbccf8080ec02b8546e",
+        "dd66e68b9c8f46c4fdee987d7b7bb29a062e3dcae5481237c45bc21544d346b9"
+      ]
+    },
+    {
+      "name": "real_attention_install",
+      "success": true,
+      "adapter_sha256": "336eaff0de153d32439d4d2b0557522b313a24a7e5bef82b8dc11f1257511c01",
+      "preprocess": "PreprocessType.PROLOG_V3",
+      "native_mode": "bf16",
+      "tp_size": 16,
+      "local_heads": 4,
+      "installed_layer_name": "model.layers.0.self_attn.attn",
+      "final_weight_shapes": {
+        "weight_dq": [
+          6144,
+          2048
+        ],
+        "weight_dkv_kr": [
+          6144,
+          576
+        ],
+        "weight_uq_qr": [
+          2048,
+          1024
+        ],
+        "W_UK_T": [
+          4,
+          192,
+          512
+        ],
+        "W_UV": [
+          4,
+          512,
+          256
+        ]
+      }
+    },
+    {
+      "name": "real_outer_graph",
+      "success": true,
+      "report": "/evidence/vendor-hook-graph-v12-bf16-m1-m2-m12/outer-graph.json"
+    }
+  ],
+  "scope": "real Gloo groups, rank-0 local attention shard",
+  "torch": "2.10.0+cpu",
+  "torch_npu": "2.10.0.post2",
+  "npu_initialized_before": false,
+  "result": {
+    "installed": true,
+    "forward_executed": true,
+    "tp_collective_executed": false,
+    "npu_allocated_bytes": 847764480,
+    "npu_peak_allocated_bytes": 964956160
+  },
+  "rank_zero_status": {
+    "success": true
+  },
+  "npu_initialized_after": true,
+  "maximum_rss_kib": 3361472,
+  "memory_snapshot": "3e806000000-ffffce32b000 ---p 00000000 00:00 0                           [rollup]\nRss:             3294384 kB\nPss:             2545121 kB\nPss_Anon:        2331228 kB\nPss_File:         213521 kB\nPss_Shmem:           372 kB\nShared_Clean:     881848 kB\nShared_Dirty:         64 kB\nPrivate_Clean:     80904 kB\nPrivate_Dirty:   2331568 kB\nReferenced:      3288064 kB\nAnonymous:       2331228 kB\nLazyFree:              0 kB\nAnonHugePages:    778240 kB\nShmemPmdMapped:        0 kB\nFilePmdMapped:         0 kB\nShared_Hugetlb:        0 kB\nPrivate_Hugetlb:       0 kB\nSwap:                  0 kB\nSwapPss:               0 kB\nLocked:                0 kB\n"
+}

@@ -1,0 +1,17 @@
+Allow the W4A8C8 checkpoint's int8 indexer cache through config validation.
+
+`cann_model.py:131` requests `indexer_kv_dtype="int8"`, which is what
+GLM-5.2-w4a8c8 stores, and none of the pinned vllm trees list it: 35a49 has
+["bf16", "fp8", "mxfp4", "nvfp4"] and a982 adds only "auto". The literal is a
+validation list, not a code path, so the engine faults in pydantic before any
+device work with
+
+    ValidationError: 1 validation error for AttentionConfig
+    indexer_kv_dtype
+      Input should be 'auto', 'bf16', 'fp8', 'mxfp4' or 'nvfp4'
+
+--- a/vllm/config/attention.py
++++ b/vllm/config/attention.py
+@@ -13 +13 @@
+-IndexerKVDType = Literal["auto", "bf16", "fp8", "mxfp4", "nvfp4"]
++IndexerKVDType = Literal["auto", "int8", "bf16", "fp8", "mxfp4", "nvfp4"]

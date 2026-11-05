@@ -1,0 +1,41 @@
+{
+  "scope": "One captured WK call per process, separate full BF16/full FP32/split BF16 reports; no device execution during preparation",
+  "image": "sha256:1910b1acedb37acc42beda9cb695c2cf84c57c81d8dd8b5191a98a97bc6d5fe6",
+  "files": {
+    "check.py": "df015159cf56cebf7ce4d0b36f7f3db0270195cfca855873412ca77c55021798",
+    "cpu-full-bf16.json": "a137649c7085846a8ecd86f3266e8f14b4fe5b3a6fa4595c3ed8b916a2d80ddd",
+    "cpu-full-fp32.json": "83032953479d14e6655f8ac8ee39a6232c2cd0daed533f297ac4193615b7f83b",
+    "cpu-split-bf16.json": "5966edcd5f2053c98d2d0019c03c95be14ebd5d382b7bf298162b41c7941b94b",
+    "dispatch.py": "644aad02ec5c162c04ef8a235961467017ed4ccf56eed2e41c740c3fb0eb6886",
+    "run_dispatch.sh": "30b4467e68f71d262a6e67a4610e785a9e4af3380dea5b39b769e854c80e92d0"
+  },
+  "environment": {
+    "ASCEND_GLOBAL_LOG_LEVEL": "0",
+    "ASCEND_SLOG_PRINT_TO_STDOUT": "0",
+    "ASCEND_PROCESS_LOG_PATH": "/evidence/driver-log"
+  },
+  "capture_sha256": "0b6e5a0198e0423f4a1c644016089cc2723ddfd7768f8b4d11b7ac4e25008725",
+  "cann_log_binary_observation": {
+    "host": "a3-78",
+    "path": "/home/shanshan/megamoe-mask-only-20261021/sdk/cann-9.2.0/aarch64-linux/lib64/libnnopbase.so",
+    "sha256": "5c65cb9aca8d9940156a8498e83a51a1c087a85f579fb9344cf1186c1d705ed5",
+    "observed_strings": [
+      "Tiling Key: %lu, len: %lu, numBlocks: %ld",
+      "PrintTilingData",
+      "Aligned TilingData Size: ",
+      "Get function handle by kernel name [%s] successfully, function handle: %p"
+    ],
+    "limitation": "String presence establishes logging capability, not that a call prints every payload; preserve missing fields explicitly."
+  },
+  "documentation": {
+    "path": "/home/shanshan/repo/cann/runtime/docs/zh/env_vars/ASCEND_GLOBAL_LOG_LEVEL.md",
+    "sha256": "8a6d62ec5babf314e52fe71196ceda4ac4d6ee0405f0610fb8e9e992bdde5ae5",
+    "meaning": "0 enables DEBUG for application modules"
+  },
+  "cpu_validation": {
+    "three_real_capture_contracts": true,
+    "bash_syntax": true,
+    "torch": "2.9.1+cpu"
+  },
+  "device_validation": "pending root controlled invocation"
+}

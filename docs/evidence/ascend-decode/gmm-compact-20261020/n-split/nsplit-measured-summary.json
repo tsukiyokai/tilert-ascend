@@ -1,0 +1,293 @@
+{
+  "scope": "single-die shared-load screen; not decoder TPOT",
+  "status": "screen completed; pure N split not selected for release",
+  "measurement": {
+    "device": "a3-194 npu:15",
+    "event_unit": "microseconds per fused GMM1 call",
+    "calls_per_graph": 32,
+    "paired_samples": 10,
+    "order": "ABBA",
+    "warmup_replays_per_arm": 5,
+    "log_level": 3,
+    "profiler": false,
+    "banks": 2,
+    "input_seed": 0,
+    "group_seed": 20261020,
+    "clocks_locked": false,
+    "device_load_pre_percent": 6,
+    "device_load_post_percent": 4
+  },
+  "control": "verified compact baseM128/baseN256/baseK256/order1/stepKa=stepKb4/depthA1=depthB1=8",
+  "candidate": "only baseN/singleCoreN and L0C mirror change to N128/N64; full N/tokenLen256 and FIX completion barrier retained",
+  "correctness": {
+    "cases": 24,
+    "all_exact": true,
+    "peak_reserved_bytes": 757071872
+  },
+  "timing_peak_reserved_bytes": 941621248,
+  "loaded_ELF": {
+    "binary": "/workspace/experiments/gmm-compact-20261020/kloop-audit/nsplit-build/overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_fa3d6d3de6e1f32e170e39d2ddd3a20e.o",
+    "sha256": "d3f5a551b485d87025d5b9000c1255d945a72a60a9b4d09f5e91d8d874a08c45",
+    "event_masks": [
+      32,
+      1,
+      1
+    ],
+    "opened": true,
+    "accessed": true,
+    "returncode": 0
+  },
+  "tiling_launch": {
+    "key": 2,
+    "length": 352,
+    "numBlocks": 24,
+    "workspace_num": 1,
+    "raw_file": "nsplit-launch-audit.json"
+  },
+  "cases": [
+    {
+      "width": 1,
+      "distribution": "random",
+      "max_expert_count": 1,
+      "active_experts_min": 8,
+      "active_experts_max": 8,
+      "host_submission_us_per_call": {
+        "p50": 0.5534693627851084,
+        "p90": 0.5794063326902688,
+        "p99": 0.8890947356121615,
+        "std": 0.06464306422451503
+      },
+      "comparisons": {
+        "N128": {
+          "control": "N256",
+          "candidate": "N128",
+          "control_us": {
+            "p50": 48.48562553524971,
+            "p90": 48.65812510251999,
+            "p99": 48.77625033259392,
+            "std": 0.12641506841362846
+          },
+          "candidate_us": {
+            "p50": 45.25906406342983,
+            "p90": 45.44687643647194,
+            "p99": 45.496873557567596,
+            "std": 0.12148752521475756
+          },
+          "paired_delta_us": {
+            "p50": -3.216092474758625,
+            "p90": -3.102188929915428,
+            "p99": -3.0949991196393967,
+            "std": 0.09790587549525906
+          },
+          "candidate_wins": 10
+        },
+        "N64": {
+          "control": "N256",
+          "candidate": "N64",
+          "control_us": {
+            "p50": 48.432813957333565,
+            "p90": 48.604998737573624,
+            "p99": 48.63937571644783,
+            "std": 0.12964742898639697
+          },
+          "candidate_us": {
+            "p50": 49.07374829053879,
+            "p90": 49.26874861121178,
+            "p99": 49.40437525510788,
+            "std": 0.13001198884162277
+          },
+          "paired_delta_us": {
+            "p50": 0.6743744015693665,
+            "p90": 0.7859356701374054,
+            "p99": 0.8593760430812836,
+            "std": 0.12212554066777451
+          },
+          "candidate_wins": 0
+        }
+      }
+    },
+    {
+      "width": 8,
+      "distribution": "random",
+      "max_expert_count": 3,
+      "active_experts_min": 52,
+      "active_experts_max": 61,
+      "host_submission_us_per_call": {
+        "p50": 0.5634528861264698,
+        "p90": 0.59034391597379,
+        "p99": 1.1475622159196064,
+        "std": 0.10857032608263611
+      },
+      "comparisons": {
+        "N128": {
+          "control": "N256",
+          "candidate": "N128",
+          "control_us": {
+            "p50": 87.37312629818916,
+            "p90": 87.51687407493591,
+            "p99": 87.68875151872635,
+            "std": 0.1651612680622231
+          },
+          "candidate_us": {
+            "p50": 84.22312512993813,
+            "p90": 84.458127617836,
+            "p99": 84.71125364303589,
+            "std": 0.1707935977951263
+          },
+          "paired_delta_us": {
+            "p50": -3.1440630555152893,
+            "p90": -2.990312874317169,
+            "p99": -2.822495996952057,
+            "std": 0.16743910286070215
+          },
+          "candidate_wins": 10
+        },
+        "N64": {
+          "control": "N256",
+          "candidate": "N64",
+          "control_us": {
+            "p50": 87.49343827366829,
+            "p90": 87.68624812364578,
+            "p99": 87.8281220793724,
+            "std": 0.17120045988630603
+          },
+          "candidate_us": {
+            "p50": 101.78093612194061,
+            "p90": 101.98312252759933,
+            "p99": 102.15874761343002,
+            "std": 0.16349144305334865
+          },
+          "paired_delta_us": {
+            "p50": 14.274999499320984,
+            "p90": 14.543123543262482,
+            "p99": 14.556564390659332,
+            "std": 0.21560149045527754
+          },
+          "candidate_wins": 0
+        }
+      }
+    },
+    {
+      "width": 32,
+      "distribution": "random",
+      "max_expert_count": 6,
+      "active_experts_min": 152,
+      "active_experts_max": 174,
+      "host_submission_us_per_call": {
+        "p50": 0.5618903742288239,
+        "p90": 0.6331556505756453,
+        "p99": 1.2840937415603548,
+        "std": 0.14034095570306976
+      },
+      "comparisons": {
+        "N128": {
+          "control": "N256",
+          "candidate": "N128",
+          "control_us": {
+            "p50": 137.0009407401085,
+            "p90": 137.4025046825409,
+            "p99": 137.70750164985657,
+            "std": 0.344536259723679
+          },
+          "candidate_us": {
+            "p50": 143.42312514781952,
+            "p90": 143.68687570095062,
+            "p99": 143.81000399589539,
+            "std": 0.21418739547469526
+          },
+          "paired_delta_us": {
+            "p50": 6.490308791399002,
+            "p90": 6.664693355560303,
+            "p99": 6.7565664649009705,
+            "std": 0.36331312445264585
+          },
+          "candidate_wins": 0
+        },
+        "N64": {
+          "control": "N256",
+          "candidate": "N64",
+          "control_us": {
+            "p50": 137.04531639814377,
+            "p90": 137.3624950647354,
+            "p99": 137.92750239372253,
+            "std": 0.3568020706946677
+          },
+          "candidate_us": {
+            "p50": 193.22562217712402,
+            "p90": 193.43562424182892,
+            "p99": 193.47624480724335,
+            "std": 0.1607670064876034
+          },
+          "paired_delta_us": {
+            "p50": 56.25030770897865,
+            "p90": 56.42594397068024,
+            "p99": 56.4834401011467,
+            "std": 0.19966431969730172
+          },
+          "candidate_wins": 0
+        }
+      }
+    },
+    {
+      "width": 32,
+      "distribution": "shared8",
+      "max_expert_count": 32,
+      "active_experts_min": 8,
+      "active_experts_max": 8,
+      "host_submission_us_per_call": {
+        "p50": 0.5640940798912197,
+        "p90": 0.6012814992573112,
+        "p99": 1.1969059414695948,
+        "std": 0.127237608210088
+      },
+      "comparisons": {
+        "N128": {
+          "control": "N256",
+          "candidate": "N128",
+          "control_us": {
+            "p50": 56.22718669474125,
+            "p90": 56.32312595844269,
+            "p99": 56.87125027179718,
+            "std": 0.17186334974722825
+          },
+          "candidate_us": {
+            "p50": 52.19843611121178,
+            "p90": 52.303750067949295,
+            "p99": 52.35687643289566,
+            "std": 0.11299485674720287
+          },
+          "paired_delta_us": {
+            "p50": -4.064219072461128,
+            "p90": -3.941250964999199,
+            "p99": -3.896249458193779,
+            "std": 0.10870499951815471
+          },
+          "candidate_wins": 10
+        },
+        "N64": {
+          "control": "N256",
+          "candidate": "N64",
+          "control_us": {
+            "p50": 56.17093667387962,
+            "p90": 56.34000152349472,
+            "p99": 56.35499954223633,
+            "std": 0.10653104136059104
+          },
+          "candidate_us": {
+            "p50": 56.91375024616718,
+            "p90": 56.97999894618988,
+            "p99": 57.06562474370003,
+            "std": 0.13507720387212643
+          },
+          "paired_delta_us": {
+            "p50": 0.6724987179040909,
+            "p90": 0.7490627467632294,
+            "p99": 0.764060765504837,
+            "std": 0.09020894570407584
+          },
+          "candidate_wins": 0
+        }
+      }
+    }
+  ]
+}

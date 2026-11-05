@@ -1,0 +1,40 @@
+{
+  "rank": 9,
+  "device_participant": false,
+  "stages": [
+    {
+      "name": "platform_registration",
+      "success": true,
+      "class": "vllm_ascend.platform.NPUPlatform",
+      "path": "/decoder/python/vllm_ascend/platform.py",
+      "sha256": "686eb5c4d7e744053def9fe51caf743e79e6a3cbeddebd3c47949d6f13e503cd"
+    },
+    {
+      "name": "actual_tp16_gloo_geometry",
+      "success": true,
+      "tp_world_size": 16,
+      "tp_rank": 9,
+      "cpu_rank_sum": 120,
+      "coordinator": {
+        "class": "vllm.distributed.parallel_state.GroupCoordinator",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/distributed/parallel_state.py",
+        "sha256": "0e47cff9a89717183bdce6403f0454961848247f51306a0f1dfbe3d6e1b93336"
+      },
+      "device_communicator": null,
+      "scope": "Constructor geometry only; no TP16 device collective"
+    },
+    {
+      "name": "device_group_nonmember",
+      "success": false,
+      "error": "Traceback (most recent call last):\n  File \"/decoder/tp_device.py\", line 52, in stage\n    result, details = action()\n                      ^^^^^^^^\n  File \"/decoder/tp_device.py\", line 99, in <lambda>\n    create_communication_groups(torch, state, rank),\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/tp_groups.py\", line 55, in create_communication_groups\n    [0, 1], backend=\"hccl\", pg_options=create_hccl_pg_options(\"tp\"))\n                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/python/vllm_ascend/utils.py\", line 1184, in create_hccl_pg_options\n    hccl_config = get_hccl_config_for_pg_options(group_name) or {}\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/python/vllm_ascend/utils.py\", line 1208, in get_hccl_config_for_pg_options\n    \"dp\": {\"hccl_buffer_size\": calculate_dp_buffer_size()},\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/python/vllm_ascend/utils.py\", line 1225, in calculate_dp_buffer_size\n    vllm_config = get_current_vllm_config()\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/config/vllm.py\", line 3507, in get_current_vllm_config\n    raise AssertionError(\nAssertionError: Current vLLM config is not set. This typically means get_current_vllm_config() was called outside of a set_current_vllm_config() context, or a CustomOp was instantiated at module import time or model forward time when config is not set. For tests that directly test custom ops/modules, use the 'default_vllm_config' pytest fixture from tests/conftest.py.\n"
+    }
+  ],
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+  "runtime_image": "sha256:1910b1acedb37acc42beda9cb695c2cf84c57c81d8dd8b5191a98a97bc6d5fe6",
+  "npu_initialized_before": false,
+  "error": "Traceback (most recent call last):\n  File \"/decoder/tp_device.py\", line 98, in worker\n    stage(\"device_group_nonmember\", lambda: (\n  File \"/decoder/tp_device.py\", line 52, in stage\n    result, details = action()\n                      ^^^^^^^^\n  File \"/decoder/tp_device.py\", line 99, in <lambda>\n    create_communication_groups(torch, state, rank),\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/tp_groups.py\", line 55, in create_communication_groups\n    [0, 1], backend=\"hccl\", pg_options=create_hccl_pg_options(\"tp\"))\n                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/python/vllm_ascend/utils.py\", line 1184, in create_hccl_pg_options\n    hccl_config = get_hccl_config_for_pg_options(group_name) or {}\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/python/vllm_ascend/utils.py\", line 1208, in get_hccl_config_for_pg_options\n    \"dp\": {\"hccl_buffer_size\": calculate_dp_buffer_size()},\n                               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/python/vllm_ascend/utils.py\", line 1225, in calculate_dp_buffer_size\n    vllm_config = get_current_vllm_config()\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/config/vllm.py\", line 3507, in get_current_vllm_config\n    raise AssertionError(\nAssertionError: Current vLLM config is not set. This typically means get_current_vllm_config() was called outside of a set_current_vllm_config() context, or a CustomOp was instantiated at module import time or model forward time when config is not set. For tests that directly test custom ops/modules, use the 'default_vllm_config' pytest fixture from tests/conftest.py.\n",
+  "npu_initialized_after": false,
+  "maximum_rss_kib": 1801032
+}

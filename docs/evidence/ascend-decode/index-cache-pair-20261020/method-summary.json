@@ -1,0 +1,42 @@
+{
+  "scope": "Each graph contains calls_per_sample complete producer+method updates; one replay/sample. View creation executes inside eager/capture; metadata is replay-free. Eager validation wall includes host view creation. Cache reset excluded identically.",
+  "source_scope": "Synthetic post-Hadamard BF16 input -> dynamic_quant -> FP16 scale -> actual write_cache methods",
+  "cases": [
+    {
+      "width": 1,
+      "p50_us": {
+        "control": 25.793999433517456,
+        "candidate": 8.58600027859211
+      },
+      "paired_delta_p50_us": -18.291999772191048,
+      "wins": 10,
+      "pairs": 10,
+      "full_backing_checks": 6,
+      "peak_reserved_bytes": 88080384
+    },
+    {
+      "width": 8,
+      "p50_us": {
+        "control": 28.96600067615509,
+        "candidate": 10.342000052332878
+      },
+      "paired_delta_p50_us": -18.624000251293182,
+      "wins": 10,
+      "pairs": 10,
+      "full_backing_checks": 6,
+      "peak_reserved_bytes": 88080384
+    },
+    {
+      "width": 32,
+      "p50_us": {
+        "control": 28.460000455379486,
+        "candidate": 16.71599969267845
+      },
+      "paired_delta_p50_us": -12.978000193834305,
+      "wins": 10,
+      "pairs": 10,
+      "full_backing_checks": 6,
+      "peak_reserved_bytes": 88080384
+    }
+  ]
+}

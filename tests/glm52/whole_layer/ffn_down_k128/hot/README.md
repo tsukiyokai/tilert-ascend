@@ -1,0 +1,13 @@
+# K128 hot-expert gate
+
+This gate preserves the frozen original Decoder norm/MLP oracle and K128 candidate `0842cd0f`. It changes the original shared router-bias allocation to +4 for experts 0–7 and -4 for the others. The native and original paths read the same bias address; the router still computes its original probabilities and top-eight order.
+
+M17 and M32 force each selected expert to own 34 and 64 MSD rows. They exercise the second M32 tile with respectively two and 32 valid rows while K128 uses one shared L0A/B slot. The test requires every token to select each expert 0–7 once, compares original IDs/probabilities and the full counts[256]/active[264] tables, checks all original outputs plus four immediate graph consumers, and verifies all 200 Down-tiling bytes after preparation and every replay. The expected record is `c2b73af9d605ad8e64ea551f288d188a0cf636828a5a0471ea7c63d616f50999`.
+
+Each 16/24-group run covers two widths, eight changing inputs and two actual layer weight sets: 32 cases, 480 raw comparisons including 128 immediate-consumer and 128 metadata checks, and 36 tiling checks. Active padding is poisoned with ones before replay. A hot-route assertion prevents random routing from being reported as M-tail coverage.
+
+The existing six hot-gate CPU contracts are reused. The device gate compares the actual original norm/MLP against native graph replay, with synthetic parameters and explicit post-AR1 inputs. It executes no attention or TP collective.
+
+The [frozen staging and CPU evidence](../../../../../docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-down-k128-hot-build-v1/handoff.json) records manifest `2f1fca7c059dffff9cf74448a56d26b417b9c8ff55f37d92e698f4e490c4e232`, 793 verified remote files, six x86 and six actual ARM contracts, and successful Torch 2.12 schema loading with NPU uninitialized.
+
+Both [24-group](../../../../../docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-down-k128-hot-b24-v1-a3-194/summary.json) and [16-group](../../../../../docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-down-k128-hot-b16-v1-a3-194/summary.json) device runs pass all 480 raw comparisons and 36 complete tiling checks each. The eight experts each have count M, both M tiles execute, and the original bias allocation and all four NZ weight allocations retain their addresses. All 16 Gloo constructor processes finish; only rank 0 initializes NPU. Report hashes are `b35ab979ae1c177feb01e6f1b22b8885a80152b3f56a8b8d59e87f688b108eea` and `0141eeda39d95684692768eb50301dff220fb74f44df60a68f5270256e4bb655`, respectively.

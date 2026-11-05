@@ -1,0 +1,99 @@
+
+/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so:     file format elf64-littleaarch64
+
+
+Disassembly of section .text:
+
+0000000000b603a0 <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base>:
+  b603a0:	a9bd7bfd 	stp	x29, x30, [sp, #-48]!
+  b603a4:	910003fd 	mov	x29, sp
+  b603a8:	a90153f3 	stp	x19, x20, [sp, #16]
+  b603ac:	aa0103f3 	mov	x19, x1
+  b603b0:	f90013f5 	str	x21, [sp, #32]
+  b603b4:	aa0003f4 	mov	x20, x0
+  b603b8:	aa0203f5 	mov	x21, x2
+  b603bc:	97da2fc5 	bl	1ec2d0 <aclTensor::GetViewShape() const@plt>
+  b603c0:	f9400265 	ldr	x5, [x19]
+  b603c4:	f9400001 	ldr	x1, [x0]
+  b603c8:	eb0100bf 	cmp	x5, x1
+  b603cc:	54000301 	b.ne	b6042c <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base+0x8c>  // b.any
+  b603d0:	b4000225 	cbz	x5, b60414 <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base+0x74>
+  b603d4:	f9400401 	ldr	x1, [x0, #8]
+  b603d8:	f9400662 	ldr	x2, [x19, #8]
+  b603dc:	eb01005f 	cmp	x2, x1
+  b603e0:	54000261 	b.ne	b6042c <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base+0x8c>  // b.any
+  b603e4:	d2800202 	mov	x2, #0x10                  	// #16
+  b603e8:	d2800003 	mov	x3, #0x0                   	// #0
+  b603ec:	14000007 	b	b60408 <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base+0x68>
+  b603f0:	f8626804 	ldr	x4, [x0, x2]
+  b603f4:	91002042 	add	x2, x2, #0x8
+  b603f8:	8b020261 	add	x1, x19, x2
+  b603fc:	f85f8021 	ldur	x1, [x1, #-8]
+  b60400:	eb01009f 	cmp	x4, x1
+  b60404:	54000141 	b.ne	b6042c <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base+0x8c>  // b.any
+  b60408:	91000463 	add	x3, x3, #0x1
+  b6040c:	eb0300bf 	cmp	x5, x3
+  b60410:	54ffff01 	b.ne	b603f0 <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base+0x50>  // b.any
+  b60414:	aa1403e0 	mov	x0, x20
+  b60418:	97da377a 	bl	1ee200 <aclTensor::GetStorageShape() const@plt>
+  b6041c:	f9400261 	ldr	x1, [x19]
+  b60420:	f9400003 	ldr	x3, [x0]
+  b60424:	eb01007f 	cmp	x3, x1
+  b60428:	54000180 	b.eq	b60458 <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base+0xb8>  // b.none
+  b6042c:	aa1403e0 	mov	x0, x20
+  b60430:	97da2e14 	bl	1ebc80 <aclTensor::GetViewOffset() const@plt>
+  b60434:	aa1303e2 	mov	x2, x19
+  b60438:	aa0003e3 	mov	x3, x0
+  b6043c:	aa1403e1 	mov	x1, x20
+  b60440:	aa1503e0 	mov	x0, x21
+  b60444:	a94153f3 	ldp	x19, x20, [sp, #16]
+  b60448:	f94013f5 	ldr	x21, [sp, #32]
+  b6044c:	a8c37bfd 	ldp	x29, x30, [sp], #48
+  b60450:	17da52e4 	b	1f4fe0 <aclOpExecutor::CreateView(aclTensor const*, gert::Shape const&, long)@plt>
+  b60454:	d503201f 	nop
+  b60458:	b4000243 	cbz	x3, b604a0 <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base+0x100>
+  b6045c:	f9400401 	ldr	x1, [x0, #8]
+  b60460:	f9400662 	ldr	x2, [x19, #8]
+  b60464:	eb01005f 	cmp	x2, x1
+  b60468:	54fffe21 	b.ne	b6042c <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base+0x8c>  // b.any
+  b6046c:	d2800201 	mov	x1, #0x10                  	// #16
+  b60470:	d2800002 	mov	x2, #0x0                   	// #0
+  b60474:	91000442 	add	x2, x2, #0x1
+  b60478:	eb02007f 	cmp	x3, x2
+  b6047c:	54000120 	b.eq	b604a0 <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base+0x100>  // b.none
+  b60480:	f8616805 	ldr	x5, [x0, x1]
+  b60484:	91002021 	add	x1, x1, #0x8
+  b60488:	8b010264 	add	x4, x19, x1
+  b6048c:	f85f8084 	ldur	x4, [x4, #-8]
+  b60490:	eb0400bf 	cmp	x5, x4
+  b60494:	54ffff00 	b.eq	b60474 <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base+0xd4>  // b.none
+  b60498:	17ffffe5 	b	b6042c <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base+0x8c>
+  b6049c:	d503201f 	nop
+  b604a0:	aa1403e0 	mov	x0, x20
+  b604a4:	97da2fc3 	bl	1ec3b0 <aclTensor::GetOriginalShape() const@plt>
+  b604a8:	f9400261 	ldr	x1, [x19]
+  b604ac:	f9400003 	ldr	x3, [x0]
+  b604b0:	eb01007f 	cmp	x3, x1
+  b604b4:	54fffbc1 	b.ne	b6042c <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base+0x8c>  // b.any
+  b604b8:	b4000223 	cbz	x3, b604fc <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base+0x15c>
+  b604bc:	f9400401 	ldr	x1, [x0, #8]
+  b604c0:	f9400662 	ldr	x2, [x19, #8]
+  b604c4:	eb01005f 	cmp	x2, x1
+  b604c8:	54fffb21 	b.ne	b6042c <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base+0x8c>  // b.any
+  b604cc:	d2800201 	mov	x1, #0x10                  	// #16
+  b604d0:	d2800002 	mov	x2, #0x0                   	// #0
+  b604d4:	91000442 	add	x2, x2, #0x1
+  b604d8:	eb02007f 	cmp	x3, x2
+  b604dc:	54000100 	b.eq	b604fc <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base+0x15c>  // b.none
+  b604e0:	f8616805 	ldr	x5, [x0, x1]
+  b604e4:	91002021 	add	x1, x1, #0x8
+  b604e8:	8b010264 	add	x4, x19, x1
+  b604ec:	f85f8084 	ldur	x4, [x4, #-8]
+  b604f0:	eb0400bf 	cmp	x5, x4
+  b604f4:	54ffff00 	b.eq	b604d4 <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base+0x134>  // b.none
+  b604f8:	17ffffcd 	b	b6042c <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@@Base+0x8c>
+  b604fc:	aa1403e0 	mov	x0, x20
+  b60500:	f94013f5 	ldr	x21, [sp, #32]
+  b60504:	a94153f3 	ldp	x19, x20, [sp, #16]
+  b60508:	a8c37bfd 	ldp	x29, x30, [sp], #48
+  b6050c:	d65f03c0 	ret

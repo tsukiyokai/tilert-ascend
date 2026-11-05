@@ -1,0 +1,66 @@
+{
+  "time": "2026-10-17T03:12:49+0800",
+  "scope": "Static allocation sizes and prior successful producer startup; no simultaneous P+D capacity or performance measurement",
+  "capacity_tokens": 9344,
+  "one_cache_allocation_bytes": 884166656,
+  "live_decode_cache_allocations": 2,
+  "live_decode_cache_bytes": 1768333312,
+  "live_decode_cache_gib": 1.6468887329101562,
+  "standalone_decode_cache_allocations": 1,
+  "source_sha256": {
+    "/workspace/src/TileRT-Ascend/tilert/pd_vllm/ascend_layout.py": "321d714817be2aaa97ce82899f9180ff93a706eaeb9c16c6c5815d455ed88beb",
+    "/workspace/src/TileRT-Ascend/tilert/models/glm_5_2_ascend/cann_model.py": "7a71ed46b521e0dd7c97814d503dec29c579d562c889d7b2cee9c375fa2bfb93",
+    "/workspace/src/TileRT-Ascend/tests/glm52/serve_cann_pd.py": "e7b6d1eb458814886dfc001efc1fd4cab403763b3f3add4cc9fe56cdf866e369",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/worker.py": "1859b05db9bdbb9fd69a86e08bb67a1de2c964ed4b7ab75abc88492c9b910abc",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/device_allocator/camem.py": "e1e6852ca48729d6dc7f18bf29a955592e14b2b4261f2d0836942ba0f08720f0",
+    "/workspace/src/TileRT-Ascend/tests/glm52/serve_vllm_prefill.sh": "5f1cafcea2fb7e068d86752e7e81e1c7f2cdaf8c85c4202a0ff8a14c9741bee2"
+  },
+  "producer_log": {
+    "path": "/workspace/experiments/glm52/vllm-prefill-20261017-attempt-01/service.log",
+    "sha256": "610d88fd8902708fa0cd3863ca708950a0be67409c3fe7236baa6435ea861bd1",
+    "model_loading_reported_gib": 27.998,
+    "includes_drafter": true,
+    "kv_cache_bytes": 2147483648,
+    "matches": {
+      "27.9980": [
+        {
+          "line": 845,
+          "text": "(Worker_TP0 pid=29968) INFO 10-17 00:47:50 [model_runner_v1.py:4573] Loading model weights took 27.9980 GB"
+        },
+        {
+          "line": 854,
+          "text": "(Worker_TP9 pid=30468) INFO 10-17 00:47:51 [model_runner_v1.py:4573] Loading model weights took 27.9980 GB"
+        },
+        {
+          "line": 857,
+          "text": "(Worker_TP4 pid=30136) INFO 10-17 00:47:51 [model_runner_v1.py:4573] Loading model weights took 27.9980 GB"
+        }
+      ],
+      "Application startup complete": [
+        {
+          "line": 1198,
+          "text": "INFO:     Application startup complete."
+        }
+      ],
+      "kv_cache_memory_bytes": [
+        {
+          "line": 8,
+          "text": "(APIServer pid=29859) INFO 10-17 00:43:12 [api_utils.py:286] non-default args: {'model_tag': '/workspace/models/GLM-5.2-w4a8c8', 'return_tokens_as_token_ids': True, 'host': '127.0.0.1', 'port': 18000, 'model': '/workspace/models/GLM-5.2-w4a8c8', 'trust_remote_code': True, 'dtype': 'bfloat16', 'max_model_len': 9344, 'quantization': 'ascend', 'enforce_eager': True, 'served_model_name': ['glm-5.2'], 'tensor_parallel_size': 16, 'block_size': 128, 'gpu_memory_utilization': 0.85, 'kv_cache_memory_bytes': 2147483648, 'enable_prefix_caching': False, 'max_num_batched_tokens': 8192, 'max_num_seqs': 1, 'enable_chunked_prefill': True, 'async_scheduling': False, 'speculative_config': {'method': 'mtp', 'num_speculative_tokens': 1, 'enforce_eager': True, 'parallel_drafting': False}, 'kv_transfer_config': KVTransferConfig(kv_connector='AscendTileRTConnector', engine_id='fb339183-d800-4f3a-b7aa-f7473dffab33', kv_buffer_device='npu', kv_buffer_size=1000000000.0, kv_role='kv_producer', kv_rank=None, kv_parallel_size=1, kv_ip='127.0.0.1', kv_port=14579, kv_connector_extra_config={'tilert_host': '7.150.10.55', 'tilert_ctrl_port': 5557, 'tilert_max_seq_len': 8192, 'hixl_host': '7.150.10.55', 'hixl_port_base': 26000, 'hixl_library': '/workspace/experiments/hixl-build/build-sync-contract/libtilert_hixl.so', 'tilert_timeout_s': 1800}, kv_connector_module_path='tilert.pd_vllm.ascend_connector', enable_permute_local_kv=False, kv_load_failure_policy='fail'), 'attention_config': AttentionConfig(backend=None, minimax_m3_msa_decode_backend='triton', backend_per_kind={}, flash_attn_version=None, flash_attn_max_num_splits_for_cuda_graph=32, tq_max_kv_splits_for_cuda_graph=32, use_trtllm_attention=None, disable_flashinfer_q_quantization=False, mla_prefill_backend=None, use_prefill_query_quantization=False, indexer_kv_dtype='int8', indexer_sparse_logits=False, hisparse_config=None, use_non_causal=False, sparse_mla_force_mqa=False, flex_attn_block_m=None, flex_attn_block_n=None, flex_attn_q_block_size=None, flex_attn_kv_block_size=None), 'additional_config': {'enable_flashcomm1': False, 'enable_dsa_cp': False, 'enable_shared_expert_dp': False, 'enable_fused_mc2': 0}}"
+        }
+      ]
+    }
+  },
+  "unmeasured": [
+    "current eager producer physical HBM peak",
+    "standalone decoder model/allocator/workspace peak",
+    "simultaneous producer and decoder peak"
+  ],
+  "next_device_order": [
+    "complete HIXL capture",
+    "stop owned producer and receiver",
+    "verify no NPU processes",
+    "run standalone CANN continuation and HF comparison",
+    "measure standalone D and eager P footprints before choosing live coexistence"
+  ],
+  "request_timing": "A load gap after delivery of g0 belongs to TPOT. It belongs to TTFT only if g0 is withheld until decoder is ready."
+}

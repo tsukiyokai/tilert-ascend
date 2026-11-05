@@ -1,0 +1,343 @@
+{
+  "environment": "a3-gs:trt-asc; CANN9.2.0, torch2.12.0, torch-npu2.12.0; current custom OPP",
+  "scope": "Real layer0/rank0 M1 P8192 plus synthetic M4: numerical replay, changing-input graph checks, shared-device hot graph screening and short eager trace",
+  "device_executed": true,
+  "precision_verified": false,
+  "real_m4_executed": false,
+  "source_path": "tests/glm52/compare_cann_sparse_attention.py",
+  "source_sha256": "57c4b56771cf3ec2f75880e223227207694a664c4c46cdc67237eda8f8c28bc0",
+  "root_audit": {
+    "path": "/home/shanshan/trt-asc/offline/cann-attention-reuse-20261018-01/root-audit.json",
+    "sha256": "94b464ddae4575187dbbf858e742f8fef8a65843ca714edcd74e1e722506192d"
+  },
+  "source_contracts": {
+    "sfa": {
+      "path": "/home/shanshan/trt-asc/offline/cann-sfa-head-batch-20261018/source-contract.json",
+      "sha256": "498587c640a21c82dc2facdeafc971d3173a92b6cf56cdf4c68373f217c6c84c"
+    },
+    "fia": {
+      "path": "/home/shanshan/trt-asc/offline/cann-fia-gather-20261018-01/source-contract.json",
+      "sha256": "6aa1cab0cde4a07d52f8d739bd3fd7575fd4bcdb0c6c142e61d6424b86856fad"
+    },
+    "splitkv": {
+      "path": "/home/shanshan/trt-asc/offline/cann-sfa-splitkv-20261018-01/source-contract.json",
+      "sha256": "6e81d21a0e7f0f1c7ee4c7847207925ad10e2acc1a2d2d34a7fdecad435ba9de"
+    }
+  },
+  "cases": {
+    "real_m1": {
+      "input": "/workspace/offline/cann-mla8k-20261017/early-bind/result.pt",
+      "input_sha256": "f7ee5d9cdd6e12eb6a05a5974c1ff67d02ab246488561b8cc5cc91e0e6222fca",
+      "query_count": 1,
+      "comparisons": {
+        "gathered_fia": {
+          "bit_equal": false,
+          "different_elements": 25,
+          "max_abs": 0.0078125,
+          "nrmse": 0.000520811099524228
+        },
+        "split_kv": {
+          "bit_equal": false,
+          "different_elements": 342,
+          "max_abs": 0.0078125,
+          "nrmse": 0.0023698457195317846
+        }
+      },
+      "repeats": {
+        "sfa": {
+          "bit_equal": true,
+          "different_elements": 0,
+          "max_abs": 0.0,
+          "nrmse": 0.0
+        },
+        "gathered_fia": {
+          "bit_equal": true,
+          "different_elements": 0,
+          "max_abs": 0.0,
+          "nrmse": 0.0
+        },
+        "split_kv": {
+          "bit_equal": true,
+          "different_elements": 0,
+          "max_abs": 0.0,
+          "nrmse": 0.0
+        }
+      },
+      "peak_reserved_bytes": 100663296,
+      "report_sha256": "745283ce2ae065c2d4ab9845cf2099984950009d46c178f52838e2b800be3d27",
+      "outputs_sha256": "7464487d3185a199d377a990a2a32092e4a19d749f55d89936cebf08851529c2"
+    },
+    "synthetic_m4": {
+      "input": "/workspace/offline/cann-attention-reuse-20261018-01/synthetic-m4.pt",
+      "input_sha256": "09b509a310b2be8ada8751d37a416de90e4a6bcdec460055a7f672ad09c579c1",
+      "query_count": 4,
+      "comparisons": {
+        "gathered_fia": {
+          "bit_equal": false,
+          "different_elements": 253,
+          "max_abs": 0.0078125,
+          "nrmse": 0.0008759787587681847
+        },
+        "split_kv": {
+          "bit_equal": false,
+          "different_elements": 1223,
+          "max_abs": 0.0078125,
+          "nrmse": 0.0021531987447564664
+        }
+      },
+      "repeats": {
+        "sfa": {
+          "bit_equal": true,
+          "different_elements": 0,
+          "max_abs": 0.0,
+          "nrmse": 0.0
+        },
+        "gathered_fia": {
+          "bit_equal": true,
+          "different_elements": 0,
+          "max_abs": 0.0,
+          "nrmse": 0.0
+        },
+        "split_kv": {
+          "bit_equal": true,
+          "different_elements": 0,
+          "max_abs": 0.0,
+          "nrmse": 0.0
+        }
+      },
+      "peak_reserved_bytes": 190840832,
+      "report_sha256": "a8ac15d4280f3c3bb1280a94595d95b2db4e06619db87a8691adcb030cba0a80",
+      "outputs_sha256": "249ceadba13e55a1a6fc18f991b9e0f2959e6f4445e80dc3d662f85c0b3f66f1"
+    }
+  },
+  "installed_sfa_binary": {
+    "path": "/home/shanshan/trt-asc/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/sparse_flash_attention/SparseFlashAttention_2e25ad8fefac1f04c03bd78f2d2ab366.o",
+    "sha256": "819e6563a88d36ec0143d80fdb8aed21768ae451f9edbcca53d35c0e3b96dea2"
+  },
+  "external_pids_preserved": true,
+  "all_dies_health_ok": true,
+  "profiled_m4_sfa_contract": {
+    "query": [
+      4,
+      4,
+      512
+    ],
+    "query_rope": [
+      4,
+      4,
+      64
+    ],
+    "query_dtype": "BF16",
+    "key_value_shared": [
+      73,
+      128,
+      1,
+      512
+    ],
+    "key_rope": [
+      73,
+      128,
+      1,
+      64
+    ],
+    "kv_dtype": "BF16; C8 is indexer cache only",
+    "indices": [
+      4,
+      1,
+      2048
+    ],
+    "index_dtype": "INT32",
+    "block_table": [
+      1,
+      73
+    ],
+    "actual_query_lengths": [
+      4
+    ],
+    "actual_kv_lengths": [
+      "P+4"
+    ],
+    "scale_value": 0.0625,
+    "sparse_block_size": 1,
+    "sparse_mode": 3,
+    "attention_mode": 2,
+    "query_layout": "TND",
+    "kv_layout": "PA_BSND",
+    "output": [
+      4,
+      4,
+      512
+    ],
+    "profile_launch_blocks": 24,
+    "profile_mix_blocks": 48,
+    "source_active_aic": 4,
+    "source_s2_tile": 512,
+    "source_s2_iterations": 4,
+    "active_aic_is_source_derivation_not_core_counter": true
+  },
+  "gather_fia_graph": {
+    "root_audit": {
+      "path": "/home/shanshan/trt-asc/offline/cann-fia-gather-20261018-01/graph-root-audit.json",
+      "sha256": "115615dfdb4ec7398a3bbeac8e252f2caa938e708707bf8d1360c0aac6998347"
+    },
+    "cases": [
+      "real_M1_A_synthetic_B",
+      "synthetic_M4_A_and_B"
+    ],
+    "captures_per_case": 1,
+    "replays_per_case": 3,
+    "persistent_inputs_changed": [
+      "query",
+      "query_rope",
+      "indices",
+      "block_table",
+      "latent",
+      "rope"
+    ],
+    "outputs_poisoned": [
+      "context",
+      "gathered_latent",
+      "gathered_rope",
+      "physical_indices"
+    ],
+    "replay_elements_checked": {
+      "M1": 3551232,
+      "M4": 14204928
+    },
+    "all_four_outputs_bit_equal_to_corresponding_eager": true,
+    "peak_reserved_bytes": 96468992,
+    "performance_measured": false
+  },
+  "decoder_performance_measured": false,
+  "graph_screening": {
+    "root_audit": {
+      "path": "/home/shanshan/trt-asc/offline/cann-attention-reuse-20261018-01/graph-screen-audit.json",
+      "sha256": "8e8b6d3de56739687651f5085202ad2543f1ce22afccf2327e7121685388642b"
+    },
+    "shared_device": true,
+    "calls_per_graph": 10,
+    "samples_per_pipeline": 30,
+    "pipeline_order_rotated": true,
+    "raw_graph_output_tensors_checked": 120,
+    "all_bit_equal_to_eager": true,
+    "real_m4_executed": false,
+    "decoder_performance_measured": false,
+    "benchmark_source_path": "tests/glm52/bench_cann_sparse_attention.py",
+    "benchmark_source_sha256": "a1b6449504e1897cc7e41e24c78bce9a7f20191fb6adccdee745dde28d03451f",
+    "cases": {
+      "screen-m1": {
+        "input_kind": "real_m1",
+        "query_count": 1,
+        "input_sha256": "f7ee5d9cdd6e12eb6a05a5974c1ff67d02ab246488561b8cc5cc91e0e6222fca",
+        "raw_samples": 90,
+        "samples_per_pipeline": 30,
+        "calls_per_graph": 10,
+        "summary_ms_per_call": {
+          "sfa": {
+            "count": 30,
+            "min": 0.08490599989891053,
+            "max": 0.47152199745178225,
+            "mean": 0.16186320006847382,
+            "std": 0.15117185514026849,
+            "p50": 0.086667999625206,
+            "p90": 0.46356460094451907,
+            "p95": 0.46622649431228635,
+            "p99": 0.4701468167304993
+          },
+          "gathered_fia": {
+            "count": 30,
+            "min": 0.09042800068855286,
+            "max": 0.45005598068237307,
+            "mean": 0.12684399962425233,
+            "std": 0.10709952791334422,
+            "p50": 0.09110699892044068,
+            "p90": 0.12724700152874044,
+            "p95": 0.4473368048667908,
+            "p99": 0.4496871113777161
+          },
+          "split_kv": {
+            "count": 30,
+            "min": 0.059189999103546144,
+            "max": 0.4395359992980957,
+            "mean": 0.09806200087070466,
+            "std": 0.11316068815525036,
+            "p50": 0.05982899963855744,
+            "p90": 0.09937060058116966,
+            "p95": 0.43663280963897705,
+            "p99": 0.4389780421257019
+          }
+        },
+        "peak_reserved_bytes": 255852544,
+        "report_sha256": "6a0a3d58fd2c6e89ca82f5a9e4f2fa7128971fc098d393a7d9b3960aa145d47b",
+        "outputs_sha256": "58fb047a21117b71467a4a7554ddb108a870baa30bc783724de91eafeeae44c2"
+      },
+      "screen-m4-synthetic": {
+        "input_kind": "synthetic_m4",
+        "query_count": 4,
+        "input_sha256": "09b509a310b2be8ada8751d37a416de90e4a6bcdec460055a7f672ad09c579c1",
+        "raw_samples": 90,
+        "samples_per_pipeline": 30,
+        "calls_per_graph": 10,
+        "summary_ms_per_call": {
+          "sfa": {
+            "count": 30,
+            "min": 0.08692200183868408,
+            "max": 0.47003998756408694,
+            "mean": 0.13630933284759522,
+            "std": 0.123127085027603,
+            "p50": 0.08844399750232697,
+            "p90": 0.394305992126465,
+            "p95": 0.4688407039642334,
+            "p99": 0.46983235597610473
+          },
+          "gathered_fia": {
+            "count": 30,
+            "min": 0.13557000160217286,
+            "max": 0.5075600147247314,
+            "mean": 0.23394246856371562,
+            "std": 0.16227223444986844,
+            "p50": 0.1362630009651184,
+            "p90": 0.5045631885528565,
+            "p95": 0.5058667016029358,
+            "p99": 0.5072091083526611
+          },
+          "split_kv": {
+            "count": 30,
+            "min": 0.09399399757385254,
+            "max": 0.4761660099029541,
+            "mean": 0.14575739999612172,
+            "std": 0.12829438856345787,
+            "p50": 0.09559400081634521,
+            "p90": 0.47054440021514893,
+            "p95": 0.4724750995635986,
+            "p99": 0.47547174739837644
+          }
+        },
+        "peak_reserved_bytes": 268435456,
+        "report_sha256": "f4b3bbd3f8266048ddea7a2ba143780761fdbf087bbec38d884686d3abe53eb1",
+        "outputs_sha256": "1d093d0fd7f614dec034132fe8927ef1c06b64c77394034f42d07a4195ec466e"
+      }
+    },
+    "decision": "Retain original SFA for M4; neither primitive-based alternative wins this shared-device hot-input control. Inspect transformation and kernel costs before changing CANN."
+  },
+  "short_profile": {
+    "root_audit": {
+      "path": "/home/shanshan/trt-asc/offline/cann-attention-reuse-20261018-01/profile-root-audit.json",
+      "sha256": "0e8a05120741a05557c43aa30aca679ad084e4f27b520df49506266336d1fb4e"
+    },
+    "scope": "Two eager profiled calls per pipeline, synthetic M4 on shared die0; 44 kernels match six labels; no PMU/core counters or decoder TPOT",
+    "kernel_count": 44,
+    "pipeline_labels": 6,
+    "contexts_match_nonprofiled_replay": 6,
+    "second_iteration_kernel_sums_us": {
+      "sfa": 88.38,
+      "gathered_fia": 132.70000000000002,
+      "split_kv": 101.86
+    },
+    "second_iteration_fia_core_us": 36.24,
+    "second_iteration_fia_mapping_and_gather_us": 96.46,
+    "first_sfa_outlier_us": 2734.84,
+    "active_core_or_hbm_counters_collected": false
+  },
+  "replay_performance_measured": false
+}

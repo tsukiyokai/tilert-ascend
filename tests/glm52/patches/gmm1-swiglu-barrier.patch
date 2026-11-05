@@ -1,0 +1,10 @@
+--- a/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_post.h
++++ b/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_post.h
+@@ -207,6 +207,7 @@
+     DataCopyParams repeatParams{
+         1, static_cast<uint16_t>((gmmSwigluQuantV2->tokenLen / SWIGLU_REDUCE_FACTOR) / ALIGN_8_ELE), 0, 0};
+     DataCopy(_inMMLocal[loopIdx * gmmSwigluQuantV2->tokenLen], workspaceLocal, repeatParams);
++    PipeBarrier<PIPE_V>();
+ 
+     mmOutQueue.EnQue(_inMMLocal);
+ }

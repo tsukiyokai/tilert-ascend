@@ -1,0 +1,984 @@
+{
+  "scope": "Captured M32 N160 K6144 only; natural/shifted BF16 Mmad with 48 updates of one FP32 L0C tile",
+  "device": "Ascend910_9392",
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "pass": true,
+  "repeats_per_arm": 3,
+  "elements_per_output": 5120,
+  "natural_fp32_matches_captured_native": true,
+  "shifted_bf16_matches_captured_vendor": true,
+  "direct_bf16_equals_own_fp32_cast": true,
+  "report_sha256": "87b8fea25ca9b3919d7adc3fa1b356649e2714f3d584132b4f7209059647f514",
+  "library": {
+    "path": "/workspace/tests/glm52/whole_layer/indexer_wk_probe/build-kshift-v2/wk_kshift.so",
+    "sha256": "d0a7b654c9b02b253554c169ca774288f64b1f018cf9229c8340ce846a4807f3"
+  },
+  "geometry": {
+    "blocks": 20,
+    "M": 32,
+    "N": 160,
+    "K": 6144,
+    "single_core_M": 16,
+    "single_core_N": 16,
+    "mmad_K": 128,
+    "K_segment": 256,
+    "K_segments": 24
+  },
+  "cases": [
+    {
+      "arm": "natural",
+      "repeat": 0,
+      "vendor": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "native_fp32": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "shifted",
+      "repeat": 0,
+      "vendor": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "native_fp32": {
+        "bitwise_equal": false,
+        "different_elements": 4327,
+        "different_bytes": 4541,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              16
+            ],
+            "actual": {
+              "value": 1.4494853019714355,
+              "bits": "0x3fb988bc"
+            },
+            "expected": {
+              "value": 1.4494856595993042,
+              "bits": "0x3fb988bf"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              17
+            ],
+            "actual": {
+              "value": -0.08194895833730698,
+              "bits": "0xbda7d4db"
+            },
+            "expected": {
+              "value": -0.08194904029369354,
+              "bits": "0xbda7d4e6"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              18
+            ],
+            "actual": {
+              "value": 0.8034347295761108,
+              "bits": "0x3f4dade6"
+            },
+            "expected": {
+              "value": 0.8034349679946899,
+              "bits": "0x3f4dadea"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              19
+            ],
+            "actual": {
+              "value": -1.04351806640625,
+              "bits": "0xbf859200"
+            },
+            "expected": {
+              "value": -1.0435168743133545,
+              "bits": "0xbf8591f6"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              21
+            ],
+            "actual": {
+              "value": -1.0294119119644165,
+              "bits": "0xbf83c3c5"
+            },
+            "expected": {
+              "value": -1.0294123888015747,
+              "bits": "0xbf83c3c9"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              22
+            ],
+            "actual": {
+              "value": 2.05448842048645,
+              "bits": "0x40037cbd"
+            },
+            "expected": {
+              "value": 2.054487705230713,
+              "bits": "0x40037cba"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              23
+            ],
+            "actual": {
+              "value": -0.34819650650024414,
+              "bits": "0xbeb246d0"
+            },
+            "expected": {
+              "value": -0.34819674491882324,
+              "bits": "0xbeb246d8"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              24
+            ],
+            "actual": {
+              "value": -0.2626679539680481,
+              "bits": "0xbe867c6a"
+            },
+            "expected": {
+              "value": -0.26266804337501526,
+              "bits": "0xbe867c6d"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              25
+            ],
+            "actual": {
+              "value": -1.0020334720611572,
+              "bits": "0xbf8042a2"
+            },
+            "expected": {
+              "value": -1.0020337104797363,
+              "bits": "0xbf8042a4"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              26
+            ],
+            "actual": {
+              "value": 1.1250214576721191,
+              "bits": "0x3f9000b4"
+            },
+            "expected": {
+              "value": 1.125022292137146,
+              "bits": "0x3f9000bb"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              27
+            ],
+            "actual": {
+              "value": 0.44306084513664246,
+              "bits": "0x3ee2d8df"
+            },
+            "expected": {
+              "value": 0.4430607259273529,
+              "bits": "0x3ee2d8db"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              28
+            ],
+            "actual": {
+              "value": -0.2854229211807251,
+              "bits": "0xbe9222f4"
+            },
+            "expected": {
+              "value": -0.285422682762146,
+              "bits": "0xbe9222ec"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035476498305797577,
+              "bits": "0x3b687fb0"
+            },
+            "expected": {
+              "value": 0.0035477466881275177,
+              "bits": "0x3b688150"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              30
+            ],
+            "actual": {
+              "value": -0.04138098657131195,
+              "bits": "0xbd297f1c"
+            },
+            "expected": {
+              "value": -0.041380953043699265,
+              "bits": "0xbd297f13"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              31
+            ],
+            "actual": {
+              "value": -0.6926929950714111,
+              "bits": "0xbf315454"
+            },
+            "expected": {
+              "value": -0.6926923394203186,
+              "bits": "0xbf315449"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              32
+            ],
+            "actual": {
+              "value": -1.4093900918960571,
+              "bits": "0xbfb466e5"
+            },
+            "expected": {
+              "value": -1.4093899726867676,
+              "bits": "0xbfb466e4"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "arm": "shifted",
+      "repeat": 1,
+      "vendor": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "native_fp32": {
+        "bitwise_equal": false,
+        "different_elements": 4327,
+        "different_bytes": 4541,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              16
+            ],
+            "actual": {
+              "value": 1.4494853019714355,
+              "bits": "0x3fb988bc"
+            },
+            "expected": {
+              "value": 1.4494856595993042,
+              "bits": "0x3fb988bf"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              17
+            ],
+            "actual": {
+              "value": -0.08194895833730698,
+              "bits": "0xbda7d4db"
+            },
+            "expected": {
+              "value": -0.08194904029369354,
+              "bits": "0xbda7d4e6"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              18
+            ],
+            "actual": {
+              "value": 0.8034347295761108,
+              "bits": "0x3f4dade6"
+            },
+            "expected": {
+              "value": 0.8034349679946899,
+              "bits": "0x3f4dadea"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              19
+            ],
+            "actual": {
+              "value": -1.04351806640625,
+              "bits": "0xbf859200"
+            },
+            "expected": {
+              "value": -1.0435168743133545,
+              "bits": "0xbf8591f6"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              21
+            ],
+            "actual": {
+              "value": -1.0294119119644165,
+              "bits": "0xbf83c3c5"
+            },
+            "expected": {
+              "value": -1.0294123888015747,
+              "bits": "0xbf83c3c9"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              22
+            ],
+            "actual": {
+              "value": 2.05448842048645,
+              "bits": "0x40037cbd"
+            },
+            "expected": {
+              "value": 2.054487705230713,
+              "bits": "0x40037cba"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              23
+            ],
+            "actual": {
+              "value": -0.34819650650024414,
+              "bits": "0xbeb246d0"
+            },
+            "expected": {
+              "value": -0.34819674491882324,
+              "bits": "0xbeb246d8"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              24
+            ],
+            "actual": {
+              "value": -0.2626679539680481,
+              "bits": "0xbe867c6a"
+            },
+            "expected": {
+              "value": -0.26266804337501526,
+              "bits": "0xbe867c6d"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              25
+            ],
+            "actual": {
+              "value": -1.0020334720611572,
+              "bits": "0xbf8042a2"
+            },
+            "expected": {
+              "value": -1.0020337104797363,
+              "bits": "0xbf8042a4"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              26
+            ],
+            "actual": {
+              "value": 1.1250214576721191,
+              "bits": "0x3f9000b4"
+            },
+            "expected": {
+              "value": 1.125022292137146,
+              "bits": "0x3f9000bb"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              27
+            ],
+            "actual": {
+              "value": 0.44306084513664246,
+              "bits": "0x3ee2d8df"
+            },
+            "expected": {
+              "value": 0.4430607259273529,
+              "bits": "0x3ee2d8db"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              28
+            ],
+            "actual": {
+              "value": -0.2854229211807251,
+              "bits": "0xbe9222f4"
+            },
+            "expected": {
+              "value": -0.285422682762146,
+              "bits": "0xbe9222ec"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035476498305797577,
+              "bits": "0x3b687fb0"
+            },
+            "expected": {
+              "value": 0.0035477466881275177,
+              "bits": "0x3b688150"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              30
+            ],
+            "actual": {
+              "value": -0.04138098657131195,
+              "bits": "0xbd297f1c"
+            },
+            "expected": {
+              "value": -0.041380953043699265,
+              "bits": "0xbd297f13"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              31
+            ],
+            "actual": {
+              "value": -0.6926929950714111,
+              "bits": "0xbf315454"
+            },
+            "expected": {
+              "value": -0.6926923394203186,
+              "bits": "0xbf315449"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              32
+            ],
+            "actual": {
+              "value": -1.4093900918960571,
+              "bits": "0xbfb466e5"
+            },
+            "expected": {
+              "value": -1.4093899726867676,
+              "bits": "0xbfb466e4"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "arm": "natural",
+      "repeat": 1,
+      "vendor": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "native_fp32": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "natural",
+      "repeat": 2,
+      "vendor": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "native_fp32": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "shifted",
+      "repeat": 2,
+      "vendor": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "native_fp32": {
+        "bitwise_equal": false,
+        "different_elements": 4327,
+        "different_bytes": 4541,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              16
+            ],
+            "actual": {
+              "value": 1.4494853019714355,
+              "bits": "0x3fb988bc"
+            },
+            "expected": {
+              "value": 1.4494856595993042,
+              "bits": "0x3fb988bf"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              17
+            ],
+            "actual": {
+              "value": -0.08194895833730698,
+              "bits": "0xbda7d4db"
+            },
+            "expected": {
+              "value": -0.08194904029369354,
+              "bits": "0xbda7d4e6"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              18
+            ],
+            "actual": {
+              "value": 0.8034347295761108,
+              "bits": "0x3f4dade6"
+            },
+            "expected": {
+              "value": 0.8034349679946899,
+              "bits": "0x3f4dadea"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              19
+            ],
+            "actual": {
+              "value": -1.04351806640625,
+              "bits": "0xbf859200"
+            },
+            "expected": {
+              "value": -1.0435168743133545,
+              "bits": "0xbf8591f6"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              21
+            ],
+            "actual": {
+              "value": -1.0294119119644165,
+              "bits": "0xbf83c3c5"
+            },
+            "expected": {
+              "value": -1.0294123888015747,
+              "bits": "0xbf83c3c9"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              22
+            ],
+            "actual": {
+              "value": 2.05448842048645,
+              "bits": "0x40037cbd"
+            },
+            "expected": {
+              "value": 2.054487705230713,
+              "bits": "0x40037cba"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              23
+            ],
+            "actual": {
+              "value": -0.34819650650024414,
+              "bits": "0xbeb246d0"
+            },
+            "expected": {
+              "value": -0.34819674491882324,
+              "bits": "0xbeb246d8"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              24
+            ],
+            "actual": {
+              "value": -0.2626679539680481,
+              "bits": "0xbe867c6a"
+            },
+            "expected": {
+              "value": -0.26266804337501526,
+              "bits": "0xbe867c6d"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              25
+            ],
+            "actual": {
+              "value": -1.0020334720611572,
+              "bits": "0xbf8042a2"
+            },
+            "expected": {
+              "value": -1.0020337104797363,
+              "bits": "0xbf8042a4"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              26
+            ],
+            "actual": {
+              "value": 1.1250214576721191,
+              "bits": "0x3f9000b4"
+            },
+            "expected": {
+              "value": 1.125022292137146,
+              "bits": "0x3f9000bb"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              27
+            ],
+            "actual": {
+              "value": 0.44306084513664246,
+              "bits": "0x3ee2d8df"
+            },
+            "expected": {
+              "value": 0.4430607259273529,
+              "bits": "0x3ee2d8db"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              28
+            ],
+            "actual": {
+              "value": -0.2854229211807251,
+              "bits": "0xbe9222f4"
+            },
+            "expected": {
+              "value": -0.285422682762146,
+              "bits": "0xbe9222ec"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035476498305797577,
+              "bits": "0x3b687fb0"
+            },
+            "expected": {
+              "value": 0.0035477466881275177,
+              "bits": "0x3b688150"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              30
+            ],
+            "actual": {
+              "value": -0.04138098657131195,
+              "bits": "0xbd297f1c"
+            },
+            "expected": {
+              "value": -0.041380953043699265,
+              "bits": "0xbd297f13"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              31
+            ],
+            "actual": {
+              "value": -0.6926929950714111,
+              "bits": "0xbf315454"
+            },
+            "expected": {
+              "value": -0.6926923394203186,
+              "bits": "0xbf315449"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              32
+            ],
+            "actual": {
+              "value": -1.4093900918960571,
+              "bits": "0xbfb466e5"
+            },
+            "expected": {
+              "value": -1.4093899726867676,
+              "bits": "0xbfb466e4"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

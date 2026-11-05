@@ -1,0 +1,54 @@
+{
+  "artifact_sha256": "451d95d43dcc1a18a3ddcc5c9463c23f829eda08860391b75b50c9090f097ebe",
+  "sites": [
+    {
+      "line": 40,
+      "arguments": [
+        "view_1",
+        "all_reduce",
+        "arg4_1"
+      ],
+      "keywords": {
+        "beta": "arg5_1",
+        "epsilon": "1e-05",
+        "output_mask": "[True, False]"
+      },
+      "fragment_first_line": 37,
+      "fragment": "    mla_forward_default_77 = torch.ops.vllm.mla_forward.default(getitem, alias_default_77, 'model.layers.0.self_attn');  getitem = alias_default_77 = mla_forward_default_77 = None\n    detach_2 = torch.ops.aten.detach.default(empty);  empty = None\n    view_1 = torch.ops.aten.reshape.default(detach_2, [-1, 6144]);  detach_2 = None\n    npu_add_rms_norm_dynamic_quant_default_2 = torch.ops.npu.npu_add_rms_norm_dynamic_quant.default(view_1, all_reduce, arg4_1, beta = arg5_1, epsilon = 1e-05, output_mask = [True, False]);  view_1 = all_reduce = arg4_1 = arg5_1 = None\n    getitem_867 = npu_add_rms_norm_dynamic_quant_default_2[0]\n    getitem_868 = npu_add_rms_norm_dynamic_quant_default_2[2]\n    getitem_869 = npu_add_rms_norm_dynamic_quant_default_2[3];  npu_add_rms_norm_dynamic_quant_default_2 = None\n    npu_quant_matmul = torch.ops.npu.npu_quant_matmul.default(getitem_867, arg6_1, arg7_1, pertoken_scale = getitem_869, output_dtype = 15);  getitem_867 = arg6_1 = arg7_1 = getitem_869 = None\n    npu_swiglu = torch.ops.npu.npu_swiglu.default(npu_quant_matmul);  npu_quant_matmul = None\n    npu_dynamic_quant_1 = torch.ops.npu.npu_dynamic_quant.default(npu_swiglu, dst_type = 1);  npu_swiglu = None\n    getitem_9 = npu_dynamic_quant_1[0]\n    getitem_10 = npu_dynamic_quant_1[1];  npu_dynamic_quant_1 = None\n    npu_quant_matmul_1 = torch.ops.npu.npu_quant_matmul.default(getitem_9, arg8_1, arg9_1, pertoken_scale = getitem_10, output_dtype = 15);  getitem_9 = arg8_1 = arg9_1 = getitem_10 = None\n    all_reduce_1 = torch.ops.vllm.all_reduce.default(npu_quant_matmul_1, 'tp:0');  npu_quant_matmul_1 = None"
+    },
+    {
+      "line": 59,
+      "arguments": [
+        "view_3",
+        "getitem_13",
+        "arg12_1"
+      ],
+      "keywords": {
+        "beta": "arg13_1",
+        "epsilon": "1e-05",
+        "output_mask": "[True, False]"
+      },
+      "fragment_first_line": 56,
+      "fragment": "    mla_forward_default_76 = torch.ops.vllm.mla_forward.default(getitem_11, alias_default_76, 'model.layers.1.self_attn');  getitem_11 = alias_default_76 = mla_forward_default_76 = None\n    detach_5 = torch.ops.aten.detach.default(empty_1);  empty_1 = None\n    view_3 = torch.ops.aten.reshape.default(detach_5, [-1, 6144]);  detach_5 = None\n    npu_add_rms_norm_dynamic_quant_default_1 = torch.ops.npu.npu_add_rms_norm_dynamic_quant.default(view_3, getitem_13, arg12_1, beta = arg13_1, epsilon = 1e-05, output_mask = [True, False]);  view_3 = getitem_13 = arg12_1 = arg13_1 = None\n    getitem_864 = npu_add_rms_norm_dynamic_quant_default_1[0]\n    getitem_865 = npu_add_rms_norm_dynamic_quant_default_1[2]\n    getitem_866 = npu_add_rms_norm_dynamic_quant_default_1[3];  npu_add_rms_norm_dynamic_quant_default_1 = None\n    npu_quant_matmul_2 = torch.ops.npu.npu_quant_matmul.default(getitem_864, arg14_1, arg15_1, pertoken_scale = getitem_866, output_dtype = 15);  getitem_864 = arg14_1 = arg15_1 = getitem_866 = None\n    npu_swiglu_1 = torch.ops.npu.npu_swiglu.default(npu_quant_matmul_2);  npu_quant_matmul_2 = None\n    npu_dynamic_quant_3 = torch.ops.npu.npu_dynamic_quant.default(npu_swiglu_1, dst_type = 1);  npu_swiglu_1 = None\n    getitem_21 = npu_dynamic_quant_3[0]\n    getitem_22 = npu_dynamic_quant_3[1];  npu_dynamic_quant_3 = None\n    npu_quant_matmul_3 = torch.ops.npu.npu_quant_matmul.default(getitem_21, arg16_1, arg17_1, pertoken_scale = getitem_22, output_dtype = 15);  getitem_21 = arg16_1 = arg17_1 = getitem_22 = None\n    all_reduce_2 = torch.ops.vllm.all_reduce.default(npu_quant_matmul_3, 'tp:0');  npu_quant_matmul_3 = None"
+    },
+    {
+      "line": 78,
+      "arguments": [
+        "view_5",
+        "getitem_25",
+        "arg20_1"
+      ],
+      "keywords": {
+        "beta": "arg21_1",
+        "epsilon": "1e-05",
+        "output_mask": "[True, False]"
+      },
+      "fragment_first_line": 75,
+      "fragment": "    mla_forward_default_75 = torch.ops.vllm.mla_forward.default(getitem_23, alias_default_75, 'model.layers.2.self_attn');  getitem_23 = alias_default_75 = mla_forward_default_75 = None\n    detach_8 = torch.ops.aten.detach.default(empty_2);  empty_2 = None\n    view_5 = torch.ops.aten.reshape.default(detach_8, [-1, 6144]);  detach_8 = None\n    npu_add_rms_norm_dynamic_quant_default = torch.ops.npu.npu_add_rms_norm_dynamic_quant.default(view_5, getitem_25, arg20_1, beta = arg21_1, epsilon = 1e-05, output_mask = [True, False]);  view_5 = getitem_25 = arg20_1 = arg21_1 = None\n    getitem_861 = npu_add_rms_norm_dynamic_quant_default[0]\n    getitem_862 = npu_add_rms_norm_dynamic_quant_default[2]\n    getitem_863 = npu_add_rms_norm_dynamic_quant_default[3];  npu_add_rms_norm_dynamic_quant_default = None\n    npu_quant_matmul_4 = torch.ops.npu.npu_quant_matmul.default(getitem_861, arg22_1, arg23_1, pertoken_scale = getitem_863, output_dtype = 15);  getitem_861 = arg22_1 = arg23_1 = getitem_863 = None\n    npu_swiglu_2 = torch.ops.npu.npu_swiglu.default(npu_quant_matmul_4);  npu_quant_matmul_4 = None\n    npu_dynamic_quant_5 = torch.ops.npu.npu_dynamic_quant.default(npu_swiglu_2, dst_type = 1);  npu_swiglu_2 = None\n    getitem_33 = npu_dynamic_quant_5[0]\n    getitem_34 = npu_dynamic_quant_5[1];  npu_dynamic_quant_5 = None\n    npu_quant_matmul_5 = torch.ops.npu.npu_quant_matmul.default(getitem_33, arg24_1, arg25_1, pertoken_scale = getitem_34, output_dtype = 15);  getitem_33 = arg24_1 = arg25_1 = getitem_34 = None\n    all_reduce_3 = torch.ops.vllm.all_reduce.default(npu_quant_matmul_5, 'tp:0');  npu_quant_matmul_5 = None"
+    }
+  ],
+  "dense_swiglu_calls": 3,
+  "dynamic_quant_calls": 3,
+  "fused_dequant_swiglu_calls": 0,
+  "native_compiled_elf_identity": "unknown"
+}

@@ -1,0 +1,101 @@
+{
+  "scope": "Server CPU equality only; CPU scatter uses long index and does not validate NPU int32 dispatch or dtype-view support",
+  "fixture": "/workspace/offline/fia-joint-m-screen-20261020-codex/input.pt",
+  "fixture_sha256": "de64a6e9d8a3565751098836880efcdc1eaff23eedb1650176ef901585e914d9",
+  "index_dtype_original": "torch.int32",
+  "cpu_scatter_index_dtype": "torch.int64",
+  "shape": [
+    8,
+    9344
+  ],
+  "topk": 2048,
+  "torch_version": "2.12.0+cpu",
+  "npu_launched": false,
+  "cases": [
+    {
+      "name": "A",
+      "thresholds": [
+        8193,
+        8194,
+        8195,
+        8196,
+        8197,
+        8198,
+        8199,
+        8200
+      ],
+      "full_u8_byte_equal": true,
+      "selected_updates_u8_byte_equal": true,
+      "full_u8_change": "Only bitmap ones dtype bool to uint8; scatter False, GE bool, OR unchanged",
+      "bool_view_alias_cpu": true,
+      "excluded_per_row": [
+        7296,
+        7296,
+        7296,
+        7296,
+        7296,
+        7296,
+        7296,
+        7296
+      ],
+      "selected_excluded_per_row": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "mask_sha256": "1a223ba17dd9f378efab557aa31ea1138c55abb0248a481b893531d893e37a88",
+      "output_values": [
+        0,
+        1
+      ]
+    },
+    {
+      "name": "causal_threshold_minus_one",
+      "thresholds": [
+        8192,
+        8193,
+        8194,
+        8195,
+        8196,
+        8197,
+        8198,
+        8199
+      ],
+      "full_u8_byte_equal": true,
+      "selected_updates_u8_byte_equal": true,
+      "full_u8_change": "Only bitmap ones dtype bool to uint8; scatter False, GE bool, OR unchanged",
+      "bool_view_alias_cpu": true,
+      "excluded_per_row": [
+        7296,
+        7297,
+        7296,
+        7297,
+        7296,
+        7297,
+        7297,
+        7297
+      ],
+      "selected_excluded_per_row": [
+        0,
+        1,
+        0,
+        1,
+        0,
+        1,
+        1,
+        1
+      ],
+      "mask_sha256": "074b8a2c45d65193ac74a95c54b27d6bd39f573223319f5881f10cd4fed15388",
+      "output_values": [
+        0,
+        1
+      ]
+    }
+  ],
+  "perturb_changes_mask": true
+}

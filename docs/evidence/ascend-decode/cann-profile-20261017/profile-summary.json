@@ -1,0 +1,611 @@
+{
+  "scope": "Profiled full-P8192 CANN M1 TP16 FP32-sum session, two steps; HTTP/HIXL excluded; no TPOT estimate.",
+  "warmup_requests": 3,
+  "profiled_requests": 1,
+  "output_tokens": 3,
+  "ranks": 16,
+  "steps_per_rank": 2,
+  "capture_reports_sha256": {
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile/rank-0.json": "fdabcaef96fbf739f8e571b69be4734914f649e8f5d0ecd9a9d5babbc91aecff",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile/rank-1.json": "ef774bdce172b10c53cfe537932cca631c53e91d1d099f72439845d999e69009",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile/rank-2.json": "62375aaa3c5675df17ff929b7cd2e2a82e855e212c2572384e7bce16f7fd554c",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile/rank-3.json": "af8ee138278849e5c7b17821ab6ec6d9be670c7c92afdedb68262c571c80722d",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile/rank-4.json": "85cd8adbaba0d312a901b421f04307977ad222de85165529b318ed2f1ad89d7e",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile/rank-5.json": "f813685842021c0ef074c8b2e7b4954187935ebc98ebbf61fc1700fe9ee39dd6",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile/rank-6.json": "cb0bfb2fb8ebbfb5f588e518c18d1ebfc6ed81fed2bc0a900585257702700008",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile/rank-7.json": "d0783af04f76ecd4c8eb144cee42691eaa3fa7963226451925a2920a63e42614",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile/rank-8.json": "3c28657ba6a848ae06866df51123b08cd411293344c57ee9fef5c42a872a93ef",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile/rank-9.json": "c285292f7936ef3c7f08519249c54070ecfd61dab00582598d18bc6b0387100f",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile/rank-10.json": "cb0ab1596e523acab717e44f9e6516301a6db74cac25691868af02fa26831449",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile/rank-11.json": "572ed756d9457fd7fb9d2195992f37a9d43964dacc8627c1c94c033c4513ea5b",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile/rank-12.json": "ec443749df70391d9a023128b0ecb680d3d69bfc03426435b8fb0105a130db80",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile/rank-13.json": "a011a1c8f7414df8cbbc0aa7c00fc099c7e51995b49b35c80192d93fb0fe7c8e",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile/rank-14.json": "70f4090a7898912288dd8a01c98d660503dda8269f383bb63f82d1507f8c665e",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile/rank-15.json": "9b5ad99f1b4006bd99b6ba7459c93bb1a5dc49e15797a8731aa47229b048f045"
+  },
+  "analysis_reports_sha256": {
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/rank-0.json": "d1d7ed0ea0d407ed00788b6f1f74928da0ff9d3b3f364581793b20415b858fb1",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/rank-1.json": "fff5b59866596e008604f35dc5bf3249438a2ebad9793714c263cc5aced60b03",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/rank-2.json": "b29fc6ea53c17dc59a13c31aad8e4fb3a16758e68f23d6dea451a4b874fee431",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/rank-3.json": "794cce97da519444390c8ef7a350bdba95e2cec1e0b0441fb103a113003bad6c",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/rank-4.json": "3672f9013d6c1c82e2f48b4751cf3153a34b9d127624be3c28bb68ff720839b4",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/rank-5.json": "a0f7c6ffad66db3b3b8829b93d14d77d25c461405863c137571930bd86698379",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/rank-6.json": "24c1b1662b0eaa56f8a99011fc18a153ae72e8b673a49a78c555d90b50670f1d",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/rank-7.json": "c4147d95e42917c7e1069262b990c1c8099bf7abcd6bfef20e8e6c1375a155a9",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/rank-8.json": "4aaaa6bba6fd08b7ebb338b1fa08f7ada070190ae561e14ddde5c5ef9f67ebd4",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/rank-9.json": "8a2c9a0b5a05505d1cd2e3d82ef80dec47a7145bad6d239ea09fac18bb6be756",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/rank-10.json": "8abe54d413164b6a208cc23c8ef49d3acfa8c0e0a10360dddd2772b1c806755a",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/rank-11.json": "8ca6f915d10efdf2ffc74c5bd1909c7a5e7aa5cc15fc6e97c3d364045cfe8b5b",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/rank-12.json": "1df50cccb6294c97d8d3c1a1278bf4c2f1f0fc771062c77586fe366f6fd6f846",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/rank-13.json": "acef544f046b22f171b5497689c8ea021daa349f644cd928323b392a61c77043",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/rank-14.json": "5a6c0bde2aefc479f1663a20a0d232c4d1db701bc751a772670ea2b18137a473",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/rank-15.json": "f06fa744318cc6a25d4c84ca4c713b75c16da5d9951e639c31c7cb86477a2d76"
+  },
+  "analysis_sources_sha256": {
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/analyze.py": "caaae1c0b2866cf356a4a7abceca83dcb4488587de70ea3c474424c2d22a46db",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/summarize.py": "40f4e175cb2262503f4fc0fe19b0b81ac4f24b091ecba02c1f51026cdd2cec11",
+    "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/export_other_ranks.py": "7c29b0eae6150f8eb2fa21bb6499363ca0456a6404d3af7b9ab35539c16dd136"
+  },
+  "export_receipt_sha256": "7f3022770e541e3c5d990990fba6f64ee14ec1122d1fb2e6867ddb0310aeb2bd",
+  "source_evidence": {
+    "cann_communication_parser.py": {
+      "installed_path": "/opt/ascend/cann-9.2.0/tools/profiler/profiler_tool/analysis/msparser/cluster/communication_parser.py",
+      "snapshot_path": "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/cann_communication_parser.py",
+      "sha256": "481c2634fcf0dfcfe016bb8a2dff69f720c59e409523e5e4dc1de28f33b98a89"
+    },
+    "torch_communication_parser.py": {
+      "installed_path": "/opt/trt-asc/venv/lib/python3.11/site-packages/torch_npu/profiler/analysis/prof_view/_communication_parser.py",
+      "snapshot_path": "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/torch_communication_parser.py",
+      "sha256": "4e941d9b7c18996687b3fcb2e9a7b46dae9dfb0acc44a06c7474fa9d101766c0"
+    },
+    "profiler_action_controller.py": {
+      "installed_path": "/opt/trt-asc/venv/lib/python3.11/site-packages/torch_npu/profiler/_profiler_action_controller.py",
+      "snapshot_path": "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/profiler_action_controller.py",
+      "sha256": "65a6d4196485799d784bac3b53174852c0854d08bc20e105f7b3537d840fa4bc"
+    },
+    "profiler_interface.py": {
+      "installed_path": "/opt/trt-asc/venv/lib/python3.11/site-packages/torch_npu/profiler/profiler_interface.py",
+      "snapshot_path": "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/profiler_interface.py",
+      "sha256": "8183b6470d552c33907784252f4009050aa7066955371c460232bc60b8e0af65"
+    }
+  },
+  "integrity": {
+    "all_raw_hashes_match_capture_reports": true,
+    "all_reports_raw_capture": true,
+    "cpu_step_markers": 32,
+    "all_expected_core_counts": true,
+    "unowned_kernel_rows": 0,
+    "unmatched_owned_flow_endpoints": 0,
+    "cross_step_ambiguous_flows": 0,
+    "all_device_work_before_capture_complete_and_disable": true
+  },
+  "warning": {
+    "raw": [
+      {
+        "line": 1162,
+        "text": "[2026-10-17 20:12:28] [WARNING] [1111685] profiler.py: Incorrect schedule: Stop profiler while current state is RECORD which may result in incomplete parsed data."
+      }
+    ],
+    "source": "_profiler_action_controller.py:78-82 still calls stop_trace, finalize_trace and trace_ready after warning; profiler_interface.py:163-170 synchronizes NPU then stops.",
+    "conclusion": "Expected complete task counts, links and async tails exist for both steps on all ranks. No claim that the warning is harmless for arbitrary capture schedules."
+  },
+  "wait_time_contract": {
+    "field": "communication.json step.collective[op].Communication Time Info.Wait Time(ms)",
+    "source": "cann_communication_parser.py:180-237,239-263",
+    "formula": "Within op window, master-plane union(Notify_Wait) minus union(transit); synchronization is a subset of wait.",
+    "torch_wrapper": "torch_communication_parser.py:80-90 reads CANN communication results and partitions by step.",
+    "excluded_field": "kernel_details.csv Wait Time(us) is never used.",
+    "interpretation": "Collective envelope includes waiting and runtime scheduling; transit is parser-attributed payload slices, not standalone HCCL latency."
+  },
+  "steps": [
+    {
+      "position": 8192,
+      "rank_metrics_ms": {
+        "cpu_marker_ms": {
+          "min": 235.57762,
+          "p50": 246.41055,
+          "max": 267.26925,
+          "mean": 249.241469375,
+          "p90": 264.35978,
+          "max_rank": 14
+        },
+        "linked_device_span_ms": {
+          "min": 266.81364,
+          "p50": 267.71468000000004,
+          "max": 267.90562,
+          "mean": 267.5864745,
+          "p90": 267.901893,
+          "max_rank": 0
+        },
+        "from_cpu_begin_to_linked_device_end_ms": {
+          "min": 267.275035,
+          "p50": 268.1640715,
+          "max": 268.31302,
+          "mean": 268.0251236875,
+          "p90": 268.232713,
+          "max_rank": 0
+        },
+        "async_tail_after_cpu_marker_ms": {
+          "min": 0.005785,
+          "p50": 21.772935,
+          "max": 32.646174,
+          "mean": 18.7836543125,
+          "p90": 31.09271,
+          "max_rank": 5
+        },
+        "compute_union_ms": {
+          "min": 36.1556,
+          "p50": 36.95537,
+          "max": 37.733015,
+          "mean": 36.954030875,
+          "p90": 37.525828,
+          "max_rank": 2
+        },
+        "collective_union_ms": {
+          "min": 23.2974,
+          "p50": 217.59482350000002,
+          "max": 219.20094,
+          "mean": 201.9614199375,
+          "p90": 219.003063,
+          "max_rank": 3
+        },
+        "activity_union_ms": {
+          "min": 81.66924,
+          "p50": 255.59386,
+          "max": 256.992165,
+          "mean": 241.373841,
+          "p90": 256.93146,
+          "max_rank": 5
+        },
+        "gap_inside_device_span_ms": {
+          "min": 10.78776,
+          "p50": 11.93042,
+          "max": 185.1444,
+          "mean": 26.2126335,
+          "p90": 43.008542,
+          "max_rank": 14
+        },
+        "collective_not_overlapped_by_compute_or_memcpy_ms": {
+          "min": 23.2974,
+          "p50": 217.59482350000002,
+          "max": 219.20094,
+          "mean": 201.9614199375,
+          "p90": 219.003063,
+          "max_rank": 3
+        }
+      },
+      "cpu_start_skew_ms": 1.05851,
+      "device_end_skew_ms": 0.026385,
+      "global_cpu_begin_to_last_device_end_ms": 268.333545,
+      "collective_alignment_sha256": "ca55f27cec3e658481e6f307e91e4d4fc5b9c06c2e8ffc3b3d9030eb6a98d2d7",
+      "collective_alignment_path": "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/collective-alignment-step-0.json",
+      "collective_device_start_skew_ms": {
+        "min": 0.04304,
+        "p50": 1.53131,
+        "max": 2.558289,
+        "mean": 1.275715746835443,
+        "p90": 1.932173
+      },
+      "last_device_start_rank_counts": {
+        "14": 141,
+        "13": 17
+      },
+      "last_host_submit_rank_counts": {
+        "14": 140,
+        "13": 18
+      },
+      "largest_collective_start_skews": [
+        {
+          "ordinal": 30,
+          "type": "hcom_allReduce_",
+          "device_start_skew_ms": 2.558289,
+          "device_end_skew_ms": 0.008677,
+          "last_device_start_rank": 13,
+          "host_submit_skew_ms": 5.72382,
+          "last_host_submit_rank": 13,
+          "rank0_duration_ms": 2.66124,
+          "rank14_duration_ms": 0.72752,
+          "rank0_start_offset_ms": 0.01616,
+          "rank14_start_offset_ms": 1.948885,
+          "all_rank_intersection_ms": 0.114711
+        },
+        {
+          "ordinal": 34,
+          "type": "hcom_allReduce_",
+          "device_start_skew_ms": 1.983784,
+          "device_end_skew_ms": 0.008746,
+          "last_device_start_rank": 14,
+          "host_submit_skew_ms": 7.61709,
+          "last_host_submit_rank": 14,
+          "rank0_duration_ms": 2.09908,
+          "rank14_duration_ms": 0.13032,
+          "rank0_start_offset_ms": 0.016139,
+          "rank14_start_offset_ms": 1.983784,
+          "all_rank_intersection_ms": 0.126775
+        },
+        {
+          "ordinal": 46,
+          "type": "hcom_allReduce_",
+          "device_start_skew_ms": 1.96263,
+          "device_end_skew_ms": 0.009207,
+          "last_device_start_rank": 14,
+          "host_submit_skew_ms": 9.94474,
+          "last_host_submit_rank": 14,
+          "rank0_duration_ms": 2.08336,
+          "rank14_duration_ms": 0.15706,
+          "rank0_start_offset_ms": 0.037605,
+          "rank14_start_offset_ms": 1.96263,
+          "all_rank_intersection_ms": 0.153555
+        }
+      ],
+      "rank0": {
+        "cpu_marker_ms": 259.77402,
+        "linked_device_span_ms": 267.90562,
+        "async_tail_after_cpu_marker_ms": 8.539,
+        "compute_union_ms": 36.88626,
+        "collective_union_ms": 215.2403,
+        "activity_union_ms": 253.22012,
+        "gap_inside_device_span_ms": 14.6855,
+        "hccl_wait_sum_ms": 213.91648,
+        "hccl_transit_sum_ms": 0.9363,
+        "top_compute_types": [
+          {
+            "type": "GroupedMatmulSwigluQuantV2",
+            "calls": 75,
+            "duration_sum_ms": 6.98528,
+            "interval_union_ms": 6.98528,
+            "max_call_ms": 0.11498
+          },
+          {
+            "type": "SparseFlashAttention",
+            "calls": 78,
+            "duration_sum_ms": 6.93898,
+            "interval_union_ms": 6.93898,
+            "max_call_ms": 0.0989
+          },
+          {
+            "type": "GroupedMatmul",
+            "calls": 75,
+            "duration_sum_ms": 4.82948,
+            "interval_union_ms": 4.82948,
+            "max_call_ms": 0.07906
+          },
+          {
+            "type": "QuantBatchMatmulV3",
+            "calls": 255,
+            "duration_sum_ms": 3.7275,
+            "interval_union_ms": 3.7275,
+            "max_call_ms": 0.01988
+          },
+          {
+            "type": "MlaPrologV3",
+            "calls": 78,
+            "duration_sum_ms": 2.85484,
+            "interval_union_ms": 2.85484,
+            "max_call_ms": 0.04352
+          },
+          {
+            "type": "Slice",
+            "calls": 6,
+            "duration_sum_ms": 2.16124,
+            "interval_union_ms": 2.16124,
+            "max_call_ms": 0.37242
+          },
+          {
+            "type": "ForeachAddList",
+            "calls": 75,
+            "duration_sum_ms": 1.43524,
+            "interval_union_ms": 1.43524,
+            "max_call_ms": 0.02282
+          },
+          {
+            "type": "MoeInitRoutingV3",
+            "calls": 75,
+            "duration_sum_ms": 1.14244,
+            "interval_union_ms": 1.14244,
+            "max_call_ms": 0.01882
+          },
+          {
+            "type": "MatMulV3",
+            "calls": 75,
+            "duration_sum_ms": 1.10414,
+            "interval_union_ms": 1.10414,
+            "max_call_ms": 0.0187
+          },
+          {
+            "type": "TransposeBatchMatMul",
+            "calls": 78,
+            "duration_sum_ms": 0.9993,
+            "interval_union_ms": 0.9993,
+            "max_call_ms": 0.01634
+          },
+          {
+            "type": "Cast",
+            "calls": 488,
+            "duration_sum_ms": 0.69844,
+            "interval_union_ms": 0.69844,
+            "max_call_ms": 0.00222
+          },
+          {
+            "type": "DynamicQuant",
+            "calls": 269,
+            "duration_sum_ms": 0.6606,
+            "interval_union_ms": 0.6606,
+            "max_call_ms": 0.00322
+          }
+        ]
+      },
+      "rank14": {
+        "cpu_marker_ms": 267.26925,
+        "linked_device_span_ms": 266.81364,
+        "compute_union_ms": 37.08696,
+        "collective_union_ms": 23.2974,
+        "activity_union_ms": 81.66924,
+        "gap_inside_device_span_ms": 185.1444,
+        "hccl_wait_sum_ms": 16.25562,
+        "hccl_transit_sum_ms": 0.94196
+      }
+    },
+    {
+      "position": 8193,
+      "rank_metrics_ms": {
+        "cpu_marker_ms": {
+          "min": 228.1894,
+          "p50": 240.78794,
+          "max": 264.44238,
+          "mean": 242.51939375,
+          "p90": 255.12235,
+          "max_rank": 14
+        },
+        "linked_device_span_ms": {
+          "min": 263.936854,
+          "p50": 264.04810999999995,
+          "max": 264.33276,
+          "mean": 264.060174125,
+          "p90": 264.132538,
+          "max_rank": 0
+        },
+        "from_cpu_begin_to_linked_device_end_ms": {
+          "min": 264.32853,
+          "p50": 264.3782625,
+          "max": 264.57504,
+          "mean": 264.39171650000003,
+          "p90": 264.430097,
+          "max_rank": 0
+        },
+        "async_tail_after_cpu_marker_ms": {
+          "min": 0.0,
+          "p50": 23.606772,
+          "max": 36.216944,
+          "mean": 21.877091812499998,
+          "p90": 34.621067,
+          "max_rank": 2
+        },
+        "compute_union_ms": {
+          "min": 36.03546,
+          "p50": 36.9550525,
+          "max": 37.525606,
+          "mean": 36.862460875,
+          "p90": 37.451788,
+          "max_rank": 10
+        },
+        "collective_union_ms": {
+          "min": 20.39412,
+          "p50": 217.325449,
+          "max": 219.536917,
+          "mean": 201.4653128125,
+          "p90": 219.14916,
+          "max_rank": 5
+        },
+        "activity_union_ms": {
+          "min": 80.04972,
+          "p50": 254.953454,
+          "max": 257.627247,
+          "mean": 240.6639786875,
+          "p90": 257.440134,
+          "max_rank": 5
+        },
+        "gap_inside_device_span_ms": {
+          "min": 6.475949,
+          "p50": 9.0655585,
+          "max": 184.00822,
+          "mean": 23.3961954375,
+          "p90": 29.15101,
+          "max_rank": 14
+        },
+        "collective_not_overlapped_by_compute_or_memcpy_ms": {
+          "min": 20.39412,
+          "p50": 217.325449,
+          "max": 219.536917,
+          "mean": 201.4653128125,
+          "p90": 219.14916,
+          "max_rank": 5
+        }
+      },
+      "cpu_start_skew_ms": 0.24707,
+      "device_end_skew_ms": 0.031925,
+      "global_cpu_begin_to_last_device_end_ms": 264.602005,
+      "collective_alignment_sha256": "fb016b2473400dde2492c17f1eb0e6a6892cf4dbd1e71d152e723868227e5638",
+      "collective_alignment_path": "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/collective-alignment-step-1.json",
+      "collective_device_start_skew_ms": {
+        "min": 0.020111,
+        "p50": 1.475565,
+        "max": 5.449665,
+        "mean": 1.275703670886076,
+        "p90": 1.944525
+      },
+      "last_device_start_rank_counts": {
+        "8": 1,
+        "12": 2,
+        "14": 155
+      },
+      "last_host_submit_rank_counts": {
+        "14": 158
+      },
+      "largest_collective_start_skews": [
+        {
+          "ordinal": 33,
+          "type": "hcom_allReduce_",
+          "device_start_skew_ms": 5.449665,
+          "device_end_skew_ms": 0.012786,
+          "last_device_start_rank": 14,
+          "host_submit_skew_ms": 11.40536,
+          "last_host_submit_rank": 14,
+          "rank0_duration_ms": 5.56658,
+          "rank14_duration_ms": 0.12356,
+          "rank0_start_offset_ms": 0.00826,
+          "rank14_start_offset_ms": 5.449665,
+          "all_rank_intersection_ms": 0.121055
+        },
+        {
+          "ordinal": 110,
+          "type": "hcom_allReduce_",
+          "device_start_skew_ms": 2.22331,
+          "device_end_skew_ms": 0.016176,
+          "last_device_start_rank": 14,
+          "host_submit_skew_ms": 27.48067,
+          "last_host_submit_rank": 14,
+          "rank0_duration_ms": 2.3709,
+          "rank14_duration_ms": 0.18692,
+          "rank0_start_offset_ms": 0.040185,
+          "rank14_start_offset_ms": 2.22331,
+          "all_rank_intersection_ms": 0.182415
+        },
+        {
+          "ordinal": 112,
+          "type": "hcom_allReduce_",
+          "device_start_skew_ms": 2.043925,
+          "device_end_skew_ms": 0.016422,
+          "last_device_start_rank": 14,
+          "host_submit_skew_ms": 28.11636,
+          "last_host_submit_rank": 14,
+          "rank0_duration_ms": 2.16866,
+          "rank14_duration_ms": 0.1233,
+          "rank0_start_offset_ms": 0.0,
+          "rank14_start_offset_ms": 2.043925,
+          "all_rank_intersection_ms": 0.119515
+        }
+      ],
+      "rank0": {
+        "cpu_marker_ms": 252.72387,
+        "linked_device_span_ms": 264.33276,
+        "async_tail_after_cpu_marker_ms": 11.85117,
+        "compute_union_ms": 36.03546,
+        "collective_union_ms": 214.45498,
+        "activity_union_ms": 251.2486,
+        "gap_inside_device_span_ms": 13.08416,
+        "hccl_wait_sum_ms": 212.90370000000001,
+        "hccl_transit_sum_ms": 0.9349999999999999,
+        "top_compute_types": [
+          {
+            "type": "SparseFlashAttention",
+            "calls": 78,
+            "duration_sum_ms": 6.88836,
+            "interval_union_ms": 6.88836,
+            "max_call_ms": 0.09712
+          },
+          {
+            "type": "GroupedMatmulSwigluQuantV2",
+            "calls": 75,
+            "duration_sum_ms": 6.65918,
+            "interval_union_ms": 6.65918,
+            "max_call_ms": 0.10468
+          },
+          {
+            "type": "GroupedMatmul",
+            "calls": 75,
+            "duration_sum_ms": 4.43086,
+            "interval_union_ms": 4.43086,
+            "max_call_ms": 0.0717
+          },
+          {
+            "type": "QuantBatchMatmulV3",
+            "calls": 255,
+            "duration_sum_ms": 3.74604,
+            "interval_union_ms": 3.74604,
+            "max_call_ms": 0.02014
+          },
+          {
+            "type": "MlaPrologV3",
+            "calls": 78,
+            "duration_sum_ms": 2.86488,
+            "interval_union_ms": 2.86488,
+            "max_call_ms": 0.04402
+          },
+          {
+            "type": "Slice",
+            "calls": 6,
+            "duration_sum_ms": 2.16014,
+            "interval_union_ms": 2.16014,
+            "max_call_ms": 0.37274
+          },
+          {
+            "type": "ForeachAddList",
+            "calls": 75,
+            "duration_sum_ms": 1.40932,
+            "interval_union_ms": 1.40932,
+            "max_call_ms": 0.02188
+          },
+          {
+            "type": "MatMulV3",
+            "calls": 75,
+            "duration_sum_ms": 1.09884,
+            "interval_union_ms": 1.09884,
+            "max_call_ms": 0.01834
+          },
+          {
+            "type": "MoeInitRoutingV3",
+            "calls": 75,
+            "duration_sum_ms": 1.0614,
+            "interval_union_ms": 1.0614,
+            "max_call_ms": 0.01918
+          },
+          {
+            "type": "TransposeBatchMatMul",
+            "calls": 78,
+            "duration_sum_ms": 0.99728,
+            "interval_union_ms": 0.99728,
+            "max_call_ms": 0.01666
+          },
+          {
+            "type": "Cast",
+            "calls": 488,
+            "duration_sum_ms": 0.69936,
+            "interval_union_ms": 0.69936,
+            "max_call_ms": 0.00226
+          },
+          {
+            "type": "DynamicQuant",
+            "calls": 269,
+            "duration_sum_ms": 0.66186,
+            "interval_union_ms": 0.66186,
+            "max_call_ms": 0.00306
+          }
+        ]
+      },
+      "rank14": {
+        "cpu_marker_ms": 264.44238,
+        "linked_device_span_ms": 264.05794,
+        "compute_union_ms": 37.07252,
+        "collective_union_ms": 20.39412,
+        "activity_union_ms": 80.04972,
+        "gap_inside_device_span_ms": 184.00822,
+        "hccl_wait_sum_ms": 13.39318,
+        "hccl_transit_sum_ms": 0.94716
+      }
+    }
+  ],
+  "limitations": [
+    "Two profiled steps do not define latency percentiles or TPOT.",
+    "Hotspot duration sums are work totals, not additive critical path.",
+    "Activity union includes collective waits and HCCL AICPU intervals; it is not compute utilization.",
+    "Arrival skew uses aligned trace host/device timestamps and same collective ordinal. It does not prove why a rank arrives later.",
+    "No traced activity gap is not by itself proof of a CPU bottleneck."
+  ],
+  "commands": {
+    "rank0_analysis": "python3 /home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/analyze.py 0",
+    "all_rank_analysis": "python3 /home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/analyze.py 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15",
+    "summary": "python3 /home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/profile-analysis-01/summarize.py",
+    "exports": "Exact subprocess commands in exports.json; two concurrent exports, each max_process_number=1, copied raw only."
+  }
+}

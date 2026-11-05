@@ -1,0 +1,98 @@
+{
+  "timestamp_utc": "2026-10-21T11:06:41.780543+00:00",
+  "scope": "shared W8A8 TP16 shard from quantized input through local down",
+  "reference": "stock CANN QuantMatmul INT32 -> DequantSwigluQuant mode0 dynamic -> QuantMatmul BF16",
+  "arguments": {
+    "library": "tests/glm52/shared_w8/build-v4/shared_w8.so",
+    "device": "npu:0",
+    "widths": [
+      12
+    ],
+    "blocks": 24,
+    "replays": 4,
+    "seed": 20261021,
+    "iterations": 30,
+    "timing_pairs": 5,
+    "queued_producer": true,
+    "no_timing": true,
+    "output": "logs/shared-w8-down-diagnostic.json"
+  },
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "device": "_NPUDeviceProperties(name='Ascend910_9392', total_memory=62740MB, cube_core_num=24, vector_core_num=48, uuid=00cc0800-d001-0000-0000-60109ef917a8, L2_cache_size=192MB)",
+  "library_sha256": "e12b1f1292fb3bd6e4e24ce937f09282b9c6c8e183aeab3ae1e0d3fdae767061",
+  "harness_sha256": "870b7253587b47d39907f61fb1c238eded9730ab7881e8d3f3cc96bd1d0fb0ce",
+  "helpers_sha256": "5a87fd247dc5cc5575bb01b60abd5211e3f7bbf41f8f273cac3333b0b3271c89",
+  "build_manifest": {
+    "timestamp_utc": "2026-10-21T10:59:43.370510+00:00",
+    "cann_root": "/opt/ascend/cann-9.2.0",
+    "compiler": "/opt/ascend/cann-9.2.0/bin/bisheng",
+    "compiler_version": "2026-09-15T22:19:26+08:00 clang version 15.0.5 (clang-5c68a1cb1231 flang-5c68a1cb1231)\nTarget: aarch64-unknown-linux-gnu\nThread model: posix\nInstalledDir: /opt/ascend/cann-9.2.0/bin\n",
+    "source_sha256": {
+      "sources/mla_tail/mla_tail.h": "ca13e082d775154ea9357c2b12968da0a234b180f2ce6621675602414a8c7e9e",
+      "sources/mla_tail/mla_tail_dequant.h": "f0557964f075db75987e5df8fff87d28718595ac1f8c654a292e47d34bc3c362",
+      "sources/mla_tail/mla_tail_native.h": "69e31791e869b65a1046486901cea028abe38c75c0e8bcba0e324e1ccab282c6",
+      "sources/shared_w8/build.sh": "b1507825940f03da0737ee8c61c8fdcad92eb9785bd511f457268b28966d5b9f",
+      "sources/shared_w8/shared_w8.h": "b0415c8b661e8376acc97d577915a1192546dddbc5092425b250c8c628ba3389",
+      "sources/shared_w8/shared_w8_host.cpp": "2a401fab77f70327f410c44393216901fa09ccf829ce8170a06d36a0fbcd2274",
+      "sources/shared_w8/shared_w8_kernel.cpp": "057ae0e740ac3face7c9dce0ff1859bcf183a8ae70de44815b7189e7557bd27e"
+    },
+    "library_sha256": "e12b1f1292fb3bd6e4e24ce937f09282b9c6c8e183aeab3ae1e0d3fdae767061"
+  },
+  "cases": [
+    {
+      "rows": 12,
+      "pass": false,
+      "checks": [
+        {
+          "replay": 0,
+          "pass": false,
+          "boundaries": {
+            "gate_up_int32": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 3072
+            },
+            "middle_codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 1536
+            },
+            "middle_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 12
+            },
+            "output": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 1,
+              "max_abs": 0.03125,
+              "rms": 0.00011508899478940293,
+              "different_elements": 1,
+              "elements": 73728
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "pass": false,
+  "error": "RuntimeError: shared W8A8 differential failed"
+}

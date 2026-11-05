@@ -1,0 +1,304 @@
+--- device_local_chain.py
++++ tp_constructor.py
+@@ -1,20 +1,14 @@
+-#!/usr/bin/env python3
+-"""Compare real decoder layers with explicit rank-local TP boundary inputs."""
+-
+-import argparse
+-from contextlib import contextmanager
++"""Original constructor and postprocessing with explicit two-device setup."""
++
+ import ctypes
+ import hashlib
+ import importlib
+ import json
+-import multiprocessing
+-import os
+ from pathlib import Path
+-import resource
+-import sys
+-import time
+-import traceback
+-
++
++from tp_device import device_mapping
++from tp_groups import device_groups_context
++from tp_parameters import initialize as initialize_rank_parameters
+ 
+ def tensor_descriptor(torch_npu, value):
+     return {"shape": list(value.shape), "dtype": str(value.dtype),
+@@ -57,62 +51,7 @@
+                     "synthetic_checkpoint": True, "quantization_description": description}
+ 
+ 
+-def join_nonmember_mc2(torch):
+-    from vllm_ascend.utils import create_hccl_pg_options
+-
+-    group = torch.distributed.new_group(
+-        [0], backend="hccl", pg_options=create_hccl_pg_options("mc2"))
+-    cpu = torch.distributed.new_group([0], backend="gloo")
+-    expected = torch.distributed.GroupMember.NON_GROUP_MEMBER
+-    if group != expected or cpu != expected:
+-        raise RuntimeError("A CPU helper unexpectedly joined the rank-0 MC2 group")
+-    if torch.npu.is_initialized():
+-        raise RuntimeError("A CPU helper initialized the NPU while creating a nonmember group")
+-    return None, {"ranks": [0], "device_backend": "hccl",
+-                  "device_nonmember": True, "cpu_nonmember": True}
+-
+-
+-@contextmanager
+-def rank_zero_mc2(torch, state, stage, command_sent):
+-    from vendor_hook_runtime212_device import identity
+-    from vllm_ascend.distributed import parallel_state as ascend_state
+-    from vllm_ascend.patch.worker.patch_distributed import GroupCoordinatorPatch
+-
+-    if ascend_state._MC2 is not None or state.GroupCoordinator is not GroupCoordinatorPatch:
+-        raise RuntimeError("Expected the actual worker coordinator and an uninitialized MC2 group")
+-    torch.distributed.broadcast_object_list(
+-        [{"create_mc2": True}], src=0, group=state.get_world_group().cpu_group)
+-    command_sent[0] = True
+-    group = None
+-    try:
+-        def construct():
+-            nonlocal group
+-            group = state.init_model_parallel_group(
+-                [[0]], 0, "hccl", group_name="mc2", use_device_communicator=False)
+-            if (type(group) is not GroupCoordinatorPatch or group.ranks != [0]
+-                    or group.world_size != 1 or group.rank_in_group != 0):
+-                raise RuntimeError("The MC2 metadata group does not have the declared singleton geometry")
+-            backend = group.device_group._get_backend(torch.device("npu"))
+-            name = backend.get_hccl_comm_name(0)
+-            if not name:
+-                raise RuntimeError("The actual HCCL backend returned an empty communicator name")
+-            ascend_state._MC2 = group
+-            return group, {"coordinator": identity(type(group)),
+-                           "backend_class": str(type(backend)), "ranks": group.ranks,
+-                           "world_size": group.world_size,
+-                           "tp_world_size": state.get_tp_group().world_size,
+-                           "comm_name_sha256": hashlib.sha256(str(name).encode()).hexdigest(),
+-                           "comm_name_nonempty": True, "tp_collective_validation": False}
+-
+-        stage("actual_rank_zero_hccl_metadata_group", construct)
+-        yield group
+-    finally:
+-        ascend_state._MC2 = None
+-        if group is not None:
+-            group.destroy()
+-
+-
+-def run_rank_zero(torch, args, state, stage, command_sent):
++def run_device_rank(torch, args, state, stage, command_sent):
+     import torch_npu
+     from vendor_hook_runtime212_device import identity, initialize_parameters
+     from vendor_hook_glm52_config import selection
+@@ -120,11 +59,12 @@
+ 
+     if not torch.__version__.startswith("2.12.0") or torch_npu.__version__ != "2.12.0":
+         raise RuntimeError("Use the recorded Torch/TorchNPU 2.12 runtime")
+-    stage("npu_bind", lambda: (torch.npu.set_device(0), {
+-        "device_count": torch.npu.device_count(), "logical_device": 0,
+-        "device_name": torch.npu.get_device_name(0)}))
+-    if torch.npu.device_count() != 1:
+-        raise RuntimeError("Expose exactly one NPU")
++    stage("npu_bind", lambda: (torch.npu.set_device(args.device_rank), {
++        "device_count": torch.npu.device_count(), "logical_device": args.device_rank,
++        "device_name": torch.npu.get_device_name(args.device_rank)}))
++    if torch.npu.device_count() != 2:
++        raise RuntimeError("Expose exactly two NPUs")
++    stage("physical_device_mapping", lambda: device_mapping(torch, args))
+     torch.npu.config.allow_internal_format = True
+     config = stage("engine_configuration_tp16", lambda: make_configuration(args))
+     with set_current_vllm_config(config):
+@@ -167,7 +107,7 @@
+                           "sha256": args.extension_sha256, "api_libraries": libraries}
+ 
+         stage("actual_official_extension", enable_extension)
+-        with rank_zero_mc2(torch, state, stage, command_sent) as mc2:
++        with device_groups_context(torch, state, stage, args.device_rank, args) as mc2:
+             from vllm.model_executor.models.deepseek_v2 import (
+                 DeepseekV2DecoderLayer, GlmMoeDsaForCausalLM,
+             )
+@@ -261,7 +201,7 @@
+ 
+                 layer = stage(f"actual_decoder_layer{index}_constructor", construct)
+                 parameters = stage(f"layer{index}_synthetic_parameter_fill", lambda: (
+-                    initialize_parameters(torch, layer), {"seed": 41021}))
++                    initialize_rank_parameters(torch, layer, args.device_rank, args.oracle_cpu), {"seed": 41021, "rank_shard": args.device_rank}))
+                 stage(f"layer{index}_move_parameters", lambda: (layer.to("npu"), {
+                     "source_parameter_bytes": sum(item["bytes"] for item in parameters),
+                     "parameters": parameters}))
+@@ -291,167 +231,14 @@
+                     "topk_owner_storage_ptr": topk.untyped_storage().data_ptr(),
+                 }))
+                 layers.append(layer)
+-            from decoder_storage_local_chain import run_decoder_forward
+-
+-            stage("actual_local_component_chain", lambda: (
++            from decoder_storage_tp_chain import run_decoder_forward
++
++            stage("actual_two_rank_component_chain", lambda: (
+                 run_decoder_forward(torch, layers, config, state, args),
+-                {"report": str(args.output / "local-chain.json")}))
++                {"report": str(args.output / "tp-chain.json")}))
+             return {"constructed_layers": [6, 7], "official_postprocessing": True,
+                     "full_decoder_forward_executed": False,
+-                    "local_component_chain_executed": True,
++                    "two_rank_component_chain_executed": True,
+                     "tp16_collectives_executed": 0,
+-                    "scope": "Actual weights and metadata; separate native components versus one local layer launch; both TP reductions identity",
+-                    "mc2_scope": "actual HCCL rank0 singleton used by the original W4A8 constructor"}
+-
+-
+-
+-def worker(rank, args):
+-    log = (args.output / f"rank-{rank:02d}.log").open("w", buffering=1)
+-    os.dup2(log.fileno(), 1)
+-    os.dup2(log.fileno(), 2)
+-    sys.stdout, sys.stderr = log, log
+-    report = {"rank": rank, "stages": []}
+-    state = None
+-    groups = ()
+-
+-    def stage(name, action):
+-        item = {"name": name}
+-        try:
+-            result, details = action()
+-            item.update(success=True, **details)
+-        except Exception:
+-            item.update(success=False, error=traceback.format_exc())
+-            report["stages"].append(item)
+-            print(json.dumps(item), flush=True)
+-            raise
+-        report["stages"].append(item)
+-        print(json.dumps(item), flush=True)
+-        return result
+-
+-    try:
+-        import torch
+-        import torch_npu
+-        from vendor_hook_runtime212_device import GROUP_FIELDS, identity, initialize_groups
+-        torch.set_num_threads(1)
+-        report.update(torch=torch.__version__, torch_npu=torch_npu.__version__,
+-                      python=sys.version, runtime_image=os.environ.get("VENDOR_HOOK_RUNTIME_IMAGE"),
+-                      npu_initialized_before=torch.npu.is_initialized())
+-        if rank != 0:
+-            def refuse_init(*unused_args, **unused_kwargs):
+-                raise RuntimeError("A CPU-only participant may not initialize the NPU")
+-            torch.npu._lazy_init = refuse_init
+-            torch_npu._C._npu_init = refuse_init
+-        from vllm.platforms import current_platform
+-        stage("platform_registration", lambda: (
+-            current_platform.pre_register_and_update(), identity(type(current_platform))))
+-        state, groups, details = initialize_groups(torch, rank, args)
+-        report["stages"].append({"name": "actual_tp16_gloo_groups", "success": True, **details})
+-        status = [None]
+-        if rank == 0:
+-            sent = [False]
+-            try:
+-                report["result"] = run_rank_zero(torch, args, state, stage, sent)
+-                status[0] = {"success": True}
+-            except Exception:
+-                report["error"] = traceback.format_exc()
+-                status[0] = {"success": False, "error": report["error"]}
+-            finally:
+-                if not sent[0]:
+-                    torch.distributed.broadcast_object_list(
+-                        [{"create_mc2": False}], src=0, group=state.get_world_group().cpu_group)
+-        else:
+-            command = [None]
+-            torch.distributed.broadcast_object_list(command, src=0,
+-                                                    group=state.get_world_group().cpu_group)
+-            if command[0]["create_mc2"]:
+-                stage("nonmember_hccl_group_participation", lambda: join_nonmember_mc2(torch))
+-        torch.distributed.broadcast_object_list(status, src=0,
+-                                                group=state.get_world_group().cpu_group)
+-        report["rank_zero_status"] = status[0]
+-        torch.distributed.barrier(group=state.get_world_group().cpu_group)
+-    except Exception:
+-        report["error"] = traceback.format_exc()
+-    finally:
+-        if state is not None:
+-            for field in GROUP_FIELDS:
+-                setattr(state, field, None)
+-            for group in groups:
+-                group.destroy()
+-            state.destroy_distributed_environment()
+-        if "torch" in locals():
+-            report["npu_initialized_after"] = torch.npu.is_initialized()
+-        report["maximum_rss_kib"] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+-        (args.output / f"rank-{rank:02d}.json").write_text(json.dumps(report, indent=2) + "\n")
+-    if "error" in report or not report.get("rank_zero_status", {}).get("success", False):
+-        raise SystemExit(1)
+-
+-
+-def main():
+-    parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument("--output", type=Path, required=True)
+-    parser.add_argument("--runtime", type=Path, required=True)
+-    parser.add_argument("--extension-sha256", required=True)
+-    parser.add_argument("--mode", choices=("int8", "bf16"), default="int8")
+-    parser.add_argument("--timeout", type=int, default=600)
+-    parser.add_argument("--adapter", type=Path, required=True)
+-    parser.add_argument("--indexed-library", type=Path, required=True)
+-    parser.add_argument("--shared-library", type=Path, required=True)
+-    parser.add_argument("--sfa-library", type=Path, required=True)
+-    parser.add_argument("--forward-widths", type=int, nargs="+", default=[1])
+-    parser.add_argument("--forward-replays", type=int, default=2)
+-    parser.add_argument("--forward-sequence", type=int, default=8192)
+-    parser.add_argument("--graph-residual-modes", nargs="+",
+-                        choices=("none", "provided"), default=["provided"])
+-    parser.add_argument("--ffn-library", type=Path,
+-                        default=Path(__file__).with_name("complete_ffn.so"))
+-    parser.add_argument("--chain-library", type=Path,
+-                        default=Path(__file__).with_name("layer_local_chain.so"))
+-    args = parser.parse_args()
+-    if args.graph_residual_modes != ["provided"]:
+-        parser.error("The local-chain ABI requires a provided residual")
+-    if len(set(args.graph_residual_modes)) != len(args.graph_residual_modes):
+-        parser.error("Each initial residual branch needs one distinct capture")
+-    args.world_size = 16
+-    if (any(width not in (1, 2, 12, 32) for width in args.forward_widths)
+-            or not 1 <= args.forward_replays <= 32
+-            or not max(args.forward_widths) <= args.forward_sequence <= 8192):
+-        parser.error("Use widths 1/2/12/32, 1..32 replays and a sequence covering every width")
+-    for path in (args.adapter, args.indexed_library, args.shared_library, args.sfa_library, args.ffn_library, args.chain_library):
+-        if not path.is_file():
+-            parser.error(f"Missing frozen input: {path}")
+-    if args.timeout < 1 or not (args.runtime / "tests/glm52/whole_layer/vendor_hook_runtime212_device.py").is_file():
+-        parser.error("An existing frozen runtime and a positive timeout are required")
+-    sys.path.insert(0, str(args.runtime / "tests/glm52/whole_layer"))
+-    args.output = args.output.resolve()
+-    args.output.mkdir(parents=True, exist_ok=False)
+-    context = multiprocessing.get_context("spawn")
+-    processes = [context.Process(target=worker, args=(rank, args)) for rank in range(16)]
+-    for process in processes:
+-        process.start()
+-    deadline = time.monotonic() + args.timeout
+-    while any(process.is_alive() for process in processes):
+-        if (time.monotonic() >= deadline
+-                or any(process.exitcode not in (None, 0) for process in processes)):
+-            for process in processes:
+-                if process.is_alive():
+-                    process.terminate()
+-            break
+-        for process in processes:
+-            process.join(timeout=0.1)
+-    for process in processes:
+-        process.join(timeout=5)
+-        if process.is_alive():
+-            process.kill()
+-            process.join()
+-    report = {"scope": "Actual Decoder weights; separate components versus a local layer launch; no TP reduction",
+-              "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+-              "arguments": {k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()},
+-              "exitcodes": [p.exitcode for p in processes],
+-              "success": all(p.exitcode == 0 for p in processes)}
+-    (args.output / "summary.json").write_text(json.dumps(report, indent=2) + "\n")
+-    print(json.dumps(report, indent=2), flush=True)
+-    return int(not report["success"])
+-
+-
+-if __name__ == "__main__":
+-    raise SystemExit(main())
++                    "scope": "Two TP16-shaped shards; separate native components and HCCL2 versus in-kernel SHMEM2",
++                    "mc2_scope": "actual per-device singleton used only by the original W4A8 constructor"}

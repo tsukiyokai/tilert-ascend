@@ -1,0 +1,76 @@
+--- parent/body/source/routed_int4/routed_body_native.h
++++ candidate/body/source/routed_int4/routed_body_native.h
+@@ -22,6 +22,7 @@
+ #include "routed_int4_trace.h"
+ #include "kernel_operator.h"
+ #include "lib/matmul_intf.h"
++#include "../../../source/gu_ready_contract.h"
+ #include "../../../source/gu_static_tiling.h"
+ #ifdef ROUTED_INPUT_FRONT
+ #include "routed_int4_front.h"
+@@ -511,6 +512,7 @@
+ 
+ #include "../../../source/output_native.h"
+ #include "../../../source/split_native.h"
++#include "../../../source/gu_ready_native.h"
+ 
+ }  // namespace
+ 
+@@ -597,6 +599,8 @@
+         }
+     }
+ 
++    const bool overlap_gate = active_count >= arguments.blocks;
++
+     // Every core reaches every barrier, including empty expert owners.
+     if ASCEND_IS_AIV {
+         SplitTokens(held, (__gm__ int8_t*)arguments.scratch[kRestoredRows],
+@@ -610,6 +614,11 @@
+ #ifdef ROUTED_SHARED_PIPELINE
+     shared.Activate();
+ #endif
++    if ASCEND_IS_AIV {
++        if (overlap_gate) {
++            ConsumeGate(held, arguments, active_count);
++        }
++    }
+     if ASCEND_IS_AIC {
+ #ifdef ROUTED_SHARED_PIPELINE
+         // The shared gate projection ended before barrier 1.
+@@ -619,6 +628,7 @@
+         LoadTiling(gate_cube, ((__gm__ uint8_t*)arguments.scratch[kGateTiling]));
+         GateProjection<weight_format> gate_mm;
+         gate_mm.Init(&gate_cube, &pipe);
++        int64_t gate_sequence = 0;
+ #ifdef ROUTED_ACTIVE_LIST
+         for (int64_t ordinal = GetBlockIdx(); ordinal < active_count;
+              ordinal += arguments.blocks) {
+@@ -643,6 +653,12 @@
+                     ((__gm__ RoutedProduct*)arguments.scratch[kGateProduct]) + GateStorageRow(begin) * kGateUp,
+                     ((__gm__ ScaleStorage*)arguments.weights[2]) + expert * kGateUp, kGateUp, kHidden,
+                     counts.GetValue(expert));
++            if (overlap_gate) {
++                PublishGate(gate_sequence);
++            }
++        }
++        if (overlap_gate) {
++            DrainGate(gate_sequence);
+         }
+         Publish();
+     }
+@@ -652,6 +668,7 @@
+     shared.Down(pipe);
+ #endif
+     if ASCEND_IS_AIV {
++        if (!overlap_gate) {
+ #ifdef ROUTED_ROW_BALANCED
+         const int64_t workers = 2 * arguments.blocks;
+         int64_t next = GetBlockIdx();
+@@ -700,6 +717,7 @@
+             Publish();
+         }
+ #endif
++        }
+     }
+     timing.Barrier(3);
+     timing.Begin(4);

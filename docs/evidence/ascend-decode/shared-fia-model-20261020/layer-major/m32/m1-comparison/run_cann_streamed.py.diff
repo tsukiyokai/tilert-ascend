@@ -1,0 +1,10 @@
+--- /workspace/experiments/layer-major-m1-m32-20261020/old/source/tests/glm52/run_cann_streamed.py
++++ /workspace/experiments/layer-major-m32-20261020/source/tests/glm52/run_cann_streamed.py
+@@ -424,6 +424,7 @@
+     engine.rank, engine.device = rank, torch.device(f"npu:{rank}")
+     engine.capacity, engine.position = CAPACITY, 8192
+     engine.attention_kernel = "sfa"
++    engine.fp32_head = False
+     engine.checkpoint = str(args.checkpoint.resolve())
+     engine._tp_sum_group = None
+     torch.npu.set_device(engine.device)

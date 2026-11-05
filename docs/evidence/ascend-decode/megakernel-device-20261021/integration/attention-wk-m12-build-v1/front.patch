@@ -1,0 +1,22 @@
+--- e957/tests/glm52/whole_layer/indexer_front_native.h
++++ m12/tests/glm52/whole_layer/indexer_front_native.h
+@@ -4,6 +4,7 @@
+ #include "../mla_tail/mla_tail_native.h"
+ #include "indexer_front_contract.h"
+ #include "indexer_wk_m32_native.h"
++#include "indexer_wk_m12_native.h"
+ 
+ namespace indexer_front::device {
+ using namespace AscendC;
+@@ -401,7 +402,10 @@
+             args.scratch + c.query_acc, args.tiling,
+             kQueryTile, kQueryRank, kQueryColumns / kQueryTile);
+         pipe.Reset();
+-        if (c.rows == 32) {
++        if (c.rows == 12) {
++            indexer_wk_m12::device::Project(pipe, c, args.hidden,
++                args.key_weight, args.scratch + c.key_acc);
++        } else if (c.rows == 32) {
+             indexer_wk_m32::device::Project(pipe, c, args.hidden,
+                 args.key_weight, args.scratch + c.key_acc);
+         } else {

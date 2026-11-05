@@ -1,0 +1,104 @@
+{
+  "scope": "Single M8 eager API and causal counterfactual, no timing",
+  "npu_launched": true,
+  "source_sha256": "a82df1cab632c8b27d2bbeb68ecc9dc2123dff8c64377b9ff02b74f141d7c3a0",
+  "original_input_sha256": "d8b00212e619c88383dcb79c487c050fa38b26a29467240e8ac66d7261f5d23a",
+  "custom_opp_path": "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer:/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib:/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer",
+  "quota_bytes": 268435456,
+  "device": 0,
+  "schema": "npu::npu_fused_infer_attention_score_v2(Tensor query, Tensor key, Tensor value, *, Tensor? query_rope=None, Tensor? key_rope=None, Tensor? pse_shift=None, Tensor? atten_mask=None, SymInt[]? actual_seq_qlen=None, SymInt[]? actual_seq_kvlen=None, Tensor? block_table=None, Tensor? dequant_scale_query=None, Tensor? dequant_scale_key=None, Tensor? dequant_offset_key=None, Tensor? dequant_scale_value=None, Tensor? dequant_offset_value=None, Tensor? dequant_scale_key_rope=None, Tensor? quant_scale_out=None, Tensor? quant_offset_out=None, Tensor? quant_scale_p=None, Tensor? learnable_sink=None, int num_query_heads=1, int num_key_value_heads=0, float softmax_scale=1., int pre_tokens=2147483647, int next_tokens=2147483647, str input_layout=\"BSH\", int sparse_mode=0, int block_size=0, int query_quant_mode=0, int key_quant_mode=0, int value_quant_mode=0, int inner_precise=0, bool return_softmax_lse=False, int? query_dtype=None, int? key_dtype=None, int? value_dtype=None, int? query_rope_dtype=None, int? key_rope_dtype=None, int? key_shared_prefix_dtype=None, int? value_shared_prefix_dtype=None, int? dequant_scale_query_dtype=None, int? dequant_scale_key_dtype=None, int? dequant_scale_value_dtype=None, int? dequant_scale_key_rope_dtype=None, int? out_dtype=None) -> (Tensor, Tensor)",
+  "input_sha256": "cd44f20df40971130de21f5060b79d3fc2aa8cd9b72ecf55094641531f41d098",
+  "comparisons": {
+    "a": {
+      "fia_vs_sfa": {
+        "bit_equal": false,
+        "finite": true,
+        "max_abs": 0.001953125,
+        "nrmse": 0.0016582363197188022
+      },
+      "fia_vs_filtered_fp64": {
+        "bit_equal": false,
+        "finite": true,
+        "max_abs": 0.0010570561999411754,
+        "nrmse": 0.0019258878872558105
+      },
+      "sfa_vs_filtered_fp64": {
+        "bit_equal": false,
+        "finite": true,
+        "max_abs": 0.0010725329163022157,
+        "nrmse": 0.0019485587318020222
+      }
+    },
+    "b": {
+      "fia_vs_sfa": {
+        "bit_equal": false,
+        "finite": true,
+        "max_abs": 0.001953125,
+        "nrmse": 0.0016582363197188022
+      },
+      "fia_vs_filtered_fp64": {
+        "bit_equal": false,
+        "finite": true,
+        "max_abs": 0.0010570561999411754,
+        "nrmse": 0.0019258878872558105
+      },
+      "sfa_vs_filtered_fp64": {
+        "bit_equal": false,
+        "finite": true,
+        "max_abs": 0.0010725329163022157,
+        "nrmse": 0.0019485587318020222
+      },
+      "sfa_future_invariant": true,
+      "masked_fia_future_invariant": true
+    },
+    "reset_a": {
+      "fia_vs_sfa": {
+        "bit_equal": false,
+        "finite": true,
+        "max_abs": 0.001953125,
+        "nrmse": 0.0016582363197188022
+      },
+      "fia_vs_filtered_fp64": {
+        "bit_equal": false,
+        "finite": true,
+        "max_abs": 0.0010570561999411754,
+        "nrmse": 0.0019258878872558105
+      },
+      "sfa_vs_filtered_fp64": {
+        "bit_equal": false,
+        "finite": true,
+        "max_abs": 0.0010725329163022157,
+        "nrmse": 0.0019485587318020222
+      },
+      "sfa_future_invariant": true,
+      "masked_fia_future_invariant": true
+    }
+  },
+  "last_started": "reset_a_masked_fia",
+  "all_false_vs_none": {
+    "bit_equal": true,
+    "finite": true,
+    "max_abs": 0.0,
+    "nrmse": 0.0
+  },
+  "status": "api_and_future_invariance_completed",
+  "outputs_sha256": "3d46716d9bd634405752400f61223ad9ceb79cc42124c0919150ed8a398393b8",
+  "loaded_libraries": {
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_cv.so": "06074c70f58f5af0702c6326dcf98289584eef65f3996690229587119c488521",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_math.so": "93972cb9266eb1e0ff1d29b767c1e13e1f6023b80c07ffaf77bc75e557b8b045",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_nn.so": "336946436f1e8d71670137a9b43fc6b9ca87fbb3f52b5a2c65663e8b589936c8",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_oam.so": "c4bd82763ebb67dfb517575047480b24e8e6c134b6ee840a3f3bff2a443371f3",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_ras.so": "4ef4862b1c4f20037b84ed3afdde3c907b18bd459852a09ceacf6de1a22ffc86",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_transformer.so": "3eebcd29e93860ea2aafaf9dfe269e98a28dc90c7cc325914e479be43bd247cf",
+    "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/liboptiling.so": "0d603b1fe5375b069d870747cb6ef3da588db9e6c7e4d86bdd7b507aba0b7ac3",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib/libcust_opapi.so": "f81c882edadb261acdce7f85bf4aa7c7cc7e4a94571a665ffc8a41cb150238a6",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/libcust_opmaster_rt2.0.so": "d06d3f127e2c179ed5f4d3dc366b39f829e0c5e3ec39df63ccb1993befcd3f39",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_impl/ai_core/tbe/op_tiling/liboptiling.so": "d06d3f127e2c179ed5f4d3dc366b39f829e0c5e3ec39df63ccb1993befcd3f39",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/torch_npu/lib/libop_plugin_atb.so": "078dc0fbee9998221cc16b74ab2114a9d2d574824e53f3d4be3c80a078aabed5",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_api/lib/libcust_opapi.so": "cab8daebbbe285814636dc1839de18dc83028b69ceb28a74fcf51e2184cf0163",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/libcust_opmaster_rt2.0.so": "ded74980ff29c3985de70e67e2ed5ae791a0914aa1b4b427d3a6d96d2aeba69d"
+  },
+  "peak_allocated_bytes": 91548160,
+  "peak_reserved_bytes": 174063616
+}

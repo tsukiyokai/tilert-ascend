@@ -1,0 +1,123 @@
+{
+  "scope": "Real M4 layer3 routed GMM1; one TP16 shard on die0; graph10call batches include input clone",
+  "audit": {
+    "path": "/workspace/offline/cann-gmm1-singlechunk-20261018-01/timing-abba-audit.json",
+    "bytes": 24378,
+    "sha256": "efb018927aebb11cb11dbe0415e913c93d5e05e6604e465944787e8f9fc57744"
+  },
+  "changing_input_audit": {
+    "path": "/workspace/offline/cann-gmm1-singlechunk-changing-20261018-01/root-audit.json",
+    "bytes": 103734,
+    "sha256": "07d255db7db76e3b2d06fad28442ea1caa608d30a61014cb19b12d52505ac1f7"
+  },
+  "kernel_sha256": {
+    "control_sha256": "2eb81546c23639026b979c93aef1ffc20132390cfc3395f1b837a1d0cdf24c3d",
+    "candidate_sha256": "a21fe88e4e38b55e805aa7895abbd588b67a1996d33039cf2fa9964d4f9d78fc",
+    "keys": [
+      2,
+      3
+    ],
+    "actual_A8W4_key": 2
+  },
+  "functional": {
+    "changing_comparison_elements_exact": 881504,
+    "timing_output_comparison_elements_exact": 198144,
+    "different_bytes": 0,
+    "changing_run_actual_elf_open_verified": true,
+    "timing_process_actual_elf_open_captured": false,
+    "routing_counts_changed": false
+  },
+  "ABBA": {
+    "order": [
+      "baseline",
+      "candidate",
+      "candidate",
+      "baseline"
+    ],
+    "samples_per_process": 30,
+    "calls_per_batch": 10,
+    "process_event_p50_us": [
+      116.81399941444397,
+      111.29900217056274,
+      112.74099946022034,
+      114.58399891853333
+    ],
+    "effect": {
+      "baseline_mean_of_process_p50_us": 115.69899916648865,
+      "candidate_mean_of_process_p50_us": 112.02000081539154,
+      "p50_gain_us": 3.678998351097107,
+      "p50_gain_percent": 3.1798013618104846,
+      "AB_process_p50_gain_us": 5.514997243881226,
+      "BA_process_p50_gain_us": 1.8429994583129883,
+      "baseline_process_p50_drift_us": -2.2300004959106445,
+      "candidate_process_p50_drift_us": 1.4419972896575928,
+      "all_sample_baseline_mean_us": 187.94099887212116,
+      "all_sample_candidate_mean_us": 184.22309815883636,
+      "all_sample_mean_gain_percent": 1.9782276010007407
+    }
+  },
+  "long_batches": {
+    "count_per_process": [
+      6,
+      6,
+      6,
+      6
+    ],
+    "sample_index_gaps": [
+      5,
+      6
+    ],
+    "extra_us_per_10call_batch": [
+      3617.6299452781677,
+      3649.5699286460876,
+      3596.6500639915466,
+      3620.039999485016
+    ],
+    "cause": "unresolved; periodic event tails do not establish preemption"
+  },
+  "wall": {
+    "per_batch_recorded": false,
+    "four_process_supervisor_seconds": 93.35710322391242
+  },
+  "source": {
+    "only_loopCount1_skips_baseline_lines": [
+      117,
+      133
+    ],
+    "preserved_mixed_sync_lines": [
+      110,
+      126
+    ],
+    "mLimit_at_K6144_N256": 4681,
+    "M1_M4_dispatch_rows": [
+      8,
+      32
+    ],
+    "expected_loop_counts": [
+      1,
+      1
+    ],
+    "source_guard_reversal_matches_baseline": true,
+    "host_api_and_tiling_binaries_unchanged": true
+  },
+  "health": {
+    "timing_pre_post_healthy_dies": [
+      16,
+      16
+    ],
+    "external_pids_unchanged": true
+  },
+  "decision": {
+    "worthy_of_complete_MoE_functional_validation": true,
+    "product_patch_before_complete_MoE_M1_M4_validation": false,
+    "reason": "Both AB and BA improve event medians and the local single-chunk dependency argument is concrete. Complete MoE M1/M4 must still exercise actual dispatch, packed weights, GMM1/GMM2 and combine under the real loader and graph/workspace lifetime.",
+    "minimum_next_validation": "One matched-input original/candidate complete real MoE M1 and M4 functional run, including graph replay with changed input and actual candidate ELF provenance; preserve the 2GiB/die and root-only NPU queue.",
+    "not_claimed": [
+      "shared-load preemption cause",
+      "per-call host wall gain",
+      "TP16 MoE latency gain",
+      "TPOT gain",
+      "full-session quality"
+    ]
+  }
+}

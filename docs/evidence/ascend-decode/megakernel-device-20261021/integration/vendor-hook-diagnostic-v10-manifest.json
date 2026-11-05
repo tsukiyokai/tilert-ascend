@@ -1,0 +1,39 @@
+{
+  "scope": "Optional stage-reference taps for the unchanged real v9 outer-forward fixture; no kernel or adapter change",
+  "files": {
+    "tests/glm52/whole_layer/vendor_hook_device.py": {
+      "sha256": "cb04c6607b65b561279d737ebd2814a42e9ed7333aa4eb771c3ad1081d330e7f",
+      "frozen": "vendor_hook_device-diagnostic-v10.py"
+    },
+    "tests/glm52/whole_layer/vendor_hook_diagnostic.py": {
+      "sha256": "d797c12d06fa714f9aa4756115020b3ae822d76e8ba17497aeec3b350c5e76b3",
+      "frozen": "vendor_hook_diagnostic-v10.py"
+    },
+    "tests/glm52/whole_layer/vendor_hook_diagnostic_test.py": {
+      "sha256": "89404e17d14331bc4390bf8e442654754dc99752857e8aa59c7786379ead1078",
+      "frozen": "vendor_hook_diagnostic_test-v10.py"
+    },
+    "tests/glm52/whole_layer/vendor_hook_forward.py": {
+      "sha256": "376411d2c57501ac1661fb81b0d6f7c2ec571c9d83d2e8b65ddcbb0a68ba4b58",
+      "change": "unchanged from v9"
+    },
+    "tilert/models/glm_5_2_ascend/attention_native.py": {
+      "sha256": "336eaff0de153d32439d4d2b0557522b313a24a7e5bef82b8dc11f1257511c01",
+      "change": "unchanged from v9"
+    },
+    "tests/glm52/whole_layer/vendor_hook_run.sh": {
+      "sha256": "a18be18f28fbc2bab670052edb0f3ed80606f6e5f0f9aed6302e3e8a4ed7d495",
+      "change": "unchanged from v9"
+    }
+  },
+  "cpu_checks": {
+    "python": "/tmp/tilert-megakernel-cpu/bin/python",
+    "torch": "2.9.1+cpu",
+    "tests": "3 passed: retained tile decoding, independent integer dot, raw-byte mismatch coordinates",
+    "py_compile": "passed",
+    "launcher_bash_n": "passed"
+  },
+  "device_status": "not run at freeze",
+  "command": "bash /home/shanshan/tilert-megakernel-20261021/vendor-hook-runtime/tests/glm52/whole_layer/vendor_hook_run.sh 4 vendor-hook-forward-diagnostic-v10 --forward-widths 12 --forward-replays 2 --diagnostic",
+  "interpretation_gate": "Require the same two final BF16 discrepancies as the retained untapped v9 case before attributing a first differing stage; retained references can change allocation lifetimes."
+}

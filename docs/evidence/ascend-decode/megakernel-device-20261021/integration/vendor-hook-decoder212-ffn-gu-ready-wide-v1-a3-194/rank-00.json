@@ -1,0 +1,1428 @@
+{
+  "rank": 0,
+  "stages": [
+    {
+      "name": "platform_registration",
+      "success": true,
+      "class": "vllm_ascend.platform.NPUPlatform",
+      "path": "/decoder/python/vllm_ascend/platform.py",
+      "sha256": "686eb5c4d7e744053def9fe51caf743e79e6a3cbeddebd3c47949d6f13e503cd"
+    },
+    {
+      "name": "actual_tp16_gloo_groups",
+      "success": true,
+      "tp_world_size": 16,
+      "tp_rank": 0,
+      "cpu_rank_sum": 120,
+      "expected_rank_sum": 120,
+      "coordinator": {
+        "class": "vllm.distributed.parallel_state.GroupCoordinator",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/distributed/parallel_state.py",
+        "sha256": "0e47cff9a89717183bdce6403f0454961848247f51306a0f1dfbe3d6e1b93336"
+      },
+      "device_communicator": null,
+      "registration": "actual coordinators assigned to version-scoped parallel_state fields",
+      "singleton_fields": [
+        "_DCP",
+        "_PCP",
+        "_PP",
+        "_DP",
+        "_EP"
+      ]
+    },
+    {
+      "name": "npu_bind",
+      "success": true,
+      "device_count": 1,
+      "logical_device": 0,
+      "device_name": "Ascend910_9392"
+    },
+    {
+      "name": "engine_configuration_tp16",
+      "success": true,
+      "tp": 16,
+      "ep": 1,
+      "dp": 1,
+      "pcp": 1,
+      "layers": [
+        {
+          "layer_index": 6,
+          "ffn": "sparse",
+          "indexer": "full",
+          "first_k_dense_replace": 3,
+          "index_topk_freq": 4,
+          "index_skip_topk_offset": 3,
+          "index_topk_pattern": null
+        },
+        {
+          "layer_index": 7,
+          "ffn": "sparse",
+          "indexer": "shared",
+          "first_k_dense_replace": 3,
+          "index_topk_freq": 4,
+          "index_skip_topk_offset": 3,
+          "index_topk_pattern": null
+        }
+      ],
+      "synthetic_checkpoint": true,
+      "quantization_description": {
+        "model.layers.6.self_attn.q_a_proj.weight": "W8A8_DYNAMIC",
+        "model.layers.6.self_attn.kv_a_proj_with_mqa.weight": "W8A8_DYNAMIC",
+        "model.layers.6.self_attn.fused_qkv_a_proj.weight": "W8A8_DYNAMIC",
+        "model.layers.6.self_attn.q_b_proj.weight": "W8A8_DYNAMIC",
+        "model.layers.6.self_attn.o_proj.weight": "W8A8_DYNAMIC",
+        "model.layers.6.self_attn.indexer.wq_b.weight": "W8A8_DYNAMIC",
+        "model.layers.6.self_attn.indexer.quant_type": "INT8_DYNAMIC",
+        "model.layers.6.mlp.shared_experts.gate_proj.weight": "W8A8_DYNAMIC",
+        "model.layers.6.mlp.experts.0.gate_proj.weight": "W4A8_DYNAMIC",
+        "model.layers.6.mlp.shared_experts.up_proj.weight": "W8A8_DYNAMIC",
+        "model.layers.6.mlp.experts.0.up_proj.weight": "W4A8_DYNAMIC",
+        "model.layers.6.mlp.shared_experts.down_proj.weight": "W8A8_DYNAMIC",
+        "model.layers.6.mlp.experts.0.down_proj.weight": "W4A8_DYNAMIC",
+        "model.layers.7.self_attn.q_a_proj.weight": "W8A8_DYNAMIC",
+        "model.layers.7.self_attn.kv_a_proj_with_mqa.weight": "W8A8_DYNAMIC",
+        "model.layers.7.self_attn.fused_qkv_a_proj.weight": "W8A8_DYNAMIC",
+        "model.layers.7.self_attn.q_b_proj.weight": "W8A8_DYNAMIC",
+        "model.layers.7.self_attn.o_proj.weight": "W8A8_DYNAMIC",
+        "model.layers.7.self_attn.indexer.wq_b.weight": "W8A8_DYNAMIC",
+        "model.layers.7.self_attn.indexer.quant_type": "INT8_DYNAMIC",
+        "model.layers.7.mlp.shared_experts.gate_proj.weight": "W8A8_DYNAMIC",
+        "model.layers.7.mlp.experts.0.gate_proj.weight": "W4A8_DYNAMIC",
+        "model.layers.7.mlp.shared_experts.up_proj.weight": "W8A8_DYNAMIC",
+        "model.layers.7.mlp.experts.0.up_proj.weight": "W4A8_DYNAMIC",
+        "model.layers.7.mlp.shared_experts.down_proj.weight": "W8A8_DYNAMIC",
+        "model.layers.7.mlp.experts.0.down_proj.weight": "W4A8_DYNAMIC"
+      }
+    },
+    {
+      "name": "actual_worker_registration",
+      "success": true,
+      "adapt_patch": {
+        "class": "vllm_ascend.utils.adapt_patch",
+        "path": "/decoder/python/vllm_ascend/utils.py",
+        "sha256": "5212ebb9e1ca8d35d76a38d4c9f1f180343763955d6bcfd917b4c9085ee79978"
+      },
+      "registration": {
+        "class": "vllm_ascend.utils.register_ascend_customop",
+        "path": "/decoder/python/vllm_ascend/utils.py",
+        "sha256": "5212ebb9e1ca8d35d76a38d4c9f1f180343763955d6bcfd917b4c9085ee79978"
+      }
+    },
+    {
+      "name": "actual_official_extension",
+      "success": true,
+      "enabled": true,
+      "path": "/decoder/python/vllm_ascend/vllm_ascend_C.cpython-311-aarch64-linux-gnu.so",
+      "sha256": "acac5e7220b51bdd24e41352ffc52f88aac5f58dd9d262b0a43aad2ca9efd0fc",
+      "api_libraries": {
+        "aclnnAddRmsNormBias": {
+          "path": "/oracle/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+          "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+        },
+        "aclnnAddRmsNormBiasGetWorkspaceSize": {
+          "path": "/oracle/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+          "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+        },
+        "aclnnMoeGatingTopK": {
+          "path": "/oracle/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+          "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+        },
+        "aclnnMoeGatingTopKGetWorkspaceSize": {
+          "path": "/oracle/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+          "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+        },
+        "aclnnGroupedMatmulSwigluQuantWeightNzV2": {
+          "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so",
+          "sha256": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a"
+        },
+        "aclnnGroupedMatmulSwigluQuantWeightNzV2GetWorkspaceSize": {
+          "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so",
+          "sha256": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a"
+        },
+        "aclnnDequantSwigluQuantV2": {
+          "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so",
+          "sha256": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a"
+        },
+        "aclnnDequantSwigluQuantV2GetWorkspaceSize": {
+          "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so",
+          "sha256": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a"
+        }
+      }
+    },
+    {
+      "name": "actual_rank_zero_hccl_metadata_group",
+      "success": true,
+      "coordinator": {
+        "class": "vllm_ascend.patch.worker.patch_distributed.GroupCoordinatorPatch",
+        "path": "/decoder/python/vllm_ascend/patch/worker/patch_distributed.py",
+        "sha256": "7ea4353f2dd0fa7cd222e47617b03074b678225dd6d7595a0c3e3d85e3c38943"
+      },
+      "backend_class": "<class 'torch_npu._C._distributed_c10d.ProcessGroupHCCL'>",
+      "ranks": [
+        0
+      ],
+      "world_size": 1,
+      "tp_world_size": 16,
+      "comm_name_sha256": "ed187c2ecddfb5baaffecf280a5e8244394abe204fa87d5308d268624bf50e3b",
+      "comm_name_nonempty": true,
+      "tp_collective_validation": false
+    },
+    {
+      "name": "official_packed_quant_mapping",
+      "success": true,
+      "loader": {
+        "class": "vllm.model_executor.model_loader.utils.configure_quant_config",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/model_loader/utils.py",
+        "sha256": "3091a9f64cbe42ad0e7fc0907fbbcb9197d2d56d5da4008779c5a16d9b8649a6"
+      },
+      "model": {
+        "class": "vllm.model_executor.models.deepseek_v2.GlmMoeDsaForCausalLM",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py",
+        "sha256": "96f4f755f62caa85869fb884209e7f8869882ddb6efbd40c930778b27bd3e39d"
+      },
+      "packed_modules_mapping": {
+        "gate_up_proj": [
+          "gate_proj",
+          "up_proj"
+        ]
+      }
+    },
+    {
+      "name": "actual_decoder_layer6_constructor",
+      "success": true,
+      "layer": {
+        "class": "vllm.model_executor.models.deepseek_v2.DeepseekV2DecoderLayer",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py",
+        "sha256": "96f4f755f62caa85869fb884209e7f8869882ddb6efbd40c930778b27bd3e39d"
+      },
+      "selection": {
+        "layer_index": 6,
+        "ffn": "sparse",
+        "indexer": "full",
+        "first_k_dense_replace": 3,
+        "index_topk_freq": 4,
+        "index_skip_topk_offset": 3,
+        "index_topk_pattern": null
+      },
+      "attention": {
+        "class": "vllm_ascend.attention.sfa_v1.AscendSFAImpl",
+        "path": "/decoder/python/vllm_ascend/attention/sfa_v1.py",
+        "sha256": "b3e7bc578fdc00cddca3dd066af49c353a5abdc75571d7fa602340a4aece1e2b"
+      },
+      "actual_skip_topk": false,
+      "attention_reduce_results": true,
+      "input_norm": {
+        "class": "vllm_ascend.ops.layernorm.AscendRMSNorm",
+        "path": "/decoder/python/vllm_ascend/ops/layernorm.py",
+        "sha256": "75491119b6b494d6d399a552bf005d57db40bfe2a11d5ae13259c68f824e02b4"
+      },
+      "post_norm": {
+        "class": "vllm_ascend.ops.layernorm.AscendRMSNorm",
+        "path": "/decoder/python/vllm_ascend/ops/layernorm.py",
+        "sha256": "75491119b6b494d6d399a552bf005d57db40bfe2a11d5ae13259c68f824e02b4"
+      },
+      "runner": {
+        "class": "vllm_ascend.ops.fused_moe.fused_moe.AscendMoERunner",
+        "path": "/decoder/python/vllm_ascend/ops/fused_moe/fused_moe.py",
+        "sha256": "d4dfab36e66bd0a2ab9d78b9a867335adfc8cf0c418c93b34f5ccef63df00e27"
+      },
+      "routed": {
+        "class": "vllm_ascend.ops.fused_moe.routed_experts.AscendRoutedExperts",
+        "path": "/decoder/python/vllm_ascend/ops/fused_moe/routed_experts.py",
+        "sha256": "f9db74836ae210a541432b923118696c7a15be9a10d5776834e1d3b64ce11d77"
+      },
+      "scheme": {
+        "class": "vllm_ascend.quantization.methods.w4a8.w4a8.AscendW4A8DynamicFusedMoEMethod",
+        "path": "/decoder/python/vllm_ascend/quantization/methods/w4a8/w4a8.py",
+        "sha256": "efdcc610c05a44952c2548e0d8b0cd48ca7704c3e2cf8247f8f08f5e765b830b"
+      },
+      "communication": {
+        "class": "vllm_ascend.ops.fused_moe.moe_comm_method.AllGatherCommImpl",
+        "path": "/decoder/python/vllm_ascend/ops/fused_moe/moe_comm_method.py",
+        "sha256": "5be213bfe265f8c6240fb111bbb2a0b1edfdf7920e3d5966a159651e13b3b494"
+      },
+      "shared_gate_scheme": {
+        "class": "vllm_ascend.quantization.methods.w8a8.w8a8_dynamic.AscendW8A8DynamicLinearMethod",
+        "path": "/decoder/python/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py",
+        "sha256": "47444be0a5017d012401685d89134200f39c5e706f7941797fa7ecfccf1bba0d"
+      },
+      "shared_down_scheme": {
+        "class": "vllm_ascend.quantization.methods.w8a8.w8a8_dynamic.AscendW8A8DynamicLinearMethod",
+        "path": "/decoder/python/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py",
+        "sha256": "47444be0a5017d012401685d89134200f39c5e706f7941797fa7ecfccf1bba0d"
+      },
+      "shared_path": "A8_INT_FUSED",
+      "shared_gate_before": {
+        "shape": [
+          256,
+          6144
+        ],
+        "dtype": "torch.int8",
+        "device": "cpu",
+        "stride": [
+          6144,
+          1
+        ],
+        "format": null,
+        "logical_bytes": 1572864
+      },
+      "shared_down_before": {
+        "shape": [
+          6144,
+          128
+        ],
+        "dtype": "torch.int8",
+        "device": "cpu",
+        "stride": [
+          128,
+          1
+        ],
+        "format": null,
+        "logical_bytes": 786432
+      },
+      "tp": 16,
+      "ep": 1,
+      "dp": 1,
+      "pcp": 1,
+      "w13_before": {
+        "shape": [
+          256,
+          128,
+          6144
+        ],
+        "dtype": "torch.int8",
+        "device": "cpu",
+        "stride": [
+          786432,
+          6144,
+          1
+        ],
+        "format": null,
+        "logical_bytes": 201326592
+      },
+      "w2_before": {
+        "shape": [
+          256,
+          3072,
+          128
+        ],
+        "dtype": "torch.int8",
+        "device": "cpu",
+        "stride": [
+          393216,
+          128,
+          1
+        ],
+        "format": null,
+        "logical_bytes": 100663296
+      },
+      "topk_owner_is_supplied_buffer": true,
+      "topk_storage_ptr": 20618013573120,
+      "topk_device": "npu:0"
+    },
+    {
+      "name": "layer6_synthetic_parameter_fill",
+      "success": true,
+      "seed": 41021
+    },
+    {
+      "name": "layer6_move_parameters",
+      "success": true,
+      "source_parameter_bytes": 363968768,
+      "parameters": [
+        {
+          "name": "self_attn.fused_qkv_a_proj.weight",
+          "shape": [
+            2624,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "bytes": 16121856
+        },
+        {
+          "name": "self_attn.fused_qkv_a_proj.weight_scale",
+          "shape": [
+            2624,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 5248
+        },
+        {
+          "name": "self_attn.fused_qkv_a_proj.weight_offset",
+          "shape": [
+            2624,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 5248
+        },
+        {
+          "name": "self_attn.q_a_layernorm.weight",
+          "shape": [
+            2048
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 4096
+        },
+        {
+          "name": "self_attn.q_b_proj.weight",
+          "shape": [
+            1024,
+            2048
+          ],
+          "dtype": "torch.int8",
+          "bytes": 2097152
+        },
+        {
+          "name": "self_attn.q_b_proj.weight_scale",
+          "shape": [
+            1024,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 2048
+        },
+        {
+          "name": "self_attn.q_b_proj.weight_offset",
+          "shape": [
+            1024,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 2048
+        },
+        {
+          "name": "self_attn.kv_a_layernorm.weight",
+          "shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 1024
+        },
+        {
+          "name": "self_attn.kv_b_proj.weight",
+          "shape": [
+            1792,
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 1835008
+        },
+        {
+          "name": "self_attn.o_proj.weight",
+          "shape": [
+            6144,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "bytes": 6291456
+        },
+        {
+          "name": "self_attn.o_proj.weight_scale",
+          "shape": [
+            6144,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 12288
+        },
+        {
+          "name": "self_attn.o_proj.weight_offset",
+          "shape": [
+            6144,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 12288
+        },
+        {
+          "name": "self_attn.indexer.wq_b.weight",
+          "shape": [
+            4096,
+            2048
+          ],
+          "dtype": "torch.int8",
+          "bytes": 8388608
+        },
+        {
+          "name": "self_attn.indexer.wq_b.weight_scale",
+          "shape": [
+            4096,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 8192
+        },
+        {
+          "name": "self_attn.indexer.wq_b.weight_offset",
+          "shape": [
+            4096,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 8192
+        },
+        {
+          "name": "self_attn.indexer.wk_weights_proj.weight",
+          "shape": [
+            160,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 1966080
+        },
+        {
+          "name": "self_attn.indexer.k_norm.weight",
+          "shape": [
+            128
+          ],
+          "dtype": "torch.float32",
+          "bytes": 512
+        },
+        {
+          "name": "self_attn.indexer.k_norm.bias",
+          "shape": [
+            128
+          ],
+          "dtype": "torch.float32",
+          "bytes": 512
+        },
+        {
+          "name": "mlp.gate.weight",
+          "shape": [
+            256,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 3145728
+        },
+        {
+          "name": "mlp.gate.e_score_correction_bias",
+          "shape": [
+            256
+          ],
+          "dtype": "torch.float32",
+          "bytes": 1024
+        },
+        {
+          "name": "mlp.shared_experts.gate_up_proj.weight",
+          "shape": [
+            256,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "bytes": 1572864
+        },
+        {
+          "name": "mlp.shared_experts.gate_up_proj.weight_scale",
+          "shape": [
+            256,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 512
+        },
+        {
+          "name": "mlp.shared_experts.gate_up_proj.weight_offset",
+          "shape": [
+            256,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 512
+        },
+        {
+          "name": "mlp.shared_experts.down_proj.weight",
+          "shape": [
+            6144,
+            128
+          ],
+          "dtype": "torch.int8",
+          "bytes": 786432
+        },
+        {
+          "name": "mlp.shared_experts.down_proj.weight_scale",
+          "shape": [
+            6144,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 12288
+        },
+        {
+          "name": "mlp.shared_experts.down_proj.weight_offset",
+          "shape": [
+            6144,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 12288
+        },
+        {
+          "name": "mlp.experts.routed_experts.w13_weight",
+          "shape": [
+            256,
+            128,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "bytes": 201326592
+        },
+        {
+          "name": "mlp.experts.routed_experts.w2_weight",
+          "shape": [
+            256,
+            3072,
+            128
+          ],
+          "dtype": "torch.int8",
+          "bytes": 100663296
+        },
+        {
+          "name": "mlp.experts.routed_experts.w13_weight_scale",
+          "shape": [
+            256,
+            256,
+            1
+          ],
+          "dtype": "torch.float32",
+          "bytes": 262144
+        },
+        {
+          "name": "mlp.experts.routed_experts.w13_weight_offset",
+          "shape": [
+            256,
+            256,
+            1
+          ],
+          "dtype": "torch.float32",
+          "bytes": 262144
+        },
+        {
+          "name": "mlp.experts.routed_experts.w2_weight_scale",
+          "shape": [
+            256,
+            6144,
+            1
+          ],
+          "dtype": "torch.float32",
+          "bytes": 6291456
+        },
+        {
+          "name": "mlp.experts.routed_experts.w2_weight_offset",
+          "shape": [
+            256,
+            6144,
+            1
+          ],
+          "dtype": "torch.float32",
+          "bytes": 6291456
+        },
+        {
+          "name": "mlp.experts.routed_experts.w13_scale_bias",
+          "shape": [
+            256,
+            256,
+            1
+          ],
+          "dtype": "torch.float32",
+          "bytes": 262144
+        },
+        {
+          "name": "mlp.experts.routed_experts.w2_scale_bias",
+          "shape": [
+            256,
+            6144,
+            1
+          ],
+          "dtype": "torch.float32",
+          "bytes": 6291456
+        },
+        {
+          "name": "input_layernorm.weight",
+          "shape": [
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 12288
+        },
+        {
+          "name": "post_attention_layernorm.weight",
+          "shape": [
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 12288
+        }
+      ]
+    },
+    {
+      "name": "layer6_official_weight_postprocessing",
+      "success": true,
+      "loader": {
+        "class": "vllm.model_executor.model_loader.utils.process_weights_after_loading",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/model_loader/utils.py",
+        "sha256": "3091a9f64cbe42ad0e7fc0907fbbcb9197d2d56d5da4008779c5a16d9b8649a6"
+      }
+    },
+    {
+      "name": "layer6_processed_weight_contract",
+      "success": true,
+      "w13_weight": {
+        "shape": [
+          256,
+          6144,
+          32
+        ],
+        "dtype": "torch.int32",
+        "device": "npu:0",
+        "stride": [
+          196608,
+          32,
+          1
+        ],
+        "format": 29,
+        "logical_bytes": 201326592
+      },
+      "w2_weight": {
+        "shape": [
+          256,
+          128,
+          768
+        ],
+        "dtype": "torch.int32",
+        "device": "npu:0",
+        "stride": [
+          98304,
+          768,
+          1
+        ],
+        "format": 29,
+        "logical_bytes": 100663296
+      },
+      "w13_weight_scale": {
+        "shape": [
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "npu:0",
+        "stride": [
+          256,
+          1
+        ],
+        "format": 2,
+        "logical_bytes": 524288
+      },
+      "w2_weight_scale": {
+        "shape": [
+          256,
+          1,
+          6144
+        ],
+        "dtype": "torch.int64",
+        "device": "npu:0",
+        "stride": [
+          6144,
+          6144,
+          1
+        ],
+        "format": 2,
+        "logical_bytes": 12582912
+      },
+      "w13_scale_bias": {
+        "shape": [
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "npu:0",
+        "stride": [
+          256,
+          1
+        ],
+        "format": 2,
+        "logical_bytes": 262144
+      },
+      "w2_scale_bias": {
+        "shape": [
+          256,
+          6144
+        ],
+        "dtype": "torch.float32",
+        "device": "npu:0",
+        "stride": [
+          6144,
+          1
+        ],
+        "format": 2,
+        "logical_bytes": 6291456
+      }
+    },
+    {
+      "name": "layer6_processed_shared_contract",
+      "success": true,
+      "path": "A8_INT_FUSED",
+      "gate": {
+        "shape": [
+          6144,
+          256
+        ],
+        "dtype": "torch.int8",
+        "device": "npu:0",
+        "stride": [
+          256,
+          1
+        ],
+        "format": 29,
+        "logical_bytes": 1572864
+      },
+      "down": {
+        "shape": [
+          128,
+          6144
+        ],
+        "dtype": "torch.int8",
+        "device": "npu:0",
+        "stride": [
+          6144,
+          1
+        ],
+        "format": 29,
+        "logical_bytes": 786432
+      },
+      "gate_scale": {
+        "shape": [
+          256
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "npu:0",
+        "stride": [
+          1
+        ],
+        "format": 2,
+        "logical_bytes": 512
+      },
+      "down_scale": {
+        "shape": [
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "npu:0",
+        "stride": [
+          1
+        ],
+        "format": 2,
+        "logical_bytes": 12288
+      },
+      "topk_owner_storage_ptr": 20618013573120
+    },
+    {
+      "name": "actual_decoder_layer7_constructor",
+      "success": true,
+      "layer": {
+        "class": "vllm.model_executor.models.deepseek_v2.DeepseekV2DecoderLayer",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py",
+        "sha256": "96f4f755f62caa85869fb884209e7f8869882ddb6efbd40c930778b27bd3e39d"
+      },
+      "selection": {
+        "layer_index": 7,
+        "ffn": "sparse",
+        "indexer": "shared",
+        "first_k_dense_replace": 3,
+        "index_topk_freq": 4,
+        "index_skip_topk_offset": 3,
+        "index_topk_pattern": null
+      },
+      "attention": {
+        "class": "vllm_ascend.attention.sfa_v1.AscendSFAImpl",
+        "path": "/decoder/python/vllm_ascend/attention/sfa_v1.py",
+        "sha256": "b3e7bc578fdc00cddca3dd066af49c353a5abdc75571d7fa602340a4aece1e2b"
+      },
+      "actual_skip_topk": true,
+      "attention_reduce_results": true,
+      "input_norm": {
+        "class": "vllm_ascend.ops.layernorm.AscendRMSNorm",
+        "path": "/decoder/python/vllm_ascend/ops/layernorm.py",
+        "sha256": "75491119b6b494d6d399a552bf005d57db40bfe2a11d5ae13259c68f824e02b4"
+      },
+      "post_norm": {
+        "class": "vllm_ascend.ops.layernorm.AscendRMSNorm",
+        "path": "/decoder/python/vllm_ascend/ops/layernorm.py",
+        "sha256": "75491119b6b494d6d399a552bf005d57db40bfe2a11d5ae13259c68f824e02b4"
+      },
+      "runner": {
+        "class": "vllm_ascend.ops.fused_moe.fused_moe.AscendMoERunner",
+        "path": "/decoder/python/vllm_ascend/ops/fused_moe/fused_moe.py",
+        "sha256": "d4dfab36e66bd0a2ab9d78b9a867335adfc8cf0c418c93b34f5ccef63df00e27"
+      },
+      "routed": {
+        "class": "vllm_ascend.ops.fused_moe.routed_experts.AscendRoutedExperts",
+        "path": "/decoder/python/vllm_ascend/ops/fused_moe/routed_experts.py",
+        "sha256": "f9db74836ae210a541432b923118696c7a15be9a10d5776834e1d3b64ce11d77"
+      },
+      "scheme": {
+        "class": "vllm_ascend.quantization.methods.w4a8.w4a8.AscendW4A8DynamicFusedMoEMethod",
+        "path": "/decoder/python/vllm_ascend/quantization/methods/w4a8/w4a8.py",
+        "sha256": "efdcc610c05a44952c2548e0d8b0cd48ca7704c3e2cf8247f8f08f5e765b830b"
+      },
+      "communication": {
+        "class": "vllm_ascend.ops.fused_moe.moe_comm_method.AllGatherCommImpl",
+        "path": "/decoder/python/vllm_ascend/ops/fused_moe/moe_comm_method.py",
+        "sha256": "5be213bfe265f8c6240fb111bbb2a0b1edfdf7920e3d5966a159651e13b3b494"
+      },
+      "shared_gate_scheme": {
+        "class": "vllm_ascend.quantization.methods.w8a8.w8a8_dynamic.AscendW8A8DynamicLinearMethod",
+        "path": "/decoder/python/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py",
+        "sha256": "47444be0a5017d012401685d89134200f39c5e706f7941797fa7ecfccf1bba0d"
+      },
+      "shared_down_scheme": {
+        "class": "vllm_ascend.quantization.methods.w8a8.w8a8_dynamic.AscendW8A8DynamicLinearMethod",
+        "path": "/decoder/python/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py",
+        "sha256": "47444be0a5017d012401685d89134200f39c5e706f7941797fa7ecfccf1bba0d"
+      },
+      "shared_path": "A8_INT_FUSED",
+      "shared_gate_before": {
+        "shape": [
+          256,
+          6144
+        ],
+        "dtype": "torch.int8",
+        "device": "cpu",
+        "stride": [
+          6144,
+          1
+        ],
+        "format": null,
+        "logical_bytes": 1572864
+      },
+      "shared_down_before": {
+        "shape": [
+          6144,
+          128
+        ],
+        "dtype": "torch.int8",
+        "device": "cpu",
+        "stride": [
+          128,
+          1
+        ],
+        "format": null,
+        "logical_bytes": 786432
+      },
+      "tp": 16,
+      "ep": 1,
+      "dp": 1,
+      "pcp": 1,
+      "w13_before": {
+        "shape": [
+          256,
+          128,
+          6144
+        ],
+        "dtype": "torch.int8",
+        "device": "cpu",
+        "stride": [
+          786432,
+          6144,
+          1
+        ],
+        "format": null,
+        "logical_bytes": 201326592
+      },
+      "w2_before": {
+        "shape": [
+          256,
+          3072,
+          128
+        ],
+        "dtype": "torch.int8",
+        "device": "cpu",
+        "stride": [
+          393216,
+          128,
+          1
+        ],
+        "format": null,
+        "logical_bytes": 100663296
+      },
+      "topk_owner_is_supplied_buffer": true,
+      "topk_storage_ptr": 20618013573120,
+      "topk_device": "npu:0"
+    },
+    {
+      "name": "layer7_synthetic_parameter_fill",
+      "success": true,
+      "seed": 41021
+    },
+    {
+      "name": "layer7_move_parameters",
+      "success": true,
+      "source_parameter_bytes": 353596672,
+      "parameters": [
+        {
+          "name": "self_attn.fused_qkv_a_proj.weight",
+          "shape": [
+            2624,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "bytes": 16121856
+        },
+        {
+          "name": "self_attn.fused_qkv_a_proj.weight_scale",
+          "shape": [
+            2624,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 5248
+        },
+        {
+          "name": "self_attn.fused_qkv_a_proj.weight_offset",
+          "shape": [
+            2624,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 5248
+        },
+        {
+          "name": "self_attn.q_a_layernorm.weight",
+          "shape": [
+            2048
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 4096
+        },
+        {
+          "name": "self_attn.q_b_proj.weight",
+          "shape": [
+            1024,
+            2048
+          ],
+          "dtype": "torch.int8",
+          "bytes": 2097152
+        },
+        {
+          "name": "self_attn.q_b_proj.weight_scale",
+          "shape": [
+            1024,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 2048
+        },
+        {
+          "name": "self_attn.q_b_proj.weight_offset",
+          "shape": [
+            1024,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 2048
+        },
+        {
+          "name": "self_attn.kv_a_layernorm.weight",
+          "shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 1024
+        },
+        {
+          "name": "self_attn.kv_b_proj.weight",
+          "shape": [
+            1792,
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 1835008
+        },
+        {
+          "name": "self_attn.o_proj.weight",
+          "shape": [
+            6144,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "bytes": 6291456
+        },
+        {
+          "name": "self_attn.o_proj.weight_scale",
+          "shape": [
+            6144,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 12288
+        },
+        {
+          "name": "self_attn.o_proj.weight_offset",
+          "shape": [
+            6144,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 12288
+        },
+        {
+          "name": "mlp.gate.weight",
+          "shape": [
+            256,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 3145728
+        },
+        {
+          "name": "mlp.gate.e_score_correction_bias",
+          "shape": [
+            256
+          ],
+          "dtype": "torch.float32",
+          "bytes": 1024
+        },
+        {
+          "name": "mlp.shared_experts.gate_up_proj.weight",
+          "shape": [
+            256,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "bytes": 1572864
+        },
+        {
+          "name": "mlp.shared_experts.gate_up_proj.weight_scale",
+          "shape": [
+            256,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 512
+        },
+        {
+          "name": "mlp.shared_experts.gate_up_proj.weight_offset",
+          "shape": [
+            256,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 512
+        },
+        {
+          "name": "mlp.shared_experts.down_proj.weight",
+          "shape": [
+            6144,
+            128
+          ],
+          "dtype": "torch.int8",
+          "bytes": 786432
+        },
+        {
+          "name": "mlp.shared_experts.down_proj.weight_scale",
+          "shape": [
+            6144,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 12288
+        },
+        {
+          "name": "mlp.shared_experts.down_proj.weight_offset",
+          "shape": [
+            6144,
+            1
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 12288
+        },
+        {
+          "name": "mlp.experts.routed_experts.w13_weight",
+          "shape": [
+            256,
+            128,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "bytes": 201326592
+        },
+        {
+          "name": "mlp.experts.routed_experts.w2_weight",
+          "shape": [
+            256,
+            3072,
+            128
+          ],
+          "dtype": "torch.int8",
+          "bytes": 100663296
+        },
+        {
+          "name": "mlp.experts.routed_experts.w13_weight_scale",
+          "shape": [
+            256,
+            256,
+            1
+          ],
+          "dtype": "torch.float32",
+          "bytes": 262144
+        },
+        {
+          "name": "mlp.experts.routed_experts.w13_weight_offset",
+          "shape": [
+            256,
+            256,
+            1
+          ],
+          "dtype": "torch.float32",
+          "bytes": 262144
+        },
+        {
+          "name": "mlp.experts.routed_experts.w2_weight_scale",
+          "shape": [
+            256,
+            6144,
+            1
+          ],
+          "dtype": "torch.float32",
+          "bytes": 6291456
+        },
+        {
+          "name": "mlp.experts.routed_experts.w2_weight_offset",
+          "shape": [
+            256,
+            6144,
+            1
+          ],
+          "dtype": "torch.float32",
+          "bytes": 6291456
+        },
+        {
+          "name": "mlp.experts.routed_experts.w13_scale_bias",
+          "shape": [
+            256,
+            256,
+            1
+          ],
+          "dtype": "torch.float32",
+          "bytes": 262144
+        },
+        {
+          "name": "mlp.experts.routed_experts.w2_scale_bias",
+          "shape": [
+            256,
+            6144,
+            1
+          ],
+          "dtype": "torch.float32",
+          "bytes": 6291456
+        },
+        {
+          "name": "input_layernorm.weight",
+          "shape": [
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 12288
+        },
+        {
+          "name": "post_attention_layernorm.weight",
+          "shape": [
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bytes": 12288
+        }
+      ]
+    },
+    {
+      "name": "layer7_official_weight_postprocessing",
+      "success": true,
+      "loader": {
+        "class": "vllm.model_executor.model_loader.utils.process_weights_after_loading",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/model_loader/utils.py",
+        "sha256": "3091a9f64cbe42ad0e7fc0907fbbcb9197d2d56d5da4008779c5a16d9b8649a6"
+      }
+    },
+    {
+      "name": "layer7_processed_weight_contract",
+      "success": true,
+      "w13_weight": {
+        "shape": [
+          256,
+          6144,
+          32
+        ],
+        "dtype": "torch.int32",
+        "device": "npu:0",
+        "stride": [
+          196608,
+          32,
+          1
+        ],
+        "format": 29,
+        "logical_bytes": 201326592
+      },
+      "w2_weight": {
+        "shape": [
+          256,
+          128,
+          768
+        ],
+        "dtype": "torch.int32",
+        "device": "npu:0",
+        "stride": [
+          98304,
+          768,
+          1
+        ],
+        "format": 29,
+        "logical_bytes": 100663296
+      },
+      "w13_weight_scale": {
+        "shape": [
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "npu:0",
+        "stride": [
+          256,
+          1
+        ],
+        "format": 2,
+        "logical_bytes": 524288
+      },
+      "w2_weight_scale": {
+        "shape": [
+          256,
+          1,
+          6144
+        ],
+        "dtype": "torch.int64",
+        "device": "npu:0",
+        "stride": [
+          6144,
+          6144,
+          1
+        ],
+        "format": 2,
+        "logical_bytes": 12582912
+      },
+      "w13_scale_bias": {
+        "shape": [
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "npu:0",
+        "stride": [
+          256,
+          1
+        ],
+        "format": 2,
+        "logical_bytes": 262144
+      },
+      "w2_scale_bias": {
+        "shape": [
+          256,
+          6144
+        ],
+        "dtype": "torch.float32",
+        "device": "npu:0",
+        "stride": [
+          6144,
+          1
+        ],
+        "format": 2,
+        "logical_bytes": 6291456
+      }
+    },
+    {
+      "name": "layer7_processed_shared_contract",
+      "success": true,
+      "path": "A8_INT_FUSED",
+      "gate": {
+        "shape": [
+          6144,
+          256
+        ],
+        "dtype": "torch.int8",
+        "device": "npu:0",
+        "stride": [
+          256,
+          1
+        ],
+        "format": 29,
+        "logical_bytes": 1572864
+      },
+      "down": {
+        "shape": [
+          128,
+          6144
+        ],
+        "dtype": "torch.int8",
+        "device": "npu:0",
+        "stride": [
+          6144,
+          1
+        ],
+        "format": 29,
+        "logical_bytes": 786432
+      },
+      "gate_scale": {
+        "shape": [
+          256
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "npu:0",
+        "stride": [
+          1
+        ],
+        "format": 2,
+        "logical_bytes": 512
+      },
+      "down_scale": {
+        "shape": [
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "device": "npu:0",
+        "stride": [
+          1
+        ],
+        "format": 2,
+        "logical_bytes": 12288
+      },
+      "topk_owner_storage_ptr": 20618013573120
+    },
+    {
+      "name": "actual_local_complete_ffn",
+      "success": true,
+      "report": "/evidence/vendor-hook-decoder212-ffn-gu-ready-wide-v1/decoder-ffn.json"
+    }
+  ],
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+  "runtime_image": "sha256:1910b1acedb37acc42beda9cb695c2cf84c57c81d8dd8b5191a98a97bc6d5fe6",
+  "npu_initialized_before": false,
+  "result": {
+    "constructed_layers": [
+      6,
+      7
+    ],
+    "official_postprocessing": true,
+    "full_decoder_forward_executed": false,
+    "complete_ffn_executed": true,
+    "tp16_collectives_executed": 0,
+    "scope": "Actual DecoderLayer post-attention norm and MLP versus native complete FFN, with local pre-AR2 outputs",
+    "mc2_scope": "actual HCCL rank0 singleton used by the original W4A8 constructor"
+  },
+  "rank_zero_status": {
+    "success": true
+  },
+  "npu_initialized_after": true,
+  "maximum_rss_kib": 4308204
+}

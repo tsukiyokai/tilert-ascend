@@ -1,0 +1,22 @@
+{
+  "created_at": "2026-10-28T09:15:28.223030+00:00",
+  "scope": "Selected-die integer token staging; no model or timing",
+  "hostname": "957542f46663",
+  "command": [
+    "/work/source/experiments/token-staging/device_check.py",
+    "--device",
+    "npu:0",
+    "--output",
+    "/work/receipts/device-check-v2.json"
+  ],
+  "checks": [],
+  "precision_verified": false,
+  "performance_measured": false,
+  "source_sha256": {
+    "experiments/token-staging/device_check.py": "6d97030748021578b84e65c5076627547a85b8713e845b696fecfeba051f1391",
+    "tilert/pd_vllm/decode_timing.py": "19486dc01f166c2ce9a505d7c88478c323bf80ce4bf677bab66c62787982a688",
+    "tilert/models/glm_5_2_ascend/cann_model.py": "1131290c3c2eb2ef1b2e5eccfab96589afbc8689f40b55699f2e52d2065c5044"
+  },
+  "status": "fail",
+  "error": "RuntimeError: Initialize:../torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.cpp:165 NPU function error: aclInit, error code is 507899\n[ERROR] 2026-10-28-17:15:32 (PID:335, Device:0, RankID:-1) ERR00100 PTA call acl api failed\n[Error]: An internal error occurs in the Driver module. \n        Rectify the fault based on the error information in the ascend log.\n[PID: 335] 2026-10-28-17:15:32.173.497 Resource_Busy(EL0005): The resources are busy.\n        Possible Cause: 1. The resources have been occupied. 2. The device is being reset. 3. Software is not ready.\n        Solution: 1. Close applications not in use. 2. Wait for a while and try again.\nTraceBack (most recent call last):\n        Get device cnt failed, retCode=0x7020010[FUNC:CheckDeviceIdIsValid][FILE:api_error.cc][LINE:4972]\n        drv devId is invalid, drv devId=0, retCode=0x7020010[FUNC:SetDefaultDeviceId][FILE:api_error.cc][LINE:5661]\n        rtSetDefaultDeviceId execution failed, reason=driver error:internal error[FUNC:FuncErrorReason][FILE:error_message_manage.cc][LINE:69]\n        [Process][DefaultDevice]process HandleDefaultDevice failed[FUNC:ReportInnerError][FILE:log_inner.cpp][LINE:132]\n        chipType=0 does not support get device msg feature.[FUNC:GetDevMsg][FILE:api_impl.cc][LINE:6119]\n        The argument is invalid. Reason: rtGetDevMsg execution failed, the feature is not supported.\n"
+}

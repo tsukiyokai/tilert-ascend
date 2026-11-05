@@ -1,0 +1,6195 @@
+{
+  "scope": "Captured M32 K6144 N160 WK BF16 controls and stock FP32 outputs; no timing or full-layer acceptance",
+  "script": {
+    "path": "/workspace/tests/glm52/whole_layer/indexer_wk_probe/check_fp32.py",
+    "sha256": "642d054c7e61579b8fbddd705a9e3ffdbafecb94a4df65ff95ae8955f07e0184"
+  },
+  "capture": {
+    "path": "/capture/outer-index-diagnostic.pt",
+    "sha256": "0b6e5a0198e0423f4a1c644016089cc2723ddfd7768f8b4d11b7ac4e25008725"
+  },
+  "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+  "platform": "Linux-5.10.0-182.0.0.95.r2220_157.hce2.aarch64-aarch64-with-glibc2.34",
+  "cpu_only": false,
+  "cases": [
+    {
+      "arm": "production_nz_full",
+      "iteration": 0,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6fa5079fccb7a9b148596389b82a410619cda10ac858bf692ea4b01c3f6f4816"
+      },
+      "captured_vendor": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "captured_native": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            },
+            "expected": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            },
+            "expected": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            },
+            "expected": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            }
+          }
+        ]
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035400390625,
+            "bits": "0x3b68"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.01275634765625,
+            "bits": "0x3c51"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.1611328125,
+            "bits": "0x3e25"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.03759765625,
+            "bits": "0x3d1a"
+          }
+        }
+      ]
+    },
+    {
+      "arm": "nz_split",
+      "iteration": 0,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6ab304e4bde15e6f722480c2e4f65ac7d3f72ae9ca2e80e068440f48d0cffd4d"
+      },
+      "captured_vendor": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "captured_native": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 3,
+        "different_bytes": 3,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035552978515625,
+            "bits": "0x3b69"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.0126953125,
+            "bits": "0x3c50"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.162109375,
+            "bits": "0x3e26"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.037353515625,
+            "bits": "0x3d19"
+          }
+        }
+      ]
+    },
+    {
+      "arm": "nd_full",
+      "iteration": 0,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6fa5079fccb7a9b148596389b82a410619cda10ac858bf692ea4b01c3f6f4816"
+      },
+      "captured_vendor": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "captured_native": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            },
+            "expected": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            },
+            "expected": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            },
+            "expected": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            }
+          }
+        ]
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035400390625,
+            "bits": "0x3b68"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.01275634765625,
+            "bits": "0x3c51"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.1611328125,
+            "bits": "0x3e25"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.03759765625,
+            "bits": "0x3d1a"
+          }
+        }
+      ]
+    },
+    {
+      "arm": "nd_split",
+      "iteration": 0,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6ab304e4bde15e6f722480c2e4f65ac7d3f72ae9ca2e80e068440f48d0cffd4d"
+      },
+      "captured_vendor": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "captured_native": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 3,
+        "different_bytes": 3,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035552978515625,
+            "bits": "0x3b69"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.0126953125,
+            "bits": "0x3c50"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.162109375,
+            "bits": "0x3e26"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.037353515625,
+            "bits": "0x3d19"
+          }
+        }
+      ]
+    },
+    {
+      "arm": "nd_kn_full",
+      "iteration": 0,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6fa5079fccb7a9b148596389b82a410619cda10ac858bf692ea4b01c3f6f4816"
+      },
+      "captured_vendor": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "captured_native": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            },
+            "expected": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            },
+            "expected": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            },
+            "expected": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            }
+          }
+        ]
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035400390625,
+            "bits": "0x3b68"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.01275634765625,
+            "bits": "0x3c51"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.1611328125,
+            "bits": "0x3e25"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.03759765625,
+            "bits": "0x3d1a"
+          }
+        }
+      ]
+    },
+    {
+      "arm": "nd_kn_split",
+      "iteration": 0,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6ab304e4bde15e6f722480c2e4f65ac7d3f72ae9ca2e80e068440f48d0cffd4d"
+      },
+      "captured_vendor": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "captured_native": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 3,
+        "different_bytes": 3,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035552978515625,
+            "bits": "0x3b69"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.0126953125,
+            "bits": "0x3c50"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.162109375,
+            "bits": "0x3e26"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.037353515625,
+            "bits": "0x3d19"
+          }
+        }
+      ]
+    },
+    {
+      "arm": "nz_full_mm",
+      "iteration": 0,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6fa5079fccb7a9b148596389b82a410619cda10ac858bf692ea4b01c3f6f4816"
+      },
+      "captured_vendor": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "captured_native": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            },
+            "expected": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            },
+            "expected": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            },
+            "expected": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            }
+          }
+        ]
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035400390625,
+            "bits": "0x3b68"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.01275634765625,
+            "bits": "0x3c51"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.1611328125,
+            "bits": "0x3e25"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.03759765625,
+            "bits": "0x3d1a"
+          }
+        }
+      ]
+    },
+    {
+      "arm": "nz_full_mm_float32",
+      "iteration": 0,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.float32",
+        "sha256": "e07912d3686f79dcfc0cccca0c544dd3d346ead157d68eebcf1c12735ef1a4aa"
+      },
+      "captured_vendor": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "captured_native": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 3,
+        "different_bytes": 3,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035477466881275177,
+            "bits": "0x3b688150"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.012725729495286942,
+            "bits": "0x3c507f94"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.16162109375,
+            "bits": "0x3e258000"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.037475548684597015,
+            "bits": "0x3d197ff6"
+          }
+        }
+      ],
+      "captured_native_accumulators": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "paired_bf16_arm": "nz_full_mm",
+      "paired_bf16_result": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "fp32_minus_fp64_at_witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "difference": 3.183231456205249e-08
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "difference": -1.629055077501107e-07
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "difference": 5.602487362921238e-08
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "difference": -1.328880898654461e-07
+        }
+      ]
+    },
+    {
+      "arm": "nd_kn_split_float32",
+      "iteration": 0,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.float32",
+        "sha256": "e07912d3686f79dcfc0cccca0c544dd3d346ead157d68eebcf1c12735ef1a4aa"
+      },
+      "captured_vendor": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "captured_native": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 3,
+        "different_bytes": 3,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035477466881275177,
+            "bits": "0x3b688150"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.012725729495286942,
+            "bits": "0x3c507f94"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.16162109375,
+            "bits": "0x3e258000"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.037475548684597015,
+            "bits": "0x3d197ff6"
+          }
+        }
+      ],
+      "captured_native_accumulators": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "paired_bf16_arm": "nd_kn_split",
+      "paired_bf16_result": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "fp32_minus_fp64_at_witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "difference": 3.183231456205249e-08
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "difference": -1.629055077501107e-07
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "difference": 5.602487362921238e-08
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "difference": -1.328880898654461e-07
+        }
+      ]
+    },
+    {
+      "arm": "nz_full_mm",
+      "iteration": 1,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6fa5079fccb7a9b148596389b82a410619cda10ac858bf692ea4b01c3f6f4816"
+      },
+      "captured_vendor": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "captured_native": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            },
+            "expected": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            },
+            "expected": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            },
+            "expected": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            }
+          }
+        ]
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035400390625,
+            "bits": "0x3b68"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.01275634765625,
+            "bits": "0x3c51"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.1611328125,
+            "bits": "0x3e25"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.03759765625,
+            "bits": "0x3d1a"
+          }
+        }
+      ],
+      "repeatability": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "nd_kn_split",
+      "iteration": 1,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6ab304e4bde15e6f722480c2e4f65ac7d3f72ae9ca2e80e068440f48d0cffd4d"
+      },
+      "captured_vendor": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "captured_native": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 3,
+        "different_bytes": 3,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035552978515625,
+            "bits": "0x3b69"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.0126953125,
+            "bits": "0x3c50"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.162109375,
+            "bits": "0x3e26"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.037353515625,
+            "bits": "0x3d19"
+          }
+        }
+      ],
+      "repeatability": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "nd_kn_full",
+      "iteration": 1,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6fa5079fccb7a9b148596389b82a410619cda10ac858bf692ea4b01c3f6f4816"
+      },
+      "captured_vendor": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "captured_native": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            },
+            "expected": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            },
+            "expected": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            },
+            "expected": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            }
+          }
+        ]
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035400390625,
+            "bits": "0x3b68"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.01275634765625,
+            "bits": "0x3c51"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.1611328125,
+            "bits": "0x3e25"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.03759765625,
+            "bits": "0x3d1a"
+          }
+        }
+      ],
+      "repeatability": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "nd_split",
+      "iteration": 1,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6ab304e4bde15e6f722480c2e4f65ac7d3f72ae9ca2e80e068440f48d0cffd4d"
+      },
+      "captured_vendor": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "captured_native": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 3,
+        "different_bytes": 3,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035552978515625,
+            "bits": "0x3b69"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.0126953125,
+            "bits": "0x3c50"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.162109375,
+            "bits": "0x3e26"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.037353515625,
+            "bits": "0x3d19"
+          }
+        }
+      ],
+      "repeatability": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "nd_full",
+      "iteration": 1,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6fa5079fccb7a9b148596389b82a410619cda10ac858bf692ea4b01c3f6f4816"
+      },
+      "captured_vendor": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "captured_native": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            },
+            "expected": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            },
+            "expected": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            },
+            "expected": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            }
+          }
+        ]
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035400390625,
+            "bits": "0x3b68"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.01275634765625,
+            "bits": "0x3c51"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.1611328125,
+            "bits": "0x3e25"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.03759765625,
+            "bits": "0x3d1a"
+          }
+        }
+      ],
+      "repeatability": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "nz_split",
+      "iteration": 1,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6ab304e4bde15e6f722480c2e4f65ac7d3f72ae9ca2e80e068440f48d0cffd4d"
+      },
+      "captured_vendor": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "captured_native": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 3,
+        "different_bytes": 3,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035552978515625,
+            "bits": "0x3b69"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.0126953125,
+            "bits": "0x3c50"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.162109375,
+            "bits": "0x3e26"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.037353515625,
+            "bits": "0x3d19"
+          }
+        }
+      ],
+      "repeatability": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "production_nz_full",
+      "iteration": 1,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6fa5079fccb7a9b148596389b82a410619cda10ac858bf692ea4b01c3f6f4816"
+      },
+      "captured_vendor": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "captured_native": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            },
+            "expected": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            },
+            "expected": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            },
+            "expected": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            }
+          }
+        ]
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035400390625,
+            "bits": "0x3b68"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.01275634765625,
+            "bits": "0x3c51"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.1611328125,
+            "bits": "0x3e25"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.03759765625,
+            "bits": "0x3d1a"
+          }
+        }
+      ],
+      "repeatability": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "nd_kn_split_float32",
+      "iteration": 1,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.float32",
+        "sha256": "e07912d3686f79dcfc0cccca0c544dd3d346ead157d68eebcf1c12735ef1a4aa"
+      },
+      "captured_vendor": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "captured_native": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 3,
+        "different_bytes": 3,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035477466881275177,
+            "bits": "0x3b688150"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.012725729495286942,
+            "bits": "0x3c507f94"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.16162109375,
+            "bits": "0x3e258000"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.037475548684597015,
+            "bits": "0x3d197ff6"
+          }
+        }
+      ],
+      "captured_native_accumulators": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "paired_bf16_arm": "nd_kn_split",
+      "paired_bf16_result": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "fp32_minus_fp64_at_witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "difference": 3.183231456205249e-08
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "difference": -1.629055077501107e-07
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "difference": 5.602487362921238e-08
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "difference": -1.328880898654461e-07
+        }
+      ],
+      "repeatability": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "nz_full_mm_float32",
+      "iteration": 1,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.float32",
+        "sha256": "e07912d3686f79dcfc0cccca0c544dd3d346ead157d68eebcf1c12735ef1a4aa"
+      },
+      "captured_vendor": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "captured_native": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 3,
+        "different_bytes": 3,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035477466881275177,
+            "bits": "0x3b688150"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.012725729495286942,
+            "bits": "0x3c507f94"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.16162109375,
+            "bits": "0x3e258000"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.037475548684597015,
+            "bits": "0x3d197ff6"
+          }
+        }
+      ],
+      "captured_native_accumulators": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "paired_bf16_arm": "nz_full_mm",
+      "paired_bf16_result": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "fp32_minus_fp64_at_witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "difference": 3.183231456205249e-08
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "difference": -1.629055077501107e-07
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "difference": 5.602487362921238e-08
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "difference": -1.328880898654461e-07
+        }
+      ],
+      "repeatability": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "production_nz_full",
+      "iteration": 2,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6fa5079fccb7a9b148596389b82a410619cda10ac858bf692ea4b01c3f6f4816"
+      },
+      "captured_vendor": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "captured_native": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            },
+            "expected": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            },
+            "expected": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            },
+            "expected": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            }
+          }
+        ]
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035400390625,
+            "bits": "0x3b68"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.01275634765625,
+            "bits": "0x3c51"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.1611328125,
+            "bits": "0x3e25"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.03759765625,
+            "bits": "0x3d1a"
+          }
+        }
+      ],
+      "repeatability": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "nz_split",
+      "iteration": 2,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6ab304e4bde15e6f722480c2e4f65ac7d3f72ae9ca2e80e068440f48d0cffd4d"
+      },
+      "captured_vendor": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "captured_native": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 3,
+        "different_bytes": 3,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035552978515625,
+            "bits": "0x3b69"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.0126953125,
+            "bits": "0x3c50"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.162109375,
+            "bits": "0x3e26"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.037353515625,
+            "bits": "0x3d19"
+          }
+        }
+      ],
+      "repeatability": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "nd_full",
+      "iteration": 2,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6fa5079fccb7a9b148596389b82a410619cda10ac858bf692ea4b01c3f6f4816"
+      },
+      "captured_vendor": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "captured_native": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            },
+            "expected": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            },
+            "expected": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            },
+            "expected": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            }
+          }
+        ]
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035400390625,
+            "bits": "0x3b68"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.01275634765625,
+            "bits": "0x3c51"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.1611328125,
+            "bits": "0x3e25"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.03759765625,
+            "bits": "0x3d1a"
+          }
+        }
+      ],
+      "repeatability": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "nd_split",
+      "iteration": 2,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6ab304e4bde15e6f722480c2e4f65ac7d3f72ae9ca2e80e068440f48d0cffd4d"
+      },
+      "captured_vendor": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "captured_native": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 3,
+        "different_bytes": 3,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035552978515625,
+            "bits": "0x3b69"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.0126953125,
+            "bits": "0x3c50"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.162109375,
+            "bits": "0x3e26"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.037353515625,
+            "bits": "0x3d19"
+          }
+        }
+      ],
+      "repeatability": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "nd_kn_full",
+      "iteration": 2,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6fa5079fccb7a9b148596389b82a410619cda10ac858bf692ea4b01c3f6f4816"
+      },
+      "captured_vendor": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "captured_native": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            },
+            "expected": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            },
+            "expected": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            },
+            "expected": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            }
+          }
+        ]
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035400390625,
+            "bits": "0x3b68"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.01275634765625,
+            "bits": "0x3c51"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.1611328125,
+            "bits": "0x3e25"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.03759765625,
+            "bits": "0x3d1a"
+          }
+        }
+      ],
+      "repeatability": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "nd_kn_split",
+      "iteration": 2,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6ab304e4bde15e6f722480c2e4f65ac7d3f72ae9ca2e80e068440f48d0cffd4d"
+      },
+      "captured_vendor": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "captured_native": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 3,
+        "different_bytes": 3,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035552978515625,
+            "bits": "0x3b69"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.0126953125,
+            "bits": "0x3c50"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.162109375,
+            "bits": "0x3e26"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.037353515625,
+            "bits": "0x3d19"
+          }
+        }
+      ],
+      "repeatability": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "nz_full_mm",
+      "iteration": 2,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "6fa5079fccb7a9b148596389b82a410619cda10ac858bf692ea4b01c3f6f4816"
+      },
+      "captured_vendor": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "captured_native": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            },
+            "expected": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            },
+            "expected": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            },
+            "expected": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            }
+          }
+        ]
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            },
+            "expected": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035400390625,
+            "bits": "0x3b68"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.01275634765625,
+            "bits": "0x3c51"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.1611328125,
+            "bits": "0x3e25"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.03759765625,
+            "bits": "0x3d1a"
+          }
+        }
+      ],
+      "repeatability": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "nz_full_mm_float32",
+      "iteration": 2,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.float32",
+        "sha256": "e07912d3686f79dcfc0cccca0c544dd3d346ead157d68eebcf1c12735ef1a4aa"
+      },
+      "captured_vendor": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "captured_native": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 3,
+        "different_bytes": 3,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035477466881275177,
+            "bits": "0x3b688150"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.012725729495286942,
+            "bits": "0x3c507f94"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.16162109375,
+            "bits": "0x3e258000"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.037475548684597015,
+            "bits": "0x3d197ff6"
+          }
+        }
+      ],
+      "captured_native_accumulators": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "paired_bf16_arm": "nz_full_mm",
+      "paired_bf16_result": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "fp32_minus_fp64_at_witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "difference": 3.183231456205249e-08
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "difference": -1.629055077501107e-07
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "difference": 5.602487362921238e-08
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "difference": -1.328880898654461e-07
+        }
+      ],
+      "repeatability": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "nd_kn_split_float32",
+      "iteration": 2,
+      "output": {
+        "shape": [
+          32,
+          160
+        ],
+        "dtype": "torch.float32",
+        "sha256": "e07912d3686f79dcfc0cccca0c544dd3d346ead157d68eebcf1c12735ef1a4aa"
+      },
+      "captured_vendor": {
+        "bitwise_equal": false,
+        "different_elements": 4,
+        "different_bytes": 4,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.0035552978515625,
+              "bits": "0x3b69"
+            },
+            "expected": {
+              "value": 0.0035400390625,
+              "bits": "0x3b68"
+            }
+          },
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "captured_native": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 3,
+        "different_bytes": 3,
+        "elements": 5120,
+        "first_differences": [
+          {
+            "coordinate": [
+              6,
+              153
+            ],
+            "actual": {
+              "value": 0.0126953125,
+              "bits": "0x3c50"
+            },
+            "expected": {
+              "value": 0.01275634765625,
+              "bits": "0x3c51"
+            }
+          },
+          {
+            "coordinate": [
+              19,
+              51
+            ],
+            "actual": {
+              "value": 0.162109375,
+              "bits": "0x3e26"
+            },
+            "expected": {
+              "value": 0.1611328125,
+              "bits": "0x3e25"
+            }
+          },
+          {
+            "coordinate": [
+              31,
+              25
+            ],
+            "actual": {
+              "value": 0.037353515625,
+              "bits": "0x3d19"
+            },
+            "expected": {
+              "value": 0.03759765625,
+              "bits": "0x3d1a"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "output": {
+            "value": 0.0035477466881275177,
+            "bits": "0x3b688150"
+          }
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "output": {
+            "value": 0.012725729495286942,
+            "bits": "0x3c507f94"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "output": {
+            "value": 0.16162109375,
+            "bits": "0x3e258000"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "output": {
+            "value": 0.037475548684597015,
+            "bits": "0x3d197ff6"
+          }
+        }
+      ],
+      "captured_native_accumulators": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "paired_bf16_arm": "nd_kn_split",
+      "paired_bf16_result": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      },
+      "fp32_minus_fp64_at_witnesses": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "difference": 3.183231456205249e-08
+        },
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "difference": -1.629055077501107e-07
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "difference": 5.602487362921238e-08
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "difference": -1.328880898654461e-07
+        }
+      ],
+      "repeatability": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 5120,
+        "first_differences": []
+      }
+    }
+  ],
+  "completed": true,
+  "interpretation": "Output dtype may change CANN tiling. A direct BF16 versus FP32-result comparison alone does not isolate Fixpipe rounding.",
+  "float_output_call": "torch.mm(hidden, operand, out_dtype=torch.float32)",
+  "control_contract": "Every full-N160 BF16 arm must match captured production and every split-N32 BF16 arm must match captured native before either FP32 arm runs.",
+  "torch": "2.12.0+cu130",
+  "witnesses": [
+    {
+      "coordinate": [
+        0,
+        29
+      ],
+      "vendor": {
+        "value": 0.0035400390625,
+        "bits": "0x3b68"
+      },
+      "native": {
+        "value": 0.0035552978515625,
+        "bits": "0x3b69"
+      },
+      "native_accumulator": {
+        "value": 0.0035477466881275177,
+        "bits": "0x3b688150"
+      },
+      "cpu_fp64_dot": 0.0035477148558129556,
+      "cpu_fp64_cast_fp32": {
+        "value": 0.003547714790329337,
+        "bits": "0x3b6880c7"
+      },
+      "cpu_fp64_cast_bfloat16": {
+        "value": 0.0035552978515625,
+        "bits": "0x3b69"
+      },
+      "bf16_midpoint": 0.00354766845703125,
+      "native_accumulator_minus_fp64": 3.183231456205249e-08,
+      "native_accumulator_minus_midpoint": 7.82310962677002e-08,
+      "fp64_minus_midpoint": 4.639878170564771e-08
+    },
+    {
+      "coordinate": [
+        6,
+        153
+      ],
+      "vendor": {
+        "value": 0.01275634765625,
+        "bits": "0x3c51"
+      },
+      "native": {
+        "value": 0.0126953125,
+        "bits": "0x3c50"
+      },
+      "native_accumulator": {
+        "value": 0.012725729495286942,
+        "bits": "0x3c507f94"
+      },
+      "cpu_fp64_dot": 0.012725892400794692,
+      "cpu_fp64_cast_fp32": {
+        "value": 0.0127258924767375,
+        "bits": "0x3c508043"
+      },
+      "cpu_fp64_cast_bfloat16": {
+        "value": 0.01275634765625,
+        "bits": "0x3c51"
+      },
+      "bf16_midpoint": 0.012725830078125,
+      "native_accumulator_minus_fp64": -1.629055077501107e-07,
+      "native_accumulator_minus_midpoint": -1.0058283805847168e-07,
+      "fp64_minus_midpoint": 6.232266969163902e-08
+    },
+    {
+      "coordinate": [
+        19,
+        51
+      ],
+      "vendor": {
+        "value": 0.1611328125,
+        "bits": "0x3e25"
+      },
+      "native": {
+        "value": 0.162109375,
+        "bits": "0x3e26"
+      },
+      "native_accumulator": {
+        "value": 0.16162109375,
+        "bits": "0x3e258000"
+      },
+      "cpu_fp64_dot": 0.16162103772512637,
+      "cpu_fp64_cast_fp32": {
+        "value": 0.16162103414535522,
+        "bits": "0x3e257ffc"
+      },
+      "cpu_fp64_cast_bfloat16": {
+        "value": 0.1611328125,
+        "bits": "0x3e25"
+      },
+      "bf16_midpoint": 0.16162109375,
+      "native_accumulator_minus_fp64": 5.602487362921238e-08,
+      "native_accumulator_minus_midpoint": 0.0,
+      "fp64_minus_midpoint": -5.602487362921238e-08
+    },
+    {
+      "coordinate": [
+        31,
+        25
+      ],
+      "vendor": {
+        "value": 0.03759765625,
+        "bits": "0x3d1a"
+      },
+      "native": {
+        "value": 0.037353515625,
+        "bits": "0x3d19"
+      },
+      "native_accumulator": {
+        "value": 0.037475548684597015,
+        "bits": "0x3d197ff6"
+      },
+      "cpu_fp64_dot": 0.03747568157268688,
+      "cpu_fp64_cast_fp32": {
+        "value": 0.03747568279504776,
+        "bits": "0x3d19801a"
+      },
+      "cpu_fp64_cast_bfloat16": {
+        "value": 0.03759765625,
+        "bits": "0x3d1a"
+      },
+      "bf16_midpoint": 0.0374755859375,
+      "native_accumulator_minus_fp64": -1.328880898654461e-07,
+      "native_accumulator_minus_midpoint": -3.725290298461914e-08,
+      "fp64_minus_midpoint": 9.563518688082695e-08
+    }
+  ],
+  "inputs": {
+    "key_hidden": {
+      "shape": [
+        32,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "sha256": "10fc4f049d92899d4e0386f0b9fc4b544f6b207ea255725e18366e6fcaf32748"
+    },
+    "key_weight": {
+      "shape": [
+        160,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "sha256": "7603cd9fa93def32472a3e7b28d00c9cc88421588f1acf1ac70b03fc070a813b"
+    }
+  },
+  "captured_vendor": {
+    "shape": [
+      32,
+      160
+    ],
+    "dtype": "torch.bfloat16",
+    "sha256": "6fa5079fccb7a9b148596389b82a410619cda10ac858bf692ea4b01c3f6f4816"
+  },
+  "captured_native": {
+    "shape": [
+      32,
+      160
+    ],
+    "dtype": "torch.bfloat16",
+    "sha256": "6ab304e4bde15e6f722480c2e4f65ac7d3f72ae9ca2e80e068440f48d0cffd4d"
+  },
+  "captured_accumulators": {
+    "shape": [
+      32,
+      160
+    ],
+    "dtype": "torch.float32",
+    "sha256": "e07912d3686f79dcfc0cccca0c544dd3d346ead157d68eebcf1c12735ef1a4aa"
+  },
+  "cpu_fp64_rounding": {
+    "vendor": {
+      "bitwise_equal": false,
+      "different_elements": 1,
+      "different_bytes": 1,
+      "elements": 5120,
+      "first_differences": [
+        {
+          "coordinate": [
+            0,
+            29
+          ],
+          "actual": {
+            "value": 0.0035552978515625,
+            "bits": "0x3b69"
+          },
+          "expected": {
+            "value": 0.0035400390625,
+            "bits": "0x3b68"
+          }
+        }
+      ]
+    },
+    "native": {
+      "bitwise_equal": false,
+      "different_elements": 3,
+      "different_bytes": 3,
+      "elements": 5120,
+      "first_differences": [
+        {
+          "coordinate": [
+            6,
+            153
+          ],
+          "actual": {
+            "value": 0.01275634765625,
+            "bits": "0x3c51"
+          },
+          "expected": {
+            "value": 0.0126953125,
+            "bits": "0x3c50"
+          }
+        },
+        {
+          "coordinate": [
+            19,
+            51
+          ],
+          "actual": {
+            "value": 0.1611328125,
+            "bits": "0x3e25"
+          },
+          "expected": {
+            "value": 0.162109375,
+            "bits": "0x3e26"
+          }
+        },
+        {
+          "coordinate": [
+            31,
+            25
+          ],
+          "actual": {
+            "value": 0.03759765625,
+            "bits": "0x3d1a"
+          },
+          "expected": {
+            "value": 0.037353515625,
+            "bits": "0x3d19"
+          }
+        }
+      ]
+    }
+  },
+  "torch_npu": "2.12.0",
+  "torch_npu_extension": {
+    "path": "/usr/local/lib/python3.11/site-packages/torch_npu/_C.cpython-311-aarch64-linux-gnu.so",
+    "sha256": "b41c0f7a6fbd21993b2a4fccf3777a1ce35d4b38f8fd78d357154f25d5516783"
+  },
+  "device": "Ascend910_9392",
+  "device_properties": "_NPUDeviceProperties(name='Ascend910_9392', total_memory=62740MB, cube_core_num=24, vector_core_num=48, uuid=00cc0800-d001-0000-0000-bcd20648923c, L2_cache_size=192MB)",
+  "schemas": {
+    "mm": "aten::mm(Tensor self, Tensor mat2) -> Tensor",
+    "mm_dtype": "aten::mm.dtype(Tensor self, Tensor mat2, ScalarType out_dtype) -> Tensor"
+  },
+  "hidden": {
+    "shape": [
+      32,
+      6144
+    ],
+    "stride": [
+      6144,
+      1
+    ],
+    "dtype": "torch.bfloat16",
+    "format": 2,
+    "data_ptr": 20618009378816,
+    "storage_ptr": 20618009378816,
+    "storage_offset": 0
+  },
+  "arms": {
+    "production_nz_full": {
+      "name": "production_nz_full",
+      "columns": 160,
+      "layout": "nk_nz",
+      "operation": "linear",
+      "float_output": false,
+      "bias": null,
+      "inputs": [
+        {
+          "start_column": 0,
+          "weight": {
+            "shape": [
+              160,
+              6144
+            ],
+            "stride": [
+              6144,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 29,
+            "data_ptr": 20618013442560,
+            "storage_ptr": 20618013442560,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              160
+            ],
+            "stride": [
+              1,
+              6144
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 29,
+            "data_ptr": 20618013442560,
+            "storage_ptr": 20618013442560,
+            "storage_offset": 0
+          }
+        }
+      ]
+    },
+    "nz_split": {
+      "name": "nz_split",
+      "columns": 32,
+      "layout": "nk_nz",
+      "operation": "linear",
+      "float_output": false,
+      "bias": null,
+      "inputs": [
+        {
+          "start_column": 0,
+          "weight": {
+            "shape": [
+              32,
+              6144
+            ],
+            "stride": [
+              6144,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 29,
+            "data_ptr": 20618010166272,
+            "storage_ptr": 20618010166272,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              1,
+              6144
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 29,
+            "data_ptr": 20618010166272,
+            "storage_ptr": 20618010166272,
+            "storage_offset": 0
+          }
+        },
+        {
+          "start_column": 32,
+          "weight": {
+            "shape": [
+              32,
+              6144
+            ],
+            "stride": [
+              6144,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 29,
+            "data_ptr": 20618010560000,
+            "storage_ptr": 20618010560000,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              1,
+              6144
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 29,
+            "data_ptr": 20618010560000,
+            "storage_ptr": 20618010560000,
+            "storage_offset": 0
+          }
+        },
+        {
+          "start_column": 64,
+          "weight": {
+            "shape": [
+              32,
+              6144
+            ],
+            "stride": [
+              6144,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 29,
+            "data_ptr": 20618010953728,
+            "storage_ptr": 20618010953728,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              1,
+              6144
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 29,
+            "data_ptr": 20618010953728,
+            "storage_ptr": 20618010953728,
+            "storage_offset": 0
+          }
+        },
+        {
+          "start_column": 96,
+          "weight": {
+            "shape": [
+              32,
+              6144
+            ],
+            "stride": [
+              6144,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 29,
+            "data_ptr": 20618032447488,
+            "storage_ptr": 20618032447488,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              1,
+              6144
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 29,
+            "data_ptr": 20618032447488,
+            "storage_ptr": 20618032447488,
+            "storage_offset": 0
+          }
+        },
+        {
+          "start_column": 128,
+          "weight": {
+            "shape": [
+              32,
+              6144
+            ],
+            "stride": [
+              6144,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 29,
+            "data_ptr": 20618032841216,
+            "storage_ptr": 20618032841216,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              1,
+              6144
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 29,
+            "data_ptr": 20618032841216,
+            "storage_ptr": 20618032841216,
+            "storage_offset": 0
+          }
+        }
+      ]
+    },
+    "nd_full": {
+      "name": "nd_full",
+      "columns": 160,
+      "layout": "nk_nd",
+      "operation": "linear",
+      "float_output": false,
+      "bias": null,
+      "inputs": [
+        {
+          "start_column": 0,
+          "weight": {
+            "shape": [
+              160,
+              6144
+            ],
+            "stride": [
+              6144,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618011475968,
+            "storage_ptr": 20618011475968,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              160
+            ],
+            "stride": [
+              1,
+              6144
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618011475968,
+            "storage_ptr": 20618011475968,
+            "storage_offset": 0
+          }
+        }
+      ]
+    },
+    "nd_split": {
+      "name": "nd_split",
+      "columns": 32,
+      "layout": "nk_nd",
+      "operation": "linear",
+      "float_output": false,
+      "bias": null,
+      "inputs": [
+        {
+          "start_column": 0,
+          "weight": {
+            "shape": [
+              32,
+              6144
+            ],
+            "stride": [
+              6144,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618009772544,
+            "storage_ptr": 20618009772544,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              1,
+              6144
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618009772544,
+            "storage_ptr": 20618009772544,
+            "storage_offset": 0
+          }
+        },
+        {
+          "start_column": 32,
+          "weight": {
+            "shape": [
+              32,
+              6144
+            ],
+            "stride": [
+              6144,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618033234944,
+            "storage_ptr": 20618033234944,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              1,
+              6144
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618033234944,
+            "storage_ptr": 20618033234944,
+            "storage_offset": 0
+          }
+        },
+        {
+          "start_column": 64,
+          "weight": {
+            "shape": [
+              32,
+              6144
+            ],
+            "stride": [
+              6144,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618033628672,
+            "storage_ptr": 20618033628672,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              1,
+              6144
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618033628672,
+            "storage_ptr": 20618033628672,
+            "storage_offset": 0
+          }
+        },
+        {
+          "start_column": 96,
+          "weight": {
+            "shape": [
+              32,
+              6144
+            ],
+            "stride": [
+              6144,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618034022400,
+            "storage_ptr": 20618034022400,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              1,
+              6144
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618034022400,
+            "storage_ptr": 20618034022400,
+            "storage_offset": 0
+          }
+        },
+        {
+          "start_column": 128,
+          "weight": {
+            "shape": [
+              32,
+              6144
+            ],
+            "stride": [
+              6144,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618034544640,
+            "storage_ptr": 20618034544640,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              1,
+              6144
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618034544640,
+            "storage_ptr": 20618034544640,
+            "storage_offset": 0
+          }
+        }
+      ]
+    },
+    "nd_kn_full": {
+      "name": "nd_kn_full",
+      "columns": 160,
+      "layout": "kn_nd",
+      "operation": "mm",
+      "float_output": false,
+      "bias": null,
+      "inputs": [
+        {
+          "start_column": 0,
+          "weight": {
+            "shape": [
+              6144,
+              160
+            ],
+            "stride": [
+              160,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618015409152,
+            "storage_ptr": 20618015409152,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              160
+            ],
+            "stride": [
+              160,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618015409152,
+            "storage_ptr": 20618015409152,
+            "storage_offset": 0
+          }
+        }
+      ]
+    },
+    "nd_kn_split": {
+      "name": "nd_kn_split",
+      "columns": 32,
+      "layout": "kn_nd",
+      "operation": "mm",
+      "float_output": false,
+      "bias": null,
+      "inputs": [
+        {
+          "start_column": 0,
+          "weight": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618034938368,
+            "storage_ptr": 20618034938368,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618034938368,
+            "storage_ptr": 20618034938368,
+            "storage_offset": 0
+          }
+        },
+        {
+          "start_column": 32,
+          "weight": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618035332096,
+            "storage_ptr": 20618035332096,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618035332096,
+            "storage_ptr": 20618035332096,
+            "storage_offset": 0
+          }
+        },
+        {
+          "start_column": 64,
+          "weight": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618035725824,
+            "storage_ptr": 20618035725824,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618035725824,
+            "storage_ptr": 20618035725824,
+            "storage_offset": 0
+          }
+        },
+        {
+          "start_column": 96,
+          "weight": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618036119552,
+            "storage_ptr": 20618036119552,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618036119552,
+            "storage_ptr": 20618036119552,
+            "storage_offset": 0
+          }
+        },
+        {
+          "start_column": 128,
+          "weight": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618036641792,
+            "storage_ptr": 20618036641792,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618036641792,
+            "storage_ptr": 20618036641792,
+            "storage_offset": 0
+          }
+        }
+      ]
+    },
+    "nz_full_mm": {
+      "name": "nz_full_mm",
+      "columns": 160,
+      "layout": "nk_nz",
+      "operation": "mm",
+      "float_output": false,
+      "bias": null,
+      "inputs": [
+        {
+          "start_column": 0,
+          "weight": {
+            "shape": [
+              160,
+              6144
+            ],
+            "stride": [
+              6144,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 29,
+            "data_ptr": 20618013442560,
+            "storage_ptr": 20618013442560,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              160
+            ],
+            "stride": [
+              1,
+              6144
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 29,
+            "data_ptr": 20618013442560,
+            "storage_ptr": 20618013442560,
+            "storage_offset": 0
+          }
+        }
+      ]
+    },
+    "nz_full_mm_float32": {
+      "name": "nz_full_mm_float32",
+      "columns": 160,
+      "layout": "nk_nz",
+      "operation": "mm",
+      "float_output": true,
+      "bias": null,
+      "inputs": [
+        {
+          "start_column": 0,
+          "weight": {
+            "shape": [
+              160,
+              6144
+            ],
+            "stride": [
+              6144,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 29,
+            "data_ptr": 20618013442560,
+            "storage_ptr": 20618013442560,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              160
+            ],
+            "stride": [
+              1,
+              6144
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 29,
+            "data_ptr": 20618013442560,
+            "storage_ptr": 20618013442560,
+            "storage_offset": 0
+          }
+        }
+      ]
+    },
+    "nd_kn_split_float32": {
+      "name": "nd_kn_split_float32",
+      "columns": 32,
+      "layout": "kn_nd",
+      "operation": "mm",
+      "float_output": true,
+      "bias": null,
+      "inputs": [
+        {
+          "start_column": 0,
+          "weight": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618034938368,
+            "storage_ptr": 20618034938368,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618034938368,
+            "storage_ptr": 20618034938368,
+            "storage_offset": 0
+          }
+        },
+        {
+          "start_column": 32,
+          "weight": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618035332096,
+            "storage_ptr": 20618035332096,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618035332096,
+            "storage_ptr": 20618035332096,
+            "storage_offset": 0
+          }
+        },
+        {
+          "start_column": 64,
+          "weight": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618035725824,
+            "storage_ptr": 20618035725824,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618035725824,
+            "storage_ptr": 20618035725824,
+            "storage_offset": 0
+          }
+        },
+        {
+          "start_column": 96,
+          "weight": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618036119552,
+            "storage_ptr": 20618036119552,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618036119552,
+            "storage_ptr": 20618036119552,
+            "storage_offset": 0
+          }
+        },
+        {
+          "start_column": 128,
+          "weight": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618036641792,
+            "storage_ptr": 20618036641792,
+            "storage_offset": 0
+          },
+          "mm_right_operand": {
+            "shape": [
+              6144,
+              32
+            ],
+            "stride": [
+              32,
+              1
+            ],
+            "dtype": "torch.bfloat16",
+            "format": 2,
+            "data_ptr": 20618036641792,
+            "storage_ptr": 20618036641792,
+            "storage_offset": 0
+          }
+        }
+      ]
+    }
+  },
+  "loaded_opapi": [
+    {
+      "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so",
+      "sha256": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a"
+    },
+    {
+      "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_cv.so",
+      "sha256": "06074c70f58f5af0702c6326dcf98289584eef65f3996690229587119c488521"
+    },
+    {
+      "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_math.so",
+      "sha256": "93972cb9266eb1e0ff1d29b767c1e13e1f6023b80c07ffaf77bc75e557b8b045"
+    },
+    {
+      "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_nn.so",
+      "sha256": "336946436f1e8d71670137a9b43fc6b9ca87fbb3f52b5a2c65663e8b589936c8"
+    },
+    {
+      "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_oam.so",
+      "sha256": "c4bd82763ebb67dfb517575047480b24e8e6c134b6ee840a3f3bff2a443371f3"
+    },
+    {
+      "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_ras.so",
+      "sha256": "4ef4862b1c4f20037b84ed3afdde3c907b18bd459852a09ceacf6de1a22ffc86"
+    },
+    {
+      "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_transformer.so",
+      "sha256": "3eebcd29e93860ea2aafaf9dfe269e98a28dc90c7cc325914e479be43bd247cf"
+    }
+  ],
+  "production_reproduction_pass": true,
+  "bf16_partition_reproduction_pass": true,
+  "repeatability_pass": true
+}

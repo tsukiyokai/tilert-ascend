@@ -1,0 +1,421 @@
+
+/tmp/tilert-megakernel-validation-20261021/layer-topk-owner-build-v2/attention/source/tests/glm52/whole_layer/attention_indexed_native.h
+SHA256 1e5791af04d8948efcd8649bc4cb474be4c0afff739baef9192c1d67438f4e46
+23: __aicore__ inline void Forward(AscendC::TPipe& pipe, const Config& c,
+24:                                const DeviceArgs& a, int bias_kind,
+25:                                GM_ADDR retained_topk = nullptr)
+26: {
+27:     GM_ADDR memory = a.scratch;
+28:     GM_ADDR topk = retained_topk != nullptr
+29:         ? retained_topk : memory + c.topk;
+30:     const whole_layer_attention::DeviceArgs attention{
+31:         a.token_x, a.token_scale, a.main_weights[0], a.main_weights[1],
+32:         a.main_weights[2], a.main_weights[3], a.main_weights[4],
+33:         a.main_weights[5], a.main_weights[6], a.main_weights[7],
+34:         a.main_weights[8], a.main_metadata[0], a.main_metadata[1],
+35:         a.main_metadata[2], a.caches[0], a.caches[1], topk,
+36:         a.main_metadata[3], a.main_metadata[4], a.main_metadata[5],
+37:         memory + c.attention_offset, memory + c.latent};
+38:     whole_layer_attention::PrologPhase(pipe, c.attention, attention,
+39:         memory + c.query_norm, memory + c.query_norm_scale);
+40: 
+41:     const indexer_front::device::DeviceArgs front{
+42:         a.hidden, memory + c.query_norm, memory + c.query_norm_scale,
+43:         a.front_weights[0], a.front_weights[1], a.front_weights[2],
+44:         a.front_weights[3], a.front_weights[4], a.indexer_metadata[1],
+45:         a.indexer_metadata[0], a.front_weights[5], memory + c.front_offset,
+46:         a.tiling, memory + c.query, memory + c.key, memory + c.weights,
+47:         memory + c.query_scale, memory + c.key_scale};
+48:     indexer_front::device::Forward(pipe, c.front, front);
+49: 
+50:     const whole_layer_indexer::DeviceArgs indexer{
+51:         memory + c.query, memory + c.key, memory + c.weights,
+52:         memory + c.query_scale, memory + c.key_scale, a.indexer_metadata[2],
+53:         a.caches[2], a.caches[3], a.indexer_metadata[3], a.indexer_metadata[4],
+54:         a.indexer_metadata[5], memory + c.indexer_offset, topk};
+55:     whole_layer_indexer::Forward(pipe, c.indexer, indexer);
+56:     whole_layer_attention::SfaPhase(pipe, c.attention, attention);
+57: 
+58:     mla_tail::device::Forward(pipe, (__gm__ bfloat16_t*)(memory + c.latent),
+59:         (__gm__ bfloat16_t*)a.tail_weights[0], (__gm__ int8_t*)a.tail_weights[1],
+60:         (__gm__ float*)a.tail_weights[2], a.bias, bias_kind,
+61:         memory + c.tail_offset, a.tiling + indexer_front::kTilingBytes,
+62:         (__gm__ bfloat16_t*)a.output, c.attention.rows, c.front.capacity,
+63:         c.attention.blocks, c.tail);
+64:     whole_layer_attention::EndPhase(pipe);
+
+/tmp/tilert-megakernel-validation-20261021/layer-topk-owner-build-v2/attention/source/tests/glm52/whole_layer/indexer_native.h
+SHA256 6b2704d15774b3611be46558bddb8f2e6225e70fbae08a11bddfcbcc44ed6a6f
+85: __aicore__ inline QLITilingData QuantTiling(const Config& config)
+86: {
+87:     QLITilingData tiling{};
+88:     tiling.bSize = 1;
+89:     tiling.tSize = tiling.s1Size = config.rows;
+90:     tiling.n2Size = 1;
+91:     tiling.gSize = kHeads;
+92:     tiling.s2Size = config.table_pages * kPage;
+93:     tiling.sparseCount = kTopK;
+94:     tiling.keyStride0 = kPage * kHeadDim;
+95:     tiling.keyDequantScaleStride0 = kPage;
+96:     tiling.usedCoreNum = config.blocks;
+97:     tiling.blockSize = kPage;
+98:     tiling.maxBlockNumPerBatch = config.table_pages;
+99:     tiling.sparseMode = 3;
+100:     return tiling;
+101: }
+102: 
+103: __aicore__ inline LITilingData Bf16Tiling(const Config& config)
+104: {
+105:     LITilingData tiling{};
+106:     tiling.bSize = 1;
+107:     tiling.n2Size = 1;
+108:     tiling.gSize = kHeads;
+109:     tiling.s1Size = config.rows;
+110:     tiling.s2Size = config.table_pages * kPage;
+111:     tiling.sparseCount = kTopK;
+112:     tiling.usedCoreNum = config.blocks;
+113:     tiling.blockSize = kPage;
+114:     tiling.maxBlockNumPerBatch = config.table_pages;
+115:     tiling.sparseMode = 3;
+116:     tiling.preTokens = tiling.nextTokens = INT64_MAX;
+117:     tiling.returnValue = 0;
+118:     tiling.keyStride0 = kPage * kHeadDim;
+119:     return tiling;
+120: }
+121: 
+122: // Every resident AIC and AIV enters both outer barriers. Vendor ProcessDecode
+123: // uses its own AIV-only SyncAll before merging top-k lists; its hardware flag
+124: // differs from the mixed-core barrier and its scratch remains live until the
+125: // final mixed barrier completes.
+126: __aicore__ inline void Forward(AscendC::TPipe& pipe, const Config& config,
+127:                                const DeviceArgs& args)
+128: {
+129:     if (config.quantized) {
+130:         WriteCache<int8_t, true>(pipe, config, args);
+131:     } else {
+132:         WriteCache<bfloat16_t, false>(pipe, config, args);
+133:     }
+134:     EndPhase(pipe);
+135:     if (config.quantized) {
+136:         const auto tiling = QuantTiling(config);
+137:         using Type = QLICommon::QLIType<int8_t, int8_t, int32_t, true,
+138:             QLICommon::LI_LAYOUT::TND, QLICommon::LI_LAYOUT::PA_BSND>;
+139:         QLIKernel::QLIPreload<Type> selector;
+140:         selector.Init(args.query, args.key_cache, args.weights, args.query_scale,
+141:             args.scale_cache, args.query_lengths, args.key_lengths,
+142:             args.page_table, args.output, args.scratch, &tiling, &pipe);
+143:         selector.Process();
+144:     } else {
+145:         const auto tiling = Bf16Tiling(config);
+146:         using Type = LICommon::LIType<bfloat16_t, bfloat16_t, int32_t, true,
+147:             LICommon::LI_LAYOUT::TND, LICommon::LI_LAYOUT::PA_BSND, false>;
+148:         LIKernel::LightningIndexerKernel<Type> selector;
+149:         selector.Init(args.query, args.key_cache, args.weights,
+150:             args.query_lengths, args.key_lengths, args.page_table, args.output,
+151:             nullptr, args.scratch, &tiling, &pipe);
+152:         selector.Process();
+153:     }
+154:     EndPhase(pipe);
+
+/tmp/tilert-megakernel-validation-20261021/layer-topk-owner-build-v2/source/host.py
+SHA256 e5d0179b36bf983ba2b7f522cc0b35143d0e898c0ce3af8f72452f75438f2cb2
+17: 
+18:     def __init__(self, library, norm, attention, post, routed, bridge, body,
+19:                  shared, shared_topk, geometry, scalars, sync, indexed):
+20:         groups = (norm, attention, post, routed, bridge, body, shared)
+21:         if tuple(map(len, groups)) != (8, 41, 3, 6, 12, 21, 4):
+22:             raise ValueError("Expected norm/attention/post/routed/bridge/body/shared slots 8/41/3/6/12/21/4")
+23:         if len(geometry) != 9 or len(scalars) != 5:
+24:             raise ValueError("Expected nine geometry and five scalar fields")
+25:         if norm[0] is None or norm[0].device.type != "npu":
+26:             raise ValueError("The local-chain input must be an NPU tensor")
+27:         required_attention = (*range(12), *range(18, 21), *range(22, 28),
+28:                               34, 35, 38, 39, 40)
+29:         if indexed:
+30:             required_attention += (*range(12, 18), *range(28, 34), 36)
+31:             if geometry[6]:
+32:                 required_attention += (37,)
+33:         if geometry[8]:
+34:             required_attention += (21,)
+35:         if any(attention[index] is None for index in required_attention):
+36:             raise ValueError("A required attention tensor is missing")
+37:         if any(value is None for group in groups if group is not attention
+38:                for value in group):
+39:             raise ValueError("A required norm or FFN tensor is missing")
+40:         from topk_contract import validate_topk
+41:         validate_topk(shared_topk, geometry[0], norm[0].device, groups)
+42:         owners = tuple(value for group in groups for value in group
+43:                        if value is not None)
+44:         if shared_topk is not None:
+45:             owners += (shared_topk,)
+46:         if any(value.device != norm[0].device for value in owners):
+47:             raise ValueError("All retained tensors must belong to one NPU")
+48:         if geometry[0] != norm[0].shape[0] or norm[0].shape[1:] != (6144,):
+49:             raise ValueError("Geometry must describe the retained [M,6144] input")
+50:         self.library = library
+51:         self.owners = owners
+52:         self.owner_pointers = pointers(owners)
+53:         self.device = norm[0].device.index
+54:         self.sync = int(sync)
+55:         self.indexed = bool(indexed)
+56:         self.config = ctypes.create_string_buffer(library.config_bytes)
+57:         self.addresses = ctypes.create_string_buffer(library.address_bytes)
+58:         arrays = [(ctypes.c_uint64 * len(group))(*pointers(group))
+59:                   for group in groups]
+60:         status = library.handle.layer_topk_prepare_records(
+61:             self.config, len(self.config), self.addresses, len(self.addresses),
+62:             (ctypes.c_int64 * 9)(*geometry), (ctypes.c_float * 5)(*scalars),
+63:             arrays[0], arrays[1],
+64:             0 if shared_topk is None else shared_topk.data_ptr(),
+65:             *arrays[2:])
+66:         library.check(status)
+67: 
+68:     def launch(self):
+69:         if pointers(self.owners) != self.owner_pointers:
+70:             raise RuntimeError("A retained local-chain tensor changed its data address")
+71:         self.library.check(self.library.handle.layer_topk_submit(
+72:             self.device, self.sync, self.config, len(self.config),
+73:             self.addresses, len(self.addresses), self.indexed))
+
+/tmp/tilert-topk-owner-staging-v3/local_chain.py
+SHA256 e410dc1f80546856ca6ed484ee806966a9dac21f402518d1069696d50233d22d
+357:         for rows in args.forward_widths:
+358:             inputs = Inputs(torch, torch_npu, layers, rows, topk.device)
+359:             first = LayerCase(torch, torch_npu, layers[0], 6, inputs,
+360:                               inputs.hidden, inputs.residual, topk, adapter,
+361:                               ffns[0], chain_library)
+362:             next_hidden, next_residual = successor_inputs(first.bridge)
+363:             second = LayerCase(torch, torch_npu, layers[1], 7, inputs,
+364:                                next_hidden, next_residual, topk, adapter,
+365:                                ffns[1], chain_library)
+366:             if first.mode != args.mode or second.mode != "shared":
+367:                 raise RuntimeError("The actual full/shared layer selection changed")
+368:             cases = first, second
+369:             inputs.lock_owners()
+370:             owners = [value.owners() for value in cases]
+371:             report["prepared"].append({"rows": rows, "owners": owners})
+372:             for iteration in range(args.forward_replays):
+373:                 plan = inputs.update(iteration)
+374:                 torch.npu.synchronize()
+375:                 before_inputs = {name: snapshot(torch, value)
+376:                                  for name, value in inputs.fields().items()}
+377:                 observed = {}
+378:                 for arm in ("separate", "combined"):
+379:                     for name, cache in caches.items():
+380:                         cache.copy_(bases[name].roll(iteration, 0))
+381:                     topk.fill_(-1)
+382:                     for case in cases:
+383:                         poison(case.values, 1 if arm == "separate" else 2)
+384:                         case.norm[5].fill_(float("nan"))
+385:                         case.body[20].fill_(1)
+386:                         case.body[20][0].zero_()
+387:                     if arm == "combined":
+388:                         first.selected.fill_(2)
+389:                     topk_copy_calls = 0
+390:                     topk_copies = {}
+391:                     for number, case in zip((6, 7), cases):
+392:                         getattr(case, arm)()
+393:                         if number == 6 and arm == "separate":
+394:                             publish_topk(case.selected, topk, rows)
+395:                             topk_copy_calls += 1
+396:                         topk_copies[f"layer{number}.persistent_topk"] = topk[:rows].clone()
+397:                     consumers = {"consumer.output": second.bridge[10].clone(),
+398:                                  "consumer.retained": second.bridge[1].clone()}
+399:                     torch.npu.synchronize()
+400:                     inactive_unchanged = bool((topk[rows:] == -1).all())
+401:                     if not inactive_unchanged:
+402:                         raise RuntimeError("The selector overwrote inactive persistent rows")
+403:                     if arm == "combined":
+404:                         internal_unchanged = bool((first.selected == 2).all())
+405:                         if not internal_unchanged:
+406:                             raise RuntimeError("The candidate still writes the internal top-k slice")
+407:                     values = {f"layer{number}.{name}": snapshot(torch, value)
+408:                               for number, case in zip((6, 7), cases)
+409:                               for name, value in case.values.items()}
+410:                     values.update({name: snapshot(torch, value) for name, value in
+411:                                    {**caches, **topk_copies, **consumers}.items()})
+412:                     observed[arm] = values
+413:                     if arm == "combined":
+414:                         diagnostics = {f"layer{number}.input_rstd": tensor_witness(torch, case.norm[5])
+415:                                        for number, case in zip((6, 7), cases)}
+416:                     if owners != [value.owners() for value in cases]:
+417:                         raise RuntimeError("A local-chain buffer owner changed")
+418:                     if (signature(topk) != topk_signature or cache_signatures !=
+419:                             {name: signature(value) for name, value in caches.items()}):
+420:                         raise RuntimeError("The actual cache or persistent top-k owner changed")
+421:                     inputs.check_owners()
+422:                     if any(not torch.equal(value.view(torch.uint8),
+423:                                            snapshot(torch, inputs.fields()[name]).view(torch.uint8))
+424:                            for name, value in before_inputs.items()):
+425:                         raise RuntimeError("A local-chain consumer overwrote a live input")
+426:                 checks, passed = strict_checks(
+427:                     torch, observed["combined"], observed["separate"], metric)
+428:                 record = {"rows": rows, "iteration": iteration,
+429:                           "checks": checks, "pass": passed,
+430:                           "inputs": inputs.witness(), "candidate_diagnostics": diagnostics,
+431:                           "unused_internal_topk_unchanged": internal_unchanged,
+432:                           "inactive_persistent_rows_unchanged": inactive_unchanged,
+433:                           "candidate_topk_copy_calls": topk_copy_calls,
+434:                           "outputs": {name: tensor_witness(torch, value)
+435:                                       for name, value in observed["combined"].items()
+436:                                       if name.startswith("consumer.")}}
+437:                 report["cases"].append(record)
+438:                 persist()
+439:                 if not passed:
+440:                     failure = args.output / f"local-chain-{args.mode}-m{rows}-r{iteration}.pt"
+441:                     torch.save({"inputs": before_inputs, "plan": plan,
+442:                                 "separate": observed["separate"],
+443:                                 "combined": observed["combined"]}, failure)
+444:                     raise RuntimeError("The local-chain launch differs from its separate parents")
+445:             del first, second, cases, inputs
+
+/home/shanshan/repo/cann/ops-transformer/attention/quant_lightning_indexer/op_kernel/arch22/quant_lightning_indexer_kernel_arch22.h
+SHA256 3a87b22f93de7615e609600e51e89f5bf02fd600278731aa5da1b6922fe156d7
+534:     if (runInfo.isFirstS2InnerLoop) {
+535:         uint64_t actualSeqQPrefixSum;
+536:         if constexpr (Q_LAYOUT_T == LI_LAYOUT::TND) {
+537:             actualSeqQPrefixSum = (runInfo.bIdx <= 0) ? 0 : actualSeqLengthsGmQ.GetValue(runInfo.bIdx - 1);
+538:         } else { // BSND
+539:             actualSeqQPrefixSum = (runInfo.bIdx <= 0) ? 0 : runInfo.bIdx * constInfo.qSeqSize;
+540:         }
+541:         uint64_t tndBIdxOffset = actualSeqQPrefixSum * constInfo.qHeadNum * constInfo.headDim;
+542:         // B,S1,N1(N2,G),D
+543:         queryCoreOffset = tndBIdxOffset + runInfo.gS1Idx * constInfo.mBaseSize * constInfo.headDim;
+544:         // B,S1,N1(N2,G)/T,N1(N2,G)
+545:         weightsCoreOffset = actualSeqQPrefixSum * constInfo.qHeadNum + runInfo.n2Idx * constInfo.gSize;
+546:         // B,S1,N2,k/T,N2,k
+547:         indiceOutCoreOffset =
+548:             actualSeqQPrefixSum * constInfo.kHeadNum * constInfo.sparseCount + runInfo.n2Idx * constInfo.sparseCount;
+549:     }
+550:     uint64_t actualSeqKPrefixSum;
+551:     if constexpr (K_LAYOUT_T == LI_LAYOUT::TND) { // T N2 D
+552:         actualSeqKPrefixSum = (runInfo.bIdx <= 0) ? 0 : actualSeqLengthsGm.GetValue(runInfo.bIdx - 1);
+553:     } else {
+554:         actualSeqKPrefixSum = (runInfo.bIdx <= 0) ? 0 : runInfo.bIdx * constInfo.kSeqSize;
+555:     }
+556:     uint64_t tndBIdxOffsetForK = actualSeqKPrefixSum * constInfo.kHeadNum * constInfo.headDim;
+557:     keyCoreOffset = tndBIdxOffsetForK + runInfo.s2Idx * constInfo.s2BaseSize * constInfo.kHeadNum * constInfo.headDim;
+558:     keyScaleCoreOffset = (actualSeqKPrefixSum + runInfo.s2Idx * constInfo.s2BaseSize) * constInfo.kHeadNum;
+559:     runInfo.tensorQueryOffset = queryCoreOffset;
+560:     runInfo.tensorKeyOffset = keyCoreOffset;
+561:     runInfo.tensorKeyScaleOffset = keyScaleCoreOffset;
+562:     runInfo.tensorWeightsOffset = weightsCoreOffset;
+563:     runInfo.indiceOutOffset = indiceOutCoreOffset;
+564: }
+565: 
+566: template <typename QLIT>
+567: __aicore__ inline void QLIPreload<QLIT>::Process()
+568: {
+569:     if (usedCoreNum == 0) {
+570:         // 没有计算任务，直接清理输出
+571:         ProcessInvalid();
+572:         return;
+573:     }
+574: 
+575:     ProcessMain();
+576: 
+577:     ProcessDecode();
+578: }
+579: 
+580: template <typename QLIT>
+581: __aicore__ inline void QLIPreload<QLIT>::ProcessInvalid()
+582: {
+583:     if ASCEND_IS_AIV {
+584:         uint32_t aivCoreNum = GetBlockNum() * 2; // 2 means c:v = 1:2
+585:         uint64_t totalOutputSize =
+586:             constInfo.batchSize * constInfo.qSeqSize * constInfo.kHeadNum * constInfo.sparseCount;
+587:         uint64_t singleCoreSize =
+588:             QLICommon::Align((totalOutputSize + aivCoreNum - 1) / aivCoreNum, GM_ALIGN_BYTES / sizeof(OUT_T));
+589:         uint64_t baseSize = singleCoreSize * tmpBlockIdx;
+590:         if (baseSize < totalOutputSize) {
+591:             uint64_t dealSize =
+592:                 (baseSize + singleCoreSize <= totalOutputSize) ? singleCoreSize : totalOutputSize - baseSize;
+593:             GlobalTensor<OUT_T> output = indiceOutGm[baseSize];
+594:             AscendC::InitGlobalMemory(output, dealSize, constInfo.INVALID_IDX);
+595:         }
+596:     }
+
+/home/shanshan/repo/cann/ops-transformer/attention/quant_lightning_indexer/op_kernel/arch22/quant_lightning_indexer_service_vector_arch22.h
+SHA256 c54265977f5ff0487eec7f7525de03776f5ea7038039e30735604d7d3cfe82ad
+650:         // 搬出
+651:         LocalTensor<float> outValueUb = ldOutValueBuf_.Get<float>();
+652:         LocalTensor<uint32_t> outIdxUb = ldOutIdxBuf_.Get<uint32_t>();
+653:         Extract(outValueUb, outIdxUb, curValueIdxUb, (BASE_TOPK / 32));
+654:         LocalTensor<int32_t> idxULocal1 = outIdxUb.template ReinterpretCast<int32_t>();
+655:         SetWaitFlag<HardEvent::V_MTE3>(HardEvent::V_MTE3);
+656:         SetWaitFlag<HardEvent::S_MTE3>(HardEvent::S_MTE3);
+657:         DataCopyPad(indiceOutGm[outOffset], idxULocal1,
+658:                     {1, static_cast<uint16_t>(constInfo_.sparseCount * sizeof(int32_t)), 0, 0});
+659:         SetWaitFlag<HardEvent::MTE3_V>(HardEvent::MTE3_V);
+
+/home/shanshan/repo/cann/ops-transformer/attention/lightning_indexer/op_kernel/arch22/lightning_indexer_kernel_arch22.h
+SHA256 2f1fb5b9c245e5387d6866f77ee423d4e9cb4ad1869fa0a740a6d243b890728a
+536:     if (runInfo.isFirstS2InnerLoop) {
+537:         uint64_t actualSeqQPrefixSum;
+538:         uint64_t actualSeqKPrefixSum;
+539:         if constexpr (LAYOUT_T == LI_LAYOUT::TND) {
+540:             actualSeqQPrefixSum = (runInfo.bIdx <= 0) ? 0 : actualSeqLengthsGmQ.GetValue(runInfo.bIdx - 1);
+541:             actualSeqKPrefixSum = (runInfo.bIdx <= 0) ? 0 : actualSeqLengthsGm.GetValue(runInfo.bIdx - 1);
+542:         } else { // BSND
+543:             actualSeqQPrefixSum = (runInfo.bIdx <= 0) ? 0 : runInfo.bIdx * constInfo.qSeqSize;
+544:             actualSeqKPrefixSum = (runInfo.bIdx <= 0) ? 0 : runInfo.bIdx * constInfo.kSeqSize;
+545:         }
+546:         uint64_t tndBIdxOffset = actualSeqQPrefixSum * constInfo.qHeadNum * constInfo.headDim;
+547:         uint64_t tndKeyBIdxOffset = actualSeqKPrefixSum * constInfo.kHeadNum * constInfo.headDim;
+548:         // B,S1,N1(N2,G),D
+549:         queryCoreOffset = tndBIdxOffset + runInfo.gS1Idx * constInfo.mBaseSize * constInfo.headDim;
+550:         keyCoreOffset = tndKeyBIdxOffset + runInfo.n2Idx * constInfo.headDim;
+551:         // B,S1,N1(N2,G)/T,N1(N2,G)
+552:         weightsCoreOffset = actualSeqQPrefixSum * constInfo.qHeadNum + runInfo.n2Idx * constInfo.gSize;
+553:         // B,S1,N2,k/T,N2,k
+554:         indiceOutCoreOffset =
+555:             actualSeqQPrefixSum * constInfo.kHeadNum * constInfo.sparseCount + runInfo.n2Idx * constInfo.sparseCount;
+556:     }
+557:     runInfo.tensorQueryOffset = queryCoreOffset;
+558:     runInfo.tensorKeyOffset =
+559:         keyCoreOffset + runInfo.s2Idx * constInfo.s2BaseSize * constInfo.kHeadNum * constInfo.headDim;
+560:     runInfo.tensorWeightsOffset = weightsCoreOffset;
+561:     runInfo.indiceOutOffset = indiceOutCoreOffset;
+562: }
+563: 
+564: template <typename LIT>
+565: __aicore__ inline void LightningIndexerKernel<LIT>::Process()
+566: {
+567:     if (usedCoreNum == 0) {
+568:         // 没有计算任务，直接清理输出
+569:         ProcessInvalid();
+570:         return;
+571:     }
+572:     ProcessMain();
+573:     ProcessDecode();
+574: }
+575: 
+576: template <typename LIT>
+577: __aicore__ inline void LightningIndexerKernel<LIT>::ProcessInvalid()
+578: {
+579:     if ASCEND_IS_AIV {
+580:         uint32_t aivCoreNum = GetBlockNum() * 2; // 2 means c:v = 1:2
+581:         uint64_t totalOutputSize =
+582:             constInfo.batchSize * constInfo.qSeqSize * constInfo.kHeadNum * constInfo.sparseCount;
+583:         uint64_t singleCoreSize =
+584:             LICommon::Align((totalOutputSize + aivCoreNum - 1) / aivCoreNum, GM_ALIGN_BYTES / sizeof(OUT_T));
+585:         uint64_t baseSize = tmpBlockIdx * singleCoreSize;
+586:         if (baseSize < totalOutputSize) {
+587:             uint64_t dealSize =
+588:                 (baseSize + singleCoreSize <= totalOutputSize) ? singleCoreSize : totalOutputSize - baseSize;
+589:             GlobalTensor<OUT_T> output = indiceOutGm[baseSize];
+590:             AscendC::InitGlobalMemory(output, dealSize, constInfo.INVALID_IDX);
+
+/home/shanshan/repo/cann/ops-transformer/attention/lightning_indexer/op_kernel/arch22/lightning_indexer_service_vector_arch22.h
+SHA256 33bb65e7a0731dcddadd9ef5d75e7d73dcdfcf67cd28adb6f943310f73249e87
+674:         // 搬出
+675:         LocalTensor<float> outValueUb = ldOutValueBuf_.Get<float>();
+676:         LocalTensor<uint32_t> outIdxUb = ldOutIdxBuf_.Get<uint32_t>();
+677:         if (!constInfo_.returnValue) {
+678:             Extract(outValueUb, outIdxUb, curValueIdxUb, (BASE_TOPK / 32));
+679:             LocalTensor<int32_t> idxULocal1 = outIdxUb.template ReinterpretCast<int32_t>();
+680:             SetWaitFlag<HardEvent::V_MTE3>(HardEvent::V_MTE3);
+681:             SetWaitFlag<HardEvent::S_MTE3>(HardEvent::S_MTE3);
+682:             DataCopyPad(indiceOutGm[outOffset], idxULocal1,
+683:                         {1, static_cast<uint16_t>(constInfo_.sparseCount * sizeof(int32_t)), 0, 0});
+684:             SetWaitFlag<HardEvent::MTE3_V>(HardEvent::MTE3_V);

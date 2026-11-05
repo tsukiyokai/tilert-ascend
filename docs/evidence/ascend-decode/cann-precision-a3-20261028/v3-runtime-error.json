@@ -1,0 +1,53 @@
+{
+  "scope": "Actual v3 failed during library provenance, after model construction and before first forward",
+  "rank_report_sha256": {
+    "rank-0.json": "9d8ffca8dae6ec1312745a6c8b43b7ba4c36328b78c4bcbad50eb59e8bd6220e",
+    "rank-1.json": "ac014fe55b5d3cb88787af88dcc5a5de4a922116ea6ef5ed312ce8f9e3c08353",
+    "rank-10.json": "755a3783c598302fe67d6d74685672e4fead0746240e683374591e49fe768f43",
+    "rank-11.json": "e691e27cbb8e06a9deb79fe283f16ed76716a057e95801c2a38ca844983a4bd9",
+    "rank-12.json": "6e08cea7e6164c8d26087c08d426785f79f07196ff7c428ac060434cbba4b8fe",
+    "rank-13.json": "4cfc5f95255e1aad8ccf8013eaf2f5e694eb18a9db710e9f61f27cca5a32d0f4",
+    "rank-14.json": "f9b750c3d2fbe8971e30bdbe2dce6e99b09d8c7e562a3733336d3df44da97583",
+    "rank-15.json": "3106f13532215641ea21e8d36573478b97a0e5c5f5bdc517ab9301db6196de87",
+    "rank-2.json": "446ab3e1a7eb1144143bbd20f3527c3993709698bf2073fae927e177d9e2efad",
+    "rank-3.json": "463d9a76989fe8fd975996d286b8ba27b5555052acf141b3b5bd8242c42cfdaa",
+    "rank-4.json": "bd3097c8a83dfefdb013f99849f9fd720326436e3f2ec07b71e25f6c366ffa81",
+    "rank-5.json": "626a2590f4999a493335a2ba1f8c6c81b47867b65d93e2b09b47f83f770ee5e9",
+    "rank-6.json": "3b69f2297039fda1f261d39285535380480e9e752871b0df4f67c7079e08be9b",
+    "rank-7.json": "3c483e0ea75c0c3612f943a171010f296e85213a6ef8081042c979cd0ff17c5e",
+    "rank-8.json": "926b3716a44d29558815214431195a512e9420205fb9beb69dc13e2428487c7f",
+    "rank-9.json": "2af0f421f16d14caed1baa2881f90c65b0e00d26bf49a87bf104b58821931732"
+  },
+  "ranks": 16,
+  "first_error": "Traceback (most recent call last):\n  File \"/work/source/experiments/cann-precision/run.py\", line 436, in main\n    passed = run(args, report, rank)\n             ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/work/source/experiments/cann-precision/run.py\", line 300, in run\n    loaded_libraries_sha256=mapped_libraries(), npu_executed=True)\n                            ^^^^^^^^^^^^^^^^^^\n  File \"/work/source/experiments/cann-precision/run.py\", line 196, in mapped_libraries\n    return {path: digest(path) for path in sorted(paths)}\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/work/source/experiments/cann-precision/run.py\", line 196, in <dictcomp>\n    return {path: digest(path) for path in sorted(paths)}\n                  ^^^^^^^^^^^^\n  File \"/work/source/tests/glm52/run_cann_model.py\", line 41, in digest\n    return hashlib.sha256(path.read_bytes()).hexdigest()\n                          ^^^^^^^^^^^^^^^\nAttributeError: 'str' object has no attribute 'read_bytes'\n",
+  "all_same_exception": true,
+  "serial_frames": 0,
+  "launcher_exit": {
+    "schema": "cann-capture-exit-v1",
+    "returncode": 1,
+    "observed_at": "2026-10-28T14:09:23.511610+00:00",
+    "summary_sha256": null,
+    "command": [
+      "/usr/bin/python",
+      "experiments/cann-precision/run.py",
+      "--capture-only",
+      "--checkpoint",
+      "/models/glm52",
+      "--capture-case",
+      "/assets/checkpoint-owned/prefix8k-v3/case-00",
+      "--teacher",
+      "/work/receipts/teacher-32.json",
+      "--source-commit",
+      "d0078a4079bf85c19d4b25d2f801706299317c8f",
+      "--capacity",
+      "9344",
+      "--gpu-memory-utilization",
+      "0.85",
+      "--output",
+      "/evidence/capture-v3"
+    ],
+    "source_commit": "d0078a4079bf85c19d4b25d2f801706299317c8f"
+  },
+  "precision_verified": false,
+  "performance_measured": false
+}

@@ -1,0 +1,282 @@
+{
+  "scope": "BF16 TP partials reduced in FP32 and cast once to BF16; cold M1 TP16",
+  "environment": {
+    "host": "a3-gs",
+    "container": "trt-asc",
+    "cann": "9.2.0",
+    "torch": "2.12.0+cpu",
+    "torch_npu": "2.12.0"
+  },
+  "intervention": {
+    "raw": [
+      {
+        "path": "/workspace/offline/cann-tp-reduction-20261017/bfloat16-step0-sum-analysis.json",
+        "sha256": "dd65a09e0d10780c17c0a73d39802fc64ec831d98264d011af5be01dded6d4f7"
+      },
+      {
+        "path": "/workspace/offline/cann-tp-reduction-20261017/float32-step0-sum-analysis.json",
+        "sha256": "6a663686b025f491b3e9fda3b4940cc25c6940ea08d25976bf9351313c826022"
+      }
+    ],
+    "calls_per_forward": 157,
+    "bf16_copied_input_pointers_distinct": true,
+    "bf16_layer0_o_proj": {
+      "cross_rank_varying_coordinates": 6015,
+      "witness": {
+        "coordinate": [
+          0,
+          0
+        ],
+        "partials_by_rank": [
+          0.0004787445068359375,
+          -0.00015163421630859375,
+          0.0004024505615234375,
+          0.00101470947265625,
+          0.000972747802734375,
+          0.0004062652587890625,
+          -0.00086212158203125,
+          -1.823902130126953e-05,
+          0.00081634521484375,
+          0.00106048583984375,
+          0.0003528594970703125,
+          0.000885009765625,
+          0.000873565673828125,
+          0.00144195556640625,
+          0.000827789306640625,
+          -0.000904083251953125
+        ],
+        "sum_fp32": 0.007596850395202637,
+        "sum_fp64_exact": 0.007596850395202637,
+        "exact_sum_rounded_bf16": 0.007598876953125,
+        "reduced_by_rank": [
+          0.007598876953125,
+          0.007598876953125,
+          0.007598876953125,
+          0.007598876953125,
+          0.007598876953125,
+          0.007598876953125,
+          0.007568359375,
+          0.007598876953125,
+          0.007598876953125,
+          0.007568359375,
+          0.007598876953125,
+          0.007568359375,
+          0.007568359375,
+          0.007568359375,
+          0.007598876953125,
+          0.007598876953125
+        ],
+        "output_by_rank": [
+          0.007598876953125,
+          0.007598876953125,
+          0.007598876953125,
+          0.007598876953125,
+          0.007598876953125,
+          0.007598876953125,
+          0.007568359375,
+          0.007598876953125,
+          0.007598876953125,
+          0.007568359375,
+          0.007598876953125,
+          0.007568359375,
+          0.007568359375,
+          0.007568359375,
+          0.007598876953125,
+          0.007598876953125
+        ]
+      }
+    },
+    "float32_layer0_o_proj": {
+      "same_local_partials_as_bf16_all16": true,
+      "output_all16_equals_rounded_exact_sum": true,
+      "cross_rank_varying_fp32_coordinates": 1,
+      "cross_rank_varying_bf16_output_coordinates": 0,
+      "witness": {
+        "coordinate": [
+          0,
+          5038
+        ],
+        "partials_by_rank": [
+          -0.0003681182861328125,
+          -0.000156402587890625,
+          0.00084686279296875,
+          0.0013580322265625,
+          5.052424967288971e-08,
+          0.000339508056640625,
+          0.00020313262939453125,
+          -0.001068115234375,
+          0.0001239776611328125,
+          0.00115203857421875,
+          0.00127410888671875,
+          -0.00018978118896484375,
+          0.00186920166015625,
+          -0.001373291015625,
+          9.918212890625e-05,
+          -0.000904083251953125
+        ],
+        "sum_fp32": 0.0032063033431768417,
+        "sum_fp64_exact": 0.0032063035760074854,
+        "exact_sum_rounded_bf16": 0.003204345703125,
+        "reduced_by_rank": [
+          0.0032063035760074854,
+          0.0032063035760074854,
+          0.0032063033431768417,
+          0.0032063035760074854,
+          0.0032063035760074854,
+          0.0032063035760074854,
+          0.0032063035760074854,
+          0.0032063035760074854,
+          0.0032063035760074854,
+          0.0032063035760074854,
+          0.0032063035760074854,
+          0.0032063035760074854,
+          0.0032063035760074854,
+          0.0032063035760074854,
+          0.0032063035760074854,
+          0.0032063035760074854
+        ],
+        "output_by_rank": [
+          0.003204345703125,
+          0.003204345703125,
+          0.003204345703125,
+          0.003204345703125,
+          0.003204345703125,
+          0.003204345703125,
+          0.003204345703125,
+          0.003204345703125,
+          0.003204345703125,
+          0.003204345703125,
+          0.003204345703125,
+          0.003204345703125,
+          0.003204345703125,
+          0.003204345703125,
+          0.003204345703125,
+          0.003204345703125
+        ]
+      }
+    },
+    "step0_first_cross_rank_hidden": null
+  },
+  "production_default": {
+    "source": {
+      "base_commit": "415b93e7457481822296a8efc79d12585f62f534",
+      "overlays": {
+        "tilert/models/glm_5_2_ascend/cann_model.py": "26ac7b799349271b553d6d9a3c72abaf66e8cc90456193403001b54f325765e4",
+        "tests/glm52/run_cann_model.py": "eae9386a26de45960fb17281f8925f143a8086113cb0a17957b4f95855e7b224",
+        "tests/glm52/cann_reduction_probe.py": "51d5c64879dcf5bd7ec8b95379983cb0a5a4eb587234832b15dcd4c2ed728c03",
+        "tests/glm52/run_cann_verify.py": "ef5c59502d8d7ca8e07a1c6ffa1fa168f802fb3af61c6635be6c190625ba8ac6",
+        "tests/glm52/run_cann_mtp_rounds.py": "12b95708fa537490c866cc4bd4cb89094a426e733138a8f0940e99b0e1f4ddb1",
+        "tests/glm52/serve_cann_pd.py": "2fdd072add8b76b551a4773e7a6ca5f1a4eea71f064fb5d7312dd5e24044d838"
+      }
+    },
+    "launch": {
+      "pid": 613191,
+      "command": "source /workspace/environment/activate.sh\ncd /workspace/offline/cann-layer4-default-20261017/source\nASCEND_CUSTOM_OPP_PATH=/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer HCCL_DETERMINISTIC=true HCCL_BUFFSIZE=200 HCCL_OP_EXPANSION_MODE=AIV HCCL_NPU_SOCKET_PORT_RANGE=auto HCCL_HOST_SOCKET_PORT_RANGE=auto OMP_NUM_THREADS=1 TASK_QUEUE_ENABLE=1 TORCH_DEVICE_BACKEND_AUTOLOAD=0 PYTHONPATH=\"$PWD:${PYTHONPATH:-}\" timeout 600 python -m torch.distributed.run --standalone --nproc-per-node=16 tests/glm52/run_cann_model.py --checkpoint /workspace/models/GLM-5.2-w4a8c8 --tokens 154820 198 --steps 2 --capacity 128 --gpu-memory-utilization 0.4 --layer-trace --trace-mlp-layer 4 --output /workspace/offline/cann-layer4-default-20261017/cold",
+      "free_hbm_mb": {
+        "0": 62389,
+        "1": 62631,
+        "2": 62391,
+        "3": 62632,
+        "4": 62378,
+        "5": 62644,
+        "6": 62392,
+        "7": 62627,
+        "8": 62390,
+        "9": 62630,
+        "10": 62386,
+        "11": 62631,
+        "12": 62385,
+        "13": 62643,
+        "14": 62381,
+        "15": 62625
+      },
+      "started_at": "2026-10-17T06:23:26.896195+00:00"
+    },
+    "raw_analysis": {
+      "path": "/workspace/offline/cann-layer4-default-20261017/cold-moe-analysis.json",
+      "sha256": "3d1d58785e36e449dd3c71b5a472fb4560cbd54766e6215c691ba000683d278c"
+    },
+    "all_four_forwards_hidden79_bitwise_equal_across16_ranks": true,
+    "predicted_tokens": [
+      198,
+      59
+    ],
+    "reset_passed": false,
+    "reset_first_hidden_by_step": [
+      {
+        "step": 0,
+        "state": 7,
+        "dtype": "torch.bfloat16",
+        "shape": [
+          1,
+          6144
+        ],
+        "exact": false,
+        "different_elements": 2644,
+        "max_abs": 0.000244140625,
+        "nrmse": 0.002878940062663543,
+        "first_difference": {
+          "flat_index": 1,
+          "actual": 0.0220947265625,
+          "expected": 0.02197265625
+        },
+        "all16_same": true
+      },
+      {
+        "step": 1,
+        "state": 6,
+        "dtype": "torch.bfloat16",
+        "shape": [
+          1,
+          6144
+        ],
+        "exact": false,
+        "different_elements": 1767,
+        "max_abs": 0.0001220703125,
+        "nrmse": 0.0020823150555793124,
+        "first_difference": {
+          "flat_index": 1,
+          "actual": 0.0010833740234375,
+          "expected": 0.001068115234375
+        },
+        "all16_same": true
+      }
+    ],
+    "layer4_all7_stages_first_reset_exact_in32_pairs": true,
+    "layer4_all4_post_tp_outputs_reconstructed_exact": true,
+    "rank13_current_matches_frozen_v3": true
+  },
+  "cpu_checks": {
+    "reduction": {
+      "raw": {
+        "path": "/workspace/offline/cann-tp-runtime-20261017/reduction-cpu.json",
+        "sha256": "58c2c073def6d007ac3144f8136b27529311992e30014b7fb7b63f446460b9d3"
+      },
+      "status": "pass",
+      "checks": [
+        "torch.bfloat16: copy/dtype/capture/restore",
+        "torch.float32: copy/dtype/capture/restore",
+        "other dtype: original mutation/identity; exception restore",
+        "runtime FP32/copy/restore; override=False",
+        "runtime FP32/copy/restore; override=True"
+      ],
+      "npu_initialized": false,
+      "scope": "CPU copy contract; no collective executed"
+    },
+    "constructor": {
+      "raw": {
+        "path": "/workspace/offline/cann-tp-runtime-20261017/init-cpu.json",
+        "sha256": "b7a4bf9d31f6d4214bc3fb0caef6adf8b8fd0113b1739100257e15abd8f279c8"
+      },
+      "checks": 8,
+      "passed": true,
+      "source_sha256": {
+        "/workspace/offline/cann-tp-runtime-20261017/source/tilert/models/glm_5_2_ascend/cann_model.py": "26ac7b799349271b553d6d9a3c72abaf66e8cc90456193403001b54f325765e4",
+        "/workspace/offline/cann-tp-runtime-20261017/source/tests/glm52/check_cann_init.py": "88213c8920dd9639c5d3d8999e78c1182bad500e5b0b6d73a5a77b7437e63937"
+      },
+      "npu_initialized": false
+    }
+  },
+  "precision_verified": false,
+  "performance_measured": false
+}

@@ -1,0 +1,92 @@
+--- accepted/routed_int4_kernel.cpp
++++ candidate/routed_int4_kernel.cpp
+@@ -12,6 +12,9 @@
+ #include "routed_int4_trace.h"
+ #include "kernel_operator.h"
+ #include "lib/matmul_intf.h"
++#ifdef ROUTED_DOWN_STRIPED
++#include "routed_int4_down_stripes.h"
++#endif
+ #ifdef ROUTED_INPUT_FRONT
+ #include "routed_int4_front.h"
+ #endif
+@@ -180,6 +183,34 @@
+     mm.End();
+ }
+ 
++#ifdef ROUTED_DOWN_STRIPED
++template <CubeFormat weight_format, class MatmulType>
++__aicore__ inline void ProjectDownStripe(
++    MatmulType& mm, __gm__ int4b_t* rows, __gm__ int4b_t* weight,
++    __gm__ RoutedProduct* product, int64_t count, int64_t column)
++{
++    const int64_t matrix_rows = 2 * count;
++    const bool nz = weight_format == CubeFormat::NZ;
++    GlobalTensor<int4b_t> a, b;
++    GlobalTensor<RoutedProduct> c;
++    a.SetGlobalBuffer(rows, matrix_rows * kIntermediate);
++    b.SetGlobalBuffer(Nibbles(weight, DownWeightColumnOffset(column, nz)),
++        nz ? kIntermediate * kDownStripeColumns
++           : (kIntermediate - 1) * kHidden + kDownStripeColumns);
++    c.SetGlobalBuffer(product + column,
++        (matrix_rows - 1) * kHidden + kDownStripeColumns);
++    // B remains a slice of the original matrix. orgKc fixes the output
++    // row stride independently of this core's N2048 computation.
++    mm.SetOrgShape(matrix_rows, kHidden, kIntermediate, kIntermediate,
++                   kHidden);
++    mm.SetSingleShape(matrix_rows, kDownStripeColumns, kIntermediate);
++    mm.SetTensorA(a);
++    mm.SetTensorB(b, false);
++    mm.IterateAll(c);
++    mm.End();
++}
++#endif
++
+ __aicore__ inline void SplitHalves(Workspace& held, int64_t span)
+ {
+     Muls(held.other, held.value, 1.0F / 16.0F, span);
+@@ -715,6 +746,34 @@
+         LoadTiling(down_cube, down_tiling);
+         Projection<weight_format> down_mm;
+         down_mm.Init(&down_cube, &pipe);
++#ifdef ROUTED_DOWN_STRIPED
++        int64_t active_count = 0;
++        if (blocks == kDownStripeBlocks) {
++            for (int64_t expert = 0; expert < experts; ++expert) {
++                if (counts.GetValue(expert) != 0
++                    && ++active_count > kDownStripeExperts) {
++                    break;
++                }
++            }
++        }
++        if (DownStripesEnabled(blocks, active_count)) {
++            const auto stripe = DownStripeFor(GetBlockIdx(), active_count);
++            int64_t active = 0;
++            for (int64_t expert = 0;
++                 stripe.active_expert >= 0 && expert < experts; ++expert) {
++                const int64_t count = counts.GetValue(expert);
++                if (count == 0 || active++ != stripe.active_expert) {
++                    continue;
++                }
++                const int64_t begin = starts.GetValue(expert);
++                ProjectDownStripe<weight_format>(down_mm,
++                    Nibbles(middle, 2 * begin * kIntermediate),
++                    Nibbles(down, expert * kHidden * kIntermediate),
++                    wide + 2 * begin * kHidden, count, stripe.column);
++                break;
++            }
++        } else {
++#endif
+         int64_t active = 0;
+         int64_t next = GetBlockIdx();
+         for (int64_t expert = 0; expert < experts; ++expert) {
+@@ -732,6 +791,9 @@
+                     down_scale + expert * kHidden, kHidden, kIntermediate,
+                     counts.GetValue(expert));
+         }
++#ifdef ROUTED_DOWN_STRIPED
++        }
++#endif
+         Publish();
+     }
+     timing.Barrier(4);

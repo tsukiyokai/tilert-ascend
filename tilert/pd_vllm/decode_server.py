@@ -21,6 +21,7 @@ from tilert.pd_vllm.capabilities import (
 )
 from tilert.pd_vllm.grammar_spec import GrammarError, GrammarViolationError
 from tilert.pd_vllm.receive_server import ReceiveServer
+from tilert.pd_vllm.token_queue import TokenQueue, finish_worker
 
 logger = logging.getLogger("pd_vllm.decode_server")
 _ABANDON_DRAIN_S = 30.0
@@ -43,12 +44,10 @@ class DecodeBody(BaseModel):
     top_logprobs: int | None = None
 
 
-DECODE_POLL_S = max(0.0, float(os.environ.get("TILERT_DECODE_POLL_MS") or "200")) / 1000.0
-
-
 def build_app(server: ReceiveServer, engine) -> FastAPI:
     app = FastAPI()
     lock = threading.Lock()
+    state_lock = threading.Lock()
     state = {"current_rid": None}
 
     @app.get("/health")
@@ -74,11 +73,15 @@ def build_app(server: ReceiveServer, engine) -> FastAPI:
     @app.post("/pd/cancel")
     def pd_cancel(body: dict):
         rid = body.get("rid")
-        ev = state.get("cancel_event")
-        if rid and rid == state["current_rid"] and (ev is not None):
-            ev.set()
-            logger.info("cancel requested for %s", rid)
-            return {"cancelled": rid}
+        with state_lock:
+            ev = state.get("cancel_event")
+            if rid and rid == state["current_rid"] and (ev is not None):
+                ev.set()
+                logger.info("cancel requested for %s", rid)
+                return {"cancelled": rid}
+            if rid:
+                server.release(rid)
+                return {"cancelled": rid, "pending": True}
         return JSONResponse(
             {"error": "no matching in-flight request", "current_rid": state["current_rid"]},
             status_code=404,
@@ -89,11 +92,12 @@ def build_app(server: ReceiveServer, engine) -> FastAPI:
             engine.reset()
         except Exception:
             logger.exception("engine reset failed")
-        if state["current_rid"]:
-            server.release(state["current_rid"])
-        state["current_rid"] = None
-        state["cancel_event"] = None
-        lock.release()
+            return
+        with state_lock:
+            if state["current_rid"]:
+                server.release(state["current_rid"])
+            state.update(current_rid=None, cancel_event=None)
+            lock.release()
 
     def _drain_own_kv(rid: str, timeout_s: float, cancel=None):
         deadline = time.time() + timeout_s
@@ -138,10 +142,11 @@ def build_app(server: ReceiveServer, engine) -> FastAPI:
             return JSONResponse(
                 {"error": "busy", "current_rid": state["current_rid"]}, status_code=429
             )
-        state["current_rid"] = body.rid
-        server.expect(body.rid)
         cancel = threading.Event()
-        state["cancel_event"] = cancel
+        with state_lock:
+            state.update(current_rid=body.rid, cancel_event=cancel)
+            if server.expect(body.rid) is False:
+                cancel.set()
         t0 = time.time()
         if body.top_logprobs is not None and (
             not getattr(engine, "supports_logprobs", lambda: False)()
@@ -267,13 +272,7 @@ def build_app(server: ReceiveServer, engine) -> FastAPI:
                 return JSONResponse({"error": str(e), "rid": body.rid}, status_code=500)
             finally:
                 _cleanup()
-        q: queue_mod.Queue = queue_mod.Queue()
-        fin: dict = {"loop": None, "ev": None}
-
-        def _signal_done() -> None:
-            loop, ev = (fin["loop"], fin["ev"])
-            if loop is not None and ev is not None:
-                loop.call_soon_threadsafe(ev.set)
+        q = TokenQueue()
 
         def _run():
             try:
@@ -287,45 +286,34 @@ def build_app(server: ReceiveServer, engine) -> FastAPI:
                     **{"top_logprobs": body.top_logprobs} if want_lp else {},
                 )
                 q.put(("done", tokens))
-                _signal_done()
             except GrammarViolationError as e:
                 logger.info("stream grammar violation for %s: %s", body.rid, e)
                 q.put(("error", e.to_payload()))
-                _signal_done()
             except LogprobsUnavailable as e:
                 logger.info("stream logprobs unavailable for %s: %s", body.rid, e)
                 q.put(("error", {"error": str(e), "error_type": "logprobs_unavailable"}))
-                _signal_done()
             except Exception as e:
                 logger.exception("stream decode failed for %s", body.rid)
                 q.put(("error", {"error": str(e)}))
-                _signal_done()
 
         worker = threading.Thread(target=_run, name="pd-decode", daemon=True)
 
         async def _gen():
-            import asyncio
-
             import anyio
             from starlette.concurrency import run_in_threadpool
 
-            fin["loop"] = asyncio.get_running_loop()
-            fin["ev"] = asyncio.Event()
+            q.bind_loop()
             worker.start()
             try:
                 batch: list[int] = []
                 n_emitted = 0
                 done_msg = None
-                last_activity = time.time()
                 while done_msg is None:
                     try:
-                        first = q.get_nowait()
-                    except queue_mod.Empty:
-                        if time.time() - last_activity > 600:
-                            yield (json.dumps({"error": "decode stalled"}) + "\n")
-                            return
-                        await asyncio.sleep(0.001)
-                        continue
+                        first = await q.get()
+                    except TimeoutError:
+                        yield (json.dumps({"error": "decode stalled"}) + "\n")
+                        return
                     if isinstance(first, int):
                         line = {"t": [first]}
                         if want_lp:
@@ -334,20 +322,22 @@ def build_app(server: ReceiveServer, engine) -> FastAPI:
                         yield (json.dumps(line) + "\n")
                     else:
                         done_msg = first
-                    last_activity = time.time()
                     break
                 while done_msg is None:
-                    drained = False
+                    try:
+                        item = await q.get()
+                    except TimeoutError:
+                        yield (json.dumps({"error": "decode stalled"}) + "\n")
+                        return
                     while True:
-                        try:
-                            item = q.get_nowait()
-                        except queue_mod.Empty:
-                            break
-                        drained = True
                         if isinstance(item, int):
                             batch.append(item)
                         else:
                             done_msg = item
+                            break
+                        try:
+                            item = q.get_nowait()
+                        except queue_mod.Empty:
                             break
                     if batch:
                         line = {"t": batch}
@@ -356,17 +346,6 @@ def build_app(server: ReceiveServer, engine) -> FastAPI:
                         n_emitted += len(batch)
                         yield (json.dumps(line) + "\n")
                         batch = []
-                    if done_msg is None:
-                        if drained:
-                            last_activity = time.time()
-                        elif time.time() - last_activity > 600:  # noqa: R505 (exclusive branches)
-                            yield (json.dumps({"error": "decode stalled"}) + "\n")
-                            return
-                        else:
-                            try:
-                                await asyncio.wait_for(fin["ev"].wait(), timeout=DECODE_POLL_S)
-                            except TimeoutError:
-                                pass
                 kind, payload = done_msg
                 if kind == "done":
                     timing = {
@@ -394,8 +373,8 @@ def build_app(server: ReceiveServer, engine) -> FastAPI:
                 with anyio.CancelScope(shield=True):
                     await run_in_threadpool(worker.join, 120)
                 if worker.is_alive():
-                    logger.error("decode worker failed to stop for %s", body.rid)
-                _cleanup()
+                    logger.error("decode worker still owns request %s", body.rid)
+                finish_worker(worker, _cleanup)
 
         return StreamingResponse(_gen(), media_type="application/x-ndjson")
 

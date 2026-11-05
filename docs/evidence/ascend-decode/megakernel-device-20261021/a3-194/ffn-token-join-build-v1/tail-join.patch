@@ -1,0 +1,30 @@
+--- parent/body/source/routed_int4/routed_body_native.h
++++ candidate/body/source/routed_int4/routed_body_native.h
+@@ -1,5 +1,9 @@
+ #ifndef TILERT_ROUTED_BODY_NATIVE_H
+ #define TILERT_ROUTED_BODY_NATIVE_H
++
++#ifdef ROUTED_ENABLE_PROFILE
++#error "Token tail join requires the uninstrumented NoTrace body"
++#endif
+ 
+ /** TP16 W4A8 routed experts with explicit scratch and deterministic combine.
+  *
+@@ -746,7 +750,6 @@
+             combined_output, tokens, blocks);
+         Publish();
+     }
+-    timing.Barrier(5);
+     timing.Begin(6);
+     timing.FinishFinal(6);
+     timing.Store(trace, tokens, blocks);
+--- parent/source/kernel.cpp
++++ candidate/source/kernel.cpp
+@@ -66,7 +66,6 @@
+     // NoTrace::FinishFinal is empty. This is the required publication seam,
+     // after every body-local TBuf and matrix object has left scope.
+     ffn_bridge::device::EndPhase(pipe);
+-    ffn_bridge::device::EndPhase(pipe);
+ }
+ }  // namespace ffn_token_output_device
+ 

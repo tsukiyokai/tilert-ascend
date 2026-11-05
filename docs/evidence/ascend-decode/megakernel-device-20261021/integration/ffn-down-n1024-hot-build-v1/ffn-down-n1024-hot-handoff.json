@@ -1,0 +1,63 @@
+{
+  "scope": "Original FFN hot c17/c32 gate; no new library or device run by agent",
+  "local_stage": "/tmp/tilert-megakernel-validation-20261021/vendor-hook-decoder212-ffn-down-n1024-hot-v1",
+  "host": "a3-194",
+  "remote_stage": "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-ffn-down-n1024-hot-v1",
+  "manifest_sha256": "7799dff345f63271a65ca86df6efd8217a75b96aa13401a37b282d8cffcb7212",
+  "decoder_sha256": "e55024e0276e828b0746d5fedd02a83352770d11aa9bd5d4c81616f911dad1b0",
+  "library_sha256": "bbd52e425a1e94bb199e464e3bf6001c4420e8238afe993e8741e38af50b77ef",
+  "remote_verified_files": 793,
+  "cpu": {
+    "x86_tests": 6,
+    "arm_tests": 6,
+    "torch": "2.12.0+cu130",
+    "torch_npu": "2.12.0",
+    "npu_initialized": false,
+    "evidence": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n1024-hot-cpu-v1"
+  },
+  "commands": {
+    "24": [
+      "bash",
+      "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-ffn-down-n1024-hot-v1/device_ffn_run.sh",
+      "4",
+      "ffn-down-n1024-hot-b24-v1",
+      "--forward-widths",
+      "17",
+      "32",
+      "--forward-replays",
+      "8",
+      "--native-blocks",
+      "24"
+    ],
+    "16": [
+      "bash",
+      "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-ffn-down-n1024-hot-v1/device_ffn_run.sh",
+      "4",
+      "ffn-down-n1024-hot-b16-v1",
+      "--forward-widths",
+      "17",
+      "32",
+      "--forward-replays",
+      "8",
+      "--native-blocks",
+      "16"
+    ]
+  },
+  "expected_per_blocks": {
+    "captures": 4,
+    "cases": 32,
+    "checks_per_case": 15,
+    "raw_checks": 480,
+    "immediate_consumers_in_raw_checks": 128,
+    "down_tiling_checks": 36,
+    "widths": [
+      17,
+      32
+    ],
+    "active_count": 8,
+    "counts_per_active_expert": "M",
+    "down_M32_tiles": 2
+  },
+  "runtime_mounts": "Unchanged frozen original-FFN launcher: runtime212, oracle-package-v4/install, CANN9.2, actual extension acac5e72",
+  "actual_device_execution": false
+}

@@ -1,0 +1,89 @@
+{
+  "scope": "CPU FP64 algebra and counterfactual only; no NPU call.",
+  "completed_utc": "2026-10-19T16:00:59.859819+00:00",
+  "input_path": "/workspace/offline/sfa-c1-bounds-20261019-codex/cpu-fixture/input.pt",
+  "input_sha256": "d8b00212e619c88383dcb79c487c050fa38b26a29467240e8ac66d7261f5d23a",
+  "source_sha256": "11859d96935e7451e59cc2d08dcf90959f9d7e241f746457f3d38c72fb63d399",
+  "shapes": {
+    "query": [
+      8,
+      4,
+      512
+    ],
+    "query_rope": [
+      8,
+      4,
+      64
+    ],
+    "indices": [
+      8,
+      2048
+    ],
+    "bool_mask": [
+      8,
+      1,
+      1,
+      2048
+    ]
+  },
+  "thresholds": [
+    8193,
+    8194,
+    8195,
+    8196,
+    8197,
+    8198,
+    8199,
+    8200
+  ],
+  "injected_future_tokens_per_row": 2,
+  "invalid_counts": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "masked_vs_filtered_fp64_max_abs": 1.942890293094024e-16,
+  "fp64_algebra_tolerance": {
+    "atol": 1e-12,
+    "rtol": 1e-12,
+    "scope": "CPU identity only; no decoder threshold change"
+  },
+  "future_cache_perturbation": {
+    "finite_large": {
+      "row0_bit_equal": true
+    },
+    "nan": {
+      "row0_bit_equal": true
+    }
+  },
+  "minimal_counterexample": {
+    "q": 0,
+    "ids": [
+      0,
+      2,
+      3,
+      -1
+    ],
+    "causal_length": 3,
+    "values_at_ids0_2_3": [
+      0,
+      2,
+      100
+    ],
+    "unmasked_negative_clamped_mean": 25.5,
+    "masked_filtered_mean": 1.0,
+    "unmasked_if_future_value1000": 250.5
+  },
+  "contracts": [
+    "Construct invalid from original token IDs before rewriting gather addresses.",
+    "Replace every invalid ID with a known initialized causal slot, such as0; physical-range clamp alone does not exclude allocated future slots or NaNs.",
+    "Require trailing -1 padding to match SFA termination; an interior -1 followed by valid IDs changes semantics under elementwise masking.",
+    "Keep gathered FIA actual_seq_kvlen at2048; valid entries are not necessarily a contiguous prefix. The token-domain threshold is used only to build the mask.",
+    "Require at least one valid token per row here. An all-masked row needs its explicit zero-output contract checked separately."
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "scope": "CANN 9.2 CPU build, actual Torch 2.12 parent/candidate co-load, no NPU execution",
+  "library_sha256": "bbd52e425a1e94bb199e464e3bf6001c4420e8238afe993e8741e38af50b77ef",
+  "parent_library_sha256": "c90b3666a1697070eda19d5b3e133e9ed58f36fe429abefceae6ffe102a6a032",
+  "manifest_sha256": "f5cae0c1f94708f56e84b018d751c496c2e85ea8fc718494667224b1f3dcc9ab",
+  "source_files": 99,
+  "artifact_files": 6,
+  "all_identity_checks_pass": true,
+  "cpu_contracts": {
+    "x86": 5,
+    "aarch64": 5
+  },
+  "npu_initialized": false,
+  "failed_attempts": [
+    {
+      "attempt": "build-run-v1",
+      "stage": "Image default vLLM entrypoint rejected CPU build command; no CANN compile began."
+    },
+    {
+      "attempt": "build-run-v2 / build-v1",
+      "stage": "Six compile/link steps succeeded; SDK driver-log text polluted stdout JSON parser for host tiling probe. No NPU initialization. Tool-only v2 uses a dedicated JSON file."
+    }
+  ],
+  "device_validation": "not run",
+  "archive_excludes": [
+    "objects",
+    "shared libraries",
+    "host probe executables"
+  ]
+}

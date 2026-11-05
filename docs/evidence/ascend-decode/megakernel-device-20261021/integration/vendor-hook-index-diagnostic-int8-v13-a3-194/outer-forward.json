@@ -1,0 +1,2989 @@
+{
+  "scope": "real outer layer eager forward, one TP16 local shard before TP reduction",
+  "script": {
+    "path": "/workspace/tests/glm52/whole_layer/vendor_hook_forward.py",
+    "sha256": "376411d2c57501ac1661fb81b0d6f7c2ec571c9d83d2e8b65ddcbb0a68ba4b58"
+  },
+  "outer_forward": {
+    "path": "/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/models/deepseek_v2.py",
+    "sha256": "96f4f755f62caa85869fb884209e7f8869882ddb6efbd40c930778b27bd3e39d"
+  },
+  "mla_custom_op": {
+    "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/ops/mla.py",
+    "sha256": "e14080c6c0106f2734f5441254e285e7a39fd8980046febe5232b4c9dba75400"
+  },
+  "forward_context": {
+    "path": "/usr/local/python3.12.13/lib/python3.12/contextlib.py",
+    "sha256": "8b7a477f978a8532852fd81e241c78182516bc4975d672d580a5848a76e11eb6"
+  },
+  "adapter": {
+    "path": "/workspace/tests/glm52/whole_layer/vendor_hook_index_diagnostic.py",
+    "sha256": "382aa5cdc23dacf3617bacd4de94c7ba37e273f894863842f5351d9b63bbfbe6"
+  },
+  "mode": "int8",
+  "widths": [
+    32
+  ],
+  "iterations": 6,
+  "sequence": 8192,
+  "cache_shapes": [
+    [
+      66,
+      128,
+      1,
+      512
+    ],
+    [
+      66,
+      128,
+      1,
+      64
+    ],
+    [
+      66,
+      128,
+      1,
+      128
+    ],
+    [
+      66,
+      128,
+      1,
+      1
+    ]
+  ],
+  "cache_dtypes": [
+    "torch.bfloat16",
+    "torch.bfloat16",
+    "torch.int8",
+    "torch.float16"
+  ],
+  "cache_seed": 41022,
+  "hidden_seed_base": 41023,
+  "collective": false,
+  "graph_capture": false,
+  "cases": [
+    {
+      "rows": 32,
+      "iteration": 0,
+      "pass": true,
+      "phase": "comparison",
+      "main_slots": [
+        8032,
+        8033,
+        8034,
+        8035,
+        8036,
+        8037,
+        8038,
+        8039,
+        8040,
+        8041,
+        8042,
+        8043,
+        8044,
+        8045,
+        8046,
+        8047,
+        8048,
+        8049,
+        8050,
+        8051,
+        8052,
+        8053,
+        8054,
+        8055,
+        8056,
+        8057,
+        8058,
+        8059,
+        8060,
+        8061,
+        8062,
+        8063
+      ],
+      "index_slots": [
+        736,
+        737,
+        738,
+        739,
+        740,
+        741,
+        742,
+        743,
+        744,
+        745,
+        746,
+        747,
+        748,
+        749,
+        750,
+        751,
+        752,
+        753,
+        754,
+        755,
+        756,
+        757,
+        758,
+        759,
+        760,
+        761,
+        762,
+        763,
+        764,
+        765,
+        766,
+        767
+      ],
+      "metadata_layouts": {
+        "original": {
+          "before": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011096064,
+                "storage_ptr": 20618011096064
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011091456,
+                "storage_ptr": 20618011091456
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011102208,
+                "storage_ptr": 20618011102208
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011102720,
+                "storage_ptr": 20618011102720
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011105792,
+                "storage_ptr": 20618011105792
+              },
+              "cos": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011110400,
+                "storage_ptr": 20618011110400
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011103744,
+                "storage_ptr": 20618011103744
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011105280,
+                "storage_ptr": 20618011105280
+              }
+            }
+          },
+          "after": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011096064,
+                "storage_ptr": 20618011096064
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011091456,
+                "storage_ptr": 20618011091456
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011102208,
+                "storage_ptr": 20618011102208
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011102720,
+                "storage_ptr": 20618011102720
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011105792,
+                "storage_ptr": 20618011105792
+              },
+              "cos": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011110400,
+                "storage_ptr": 20618011110400
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011103744,
+                "storage_ptr": 20618011103744
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011105280,
+                "storage_ptr": 20618011105280
+              }
+            }
+          }
+        },
+        "installed": {
+          "before": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011096064,
+                "storage_ptr": 20618011096064
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011091456,
+                "storage_ptr": 20618011091456
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011104768,
+                "storage_ptr": 20618011104768
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011105280,
+                "storage_ptr": 20618011105280
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011188224,
+                "storage_ptr": 20618011188224
+              },
+              "cos": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011192832,
+                "storage_ptr": 20618011192832
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011115520,
+                "storage_ptr": 20618011115520
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011101184,
+                "storage_ptr": 20618011101184
+              }
+            }
+          },
+          "after": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011096064,
+                "storage_ptr": 20618011096064
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011091456,
+                "storage_ptr": 20618011091456
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011104768,
+                "storage_ptr": 20618011104768
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011105280,
+                "storage_ptr": 20618011105280
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011188224,
+                "storage_ptr": 20618011188224
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011192832,
+                "storage_ptr": 20618011192832
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011115520,
+                "storage_ptr": 20618011115520
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011101184,
+                "storage_ptr": 20618011101184
+              }
+            }
+          }
+        }
+      },
+      "native_calls": [
+        {
+          "rows": 32,
+          "mode": "int8"
+        }
+      ],
+      "checks": {
+        "output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 196608
+        },
+        "topk": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 65536
+        },
+        "main_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 4325376
+        },
+        "rope_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 540672
+        },
+        "index_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1081344
+        },
+        "index_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 8448
+        }
+      }
+    },
+    {
+      "rows": 32,
+      "iteration": 1,
+      "pass": true,
+      "phase": "comparison",
+      "main_slots": [
+        7903,
+        7904,
+        7905,
+        7906,
+        7907,
+        7908,
+        7909,
+        7910,
+        7911,
+        7912,
+        7913,
+        7914,
+        7915,
+        7916,
+        7917,
+        7918,
+        7919,
+        7920,
+        7921,
+        7922,
+        7923,
+        7924,
+        7925,
+        7926,
+        7927,
+        7928,
+        7929,
+        7930,
+        7931,
+        7932,
+        7933,
+        7934
+      ],
+      "index_slots": [
+        863,
+        864,
+        865,
+        866,
+        867,
+        868,
+        869,
+        870,
+        871,
+        872,
+        873,
+        874,
+        875,
+        876,
+        877,
+        878,
+        879,
+        880,
+        881,
+        882,
+        883,
+        884,
+        885,
+        886,
+        887,
+        888,
+        889,
+        890,
+        891,
+        892,
+        893,
+        894
+      ],
+      "metadata_layouts": {
+        "original": {
+          "before": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183403008,
+                "storage_ptr": 20618183403008
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183398400,
+                "storage_ptr": 20618183398400
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011474944,
+                "storage_ptr": 20618011474944
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011475456,
+                "storage_ptr": 20618011475456
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183408640,
+                "storage_ptr": 20618183408640
+              },
+              "cos": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183413248,
+                "storage_ptr": 20618183413248
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011104768,
+                "storage_ptr": 20618011104768
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183408128,
+                "storage_ptr": 20618183408128
+              }
+            }
+          },
+          "after": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183403008,
+                "storage_ptr": 20618183403008
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183398400,
+                "storage_ptr": 20618183398400
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011474944,
+                "storage_ptr": 20618011474944
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011475456,
+                "storage_ptr": 20618011475456
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183408640,
+                "storage_ptr": 20618183408640
+              },
+              "cos": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183413248,
+                "storage_ptr": 20618183413248
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011104768,
+                "storage_ptr": 20618011104768
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183408128,
+                "storage_ptr": 20618183408128
+              }
+            }
+          }
+        },
+        "installed": {
+          "before": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183403008,
+                "storage_ptr": 20618183403008
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183398400,
+                "storage_ptr": 20618183398400
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011105280,
+                "storage_ptr": 20618011105280
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011115008,
+                "storage_ptr": 20618011115008
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011174912,
+                "storage_ptr": 20618011174912
+              },
+              "cos": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011179520,
+                "storage_ptr": 20618011179520
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618183407616,
+                "storage_ptr": 20618183407616
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183441408,
+                "storage_ptr": 20618183441408
+              }
+            }
+          },
+          "after": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183403008,
+                "storage_ptr": 20618183403008
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183398400,
+                "storage_ptr": 20618183398400
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011105280,
+                "storage_ptr": 20618011105280
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011115008,
+                "storage_ptr": 20618011115008
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011174912,
+                "storage_ptr": 20618011174912
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011179520,
+                "storage_ptr": 20618011179520
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618183407616,
+                "storage_ptr": 20618183407616
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183441408,
+                "storage_ptr": 20618183441408
+              }
+            }
+          }
+        }
+      },
+      "native_calls": [
+        {
+          "rows": 32,
+          "mode": "int8"
+        }
+      ],
+      "checks": {
+        "output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 196608
+        },
+        "topk": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 65536
+        },
+        "main_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 4325376
+        },
+        "rope_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 540672
+        },
+        "index_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1081344
+        },
+        "index_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 8448
+        }
+      }
+    },
+    {
+      "rows": 32,
+      "iteration": 2,
+      "pass": true,
+      "phase": "comparison",
+      "main_slots": [
+        7774,
+        7775,
+        7776,
+        7777,
+        7778,
+        7779,
+        7780,
+        7781,
+        7782,
+        7783,
+        7784,
+        7785,
+        7786,
+        7787,
+        7788,
+        7789,
+        7790,
+        7791,
+        7792,
+        7793,
+        7794,
+        7795,
+        7796,
+        7797,
+        7798,
+        7799,
+        7800,
+        7801,
+        7802,
+        7803,
+        7804,
+        7805
+      ],
+      "index_slots": [
+        990,
+        991,
+        992,
+        993,
+        994,
+        995,
+        996,
+        997,
+        998,
+        999,
+        1000,
+        1001,
+        1002,
+        1003,
+        1004,
+        1005,
+        1006,
+        1007,
+        1008,
+        1009,
+        1010,
+        1011,
+        1012,
+        1013,
+        1014,
+        1015,
+        1016,
+        1017,
+        1018,
+        1019,
+        1020,
+        1021
+      ],
+      "metadata_layouts": {
+        "original": {
+          "before": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183403008,
+                "storage_ptr": 20618183403008
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183398400,
+                "storage_ptr": 20618183398400
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011105280,
+                "storage_ptr": 20618011105280
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011184128,
+                "storage_ptr": 20618011184128
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183417856,
+                "storage_ptr": 20618183417856
+              },
+              "cos": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183422464,
+                "storage_ptr": 20618183422464
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618183408128,
+                "storage_ptr": 20618183408128
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011116032,
+                "storage_ptr": 20618011116032
+              }
+            }
+          },
+          "after": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183403008,
+                "storage_ptr": 20618183403008
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183398400,
+                "storage_ptr": 20618183398400
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011105280,
+                "storage_ptr": 20618011105280
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011184128,
+                "storage_ptr": 20618011184128
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183417856,
+                "storage_ptr": 20618183417856
+              },
+              "cos": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183422464,
+                "storage_ptr": 20618183422464
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618183408128,
+                "storage_ptr": 20618183408128
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011116032,
+                "storage_ptr": 20618011116032
+              }
+            }
+          }
+        },
+        "installed": {
+          "before": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183398400,
+                "storage_ptr": 20618183398400
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011470336,
+                "storage_ptr": 20618011470336
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011184128,
+                "storage_ptr": 20618011184128
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011185152,
+                "storage_ptr": 20618011185152
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183403008,
+                "storage_ptr": 20618183403008
+              },
+              "cos": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183383040,
+                "storage_ptr": 20618183383040
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618183427072,
+                "storage_ptr": 20618183427072
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183439360,
+                "storage_ptr": 20618183439360
+              }
+            }
+          },
+          "after": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183398400,
+                "storage_ptr": 20618183398400
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011470336,
+                "storage_ptr": 20618011470336
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011184128,
+                "storage_ptr": 20618011184128
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011185152,
+                "storage_ptr": 20618011185152
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183403008,
+                "storage_ptr": 20618183403008
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183383040,
+                "storage_ptr": 20618183383040
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618183427072,
+                "storage_ptr": 20618183427072
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183439360,
+                "storage_ptr": 20618183439360
+              }
+            }
+          }
+        }
+      },
+      "native_calls": [
+        {
+          "rows": 32,
+          "mode": "int8"
+        }
+      ],
+      "checks": {
+        "output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 196608
+        },
+        "topk": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 65536
+        },
+        "main_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 4325376
+        },
+        "rope_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 540672
+        },
+        "index_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1081344
+        },
+        "index_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 8448
+        }
+      }
+    },
+    {
+      "rows": 32,
+      "iteration": 3,
+      "pass": true,
+      "phase": "comparison",
+      "main_slots": [
+        7645,
+        7646,
+        7647,
+        7648,
+        7649,
+        7650,
+        7651,
+        7652,
+        7653,
+        7654,
+        7655,
+        7656,
+        7657,
+        7658,
+        7659,
+        7660,
+        7661,
+        7662,
+        7663,
+        7664,
+        7665,
+        7666,
+        7667,
+        7668,
+        7669,
+        7670,
+        7671,
+        7672,
+        7673,
+        7674,
+        7675,
+        7676
+      ],
+      "index_slots": [
+        1117,
+        1118,
+        1119,
+        1120,
+        1121,
+        1122,
+        1123,
+        1124,
+        1125,
+        1126,
+        1127,
+        1128,
+        1129,
+        1130,
+        1131,
+        1132,
+        1133,
+        1134,
+        1135,
+        1136,
+        1137,
+        1138,
+        1139,
+        1140,
+        1141,
+        1142,
+        1143,
+        1144,
+        1145,
+        1146,
+        1147,
+        1148
+      ],
+      "metadata_layouts": {
+        "original": {
+          "before": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011470336,
+                "storage_ptr": 20618011470336
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183398400,
+                "storage_ptr": 20618183398400
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011185152,
+                "storage_ptr": 20618011185152
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183407616,
+                "storage_ptr": 20618183407616
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183387648,
+                "storage_ptr": 20618183387648
+              },
+              "cos": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183392256,
+                "storage_ptr": 20618183392256
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618183441408,
+                "storage_ptr": 20618183441408
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183439360,
+                "storage_ptr": 20618183439360
+              }
+            }
+          },
+          "after": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011470336,
+                "storage_ptr": 20618011470336
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183398400,
+                "storage_ptr": 20618183398400
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011185152,
+                "storage_ptr": 20618011185152
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183407616,
+                "storage_ptr": 20618183407616
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183387648,
+                "storage_ptr": 20618183387648
+              },
+              "cos": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183392256,
+                "storage_ptr": 20618183392256
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618183441408,
+                "storage_ptr": 20618183441408
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183439360,
+                "storage_ptr": 20618183439360
+              }
+            }
+          }
+        },
+        "installed": {
+          "before": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183332352,
+                "storage_ptr": 20618183332352
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183398400,
+                "storage_ptr": 20618183398400
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011185152,
+                "storage_ptr": 20618011185152
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183407616,
+                "storage_ptr": 20618183407616
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183336960,
+                "storage_ptr": 20618183336960
+              },
+              "cos": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183341568,
+                "storage_ptr": 20618183341568
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618183396864,
+                "storage_ptr": 20618183396864
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183417344,
+                "storage_ptr": 20618183417344
+              }
+            }
+          },
+          "after": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183332352,
+                "storage_ptr": 20618183332352
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183398400,
+                "storage_ptr": 20618183398400
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011185152,
+                "storage_ptr": 20618011185152
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183407616,
+                "storage_ptr": 20618183407616
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183336960,
+                "storage_ptr": 20618183336960
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183341568,
+                "storage_ptr": 20618183341568
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618183396864,
+                "storage_ptr": 20618183396864
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183417344,
+                "storage_ptr": 20618183417344
+              }
+            }
+          }
+        }
+      },
+      "native_calls": [
+        {
+          "rows": 32,
+          "mode": "int8"
+        }
+      ],
+      "checks": {
+        "output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 196608
+        },
+        "topk": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 65536
+        },
+        "main_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 4325376
+        },
+        "rope_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 540672
+        },
+        "index_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1081344
+        },
+        "index_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 8448
+        }
+      }
+    },
+    {
+      "rows": 32,
+      "iteration": 4,
+      "pass": true,
+      "phase": "comparison",
+      "main_slots": [
+        7516,
+        7517,
+        7518,
+        7519,
+        7520,
+        7521,
+        7522,
+        7523,
+        7524,
+        7525,
+        7526,
+        7527,
+        7528,
+        7529,
+        7530,
+        7531,
+        7532,
+        7533,
+        7534,
+        7535,
+        7536,
+        7537,
+        7538,
+        7539,
+        7540,
+        7541,
+        7542,
+        7543,
+        7544,
+        7545,
+        7546,
+        7547
+      ],
+      "index_slots": [
+        1244,
+        1245,
+        1246,
+        1247,
+        1248,
+        1249,
+        1250,
+        1251,
+        1252,
+        1253,
+        1254,
+        1255,
+        1256,
+        1257,
+        1258,
+        1259,
+        1260,
+        1261,
+        1262,
+        1263,
+        1264,
+        1265,
+        1266,
+        1267,
+        1268,
+        1269,
+        1270,
+        1271,
+        1272,
+        1273,
+        1274,
+        1275
+      ],
+      "metadata_layouts": {
+        "original": {
+          "before": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183383040,
+                "storage_ptr": 20618183383040
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183332352,
+                "storage_ptr": 20618183332352
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011185152,
+                "storage_ptr": 20618011185152
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183397376,
+                "storage_ptr": 20618183397376
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183398400,
+                "storage_ptr": 20618183398400
+              },
+              "cos": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183403008,
+                "storage_ptr": 20618183403008
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618183416832,
+                "storage_ptr": 20618183416832
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183427072,
+                "storage_ptr": 20618183427072
+              }
+            }
+          },
+          "after": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183383040,
+                "storage_ptr": 20618183383040
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183332352,
+                "storage_ptr": 20618183332352
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011185152,
+                "storage_ptr": 20618011185152
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183397376,
+                "storage_ptr": 20618183397376
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183398400,
+                "storage_ptr": 20618183398400
+              },
+              "cos": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183403008,
+                "storage_ptr": 20618183403008
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618183416832,
+                "storage_ptr": 20618183416832
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183427072,
+                "storage_ptr": 20618183427072
+              }
+            }
+          }
+        },
+        "installed": {
+          "before": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011468800,
+                "storage_ptr": 20618011468800
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183332352,
+                "storage_ptr": 20618183332352
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011185152,
+                "storage_ptr": 20618011185152
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183346688,
+                "storage_ptr": 20618183346688
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183426560,
+                "storage_ptr": 20618183426560
+              },
+              "cos": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183431168,
+                "storage_ptr": 20618183431168
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618183407616,
+                "storage_ptr": 20618183407616
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183441408,
+                "storage_ptr": 20618183441408
+              }
+            }
+          },
+          "after": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011468800,
+                "storage_ptr": 20618011468800
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183332352,
+                "storage_ptr": 20618183332352
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011185152,
+                "storage_ptr": 20618011185152
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183346688,
+                "storage_ptr": 20618183346688
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183426560,
+                "storage_ptr": 20618183426560
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183431168,
+                "storage_ptr": 20618183431168
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618183407616,
+                "storage_ptr": 20618183407616
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183441408,
+                "storage_ptr": 20618183441408
+              }
+            }
+          }
+        }
+      },
+      "native_calls": [
+        {
+          "rows": 32,
+          "mode": "int8"
+        }
+      ],
+      "checks": {
+        "output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 196608
+        },
+        "topk": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 65536
+        },
+        "main_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 4325376
+        },
+        "rope_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 540672
+        },
+        "index_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1081344
+        },
+        "index_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 8448
+        }
+      }
+    },
+    {
+      "rows": 32,
+      "iteration": 5,
+      "pass": false,
+      "phase": "comparison",
+      "main_slots": [
+        7387,
+        7388,
+        7389,
+        7390,
+        7391,
+        7392,
+        7393,
+        7394,
+        7395,
+        7396,
+        7397,
+        7398,
+        7399,
+        7400,
+        7401,
+        7402,
+        7403,
+        7404,
+        7405,
+        7406,
+        7407,
+        7408,
+        7409,
+        7410,
+        7411,
+        7412,
+        7413,
+        7414,
+        7415,
+        7416,
+        7417,
+        7418
+      ],
+      "index_slots": [
+        1371,
+        1372,
+        1373,
+        1374,
+        1375,
+        1376,
+        1377,
+        1378,
+        1379,
+        1380,
+        1381,
+        1382,
+        1383,
+        1384,
+        1385,
+        1386,
+        1387,
+        1388,
+        1389,
+        1390,
+        1391,
+        1392,
+        1393,
+        1394,
+        1395,
+        1396,
+        1397,
+        1398,
+        1399,
+        1400,
+        1401,
+        1402
+      ],
+      "metadata_layouts": {
+        "original": {
+          "before": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183332352,
+                "storage_ptr": 20618183332352
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011468800,
+                "storage_ptr": 20618011468800
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011185152,
+                "storage_ptr": 20618011185152
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183346688,
+                "storage_ptr": 20618183346688
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183336960,
+                "storage_ptr": 20618183336960
+              },
+              "cos": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183341568,
+                "storage_ptr": 20618183341568
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618183440384,
+                "storage_ptr": 20618183440384
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183397376,
+                "storage_ptr": 20618183397376
+              }
+            }
+          },
+          "after": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183332352,
+                "storage_ptr": 20618183332352
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618011468800,
+                "storage_ptr": 20618011468800
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011185152,
+                "storage_ptr": 20618011185152
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183346688,
+                "storage_ptr": 20618183346688
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183336960,
+                "storage_ptr": 20618183336960
+              },
+              "cos": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183341568,
+                "storage_ptr": 20618183341568
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618183440384,
+                "storage_ptr": 20618183440384
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183397376,
+                "storage_ptr": 20618183397376
+              }
+            }
+          }
+        },
+        "installed": {
+          "before": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183390720,
+                "storage_ptr": 20618183390720
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183332352,
+                "storage_ptr": 20618183332352
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011185152,
+                "storage_ptr": 20618011185152
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183117824,
+                "storage_ptr": 20618183117824
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183364096,
+                "storage_ptr": 20618183364096
+              },
+              "cos": {
+                "format": 0,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183368704,
+                "storage_ptr": 20618183368704
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618183407104,
+                "storage_ptr": 20618183407104
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183417344,
+                "storage_ptr": 20618183417344
+              }
+            }
+          },
+          "after": {
+            "model.layers.0.self_attn.attn": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183390720,
+                "storage_ptr": 20618183390720
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183332352,
+                "storage_ptr": 20618183332352
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618011185152,
+                "storage_ptr": 20618011185152
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183117824,
+                "storage_ptr": 20618183117824
+              }
+            },
+            "model.layers.0.self_attn.indexer.k_cache": {
+              "sin": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183364096,
+                "storage_ptr": 20618183364096
+              },
+              "cos": {
+                "format": 2,
+                "shape": [
+                  32,
+                  1,
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183368704,
+                "storage_ptr": 20618183368704
+              },
+              "slot_mapping": {
+                "format": 2,
+                "shape": [
+                  32
+                ],
+                "data_ptr": 20618183407104,
+                "storage_ptr": 20618183407104
+              },
+              "block_table": {
+                "format": 2,
+                "shape": [
+                  1,
+                  64
+                ],
+                "data_ptr": 20618183417344,
+                "storage_ptr": 20618183417344
+              }
+            }
+          }
+        }
+      },
+      "native_calls": [
+        {
+          "rows": 32,
+          "mode": "int8"
+        }
+      ],
+      "checks": {
+        "output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 196608
+        },
+        "topk": {
+          "pass": false,
+          "exact": false,
+          "bitwise_equal": false,
+          "bitwise_different_bytes": 89,
+          "max_abs": 7750.0,
+          "rms": 101.9258041381836,
+          "different_elements": 45,
+          "elements": 65536
+        },
+        "main_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 4325376
+        },
+        "rope_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 540672
+        },
+        "index_cache": {
+          "pass": false,
+          "exact": false,
+          "bitwise_equal": false,
+          "bitwise_different_bytes": 2,
+          "max_abs": 1.0,
+          "rms": 0.0013599817175418139,
+          "different_elements": 2,
+          "elements": 1081344
+        },
+        "index_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 8448
+        }
+      },
+      "failure_dump": "/evidence/vendor-hook-index-diagnostic-int8-v13/outer-forward-int8-m32-r5.pt"
+    }
+  ],
+  "pass": false,
+  "sfa_adapter": {
+    "path": "/workspace/logs/vendor-sfa-torch210-v1/vendor_sfa_adapter.so",
+    "sha256": "956e5382e4629d63e4a2e9f8b9381063c6dd70921cf0b32c879e53fbf939fdad",
+    "schema": "_C_ascend::npu_sparse_flash_attention(Tensor query, Tensor key, Tensor value, Tensor sparse_indices, float scale_value, *, Tensor? block_table=None, Tensor? actual_seq_lengths_query=None, Tensor? actual_seq_lengths_kv=None, Tensor? query_rope=None, Tensor? key_rope=None, int sparse_block_size=1, str layout_query=\"BSND\", str layout_kv=\"BSND\", int sparse_mode=3, int pre_tokens=9223372036854775807, int next_tokens=9223372036854775807, int attention_mode=2, bool return_softmax_lse=False) -> (Tensor attention_out, Tensor softmax_max, Tensor softmax_sum)",
+    "resolved_api_libraries": {
+      "aclnnSparseFlashAttentionGetWorkspaceSize": {
+        "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_transformer.so",
+        "sha256": "3eebcd29e93860ea2aafaf9dfe269e98a28dc90c7cc325914e479be43bd247cf"
+      },
+      "aclnnSparseFlashAttention": {
+        "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_transformer.so",
+        "sha256": "3eebcd29e93860ea2aafaf9dfe269e98a28dc90c7cc325914e479be43bd247cf"
+      }
+    }
+  },
+  "error": "Traceback (most recent call last):\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_forward.py\", line 256, in run_outer_forward\n    raise RuntimeError(\"The real outer attention call differs; see outer-forward.json\")\nRuntimeError: The real outer attention call differs; see outer-forward.json\n"
+}

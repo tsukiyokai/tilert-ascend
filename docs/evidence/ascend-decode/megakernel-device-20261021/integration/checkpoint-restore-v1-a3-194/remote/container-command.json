@@ -1,0 +1,99 @@
+{
+  "image": "sha256:1910b1acedb37acc42beda9cb695c2cf84c57c81d8dd8b5191a98a97bc6d5fe6",
+  "commands": [
+    [
+      "docker",
+      "volume",
+      "create",
+      "--driver",
+      "local",
+      "--label",
+      "tilert.checkpoint.restore=20261022",
+      "--opt",
+      "type=nfs",
+      "--opt",
+      "o=addr=7.242.104.142,ro,nfsvers=3,soft,timeo=50,retrans=1,nolock,nosuid,nodev,noexec",
+      "--opt",
+      "device=:/",
+      "tilert-checkpoint-verify-v1-nas"
+    ],
+    [
+      "docker",
+      "run",
+      "--rm",
+      "--pull=never",
+      "--name",
+      "tilert-checkpoint-verify-v1",
+      "--read-only",
+      "--network",
+      "none",
+      "--cpus",
+      "1",
+      "--memory",
+      "1g",
+      "--pids-limit",
+      "64",
+      "--tmpfs",
+      "/tmp:rw,nosuid,nodev,size=16m",
+      "--tmpfs",
+      "/checkpoint/view:rw,nosuid,nodev,noexec,size=2m",
+      "--mount",
+      "type=volume,src=tilert-checkpoint-verify-v1-nas,dst=/checkpoint/nas,readonly",
+      "--mount",
+      "type=bind,src=/home/shanshan/tilert-megakernel-20261021/checkpoint-owned,dst=/checkpoint/owned,readonly",
+      "--mount",
+      "type=bind,src=/home/shanshan/tilert-megakernel-20261021/checkpoint-owned/evidence,dst=/out",
+      "--env",
+      "PYTHONDONTWRITEBYTECODE=1",
+      "--entrypoint",
+      "python3",
+      "sha256:1910b1acedb37acc42beda9cb695c2cf84c57c81d8dd8b5191a98a97bc6d5fe6",
+      "/checkpoint/owned/tools/verify.py",
+      "--manifest",
+      "/checkpoint/owned/modelscope-files.json",
+      "--nas-model",
+      "/checkpoint/nas/model/GLM-5.2-w4a8c8",
+      "--owned-model",
+      "/checkpoint/owned",
+      "--hash-file",
+      "config.json",
+      "--hash-file",
+      "optional/quarot.safetensors",
+      "--require-readonly-nas",
+      "--require-no-devices",
+      "--view",
+      "/checkpoint/view/model",
+      "--report",
+      "/out/container-check.json"
+    ],
+    [
+      "docker",
+      "volume",
+      "rm",
+      "tilert-checkpoint-verify-v1-nas"
+    ]
+  ],
+  "scope": "CPU metadata and two explicit hashes; no weight-shard reads",
+  "device_execution": false,
+  "steps": [
+    {
+      "step": 0,
+      "returncode": 0,
+      "stdout": "tilert-checkpoint-verify-v1-nas\n",
+      "stderr": ""
+    },
+    {
+      "step": 1,
+      "returncode": 0,
+      "stdout": "{\n  \"checked_files\": 109,\n  \"matched_sizes\": 109,\n  \"hashed_files\": [\n    \"config.json\",\n    \"optional/quarot.safetensors\"\n  ],\n  \"hashed_bytes\": 150998739,\n  \"all_manifest_hashes_checked\": false,\n  \"view_links_verified\": 109,\n  \"pass\": true\n}\n",
+      "stderr": ""
+    },
+    {
+      "step": 2,
+      "returncode": 0,
+      "stdout": "tilert-checkpoint-verify-v1-nas\n",
+      "stderr": ""
+    }
+  ],
+  "volume_removed": true
+}

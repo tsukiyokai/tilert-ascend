@@ -1,0 +1,149 @@
+{
+  "scope": "single-bank routed INT4 body with vendor input routing; local counter intervals; excludes shared experts, top-k selection and TP reduction",
+  "raw_report": "routed-balanced-profile.json.gz",
+  "uncompressed_sha256": "753817c5dc01abc9fbfacc6291376a72eee26bf2ffd6aba1a322df9c5a5ebe46",
+  "ordinary_library_sha256": "c6e0116ffca2c15567f6741bfc45789e9930c20af3e2243319f73d2e80c29200",
+  "profile_library_sha256": "4ac2fa75caceb909c55d025995ce9eaa5b9c27a47d31c37ba49b9f578f919479",
+  "counter": {
+    "ticks_per_us": 50,
+    "source_path": "/home/shanshan/repo/cann/asc-devkit/docs/zh/api/SIMD-API/basic_api/tool_interface/system_resources_and_variables/GetSystemCycle_ISASI.md",
+    "source_sha256": "0bc0947cf89527aa6e506a58e44bdfddbc505a322903a99b9bc823969d1012ab",
+    "source_commit": "6a51d0b167dd8f5555456a0ebb783ef0427e366e",
+    "cross_core_clock_alignment_assumed": false
+  },
+  "cautions": [
+    "The maximum local work and barrier values can belong to different cores; they must not be added.",
+    "The event-minus-local-window residual includes input routing, launch and instrumentation outside the local window; it does not isolate input-routing latency.",
+    "Timing uses the last changed routing fixture and one weight bank; it is not the four-bank comparison."
+  ],
+  "cases": [
+    {
+      "width": 12,
+      "active_experts": 81,
+      "local_samples": 30,
+      "changing_replays": 8,
+      "pass": true,
+      "max_per_core_median_window_us": 141.58,
+      "stages": [
+        {
+          "stage": "restore_dispatch",
+          "max_per_core_median_work_us": 13.45,
+          "max_per_core_median_barrier_us": 20.27
+        },
+        {
+          "stage": "metadata_and_split",
+          "max_per_core_median_work_us": 9.74,
+          "max_per_core_median_barrier_us": 11.0
+        },
+        {
+          "stage": "gate_up_matmul",
+          "max_per_core_median_work_us": 50.9,
+          "max_per_core_median_barrier_us": 51.6
+        },
+        {
+          "stage": "activate",
+          "max_per_core_median_work_us": 7.2,
+          "max_per_core_median_barrier_us": 8.5
+        },
+        {
+          "stage": "down_matmul",
+          "max_per_core_median_work_us": 34.44,
+          "max_per_core_median_barrier_us": 35.55
+        },
+        {
+          "stage": "store_routes",
+          "max_per_core_median_work_us": 11.16,
+          "max_per_core_median_barrier_us": 12.15
+        },
+        {
+          "stage": "combine",
+          "max_per_core_median_work_us": 1.18,
+          "max_per_core_median_barrier_us": 2.86
+        }
+      ],
+      "event_us": {
+        "ordinary": {
+          "samples": 30,
+          "graph_replays_per_event": 30,
+          "p50": 170.35733858744302,
+          "p90": 170.67993799845377,
+          "p99": 171.0189520517985,
+          "population_stddev": 0.26954462245280164
+        },
+        "instrumented": {
+          "samples": 30,
+          "graph_replays_per_event": 30,
+          "p50": 176.2426694234212,
+          "p90": 176.74439748128253,
+          "p99": 177.35121854146323,
+          "population_stddev": 0.3619251624125542
+        }
+      },
+      "instrumentation_median_delta_us": 5.885330835978181
+    },
+    {
+      "width": 32,
+      "active_experts": 168,
+      "local_samples": 30,
+      "changing_replays": 8,
+      "pass": true,
+      "max_per_core_median_window_us": 233.4,
+      "stages": [
+        {
+          "stage": "restore_dispatch",
+          "max_per_core_median_work_us": 11.84,
+          "max_per_core_median_barrier_us": 23.69
+        },
+        {
+          "stage": "metadata_and_split",
+          "max_per_core_median_work_us": 19.12,
+          "max_per_core_median_barrier_us": 20.52
+        },
+        {
+          "stage": "gate_up_matmul",
+          "max_per_core_median_work_us": 81.3,
+          "max_per_core_median_barrier_us": 82.41
+        },
+        {
+          "stage": "activate",
+          "max_per_core_median_work_us": 14.44,
+          "max_per_core_median_barrier_us": 15.75
+        },
+        {
+          "stage": "down_matmul",
+          "max_per_core_median_work_us": 53.03,
+          "max_per_core_median_barrier_us": 54.41
+        },
+        {
+          "stage": "store_routes",
+          "max_per_core_median_work_us": 30.52,
+          "max_per_core_median_barrier_us": 31.8
+        },
+        {
+          "stage": "combine",
+          "max_per_core_median_work_us": 2.31,
+          "max_per_core_median_barrier_us": 4.07
+        }
+      ],
+      "event_us": {
+        "ordinary": {
+          "samples": 30,
+          "graph_replays_per_event": 30,
+          "p50": 266.45533243815106,
+          "p90": 267.0576731363932,
+          "p99": 267.30904324849445,
+          "population_stddev": 0.4241315394981361
+        },
+        "instrumented": {
+          "samples": 30,
+          "graph_replays_per_event": 30,
+          "p50": 271.6726779937744,
+          "p90": 272.4513403574626,
+          "p99": 272.9830382664998,
+          "population_stddev": 0.5241254399980436
+        }
+      },
+      "instrumentation_median_delta_us": 5.2173455556233534
+    }
+  ]
+}

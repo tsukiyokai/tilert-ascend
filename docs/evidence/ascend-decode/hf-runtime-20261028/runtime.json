@@ -1,0 +1,337 @@
+{
+  "created_at": "2026-10-27T21:29:57.553574+00:00",
+  "status": "pass",
+  "git_head": "9addf9a6f8de889cbe6abb1483a02b936e6c1975",
+  "command": [
+    "/private/tmp/tilert-frontier-venv/bin/python",
+    "tests/glm52/check_reference_runtime.py",
+    "--output",
+    "/tmp/tilert-hf-runtime-final-20261028"
+  ],
+  "hostname": "fanshanshandeMacBook-Pro.local",
+  "python": "3.11.15",
+  "torch": "2.9.0",
+  "scope": "Synthetic 78-layer native HF execution; hidden/latent rank 16, vocab 32, floating weights, C8 full/shared indexer schedule, zero attention/FFN outputs, nonzero caches and changing routing; two teacher inputs over three positions, reset and disk readback",
+  "precision_verified": false,
+  "formal_precision_gate_passed": false,
+  "performance_measured": false,
+  "source_sha256": {
+    "tests/glm52/check_reference_runtime.py": "f0f3cb074683cfe807e56ca810c19b1cad4b67262a9437781b153bc4b141cba3",
+    "tilert/models/glm_5_2_ascend/reference.py": "aab9930f1f3e461c4adc997cfb418f55ab884214025c0cab49c96de819b0b5c3"
+  },
+  "checks": [
+    {
+      "name": "changed_c8_source_rejected",
+      "passed": true
+    },
+    {
+      "name": "missing_c8_source_rejected",
+      "passed": true
+    },
+    {
+      "name": "bf16.collector",
+      "passed": true,
+      "command": [
+        "/private/tmp/tilert-frontier-venv/bin/python",
+        "/Users/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/run_hf_reference.py",
+        "--checkpoint",
+        "/private/tmp/tilert-hf-runtime-final-20261028/checkpoint",
+        "--output",
+        "/private/tmp/tilert-hf-runtime-final-20261028/bf16",
+        "--tokens",
+        "1",
+        "2",
+        "1",
+        "--generate",
+        "1",
+        "--capacity",
+        "3",
+        "--source-commit",
+        "9addf9a6f8de889cbe6abb1483a02b936e6c1975",
+        "--c8-source-directory",
+        "/Users/shanshan/repo/tile-ai/TileRT-Ascend/docs/evidence/ascend-decode/c8-arch22"
+      ],
+      "returncode": 0,
+      "checks_total": 2379,
+      "checks_failed": 0,
+      "manifest_sha256": "e65071697cb3f169a0a9dadcec094c13093fc4069a7810b3e2b3aa0cac56200e"
+    },
+    {
+      "name": "bf16.canonical_c8_source",
+      "passed": true
+    },
+    {
+      "name": "bf16.greedy_head_difference",
+      "passed": true
+    },
+    {
+      "name": "bf16.step0.hidden_oracle",
+      "passed": true
+    },
+    {
+      "name": "bf16.step0.all_78_head_oracles",
+      "passed": true
+    },
+    {
+      "name": "bf16.step0.all_75_route_oracles",
+      "passed": true,
+      "expected": [
+        15,
+        13,
+        14,
+        11,
+        12,
+        9,
+        10,
+        7
+      ]
+    },
+    {
+      "name": "bf16.step0.all_78_latent_oracles",
+      "passed": true
+    },
+    {
+      "name": "bf16.step0.all_78_uniform_attention_oracles",
+      "passed": true
+    },
+    {
+      "name": "bf16.step0.nonzero_rope_rows",
+      "passed": true
+    },
+    {
+      "name": "bf16.step0.nonzero_c8_keys_and_scales",
+      "passed": true
+    },
+    {
+      "name": "bf16.step1.hidden_oracle",
+      "passed": true
+    },
+    {
+      "name": "bf16.step1.all_78_head_oracles",
+      "passed": true
+    },
+    {
+      "name": "bf16.step1.all_75_route_oracles",
+      "passed": true,
+      "expected": [
+        1,
+        0,
+        3,
+        2,
+        5,
+        4,
+        7,
+        6
+      ]
+    },
+    {
+      "name": "bf16.step1.all_78_latent_oracles",
+      "passed": true
+    },
+    {
+      "name": "bf16.step1.all_78_uniform_attention_oracles",
+      "passed": true
+    },
+    {
+      "name": "bf16.step1.nonzero_rope_rows",
+      "passed": true
+    },
+    {
+      "name": "bf16.step2.hidden_oracle",
+      "passed": true
+    },
+    {
+      "name": "bf16.step2.all_78_head_oracles",
+      "passed": true
+    },
+    {
+      "name": "bf16.step2.all_75_route_oracles",
+      "passed": true,
+      "expected": [
+        15,
+        13,
+        14,
+        11,
+        12,
+        9,
+        10,
+        7
+      ]
+    },
+    {
+      "name": "bf16.step2.all_78_latent_oracles",
+      "passed": true
+    },
+    {
+      "name": "bf16.step2.all_78_uniform_attention_oracles",
+      "passed": true
+    },
+    {
+      "name": "bf16.step2.nonzero_rope_rows",
+      "passed": true
+    },
+    {
+      "name": "bf16.step2.nonzero_c8_keys_and_scales",
+      "passed": true
+    },
+    {
+      "name": "fp32.collector",
+      "passed": true,
+      "command": [
+        "/private/tmp/tilert-frontier-venv/bin/python",
+        "/Users/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/run_hf_reference.py",
+        "--checkpoint",
+        "/private/tmp/tilert-hf-runtime-final-20261028/checkpoint",
+        "--output",
+        "/private/tmp/tilert-hf-runtime-final-20261028/fp32",
+        "--tokens",
+        "1",
+        "2",
+        "1",
+        "--generate",
+        "1",
+        "--capacity",
+        "3",
+        "--source-commit",
+        "9addf9a6f8de889cbe6abb1483a02b936e6c1975",
+        "--c8-source-directory",
+        "/Users/shanshan/repo/tile-ai/TileRT-Ascend/docs/evidence/ascend-decode/c8-arch22",
+        "--fp32-head"
+      ],
+      "returncode": 0,
+      "checks_total": 2379,
+      "checks_failed": 0,
+      "manifest_sha256": "12f1a825b51b17d280979754db3533c04cc787bd443f4ac6b6560a773cebc3e3"
+    },
+    {
+      "name": "fp32.canonical_c8_source",
+      "passed": true
+    },
+    {
+      "name": "fp32.greedy_head_difference",
+      "passed": true
+    },
+    {
+      "name": "fp32.step0.hidden_oracle",
+      "passed": true
+    },
+    {
+      "name": "fp32.step0.all_78_head_oracles",
+      "passed": true
+    },
+    {
+      "name": "fp32.step0.all_75_route_oracles",
+      "passed": true,
+      "expected": [
+        15,
+        13,
+        14,
+        11,
+        12,
+        9,
+        10,
+        7
+      ]
+    },
+    {
+      "name": "fp32.step0.all_78_latent_oracles",
+      "passed": true
+    },
+    {
+      "name": "fp32.step0.all_78_uniform_attention_oracles",
+      "passed": true
+    },
+    {
+      "name": "fp32.step0.nonzero_rope_rows",
+      "passed": true
+    },
+    {
+      "name": "fp32.step0.nonzero_c8_keys_and_scales",
+      "passed": true
+    },
+    {
+      "name": "fp32.step1.hidden_oracle",
+      "passed": true
+    },
+    {
+      "name": "fp32.step1.all_78_head_oracles",
+      "passed": true
+    },
+    {
+      "name": "fp32.step1.all_75_route_oracles",
+      "passed": true,
+      "expected": [
+        1,
+        0,
+        3,
+        2,
+        5,
+        4,
+        7,
+        6
+      ]
+    },
+    {
+      "name": "fp32.step1.all_78_latent_oracles",
+      "passed": true
+    },
+    {
+      "name": "fp32.step1.all_78_uniform_attention_oracles",
+      "passed": true
+    },
+    {
+      "name": "fp32.step1.nonzero_rope_rows",
+      "passed": true
+    },
+    {
+      "name": "fp32.step2.hidden_oracle",
+      "passed": true
+    },
+    {
+      "name": "fp32.step2.all_78_head_oracles",
+      "passed": true
+    },
+    {
+      "name": "fp32.step2.all_75_route_oracles",
+      "passed": true,
+      "expected": [
+        15,
+        13,
+        14,
+        11,
+        12,
+        9,
+        10,
+        7
+      ]
+    },
+    {
+      "name": "fp32.step2.all_78_latent_oracles",
+      "passed": true
+    },
+    {
+      "name": "fp32.step2.all_78_uniform_attention_oracles",
+      "passed": true
+    },
+    {
+      "name": "fp32.step2.nonzero_rope_rows",
+      "passed": true
+    },
+    {
+      "name": "fp32.step2.nonzero_c8_keys_and_scales",
+      "passed": true
+    }
+  ],
+  "checkpoint_sha256": {
+    "weights.safetensors": "128163ee8bf3cb1c66ac0f721a66739f942285895b0b88da12827e2872dfdbee",
+    "config.json": "b116ac041206294f8e10cd0428bee6668cc39cc0e359a131dc5b57a808df937b",
+    "quant_model_weights.safetensors.index.json": "da3f8834008d0a257890a51ac0a35ac17013112fa64191538b50d758b22bd59c",
+    "quant_model_description.json": "e3df756d5151f1687377b32f595e531eae19a2ee646ac7f310b7cafab2cdfdcb"
+  },
+  "c8_source_sha256": {
+    "quant_lightning_indexer_service_cube_arch22.h": "75b676cd308c2b8c573798f9a5ec16636122af85cb626e59dcefbe8b01147252",
+    "quant_lightning_indexer_service_vector_arch22.h": "55098dd4589260d526c3ede3decf6d0757fc8458c9a74253849a63dfa6ace1ae"
+  },
+  "checks_total": 48,
+  "checks_failed": 0
+}

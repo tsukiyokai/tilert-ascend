@@ -1,0 +1,78 @@
+{
+  "vllm_commit": "a98247ab4db686ee03c66d5feb3c761e52a2f8ab",
+  "ascend_commit": "8237ee6d690d1399bc6eb48ef5977ac2bd470f3f",
+  "script_sha256": "de648373fd9cd2f6bfb31d7d5e909665a6eb8df4bcc53af278de62f3b1212bcd",
+  "python": "3.12.13 (main, Jul  7 2026, 19:40:26) [GCC 11.4.0]",
+  "torch": "2.10.0+cpu",
+  "torch_npu": "2.10.0.post2",
+  "initialized_before": false,
+  "pythonpath": [
+    "/workspace",
+    "/usr/local/python3.12.13/lib/python3.12/site-packages/cv2",
+    "/workspace/vendor-hook-pinned/vllm-a982",
+    "/workspace/vendor-hook-pinned/ascend-python-build",
+    "/workspace/vendor-hook-pinned/vendor-metadata",
+    "/usr/local/Ascend/cann-9.0.1/python/site-packages",
+    "/usr/local/Ascend/cann-9.0.1/opp/built-in/op_impl/ai_core/tbe",
+    "/usr/local/Ascend/ascend-toolkit/latest/python/site-packages",
+    "/usr/local/Ascend/ascend-toolkit/latest/opp/built-in/op_impl/ai_core/tbe",
+    "/workspace",
+    "/usr/local/python3.12.13/lib/python312.zip",
+    "/usr/local/python3.12.13/lib/python3.12",
+    "/usr/local/python3.12.13/lib/python3.12/lib-dynload",
+    "/usr/local/python3.12.13/lib/python3.12/site-packages",
+    "__editable__.vllm-0.23.0+empty.finder.__path_hook__",
+    "/usr/local/python3.12.13/lib/python3.12/site-packages/setuptools/_vendor"
+  ],
+  "platform_plugins": [
+    {
+      "name": "ascend",
+      "value": "vllm_ascend:register"
+    }
+  ],
+  "imports": [
+    {
+      "module": "vllm.config",
+      "path": "/workspace/vendor-hook-pinned/vllm-a982/vllm/config/__init__.py",
+      "sha256": "c62c0494361a2a9de9e5060849f295bb00f2065bf2c83faae4d59c4aa9ba5549",
+      "success": true
+    },
+    {
+      "module": "vllm.forward_context",
+      "path": "/workspace/vendor-hook-pinned/vllm-a982/vllm/forward_context.py",
+      "sha256": "8dab5a4dee60e46c4e52821667321c9f05c793578af49cddbdb204cf9324c403",
+      "success": true
+    },
+    {
+      "module": "vllm_ascend.platform",
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/platform.py",
+      "sha256": "686eb5c4d7e744053def9fe51caf743e79e6a3cbeddebd3c47949d6f13e503cd",
+      "success": true
+    },
+    {
+      "module": "vllm_ascend.attention.sfa_v1",
+      "success": false,
+      "error": "Traceback (most recent call last):\n  File \"/workspace/vendor-hook-a982-import.py\", line 48, in <module>\n    module = importlib.import_module(name)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/importlib/__init__.py\", line 90, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1387, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1360, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1331, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 935, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 999, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/attention/sfa_v1.py\", line 22, in <module>\n    from vllm.v1.worker.utils import select_common_block_size\n  File \"/workspace/vendor-hook-pinned/vllm-a982/vllm/v1/worker/utils.py\", line 16, in <module>\n    from vllm.model_executor.layers.mamba.mamba_mixer2 import share_replayssm_ring_trackers\n  File \"/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/layers/mamba/mamba_mixer2.py\", line 45, in <module>\n    from vllm.model_executor.layers.mamba.ops.ssd_combined import (\n  File \"/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/layers/mamba/ops/ssd_combined.py\", line 15, in <module>\n    from .ssd_bmm import _bmm_chunk_fwd\n  File \"/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/layers/mamba/ops/ssd_bmm.py\", line 14, in <module>\n    @triton.autotune(\n     ^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/runtime/autotuner.py\", line 369, in decorator\n    return Autotuner(fn, fn.arg_names, configs, key, reset_to_zero, restore_value, pre_hook=pre_hook,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/runtime/autotuner.py\", line 131, in __init__\n    self.do_bench = driver.active.get_benchmarker()\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/runtime/driver.py\", line 23, in __getattr__\n    self._initialize_obj()\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/runtime/driver.py\", line 20, in _initialize_obj\n    self._obj = self._init_fn()\n                ^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/runtime/driver.py\", line 9, in _create_driver\n    return actives[0]()\n           ^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/backends/ascend/driver.py\", line 146, in __init__\n    self.utils = NPUUtils()\n                 ^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/backends/ascend/driver.py\", line 71, in __init__\n    mod = importlib.util.module_from_spec(spec)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nImportError: /tmp/triton/jzHx-YJTLfo4Yt7nhbaDjQ/npu_utils.so: failed to map segment from shared object\n"
+    },
+    {
+      "module": "vllm_ascend.ops.mla",
+      "success": false,
+      "error": "Traceback (most recent call last):\n  File \"/workspace/vendor-hook-a982-import.py\", line 48, in <module>\n    module = importlib.import_module(name)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/importlib/__init__.py\", line 90, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1387, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1360, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1310, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"<frozen importlib._bootstrap>\", line 1387, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1360, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1331, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 935, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 999, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 488, in _call_with_frames_removed\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/ops/__init__.py\", line 28, in <module>\n    import vllm_ascend.ops.triton.linearnorm.split_qkv_tp_rmsnorm_rope\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/ops/triton/linearnorm/split_qkv_tp_rmsnorm_rope.py\", line 30, in <module>\n    @triton.autotune(\n     ^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/runtime/autotuner.py\", line 369, in decorator\n    return Autotuner(fn, fn.arg_names, configs, key, reset_to_zero, restore_value, pre_hook=pre_hook,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/runtime/autotuner.py\", line 131, in __init__\n    self.do_bench = driver.active.get_benchmarker()\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/runtime/driver.py\", line 23, in __getattr__\n    self._initialize_obj()\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/runtime/driver.py\", line 20, in _initialize_obj\n    self._obj = self._init_fn()\n                ^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/runtime/driver.py\", line 9, in _create_driver\n    return actives[0]()\n           ^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/backends/ascend/driver.py\", line 146, in __init__\n    self.utils = NPUUtils()\n                 ^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/triton/backends/ascend/driver.py\", line 71, in __init__\n    mod = importlib.util.module_from_spec(spec)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nImportError: /tmp/triton/jzHx-YJTLfo4Yt7nhbaDjQ/npu_utils.so: failed to map segment from shared object\n"
+    },
+    {
+      "module": "vllm_ascend.compilation.acl_graph",
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/compilation/acl_graph.py",
+      "sha256": "8e1c269e331d005f1361acc5cec24402bff7ae39b75e952ea890da7812804955",
+      "success": true
+    },
+    {
+      "module": "vllm_ascend.quantization.methods.w8a8.w8a8_dynamic",
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py",
+      "sha256": "47444be0a5017d012401685d89134200f39c5e706f7941797fa7ecfccf1bba0d",
+      "success": true
+    }
+  ],
+  "platform_type": "vllm_ascend.platform.NPUPlatform",
+  "initialized_after": false,
+  "success": false
+}

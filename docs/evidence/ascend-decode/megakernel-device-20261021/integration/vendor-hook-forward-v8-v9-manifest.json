@@ -1,0 +1,54 @@
+{
+  "scope": "RoPE-only adapter normalization after the matched Torch 2.10 format probe; v9 device result is recorded separately.",
+  "v8_result": {
+    "raw": "vendor-hook-forward-m1-v8/outer-forward.json",
+    "original_outer_forward_completed": true,
+    "native_kernel_submitted": false,
+    "error": "indexer_sin has the wrong physical format; expected 2"
+  },
+  "format_probe": "vendor-hook-metadata-format-v1/metadata-format.json",
+  "unchanged_device": {
+    "path": "tests/glm52/whole_layer/vendor_hook_device.py",
+    "sha256": "3975ac675651864d095d2ffcabd0324f5aa283372e9237458c45f9c2a732bbfe"
+  },
+  "unchanged_launcher": {
+    "path": "tests/glm52/whole_layer/vendor_hook_run.sh",
+    "sha256": "a18be18f28fbc2bab670052edb0f3ed80606f6e5f0f9aed6302e3e8a4ed7d495"
+  },
+  "adapter": {
+    "path": "docs/evidence/ascend-decode/megakernel-device-20261021/integration/attention_native-v9.py",
+    "sha256": "336eaff0de153d32439d4d2b0557522b313a24a7e5bef82b8dc11f1257511c01"
+  },
+  "forward_fixture": {
+    "path": "docs/evidence/ascend-decode/megakernel-device-20261021/integration/vendor_hook_forward-v9.py",
+    "sha256": "376411d2c57501ac1661fb81b0d6f7c2ec571c9d83d2e8b65ddcbb0a68ba4b58"
+  },
+  "preserved_adapter": {
+    "path": "docs/evidence/ascend-decode/megakernel-device-20261021/integration/attention_native-v8.py",
+    "sha256": "be9291452b30e98da8a210c2cd1fcfdef01a2247138a5eea1285bde38bcea729"
+  },
+  "adapter_diff": "--- attention_native-v8.py\n+++ attention_native-v9.py\n@@ -396,7 +396,8 @@\n     Metadata lists contain sine, cosine, live slots, cumulative query/key\n     lengths, and page table. An indexed call supplies four cache tensors,\n     including an empty FP16 scale tensor for BF16 keys. TP reduction and\n-    cross-layer top-k publication belong to the caller.\n+    cross-layer top-k publication belong to the caller. RoPE storage is\n+    normalized to ND; base-format conversion can retag its storage aliases.\n     \"\"\"\n     import torch\n     import torch_npu\n@@ -404,6 +405,7 @@\n     geometry = geometry_for(mode, caches, main_metadata, index_metadata)\n     scratch, tiling, blocks, sync, partial, selected = pool.get(hidden, geometry)\n     main = list(main_metadata)\n+    main[:2] = [_nd(value) for value in main[:2]]\n     main[2] = pool.live_slots(main[2])\n     codes, token_scale = torch_npu.npu_dynamic_quant(hidden)\n     token_scale = token_scale.view(hidden.shape[0], 1)\n@@ -417,6 +419,7 @@\n         selected = topk\n     else:\n         index = list(index_metadata)\n+        index[:2] = [_nd(value) for value in index[:2]]\n         index[2] = pool.live_slots(index[2])\n         torch.ops.tilert.indexed_attention_out(\n             hidden, codes, token_scale, main_weights, front_weights,\n",
+  "cpu_checks": {
+    "adapter_tests": 28,
+    "passed": true,
+    "python": "/tmp/tilert-megakernel-cpu/bin/python",
+    "device_execution": false
+  },
+  "official_builder": {
+    "commit": "8237ee6d690d1399bc6eb48ef5977ac2bd470f3f",
+    "file": "vllm_ascend/attention/indexer.py",
+    "allocation_lines": [
+      909,
+      938
+    ],
+    "speculative_copy_lines": [
+      945,
+      954
+    ],
+    "drafting_copy_lines": [
+      974,
+      980
+    ],
+    "shape_source": "vllm_ascend/ops/rotary_embedding.py:104-105"
+  }
+}

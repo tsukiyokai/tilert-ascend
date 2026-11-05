@@ -1,0 +1,68 @@
+{
+  "scope": "Source-backed expression/operation boundary; special-value device results pending",
+  "source_audit_manifest_sha256": "8a7f767fde3fd500e6055bf095dc756935118f32846a49b933fdb8c3efdd620d",
+  "installed_atomic": "SetAtomicAdd<float> -> set_atomic_add + set_atomic_f32; installed kernel uses SUM_CTRL before GM copy",
+  "candidate_vector": "AscendC::Add on five FP32 LocalTensor slots, BF16 cast once after the final tree sum",
+  "proven_static": "Same ordered expression for ranks2..16, including carry of unpaired subtrees without adding zero",
+  "not_proven_static": [
+    "FP32 atomicAdd versus vector Add signed-zero behavior",
+    "BF16-to-FP32 cast and FP32 add denormal preservation or flush-to-zero",
+    "Finite overflow and final BF16 rounding behavior"
+  ],
+  "device_driver_sha256": "9973741bbf0ecb5ab330607733ad8895d68bd8d8a38904e58dea572496c0d5b3",
+  "edge_contract": "Original order columns retained separately; all32 edge columns use finite BF16 bit patterns and roll only, no scale",
+  "requested_columns": {
+    "all_negative_zero": [
+      "8000",
+      "8000",
+      "8000"
+    ],
+    "mixed_zero": [
+      "8000",
+      "0000",
+      "8000"
+    ],
+    "positive_min_subnormals": [
+      "0001",
+      "0001",
+      "0000"
+    ],
+    "negative_subnormals": [
+      "8001",
+      "8001",
+      "8001"
+    ],
+    "cancellation_to_subnormal": [
+      "0080",
+      "8001",
+      "8080"
+    ],
+    "positive_overflow": [
+      "7f7f",
+      "7f7f",
+      "0000"
+    ],
+    "serial_only_overflow": [
+      "7f7f",
+      "7f7f",
+      "ff7f"
+    ],
+    "tree_only_overflow": [
+      "7f7f",
+      "ff7f",
+      "7f7f"
+    ],
+    "bf16_even_tie": [
+      "3f80",
+      "3b80",
+      "0000"
+    ],
+    "bf16_odd_tie": [
+      "3f81",
+      "3b80",
+      "0000"
+    ]
+  },
+  "comparison_scope": "First reduction and immediate consumer. Later CUBE and second reduction are excluded for extreme stress columns.",
+  "acceptance": "Report order_pass and edge_hccl_equal separately; exit0 is not edge equivalence."
+}

@@ -1,0 +1,144 @@
+# Post-attention FFN bridge
+
+This isolated MIX entry consumes a BF16 attention TP result and the BF16
+residual. It produces AddRMSNorm outputs, FP32 gate logits, ordered top-8
+indices and probabilities, and independent shared-expert A8 input. It does
+not contain a TP reduction or an expert body. Its separate FFN epilogue
+retains `BF16(routed*2.5)` before `BF16(scaled+shared)`.
+
+The fixed geometry is `1 <= M <= 32`, H=6144, 256 experts, top-8, and 16 or
+24 mixed groups. The gate weight is contiguous physical ND BF16
+`[6144,256]`; the correction bias is FP32 `[256]`. Converting a production
+gate weight to this prototype layout is an explicit preparation step.
+The pinned production call retains the original `[256,6144]` weight and
+passes `weight.t()` to `torch.mm(..., out_dtype=torch.float32)`. On A3,
+the default `weight_nz_mode=1` keeps BF16 weights in ND; mode 2 converts
+them to NZ. `check.py --gate-weight-layout nd|nz` keeps this reference
+operand separate from the candidate's contiguous KN allocation.
+
+## Interfaces and lifetime
+
+`tilert_ffn_bridge.prepare(sample, blocks)` returns twelve tensors and a
+sync base. Preparation allocates and initializes the gate tiling before
+capture. Execution performs no allocation or route read on the CPU. The
+caller retains all tensors until every consuming graph has finished.
+Scratch tensors must be disjoint, and the tiling and system-workspace
+TensorImpl identities must belong to the same prepare call. Calls use the
+current Torch-NPU stream with host task-queue submission enabled.
+
+| Slot | Tensor | Dtype and shape |
+| --- | --- | --- |
+| 0 | Normalized input | BF16 `[M,6144]` |
+| 1 | Retained residual | BF16 `[M,6144]` |
+| 2 | Reciprocal RMS | FP32 `[M,1]` |
+| 3 | Gate logits | FP32 `[M,256]` |
+| 4 | Probabilities | FP32 `[M,8]` |
+| 5 | Ordered expert IDs | INT32 `[M,8]` |
+| 6 | Shared input codes | INT8 `[M,6144]` |
+| 7 | Shared input scales | FP32 `[M,1]` |
+| 8 | Immutable gate tiling | UINT8 `[512]` |
+| 9 | Matmul system workspace | UINT8 `[16777216]` |
+| 10 | Combined FFN partial | BF16 `[M,6144]` |
+| 11 | Scaled routed partial | BF16 `[M,6144]` |
+
+M32 scratch occupies 18,582,272 bytes. Gate/quant and top-k start only after
+the preceding phase's full pipe drain, DDR publication and mixed SyncAll.
+The gate and independent shared DynamicQuant execute on AIC and AIV in the
+same phase. The norm's 191 KiB UB allocation is retired before quantization;
+top-k uses 16,416 bytes after another reset. All resident cores participate
+in each mixed barrier, including cores without a row or gate tile.
+
+## Router arithmetic
+
+`prepare_vendor.py` freezes the pinned vLLM-Ascend without-group implementation
+and changes only two UB capacities. Both expert-ID buffers cover the full
+256-INT32 copy already issued by that source. Sigmoid, Sort, Gather,
+ReduceSum, epsilon addition, Div and scaling retain their source order.
+For the standalone-to-MIX adaptation, both per-core row counts are one and
+only flat AIV IDs below M call the body. This covers M32 at 16 or 24 groups
+without interpreting inactive cores as valid rows.
+
+The production oracle is `BaseDeviceAdaptor.moe_gating_top_k`, which invokes
+`torch.ops._C_ascend.moe_gating_top_k`. Parameters are k=8, k_group=1,
+group_count=1, group_select_mode=1, renorm=1, norm_type=1, out_flag=false,
+routed_scaling_factor=1 and epsilon=1e-20. Selection sorts sigmoid plus bias
+in descending order. Probabilities gather the original sigmoid scores.
+The device check compares the ordered ID tensor and every probability byte,
+including ties; CPU sigmoid is not its acceptance oracle. The subsequent
+routed body still owns conversion of these probabilities to BF16.
+
+## Build and checks
+
+Use the pinned vLLM-Ascend source and CANN 9.2. A build directory is immutable:
+the script rejects an existing path. It preserves all compiled local and
+vendor sources, command arguments, compiler logs and artifact hashes.
+
+```bash
+VLLM_ASCEND_ROOT=/path/to/pinned/vllm-ascend \
+  bash tests/glm52/whole_layer/ffn_bridge/build.sh /path/to/new-build
+```
+
+CPU checks cover row/column ownership, GM range and scratch size, adversarial
+fixed-logit fixture properties, the two capacity changes and the observable
+BF16 epilogue rounding boundary. They do not validate device arithmetic.
+
+The [Torch-NPU 2.12 device report](../../../../docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-bridge212-v1-summary.json)
+passes all eight complete-bridge boundaries for M1/2/12/32 at 16 and 24
+groups: eight captures, 64 changing replays and 512 raw-byte comparisons.
+Including isolated top-k and epilogue checks gives 24 captures, 192 replays
+and 768 comparisons. The gate reference used original ND NK storage;
+FP32 logits were compared before top-k. This report contains no TP or timing.
+
+`gate_probe.py` tests the actual gate entry separately. The selected
+Torch-NPU 2.10 runtime lacked an `aten::mm.dtype` PrivateUse1 kernel and
+the calls failed; 2.12 executed all six M1/12/32 ND/NZ calls with FP32 output.
+A registered schema alone does not establish this runtime capability.
+
+Run fixed-logit tests first in a matching Torch/Torch-NPU environment with
+the production custom operators installed:
+
+```bash
+python tests/glm52/whole_layer/ffn_bridge/check.py \
+  --library /path/to/new-build/ffn_bridge.so --topk-only \
+  --rows 1 2 12 32 --blocks 16 24 --replays 8 --output /path/to/topk-result
+```
+
+After that gate passes, omit `--topk-only` to compare norm, retained
+residual, reciprocal RMS, gate logits, top-k, shared A8/scales and FFN
+epilogue. Every graph replay changes its inputs; the native graph includes
+queued clone producers. A failure retains actual tensors and oracle
+outputs. No timing or TPOT claim is made by this numerical check.
+
+## Isolated official oracle
+
+`build_oracle_package.py` packages only the pinned `MoeGatingTopK` and
+`AddRmsNormBias` operators through CANN 9.2's custom-project template. It
+retains the original OpDef, host tiler and device source bytes. A compatibility
+include maps the unavailable `log/ops_log.h` names to the pinned logging
+macros; it changes no shape decision or arithmetic. The private package
+must be selected before loading its Torch adapter.
+
+```bash
+python build_oracle_package.py --vendor /path/to/pinned/vllm-ascend \
+  --cann /opt/ascend/cann-9.2.0 --output /path/to/new-oracle-package --jobs 1
+python build_runtime.py --vendor /path/to/pinned/vllm-ascend \
+  --native-build /path/to/frozen-native-build \
+  --oracle-prefix /path/to/new-oracle-package/install/packages/vendors/tilert_bridge_oracle \
+  --cann /opt/ascend/cann-9.2.0 --output /path/to/new-runtime-build \
+  --image-id sha256:matching-torch-image
+```
+
+The runtime build extracts the two official Torch registrations and adapter
+headers without changing their calls. It also recompiles only the bridge's
+Torch binding, retaining the frozen native kernel and tiling objects. Both
+DSOs load in a CPU-only container. The build and checker require both ACLNN
+operators and their workspace-query symbols to resolve inside the private
+package; an available SDK top-k cannot silently substitute for it.
+
+Pass `--oracle-library /path/to/new-runtime-build/official_bridge_oracle.so`
+and `--oracle-prefix /path/to/private/vendor-prefix` to `check.py` when using
+this package. `--preflight-only` validates library, schema and API resolution
+without initializing NPU. Device acceptance still requires the fixed-logit
+graph gate followed by the full bridge gate. The full gate compares every
+FP32 logit against the pinned BF16 `torch.mm(..., out_dtype=torch.float32)`
+operation before accepting its top-k result.

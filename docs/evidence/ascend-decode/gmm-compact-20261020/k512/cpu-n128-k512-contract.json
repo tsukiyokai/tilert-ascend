@@ -1,0 +1,119 @@
+{
+  "scope": "CPU source/resource contract; no NPU execution",
+  "actual_API_request": {
+    "baseM": 128,
+    "baseN": 128,
+    "baseK": 512
+  },
+  "actual_API_fields": {
+    "rc": 0,
+    "M": 256,
+    "N": 256,
+    "Ka": 6144,
+    "Kb": 6144,
+    "singleCoreM": 128,
+    "singleCoreN": 128,
+    "singleCoreK": 6144,
+    "baseM": 128,
+    "baseN": 128,
+    "baseK": 512,
+    "depthA1": 2,
+    "depthB1": 12,
+    "stepM": 1,
+    "stepN": 1,
+    "stepKa": 1,
+    "stepKb": 12,
+    "dbL0A": 2,
+    "dbL0B": 2,
+    "dbL0C": 1,
+    "shareL1Size": 458752,
+    "shareL0CSize": 65536,
+    "shareUbSize": 0,
+    "iterateOrder": 0,
+    "transLength": 0
+  },
+  "actual_API_stdout": "rc=0\nM=256\nN=256\nKa=6144\nKb=6144\nsingleCoreM=128\nsingleCoreN=128\nsingleCoreK=6144\nbaseM=128\nbaseN=128\nbaseK=512\ndepthA1=2\ndepthB1=12\nstepM=1\nstepN=1\nstepKa=1\nstepKb=12\ndbL0A=2\ndbL0B=2\ndbL0C=1\nshareL1Size=458752\nshareL0CSize=65536\nshareUbSize=0\niterateOrder=0\ntransLength=0\n",
+  "forced_comparison_fields": {
+    "N128_K256": {
+      "baseM": 128,
+      "baseN": 128,
+      "baseK": 256,
+      "stepKa": 4,
+      "stepKb": 4,
+      "depthA1": 8,
+      "depthB1": 8
+    },
+    "N128_K512": {
+      "baseM": 128,
+      "baseN": 128,
+      "baseK": 512,
+      "stepKa": 2,
+      "stepKb": 2,
+      "depthA1": 4,
+      "depthB1": 4
+    }
+  },
+  "resources": {
+    "N128_K256": {
+      "L0A_double": 32768,
+      "L0B_double": 32768,
+      "L0C_single": 65536,
+      "L1A": 131072,
+      "L1B": 131072,
+      "A_K_span": 1024,
+      "B_K_span": 1024,
+      "K_iterations": 24,
+      "A_outer": 6,
+      "B_outer": 6
+    },
+    "N128_K512": {
+      "L0A_double": 65536,
+      "L0B_double": 65536,
+      "L0C_single": 65536,
+      "L1A": 131072,
+      "L1B": 131072,
+      "A_K_span": 1024,
+      "B_K_span": 1024,
+      "K_iterations": 12,
+      "A_outer": 6,
+      "B_outer": 6
+    }
+  },
+  "integer_checks": [
+    {
+      "case": "random0",
+      "outputs": 128,
+      "max_abs_int32": 5936,
+      "exact": true
+    },
+    {
+      "case": "random1",
+      "outputs": 128,
+      "max_abs_int32": 5372,
+      "exact": true
+    },
+    {
+      "case": "all_64",
+      "outputs": 128,
+      "max_abs_int32": 393216,
+      "exact": true
+    },
+    {
+      "case": "all_minus56",
+      "outputs": 128,
+      "max_abs_int32": 344064,
+      "exact": true
+    },
+    {
+      "case": "all_49",
+      "outputs": 128,
+      "max_abs_int32": 301056,
+      "exact": true
+    }
+  ],
+  "all_possible_abs_bound": 393216,
+  "accumulation_contract": "Signed INT4 products accumulate in INT32 with no overflow; one unchanged GetTensorC/Fixpipe per full quantGroupSize6144 and output tile. Device check remains required.",
+  "address_contract": "Retain full OrgShapeN256, NZ tailN*K offsets and both MSD rows; only internal K partitions differ.",
+  "status": "pass",
+  "source_sha256": "a2f9ca1c1b1c98cec85408deeb18225ccafe515b32719cf92204f37b653ec79d"
+}

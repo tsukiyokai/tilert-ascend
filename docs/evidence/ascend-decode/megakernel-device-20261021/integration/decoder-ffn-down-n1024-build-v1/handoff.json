@@ -1,0 +1,40 @@
+{
+  "local": "/tmp/tilert-megakernel-validation-20261021/vendor-hook-decoder212-ffn-down-n1024-v1",
+  "remote_host": "a3-194",
+  "remote": "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-ffn-down-n1024-v1",
+  "library_sha256": "bbd52e425a1e94bb199e464e3bf6001c4420e8238afe993e8741e38af50b77ef",
+  "manifest_sha256": "b45a7211c9f88f494366a8c5dda029dadab97f5229d042f886f1442833ebed70",
+  "decoder_sha256": "d349a9d22bb8c73d76e113fdd0ea9b5eaad4db78b6984784210f61a8f7e4f1f9",
+  "remote_verified_files": 789,
+  "cpu_scale_contracts": 4,
+  "cpu_stage_contracts": 3,
+  "actual_cpu_co_load": {
+    "pass": true,
+    "npu_initialized": false,
+    "library_sha256": "bbd52e425a1e94bb199e464e3bf6001c4420e8238afe993e8741e38af50b77ef",
+    "torch": "2.12.0+cu130",
+    "torch_npu": "2.12.0",
+    "schemas": {
+      "prepare": "tilert_ffn_down_n1024::prepare(Tensor input, int blocks=24, int weight_layout=1) -> (Tensor[], Tensor[], int)",
+      "forward_out": "tilert_ffn_down_n1024::forward_out(Tensor input, Tensor residual, Tensor gamma, Tensor gate, Tensor bias, Tensor[] routed_weights, Tensor[] shared_weights, Tensor(a!)[] bridge_scratch, Tensor(b!)[] body_scratch, float epsilon, int blocks, int weight_layout, int sync) -> ()"
+    }
+  },
+  "scope": "Original Decoder post-attention norm plus MLP; 2 actual synthetic weight sets; 11 boundaries including 4 immediate graph consumers; no attention or TP collective",
+  "down_tiling": "All 200 bytes candidate c207230a... after each prepare and replay; parent bb8ef448... rejected",
+  "device_argv": [
+    "bash",
+    "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-ffn-down-n1024-v1/device_ffn_run.sh",
+    "4",
+    "vendor-hook-decoder212-ffn-down-n1024-wide-v1",
+    "--mode",
+    "int8",
+    "--forward-widths",
+    "1",
+    "2",
+    "12",
+    "32",
+    "--forward-replays",
+    "8"
+  ],
+  "device_execution": "Root only; not run by agent"
+}

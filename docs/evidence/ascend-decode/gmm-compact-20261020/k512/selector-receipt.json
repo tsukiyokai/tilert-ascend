@@ -1,0 +1,47 @@
+{
+  "scope": "Count-pointer selector identity for full-A and Nsplit; no new NPU witness launched",
+  "method": "Torch adaptor passes group_list directly. In installed libopapi Contiguous, IsContiguous true -> UnSafeReshape. UnSafeReshape reads GetViewOffset and CreateView. Installed IsContiguous has no offset restriction. Post-Contiguous l0op descriptors retain addresses with low7 0/32/64. Candidate ELF tests groupList & 96.",
+  "libraries": {
+    "libopapi.so": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a",
+    "libnnopbase.so": "5c65cb9aca8d9940156a8498e83a51a1c087a85f579fb9344cf1186c1d705ed5"
+  },
+  "independent_raw": "/workspace/offline/gmm1-nsplit-adversarial-20261020",
+  "disassembly_addresses": {
+    "Contiguous_true": [
+      "0xb658bc",
+      "0xb658e0"
+    ],
+    "UnSafeReshape_offset_CreateView": [
+      "0xb6042c",
+      "0xb60450"
+    ],
+    "IsContiguous": [
+      "0x25cf68",
+      "0x25d354"
+    ]
+  },
+  "experiments": {
+    "full-A": {
+      "post_contiguous_descriptor_count": 18,
+      "low7_values": [
+        0,
+        32,
+        64
+      ],
+      "entry_sha256": "a77158c8a25a1f429ec550f684af9551d156ad1074117737fcbc1f595be9bfe1",
+      "ELF_sha256": "7f0ed40760a7a36bc738232d1b1bc1ee6defdb3d8fff167069048f7a2794c291",
+      "raw_witness_file": "full-a-contiguous-witness.json"
+    },
+    "Nsplit": {
+      "post_contiguous_descriptor_count": 18,
+      "low7_values": [
+        0,
+        32,
+        64
+      ],
+      "entry_sha256": "2d23b6bc2f854af432466e7fb499d61997e9cabe7782d2b029d40e7d055dd7c0",
+      "ELF_sha256": "d3f5a551b485d87025d5b9000c1255d945a72a60a9b4d09f5e91d8d874a08c45",
+      "raw_witness_file": "nsplit-contiguous-witness.json"
+    }
+  }
+}

@@ -1,0 +1,71 @@
+Original lines 1-69
+    1 #ifndef TESTS_GLM52_WHOLE_LAYER_COMMUNICATION_H
+    2 #define TESTS_GLM52_WHOLE_LAYER_COMMUNICATION_H
+    3 
+    4 #include <cstddef>
+    5 #include <cstdint>
+    6 
+    7 namespace whole_layer {
+    8 
+    9 #if defined(__CCE_AICORE__) || defined(__CCE_KT_TEST__)
+   10 #define WHOLE_LAYER_COMMUNICATION_DEVICE __aicore__
+   11 #else
+   12 #define WHOLE_LAYER_COMMUNICATION_DEVICE
+   13 #endif
+   14 
+   15 constexpr int64_t kCommunicationHidden = 6144;
+   16 constexpr int64_t kCommunicationMaximumRows = 32;
+   17 constexpr int32_t kCommunicationMaximumRanks = 16;
+   18 constexpr uint64_t kCommunicationCacheLine = 64;
+   19 constexpr int64_t kCommunicationChunk = 2048;
+   20 constexpr uint64_t kCommunicationUbBytes = kCommunicationChunk * 10;
+   21 
+   22 // Epoch, each sender's ready word, and payload occupy separate cache lines.
+   23 // Both ready and payload have two planes; they share the same epoch parity.
+   24 struct CommunicationLayout {
+   25     uint64_t epoch;
+   26     uint64_t ready;
+   27     uint64_t payload;
+   28     uint64_t rank_bytes;
+   29     uint64_t plane_bytes;
+   30     uint64_t bytes;
+   31 };
+   32 
+   33 WHOLE_LAYER_COMMUNICATION_DEVICE constexpr CommunicationLayout
+   34 MakeCommunicationLayout(int64_t capacity, int32_t ranks)
+   35 {
+   36     CommunicationLayout layout{};
+   37     layout.epoch = 0;
+   38     layout.ready = kCommunicationCacheLine;
+   39     layout.payload = layout.ready + 2 * ranks * kCommunicationCacheLine;
+   40     layout.rank_bytes = capacity * kCommunicationHidden * sizeof(uint16_t);
+   41     layout.plane_bytes = ranks * layout.rank_bytes;
+   42     layout.bytes = layout.payload + 2 * layout.plane_bytes;
+   43     return layout;
+   44 }
+   45 
+   46 // One window belongs to one serialized device stream and its live graphs.
+   47 // All ranks allocate the same capacity in the same order before capture.
+   48 // Free it after every rank has stopped using it and before SHMEM finalization.
+   49 struct CommunicationWindow {
+   50     void* address = nullptr;
+   51     uint64_t bytes = 0;
+   52     int64_t capacity = 0;
+   53     int32_t rank = -1;
+   54     int32_t ranks = 0;
+   55     int32_t device = -1;
+   56 };
+   57 
+   58 CommunicationWindow AllocateCommunicationWindow(int64_t capacity,
+   59                                                 int32_t expected_rank,
+   60                                                 int32_t expected_ranks);
+   61 void ReleaseCommunicationWindow(CommunicationWindow& window);
+   62 
+   63 static_assert(kCommunicationHidden % kCommunicationChunk == 0);
+   64 static_assert(MakeCommunicationLayout(32, 16).bytes == 12585024);
+   65 
+   66 #undef WHOLE_LAYER_COMMUNICATION_DEVICE
+   67 
+   68 }  // namespace whole_layer
+   69 #endif
+

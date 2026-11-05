@@ -1,0 +1,53 @@
+{
+  "host": "a3-162",
+  "driver_version_info": "Version=25.5.5\nascendhal_version=7.35.23\naicpu_version=1.0\ntdt_version=1.0\nlog_version=1.0\nprof_version=2.0\ndvppkernels_version=1.1\ntsfw_version=1.0\nInnerversion=V100R001C23SPC009B220\ncompatible_version=[V100R001C19],[V100R001C20],[V100R001C21],[V100R001C22],[V100R001C23]\ncompatible_version_fw=[7.0.0,8.9.9]\npackage_version=25.5.5\n",
+  "sources": [
+    {
+      "path": "/usr/local/Ascend/driver/kernel/dbl/uda/uda_access.c",
+      "sha256": "162eb8e981e62ff858d3bbca95b472c7e159dfc330aeacb3fe416f2b58c2ec61",
+      "excerpts": [
+        {
+          "first_line": 93,
+          "last_line": 102,
+          "text": "93: \n94: static ka_mnt_namespace_t *uda_get_task_ns(ka_task_struct_t *task)\n95: {\n96:     return (task->nsproxy != NULL) ? task->nsproxy->mnt_ns : NULL;\n97: }\n98: \n99: ka_mnt_namespace_t *uda_get_current_ns(void)\n100: {\n101:     return uda_get_task_ns(current);\n102: }"
+        },
+        {
+          "first_line": 391,
+          "last_line": 422,
+          "text": "391: static bool uda_dev_is_occupied(struct uda_access *access)\n392: {\n393:     struct uda_ns_node *ns_node = NULL;\n394:     unsigned int i;\n395: \n396:     if (access->ns == NULL) {\n397:         return false;\n398:     }\n399:     ns_node = uda_find_ns_node(access->ns, current->tgid);\n400:     if (ns_node == NULL) {\n401:         uda_info(\"not found access ns ns_node.(name=%s)\\n\", access->name);\n402:         return false;\n403:     }\n404:     if (!uda_tgid_exited(ns_node->root_tgid, ns_node->tgid_time)) {\n405:         uda_info(\"ns_node already exist. (ns=%pK; ns_node->ns_id=%u; ns_node->root_tgid=%d; current_tgid=%d)\\n\",\n406:             ns_node->ns, ns_node->ns_id, ns_node->root_tgid, current->tgid);\n407:         return true;\n408:     }\n409:     /* pre container none root tgid would exit after root tgid, wait then all exited */\n410:     for (i = 0; i < FREE_NS_NODE_TRY_COUNT; i++) {\n411:         if (uda_get_ns_pid_count(ns_node->ns) == 0) {\n412:             break;\n413:         }\n414:         ka_system_msleep(FREE_NS_NODE_INTERVAL_MS);\n415:     }\n416:     uda_info(\"old ns_node not used, free and reoccupy.(ns_id=%u; tgid=%u; i=%u)\\n\",\n417:         ns_node->ns_id, ns_node->root_tgid, i);\n418:     ka_task_mutex_unlock(&access->mutex);\n419:     uda_uninit_ns_node_dev(ns_node);\n420:     ka_task_mutex_lock(&access->mutex);\n421:     uda_destroy_ns_node(ns_node, false);\n422:     return false;"
+        },
+        {
+          "first_line": 908,
+          "last_line": 933,
+          "text": "908: int uda_occupy_dev_by_ns(u32 udevid, struct uda_access *access, ka_mnt_namespace_t *ns)\n909: {\n910:     if (uda_is_dev_shared(udevid)) {\n911:         return uda_occupy_shared_dev(udevid, access, ns);\n912:     }\n913: \n914:     if (access->ns == NULL) {\n915:         uda_info(\"Occupy udevid. (udevid=%u; ns=%pK)\\n\", udevid, ns);\n916:         access->ns = ns; /* set udevid used by this namespace */\n917:         return 0;\n918:     }\n919: \n920:     /* Repeatedly occupied by processes in this namespace */\n921:     if (access->ns == ns) {\n922:         return 0;\n923:     }\n924: \n925:     /* The occupied namespace is not alive. Preempt the device. */\n926:     if (!uda_dev_is_occupied(access)) {\n927:         uda_info(\"Preempt udevid. (udevid=%u; old_ns=%pK; new_ns=%pK)\\n\", udevid, access->ns, ns);\n928:         access->ns = ns;\n929:         return 0;\n930:     }\n931: \n932:     uda_err(\"Conflict open udevid. (udevid=%u; access_ns=%pK; ns=%pK)\\n\", udevid, access->ns, ns);\n933:     return -EBUSY;"
+        },
+        {
+          "first_line": 1389,
+          "last_line": 1424,
+          "text": "1389: int uda_find_ns_root_pid(ka_mnt_namespace_t *ns, u32 *tgid, u64 *tgid_time)\n1390: {\n1391: #ifndef EMU_ST\n1392:     ka_task_struct_t *task = NULL;\n1393:     int ret = -EFAULT;\n1394: \n1395:     ka_task_rcu_read_lock();\n1396:     for_each_process(task) {\n1397:         if (task == NULL) {\n1398:             continue;\n1399:         }\n1400: \n1401:         task_lock(task);\n1402:         if ((task->nsproxy != NULL) && (task->nsproxy->mnt_ns == ns)) {\n1403:             *tgid = task->tgid;\n1404:             *tgid_time = ka_task_get_starttime(task);\n1405:             ret = 0;\n1406:             task_unlock(task);\n1407:             break;\n1408:         }\n1409:         task_unlock(task);\n1410:     }\n1411:     ka_task_rcu_read_unlock();\n1412: \n1413:     return ret;\n1414: #else\n1415:     *tgid = current->tgid;\n1416:     return 0;\n1417: #endif\n1418: }\n1419: \n1420: u32 uda_get_ns_pid_count(ka_mnt_namespace_t *ns)\n1421: {\n1422:     ka_task_struct_t *task = NULL;\n1423:     u32 count = 0;\n1424: "
+        },
+        {
+          "first_line": 1595,
+          "last_line": 1623,
+          "text": "1595: {\n1596:     struct uda_ns_node *ns_node = container_of(p_work, struct uda_ns_node, wait_destroy_work.work);\n1597:     u32 pid_count;\n1598: \n1599:     /* ns_pid_count may not be 0 by mnt_ns reuse in new container, so force destroy when timeout */\n1600:     if (ns_node->destroy_try_count < FREE_NS_NODE_TRY_COUNT) {\n1601:         ns_node->destroy_try_count++;\n1602:         if (!uda_tgid_exited(ns_node->root_tgid, ns_node->tgid_time)) {\n1603:             uda_info(\"root_tgid exist.(ns_id=%u; tgid=%u)\\n\", ns_node->ns_id, ns_node->root_tgid);\n1604: #ifndef EMU_ST\n1605:             ka_task_schedule_delayed_work(&ns_node->wait_destroy_work,\n1606:                                           ka_system_msecs_to_jiffies(FREE_NS_NODE_INTERVAL_MS));\n1607: #endif\n1608:             return;\n1609:         }\n1610:         pid_count = uda_get_ns_pid_count(ns_node->ns);\n1611:         if (pid_count != 0) {\n1612:             uda_info(\"ns pid exist.(ns_id=%u; tgid=%u; pid_count=%u)\\n\", ns_node->ns_id, ns_node->root_tgid, pid_count);\n1613: #ifndef EMU_ST\n1614:             ka_task_schedule_delayed_work(&ns_node->wait_destroy_work,\n1615:                                           ka_system_msecs_to_jiffies(FREE_NS_NODE_INTERVAL_MS));\n1616: #endif\n1617:             return;\n1618:         }\n1619:     }\n1620:     /* use try lock avoid deadlock, when occupy, destroy invalid ns_node would cancel this work sync */\n1621:     if (!ka_task_mutex_trylock(&access_ns_mutex)) {\n1622:         uda_info(\"not get mutex lock, wait next time.(ns_id=%u)\\n\", ns_node->ns_id);\n1623: #ifndef EMU_ST"
+        },
+        {
+          "first_line": 1635,
+          "last_line": 1658,
+          "text": "1635: }\n1636: \n1637: static void uda_cleanup_ns_node(ka_mnt_namespace_t *ns, ka_task_struct_t *task)\n1638: {\n1639:     struct uda_ns_node *ns_node = NULL;\n1640: \n1641:     ka_task_mutex_lock(&access_ns_mutex);\n1642:     ns_node = uda_find_ns_node(ns, task->tgid);\n1643:     /* first proc exit in namespace */\n1644:     if ((ns_node != NULL) && (ns_node->root_tgid == task->tgid)) {\n1645:         uda_info(\"Wait for destroy ns. (ns_id=%u; root_tgid=%u; task_name=%s; task_tgid=%u; task_pid=%u)\\n\",\n1646:             ns_node->ns_id, ns_node->root_tgid, task->comm, task->tgid, task->pid);\n1647: #ifndef EMU_ST\n1648:         ka_task_schedule_delayed_work(&ns_node->wait_destroy_work,\n1649:                                       ka_system_msecs_to_jiffies(FREE_NS_NODE_INTERVAL_MS));\n1650: #else\n1651:         uda_uninit_ns_node_dev(ns_node);\n1652:         uda_destroy_ns_node(ns_node, false);\n1653: #endif\n1654:     }\n1655:     ka_task_mutex_unlock(&access_ns_mutex);\n1656: }\n1657: \n1658: static void uda_recycle_ns_node_single(struct uda_ns_node *ns_node, void *priv)"
+        }
+      ]
+    },
+    {
+      "path": "/usr/local/Ascend/driver/include/ascend_hal_error.h",
+      "sha256": "ae786d3781149f566dcbef8277bbccb4354bf240041e3474e58b7791f41a84ce",
+      "excerpts": [
+        {
+          "first_line": 108,
+          "last_line": 115,
+          "text": "108:     DRV_ERROR_CDQ_NOT_EXIST = 83,\n109:     DRV_ERROR_NO_CDQ_RESOURCES = 84,\n110:     DRV_ERROR_CDQ_QUIT = 85,\n111:     DRV_ERROR_PARTITION_NOT_RIGHT = 86,\n112:     DRV_ERROR_RESOURCE_OCCUPIED = 87,\n113:     DRV_ERROR_PERMISSION = 88,\n114:     DRV_ERROR_RESUME = 89,\n115:     DEV_ERROR_UNAUTHORIZED_ACCESS_DEVICE = 90,"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+--- parent/body/source/routed_int4/routed_int4_tiling.cpp
++++ candidate/body/source/routed_int4/routed_int4_tiling.cpp
+@@ -47,7 +47,7 @@
+         if (rows != routed_int4::kMaxStackedRows || width != routed_int4::kHidden) {
+             return -2;
+         }
+-        const int split_status = tiling.SetFixSplit(-1, 512, -1);
++        const int split_status = tiling.SetFixSplit(32, 1024, 64);
+         if (split_status != 0) {
+             return split_status;
+         }

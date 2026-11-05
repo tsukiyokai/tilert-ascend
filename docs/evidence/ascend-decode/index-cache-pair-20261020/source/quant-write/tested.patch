@@ -1,0 +1,23 @@
+--- a/vllm_ascend/attention/indexer.py
++++ b/vllm_ascend/attention/indexer.py
+@@ -274,6 +274,20 @@
+         with a different cache layout should override it.
+         """
+         indexer_k_cache = self.k_cache.kv_cache[INDEXER_K_CACHE_SLOT]
++        if self.enable_sparse_li_c8 and self.c8_k_cache_dtype == torch.int8:
++            # Norm requires equal K/V dtypes; byte views preserve FP16 scale bytes.
++            assert k_li_scale is not None
++            indexer_scale_cache = self.k_cache.kv_cache[INDEXER_SCALE_CACHE_SLOT]
++            # Norm requires equal dtypes; the view preserves both FP16 scale bytes.
++            torch_npu.npu_scatter_pa_kv_cache(
++                key=k_li.view(-1, 1, k_li.shape[-1]),
++                value=k_li_scale.view(torch.int8).view(-1, 1, 2),
++                key_cache=indexer_k_cache,
++                value_cache=indexer_scale_cache.view(torch.int8),
++                slot_mapping=slot_mapping,
++                cache_mode="Norm",
++            )
++            return
+         # float4_e2m1fn_x2 / float8_e8m0fnu are not supported by the scatter
+         # kernel; view as uint8 (same 1-byte layout) for the cache write.
+         if k_li.dtype == torch_npu.float4_e2m1fn_x2:

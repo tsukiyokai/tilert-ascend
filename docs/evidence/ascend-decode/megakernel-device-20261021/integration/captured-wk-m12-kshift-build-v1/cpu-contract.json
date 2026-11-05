@@ -1,0 +1,286 @@
+{
+  "scope": "Captured M12 N160 K6144 only; natural/shifted BF16 Mmad with 48 updates of one FP32 L0C tile",
+  "script": {
+    "path": "/home/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/whole_layer/indexer_wk_m12/kshift_check.py",
+    "sha256": "e73bb26206e53cc9f9db3bfb7d14e487c0e8ccaf55b49023072572c040e347f5"
+  },
+  "helper": {
+    "path": "/home/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/whole_layer/indexer_wk_m12/contract.py",
+    "sha256": "28a1f26d1f9de88b6454b3b9a03eff622f63c039c47467eb45ac871c6387eff3"
+  },
+  "capture": {
+    "path": "/tmp/tilert-megakernel-validation-20261021/decoder-index-m12-v1/decoder-index-diagnostic.pt",
+    "sha256": "fb187d933ca499bec2ecc938184949775025ccbc90e0de894503e1dba2bae0bb"
+  },
+  "python": "3.12.13 (main, Jun 23 2026, 15:18:55) [Clang 22.1.3 ]",
+  "cpu_only": true,
+  "cases": [],
+  "completed": true,
+  "pass": true,
+  "geometry": {
+    "blocks": 10,
+    "M": 12,
+    "N": 160,
+    "K": 6144,
+    "single_core_M": 12,
+    "single_core_N": 16,
+    "mmad_K": 128,
+    "K_segment": 512,
+    "K_segments": 12
+  },
+  "orders": {
+    "0": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "1": [
+      11,
+      10,
+      9,
+      8,
+      7,
+      6,
+      5,
+      4,
+      3,
+      2,
+      1,
+      0
+    ],
+    "2": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      0,
+      1
+    ],
+    "3": [
+      1,
+      0,
+      11,
+      10,
+      9,
+      8,
+      7,
+      6,
+      5,
+      4,
+      3,
+      2
+    ],
+    "4": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      0,
+      1,
+      2,
+      3
+    ],
+    "5": [
+      3,
+      2,
+      1,
+      0,
+      11,
+      10,
+      9,
+      8,
+      7,
+      6,
+      5,
+      4
+    ],
+    "6": [
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "7": [
+      5,
+      4,
+      3,
+      2,
+      1,
+      0,
+      11,
+      10,
+      9,
+      8,
+      7,
+      6
+    ],
+    "8": [
+      8,
+      9,
+      10,
+      11,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "9": [
+      7,
+      6,
+      5,
+      4,
+      3,
+      2,
+      1,
+      0,
+      11,
+      10,
+      9,
+      8
+    ]
+  },
+  "torch": "2.9.1+cpu",
+  "witnesses": [
+    {
+      "coordinate": [
+        5,
+        95
+      ],
+      "vendor": {
+        "value": -0.05615234375,
+        "bits": "0xbd66"
+      },
+      "native": {
+        "value": -0.055908203125,
+        "bits": "0xbd65"
+      },
+      "native_accumulator": {
+        "value": -0.05603018403053284,
+        "bits": "0xbd657fe8"
+      },
+      "cpu_fp64_dot": -0.05603019639238482,
+      "cpu_fp64_cast_fp32": {
+        "value": -0.05603019520640373,
+        "bits": "0xbd657feb"
+      },
+      "cpu_fp64_cast_bfloat16": {
+        "value": -0.055908203125,
+        "bits": "0xbd65"
+      },
+      "bf16_midpoint": -0.0560302734375,
+      "native_accumulator_minus_fp64": 1.236185198649764e-08,
+      "native_accumulator_minus_midpoint": 8.940696716308594e-08,
+      "fp64_minus_midpoint": 7.70451151765883e-08
+    },
+    {
+      "coordinate": [
+        6,
+        115
+      ],
+      "vendor": {
+        "value": -0.00028228759765625,
+        "bits": "0xb994"
+      },
+      "native": {
+        "value": -0.0002803802490234375,
+        "bits": "0xb993"
+      },
+      "native_accumulator": {
+        "value": -0.0002812296152114868,
+        "bits": "0xb9937200"
+      },
+      "cpu_fp64_dot": -0.00028121993091190234,
+      "cpu_fp64_cast_fp32": {
+        "value": -0.0002812199236359447,
+        "bits": "0xb99370b3"
+      },
+      "cpu_fp64_cast_bfloat16": {
+        "value": -0.0002803802490234375,
+        "bits": "0xb993"
+      },
+      "bf16_midpoint": -0.00028133392333984375,
+      "native_accumulator_minus_fp64": -9.68429958447814e-09,
+      "native_accumulator_minus_midpoint": 1.043081283569336e-07,
+      "fp64_minus_midpoint": 1.1399242794141173e-07
+    }
+  ],
+  "witness_mapping": [
+    {
+      "coordinate": [
+        5,
+        95
+      ],
+      "core": 5,
+      "M_tile": 0,
+      "N_tile": 5,
+      "K512_order": [
+        3,
+        2,
+        1,
+        0,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
+        4
+      ]
+    },
+    {
+      "coordinate": [
+        6,
+        115
+      ],
+      "core": 7,
+      "M_tile": 0,
+      "N_tile": 7,
+      "K512_order": [
+        5,
+        4,
+        3,
+        2,
+        1,
+        0,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6
+      ]
+    }
+  ]
+}

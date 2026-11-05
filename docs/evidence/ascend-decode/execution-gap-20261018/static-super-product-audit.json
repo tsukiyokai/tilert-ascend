@@ -1,0 +1,639 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "checks": 3746,
+  "failures": [],
+  "exit": {
+    "exit_code": 0,
+    "finished_at": "2026-10-17T22:54:33.730961+00:00",
+    "wall_seconds": 69.0481350524351
+  },
+  "scope": "Product create_config(super_kernel=True), one actual resident layer0, TP16 M4, full-P8192; no MTP device run.",
+  "repo_files_sha256": {
+    "tilert/models/glm_5_2_ascend/cann_model.py": "57da4e56ab35f0fcb7432926dffbeee174ef96967310442ba55bb358e4317156",
+    "tilert/models/glm_5_2_ascend/cann_mtp.py": "cb81f8637a8ead096f99186bb1131215637a4ba1792a1d4a94c0e9b83faaec6b",
+    "tests/glm52/run_cann_mtp_rounds.py": "3f1db8090089cc3404e68626ef7f2e161832698f8ca421651a0d248d6a177b67",
+    "tests/glm52/bench_cann_mtp.py": "b1e86db09206d9c788d25d0e1cea9996f90983afb26ce01cdb86fb0d043de018"
+  },
+  "cpu_reports": {
+    "eager": {
+      "sha256": "46fa740eadf22c7c0116d8fcc23ee77511dd4e956b25e709d0cddfe928fb1f32",
+      "scheduler_max_num_seqs": 1,
+      "npu_initialized": false
+    },
+    "compiled": {
+      "sha256": "5e1fa7437a2c117c5ee9afc32fc5bc68e195ba1b75d676ccf4e944bb10a943be",
+      "scheduler_max_num_seqs": 1,
+      "npu_initialized": false
+    },
+    "super": {
+      "sha256": "ed9668e7476fd11b166093a6844467df0d9d8bfab7740f8db987ad72cd99e86e",
+      "scheduler_max_num_seqs": 4,
+      "npu_initialized": false
+    },
+    "cli_cases": 6,
+    "init_checks": 8,
+    "mtp_checks": 14,
+    "init_report_sha256": "6845734526b6fd864903d18dda8ebd2140d7bd4eb0c39518f5130d2c2add3e54",
+    "mtp_report_sha256": "de1dcf08777470c0c10dd4fc52aa7c4d336a54d3523466a5c7df2b758e8a9641"
+  },
+  "configuration_review": {
+    "default": "Eager, max_num_seqs=1, static/super disabled.",
+    "plain_compile": "Existing AscendCompiler path, max_num_seqs=1, static/super disabled.",
+    "super": "Requires compiled graph M4; max_num_seqs=4 retains static bucket[4], actual metadata remains one request.",
+    "mtp": "Mode/graph NONE, own empty static_forward_context and MoE registry; deep-copied additional_config clears static/super without mutating target.",
+    "mtp_limit": "Static binary reselection is process-wide: eager MTP may reuse installed same-shape binaries. MTP arithmetic and unchanged binaries not proved."
+  },
+  "activation": {
+    "backend_options_match_frozen_executed_static": true,
+    "cached_private_install": true,
+    "static_op_compiler_calls": 0,
+    "package_sha256": "96ad21d7c69a542133122ba5f95237b7eb255631c7c2534c8e74c7aa4fe8cbb7",
+    "installed_files_match_original_manifest": 146,
+    "private_paths": [
+      "/workspace/offline/cann-super-product-20261018-01/device-00/static_kernel_install/20261018065422746544_1650919"
+    ],
+    "reselect_pids": [
+      1650919,
+      1650920,
+      1650921,
+      1650922,
+      1650923,
+      1650924,
+      1650925,
+      1650926,
+      1650927,
+      1650928,
+      1650929,
+      1650930,
+      1650931,
+      1650932,
+      1650933,
+      1650934
+    ],
+    "installed_scope": "Before-cleanup guard manifest; deleted install tree not read after teardown."
+  },
+  "raw_comparisons": {
+    "static": {
+      "eager": {
+        "exact_ranks": 16,
+        "elements": 569584
+      },
+      "compiled": {
+        "exact_ranks": 16,
+        "elements": 569584
+      },
+      "compiled_reset": {
+        "exact_ranks": 16,
+        "elements": 569584
+      },
+      "graph": {
+        "exact_ranks": 16,
+        "elements": 569584
+      },
+      "graph_reset": {
+        "exact_ranks": 16,
+        "elements": 569584
+      }
+    },
+    "plain": {
+      "eager": {
+        "exact_ranks": 16,
+        "elements": 569584
+      },
+      "compiled": {
+        "exact_ranks": 16,
+        "elements": 569584
+      },
+      "compiled_reset": {
+        "exact_ranks": 16,
+        "elements": 569584
+      },
+      "graph": {
+        "exact_ranks": 16,
+        "elements": 569584
+      },
+      "graph_reset": {
+        "exact_ranks": 16,
+        "elements": 569584
+      }
+    }
+  },
+  "raw_differences": [],
+  "all_five_phases_vs_static_and_plain_bits_exact": true,
+  "ranks": [
+    {
+      "rank": 0,
+      "report_sha256": "fe444180c7db9208299fda1c4886013534d8bf40e7a6b43c4429c23ceccd3ce3",
+      "receipt_sha256": "ce39865f7f89ead3279de6b73e223781dcea33dfd1479a0f3d71cf64405d224c",
+      "same_configuration_reset_exact": true,
+      "graph_vs_compiled_exact": true,
+      "references": {
+        "static": {
+          "report_sha256": "b58847c95fc750c1d82b05018a2b5c96be118e54be7ffd6dbc3c70a793dd5190",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        },
+        "plain": {
+          "report_sha256": "2cfa660933479e69c6d2ad1f036b1d854e71263d9096ea475b386c3a9f31e668",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        }
+      }
+    },
+    {
+      "rank": 1,
+      "report_sha256": "7cd6b4ce19bf0768276409c2476583273101470435336d49d04dfc32786229f7",
+      "receipt_sha256": "a49cb7277ff5fcad1f4b787c0a8c998b631cb12f8de2d3c34fe97344e1659a7b",
+      "same_configuration_reset_exact": true,
+      "graph_vs_compiled_exact": true,
+      "references": {
+        "static": {
+          "report_sha256": "b001aaa4ebd9d4d1fbc7cdd160859ade85bcba469f43804cb756e54d32df2d33",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        },
+        "plain": {
+          "report_sha256": "2e346f35e1d51c5b59e2b754c6f47f79ef0a1983fdebbfd9e4fe73b67b526862",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        }
+      }
+    },
+    {
+      "rank": 2,
+      "report_sha256": "3d6bbc62eb11d2881290aa3c9b8dab0c55fac4aa5dc7668b80066f408c634e73",
+      "receipt_sha256": "79abbec5e72cc5e52604042144c65e68ecf495cee039a024e97167c995528f76",
+      "same_configuration_reset_exact": true,
+      "graph_vs_compiled_exact": true,
+      "references": {
+        "static": {
+          "report_sha256": "3d132e91ef31cb4beceb0fdba2ad06dc723441034382b2ad0f444890e4d52a0e",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        },
+        "plain": {
+          "report_sha256": "b931239e81e278c96f40a173a6c0fc09f7f70f3a58f50d35b8471363635a323c",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        }
+      }
+    },
+    {
+      "rank": 3,
+      "report_sha256": "551f71c56863787d1eee98a872ff3b36e49b7736fb4a6a592460c7edb9b4ac9e",
+      "receipt_sha256": "d153351aa7b74326b01e04c7accbd98749de3e17a7965fa2968e914b478dcd10",
+      "same_configuration_reset_exact": true,
+      "graph_vs_compiled_exact": true,
+      "references": {
+        "static": {
+          "report_sha256": "0aed88c75969e018dc161af06194443f7656b5dd0ec7708235fdcf565fd48da8",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        },
+        "plain": {
+          "report_sha256": "742640a590de51039261333e3e47a4a12c09bb1e739fa684742d7156e0e1c93f",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        }
+      }
+    },
+    {
+      "rank": 4,
+      "report_sha256": "031be64e8d1bb229d041cc58d9986d92f7aa651a6c31695fc91d7ddc95a9e199",
+      "receipt_sha256": "862fc88f28a5787a494c2cd2e73bbfe108da955e4cffb023b87cd4bfa70d18f9",
+      "same_configuration_reset_exact": true,
+      "graph_vs_compiled_exact": true,
+      "references": {
+        "static": {
+          "report_sha256": "22ee8abb50eb256033bb580ae5dde02eebb95587125cc821e56c34b8a727556c",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        },
+        "plain": {
+          "report_sha256": "82fc2a8a99ca03f678371be4616b79562466b694fb68eb3f683b0fa143c7e9f4",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        }
+      }
+    },
+    {
+      "rank": 5,
+      "report_sha256": "06c799b250d45d7190f758b7616b5cc9948884d30088b1ee045bd8aca3c66ada",
+      "receipt_sha256": "9f023ec8754514a19d561978a05f525142bee5b77dd5a66108c4fab146964446",
+      "same_configuration_reset_exact": true,
+      "graph_vs_compiled_exact": true,
+      "references": {
+        "static": {
+          "report_sha256": "ac2c4b503b2d8b083de33cea19fd12a50ac8fbdf9ed07d7f89dee6114f2bdf66",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        },
+        "plain": {
+          "report_sha256": "3592356c8ec9f8982576cb7d3c8bf7d965bb36073589d9b71347d9ef5be3bfbe",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        }
+      }
+    },
+    {
+      "rank": 6,
+      "report_sha256": "804efb1b832ba52aaf26447243f83f1ed8e96fef80c8e38eb13de675bcefaca0",
+      "receipt_sha256": "2f6c5ccf09e237583ed86dba11d550aec613ab3aa995503d056461a9a66b3e60",
+      "same_configuration_reset_exact": true,
+      "graph_vs_compiled_exact": true,
+      "references": {
+        "static": {
+          "report_sha256": "7c404a8d2b9c604124b36c395a424ef79ef6b917a4979d241de42b0e227a9487",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        },
+        "plain": {
+          "report_sha256": "c7e66061c7256be33dd96737a053f6306b0e83443f268784374bea53b4feb05b",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        }
+      }
+    },
+    {
+      "rank": 7,
+      "report_sha256": "811ea36d7f1a8be97e2ec52c76d66fe82c536a89fa1f954ebe62ddf48c491c8b",
+      "receipt_sha256": "d0463fa9fcbac4dd608a99b8041a2ab65a69068f0bbf56249cb8c281cfe9394b",
+      "same_configuration_reset_exact": true,
+      "graph_vs_compiled_exact": true,
+      "references": {
+        "static": {
+          "report_sha256": "65c2068d361c9e44470dfdfb6b74abbb59161a06d70ade098ef148165c7fdca9",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        },
+        "plain": {
+          "report_sha256": "9bd81f45eb6ff0629d477a715aae77e115c8a77a74e89f180fefbb04f9adae13",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        }
+      }
+    },
+    {
+      "rank": 8,
+      "report_sha256": "2d15f02160a16819a9cd806e530e4f1807a7048f37686499a626266fae51ec25",
+      "receipt_sha256": "76254c1c4b50f5743bde81a16a0fb25bc22856d0ef61173fb0d40854fea637e7",
+      "same_configuration_reset_exact": true,
+      "graph_vs_compiled_exact": true,
+      "references": {
+        "static": {
+          "report_sha256": "e7337b288785bbb59b98bdf591dfc262bc3b3cc1900ce3ceb2bb2a6121f55cd4",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        },
+        "plain": {
+          "report_sha256": "6e8501a0630e26b5ab87e80be483422e9d65d2777db2606c88a86e7aa52ac9de",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        }
+      }
+    },
+    {
+      "rank": 9,
+      "report_sha256": "c380c33109d4d6165b1e04ca1ea5d2fcf843b2c314fc0b389f9c1f3fb16fd3a5",
+      "receipt_sha256": "c6ddf6343f7610739dc50499d1c778018678f213730876d63a8c44208bb938e7",
+      "same_configuration_reset_exact": true,
+      "graph_vs_compiled_exact": true,
+      "references": {
+        "static": {
+          "report_sha256": "b033bcc74d1ce63cc1846d3d3da3606111ca7f2872353c5748d06298746781d3",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        },
+        "plain": {
+          "report_sha256": "f83aa516a0fb7e5a8b48297c25e364138ed239cfb5e620b144eaaf2dfd2f3ac0",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        }
+      }
+    },
+    {
+      "rank": 10,
+      "report_sha256": "bcaa8cf28fde1abafab147c61d0f36b9a332a18693fc4a838b91a69ba27edd7a",
+      "receipt_sha256": "eac69d4d32e3a67b5d1bbae0036ef5eed13aad1132d3735e8da7794619d89a29",
+      "same_configuration_reset_exact": true,
+      "graph_vs_compiled_exact": true,
+      "references": {
+        "static": {
+          "report_sha256": "d1cce27c18c1cfe751bff320fe47af652a175e6221f70ec268980bd43c085ee8",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        },
+        "plain": {
+          "report_sha256": "6d5c65eceed6916723ca1981eeb123f222e2b79a95f7d231e224992b28806c21",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        }
+      }
+    },
+    {
+      "rank": 11,
+      "report_sha256": "f6f81e9a719ca0e0aca19a9fa379fe0a1f22291c54d5accc6b4067b16fabf358",
+      "receipt_sha256": "2f26f6ce285c46897f51bfad0682e243ff44d8c2837b64c9f7805d36f6972402",
+      "same_configuration_reset_exact": true,
+      "graph_vs_compiled_exact": true,
+      "references": {
+        "static": {
+          "report_sha256": "fb8bd43a22bc1d705dbf092783071447e9a425bd68aba9c8720f0acd03702f71",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        },
+        "plain": {
+          "report_sha256": "742ccea6092d4ef4693360104e06599bd3725d778377b9edb5364ba2f4654aba",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        }
+      }
+    },
+    {
+      "rank": 12,
+      "report_sha256": "894fd564dc2ddf4e92e7d1daa8dd4a29e7c89fde2648ebe0ff42e1e4f1416cdf",
+      "receipt_sha256": "db19ac83ff7d6da7fad5ef9fbf2fb1bf5b77627236a7fea4c9568322bdb25e9d",
+      "same_configuration_reset_exact": true,
+      "graph_vs_compiled_exact": true,
+      "references": {
+        "static": {
+          "report_sha256": "212c6841b7396ed4aeb2fe0af1414ebd2e628d0534b406dd147ccf5cca225828",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        },
+        "plain": {
+          "report_sha256": "eee5143b8f12643bf019792a1f82ec4f507eb07d8066dcedc80fdd1a96aad896",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        }
+      }
+    },
+    {
+      "rank": 13,
+      "report_sha256": "34a58a791111ef706e5adafa378c1e0cc84474abc8d52c9cb15de8e3fa6e0630",
+      "receipt_sha256": "60c526bc0055a7c8aaa7e20263b0d7efceebaac47e97048fb524ace807448344",
+      "same_configuration_reset_exact": true,
+      "graph_vs_compiled_exact": true,
+      "references": {
+        "static": {
+          "report_sha256": "5606abd0efe52cb6ce5ae4dad50082d493cdd0b25a6d7a5f302d84bf47868695",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        },
+        "plain": {
+          "report_sha256": "56fff16e069d67bdf7f601c1ce7205dee426f00559d80538758f06d94d8c19c9",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        }
+      }
+    },
+    {
+      "rank": 14,
+      "report_sha256": "790d11b4745c1279d6c7948ef99c2bd37ac48d6307e0b447fb6cdb2829814f06",
+      "receipt_sha256": "355b27a6a867dd70b33fbc2d5be4e3dae16aaaa2b902c5f848c18cea4cd1f42d",
+      "same_configuration_reset_exact": true,
+      "graph_vs_compiled_exact": true,
+      "references": {
+        "static": {
+          "report_sha256": "1a98f6083f9e5c7bd9fc47d07839fd3513c54c9a54fde4e82ad3096434a2a130",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        },
+        "plain": {
+          "report_sha256": "c1d71dbf3b3c9df63b4734b7f4a74ab206646b241c221939369a3f58bd6be771",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        }
+      }
+    },
+    {
+      "rank": 15,
+      "report_sha256": "890810e86d94af8fd9e5982d8418cc614242c4da79cbcf3aec719503bafe5d34",
+      "receipt_sha256": "b0c3827bc20f97a96dd2fcbcbafad8588e7e870a5bc42e22bbca53f6d0f4dfdc",
+      "same_configuration_reset_exact": true,
+      "graph_vs_compiled_exact": true,
+      "references": {
+        "static": {
+          "report_sha256": "f3a96cc505490b16fcd1d157d63b75a8fdaf7f1a9d1f8bf7e164065a53225928",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        },
+        "plain": {
+          "report_sha256": "5a563348970f2933abb2d18bd45554ad2a85eb356205df98fe89b9e75eef8959",
+          "all_five_phases_exact": true,
+          "phase_exact": {
+            "eager": true,
+            "compiled": true,
+            "compiled_reset": true,
+            "graph": true,
+            "graph_reset": true
+          }
+        }
+      }
+    }
+  ],
+  "full_prefix_scope": "Exact device checks, full prefix not serialized with each phase.",
+  "precision_verified": false,
+  "performance_measured": false,
+  "executed_fusion_profiled_in_this_run": false,
+  "raw_bindings": {
+    "path": "/workspace/offline/cann-super-product-20261018-01/product-audit-bindings.json",
+    "sha256": "70fd02d6f07e4eb1a166a9baa82f5a2cedf8662d6d3584e0dae7bcf23b8d903d",
+    "files": 699
+  },
+  "source_sha256": "d372d17abe631867d95570e06c9baf698ce40e41007ef117d014a1d44e9f9f72",
+  "prepared_sha256": "af9bf7c8af672b5db11f5925ddffd15d7254e894ff51d05f48942d30322a3a8a",
+  "source_manifest_sha256": "5332f4803d4b771bcf81eb2cb9d8e71dda0ec36d8228d3ea7e85a34642c5b214",
+  "cpu": {
+    "torch": "2.12.0+cpu",
+    "threads": 1,
+    "torch_npu_imported": false
+  }
+}

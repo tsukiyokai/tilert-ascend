@@ -1,0 +1,1937 @@
+{
+  "scope": "Synthetic post-Hadamard BF16 input -> dynamic_quant -> FP16 scale -> actual write_cache methods",
+  "npu_launched": true,
+  "cpu_check": {
+    "only_change": "INT8 C8 early return in write_cache",
+    "other_module_ast_unchanged": true,
+    "cases": [
+      {
+        "width": 1,
+        "state": "A",
+        "slots": [
+          128
+        ],
+        "bf16_input_sha256": "41e2999e5816eb28f8282b40a69a862c226aafa6d665126d26a1f1f29d7dfc82",
+        "full_backing_byte_equal": true
+      },
+      {
+        "width": 1,
+        "state": "B",
+        "slots": [
+          9343
+        ],
+        "bf16_input_sha256": "41784ab6048f29ff7f7dd11765ca2156e55d50edb16f16d1ac0bd38afe4baa2e",
+        "full_backing_byte_equal": true
+      },
+      {
+        "width": 1,
+        "state": "reset",
+        "slots": [
+          128
+        ],
+        "bf16_input_sha256": "41e2999e5816eb28f8282b40a69a862c226aafa6d665126d26a1f1f29d7dfc82",
+        "full_backing_byte_equal": true
+      },
+      {
+        "width": 8,
+        "state": "A",
+        "slots": [
+          124,
+          125,
+          126,
+          127,
+          128,
+          129,
+          130,
+          131
+        ],
+        "bf16_input_sha256": "00a1fc1c56e7e81d88d5fd5c17fa7315ce5b69fcc72591cc5d46788bb2541756",
+        "full_backing_byte_equal": true
+      },
+      {
+        "width": 8,
+        "state": "B",
+        "slots": [
+          9336,
+          9337,
+          9338,
+          9339,
+          9340,
+          9341,
+          9342,
+          9343
+        ],
+        "bf16_input_sha256": "cda1c7dd2ad2472d17506975fe04ba9ec119a7494353bea4c50334361b308758",
+        "full_backing_byte_equal": true
+      },
+      {
+        "width": 8,
+        "state": "reset",
+        "slots": [
+          124,
+          125,
+          126,
+          127,
+          128,
+          129,
+          130,
+          131
+        ],
+        "bf16_input_sha256": "00a1fc1c56e7e81d88d5fd5c17fa7315ce5b69fcc72591cc5d46788bb2541756",
+        "full_backing_byte_equal": true
+      },
+      {
+        "width": 32,
+        "state": "A",
+        "slots": [
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          124,
+          125,
+          126,
+          127,
+          128,
+          129,
+          130,
+          131,
+          132,
+          133,
+          134,
+          135,
+          136,
+          137,
+          138,
+          139,
+          140,
+          141,
+          142,
+          143
+        ],
+        "bf16_input_sha256": "af568d7d6f724a6887272047fea82c1f261cf9e9297d1e2e5440e8c5ce4fdd1f",
+        "full_backing_byte_equal": true
+      },
+      {
+        "width": 32,
+        "state": "B",
+        "slots": [
+          9312,
+          9313,
+          9314,
+          9315,
+          9316,
+          9317,
+          9318,
+          9319,
+          9320,
+          9321,
+          9322,
+          9323,
+          9324,
+          9325,
+          9326,
+          9327,
+          9328,
+          9329,
+          9330,
+          9331,
+          9332,
+          9333,
+          9334,
+          9335,
+          9336,
+          9337,
+          9338,
+          9339,
+          9340,
+          9341,
+          9342,
+          9343
+        ],
+        "bf16_input_sha256": "0242f62795334f9c0964bf6b5cd4cee21f1358b7ce2597b11e3d369a9847e3a9",
+        "full_backing_byte_equal": true
+      },
+      {
+        "width": 32,
+        "state": "reset",
+        "slots": [
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          124,
+          125,
+          126,
+          127,
+          128,
+          129,
+          130,
+          131,
+          132,
+          133,
+          134,
+          135,
+          136,
+          137,
+          138,
+          139,
+          140,
+          141,
+          142,
+          143
+        ],
+        "bf16_input_sha256": "af568d7d6f724a6887272047fea82c1f261cf9e9297d1e2e5440e8c5ce4fdd1f",
+        "full_backing_byte_equal": true
+      }
+    ],
+    "key_byte_offset": 256,
+    "scale_byte_offset": 1196352,
+    "backing_bytes": 1215296,
+    "npu_launched": false
+  },
+  "files": [
+    {
+      "path": "/workspace/experiments/index-cache-pair-20261020/quant-write/probe_quant_write.py",
+      "sha256": "1b65ea61e90cc6189893ddcd8eaf1d0b36456108afd8526bd77e78478302ff54"
+    },
+    {
+      "path": "/workspace/experiments/index-cache-pair-20261020/quant-write/index-cache-pair.patch",
+      "sha256": "d0bb1dfd67b343a410c6334fb4492a80ce8ff1c4b8989c1ad69d2e6755da2e72"
+    },
+    {
+      "path": "/workspace/experiments/index-cache-pair-20261020/quant-write/control/indexer.py",
+      "sha256": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1"
+    },
+    {
+      "path": "/workspace/experiments/index-cache-pair-20261020/quant-write/candidate/indexer.py",
+      "sha256": "1d1e9d3ee778f9b4b4e62a3daba4bd662bcf08393e122ac72052e1bb7afcf799"
+    }
+  ],
+  "runtime_source": {
+    "files": [
+      {
+        "path": "/workspace/experiments/index-cache-pair-20261020/probe.py",
+        "sha256": "18df66d94d4c0cdb3e6be684762001885bf6e713cbb9595279813f763d062c27"
+      },
+      {
+        "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/indexer.py",
+        "sha256": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1"
+      },
+      {
+        "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/device/device_op.py",
+        "sha256": "0488cb2578df5075a73245a0d540ee8de93ea71972ae8b636cc7cdef83823b8e"
+      },
+      {
+        "path": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc/scatter_pa_kv_cache/op_kernel/scatter_pa_kv_cache.cpp",
+        "sha256": "2fbd82777ec1bdfdf230e32aaeab41464906317584342cddba256d888f410b05"
+      },
+      {
+        "path": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc/scatter_pa_kv_cache/op_kernel/scatter_pa_kv_cache_normal.h",
+        "sha256": "e133ed28c80f0662fc164305bca0815f7a47927364da169a215c9be1fe181123"
+      },
+      {
+        "path": "/opt/ascend/cann-9.2.0/include/aclnnop/aclnn_scatter_pa_kv_cache.h",
+        "sha256": "af23e40c36e2f414617ac934111767b0d0e37f3bc0df067873856b48f0d9c696"
+      },
+      {
+        "path": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/config/ascend910_93/aic-ascend910_93-ops-info-transformer.json",
+        "sha256": "41c724311cbb8aca00594663c697c6cbfa23ece737ec8822ca4cf84b9a9538f0"
+      }
+    ],
+    "candidate_descriptor": {
+      "path": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/kernel/ascend910_93/ops_transformer/scatter_pa_kv_cache/ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6.json",
+      "sha256": "d13cee9c37f02e0c4c7730ef3d3c4df2f2fba8ed5c9ae632a2a24d95ccc4b848"
+    },
+    "candidate_elf": {
+      "path": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/kernel/ascend910_93/ops_transformer/scatter_pa_kv_cache/ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6.o",
+      "sha256": "4548b3a8758c11d7c5a2278d056936303a11aa41843026e5f239130b10b127ff"
+    },
+    "baseline_descriptors": [
+      {
+        "path": "/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/scatter_nd_update_sk/ScatterNdUpdateSk_38f6c0f42e6dd25f1ba132d7ecf7990f.json",
+        "sha256": "994faef67ba313fb76910d630e2264b56e8e2dce4d4c8571c82f2f0e0acec4a0"
+      },
+      {
+        "path": "/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/scatter_nd_update_sk/ScatterNdUpdateSk_0be86e3b56504af1b118b0d1a2a8e1bc.json",
+        "sha256": "287b1d13b6d1f69e3d683e9b22a74d9eb430c2c8226fd6868331202adfef90c3"
+      }
+    ],
+    "baseline_elfs": [
+      {
+        "path": "/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/scatter_nd_update_sk/ScatterNdUpdateSk_38f6c0f42e6dd25f1ba132d7ecf7990f.o",
+        "sha256": "30abdfd0f8ecb0b7cd89975d76fc7c929b5c9c0ab002699be93f3d39267dcb64"
+      },
+      {
+        "path": "/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/scatter_nd_update_sk/ScatterNdUpdateSk_0be86e3b56504af1b118b0d1a2a8e1bc.o",
+        "sha256": "64227ad8528127bb999c21034fa28b35caf4ec4e56e213348be787df35f6e7ee"
+      }
+    ],
+    "elf_hashes_verified_in_process": false,
+    "descriptor_is_loaded_elf_proof": false,
+    "candidate_signature": [
+      {
+        "name": "key",
+        "index": 0,
+        "dtype": "int8",
+        "format": "ND",
+        "paramType": "required",
+        "shape": [
+          -2
+        ],
+        "format_match_mode": "FormatAgnostic"
+      },
+      {
+        "name": "key_cache",
+        "index": 1,
+        "dtype": "int8",
+        "format": "ND",
+        "paramType": "required",
+        "shape": [
+          -2
+        ],
+        "format_match_mode": "FormatAgnostic"
+      },
+      {
+        "name": "slot_mapping",
+        "index": 2,
+        "dtype": "int32",
+        "format": "ND",
+        "paramType": "required",
+        "shape": [
+          -2
+        ],
+        "format_match_mode": "FormatAgnostic"
+      },
+      {
+        "name": "value",
+        "index": 3,
+        "dtype": "int8",
+        "format": "ND",
+        "paramType": "required",
+        "shape": [
+          -2
+        ],
+        "format_match_mode": "FormatAgnostic"
+      },
+      {
+        "name": "value_cache",
+        "index": 4,
+        "dtype": "int8",
+        "format": "ND",
+        "paramType": "required",
+        "shape": [
+          -2
+        ],
+        "format_match_mode": "FormatAgnostic"
+      },
+      {
+        "name": "compress_lens",
+        "index": 5,
+        "dtype": "int32",
+        "format": "ND",
+        "paramType": "optional",
+        "shape": [
+          -2
+        ],
+        "format_match_mode": "FormatAgnostic"
+      },
+      {
+        "name": "compress_seq_offset",
+        "index": 6,
+        "dtype": "int32",
+        "format": "ND",
+        "paramType": "optional",
+        "shape": [
+          -2
+        ],
+        "format_match_mode": "FormatAgnostic"
+      },
+      {
+        "name": "seq_lens",
+        "index": 7,
+        "dtype": "int32",
+        "format": "ND",
+        "paramType": "optional",
+        "shape": [
+          -2
+        ],
+        "format_match_mode": "FormatAgnostic"
+      }
+    ],
+    "candidate_kernels": [
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_1001"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_1000"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_2001"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_2000"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_3000"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_5001"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_5000"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_7001"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_7000"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_8001"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_8000"
+      }
+    ],
+    "custom_opp_path": "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer:/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib:/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer:/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer:/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer",
+    "process_log_path": ""
+  },
+  "quota_bytes": 268435456,
+  "quota_scope": "Torch allocator; runtime/driver excluded",
+  "persistent_tensor_bytes_max": 3670848,
+  "pairs": 10,
+  "calls_per_sample": 5,
+  "max_update_calls": 402,
+  "timing_scope": "Each graph contains calls_per_sample complete producer+method updates; one replay/sample. View creation executes inside eager/capture; metadata is replay-free. Eager validation wall includes host view creation. Cache reset excluded identically.",
+  "progress": {
+    "width": 32,
+    "phase": "timing",
+    "state": "A",
+    "arm": "control",
+    "pair": 9
+  },
+  "widths": [
+    {
+      "width": 1,
+      "validation": [
+        {
+          "phase": "eager",
+          "state": "A",
+          "full_backing_sha256": {
+            "control": "df91a6884589ed668041d1b875339192263a656c0d5706c17f9bf926cd5a7f3c",
+            "candidate": "df91a6884589ed668041d1b875339192263a656c0d5706c17f9bf926cd5a7f3c"
+          },
+          "wall_us_including_host_method": {
+            "control": 19197.624,
+            "candidate": 3210.98
+          }
+        },
+        {
+          "phase": "eager",
+          "state": "B",
+          "full_backing_sha256": {
+            "control": "b1557bfd832331ac90179f8c3d5856e75207fee7226f5af4c15c53b4d46cb772",
+            "candidate": "b1557bfd832331ac90179f8c3d5856e75207fee7226f5af4c15c53b4d46cb772"
+          },
+          "wall_us_including_host_method": {
+            "control": 236.369,
+            "candidate": 213.708
+          }
+        },
+        {
+          "phase": "eager",
+          "state": "reset",
+          "full_backing_sha256": {
+            "control": "df91a6884589ed668041d1b875339192263a656c0d5706c17f9bf926cd5a7f3c",
+            "candidate": "df91a6884589ed668041d1b875339192263a656c0d5706c17f9bf926cd5a7f3c"
+          },
+          "wall_us_including_host_method": {
+            "control": 220.239,
+            "candidate": 189.038
+          }
+        },
+        {
+          "phase": "graph",
+          "state": "A",
+          "full_backing_sha256": {
+            "control": "df91a6884589ed668041d1b875339192263a656c0d5706c17f9bf926cd5a7f3c",
+            "candidate": "df91a6884589ed668041d1b875339192263a656c0d5706c17f9bf926cd5a7f3c"
+          },
+          "wall_us_including_host_method": {
+            "control": 686.968,
+            "candidate": 312.372
+          }
+        },
+        {
+          "phase": "graph",
+          "state": "B",
+          "full_backing_sha256": {
+            "control": "b1557bfd832331ac90179f8c3d5856e75207fee7226f5af4c15c53b4d46cb772",
+            "candidate": "b1557bfd832331ac90179f8c3d5856e75207fee7226f5af4c15c53b4d46cb772"
+          },
+          "wall_us_including_host_method": {
+            "control": 327.153,
+            "candidate": 195.188
+          }
+        },
+        {
+          "phase": "graph",
+          "state": "reset",
+          "full_backing_sha256": {
+            "control": "df91a6884589ed668041d1b875339192263a656c0d5706c17f9bf926cd5a7f3c",
+            "candidate": "df91a6884589ed668041d1b875339192263a656c0d5706c17f9bf926cd5a7f3c"
+          },
+          "wall_us_including_host_method": {
+            "control": 70.133,
+            "candidate": 31.712
+          }
+        }
+      ],
+      "samples": [
+        {
+          "pair": 0,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 66.12399816513062,
+          "wall_us_per_call": 106.03219999999999,
+          "memory": {
+            "free_bytes": 7151636480,
+            "total_bytes": 65796046848,
+            "allocated_bytes": 3652608,
+            "reserved_bytes": 88080384,
+            "peak_allocated_bytes": 20977664,
+            "peak_reserved_bytes": 88080384,
+            "host_meminfo": [
+              "MemTotal:       2108087996 kB",
+              "MemFree:        11440980 kB",
+              "MemAvailable:   372627548 kB",
+              "Buffers:          383576 kB",
+              "Cached:         367360016 kB"
+            ]
+          }
+        },
+        {
+          "pair": 0,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 8.54400023818016,
+          "wall_us_per_call": 20.5928,
+          "memory": {
+            "free_bytes": 7151636480,
+            "total_bytes": 65796046848,
+            "allocated_bytes": 3652608,
+            "reserved_bytes": 88080384,
+            "peak_allocated_bytes": 20977664,
+            "peak_reserved_bytes": 88080384,
+            "host_meminfo": [
+              "MemTotal:       2108087996 kB",
+              "MemFree:        11440980 kB",
+              "MemAvailable:   372627548 kB",
+              "Buffers:          383576 kB",
+              "Cached:         367360016 kB"
+            ]
+          }
+        },
+        {
+          "pair": 1,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 10.143999755382538,
+          "wall_us_per_call": 18.410800000000002,
+          "memory": null
+        },
+        {
+          "pair": 1,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 26.023998856544495,
+          "wall_us_per_call": 34.023399999999995,
+          "memory": null
+        },
+        {
+          "pair": 2,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 25.407999753952026,
+          "wall_us_per_call": 33.6254,
+          "memory": null
+        },
+        {
+          "pair": 2,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 5.400000140070915,
+          "wall_us_per_call": 15.930600000000002,
+          "memory": null
+        },
+        {
+          "pair": 3,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 12.671999633312225,
+          "wall_us_per_call": 19.7228,
+          "memory": null
+        },
+        {
+          "pair": 3,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 25.652000308036804,
+          "wall_us_per_call": 33.721199999999996,
+          "memory": null
+        },
+        {
+          "pair": 4,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 28.50399911403656,
+          "wall_us_per_call": 35.8194,
+          "memory": null
+        },
+        {
+          "pair": 4,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 9.148000180721283,
+          "wall_us_per_call": 16.6186,
+          "memory": null
+        },
+        {
+          "pair": 5,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 7.171999663114548,
+          "wall_us_per_call": 16.020599999999998,
+          "memory": null
+        },
+        {
+          "pair": 5,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 25.74400007724762,
+          "wall_us_per_call": 33.7372,
+          "memory": null
+        },
+        {
+          "pair": 6,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 27.239999175071716,
+          "wall_us_per_call": 34.2174,
+          "memory": null
+        },
+        {
+          "pair": 6,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 8.336000144481659,
+          "wall_us_per_call": 17.5848,
+          "memory": null
+        },
+        {
+          "pair": 7,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 11.231999844312668,
+          "wall_us_per_call": 20.0228,
+          "memory": null
+        },
+        {
+          "pair": 7,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 25.71200132369995,
+          "wall_us_per_call": 33.8334,
+          "memory": null
+        },
+        {
+          "pair": 8,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 25.652000308036804,
+          "wall_us_per_call": 33.9814,
+          "memory": null
+        },
+        {
+          "pair": 8,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 8.628000319004059,
+          "wall_us_per_call": 16.5026,
+          "memory": null
+        },
+        {
+          "pair": 9,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 7.831999659538269,
+          "wall_us_per_call": 17.8228,
+          "memory": {
+            "free_bytes": 7151636480,
+            "total_bytes": 65796046848,
+            "allocated_bytes": 3652608,
+            "reserved_bytes": 88080384,
+            "peak_allocated_bytes": 20977664,
+            "peak_reserved_bytes": 88080384,
+            "host_meminfo": [
+              "MemTotal:       2108087996 kB",
+              "MemFree:        11440980 kB",
+              "MemAvailable:   372627548 kB",
+              "Buffers:          383576 kB",
+              "Cached:         367360016 kB"
+            ]
+          }
+        },
+        {
+          "pair": 9,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 25.843998789787292,
+          "wall_us_per_call": 34.5714,
+          "memory": {
+            "free_bytes": 7151636480,
+            "total_bytes": 65796046848,
+            "allocated_bytes": 3652608,
+            "reserved_bytes": 88080384,
+            "peak_allocated_bytes": 20977664,
+            "peak_reserved_bytes": 88080384,
+            "host_meminfo": [
+              "MemTotal:       2108087996 kB",
+              "MemFree:        11440980 kB",
+              "MemAvailable:   372627548 kB",
+              "Buffers:          383576 kB",
+              "Cached:         367360016 kB"
+            ]
+          }
+        }
+      ],
+      "cache_layout": [
+        {
+          "shape": [
+            73,
+            128,
+            1,
+            128
+          ],
+          "stride": [
+            16384,
+            128,
+            128,
+            1
+          ],
+          "dtype": "torch.int8",
+          "npu_format": 2,
+          "bytes": 1196032
+        },
+        {
+          "shape": [
+            73,
+            128,
+            1,
+            1
+          ],
+          "stride": [
+            128,
+            1,
+            1,
+            1
+          ],
+          "dtype": "torch.float16",
+          "npu_format": 2,
+          "bytes": 18688
+        }
+      ],
+      "cache_storage_offsets": [
+        256,
+        598176
+      ],
+      "quant_output_layout": {
+        "control": [
+          {
+            "shape": [
+              1,
+              128
+            ],
+            "stride": [
+              128,
+              1
+            ],
+            "dtype": "torch.int8",
+            "npu_format": 2,
+            "bytes": 128
+          },
+          {
+            "shape": [
+              1,
+              1
+            ],
+            "stride": [
+              1,
+              1
+            ],
+            "dtype": "torch.float16",
+            "npu_format": 2,
+            "bytes": 2
+          }
+        ],
+        "candidate": [
+          {
+            "shape": [
+              1,
+              128
+            ],
+            "stride": [
+              128,
+              1
+            ],
+            "dtype": "torch.int8",
+            "npu_format": 2,
+            "bytes": 128
+          },
+          {
+            "shape": [
+              1,
+              1
+            ],
+            "stride": [
+              1,
+              1
+            ],
+            "dtype": "torch.float16",
+            "npu_format": 2,
+            "bytes": 2
+          }
+        ]
+      },
+      "timing_output_sha256": {
+        "control": "df91a6884589ed668041d1b875339192263a656c0d5706c17f9bf926cd5a7f3c",
+        "candidate": "df91a6884589ed668041d1b875339192263a656c0d5706c17f9bf926cd5a7f3c"
+      },
+      "median_device_us": {
+        "control": 25.793999433517456,
+        "candidate": 8.58600027859211
+      },
+      "memory_final": {
+        "free_bytes": 7151636480,
+        "total_bytes": 65796046848,
+        "allocated_bytes": 3652608,
+        "reserved_bytes": 88080384,
+        "peak_allocated_bytes": 20977664,
+        "peak_reserved_bytes": 88080384,
+        "host_meminfo": [
+          "MemTotal:       2108087996 kB",
+          "MemFree:        11440980 kB",
+          "MemAvailable:   372627548 kB",
+          "Buffers:          383576 kB",
+          "Cached:         367360016 kB"
+        ]
+      }
+    },
+    {
+      "width": 8,
+      "validation": [
+        {
+          "phase": "eager",
+          "state": "A",
+          "full_backing_sha256": {
+            "control": "42f67ad60623be22bd9b97120e8d2bd5c42980bb85b7b2148108192c4edd3de7",
+            "candidate": "42f67ad60623be22bd9b97120e8d2bd5c42980bb85b7b2148108192c4edd3de7"
+          },
+          "wall_us_including_host_method": {
+            "control": 375.435,
+            "candidate": 215.849
+          }
+        },
+        {
+          "phase": "eager",
+          "state": "B",
+          "full_backing_sha256": {
+            "control": "57ba367327c494e653dc66ce29dfc3378da9a980eb8a4f22c13969d324d61f1c",
+            "candidate": "57ba367327c494e653dc66ce29dfc3378da9a980eb8a4f22c13969d324d61f1c"
+          },
+          "wall_us_including_host_method": {
+            "control": 220.019,
+            "candidate": 188.378
+          }
+        },
+        {
+          "phase": "eager",
+          "state": "reset",
+          "full_backing_sha256": {
+            "control": "42f67ad60623be22bd9b97120e8d2bd5c42980bb85b7b2148108192c4edd3de7",
+            "candidate": "42f67ad60623be22bd9b97120e8d2bd5c42980bb85b7b2148108192c4edd3de7"
+          },
+          "wall_us_including_host_method": {
+            "control": 210.969,
+            "candidate": 180.537
+          }
+        },
+        {
+          "phase": "graph",
+          "state": "A",
+          "full_backing_sha256": {
+            "control": "42f67ad60623be22bd9b97120e8d2bd5c42980bb85b7b2148108192c4edd3de7",
+            "candidate": "42f67ad60623be22bd9b97120e8d2bd5c42980bb85b7b2148108192c4edd3de7"
+          },
+          "wall_us_including_host_method": {
+            "control": 388.976,
+            "candidate": 284.402
+          }
+        },
+        {
+          "phase": "graph",
+          "state": "B",
+          "full_backing_sha256": {
+            "control": "57ba367327c494e653dc66ce29dfc3378da9a980eb8a4f22c13969d324d61f1c",
+            "candidate": "57ba367327c494e653dc66ce29dfc3378da9a980eb8a4f22c13969d324d61f1c"
+          },
+          "wall_us_including_host_method": {
+            "control": 272.811,
+            "candidate": 194.497
+          }
+        },
+        {
+          "phase": "graph",
+          "state": "reset",
+          "full_backing_sha256": {
+            "control": "42f67ad60623be22bd9b97120e8d2bd5c42980bb85b7b2148108192c4edd3de7",
+            "candidate": "42f67ad60623be22bd9b97120e8d2bd5c42980bb85b7b2148108192c4edd3de7"
+          },
+          "wall_us_including_host_method": {
+            "control": 63.753,
+            "candidate": 29.691
+          }
+        }
+      ],
+      "samples": [
+        {
+          "pair": 0,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 69.9999988079071,
+          "wall_us_per_call": 81.6412,
+          "memory": {
+            "free_bytes": 7143247872,
+            "total_bytes": 65796046848,
+            "allocated_bytes": 3660800,
+            "reserved_bytes": 88080384,
+            "peak_allocated_bytes": 20986880,
+            "peak_reserved_bytes": 88080384,
+            "host_meminfo": [
+              "MemTotal:       2108087996 kB",
+              "MemFree:        11439456 kB",
+              "MemAvailable:   372626024 kB",
+              "Buffers:          383576 kB",
+              "Cached:         367360016 kB"
+            ]
+          }
+        },
+        {
+          "pair": 0,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 8.076000213623047,
+          "wall_us_per_call": 18.7868,
+          "memory": {
+            "free_bytes": 7143247872,
+            "total_bytes": 65796046848,
+            "allocated_bytes": 3660800,
+            "reserved_bytes": 88080384,
+            "peak_allocated_bytes": 20986880,
+            "peak_reserved_bytes": 88080384,
+            "host_meminfo": [
+              "MemTotal:       2108087996 kB",
+              "MemFree:        11439456 kB",
+              "MemAvailable:   372626024 kB",
+              "Buffers:          383576 kB",
+              "Cached:         367360016 kB"
+            ]
+          }
+        },
+        {
+          "pair": 1,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 8.73199999332428,
+          "wall_us_per_call": 17.4526,
+          "memory": null
+        },
+        {
+          "pair": 1,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 29.48000133037567,
+          "wall_us_per_call": 36.9496,
+          "memory": null
+        },
+        {
+          "pair": 2,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 28.992000222206116,
+          "wall_us_per_call": 36.5216,
+          "memory": null
+        },
+        {
+          "pair": 2,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 10.367999970912933,
+          "wall_us_per_call": 18.288800000000002,
+          "memory": null
+        },
+        {
+          "pair": 3,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 11.80799975991249,
+          "wall_us_per_call": 19.378800000000002,
+          "memory": null
+        },
+        {
+          "pair": 3,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 26.104000210762024,
+          "wall_us_per_call": 34.8494,
+          "memory": null
+        },
+        {
+          "pair": 4,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 29.047998785972595,
+          "wall_us_per_call": 37.3196,
+          "memory": null
+        },
+        {
+          "pair": 4,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 8.516000211238861,
+          "wall_us_per_call": 16.546799999999998,
+          "memory": null
+        },
+        {
+          "pair": 5,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 10.636000335216522,
+          "wall_us_per_call": 17.8708,
+          "memory": null
+        },
+        {
+          "pair": 5,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 28.224000334739685,
+          "wall_us_per_call": 35.8054,
+          "memory": null
+        },
+        {
+          "pair": 6,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 28.79199981689453,
+          "wall_us_per_call": 35.8434,
+          "memory": null
+        },
+        {
+          "pair": 6,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 10.452000051736832,
+          "wall_us_per_call": 18.860599999999998,
+          "memory": null
+        },
+        {
+          "pair": 7,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 10.316000133752823,
+          "wall_us_per_call": 18.0768,
+          "memory": null
+        },
+        {
+          "pair": 7,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 28.940001130104065,
+          "wall_us_per_call": 36.4674,
+          "memory": null
+        },
+        {
+          "pair": 8,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 29.06000018119812,
+          "wall_us_per_call": 36.5934,
+          "memory": null
+        },
+        {
+          "pair": 8,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 10.435999929904938,
+          "wall_us_per_call": 17.8066,
+          "memory": null
+        },
+        {
+          "pair": 9,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 8.312000334262848,
+          "wall_us_per_call": 17.5188,
+          "memory": {
+            "free_bytes": 7143247872,
+            "total_bytes": 65796046848,
+            "allocated_bytes": 3660800,
+            "reserved_bytes": 88080384,
+            "peak_allocated_bytes": 20986880,
+            "peak_reserved_bytes": 88080384,
+            "host_meminfo": [
+              "MemTotal:       2108087996 kB",
+              "MemFree:        11439456 kB",
+              "MemAvailable:   372626024 kB",
+              "Buffers:          383576 kB",
+              "Cached:         367360016 kB"
+            ]
+          }
+        },
+        {
+          "pair": 9,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 26.199999451637268,
+          "wall_us_per_call": 34.861399999999996,
+          "memory": {
+            "free_bytes": 7143247872,
+            "total_bytes": 65796046848,
+            "allocated_bytes": 3660800,
+            "reserved_bytes": 88080384,
+            "peak_allocated_bytes": 20986880,
+            "peak_reserved_bytes": 88080384,
+            "host_meminfo": [
+              "MemTotal:       2108087996 kB",
+              "MemFree:        11439456 kB",
+              "MemAvailable:   372626024 kB",
+              "Buffers:          383576 kB",
+              "Cached:         367360016 kB"
+            ]
+          }
+        }
+      ],
+      "cache_layout": [
+        {
+          "shape": [
+            73,
+            128,
+            1,
+            128
+          ],
+          "stride": [
+            16384,
+            128,
+            128,
+            1
+          ],
+          "dtype": "torch.int8",
+          "npu_format": 2,
+          "bytes": 1196032
+        },
+        {
+          "shape": [
+            73,
+            128,
+            1,
+            1
+          ],
+          "stride": [
+            128,
+            1,
+            1,
+            1
+          ],
+          "dtype": "torch.float16",
+          "npu_format": 2,
+          "bytes": 18688
+        }
+      ],
+      "cache_storage_offsets": [
+        256,
+        598176
+      ],
+      "quant_output_layout": {
+        "control": [
+          {
+            "shape": [
+              8,
+              128
+            ],
+            "stride": [
+              128,
+              1
+            ],
+            "dtype": "torch.int8",
+            "npu_format": 2,
+            "bytes": 1024
+          },
+          {
+            "shape": [
+              8,
+              1
+            ],
+            "stride": [
+              1,
+              1
+            ],
+            "dtype": "torch.float16",
+            "npu_format": 2,
+            "bytes": 16
+          }
+        ],
+        "candidate": [
+          {
+            "shape": [
+              8,
+              128
+            ],
+            "stride": [
+              128,
+              1
+            ],
+            "dtype": "torch.int8",
+            "npu_format": 2,
+            "bytes": 1024
+          },
+          {
+            "shape": [
+              8,
+              1
+            ],
+            "stride": [
+              1,
+              1
+            ],
+            "dtype": "torch.float16",
+            "npu_format": 2,
+            "bytes": 16
+          }
+        ]
+      },
+      "timing_output_sha256": {
+        "control": "42f67ad60623be22bd9b97120e8d2bd5c42980bb85b7b2148108192c4edd3de7",
+        "candidate": "42f67ad60623be22bd9b97120e8d2bd5c42980bb85b7b2148108192c4edd3de7"
+      },
+      "median_device_us": {
+        "control": 28.96600067615509,
+        "candidate": 10.342000052332878
+      },
+      "memory_final": {
+        "free_bytes": 7143247872,
+        "total_bytes": 65796046848,
+        "allocated_bytes": 3660800,
+        "reserved_bytes": 88080384,
+        "peak_allocated_bytes": 20986880,
+        "peak_reserved_bytes": 88080384,
+        "host_meminfo": [
+          "MemTotal:       2108087996 kB",
+          "MemFree:        11439456 kB",
+          "MemAvailable:   372626024 kB",
+          "Buffers:          383576 kB",
+          "Cached:         367360016 kB"
+        ]
+      }
+    },
+    {
+      "width": 32,
+      "validation": [
+        {
+          "phase": "eager",
+          "state": "A",
+          "full_backing_sha256": {
+            "control": "a762f680ea8e6752c66f54d493cc3080d407b746ba0fc497d3eeceb1ef947c9a",
+            "candidate": "a762f680ea8e6752c66f54d493cc3080d407b746ba0fc497d3eeceb1ef947c9a"
+          },
+          "wall_us_including_host_method": {
+            "control": 340.703,
+            "candidate": 202.728
+          }
+        },
+        {
+          "phase": "eager",
+          "state": "B",
+          "full_backing_sha256": {
+            "control": "82e4f27d61efec3027cb40e03cac8856c1d384693987bdac1ea5cc0b4bc5e3f4",
+            "candidate": "82e4f27d61efec3027cb40e03cac8856c1d384693987bdac1ea5cc0b4bc5e3f4"
+          },
+          "wall_us_including_host_method": {
+            "control": 211.108,
+            "candidate": 190.878
+          }
+        },
+        {
+          "phase": "eager",
+          "state": "reset",
+          "full_backing_sha256": {
+            "control": "a762f680ea8e6752c66f54d493cc3080d407b746ba0fc497d3eeceb1ef947c9a",
+            "candidate": "a762f680ea8e6752c66f54d493cc3080d407b746ba0fc497d3eeceb1ef947c9a"
+          },
+          "wall_us_including_host_method": {
+            "control": 211.688,
+            "candidate": 181.637
+          }
+        },
+        {
+          "phase": "graph",
+          "state": "A",
+          "full_backing_sha256": {
+            "control": "a762f680ea8e6752c66f54d493cc3080d407b746ba0fc497d3eeceb1ef947c9a",
+            "candidate": "a762f680ea8e6752c66f54d493cc3080d407b746ba0fc497d3eeceb1ef947c9a"
+          },
+          "wall_us_including_host_method": {
+            "control": 394.666,
+            "candidate": 316.793
+          }
+        },
+        {
+          "phase": "graph",
+          "state": "B",
+          "full_backing_sha256": {
+            "control": "82e4f27d61efec3027cb40e03cac8856c1d384693987bdac1ea5cc0b4bc5e3f4",
+            "candidate": "82e4f27d61efec3027cb40e03cac8856c1d384693987bdac1ea5cc0b4bc5e3f4"
+          },
+          "wall_us_including_host_method": {
+            "control": 268.47,
+            "candidate": 184.727
+          }
+        },
+        {
+          "phase": "graph",
+          "state": "reset",
+          "full_backing_sha256": {
+            "control": "a762f680ea8e6752c66f54d493cc3080d407b746ba0fc497d3eeceb1ef947c9a",
+            "candidate": "a762f680ea8e6752c66f54d493cc3080d407b746ba0fc497d3eeceb1ef947c9a"
+          },
+          "wall_us_including_host_method": {
+            "control": 62.872,
+            "candidate": 43.392
+          }
+        }
+      ],
+      "samples": [
+        {
+          "pair": 0,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 66.98799729347229,
+          "wall_us_per_call": 77.46520000000001,
+          "memory": {
+            "free_bytes": 7143247872,
+            "total_bytes": 65796046848,
+            "allocated_bytes": 3685376,
+            "reserved_bytes": 88080384,
+            "peak_allocated_bytes": 21014528,
+            "peak_reserved_bytes": 88080384,
+            "host_meminfo": [
+              "MemTotal:       2108087996 kB",
+              "MemFree:        11439840 kB",
+              "MemAvailable:   372626408 kB",
+              "Buffers:          383576 kB",
+              "Cached:         367360028 kB"
+            ]
+          }
+        },
+        {
+          "pair": 0,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 14.215999841690063,
+          "wall_us_per_call": 23.567,
+          "memory": {
+            "free_bytes": 7143247872,
+            "total_bytes": 65796046848,
+            "allocated_bytes": 3685376,
+            "reserved_bytes": 88080384,
+            "peak_allocated_bytes": 21014528,
+            "peak_reserved_bytes": 88080384,
+            "host_meminfo": [
+              "MemTotal:       2108087996 kB",
+              "MemFree:        11439840 kB",
+              "MemAvailable:   372626408 kB",
+              "Buffers:          383576 kB",
+              "Cached:         367360028 kB"
+            ]
+          }
+        },
+        {
+          "pair": 1,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 21.352000534534454,
+          "wall_us_per_call": 28.5132,
+          "memory": null
+        },
+        {
+          "pair": 1,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 27.000001072883606,
+          "wall_us_per_call": 35.017399999999995,
+          "memory": null
+        },
+        {
+          "pair": 2,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 27.083998918533325,
+          "wall_us_per_call": 37.3536,
+          "memory": null
+        },
+        {
+          "pair": 2,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 16.77200049161911,
+          "wall_us_per_call": 24.069,
+          "memory": null
+        },
+        {
+          "pair": 3,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 16.804000735282898,
+          "wall_us_per_call": 24.357,
+          "memory": null
+        },
+        {
+          "pair": 3,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 29.851999878883362,
+          "wall_us_per_call": 37.0094,
+          "memory": null
+        },
+        {
+          "pair": 4,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 27.063998579978943,
+          "wall_us_per_call": 35.687400000000004,
+          "memory": null
+        },
+        {
+          "pair": 4,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 14.047999680042267,
+          "wall_us_per_call": 23.174799999999998,
+          "memory": null
+        },
+        {
+          "pair": 5,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 16.784000396728516,
+          "wall_us_per_call": 23.937,
+          "memory": null
+        },
+        {
+          "pair": 5,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 29.783999919891357,
+          "wall_us_per_call": 36.575599999999994,
+          "memory": null
+        },
+        {
+          "pair": 6,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 30.0680011510849,
+          "wall_us_per_call": 37.1314,
+          "memory": null
+        },
+        {
+          "pair": 6,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 13.920000195503235,
+          "wall_us_per_call": 23.747,
+          "memory": null
+        },
+        {
+          "pair": 7,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 16.731999814510345,
+          "wall_us_per_call": 23.967,
+          "memory": null
+        },
+        {
+          "pair": 7,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 29.688000679016113,
+          "wall_us_per_call": 37.0296,
+          "memory": null
+        },
+        {
+          "pair": 8,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 27.23200023174286,
+          "wall_us_per_call": 37.0574,
+          "memory": null
+        },
+        {
+          "pair": 8,
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 16.699999570846558,
+          "wall_us_per_call": 23.668799999999997,
+          "memory": null
+        },
+        {
+          "pair": 9,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "candidate",
+          "calls": 5,
+          "device_us_per_call": 13.93200010061264,
+          "wall_us_per_call": 21.821,
+          "memory": {
+            "free_bytes": 7143247872,
+            "total_bytes": 65796046848,
+            "allocated_bytes": 3685376,
+            "reserved_bytes": 88080384,
+            "peak_allocated_bytes": 21014528,
+            "peak_reserved_bytes": 88080384,
+            "host_meminfo": [
+              "MemTotal:       2108087996 kB",
+              "MemFree:        11439840 kB",
+              "MemAvailable:   372626408 kB",
+              "Buffers:          383576 kB",
+              "Cached:         367360028 kB"
+            ]
+          }
+        },
+        {
+          "pair": 9,
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "arm": "control",
+          "calls": 5,
+          "device_us_per_call": 26.888000965118408,
+          "wall_us_per_call": 37.0754,
+          "memory": {
+            "free_bytes": 7143247872,
+            "total_bytes": 65796046848,
+            "allocated_bytes": 3685376,
+            "reserved_bytes": 88080384,
+            "peak_allocated_bytes": 21014528,
+            "peak_reserved_bytes": 88080384,
+            "host_meminfo": [
+              "MemTotal:       2108087996 kB",
+              "MemFree:        11439840 kB",
+              "MemAvailable:   372626408 kB",
+              "Buffers:          383576 kB",
+              "Cached:         367360028 kB"
+            ]
+          }
+        }
+      ],
+      "cache_layout": [
+        {
+          "shape": [
+            73,
+            128,
+            1,
+            128
+          ],
+          "stride": [
+            16384,
+            128,
+            128,
+            1
+          ],
+          "dtype": "torch.int8",
+          "npu_format": 2,
+          "bytes": 1196032
+        },
+        {
+          "shape": [
+            73,
+            128,
+            1,
+            1
+          ],
+          "stride": [
+            128,
+            1,
+            1,
+            1
+          ],
+          "dtype": "torch.float16",
+          "npu_format": 2,
+          "bytes": 18688
+        }
+      ],
+      "cache_storage_offsets": [
+        256,
+        598176
+      ],
+      "quant_output_layout": {
+        "control": [
+          {
+            "shape": [
+              32,
+              128
+            ],
+            "stride": [
+              128,
+              1
+            ],
+            "dtype": "torch.int8",
+            "npu_format": 2,
+            "bytes": 4096
+          },
+          {
+            "shape": [
+              32,
+              1
+            ],
+            "stride": [
+              1,
+              1
+            ],
+            "dtype": "torch.float16",
+            "npu_format": 2,
+            "bytes": 64
+          }
+        ],
+        "candidate": [
+          {
+            "shape": [
+              32,
+              128
+            ],
+            "stride": [
+              128,
+              1
+            ],
+            "dtype": "torch.int8",
+            "npu_format": 2,
+            "bytes": 4096
+          },
+          {
+            "shape": [
+              32,
+              1
+            ],
+            "stride": [
+              1,
+              1
+            ],
+            "dtype": "torch.float16",
+            "npu_format": 2,
+            "bytes": 64
+          }
+        ]
+      },
+      "timing_output_sha256": {
+        "control": "a762f680ea8e6752c66f54d493cc3080d407b746ba0fc497d3eeceb1ef947c9a",
+        "candidate": "a762f680ea8e6752c66f54d493cc3080d407b746ba0fc497d3eeceb1ef947c9a"
+      },
+      "median_device_us": {
+        "control": 28.460000455379486,
+        "candidate": 16.71599969267845
+      },
+      "memory_final": {
+        "free_bytes": 7143247872,
+        "total_bytes": 65796046848,
+        "allocated_bytes": 3685376,
+        "reserved_bytes": 88080384,
+        "peak_allocated_bytes": 21014528,
+        "peak_reserved_bytes": 88080384,
+        "host_meminfo": [
+          "MemTotal:       2108087996 kB",
+          "MemFree:        11439840 kB",
+          "MemAvailable:   372626408 kB",
+          "Buffers:          383576 kB",
+          "Cached:         367360028 kB"
+        ]
+      }
+    }
+  ],
+  "device": 15,
+  "memory_before": {
+    "free_bytes": 7260688384,
+    "total_bytes": 65796046848,
+    "allocated_bytes": 0,
+    "reserved_bytes": 0,
+    "peak_allocated_bytes": 0,
+    "peak_reserved_bytes": 0,
+    "host_meminfo": [
+      "MemTotal:       2108087996 kB",
+      "MemFree:        11505664 kB",
+      "MemAvailable:   372692020 kB",
+      "Buffers:          383576 kB",
+      "Cached:         367359292 kB"
+    ]
+  },
+  "passed": true
+}

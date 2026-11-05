@@ -1,0 +1,92 @@
+{
+  "status": "pass",
+  "scope": "CPU scalar MTP orchestration/cache provenance; no CANN",
+  "python": "3.14.7",
+  "tests": 10,
+  "failures": 0,
+  "errors": 0,
+  "torch_imported": false,
+  "boundary_enumeration": {
+    "fixtures": 11664,
+    "rounds": 9424,
+    "accepted_spans": [
+      [
+        1,
+        1
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        4,
+        4
+      ]
+    ],
+    "finish_reasons": [
+      "capacity",
+      "eos",
+      "length"
+    ],
+    "widths": [
+      2,
+      4
+    ],
+    "prefixes": [
+      1,
+      127,
+      128
+    ],
+    "missing_seeds": [
+      false,
+      true
+    ],
+    "modes": [
+      "accept",
+      "reject",
+      "mixed"
+    ],
+    "budgets": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "capacities_left": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "eos_choices": "none or each of the first five serial output IDs"
+  },
+  "source_sha256": {
+    "tests/glm52/check_mtp_round.py": "dcf9e089991daf77dc405fbab1acbd7d7418fb3f08c3798a959b3e65e45814f8",
+    "tilert/models/glm_5_2_ascend/mtp_round.py": "7d1773a0dad58a4484662fea07a0aeb49b553e9f664f81c9e3d6c2df6a4ee1a6",
+    "tilert/models/glm_5_2_ascend/mtp_state.py": "863e5e649c13cf4b9b5db78e8f49de7e515c096d17301af0d093c65828364f3f"
+  },
+  "test_output": "test_a_recycled_draft_buffer_does_not_cost_acceptance (__main__.MtpRoundChecks.test_a_recycled_draft_buffer_does_not_cost_acceptance)\nA reused output slot must not rewrite an already-made proposal. ... ok\ntest_capacity_closes_with_width_one (__main__.MtpRoundChecks.test_capacity_closes_with_width_one) ... ok\ntest_chained_rows_share_seed_indices_and_are_recomputed (__main__.MtpRoundChecks.test_chained_rows_share_seed_indices_and_are_recomputed) ... ok\ntest_eos_budget_capacity_cross_product (__main__.MtpRoundChecks.test_eos_budget_capacity_cross_product) ... ok\ntest_eos_truncates_accepted_span (__main__.MtpRoundChecks.test_eos_truncates_accepted_span) ... ok\ntest_first_rejection_commits_one_main_and_one_mtp_row (__main__.MtpRoundChecks.test_first_rejection_commits_one_main_and_one_mtp_row) ... ok\ntest_missing_parent_marks_failed_round (__main__.MtpRoundChecks.test_missing_parent_marks_failed_round) ... ok\ntest_normal_import_does_not_load_torch (__main__.MtpRoundChecks.test_normal_import_does_not_load_torch) ... ok\ntest_outputs_and_committed_cache_match_serial_oracle (__main__.MtpRoundChecks.test_outputs_and_committed_cache_match_serial_oracle) ... ok\ntest_zero_and_one_output_launch_no_round (__main__.MtpRoundChecks.test_zero_and_one_output_launch_no_round) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 2.166s\n\nOK\n"
+}

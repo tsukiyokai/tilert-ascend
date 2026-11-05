@@ -1,0 +1,134 @@
+{
+  "scope": "Actual worker, official extension and DecoderLayer constructor; CPU TP1 only",
+  "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "stages": [
+    {
+      "name": "platform_registration",
+      "success": true,
+      "symbol": "vllm_ascend.platform.NPUPlatform",
+      "path": "/evidence/overlay/vllm_ascend/platform.py",
+      "sha256": "686eb5c4d7e744053def9fe51caf743e79e6a3cbeddebd3c47949d6f13e503cd"
+    },
+    {
+      "name": "engine_configuration",
+      "success": true,
+      "config": {
+        "symbol": "vllm.config.vllm.VllmConfig",
+        "path": "/workspace/logs/whole-layer-composition-cpu212-v1/vllm-a982-py311-compatible/vllm/config/vllm.py",
+        "sha256": "91c03cb7b1e57589e335aa5022db92eb2fcfd2900f902d367e5815635a1489db"
+      },
+      "tp_size": 1,
+      "quantization": {
+        "symbol": "vllm_ascend.quantization.configs.modelslim_config.AscendModelSlimConfig",
+        "path": "/evidence/overlay/vllm_ascend/quantization/configs/modelslim_config.py",
+        "sha256": "acaf01c519ac4eb9343f2728d1875881cb0a475e2010585139ed9b857fc8eb9a"
+      }
+    },
+    {
+      "name": "real_tp1_cpu_groups",
+      "success": true,
+      "coordinator": {
+        "symbol": "vllm.distributed.parallel_state.GroupCoordinator",
+        "path": "/workspace/logs/whole-layer-composition-cpu212-v1/vllm-a982-py311-compatible/vllm/distributed/parallel_state.py",
+        "sha256": "0e47cff9a89717183bdce6403f0454961848247f51306a0f1dfbe3d6e1b93336"
+      },
+      "world_size": 1,
+      "backend": "gloo"
+    },
+    {
+      "name": "real_worker_registration",
+      "success": true,
+      "adapt_patch": {
+        "symbol": "vllm_ascend.utils.adapt_patch",
+        "path": "/evidence/overlay/vllm_ascend/utils.py",
+        "sha256": "5212ebb9e1ca8d35d76a38d4c9f1f180343763955d6bcfd917b4c9085ee79978"
+      },
+      "registration": {
+        "symbol": "vllm_ascend.utils.register_ascend_customop",
+        "path": "/evidence/overlay/vllm_ascend/utils.py",
+        "sha256": "5212ebb9e1ca8d35d76a38d4c9f1f180343763955d6bcfd917b4c9085ee79978"
+      }
+    },
+    {
+      "name": "real_enable_custom_op",
+      "success": true,
+      "enabled": true,
+      "path": "/evidence/overlay/vllm_ascend/vllm_ascend_C.cpython-311-aarch64-linux-gnu.so",
+      "sha256": "cc96bb6a2ab673e7cf414ddb03f36773046b72c55d6adaf171b81be61a103d1a",
+      "methods": [
+        "init_module",
+        "python_create_and_map",
+        "python_unmap_and_release"
+      ]
+    },
+    {
+      "name": "actual_norm_class_meta_contract",
+      "success": true,
+      "class": {
+        "symbol": "vllm_ascend.ops.layernorm.AscendRMSNorm",
+        "path": "/evidence/overlay/vllm_ascend/ops/layernorm.py",
+        "sha256": "75491119b6b494d6d399a552bf005d57db40bfe2a11d5ae13259c68f824e02b4"
+      },
+      "forward": {
+        "symbol": "vllm_ascend.ops.layernorm.forward_oot",
+        "path": "/evidence/overlay/vllm_ascend/ops/layernorm.py",
+        "sha256": "75491119b6b494d6d399a552bf005d57db40bfe2a11d5ae13259c68f824e02b4"
+      },
+      "device": "meta",
+      "outputs": [
+        [
+          12,
+          6144
+        ],
+        [
+          12,
+          6144
+        ]
+      ],
+      "numerical_validation": false
+    },
+    {
+      "name": "actual_decoder_constructor",
+      "success": false,
+      "error": "Traceback (most recent call last):\n  File \"/evidence/cpu_constructor.py\", line 65, in stage\n    value, details = action()\n                     ^^^^^^^^\n  File \"/evidence/cpu_constructor.py\", line 174, in construct\n    layer = DeepseekV2DecoderLayer(\n            ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/logs/whole-layer-composition-cpu212-v1/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py\", line 1330, in __init__\n    self.mlp = DeepseekV2MoE(\n               ^^^^^^^^^^^^^^\n  File \"/workspace/logs/whole-layer-composition-cpu212-v1/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py\", line 374, in __init__\n    self.experts = FusedMoEFactory(\n                   ^^^^^^^^^^^^^^^^\n  File \"/evidence/overlay/vllm_ascend/patch/platform/patch_fused_moe.py\", line 177, in _ascend_FusedMoE\n    runner = _original_FusedMoE(\n             ^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/logs/whole-layer-composition-cpu212-v1/vllm-a982-py311-compatible/vllm/model_executor/layers/fused_moe/layer.py\", line 387, in FusedMoEFactory\n    routed_experts = routed_experts_cls(\n                     ^^^^^^^^^^^^^^^^^^^\n  File \"/evidence/overlay/vllm_ascend/ops/fused_moe/routed_experts.py\", line 419, in __init__\n    super().__init__(*args, **kwargs)\n  File \"/workspace/logs/whole-layer-composition-cpu212-v1/vllm-a982-py311-compatible/vllm/model_executor/layers/fused_moe/routed_experts.py\", line 159, in __init__\n    self.quant_method = self._get_quant_method(\n                        ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/evidence/overlay/vllm_ascend/ops/fused_moe/routed_experts.py\", line 591, in _get_quant_method\n    return quant_config.get_quant_method(self, prefix, tid2eid=self.tid2eid)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/evidence/overlay/vllm_ascend/quantization/configs/modelslim_config.py\", line 760, in get_quant_method\n    scheme = create_scheme_for_layer(quant_type, prefix, \"moe\")\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/evidence/overlay/vllm_ascend/quantization/configs/modelslim_config.py\", line 346, in create_scheme_for_layer\n    return scheme_cls()\n           ^^^^^^^^^^^^\n  File \"/evidence/overlay/vllm_ascend/quantization/methods/w4a8/w4a8.py\", line 143, in __init__\n    device_group = get_mc2_group().device_group\n                   ^^^^^^^^^^^^^^^\n  File \"/evidence/overlay/vllm_ascend/distributed/parallel_state.py\", line 220, in get_mc2_group\n    assert _MC2 is not None, \"mc2 group is not initialized\"\n           ^^^^^^^^^^^^^^^^\nAssertionError: mc2 group is not initialized\n"
+    }
+  ],
+  "script_sha256": "e2778aec6b45f76cf1db0ce0bba1aa57703df53c7b109f80d75fa33f95ec9a07",
+  "constructor_completed": false,
+  "selection": {
+    "layer_index": 6,
+    "ffn": "sparse",
+    "indexer": "full",
+    "first_k_dense_replace": 3,
+    "index_topk_freq": 4,
+    "index_skip_topk_offset": 3,
+    "index_topk_pattern": null
+  },
+  "quantization_description": {
+    "model.layers.6.self_attn.q_a_proj.weight": "W8A8_DYNAMIC",
+    "model.layers.6.self_attn.kv_a_proj_with_mqa.weight": "W8A8_DYNAMIC",
+    "model.layers.6.self_attn.fused_qkv_a_proj.weight": "W8A8_DYNAMIC",
+    "model.layers.6.self_attn.q_b_proj.weight": "W8A8_DYNAMIC",
+    "model.layers.6.self_attn.o_proj.weight": "W8A8_DYNAMIC",
+    "model.layers.6.self_attn.indexer.wq_b.weight": "W8A8_DYNAMIC",
+    "model.layers.6.self_attn.indexer.quant_type": "INT8_DYNAMIC",
+    "model.layers.6.mlp.shared_experts.gate_proj.weight": "W8A8_DYNAMIC",
+    "model.layers.6.mlp.experts.0.gate_proj.weight": "W4A8_DYNAMIC",
+    "model.layers.6.mlp.shared_experts.up_proj.weight": "W8A8_DYNAMIC",
+    "model.layers.6.mlp.experts.0.up_proj.weight": "W4A8_DYNAMIC",
+    "model.layers.6.mlp.shared_experts.down_proj.weight": "W8A8_DYNAMIC",
+    "model.layers.6.mlp.experts.0.down_proj.weight": "W4A8_DYNAMIC"
+  },
+  "decoder_constructor": {
+    "symbol": "vllm.model_executor.models.deepseek_v2.DeepseekV2DecoderLayer",
+    "path": "/workspace/logs/whole-layer-composition-cpu212-v1/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py",
+    "sha256": "96f4f755f62caa85869fb884209e7f8869882ddb6efbd40c930778b27bd3e39d"
+  },
+  "mc2_registered_before_constructor": false,
+  "error": "Traceback (most recent call last):\n  File \"/evidence/cpu_constructor.py\", line 184, in main\n    stage(\"actual_decoder_constructor\", construct)\n  File \"/evidence/cpu_constructor.py\", line 65, in stage\n    value, details = action()\n                     ^^^^^^^^\n  File \"/evidence/cpu_constructor.py\", line 174, in construct\n    layer = DeepseekV2DecoderLayer(\n            ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/logs/whole-layer-composition-cpu212-v1/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py\", line 1330, in __init__\n    self.mlp = DeepseekV2MoE(\n               ^^^^^^^^^^^^^^\n  File \"/workspace/logs/whole-layer-composition-cpu212-v1/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py\", line 374, in __init__\n    self.experts = FusedMoEFactory(\n                   ^^^^^^^^^^^^^^^^\n  File \"/evidence/overlay/vllm_ascend/patch/platform/patch_fused_moe.py\", line 177, in _ascend_FusedMoE\n    runner = _original_FusedMoE(\n             ^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/logs/whole-layer-composition-cpu212-v1/vllm-a982-py311-compatible/vllm/model_executor/layers/fused_moe/layer.py\", line 387, in FusedMoEFactory\n    routed_experts = routed_experts_cls(\n                     ^^^^^^^^^^^^^^^^^^^\n  File \"/evidence/overlay/vllm_ascend/ops/fused_moe/routed_experts.py\", line 419, in __init__\n    super().__init__(*args, **kwargs)\n  File \"/workspace/logs/whole-layer-composition-cpu212-v1/vllm-a982-py311-compatible/vllm/model_executor/layers/fused_moe/routed_experts.py\", line 159, in __init__\n    self.quant_method = self._get_quant_method(\n                        ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/evidence/overlay/vllm_ascend/ops/fused_moe/routed_experts.py\", line 591, in _get_quant_method\n    return quant_config.get_quant_method(self, prefix, tid2eid=self.tid2eid)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/evidence/overlay/vllm_ascend/quantization/configs/modelslim_config.py\", line 760, in get_quant_method\n    scheme = create_scheme_for_layer(quant_type, prefix, \"moe\")\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/evidence/overlay/vllm_ascend/quantization/configs/modelslim_config.py\", line 346, in create_scheme_for_layer\n    return scheme_cls()\n           ^^^^^^^^^^^^\n  File \"/evidence/overlay/vllm_ascend/quantization/methods/w4a8/w4a8.py\", line 143, in __init__\n    device_group = get_mc2_group().device_group\n                   ^^^^^^^^^^^^^^^\n  File \"/evidence/overlay/vllm_ascend/distributed/parallel_state.py\", line 220, in get_mc2_group\n    assert _MC2 is not None, \"mc2 group is not initialized\"\n           ^^^^^^^^^^^^^^^^\nAssertionError: mc2 group is not initialized\n",
+  "stopped_at": "actual_decoder_constructor",
+  "npu_initialized": false,
+  "maximum_rss_kib": 2607260
+}

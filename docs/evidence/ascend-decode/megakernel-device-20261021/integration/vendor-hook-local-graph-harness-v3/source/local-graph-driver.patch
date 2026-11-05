@@ -1,0 +1,34 @@
+--- parent/device_local_chain.py
++++ candidate/device_local_graph.py
+@@ -291,16 +291,16 @@
+                     "topk_owner_storage_ptr": topk.untyped_storage().data_ptr(),
+                 }))
+                 layers.append(layer)
+-            from decoder_storage_local_chain import run_decoder_forward
+-
+-            stage("actual_local_component_chain", lambda: (
++            from decoder_storage_local_graph import run_decoder_forward
++
++            stage("actual_local_component_graph", lambda: (
+                 run_decoder_forward(torch, layers, config, state, args),
+-                {"report": str(args.output / "local-chain.json")}))
++                {"report": str(args.output / "local-chain-graph.json")}))
+             return {"constructed_layers": [6, 7], "official_postprocessing": True,
+                     "full_decoder_forward_executed": False,
+-                    "local_component_chain_executed": True,
++                    "local_component_graph_executed": True,
+                     "tp16_collectives_executed": 0,
+-                    "scope": "Actual weights and metadata; separate native components versus one local layer launch; both TP reductions identity",
++                    "scope": "Official ACL graph of two local launches against eager separate native components; both TP reductions identity",
+                     "mc2_scope": "actual HCCL rank0 singleton used by the original W4A8 constructor"}
+ 
+ 
+@@ -443,7 +443,7 @@
+         if process.is_alive():
+             process.kill()
+             process.join()
+-    report = {"scope": "Actual Decoder weights; separate components versus a local layer launch; no TP reduction",
++    report = {"scope": "Actual Decoder weights; official ACL local-component graph versus eager separate components; no TP reduction",
+               "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+               "arguments": {k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()},
+               "exitcodes": [p.exitcode for p in processes],

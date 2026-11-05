@@ -1,0 +1,69 @@
+{
+  "status": "pass",
+  "scope": "stdlib scalar TP16 MTP serving; no Torch, CANN or HCCL",
+  "python": "3.13.13",
+  "tests": 21,
+  "failures": 0,
+  "errors": 0,
+  "torch_imported": false,
+  "source_stable_during_execution": true,
+  "source_sha256": {
+    "tests/glm52/check_mtp_session.py": "2a4e36ebc71a2dc39df5c043087ed51e433e0f26100d60381dff23d86b503151",
+    "tests/glm52/check_mtp_tp.py": "88653fba6bfb72b2ea90698b88dc5abe58ff1696c1942e49ec7c4642ea09e118",
+    "tilert/__init__.py": "e29dc8f0260b3c612ee1861639b90947d5642673272a6b18b5cb46fb2cfa0f17",
+    "tilert/tilert_init.py": "cd63188e140444ea115f2e41f86dd6a302c21e074c11ae2606ba748aadd74977",
+    "tilert/models/glm_5_2_ascend/__init__.py": "51709f677a25c30311d13abb7254882a6999b5c593420df3b528d948970564c7",
+    "tilert/models/glm_5_2_ascend/session.py": "efe4370fba1e8b3079c76c426c1666acac9f7369c6752e28fa8ce8e413384880",
+    "tilert/models/glm_5_2_ascend/mtp_session.py": "00196bfbe6c43eb124827ea292afa4cffcaf797d582999d1ae1ba45dfc093bf1",
+    "tilert/models/glm_5_2_ascend/mtp_state.py": "ff8ee34ae8703e2c84ee7d358f9689cffa571e3279090edb9b3c90c0123ac59c",
+    "tilert/models/glm_5_2_ascend/mtp_round.py": "a370e342a8342730022d3d26bb18304d7ade977670657991d835a4df6b996006",
+    "tilert/models/glm_5_2_ascend/tp_runtime.py": "78051119adfb3b0444d1e1f73333b2760e0329e5533282153e7ba7b7030d5d0c",
+    "tilert/pd_vllm/ascend_cache.py": "f6d3f0e7e416b6e4acf002bf2cae8c770522594401e891ef8e7387cda22164d0",
+    "tilert/pd_vllm/ascend_server.py": "354a6f5459893ddc66528cdc1b2777332e78c3e199b5a3500dff4efff18b4fbe",
+    "tilert/pd_vllm/capabilities.py": "2ba0cfe16bc30c89669b63b53695d968af3a6bc78c03a6dfc29eeec863313606",
+    "tilert/pd_vllm/grammar_spec.py": "cc209ffebf854cd56ed60247fa985f7f8534ac747d4a2b5238cc250b0791c19c"
+  },
+  "coverage": {
+    "fixtures": 364,
+    "round_calls": 724,
+    "verified_positions": 2048,
+    "logical_accepted": 1202,
+    "output_tokens": 1393,
+    "verify_widths": [
+      1,
+      2,
+      4
+    ],
+    "accepted_spans": [
+      [
+        1,
+        1
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        4,
+        4
+      ]
+    ]
+  },
+  "test_output": "test_active_callback_cannot_reset_or_decode_recursively (__main__.MtpSessionChecks.test_active_callback_cannot_reset_or_decode_recursively) ... ok\ntest_callback_cancellation_at_every_output_position (__main__.MtpSessionChecks.test_callback_cancellation_at_every_output_position) ... ok\ntest_callback_error_survives_a_failed_finish (__main__.MtpSessionChecks.test_callback_error_survives_a_failed_finish) ... ok\ntest_callback_exception_excludes_failed_delivery_and_trims (__main__.MtpSessionChecks.test_callback_exception_excludes_failed_delivery_and_trims) ... ok\ntest_cancel_before_eos_observation_wins (__main__.MtpSessionChecks.test_cancel_before_eos_observation_wins) ... ok\ntest_cancellation_after_start_preserves_missing_draft_seed (__main__.MtpSessionChecks.test_cancellation_after_start_preserves_missing_draft_seed) ... ok\ntest_cancellation_inside_a_round_finishes_all_ranks_then_trims (__main__.MtpSessionChecks.test_cancellation_inside_a_round_finishes_all_ranks_then_trims) ... ok\ntest_capacity_tail_uses_width_one_or_two (__main__.MtpSessionChecks.test_capacity_tail_uses_width_one_or_two) ... ok\ntest_eos_at_first_and_every_accepted_position (__main__.MtpSessionChecks.test_eos_at_first_and_every_accepted_position) ... ok\ntest_eos_observed_before_late_cancel_keeps_stop_reason (__main__.MtpSessionChecks.test_eos_observed_before_late_cancel_keeps_stop_reason) ... ok\ntest_factory_import_and_width_selection (__main__.MtpSessionChecks.test_factory_import_and_width_selection) ... ok\ntest_first_finish_failure_is_propagated (__main__.MtpSessionChecks.test_first_finish_failure_is_propagated) ... ok\ntest_ignore_eos_clears_backend_stop_set (__main__.MtpSessionChecks.test_ignore_eos_clears_backend_stop_set) ... ok\ntest_invalid_width_prefix_and_sampling_do_not_start (__main__.MtpSessionChecks.test_invalid_width_prefix_and_sampling_do_not_start) ... ok\ntest_logical_accepted_count_includes_undelivered_round_tail (__main__.MtpSessionChecks.test_logical_accepted_count_includes_undelivered_round_tail) ... ok\ntest_rank_round_failure_preserves_original_error (__main__.MtpSessionChecks.test_rank_round_failure_preserves_original_error) ... ok\ntest_rank_start_failure_does_not_send_finish (__main__.MtpSessionChecks.test_rank_start_failure_does_not_send_finish) ... ok\ntest_reset_after_partial_delivery_replays_a_fresh_request (__main__.MtpSessionChecks.test_reset_after_partial_delivery_replays_a_fresh_request) ... ok\ntest_serial_output_and_cache_for_accept_reject_and_mixed (__main__.MtpSessionChecks.test_serial_output_and_cache_for_accept_reject_and_mixed) ... ok\ntest_zero_and_one_budget_eos_cancel_precedence (__main__.MtpSessionChecks.test_zero_and_one_budget_eos_cancel_precedence) ... ok\ntest_zero_and_one_output_do_not_start_or_finish_mtp (__main__.MtpSessionChecks.test_zero_and_one_output_do_not_start_or_finish_mtp) ... ok\n\n----------------------------------------------------------------------\nRan 21 tests in 38.531s\n\nOK\n"
+}

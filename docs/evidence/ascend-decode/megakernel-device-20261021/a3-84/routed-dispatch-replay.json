@@ -1,0 +1,2087 @@
+{
+  "scope": "one TP16 W4A8 routed stage, before shared expert and TP reduction",
+  "status": "passed",
+  "arguments": {
+    "device": "npu:0",
+    "library": "/workspace/tests/glm52/routed_int4/build-route/routed_int4_torch.so",
+    "native_layout": "nz",
+    "native_routing": "dispatch",
+    "vendor_library": null,
+    "vendor_backend": "torch-npu",
+    "vendor_layout": "nd",
+    "checkpoint": null,
+    "fixture": null,
+    "layer": 3,
+    "rank": 0,
+    "widths": [
+      2,
+      12,
+      32
+    ],
+    "blocks": 24,
+    "seed": 20261021,
+    "replays": 4,
+    "warmup": 3,
+    "iterations": 50,
+    "timing_pairs": 5,
+    "no_timing": true,
+    "eager": false,
+    "atol": 0,
+    "rtol": 0,
+    "output": "logs/routed-dispatch-replay.json"
+  },
+  "timestamp_utc": "2026-10-21T10:19:24.349246+00:00",
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "cann": {
+    "CANN": "9.2.0",
+    "RUNTIME": "9.2.0",
+    "COMPILER": "9.2.0",
+    "OPP": "9.2.0",
+    "OPP_KERNEL": "9.2.0",
+    "DRIVER": "9.2.0"
+  },
+  "device": "_NPUDeviceProperties(name='Ascend910_9392', total_memory=62740MB, cube_core_num=24, vector_core_num=48, uuid=00cc0800-d001-0000-0000-60109ef917a8, L2_cache_size=192MB)",
+  "library_sha256": "18f509c88fb652f49094bac7c4b17300b7452ae3c1f6166749ed17450df0903c",
+  "vendor_library_sha256": null,
+  "operator_schemas": {
+    "native": "tilert::routed_experts(Tensor rows, Tensor gate_up, Tensor gu_bias, Tensor gu_scale, Tensor down, Tensor down_bias, Tensor down_scale, Tensor token_scale, Tensor group_count, Tensor group_start, Tensor source_row, Tensor source_slot, Tensor row_weight, Tensor(a!)[] scratch, int sync_base, int experts=256, int blocks=16, int weight_layout=0) -> Tensor(a!)",
+    "vendor_gmm1": "npu::npu_grouped_matmul_swiglu_quant_v2(Tensor x, Tensor[] weight, Tensor[] weight_scale, Tensor x_scale, Tensor group_list, *, Tensor? smooth_scale=None, Tensor[]? weight_assist_matrix=None, Tensor? bias=None, int? dequant_mode=0, int? dequant_dtype=0, int? quant_mode=0, int? quant_dtype=1, int? group_list_type=0, int[]? tuning_config=None, int? x_dtype=None, int? weight_dtype=None, int? weight_scale_dtype=None, int? x_scale_dtype=None) -> (Tensor, Tensor)",
+    "native_from_dispatch": "tilert::routed_experts_from_dispatch(Tensor sorted_rows, Tensor gate_up, Tensor gu_bias, Tensor gu_scale, Tensor down, Tensor down_bias, Tensor down_scale, Tensor sorted_scales, Tensor inverse, Tensor counts, Tensor probabilities, Tensor(a!)[] scratch, int sync_base, int experts=256, int blocks=16, int weight_layout=0) -> Tensor(a!)"
+  },
+  "weight_storage": {
+    "native": {
+      "gate_up": {
+        "dtype": "torch.int32",
+        "logical_shape": [
+          256,
+          6144,
+          32
+        ],
+        "npu_format": 29,
+        "physical_bytes": 201326592
+      },
+      "down": {
+        "dtype": "torch.int32",
+        "logical_shape": [
+          256,
+          128,
+          768
+        ],
+        "npu_format": 29,
+        "physical_bytes": 100663296
+      }
+    },
+    "vendor": {
+      "gate_up": {
+        "dtype": "torch.int32",
+        "logical_shape": [
+          256,
+          6144,
+          32
+        ],
+        "npu_format": 2,
+        "physical_bytes": 201326592
+      },
+      "down": {
+        "dtype": "torch.int32",
+        "logical_shape": [
+          256,
+          128,
+          768
+        ],
+        "npu_format": 2,
+        "physical_bytes": 100663296
+      }
+    }
+  },
+  "source_sha256": {
+    "tests/glm52/routed_int4/build.sh": "90861903396bdc9f396140e93affe26d8704dc5c52104ff0e02ad67d45c152ed",
+    "tests/glm52/routed_int4/build_common.sh": "40895a7eb28e70e8d463dfa5baaf812afe309660b27090ed3066c3a32f880935",
+    "tests/glm52/routed_int4/build_so.sh": "83dd0632a8ab978b31fbeed73f445a28a4e7cc8245d7b5efd949bf18ec6c6b0a",
+    "tests/glm52/routed_int4/check.py": "16a709531d6eed8a45f7c140193af56452b550bffe081cdf9a8b492e8f59a6f3",
+    "tests/glm52/routed_int4/contract_test.cpp": "a9fc30ddc08a6c80fe7bf6c68f6c03083ed0f95b73e95a5acdf3f57cfd4bc0ed",
+    "tests/glm52/routed_int4/routed_int4_binding.cpp": "5714c47f1e5ae7c4248d3e5aacc63826e968ba136686d311561cc681352be820",
+    "tests/glm52/routed_int4/routed_int4_contract.h": "7ea36d0e82946d3610bb821f68d3af20d3c1662557d9e8e7e99aafbdb37b4bdf",
+    "tests/glm52/routed_int4/routed_int4_dispatch.h": "d3c2989f18b4350021682da8e5ba3f4430f3a797bd214544e43e2f32d4fbcb36",
+    "tests/glm52/routed_int4/routed_int4_kernel.cpp": "9b73996d3fd4764403bb6de9a511cb4eaf9df4b078939fbc7f90785709eaa295",
+    "tests/glm52/routed_int4/routed_int4_kernel.h": "05cadb9c1bfde2bcb60596fff53573a17b68058dbdbdee5fd9c60634ef106f36",
+    "tests/glm52/routed_int4/routed_int4_main.cpp": "f1f8339fac029f8cc70035d3d4923fc46c9a3fdff5e91787da35ac7f01dc2fa1",
+    "tests/glm52/routed_int4/routed_int4_tiling.cpp": "0606394251528fd9124fcdc7140404c102fd87e0b9ec2b1e60f529845dfb53cb"
+  },
+  "cases": [
+    {
+      "width": 2,
+      "scratch_bytes": 17935944,
+      "checks": [
+        {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 12288,
+          "max_abs": 0.0,
+          "nrmse": 0.0,
+          "iteration": 0,
+          "maximum_expert_rows": 2,
+          "input_routing_codes": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 98304,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "input_routing_scale": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 16,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "standalone_quant_diagnostic": {
+            "codes": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 6,
+              "unequal": 6,
+              "elements": 12288,
+              "max_abs": 1.0,
+              "nrmse": 0.0006945845088921487,
+              "actual": {
+                "finite": 12288,
+                "nan": 0,
+                "zero": 151,
+                "prefix": [
+                  8.0,
+                  -3.0,
+                  51.0,
+                  23.0,
+                  -13.0,
+                  -14.0,
+                  1.0,
+                  -3.0,
+                  26.0,
+                  36.0,
+                  -21.0,
+                  11.0,
+                  -9.0,
+                  16.0,
+                  13.0,
+                  10.0
+                ]
+              },
+              "expected": {
+                "finite": 12288,
+                "nan": 0,
+                "zero": 151,
+                "prefix": [
+                  8.0,
+                  -3.0,
+                  51.0,
+                  23.0,
+                  -13.0,
+                  -14.0,
+                  1.0,
+                  -3.0,
+                  26.0,
+                  36.0,
+                  -21.0,
+                  11.0,
+                  -9.0,
+                  16.0,
+                  13.0,
+                  10.0
+                ]
+              }
+            },
+            "scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 2,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          },
+          "original_full_chain": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 12288,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "dispatch_metadata": {
+            "counts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "starts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "original_slots": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 16,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "weights": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 16,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        },
+        {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 12288,
+          "max_abs": 0.0,
+          "nrmse": 0.0,
+          "iteration": 1,
+          "maximum_expert_rows": 2,
+          "input_routing_codes": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 98304,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "input_routing_scale": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 16,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "standalone_quant_diagnostic": {
+            "codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12288,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 2,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          },
+          "original_full_chain": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 12288,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "dispatch_metadata": {
+            "counts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "starts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "original_slots": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 16,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "weights": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 16,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        },
+        {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 12288,
+          "max_abs": 0.0,
+          "nrmse": 0.0,
+          "iteration": 2,
+          "maximum_expert_rows": 1,
+          "input_routing_codes": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 98304,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "input_routing_scale": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 16,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "standalone_quant_diagnostic": {
+            "codes": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 9,
+              "unequal": 9,
+              "elements": 12288,
+              "max_abs": 1.0,
+              "nrmse": 0.0007804149645380676,
+              "actual": {
+                "finite": 12288,
+                "nan": 0,
+                "zero": 116,
+                "prefix": [
+                  80.0,
+                  -41.0,
+                  -6.0,
+                  -40.0,
+                  7.0,
+                  -23.0,
+                  45.0,
+                  26.0,
+                  17.0,
+                  -20.0,
+                  -33.0,
+                  91.0,
+                  59.0,
+                  23.0,
+                  -27.0,
+                  12.0
+                ]
+              },
+              "expected": {
+                "finite": 12288,
+                "nan": 0,
+                "zero": 116,
+                "prefix": [
+                  80.0,
+                  -41.0,
+                  -6.0,
+                  -40.0,
+                  7.0,
+                  -23.0,
+                  45.0,
+                  26.0,
+                  17.0,
+                  -20.0,
+                  -33.0,
+                  91.0,
+                  59.0,
+                  23.0,
+                  -27.0,
+                  12.0
+                ]
+              }
+            },
+            "scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 2,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          },
+          "original_full_chain": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 12288,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "dispatch_metadata": {
+            "counts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "starts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "original_slots": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 16,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "weights": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 16,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        },
+        {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 12288,
+          "max_abs": 0.0,
+          "nrmse": 0.0,
+          "iteration": 3,
+          "maximum_expert_rows": 1,
+          "input_routing_codes": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 98304,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "input_routing_scale": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 16,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "standalone_quant_diagnostic": {
+            "codes": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 5,
+              "unequal": 5,
+              "elements": 12288,
+              "max_abs": 1.0,
+              "nrmse": 0.0006094786222092807,
+              "actual": {
+                "finite": 12288,
+                "nan": 0,
+                "zero": 146,
+                "prefix": [
+                  57.0,
+                  10.0,
+                  13.0,
+                  -46.0,
+                  -39.0,
+                  26.0,
+                  15.0,
+                  7.0,
+                  23.0,
+                  15.0,
+                  0.0,
+                  -37.0,
+                  25.0,
+                  11.0,
+                  -13.0,
+                  22.0
+                ]
+              },
+              "expected": {
+                "finite": 12288,
+                "nan": 0,
+                "zero": 146,
+                "prefix": [
+                  57.0,
+                  10.0,
+                  13.0,
+                  -46.0,
+                  -39.0,
+                  26.0,
+                  15.0,
+                  7.0,
+                  23.0,
+                  15.0,
+                  0.0,
+                  -37.0,
+                  25.0,
+                  11.0,
+                  -13.0,
+                  22.0
+                ]
+              }
+            },
+            "scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 2,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          },
+          "original_full_chain": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 12288,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "dispatch_metadata": {
+            "counts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "starts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "original_slots": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 16,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "weights": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 16,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        }
+      ],
+      "pass": true
+    },
+    {
+      "width": 12,
+      "scratch_bytes": 23701424,
+      "checks": [
+        {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 73728,
+          "max_abs": 0.0,
+          "nrmse": 0.0,
+          "iteration": 0,
+          "maximum_expert_rows": 12,
+          "input_routing_codes": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 589824,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "input_routing_scale": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 96,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "standalone_quant_diagnostic": {
+            "codes": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 34,
+              "unequal": 34,
+              "elements": 73728,
+              "max_abs": 1.0,
+              "nrmse": 0.0006568970275111496,
+              "actual": {
+                "finite": 73728,
+                "nan": 0,
+                "zero": 923,
+                "prefix": [
+                  8.0,
+                  -3.0,
+                  51.0,
+                  23.0,
+                  -13.0,
+                  -14.0,
+                  1.0,
+                  -3.0,
+                  26.0,
+                  35.0,
+                  -21.0,
+                  11.0,
+                  -9.0,
+                  16.0,
+                  13.0,
+                  10.0
+                ]
+              },
+              "expected": {
+                "finite": 73728,
+                "nan": 0,
+                "zero": 923,
+                "prefix": [
+                  8.0,
+                  -3.0,
+                  51.0,
+                  23.0,
+                  -13.0,
+                  -14.0,
+                  1.0,
+                  -3.0,
+                  26.0,
+                  35.0,
+                  -21.0,
+                  11.0,
+                  -9.0,
+                  16.0,
+                  13.0,
+                  10.0
+                ]
+              }
+            },
+            "scale": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 1,
+              "unequal": 1,
+              "elements": 12,
+              "max_abs": 1.862645149230957e-09,
+              "nrmse": 1.8130501544533217e-08,
+              "actual": {
+                "finite": 12,
+                "nan": 0,
+                "zero": 0,
+                "prefix": [
+                  0.01993110217154026,
+                  0.022514764219522476,
+                  0.036171261221170425,
+                  0.04502952843904495,
+                  0.017716534435749054,
+                  0.040846455842256546,
+                  0.02300688996911049,
+                  0.042322833091020584,
+                  0.014948327094316483,
+                  0.03174212574958801,
+                  0.017347440123558044,
+                  0.02189960703253746
+                ]
+              },
+              "expected": {
+                "finite": 12,
+                "nan": 0,
+                "zero": 0,
+                "prefix": [
+                  0.01993110217154026,
+                  0.022514764219522476,
+                  0.036171261221170425,
+                  0.04502952843904495,
+                  0.017716536298394203,
+                  0.040846455842256546,
+                  0.02300688996911049,
+                  0.042322833091020584,
+                  0.014948327094316483,
+                  0.03174212574958801,
+                  0.017347440123558044,
+                  0.02189960703253746
+                ]
+              }
+            }
+          },
+          "original_full_chain": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 73728,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "dispatch_metadata": {
+            "counts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "starts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "original_slots": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "weights": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        },
+        {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 73728,
+          "max_abs": 0.0,
+          "nrmse": 0.0,
+          "iteration": 1,
+          "maximum_expert_rows": 12,
+          "input_routing_codes": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 589824,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "input_routing_scale": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 96,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "standalone_quant_diagnostic": {
+            "codes": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 9,
+              "unequal": 9,
+              "elements": 73728,
+              "max_abs": 1.0,
+              "nrmse": 0.0003258438955526799,
+              "actual": {
+                "finite": 73728,
+                "nan": 0,
+                "zero": 890,
+                "prefix": [
+                  -43.0,
+                  34.0,
+                  8.0,
+                  19.0,
+                  -21.0,
+                  -22.0,
+                  12.0,
+                  -14.0,
+                  -38.0,
+                  -34.0,
+                  15.0,
+                  11.0,
+                  -16.0,
+                  6.0,
+                  -13.0,
+                  20.0
+                ]
+              },
+              "expected": {
+                "finite": 73728,
+                "nan": 0,
+                "zero": 890,
+                "prefix": [
+                  -43.0,
+                  34.0,
+                  8.0,
+                  19.0,
+                  -21.0,
+                  -22.0,
+                  12.0,
+                  -14.0,
+                  -38.0,
+                  -34.0,
+                  15.0,
+                  11.0,
+                  -16.0,
+                  6.0,
+                  -13.0,
+                  20.0
+                ]
+              }
+            },
+            "scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          },
+          "original_full_chain": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 73728,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "dispatch_metadata": {
+            "counts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "starts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "original_slots": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "weights": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        },
+        {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 73728,
+          "max_abs": 0.0,
+          "nrmse": 0.0,
+          "iteration": 2,
+          "maximum_expert_rows": 2,
+          "input_routing_codes": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 589824,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "input_routing_scale": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 96,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "standalone_quant_diagnostic": {
+            "codes": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 41,
+              "unequal": 41,
+              "elements": 73728,
+              "max_abs": 1.0,
+              "nrmse": 0.000717956805601716,
+              "actual": {
+                "finite": 73728,
+                "nan": 0,
+                "zero": 866,
+                "prefix": [
+                  80.0,
+                  -42.0,
+                  -6.0,
+                  -40.0,
+                  7.0,
+                  -23.0,
+                  45.0,
+                  26.0,
+                  17.0,
+                  -21.0,
+                  -33.0,
+                  91.0,
+                  59.0,
+                  23.0,
+                  -27.0,
+                  12.0
+                ]
+              },
+              "expected": {
+                "finite": 73728,
+                "nan": 0,
+                "zero": 866,
+                "prefix": [
+                  80.0,
+                  -42.0,
+                  -6.0,
+                  -40.0,
+                  7.0,
+                  -23.0,
+                  45.0,
+                  26.0,
+                  17.0,
+                  -21.0,
+                  -33.0,
+                  91.0,
+                  59.0,
+                  23.0,
+                  -27.0,
+                  12.0
+                ]
+              }
+            },
+            "scale": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 3,
+              "unequal": 3,
+              "elements": 12,
+              "max_abs": 3.725290298461914e-09,
+              "nrmse": 4.678626552845344e-08,
+              "actual": {
+                "finite": 12,
+                "nan": 0,
+                "zero": 0,
+                "prefix": [
+                  0.01759350299835205,
+                  0.03125,
+                  0.028297243639826775,
+                  0.028051180765032768,
+                  0.03641732409596443,
+                  0.0430610217154026,
+                  0.016117125749588013,
+                  0.02768208645284176,
+                  0.017716534435749054,
+                  0.02731299214065075,
+                  0.02497539296746254,
+                  0.02731299214065075
+                ]
+              },
+              "expected": {
+                "finite": 12,
+                "nan": 0,
+                "zero": 0,
+                "prefix": [
+                  0.0175935048609972,
+                  0.03125,
+                  0.028297243639826775,
+                  0.028051180765032768,
+                  0.03641732409596443,
+                  0.0430610254406929,
+                  0.016117125749588013,
+                  0.02768208645284176,
+                  0.017716536298394203,
+                  0.02731299214065075,
+                  0.02497539296746254,
+                  0.02731299214065075
+                ]
+              }
+            }
+          },
+          "original_full_chain": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 73728,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "dispatch_metadata": {
+            "counts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "starts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "original_slots": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "weights": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        },
+        {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 73728,
+          "max_abs": 0.0,
+          "nrmse": 0.0,
+          "iteration": 3,
+          "maximum_expert_rows": 3,
+          "input_routing_codes": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 589824,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "input_routing_scale": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 96,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "standalone_quant_diagnostic": {
+            "codes": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 45,
+              "unequal": 45,
+              "elements": 73728,
+              "max_abs": 1.0,
+              "nrmse": 0.0007473480654880404,
+              "actual": {
+                "finite": 73728,
+                "nan": 0,
+                "zero": 898,
+                "prefix": [
+                  57.0,
+                  10.0,
+                  13.0,
+                  -46.0,
+                  -39.0,
+                  27.0,
+                  15.0,
+                  7.0,
+                  23.0,
+                  15.0,
+                  0.0,
+                  -37.0,
+                  24.0,
+                  11.0,
+                  -13.0,
+                  22.0
+                ]
+              },
+              "expected": {
+                "finite": 73728,
+                "nan": 0,
+                "zero": 898,
+                "prefix": [
+                  57.0,
+                  10.0,
+                  13.0,
+                  -46.0,
+                  -39.0,
+                  27.0,
+                  15.0,
+                  7.0,
+                  23.0,
+                  15.0,
+                  0.0,
+                  -37.0,
+                  24.0,
+                  11.0,
+                  -13.0,
+                  22.0
+                ]
+              }
+            },
+            "scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          },
+          "original_full_chain": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 73728,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "dispatch_metadata": {
+            "counts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "starts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "original_slots": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "weights": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        }
+      ],
+      "pass": true
+    },
+    {
+      "width": 32,
+      "scratch_bytes": 35232384,
+      "checks": [
+        {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 196608,
+          "max_abs": 0.0,
+          "nrmse": 0.0,
+          "iteration": 0,
+          "maximum_expert_rows": 32,
+          "input_routing_codes": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 1572864,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "input_routing_scale": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 256,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "standalone_quant_diagnostic": {
+            "codes": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 57,
+              "unequal": 57,
+              "elements": 196608,
+              "max_abs": 1.0,
+              "nrmse": 0.0005216626450419426,
+              "actual": {
+                "finite": 196608,
+                "nan": 0,
+                "zero": 2445,
+                "prefix": [
+                  8.0,
+                  -3.0,
+                  51.0,
+                  23.0,
+                  -13.0,
+                  -14.0,
+                  1.0,
+                  -3.0,
+                  26.0,
+                  36.0,
+                  -21.0,
+                  11.0,
+                  -9.0,
+                  16.0,
+                  13.0,
+                  10.0
+                ]
+              },
+              "expected": {
+                "finite": 196608,
+                "nan": 0,
+                "zero": 2445,
+                "prefix": [
+                  8.0,
+                  -3.0,
+                  51.0,
+                  23.0,
+                  -13.0,
+                  -14.0,
+                  1.0,
+                  -3.0,
+                  26.0,
+                  36.0,
+                  -21.0,
+                  11.0,
+                  -9.0,
+                  16.0,
+                  13.0,
+                  10.0
+                ]
+              }
+            },
+            "scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 32,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          },
+          "original_full_chain": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 196608,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "dispatch_metadata": {
+            "counts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "starts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "original_slots": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "weights": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        },
+        {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 196608,
+          "max_abs": 0.0,
+          "nrmse": 0.0,
+          "iteration": 1,
+          "maximum_expert_rows": 32,
+          "input_routing_codes": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 1572864,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "input_routing_scale": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 256,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "standalone_quant_diagnostic": {
+            "codes": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 48,
+              "unequal": 48,
+              "elements": 196608,
+              "max_abs": 1.0,
+              "nrmse": 0.0004676633980125189,
+              "actual": {
+                "finite": 196608,
+                "nan": 0,
+                "zero": 2353,
+                "prefix": [
+                  -43.0,
+                  34.0,
+                  8.0,
+                  19.0,
+                  -21.0,
+                  -22.0,
+                  12.0,
+                  -14.0,
+                  -38.0,
+                  -34.0,
+                  15.0,
+                  11.0,
+                  -16.0,
+                  6.0,
+                  -13.0,
+                  20.0
+                ]
+              },
+              "expected": {
+                "finite": 196608,
+                "nan": 0,
+                "zero": 2353,
+                "prefix": [
+                  -43.0,
+                  34.0,
+                  8.0,
+                  19.0,
+                  -21.0,
+                  -22.0,
+                  12.0,
+                  -14.0,
+                  -38.0,
+                  -34.0,
+                  15.0,
+                  11.0,
+                  -16.0,
+                  6.0,
+                  -13.0,
+                  20.0
+                ]
+              }
+            },
+            "scale": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 1,
+              "unequal": 1,
+              "elements": 32,
+              "max_abs": 1.862645149230957e-09,
+              "nrmse": 1.0940099492984245e-08,
+              "actual": {
+                "finite": 32,
+                "nan": 0,
+                "zero": 0,
+                "prefix": [
+                  0.04404527693986893,
+                  0.019685039296746254,
+                  0.023129921406507492,
+                  0.018085630610585213,
+                  0.01956200785934925,
+                  0.03567913547158241,
+                  0.022022638469934464,
+                  0.036171261221170425,
+                  0.016855314373970032,
+                  0.03346456587314606,
+                  0.026328740641474724,
+                  0.025713583454489708,
+                  0.03272637724876404,
+                  0.04429133981466293,
+                  0.02534448727965355,
+                  0.031496062874794006
+                ]
+              },
+              "expected": {
+                "finite": 32,
+                "nan": 0,
+                "zero": 0,
+                "prefix": [
+                  0.04404527693986893,
+                  0.019685039296746254,
+                  0.023129921406507492,
+                  0.018085630610585213,
+                  0.01956200785934925,
+                  0.03567913547158241,
+                  0.022022638469934464,
+                  0.036171261221170425,
+                  0.016855314373970032,
+                  0.03346456587314606,
+                  0.026328740641474724,
+                  0.025713583454489708,
+                  0.03272637724876404,
+                  0.04429133981466293,
+                  0.02534448727965355,
+                  0.031496062874794006
+                ]
+              }
+            }
+          },
+          "original_full_chain": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 196608,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "dispatch_metadata": {
+            "counts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "starts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "original_slots": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "weights": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        },
+        {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 196608,
+          "max_abs": 0.0,
+          "nrmse": 0.0,
+          "iteration": 2,
+          "maximum_expert_rows": 4,
+          "input_routing_codes": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 1572864,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "input_routing_scale": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 256,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "standalone_quant_diagnostic": {
+            "codes": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 49,
+              "unequal": 49,
+              "elements": 196608,
+              "max_abs": 1.0,
+              "nrmse": 0.0004854750004597008,
+              "actual": {
+                "finite": 196608,
+                "nan": 0,
+                "zero": 2393,
+                "prefix": [
+                  80.0,
+                  -41.0,
+                  -6.0,
+                  -40.0,
+                  7.0,
+                  -23.0,
+                  45.0,
+                  26.0,
+                  17.0,
+                  -21.0,
+                  -33.0,
+                  91.0,
+                  59.0,
+                  23.0,
+                  -27.0,
+                  12.0
+                ]
+              },
+              "expected": {
+                "finite": 196608,
+                "nan": 0,
+                "zero": 2393,
+                "prefix": [
+                  80.0,
+                  -41.0,
+                  -6.0,
+                  -40.0,
+                  7.0,
+                  -23.0,
+                  45.0,
+                  26.0,
+                  17.0,
+                  -21.0,
+                  -33.0,
+                  91.0,
+                  59.0,
+                  23.0,
+                  -27.0,
+                  12.0
+                ]
+              }
+            },
+            "scale": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 4,
+              "unequal": 4,
+              "elements": 32,
+              "max_abs": 1.862645149230957e-09,
+              "nrmse": 2.0516877086151908e-08,
+              "actual": {
+                "finite": 32,
+                "nan": 0,
+                "zero": 0,
+                "prefix": [
+                  0.033710628747940063,
+                  0.043553151190280914,
+                  0.038139764219522476,
+                  0.017470471560955048,
+                  0.052903544157743454,
+                  0.038139764219522476,
+                  0.026820866391062737,
+                  0.026697834953665733,
+                  0.023745078593492508,
+                  0.029404526576399803,
+                  0.038877952843904495,
+                  0.015563484281301498,
+                  0.026820866391062737,
+                  0.032972440123558044,
+                  0.022145669907331467,
+                  0.031126968562602997
+                ]
+              },
+              "expected": {
+                "finite": 32,
+                "nan": 0,
+                "zero": 0,
+                "prefix": [
+                  0.033710628747940063,
+                  0.043553151190280914,
+                  0.038139764219522476,
+                  0.017470471560955048,
+                  0.052903544157743454,
+                  0.038139764219522476,
+                  0.026820866391062737,
+                  0.026697834953665733,
+                  0.023745078593492508,
+                  0.029404528439044952,
+                  0.038877952843904495,
+                  0.015563484281301498,
+                  0.026820866391062737,
+                  0.032972440123558044,
+                  0.022145669907331467,
+                  0.031126968562602997
+                ]
+              }
+            }
+          },
+          "original_full_chain": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 196608,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "dispatch_metadata": {
+            "counts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "starts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "original_slots": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "weights": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        },
+        {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 196608,
+          "max_abs": 0.0,
+          "nrmse": 0.0,
+          "iteration": 3,
+          "maximum_expert_rows": 5,
+          "input_routing_codes": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 1572864,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "input_routing_scale": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 256,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "standalone_quant_diagnostic": {
+            "codes": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 80,
+              "unequal": 80,
+              "elements": 196608,
+              "max_abs": 1.0,
+              "nrmse": 0.0006034317193552852,
+              "actual": {
+                "finite": 196608,
+                "nan": 0,
+                "zero": 2332,
+                "prefix": [
+                  57.0,
+                  10.0,
+                  13.0,
+                  -46.0,
+                  -38.0,
+                  27.0,
+                  15.0,
+                  7.0,
+                  23.0,
+                  15.0,
+                  0.0,
+                  -37.0,
+                  25.0,
+                  11.0,
+                  -13.0,
+                  22.0
+                ]
+              },
+              "expected": {
+                "finite": 196608,
+                "nan": 0,
+                "zero": 2332,
+                "prefix": [
+                  57.0,
+                  10.0,
+                  13.0,
+                  -46.0,
+                  -38.0,
+                  27.0,
+                  15.0,
+                  7.0,
+                  23.0,
+                  15.0,
+                  0.0,
+                  -37.0,
+                  25.0,
+                  11.0,
+                  -13.0,
+                  22.0
+                ]
+              }
+            },
+            "scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 32,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          },
+          "original_full_chain": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 196608,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "dispatch_metadata": {
+            "counts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "starts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "original_slots": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "weights": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        }
+      ],
+      "pass": true
+    }
+  ],
+  "timing_scope": "complete routed replacement from BF16 vendor init-routing through BF16 combine, including all route metadata and row restoration; paired against the original native chain and vendor GMM chain; input copies, router/top-k, weights, shared experts and TP reduction are outside all measurements; not model TPOT",
+  "loaded_libraries_sha256": {
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libascendcl.so": "1c06b9c4a8910cfb585eab4ed0066bc09e28a0cf273dfcb15458f7cc49a78cea",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libruntime.so": "f664ffa8934e702e7d8858d7b301bd8c610365f38ce2e12ab9a631114e45b3bb",
+    "/usr/local/lib/python3.11/site-packages/torch_npu/lib/libtorch_npu.so": "4c886c78d4c032bd96afa8155106d2d2d223b4e118e9020a59944b75cb269362"
+  }
+}

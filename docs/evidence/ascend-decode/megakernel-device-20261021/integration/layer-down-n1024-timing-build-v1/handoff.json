@@ -1,0 +1,74 @@
+{
+  "scope": "609 plus TopK copy in both arms; only the immutable Down tiling differs",
+  "frozen_local": "/tmp/tilert-layer-down-n1024-timing-staging-v1",
+  "frozen_remote": "a3-194:/home/shanshan/tilert-megakernel-20261021/vendor-hook-layer-down-n1024-timing-v1",
+  "manifest_sha256": "a0fa94aa2ff3829ef5e95b949e42fa95f4ca3addf9b2b4fc90cf283bd0595cd8",
+  "frozen_files": 890,
+  "device_run_by": "root only; agent has not initialized NPU",
+  "argv": [
+    "bash",
+    "/home/shanshan/tilert-megakernel-20261021/vendor-hook-layer-down-n1024-timing-v1/device_local_chain_run.sh",
+    "4",
+    "layer-down-n1024-timing-v1",
+    "--forward-widths",
+    "12",
+    "--forward-replays",
+    "8",
+    "--indexed-library",
+    "/evidence/attention-wk-m1-build-v1/whole_layer_indexed_attention.so"
+  ],
+  "libraries": {
+    "/evidence/attention-wk-m1-build-v1/whole_layer_indexed_attention.so": "8deff750464e23bb871302c8626b86d37b60c28a00991d550f95dfcfd47ecb6f",
+    "/workspace/native/shared/whole_layer_full_attention.so": "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c",
+    "/decoder/complete_ffn.so": "bbd52e425a1e94bb199e464e3bf6001c4420e8238afe993e8741e38af50b77ef",
+    "/decoder/layer_local_chain.so": "609c973e92b61637f7768ccefb0fbd84b2e13fcfb066b241a41cd5d8376fdd0f",
+    "/decoder/control_ffn.so": "c90b3666a1697070eda19d5b3e133e9ed58f36fe429abefceae6ffe102a6a032",
+    "/decoder/native_norm.so": "40a9e3c04d22355cd51228c1dff7d3dc516d3442253ee3310a6cf95c01182027"
+  },
+  "cpu_report": "/tmp/tilert-megakernel-validation-20261021/layer-down-n1024-timing-cpu-v1/report.json",
+  "cpu_report_sha256": "74cbae02c1568e7353a2bd23e719bcf7e3967587098816509419a3fabe09da21",
+  "cpu_contracts": 18,
+  "cpu_cli_controls": 4,
+  "cpu_schema_count": 11,
+  "npu_initialized": false,
+  "address_contract": {
+    "config_bytes": 664,
+    "address_bytes": 928,
+    "config_fields": 98,
+    "address_fields": 116,
+    "only_different_field": "body.scratch[7]",
+    "offset": 624,
+    "field_bytes": 8,
+    "layers": 2
+  },
+  "timing": {
+    "rows": 12,
+    "blocks": 24,
+    "arenas": 2,
+    "weight_banks": 1,
+    "weight_sets": 2,
+    "pair_calls_per_graph": 16,
+    "graph_replays_per_event": 30,
+    "alternating_pairs_per_arena": 30,
+    "unit": "us per indexed/shared two-layer pair",
+    "tp_collectives": 0
+  },
+  "reports": [
+    "local-chain.json",
+    "layer-pair-timing-arena0.json",
+    "layer-pair-timing-arena1.json"
+  ],
+  "numerical_fields": [
+    "native_component_checks",
+    "control_owner_checks",
+    "checks",
+    "post_timing_checks",
+    "samples[*].tail_checks",
+    "prepared_records",
+    "capture_records"
+  ],
+  "readonly_tiling_sha256": {
+    "control": "bb8ef4481b8c63b00dc43940975ee5b172818bcd228e8bc553b22234cbb2a244",
+    "candidate": "c207230aafb11e2c2f825cd9a2ea70147ee7733046b8b2957593c9c2bc3e8009"
+  }
+}

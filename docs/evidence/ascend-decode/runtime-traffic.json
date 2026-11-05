@@ -1,0 +1,290 @@
+{
+  "scope": "Logical weight/KV read scenarios, not measured HBM traffic",
+  "layout": "TP16; INT4 packed W4, INT64 scale carriers and FP32 compensation; replicated BF16 router with FP32 output; BF16 ordinary W8 scales, FP32 Prolog scales; BF16 heads",
+  "assumptions": [
+    "Each weight is read once per participating expert group",
+    "No L2 credit; excludes workspace, activation/copy traffic, MSD scratch, RoPE/Hadamard tables, zero norm biases and metadata",
+    "KV reads bracket one shared pass and four independent passes",
+    "M4 main and MTP verify use the same expert-union scenario",
+    "qA/kvA and non-shared indexers are replicated on each rank",
+    "MTP rot, eh_proj and router are replicated; head is TP-sharded",
+    "Expert unions and actual repeated GM reads remain unmeasured",
+    "MTP chain skips index q/selection but reads the fused K/weight projection in full",
+    "Excludes Python, launch, host validation and output delivery",
+    "Steady rounds exclude initial seed; request TPOT includes it",
+    "The 8192 index scan is fixed here; a long request increases it",
+    "No claim that the stream-read rate is achievable by this model"
+  ],
+  "main_m1_weights_by_component": {
+    "attention": 2059359744,
+    "indexer": 217641984,
+    "router": 236006400,
+    "shared_ffn": 177907200,
+    "dense_ffn": 42513408,
+    "experts": 753868800,
+    "head": 118947840,
+    "final_norm": 12288,
+    "embedding_rows": 12288
+  },
+  "main_m1_weight_bytes": 3606269952,
+  "main_m1_kv_bytes": 211550208,
+  "main_m1_read_bytes": 3817820160,
+  "main_m1_hbm_ms_at_stream_rate": 3.3066703608104335,
+  "draft_m1_weights_by_component": {
+    "attention": 26402048,
+    "indexer": 10363904,
+    "router": 3146752,
+    "shared_ffn": 2372096,
+    "experts": 10051584,
+    "head": 118947840,
+    "embedding_rows": 12288,
+    "rot": 75497472,
+    "eh_proj": 150994944,
+    "enorm_hnorm_head_norm": 49152
+  },
+  "draft_m1_read_bytes": 402294528,
+  "draft_chain_read_bytes": 391800576,
+  "initial_seed_read_bytes": 402294528,
+  "round_formula": {
+    "bytes": "fixed + E*(sum(main_layer_unions) + mtp_verify_union) + p*(main_KV_and_index + mtp_KV_and_index)",
+    "fixed_bytes_including_two_chains": 4023862528,
+    "one_expert_bytes_E": 1256448,
+    "main_KV_and_index_bytes": 211550208,
+    "mtp_KV_and_index_bytes": 4456448,
+    "scope": "Two chained M1 calls each have eight experts; main and conditioned-MTP unions may differ"
+  },
+  "m1_collectives": {
+    "block_allreduce_fp32_24kib": 156,
+    "embedding_allreduce_fp32_24kib": 1,
+    "logits_allgather_bf16_bytes_per_rank": 19360
+  },
+  "m4_collectives": {
+    "block_allreduce_calls": 162,
+    "embedding_allreduce_calls": 4,
+    "fp32_96kib_calls": 160,
+    "fp32_24kib_calls": 6,
+    "logits_allgather_calls": 4,
+    "logits_allgather_bf16_bytes_per_rank": [
+      77440,
+      19360,
+      19360,
+      77440
+    ],
+    "scope": "compute_logits gathers the full vocabulary before argmax, even when full_logits=False"
+  },
+  "calibration": {
+    "source_sha256": {
+      "docs/evidence/a3-hbm-20261017.json": "4f002acf400b700e244d13c09a5347700cbd1861a87b58e42d333c9ada44db0a",
+      "docs/evidence/ascend-decode/cann-graph-20261017/mtp-long-bench-audit.json": "fb8c6c452bce9f9343b64845e627f0988f0093cc0795f5925f9b6fd4dc65d2e3",
+      "docs/evidence/ascend-decode/tp-mode-20261017/audit.json": "c66ee4523db80129ebc1df009e8c396750a6bf86a7b30fd884b8f29ba5b7bf99"
+    },
+    "actual_committed_per_round": 3.376237623762376,
+    "natural_accepted_per_round": 3.382838283828383,
+    "acceptance_scope": "One prompt, 3 measured 1024-output requests",
+    "stream_read_gb_s": 1154.5814198014853,
+    "bandwidth_scope": "Die 0 FP32 streaming read, event p50; not W4 model bandwidth or the minimum across 16 dies",
+    "round_budget_ms_at_2ms": 6.752475247524752,
+    "max_round_bytes_at_stream_rate": 7796282458.4615135,
+    "max_round_bytes_reserving_1ms": 6641701038.660028,
+    "measured_fp32_156_sum_graph_chains": {
+      "ai_cpu": [
+        {
+          "dtype": "torch.float32",
+          "elements": 6144,
+          "calls": 156,
+          "payload_bytes": 24576,
+          "event_total_us": {
+            "p50": 10925.000190734863,
+            "p90": 11101.205921173096,
+            "p99": 11273.26644897461,
+            "std": 123.12945752852345
+          },
+          "event_per_call_us": {
+            "p50": 70.03205250471066,
+            "p90": 71.16157641777625,
+            "p99": 72.26452851906801,
+            "std": 0.7892913944136114
+          },
+          "wall_total_us": {
+            "p50": 11156.760999999999,
+            "p90": 11362.3691,
+            "p99": 11932.841670000002,
+            "std": 216.15115805912066
+          },
+          "wall_per_call_us": {
+            "p50": 71.51769871794872,
+            "p90": 72.83569935897437,
+            "p99": 76.49257480769232,
+            "std": 1.3855843465328261
+          }
+        },
+        {
+          "dtype": "torch.float32",
+          "elements": 24576,
+          "calls": 156,
+          "payload_bytes": 98304,
+          "event_total_us": {
+            "p50": 10930.71985244751,
+            "p90": 11060.429954528809,
+            "p99": 11208.07180404663,
+            "std": 97.05686114056167
+          },
+          "event_per_call_us": {
+            "p50": 70.06871700286865,
+            "p90": 70.90019201621031,
+            "p99": 71.84661412850404,
+            "std": 0.6221593662856517
+          },
+          "wall_total_us": {
+            "p50": 11137.68,
+            "p90": 11436.813,
+            "p99": 11677.40144,
+            "std": 165.43200583993215
+          },
+          "wall_per_call_us": {
+            "p50": 71.39538461538461,
+            "p90": 73.31290384615384,
+            "p99": 74.85513743589743,
+            "std": 1.0604615758970004
+          }
+        }
+      ],
+      "aiv": [
+        {
+          "dtype": "torch.float32",
+          "elements": 6144,
+          "calls": 156,
+          "payload_bytes": 24576,
+          "event_total_us": {
+            "p50": 4976.16982460022,
+            "p90": 5042.6061153411865,
+            "p99": 5176.222410202026,
+            "std": 54.87666187784742
+          },
+          "event_per_call_us": {
+            "p50": 31.898524516668076,
+            "p90": 32.32439817526402,
+            "p99": 33.18091288591043,
+            "std": 0.3517734735759456
+          },
+          "wall_total_us": {
+            "p50": 5155.544,
+            "p90": 5232.0231,
+            "p99": 5347.84661,
+            "std": 57.268674729490826
+          },
+          "wall_per_call_us": {
+            "p50": 33.048358974358976,
+            "p90": 33.53860961538462,
+            "p99": 34.28106801282051,
+            "std": 0.3671068892916082
+          }
+        },
+        {
+          "dtype": "torch.float32",
+          "elements": 24576,
+          "calls": 156,
+          "payload_bytes": 98304,
+          "event_total_us": {
+            "p50": 5043.980121612549,
+            "p90": 5085.586071014404,
+            "p99": 5121.542201042175,
+            "std": 29.538804009618683
+          },
+          "event_per_call_us": {
+            "p50": 32.33320590777275,
+            "p90": 32.5999107116308,
+            "p99": 32.830398724629326,
+            "std": 0.1893513077539655
+          },
+          "wall_total_us": {
+            "p50": 5201.795,
+            "p90": 5249.408,
+            "p99": 5281.8257,
+            "std": 32.758463970586654
+          },
+          "wall_per_call_us": {
+            "p50": 33.344839743589745,
+            "p90": 33.65005128205128,
+            "p99": 33.85785705128205,
+            "std": 0.20999015365760634
+          }
+        }
+      ]
+    },
+    "communication_scope": "Rank-MAX samples of 156 dependent sums; includes replay and rank skew, not bare alpha. Not added to the HBM scenarios as a model time"
+  },
+  "m4_scenarios": [
+    {
+      "verify_width": 4,
+      "expert_union_per_layer": 8,
+      "kv_read_passes": 1,
+      "round_bytes": 5003789568,
+      "hbm_round_ms_at_stream_rate": 4.333855960422725,
+      "hbm_tpot_ms_at_measured_acceptance": 1.2836347566061443,
+      "accepted_for_2ms_hbm_only": 2.1669279802113626
+    },
+    {
+      "verify_width": 4,
+      "expert_union_per_layer": 8,
+      "kv_read_passes": 4,
+      "round_bytes": 5651809536,
+      "hbm_round_ms_at_stream_rate": 4.895115614255903,
+      "hbm_tpot_ms_at_measured_acceptance": 1.44987295319603,
+      "accepted_for_2ms_hbm_only": 2.4475578071279513
+    },
+    {
+      "verify_width": 4,
+      "expert_union_per_layer": 16,
+      "kv_read_passes": 1,
+      "round_bytes": 5767709952,
+      "hbm_round_ms_at_stream_rate": 4.995498674308894,
+      "hbm_tpot_ms_at_measured_acceptance": 1.4796051791941298,
+      "accepted_for_2ms_hbm_only": 2.497749337154447
+    },
+    {
+      "verify_width": 4,
+      "expert_union_per_layer": 16,
+      "kv_read_passes": 4,
+      "round_bytes": 6415729920,
+      "hbm_round_ms_at_stream_rate": 5.556758328142071,
+      "hbm_tpot_ms_at_measured_acceptance": 1.6458433757840152,
+      "accepted_for_2ms_hbm_only": 2.7783791640710356
+    },
+    {
+      "verify_width": 4,
+      "expert_union_per_layer": 32,
+      "kv_read_passes": 1,
+      "round_bytes": 7295550720,
+      "hbm_round_ms_at_stream_rate": 6.31878410208123,
+      "hbm_tpot_ms_at_measured_acceptance": 1.8715460243701003,
+      "accepted_for_2ms_hbm_only": 3.159392051040615
+    },
+    {
+      "verify_width": 4,
+      "expert_union_per_layer": 32,
+      "kv_read_passes": 4,
+      "round_bytes": 7943570688,
+      "hbm_round_ms_at_stream_rate": 6.880043755914407,
+      "hbm_tpot_ms_at_measured_acceptance": 2.0377842209599857,
+      "accepted_for_2ms_hbm_only": 3.4400218779572036
+    }
+  ],
+  "source_sha256": {
+    "tests/glm52/estimate_traffic.py": "dabda8c4709d5d60626d9eca01063f41e3d80d43f9ad030e54e02178bbcbb643",
+    "tilert/models/glm_5_2_ascend/cann_model.py": "c3c8294b275d02cc32164806a83f3a848d0356754f42488214a65f04fb32dc7f",
+    "tilert/models/glm_5_2_ascend/cann_mtp.py": "a615626e23d15edd44794a46a48b7feb4d37cb0a26ea51e72cb9da18ec7a1509",
+    "tilert/models/glm_5_2_ascend/cann_graph.py": "a1b6ab356c2084884becef0b0f16b5ca5b3c52d64ba6885216bdb0edfb64fa09",
+    "tilert/models/glm_5_2_ascend/mtp_round.py": "a370e342a8342730022d3d26bb18304d7ade977670657991d835a4df6b996006"
+  },
+  "runtime_source_sha256": {
+    "vllm-unified/vllm/model_executor/models/deepseek_v2.py": "5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408",
+    "vllm-unified/vllm/model_executor/models/deepseek_mtp.py": "aae80e30b2dbfd1df41b83f51aaba4722e9f2dc3b4479d2a38ce1e32926fac11",
+    "vllm-unified/vllm/model_executor/layers/logits_processor.py": "35cf8235cb529ba2d37358fe9b9e5a29f40b5c3cbcc9e6750c8480c51bd7da83",
+    "vllm-ascend-unified/vllm_ascend/attention/sfa_v1.py": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+    "vllm-ascend-unified/vllm_ascend/attention/indexer.py": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1",
+    "vllm-ascend-unified/vllm_ascend/ops/fused_moe/gate_linear.py": "b4cafe1e79b13f3561c53765cc1e33a312c67052e5a54c927a6f229ddd70d0bf",
+    "vllm-ascend-unified/vllm_ascend/quantization/methods/w4a8/w4a8.py": "d06549f45637300df3e4915823f4f71a913ce7059d1e3a4c475ab1f225e1a28a",
+    "vllm-ascend-unified/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py": "47444be0a5017d012401685d89134200f39c5e706f7941797fa7ecfccf1bba0d"
+  }
+}

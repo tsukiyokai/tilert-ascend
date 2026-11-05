@@ -1,0 +1,71 @@
+{
+  "parent_library_sha256": "381febf94f918cc7393019b6f99ec8dc38e9a5cc9e63b2d49d5fe483158e3ff2",
+  "files": {
+    "bridge/source/norm_native.h": {
+      "sha256": "d18573f199777f4fbf7acbe9bab378469d0655c283141008c53597026e1590b4",
+      "excerpts": [
+        {
+          "first_line": 102,
+          "last_line": 140,
+          "text": "__aicore__ inline void Forward(\n    TPipe& pipe, __gm__ bfloat16_t* input, __gm__ bfloat16_t* residual,\n    __gm__ bfloat16_t* gamma, __gm__ bfloat16_t* beta,\n    __gm__ bfloat16_t* normalized, __gm__ bfloat16_t* retained,\n    __gm__ float* rstd, __gm__ int8_t* quantized,\n    __gm__ float* scales, int64_t rows, int64_t blocks, float epsilon)\n{\n    if ASCEND_IS_AIV {\n        const int64_t vector = GetBlockIdx();\n        // These are the A2/A3 host tiler's BF16 single-N choices for H=6144.\n        const TileRTNormSingleNArgs args{\n            kHidden, beta == nullptr ? 12288U : 11264U,\n            epsilon, beta == nullptr ? 1U : 0U};\n        for (int64_t row = vector; row < rows; row += 2 * blocks) {\n            // The vendor body adds GetBlockIdx() internally. Offset only\n            // complete waves so its reduction and BF16 boundaries stay intact.\n            const int64_t wave = row - vector;\n            KernelAddRmsNormBiasSingleN<bfloat16_t> norm(&pipe);\n            norm.Init(reinterpret_cast<GM_ADDR>(input + wave * kHidden),\n                reinterpret_cast<GM_ADDR>(residual + wave * kHidden),\n                reinterpret_cast<GM_ADDR>(gamma), reinterpret_cast<GM_ADDR>(beta),\n                reinterpret_cast<GM_ADDR>(normalized + wave * kHidden),\n                reinterpret_cast<GM_ADDR>(rstd + wave),\n                reinterpret_cast<GM_ADDR>(retained + wave * kHidden), &args);\n            norm.Process();\n            PipeBarrier<PIPE_ALL>();\n            pipe.Reset();\n            if (quantized != nullptr) {\n                DynamicQuantRow quant;\n                quant.Init(pipe);\n                quant.Process(normalized + row * kHidden,\n                    quantized + row * kHidden, scales + row);\n                PipeBarrier<PIPE_ALL>();\n                pipe.Reset();\n            }\n        }\n    }\n    SyncAll<false>();\n}"
+        }
+      ],
+      "cross_core_tokens": [
+        139
+      ]
+    },
+    "bridge/source/ffn_bridge/body_native.h": {
+      "sha256": "f75ae3bb7ea18d0ef8ebc4bc5ece23e7d135ab2205107baa7a74d008f59b3745",
+      "excerpts": [
+        {
+          "first_line": 5,
+          "last_line": 27,
+          "text": "__aicore__ inline void Forward(AscendC::TPipe& pipe, GM_ADDR input,\n    GM_ADDR residual, GM_ADDR gamma, GM_ADDR gate, GM_ADDR bias,\n    Addresses a, int64_t rows, int64_t blocks, float epsilon)\n{\n    using namespace AscendC;\n    whole_layer_norm::device::Forward(pipe,\n        (__gm__ bfloat16_t*)input, (__gm__ bfloat16_t*)residual,\n        (__gm__ bfloat16_t*)gamma, nullptr,\n        (__gm__ bfloat16_t*)a.values[kNormalized],\n        (__gm__ bfloat16_t*)a.values[kRetained],\n        (__gm__ float*)a.values[kRstd], nullptr, nullptr, rows, blocks, epsilon);\n    device::EndPhase(pipe);\n    device::Gate(pipe, (__gm__ bfloat16_t*)a.values[kNormalized],\n        (__gm__ bfloat16_t*)gate, (__gm__ float*)a.values[kLogits],\n        a.values[kTiling], rows, blocks);\n    device::Quantize(pipe, (__gm__ bfloat16_t*)a.values[kNormalized],\n        (__gm__ int8_t*)a.values[kSharedCodes],\n        (__gm__ float*)a.values[kSharedScales], rows);\n    device::EndPhase(pipe);\n    device::TopK(pipe, a.values[kLogits], bias, a.values[kProbabilities],\n                 a.values[kIds], a.values[kSystem], rows);\n    device::EndPhase(pipe);\n}"
+        }
+      ],
+      "cross_core_tokens": []
+    },
+    "bridge/source/ffn_bridge/native.h": {
+      "sha256": "83a336b1878193bec065bfafef7b9b57d6ea30811ad2789657e2538d00ea1fb7",
+      "excerpts": [
+        {
+          "first_line": 40,
+          "last_line": 48,
+          "text": "}\n\n__aicore__ inline void EndPhase(TPipe& pipe)\n{\n    PipeBarrier<PIPE_ALL>();\n    DataSyncBarrier<MemDsbT::DDR>();\n    SyncAll<false>();\n    pipe.Reset();\n}"
+        }
+      ],
+      "cross_core_tokens": [
+        46
+      ]
+    },
+    "bridge/vendor/add_rms_norm_bias_single_n.h": {
+      "sha256": "e42fccf0a3472e538b1e8da8402aba9dbbfc3af20f4489a5ddf668c72271641b",
+      "excerpts": [
+        {
+          "first_line": 30,
+          "last_line": 68,
+          "text": "    __aicore__ inline void Init(\n        GM_ADDR x1, GM_ADDR x2, GM_ADDR gamma, GM_ADDR beta, GM_ADDR y, GM_ADDR rstd, GM_ADDR x, const AddRMSNormBiasTilingData* tiling)\n    {\n        ASSERT(GetBlockNum() != 0 && \"Block dim can not be zero!\");\n\n        this->numCol = tiling->num_col;\n        this->blockFactor = 1; // in this case, blockFactor = 1\n        this->ubFactor = tiling->ub_factor;\n        this->epsilon = tiling->epsilon;\n        this->avgFactor = (numCol != 0) ? (float)1.0 / numCol : 0;\n        this->nullptrBeta = tiling->nullptr_beta;\n\n        this->rowWork = 1;\n        blockIdx_ = GetBlockIdx();\n        // get start index for current core, core parallel\n        x1Gm.SetGlobalBuffer((__gm__ T*)x1 + blockIdx_ * numCol, numCol);\n        x2Gm.SetGlobalBuffer((__gm__ T*)x2 + blockIdx_ * numCol, numCol);\n        gammaGm.SetGlobalBuffer((__gm__ T*)gamma, numCol);\n        if (!this->nullptrBeta) {\n            betaGm.SetGlobalBuffer((__gm__ T*)beta, numCol);\n        }\n        yGm.SetGlobalBuffer((__gm__ T*)y + blockIdx_ * numCol, numCol);\n        rstdGm.SetGlobalBuffer((__gm__ float*)rstd + blockIdx_, 1);\n        xGm.SetGlobalBuffer((__gm__ T*)x + blockIdx_ * numCol, numCol);\n\n        Ppipe->InitBuffer(unitBuf, MAXBUFFER); // (192 - 1) * 1024 byte\n    }\n\n    __aicore__ inline void Process()\n    {\n        if constexpr (is_same<T, half>::value) {\n            ProcessFp16();\n        } else if constexpr (is_same<T, float>::value) {\n            ProcessFp32();\n        } else {\n            ProcessBf16();\n        }\n    }\n"
+        },
+        {
+          "first_line": 247,
+          "last_line": 353,
+          "text": "        LocalTensor<T> x2Local = xLocal[ubFactor];\n        LocalTensor<float> xFp32Local = ubLocal[ubFactor];\n        LocalTensor<float> sqxLocal = ubLocal[ubFactor * 2];\n        LocalTensor<float> tmpLocal = ubLocal[ubFactor * 3];\n\n        DataCopyCustom<T>(x1Local, x1Gm, numCol);\n        event_t eventMTE2V1_BF16_0 = static_cast<event_t>(GetTPipePtr()->AllocEventID<HardEvent::MTE2_V>());\n        SetFlag<HardEvent::MTE2_V>(eventMTE2V1_BF16_0);\n        DataCopyCustom<T>(x2Local, x2Gm, numCol);\n        event_t eventMTE2V2_BF16_0 = static_cast<event_t>(GetTPipePtr()->AllocEventID<HardEvent::MTE2_V>());\n        SetFlag<HardEvent::MTE2_V>(eventMTE2V2_BF16_0);\n        WaitFlag<HardEvent::MTE2_V>(eventMTE2V1_BF16_0);\n        GetTPipePtr()->ReleaseEventID<HardEvent::MTE2_V>(eventMTE2V1_BF16_0);\n        Cast(xFp32Local, x1Local, RoundMode::CAST_NONE, numCol);\n        WaitFlag<HardEvent::MTE2_V>(eventMTE2V2_BF16_0);\n        GetTPipePtr()->ReleaseEventID<HardEvent::MTE2_V>(eventMTE2V2_BF16_0);\n        Cast(sqxLocal, x2Local, RoundMode::CAST_NONE, numCol);\n        PipeBarrier<PIPE_V>();\n        Add(xFp32Local, xFp32Local, sqxLocal, numCol);\n        PipeBarrier<PIPE_V>();\n        Cast(x1Local, xFp32Local, RoundMode::CAST_RINT, numCol);\n        PipeBarrier<PIPE_V>();\n        // copy gamma\n        event_t eventVMTE2_BF16_0 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE2));\n        SetFlag<HardEvent::V_MTE2>(eventVMTE2_BF16_0);\n        WaitFlag<HardEvent::V_MTE2>(eventVMTE2_BF16_0);\n\n        DataCopyCustom<T>(x2Local, gammaGm, numCol); // gammaLocal use x2Local\n        event_t eventMTE2V2_BF16_1 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_V));\n        SetFlag<HardEvent::MTE2_V>(eventMTE2V2_BF16_1);\n\n        // copy x out\n        event_t eventVMTE3_BF16_0 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE3));\n        SetFlag<HardEvent::V_MTE3>(eventVMTE3_BF16_0);\n        WaitFlag<HardEvent::V_MTE3>(eventVMTE3_BF16_0);\n        DataCopyCustom<T>(xGm, x1Local, numCol);\n        event_t eventMTE3V_BF16_0 = static_cast<event_t>(GetTPipePtr()->AllocEventID<HardEvent::MTE3_V>());\n        SetFlag<HardEvent::MTE3_V>(eventMTE3V_BF16_0);\n\n        Cast(xFp32Local, x1Local, RoundMode::CAST_NONE, numCol);\n        PipeBarrier<PIPE_V>();\n        Mul(sqxLocal, xFp32Local, xFp32Local, numCol);\n        PipeBarrier<PIPE_V>();\n        Muls(sqxLocal, sqxLocal, avgFactor, numCol);\n        PipeBarrier<PIPE_V>();\n        ReduceSumCustom(sqxLocal, sqxLocal, tmpLocal, numCol);\n        PipeBarrier<PIPE_V>();\n        Adds(sqxLocal, sqxLocal, epsilon, 1);\n        PipeBarrier<PIPE_V>();\n        Sqrt(sqxLocal, sqxLocal, 1);\n        Duplicate(tmpLocal, ONE, 1);\n        PipeBarrier<PIPE_V>();\n        Div(sqxLocal, tmpLocal, sqxLocal, 1);\n        PipeBarrier<PIPE_V>();\n        event_t eventVS_BF16_0 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_S));\n        SetFlag<HardEvent::V_S>(eventVS_BF16_0);\n        WaitFlag<HardEvent::V_S>(eventVS_BF16_0);\n        float rstdValue = sqxLocal.GetValue(0);\n        event_t eventSV_BF16_0 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::S_V));\n        SetFlag<HardEvent::S_V>(eventSV_BF16_0);\n        WaitFlag<HardEvent::S_V>(eventSV_BF16_0);\n        // copyout rstd\n#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 220 || (defined(__NPU_ARCH__) && __NPU_ARCH__ == 3003)\n        event_t eventVMTE3_BF16_1 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE3));\n        SetFlag<HardEvent::V_MTE3>(eventVMTE3_BF16_1);\n        WaitFlag<HardEvent::V_MTE3>(eventVMTE3_BF16_1);\n        DataCopyCustom<float>(rstdGm, sqxLocal, 1);\n        event_t eventMTE3V2_BF16_0 = static_cast<event_t>(GetTPipePtr()->AllocEventID<HardEvent::MTE3_V>());\n        SetFlag<HardEvent::MTE3_V>(eventMTE3V2_BF16_0);\n#endif\n        \n        Muls(xFp32Local, xFp32Local, rstdValue, numCol);\n        PipeBarrier<PIPE_V>();\n        WaitFlag<HardEvent::MTE3_V>(eventMTE3V_BF16_0);\n        GetTPipePtr()->ReleaseEventID<HardEvent::MTE3_V>(eventMTE3V_BF16_0);\n        Cast(x1Local, xFp32Local, RoundMode::CAST_RINT, numCol);\n        PipeBarrier<PIPE_V>();\n        Cast(xFp32Local, x1Local, RoundMode::CAST_NONE, numCol);\n        PipeBarrier<PIPE_V>();\n        WaitFlag<HardEvent::MTE2_V>(eventMTE2V2_BF16_1);\n#if defined(__CCE_AICORE__) && __CCE_AICORE__ == 220 || (defined(__NPU_ARCH__) && __NPU_ARCH__ == 3003)\n        WaitFlag<HardEvent::MTE3_V>(eventMTE3V2_BF16_0);\n        GetTPipePtr()->ReleaseEventID<HardEvent::MTE3_V>(eventMTE3V2_BF16_0);\n#endif\n        Cast(sqxLocal, x2Local, RoundMode::CAST_NONE, numCol);\n        PipeBarrier<PIPE_V>();\n        Mul(xFp32Local, xFp32Local, sqxLocal, numCol);\n        if (!this->nullptrBeta) {\n            event_t eventVMTE2Beta = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE2));\n            SetFlag<HardEvent::V_MTE2>(eventVMTE2Beta);\n            WaitFlag<HardEvent::V_MTE2>(eventVMTE2Beta);\n            DataCopyCustom<T>(x2Local, betaGm, numCol);\n            event_t eventMTE2XBeta = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::MTE2_V));\n            SetFlag<HardEvent::MTE2_V>(eventMTE2XBeta);\n            WaitFlag<HardEvent::MTE2_V>(eventMTE2XBeta);\n            Cast(sqxLocal, x2Local, RoundMode::CAST_NONE, numCol);\n            PipeBarrier<PIPE_V>();\n            Add(xFp32Local, xFp32Local, sqxLocal, numCol);\n        }\n        PipeBarrier<PIPE_V>();\n        Cast(x1Local, xFp32Local, RoundMode::CAST_RINT, numCol);\n        event_t eventVMTE3_BF16_2 = static_cast<event_t>(GetTPipePtr()->FetchEventID(HardEvent::V_MTE3));\n        SetFlag<HardEvent::V_MTE3>(eventVMTE3_BF16_2);\n        WaitFlag<HardEvent::V_MTE3>(eventVMTE3_BF16_2);\n        DataCopyCustom<T>(yGm, x1Local, numCol);\n    }\n"
+        }
+      ],
+      "cross_core_tokens": []
+    },
+    "bridge/vendor/rms_norm_base.h": {
+      "sha256": "79590de4611dbc9b5a3efe92c4ec066b8676c1b17a9c1c9400e9c4db93e8356e",
+      "excerpts": [],
+      "cross_core_tokens": []
+    }
+  },
+  "source_conclusion": "The private bridge caller EndPhase can carry the final norm mixed-core publication; no intervening consumer or allocation exists.",
+  "conditions": [
+    "Delete only norm Forward final SyncAll; retain caller EndPhase and its PIPE_ALL, DDR, mixed join, Reset.",
+    "Retain per-row PIPE_ALL/Reset and all vendor local event waits.",
+    "All mixed cores must still call bridge Forward and EndPhase; no return between them.",
+    "This statement is for the private FFN bridge call with quantized=null and M<=32, blocks16/24, not an arbitrary standalone norm interface."
+  ],
+  "device_validation": "No device execution by this audit"
+}

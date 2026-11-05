@@ -1,0 +1,305 @@
+diff --git i/tests/glm52/run_cann_layer_major.py w/tests/glm52/run_cann_layer_major.py
+index 505f249..45909ff 100644
+--- i/tests/glm52/run_cann_layer_major.py
++++ w/tests/glm52/run_cann_layer_major.py
+@@ -1,7 +1,7 @@
+ """Run frozen TP16 teacher tokens through one resident CANN layer at a time.
+ 
+-Each decoder invocation remains M1/DecodeOnly. Hidden and residual travel
+-separately between layers; shared index selections are restored per token.
++Each decoder invocation uses M1 or the complete M32 teacher chunk. Hidden and
++residual travel separately; shared index selections are restored per query.
+ This records numerical and residency evidence, without measuring latency.
+ """
+ 
+@@ -20,12 +20,15 @@ import weakref
+ from prefix_io import prompt_identity
+ from run_cann_model import check_prefix, digest, load_capture
+ from run_cann_streamed import (
+-    CAPACITY, QUOTA_BYTES, bound_rope_tables, checked, gather, load_scope,
++    QUOTA_BYTES, bound_rope_tables, checked, gather, load_scope,
+     make_skeleton, selections,
+ )
+ from run_native_decode import compare_tensor
+ 
+ 
++CAPACITY = 9344
++
++
+ def arguments():
+     parser = argparse.ArgumentParser(description=__doc__)
+     for name in ("checkpoint", "capture-case", "teacher-json", "prompt-json",
+@@ -34,12 +37,19 @@ def arguments():
+     parser.add_argument("--layers", type=int, choices=range(1, 79), default=78,
+                         help="Execute the first N main-model layers")
+     parser.add_argument("--steps", type=int, choices=range(1, 33), default=32)
++    parser.add_argument("--query-width", type=int, choices=(1, 32), default=1)
+     parser.add_argument("--baseline", type=Path,
+                         help="Full CANN layer traces for every requested row")
+-    parser.add_argument("--attention-kernel", choices=("sfa", "gather_fia"),
++    parser.add_argument("--attention-kernel",
++                        choices=("sfa", "gather_fia", "shared_fia"),
+                         default="sfa")
+     parser.add_argument("--fp32-head", action="store_true")
+-    return parser.parse_args()
++    args = parser.parse_args()
++    if args.query_width == 32 and args.steps != 32:
++        parser.error("M32 requires all 32 teacher inputs")
++    if args.query_width == 32 and args.attention_kernel == "gather_fia":
++        parser.error("gather_fia is not validated at M32")
++    return args
+ 
+ 
+ def read_teacher(args, inputs):
+@@ -144,6 +154,8 @@ def bind_cache(engine, number, prefix):
+             builder = AscendSFAMetadataBuilder
+             if engine.attention_kernel == "gather_fia":
+                 install_gather_fia(context[name].impl)
++            elif engine.attention_kernel == "shared_fia":
++                engine._shared_attention.bind(context[name].impl)
+         else:
+             raise ValueError(f"Unsupported cache: {spec}")
+         values = []
+@@ -177,7 +189,8 @@ def bind_cache(engine, number, prefix):
+     return specifications
+ 
+ 
+-def run_layer(engine, factory, checkpoint, number, prefix, state, teacher):
++def run_layer(engine, factory, checkpoint, number, prefix, state, teacher,
++              width=1):
+     import torch
+     from vllm.model_executor.model_loader.utils import (
+         process_weights_after_loading,
+@@ -242,22 +255,25 @@ def run_layer(engine, factory, checkpoint, number, prefix, state, teacher):
+         with (layer.input_layernorm.register_forward_hook(capture_input),
+               selections(layer) as selected,
+               patch.object(engine, "_tp_sum_original", reduce)):
+-            for offset, token in enumerate(teacher):
++            for offset in range(0, len(teacher), width):
++                rows = slice(offset, offset + width)
+                 engine.position = 8192 + offset
+-                metadata = engine._metadata()
+-                engine.input_ids.fill_(token)
++                metadata = engine._metadata(width)
++                engine.input_ids.copy_(torch.tensor(
++                    teacher[rows], dtype=engine.input_ids.dtype,
++                    device=engine.device,
++                ))
+                 if skip_topk:
+-                    layer.self_attn.topk_indices_buffer[:1].copy_(
+-                        shared[offset:offset + 1],
++                    layer.self_attn.topk_indices_buffer[:width].copy_(
++                        shared[rows],
+                     )
+                 with set_ascend_forward_context(
+-                    metadata, engine.config, num_tokens=1,
+-                    num_actual_tokens=1, model_instance=engine.model,
++                    metadata, engine.config, num_tokens=width,
++                    num_actual_tokens=width, model_instance=engine.model,
+                 ):
+                     h, r = layer(
+-                        engine.positions, hidden[offset:offset + 1],
+-                        None if residual is None
+-                        else residual[offset:offset + 1],
++                        engine.positions, hidden[rows],
++                        None if residual is None else residual[rows],
+                     )
+                 next_hidden.append(h.detach().clone())
+                 next_residual.append(r.detach().clone())
+@@ -266,12 +282,13 @@ def run_layer(engine, factory, checkpoint, number, prefix, state, teacher):
+                 )[2].detach().clone())
+         engine.position = 8192 + len(teacher)
+         torch.npu.synchronize(engine.device)
+-        if len(selected) != len(teacher) or len(inputs) != len(teacher):
+-            raise ValueError("Expected one norm and attention per M1 call")
+-        indices = torch.cat([value.reshape(1, -1) for value in selected])
++        calls = len(teacher) // width
++        if len(selected) != calls or len(inputs) != calls:
++            raise ValueError("Expected one norm and attention per chunk")
++        indices = torch.cat([value.reshape(width, -1) for value in selected])
+         choices = indices.cpu()
+         checks.append({"name": "fp32_tp_reductions", "passed": reductions
+-                       == [("torch.float32", [1, 6144])] * (2 * len(teacher))})
++                       == [("torch.float32", [width, 6144])] * (2 * calls)})
+         for offset, row in enumerate(choices):
+             checks.append({"name": f"token{offset}.causal_indices", "passed":
+                            row.numel() == 2048 and row.unique().numel() == 2048
+@@ -290,6 +307,10 @@ def run_layer(engine, factory, checkpoint, number, prefix, state, teacher):
+             path = Path(inspect.getfile(inspect.unwrap(value))).resolve()
+             sources[str(path)] = digest(path)
+         output_h, output_r = torch.cat(next_hidden), torch.cat(next_residual)
++        checks.append({"name": "teacher_row_shapes", "passed":
++                       output_h.shape == output_r.shape
++                       == (len(teacher), 6144)
++                       and indices.shape == (len(teacher), 2048)})
+         data = {
+             "layer": number, "teacher_tokens": teacher,
+             "positions": list(range(8192, engine.position)),
+@@ -314,7 +335,7 @@ def run_layer(engine, factory, checkpoint, number, prefix, state, teacher):
+         VllmEplbAdaptor._registered_moe_layers[:] = old_eplb
+ 
+ 
+-def compare_baseline(data, traces, attention_kernel):
++def compare_baseline(data, traces, exact):
+     checks = []
+     number = data["layer"]
+     names = {"latent": "latent", "rope": "rope", "index_keys": "index",
+@@ -334,19 +355,31 @@ def compare_baseline(data, traces, attention_kernel):
+                       expected["indices"][number].reshape(-1)))
+         for name, actual, reference in pairs:
+             label = f"token{offset}.{name}"
+-            if attention_kernel == "gather_fia" and name == "indices":
++            if not exact and name == "indices":
+                 left, right = set(actual.tolist()), set(reference.tolist())
+                 checks.append({"name": label, "actual_count": len(left),
+                                "reference_count": len(right),
+                                "overlap": len(left & right)})
+             else:
+                 compare_tensor(label, actual, reference, checks, exact=True)
+-                if attention_kernel == "gather_fia":
++                if not exact:
+                     checks[-1].pop("passed")
+                     checks[-1].pop("exact")
+     return checks
+ 
+ 
++def final_logits(engine, hidden, residual, width):
++    import torch
++
++    logits, normalized = [], []
++    for offset in range(0, len(hidden), width):
++        rows = slice(offset, offset + width)
++        value, _ = engine.model.model.norm(hidden[rows], residual[rows])
++        normalized.append(value.cpu())
++        logits.append(engine.model.compute_logits(value).cpu())
++    return torch.cat(normalized), torch.cat(logits)
++
++
+ def write_json(path, value):
+     with path.open("x") as stream:
+         json.dump(value, stream, indent=2)
+@@ -389,13 +422,16 @@ def execute(args):
+     engine.checkpoint = str(args.checkpoint.resolve())
+     engine.attention_kernel = args.attention_kernel
+     engine.fp32_head = args.fp32_head
++    engine.graph_width, engine.hoist_metadata = 32, False
++    engine.onesided_endpoint, engine._onesided = None, None
+     engine._tp_sum_group, engine.graph = None, None
+     torch.npu.set_device(engine.device)
+     total = torch.npu.get_device_properties(engine.device).total_memory
+     torch.npu.set_per_process_memory_fraction(
+         QUOTA_BYTES / total, engine.device,
+     )
+-    engine.config = create_config(args.checkpoint, CAPACITY, 0.02)
++    engine.config = create_config(args.checkpoint, CAPACITY, 0.02,
++                                  graph_width=32)
+     checks, layers, sources, artifacts = [], [], {}, {}
+     with (set_current_vllm_config(engine.config),
+           set_default_torch_dtype(torch.bfloat16), torch.inference_mode()):
+@@ -433,13 +469,24 @@ def execute(args):
+                 ))
+             engine.layout = {"capacity_tokens": CAPACITY}
+             engine._allocate_inputs()
++            if engine.attention_kernel == "shared_fia":
++                from tilert.models.glm_5_2_ascend.cann_attention import (
++                    SharedKVAttention,
++                )
++
++                engine._shared_attention = SharedKVAttention(
++                    32, CAPACITY, engine.device,
++                )
+             engine.norm_units = torch.ones(6144, dtype=torch.bfloat16,
+                                            device=engine.device)
+             embeddings = []
+-            for token in teacher:
+-                engine.input_ids.fill_(token)
++            for offset in range(0, len(teacher), args.query_width):
++                tokens = torch.tensor(
++                    teacher[offset:offset + args.query_width],
++                    dtype=torch.int32, device=engine.device,
++                )
+                 embeddings.append(engine.model.embed_input_ids(
+-                    engine.input_ids,
++                    tokens,
+                 ).detach().clone())
+             state = (torch.cat(embeddings), None, None)
+             del embeddings
+@@ -447,7 +494,8 @@ def execute(args):
+                 args.layer = number
+                 torch.npu.reset_peak_memory_stats(engine.device)
+                 result = run_layer(engine, factory, checkpoint, number,
+-                                   prefixes[number], state, teacher)
++                                   prefixes[number], state, teacher,
++                                   args.query_width)
+                 state, data, local, loaded, source, refs = result
+                 del result
+                 gc.collect()
+@@ -459,9 +507,10 @@ def execute(args):
+                     local.append({"name": field + ".finite", "passed": bool(
+                         torch.isfinite(data[field]).all(),
+                     )})
+-                diagnostics = compare_baseline(data, baseline,
+-                                               args.attention_kernel)
+-                if args.attention_kernel == "sfa":
++                exact = (args.query_width == 1
++                         and args.attention_kernel == "sfa")
++                diagnostics = compare_baseline(data, baseline, exact)
++                if exact:
+                     local.extend(diagnostics)
+                 checks.extend(
+                     {**item, "name": f"layer{number}." + item["name"]}
+@@ -490,24 +539,30 @@ def execute(args):
+             predictions = []
+             if args.layers == 78:
+                 hidden, residual, _ = state
+-                logits, normalized = [], []
+-                for offset in range(len(teacher)):
+-                    value, _ = engine.model.model.norm(
+-                        hidden[offset:offset + 1], residual[offset:offset + 1],
+-                    )
+-                    normalized.append(value.cpu())
+-                    row = engine.model.compute_logits(value).cpu()
+-                    logits.append(row)
+-                    predictions.append(int(row.argmax(dim=-1).item()))
++                normalized, logits = final_logits(
++                    engine, hidden, residual, args.query_width,
++                )
++                predictions = logits.argmax(dim=-1).tolist()
+                 path = directory / "final.pt"
+                 with path.open("xb") as stream:
+-                    torch.save({"normalized": torch.cat(normalized),
+-                                "logits": torch.cat(logits),
++                    torch.save({"normalized": normalized,
++                                "logits": logits,
+                                 "teacher_tokens": teacher,
+                                 "predicted_tokens": predictions}, stream)
+                 artifacts[str(path)] = digest(path)
+                 checks.append({"name": "greedy_matches_frozen_trajectory",
+                                "passed": predictions == expected})
++                dtype = torch.float32 if args.fp32_head else torch.bfloat16
++                checks.append({"name": "logits_shape_and_dtype", "passed":
++                               logits.shape == (len(teacher), 154880)
++                               and logits.dtype == dtype})
++                checks.append({"name": "final_normalized_shape_and_dtype",
++                               "passed": normalized.shape
++                               == (len(teacher), 6144)
++                               and normalized.dtype == torch.bfloat16})
++                checks.append({"name": "final_outputs_finite", "passed":
++                               bool(torch.isfinite(normalized).all()
++                                    and torch.isfinite(logits).all())})
+             all_predictions = gather(predictions)
+             checks.append({"name": "rank_predictions_agree", "passed": all(
+                 item == predictions for item in all_predictions
+@@ -515,10 +570,10 @@ def execute(args):
+             passed = all(item["passed"] for item in checks)
+             report = {
+                 "status": "pass" if passed else "fail",
+-                "rank": rank, "scope": "Layer-major M1 frozen teacher replay",
++                "rank": rank, "scope": "Layer-major frozen teacher replay",
+                 "precision_verified": False, "performance_measured": False,
+                 "layers": args.layers, "steps": len(teacher),
+-                "capacity": CAPACITY, "query_width": 1,
++                "capacity": CAPACITY, "query_width": args.query_width,
+                 "position": engine.position, "teacher_tokens": teacher,
+                 "expected_tokens": expected, "predicted_tokens": predictions,
+                 "greedy_correct": sum(a == b for a, b

@@ -1,0 +1,100 @@
+Original lines 90-187
+   90         aclshmemx_mte_put_nbi(destination, source, buffers.narrow,
+   91                               static_cast<uint32_t>(elements), peer, EVENT_ID0);
+   92         aclshmem_quiet();
+   93     }
+   94 }
+   95 
+   96 __aicore__ inline void ReduceCommunicationPayload(
+   97     CommunicationBuffers& buffers, __gm__ uint8_t* window,
+   98     const CommunicationLayout& layout, __gm__ bfloat16_t* output,
+   99     int64_t elements, int32_t ranks, uint32_t epoch,
+  100     int64_t vector_index, int64_t vectors)
+  101 {
+  102     const int32_t signal = static_cast<int32_t>(epoch);
+  103     const int64_t tiles = elements / kCommunicationChunk;
+  104     for (int64_t tile = vector_index; tile < tiles; tile += vectors) {
+  105         const int64_t begin = tile * kCommunicationChunk;
+  106         for (int32_t sender = 0; sender < ranks; ++sender) {
+  107             aclshmem_signal_wait_until(
+  108                 CommunicationReady(window, layout, ranks, epoch, sender),
+  109                 ACLSHMEM_CMP_EQ, signal);
+  110             AscendC::GlobalTensor<bfloat16_t> source;
+  111             source.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(
+  112                 window + layout.payload + (epoch & 1U) * layout.plane_bytes
+  113                 + sender * layout.rank_bytes) + begin, kCommunicationChunk);
+  114             AscendC::DataCopy(buffers.narrow, source, kCommunicationChunk);
+  115             CommunicationFence<AscendC::HardEvent::MTE2_V>();
+  116             if (sender == 0) {
+  117                 AscendC::Cast(buffers.accumulator, buffers.narrow,
+  118                               AscendC::RoundMode::CAST_NONE, kCommunicationChunk);
+  119             } else {
+  120                 AscendC::Cast(buffers.term, buffers.narrow,
+  121                               AscendC::RoundMode::CAST_NONE, kCommunicationChunk);
+  122                 AscendC::PipeBarrier<PIPE_V>();
+  123                 AscendC::Add(buffers.accumulator, buffers.accumulator,
+  124                              buffers.term, kCommunicationChunk);
+  125             }
+  126             CommunicationFence<AscendC::HardEvent::V_MTE2>();
+  127         }
+  128         AscendC::PipeBarrier<PIPE_V>();
+  129         AscendC::Cast(buffers.narrow, buffers.accumulator,
+  130                       AscendC::RoundMode::CAST_RINT, kCommunicationChunk);
+  131         CommunicationFence<AscendC::HardEvent::V_MTE3>();
+  132         AscendC::GlobalTensor<bfloat16_t> destination;
+  133         destination.SetGlobalBuffer(output + begin, kCommunicationChunk);
+  134         AscendC::DataCopy(destination, buffers.narrow, kCommunicationChunk);
+  135         // The next tile loads into the same narrow buffer through MTE2.
+  136         CommunicationFence<AscendC::HardEvent::MTE3_MTE2>();
+  137     }
+  138 }
+  139 
+  140 // All resident AIC and AIV cores call this function in the same phase order.
+  141 // AICs participate in the three SyncAll barriers and issue no SHMEM operation.
+  142 // vector_index is the flat AIV index; vectors is the participating AIV count.
+  143 // ranks, capacity, rows and the window's lifetime are validated by the caller.
+  144 __aicore__ inline void AllReduceBf16(
+  145     CommunicationBuffers& buffers, __gm__ uint8_t* window,
+  146     __gm__ bfloat16_t* partial, __gm__ bfloat16_t* output,
+  147     int64_t rows, int64_t capacity, int32_t rank, int32_t ranks,
+  148     int64_t vector_index, int64_t vectors)
+  149 {
+  150     if ASCEND_IS_AIV {
+  151         if (vector_index == 0) {
+  152             AdvanceCommunicationEpoch(window);
+  153         }
+  154     }
+  155     CommunicationPublish();
+  156     AscendC::SyncAll<false>();
+  157     const CommunicationLayout layout = MakeCommunicationLayout(capacity, ranks);
+  158     uint32_t epoch = 0;
+  159     if ASCEND_IS_AIV {
+  160         epoch = ReadCommunicationEpoch(window);
+  161         PushCommunicationPayload(buffers, window, layout, partial,
+  162                                   rows * kCommunicationHidden, rank, ranks,
+  163                                   epoch, vector_index, vectors);
+  164     }
+  165     // All AIVs have completed their writes before one AIV publishes ready.
+  166     CommunicationPublish();
+  167     AscendC::SyncAll<false>();
+  168     if ASCEND_IS_AIV {
+  169         if (vector_index == 0) {
+  170             for (int32_t offset = 0; offset < ranks; ++offset) {
+  171                 const int32_t peer = (rank + offset) % ranks;
+  172                 aclshmemx_signal_op(
+  173                     CommunicationReady(window, layout, ranks, epoch, rank),
+  174                     static_cast<int32_t>(epoch), ACLSHMEM_SIGNAL_SET, peer);
+  175             }
+  176         }
+  177         ReduceCommunicationPayload(buffers, window, layout, output,
+  178                                     rows * kCommunicationHidden, ranks, epoch,
+  179                                     vector_index, vectors);
+  180     }
+  181     // No caller can advance the next epoch before every local reader finishes.
+  182     CommunicationPublish();
+  183     AscendC::SyncAll<false>();
+  184 }
+  185 
+  186 }  // namespace whole_layer
+  187 #endif
+

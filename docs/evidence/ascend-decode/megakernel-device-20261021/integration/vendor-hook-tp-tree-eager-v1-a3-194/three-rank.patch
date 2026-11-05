@@ -1,0 +1,910 @@
+--- parent/tp_chain.py
++++ candidate/tp_chain.py
+@@ -1,4 +1,4 @@
+-"""Compare two-rank layer launches with separate parents and real HCCL SUM."""
++"""Compare three-rank layer launches with separate parents and real HCCL SUM."""
+ 
+ import importlib
+ import json
+@@ -16,32 +16,14 @@
+ from local_chain_views import poison, strict_checks
+ from tp_host import Library as TPLibrary, Prepared as TPPrepared, Window
+ from tp_parent import separate
+-
+-
+-TP_SHA = "c2b72e469c3ee80a5fe7d9df4a3cceedc0e65cca95e6f426aea762c213392462"
+-
+-
+-def ordered_sum(torch, partials):
+-    if (len(partials) != 2 or any(value.dtype != torch.bfloat16 for value in partials)
+-            or partials[0].shape != partials[1].shape):
+-        raise ValueError("The reduction oracle requires two BF16 rank partials")
+-    result = partials[0].float().clone()
+-    result.add_(partials[1].float())
+-    return result.bfloat16()
+-
+-
+-def check_rank_witnesses(records):
+-    if len(records) != 2 or [row["rank"] for row in records] != [0, 1]:
+-        raise RuntimeError("The two-rank witness order changed")
+-    left, right = records
+-    for name in ("input_hidden", "input_residual", "layer6.retained", "layer7.retained",
+-                 "layer6.ar1", "layer6.ar2", "layer7.ar1", "layer7.ar2"):
+-        if left[name] != right[name]:
+-            raise RuntimeError(f"Replicated or reduced values differ between ranks: {name}")
+-    for name in ("layer6.attention_partial", "layer6.ffn_partial",
+-                 "layer7.attention_partial", "layer7.ffn_partial"):
+-        if left[name] == right[name]:
+-            raise RuntimeError(f"The two rank partials are indistinguishable: {name}")
++from tp_tree_contract import ordered_sum, check_rank_witnesses
++
++
++TP_SHA = "7ec3e8fdd6155d99d98a9b69d2d4b02dc43c9417695f7632ad6559f42ecb96b3"
++
++
++
++
+ 
+ 
+ class TPCase:
+@@ -69,10 +51,10 @@
+     from attention_check import metric
+ 
+     rank = args.device_rank
+-    if (rank not in (0, 1) or args.mode != "int8" or len(layers) != 2
++    if (rank not in (0, 1, 2) or args.mode != "int8" or len(layers) != 2
+             or args.forward_sequence != 8192 or args.graph_residual_modes != ["provided"]
+-            or torch.distributed.get_world_size(args.oracle_hccl) != 2):
+-        raise ValueError("Use two C8 shards, sequence8192 and a provided BF16 residual")
++            or torch.distributed.get_world_size(args.oracle_hccl) != 3):
++        raise ValueError("Use three C8 shards, sequence8192 and a provided BF16 residual")
+     for path, expected in ((args.indexed_library, INDEXED_SHA),
+                            (args.shared_library, SHARED_SHA),
+                            (args.tp_library, TP_SHA)):
+@@ -110,10 +92,10 @@
+     cache_signatures = {name: signature(value) for name, value in caches.items()}
+     topk_signature = signature(topk)
+     report = {
+-        "scope": "Two TP16-shaped local shards: separate parents plus HCCL2 versus one launch per layer with SHMEM2",
+-        "rank": rank, "ranks": 2, "constructor_tp_size": 16,
++        "scope": "Three TP16-shaped local shards: separate parents plus FP32 HCCL3 versus one launch per layer with SHMEM3",
++        "rank": rank, "ranks": 3, "constructor_tp_size": 16,
+         "tp16_collectives_executed": 0, "original_decoder_forward_called": False,
+-        "original_hccl_entry": "torch.distributed.all_reduce(SUM, group=actual_hccl2)",
++        "original_hccl_entry": "torch.distributed.all_reduce(SUM, group=actual_hccl3; BF16.float -> SUM -> BF16)",
+         "residual_contract": "Next layer consumes reduced FFN output and separately retained residual",
+         "script": source_identity(run_tp_chain), "actual_decoder": source_identity(type(layers[0])),
+         "parent_phases": source_identity(separate), "tp_host": source_identity(TPPrepared),
+@@ -132,7 +114,7 @@
+         destination.write_text(json.dumps(report, indent=2) + "\n")
+ 
+     def gather(value):
+-        peers = [None, None]
++        peers = [None, None, None]
+         torch.distributed.all_gather_object(peers, value, group=args.oracle_cpu)
+         return peers
+ 
+@@ -141,11 +123,11 @@
+         stream = torch.npu.Stream(device=topk.device)
+         stream.wait_stream(torch.npu.current_stream(topk.device))
+         with torch.npu.stream(stream), torch.inference_mode():
+-            library.initialize(rank, rank, 2, args.shmem_endpoint, 64 << 20)
++            library.initialize(rank, rank, 3, args.shmem_endpoint, 64 << 20)
+             initialized = True
+             window = Window(library, 32)
+             if (window.rank, window.ranks, window.capacity, window.device, window.bytes) != (
+-                    rank, 2, 32, rank, 1573184):
++                    rank, 3, 32, rank, 2359744):
+                 raise RuntimeError("The actual SHMEM window geometry differs")
+             report["window"] = {"address": window.address, "bytes": window.bytes,
+                                 "capacity": window.capacity, "stream": stream.npu_stream,
+@@ -192,16 +174,17 @@
+                 def execute(combined, reductions):
+                     for number, case in zip((6, 7), cases):
+                         def reduce(partial, result, phase):
+-                            result.copy_(partial)
++                            fp32 = partial.float()
+                             torch.distributed.all_reduce(
+-                                result, op=torch.distributed.ReduceOp.SUM,
++                                fp32, op=torch.distributed.ReduceOp.SUM,
+                                 group=args.oracle_hccl)
++                            result.copy_(fp32.bfloat16())
+                             torch.npu.synchronize()
+                             partials = gather(snapshot(torch, partial))
+                             expected = ordered_sum(torch, partials)
+                             check = metric(torch, snapshot(torch, result), expected)
+                             if not check["pass"] or not check["bitwise_equal"]:
+-                                raise RuntimeError("HCCL2 differs from the ordered BF16-input oracle")
++                                raise RuntimeError("FP32 HCCL3 differs from the selected FP32 tree oracle")
+                             reductions.append({"layer": number, "phase": phase,
+                                 "check": check,
+                                 "partials": [tensor_witness(torch, value) for value in partials]})
+@@ -231,7 +214,7 @@
+                     reset(iteration, 2)
+                     torch.npu.synchronize()
+                     torch.distributed.barrier(group=args.oracle_cpu)
+-                    if rank == iteration % 2:
++                    if rank == iteration % 3:
+                         time.sleep(0.01)
+                     execute(True, [])
+                     actual = collect()
+@@ -272,7 +255,7 @@
+                         torch.save({"plan": plan, "inputs": original_inputs,
+                                     "expected": expected, "actual": actual},
+                                    args.output / f"tp-chain-m{rows}-r{iteration}.pt")
+-                        raise RuntimeError("The TP layer differs from separate parents and HCCL2")
++                        raise RuntimeError("The TP layer differs from separate parents and FP32 HCCL3")
+                 observed = report["cases"][-args.forward_replays:]
+                 for name in consumers:
+                     if any(item["outputs"][name]["nonzero_elements"] == 0 for item in observed):
+
+--- parent/tp_graph.py
++++ candidate/tp_graph.py
+@@ -1,4 +1,4 @@
+-"""Compare two-rank layer launches with separate parents and real HCCL SUM."""
++"""Compare three-rank layer launches with separate parents and real HCCL SUM."""
+ 
+ import importlib
+ import json
+@@ -16,33 +16,15 @@
+ from local_chain_views import poison, strict_checks
+ from tp_host import Library as TPLibrary, Prepared as TPPrepared, Window
+ from tp_parent import separate
++from tp_tree_contract import ordered_sum, check_rank_witnesses
+ from tp_graph_runtime import CapturedChain, prepare_graph_registry, reserve_capture_stream
+ 
+ 
+-TP_SHA = "c2b72e469c3ee80a5fe7d9df4a3cceedc0e65cca95e6f426aea762c213392462"
+-
+-
+-def ordered_sum(torch, partials):
+-    if (len(partials) != 2 or any(value.dtype != torch.bfloat16 for value in partials)
+-            or partials[0].shape != partials[1].shape):
+-        raise ValueError("The reduction oracle requires two BF16 rank partials")
+-    result = partials[0].float().clone()
+-    result.add_(partials[1].float())
+-    return result.bfloat16()
+-
+-
+-def check_rank_witnesses(records):
+-    if len(records) != 2 or [row["rank"] for row in records] != [0, 1]:
+-        raise RuntimeError("The two-rank witness order changed")
+-    left, right = records
+-    for name in ("input_hidden", "input_residual", "layer6.retained", "layer7.retained",
+-                 "layer6.ar1", "layer6.ar2", "layer7.ar1", "layer7.ar2"):
+-        if left[name] != right[name]:
+-            raise RuntimeError(f"Replicated or reduced values differ between ranks: {name}")
+-    for name in ("layer6.attention_partial", "layer6.ffn_partial",
+-                 "layer7.attention_partial", "layer7.ffn_partial"):
+-        if left[name] == right[name]:
+-            raise RuntimeError(f"The two rank partials are indistinguishable: {name}")
++TP_SHA = "7ec3e8fdd6155d99d98a9b69d2d4b02dc43c9417695f7632ad6559f42ecb96b3"
++
++
++
++
+ 
+ 
+ class TPCase:
+@@ -70,10 +52,10 @@
+     from attention_check import metric
+ 
+     rank = args.device_rank
+-    if (rank not in (0, 1) or args.mode != "int8" or len(layers) != 2
++    if (rank not in (0, 1, 2) or args.mode != "int8" or len(layers) != 2
+             or args.forward_sequence != 8192 or args.graph_residual_modes != ["provided"]
+-            or torch.distributed.get_world_size(args.oracle_hccl) != 2):
+-        raise ValueError("Use two C8 shards, sequence8192 and a provided BF16 residual")
++            or torch.distributed.get_world_size(args.oracle_hccl) != 3):
++        raise ValueError("Use three C8 shards, sequence8192 and a provided BF16 residual")
+     for path, expected in ((args.indexed_library, INDEXED_SHA),
+                            (args.shared_library, SHARED_SHA),
+                            (args.tp_library, TP_SHA)):
+@@ -111,10 +93,10 @@
+     cache_signatures = {name: signature(value) for name, value in caches.items()}
+     topk_signature = signature(topk)
+     report = {
+-        "scope": "Official ACL graph of two TP16-shaped local shards with SHMEM2; eager separate parents plus HCCL2 oracle",
+-        "rank": rank, "ranks": 2, "constructor_tp_size": 16,
++        "scope": "Official ACL graph of three TP16-shaped local shards with SHMEM3; eager separate parents plus FP32 HCCL3 oracle",
++        "rank": rank, "ranks": 3, "constructor_tp_size": 16,
+         "tp16_collectives_executed": 0, "original_decoder_forward_called": False,
+-        "original_hccl_entry": "torch.distributed.all_reduce(SUM, group=actual_hccl2)",
++        "original_hccl_entry": "torch.distributed.all_reduce(SUM, group=actual_hccl3; BF16.float -> SUM -> BF16)",
+         "residual_contract": "Next layer consumes reduced FFN output and separately retained residual",
+         "script": source_identity(run_tp_graph), "actual_decoder": source_identity(type(layers[0])),
+         "parent_phases": source_identity(separate), "tp_host": source_identity(TPPrepared),
+@@ -135,7 +117,7 @@
+         destination.write_text(json.dumps(report, indent=2) + "\n")
+ 
+     def gather(value):
+-        peers = [None, None]
++        peers = [None, None, None]
+         torch.distributed.all_gather_object(peers, value, group=args.oracle_cpu)
+         return peers
+ 
+@@ -145,11 +127,11 @@
+         stream, capture_owner = reserve_capture_stream(torch)
+         stream.wait_stream(torch.npu.current_stream(topk.device))
+         with torch.npu.stream(stream), torch.inference_mode():
+-            library.initialize(rank, rank, 2, args.shmem_endpoint, 64 << 20)
++            library.initialize(rank, rank, 3, args.shmem_endpoint, 64 << 20)
+             initialized = True
+             window = Window(library, 32)
+             if (window.rank, window.ranks, window.capacity, window.device, window.bytes) != (
+-                    rank, 2, 32, rank, 1573184):
++                    rank, 3, 32, rank, 2359744):
+                 raise RuntimeError("The actual SHMEM window geometry differs")
+             report["window"] = {"address": window.address, "bytes": window.bytes,
+                                 "capacity": window.capacity, "stream": stream.npu_stream,
+@@ -197,16 +179,17 @@
+                 def execute(combined, reductions):
+                     for number, case in zip((6, 7), cases):
+                         def reduce(partial, result, phase):
+-                            result.copy_(partial)
++                            fp32 = partial.float()
+                             torch.distributed.all_reduce(
+-                                result, op=torch.distributed.ReduceOp.SUM,
++                                fp32, op=torch.distributed.ReduceOp.SUM,
+                                 group=args.oracle_hccl)
++                            result.copy_(fp32.bfloat16())
+                             torch.npu.synchronize()
+                             partials = gather(snapshot(torch, partial))
+                             expected = ordered_sum(torch, partials)
+                             check = metric(torch, snapshot(torch, result), expected)
+                             if not check["pass"] or not check["bitwise_equal"]:
+-                                raise RuntimeError("HCCL2 differs from the ordered BF16-input oracle")
++                                raise RuntimeError("FP32 HCCL3 differs from the selected FP32 tree oracle")
+                             reductions.append({"layer": number, "phase": phase,
+                                 "check": check,
+                                 "partials": [tensor_witness(torch, value) for value in partials]})
+@@ -242,7 +225,7 @@
+                         persist()
+                     torch.npu.synchronize()
+                     torch.distributed.barrier(group=args.oracle_cpu)
+-                    if rank == iteration % 2:
++                    if rank == iteration % 3:
+                         time.sleep(0.01)
+                     current_graph.replay()
+                     actual = collect()
+@@ -286,7 +269,7 @@
+                         torch.save({"plan": plan, "inputs": original_inputs,
+                                     "expected": expected, "actual": actual},
+                                    args.output / f"tp-chain-graph-m{rows}-r{iteration}.pt")
+-                        raise RuntimeError("The TP graph differs from eager parents and HCCL2")
++                        raise RuntimeError("The TP graph differs from eager parents and FP32 HCCL3")
+                 observed = report["cases"][-args.forward_replays:]
+                 for name in consumers:
+                     if any(item["outputs"][name]["nonzero_elements"] == 0 for item in observed):
+
+--- parent/tp_groups.py
++++ candidate/tp_groups.py
+@@ -1,4 +1,4 @@
+-"""Separate constructor TP16, singleton MC2 and two-rank oracle communicators."""
++"""Separate constructor TP16, singleton MC2 and three-rank oracle communicators."""
+ 
+ from contextlib import contextmanager
+ from datetime import timedelta
+@@ -9,7 +9,7 @@
+     from vendor_hook_runtime212_device import GROUP_FIELDS, identity
+     from vllm.distributed import parallel_state as state
+ 
+-    local_rank = rank if rank < 2 else 0
++    local_rank = rank if rank < 3 else 0
+     state.init_distributed_environment(
+         world_size=16, rank=rank, local_rank=local_rank, backend="gloo",
+         distributed_init_method=f"file://{args.output / 'rendezvous'}",
+@@ -39,7 +39,7 @@
+ 
+     torch.distributed.barrier(group=state.get_world_group().cpu_group)
+     singleton = None
+-    for target in (0, 1):
++    for target in (0, 1, 2):
+         if rank == target:
+             singleton = state.init_model_parallel_group(
+                 [[target]], rank, "hccl", group_name="mc2",
+@@ -52,10 +52,10 @@
+                    for group in (device, cpu)):
+                 raise RuntimeError("An unrelated rank joined a singleton MC2 group")
+     device = torch.distributed.new_group(
+-        [0, 1], backend="hccl",
+-        pg_options=create_hccl_pg_options("tp") if rank < 2 else None)
+-    cpu = torch.distributed.new_group([0, 1], backend="gloo")
+-    if rank >= 2:
++        [0, 1, 2], backend="hccl",
++        pg_options=create_hccl_pg_options("tp") if rank < 3 else None)
++    cpu = torch.distributed.new_group([0, 1, 2], backend="gloo")
++    if rank >= 3:
+         if (singleton is not None or torch.npu.is_initialized()
+                 or device != torch.distributed.GroupMember.NON_GROUP_MEMBER
+                 or cpu != torch.distributed.GroupMember.NON_GROUP_MEMBER):
+@@ -73,18 +73,18 @@
+         raise RuntimeError("Use the original worker coordinator and a fresh MC2 context")
+     mc2, device, cpu = create_communication_groups(torch, state, rank)
+     if (mc2.ranks != [rank] or mc2.rank_in_group != 0 or mc2.world_size != 1
+-            or torch.distributed.get_world_size(device) != 2
++            or torch.distributed.get_world_size(device) != 3
+             or torch.distributed.get_rank(device) != rank):
+-        raise RuntimeError("The MC2 and two-rank oracle groups differ")
++        raise RuntimeError("The MC2 and three-rank oracle groups differ")
+     name = mc2.device_group._get_backend(torch.device("npu")).get_hccl_comm_name(0)
+     if not name:
+         raise RuntimeError("The actual singleton HCCL communicator is empty")
+     args.oracle_hccl, args.oracle_cpu = device, cpu
+     ascend_state._MC2 = mc2
+-    stage("actual_mc2_and_hccl2_groups", lambda: (None, {
++    stage("actual_mc2_and_hccl3_groups", lambda: (None, {
+         "coordinator": identity(type(mc2)), "mc2_ranks": [rank],
+         "tp_constructor_size": state.get_tp_group().world_size,
+-        "oracle_hccl_ranks": [0, 1], "oracle_rank": rank,
++        "oracle_hccl_ranks": [0, 1, 2], "oracle_rank": rank,
+         "comm_name_sha256": hashlib.sha256(str(name).encode()).hexdigest(),
+         "tp16_device_collective": False}))
+     try:
+
+--- parent/tp_parameters.py
++++ candidate/tp_parameters.py
+@@ -1,4 +1,4 @@
+-"""Keep replicated parameters equal while distinguishing two TP16-shaped shards."""
++"""Keep replicated parameters equal while distinguishing three TP16-shaped shards."""
+ 
+ import hashlib
+ import json
+@@ -15,25 +15,16 @@
+ 
+ 
+ def check_pair(records):
+-    if len(records) != 2:
+-        raise ValueError("The fixture requires two parameter manifests")
+-    left, right = ({item["name"]: item for item in row} for row in records)
+-    if left.keys() != right.keys() or not SHARDED_MATRICES <= left.keys():
+-        raise RuntimeError("The actual parameter names changed")
+-    for name in left:
+-        if any(left[name][field] != right[name][field]
+-               for field in ("shape", "dtype", "bytes")):
+-            raise RuntimeError(f"Different rank-local parameter geometry: {name}")
+-        same = left[name]["sha256"] == right[name]["sha256"]
+-        if same == (name in SHARDED_MATRICES):
+-            raise RuntimeError(f"Wrong replicated/sharded parameter identity: {name}")
++    from tp_tree_contract import check_parameters
++
++    check_parameters(records, SHARDED_MATRICES)
+ 
+ 
+ def initialize(torch, layer, rank, group):
+     from vendor_hook_runtime212_device import initialize_parameters
+ 
+-    if rank not in (0, 1):
+-        raise ValueError("Only the two device participants construct shards")
++    if rank not in (0, 1, 2):
++        raise ValueError("Only the three device participants construct shards")
+     report = initialize_parameters(torch, layer)
+     recorded = json.loads(Path(__file__).with_name("parameter_geometry.json").read_text())
+     if report not in recorded["parameters"].values():
+@@ -45,7 +36,7 @@
+         if rank:
+             for name in SHARDED_MATRICES:
+                 value = parameters[name]
+-                value.copy_(value.roll(1, 0))
++                value.copy_(value.roll(rank, 0))
+         for item in report:
+             value = parameters[item["name"]]
+             if value.device.type != "cpu":
+@@ -53,7 +44,7 @@
+             raw = value.detach().contiguous().view(torch.uint8).numpy().tobytes()
+             item.update(sha256=hashlib.sha256(raw).hexdigest(),
+                         replicated=item["name"] not in SHARDED_MATRICES)
+-    peers = [None, None]
++    peers = [None, None, None]
+     torch.distributed.all_gather_object(peers, report, group=group)
+     check_pair(peers)
+     return report
+
+--- parent/tp_device.py
++++ candidate/tp_device.py
+@@ -1,4 +1,4 @@
+-"""Run two device participants and fourteen CPU constructor-geometry peers."""
++"""Run three device participants and thirteen CPU constructor-geometry peers."""
+ 
+ import argparse
+ import copy
+@@ -15,27 +15,9 @@
+ 
+ 
+ def device_mapping(torch, args):
+-    library = ctypes.CDLL("libascendcl.so")
+-    convert = library.aclrtGetPhyDevIdByLogicDevId
+-    convert.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.c_int32)]
+-    convert.restype = ctypes.c_int
+-    access = library.aclrtDeviceCanAccessPeer
+-    access.argtypes = [ctypes.POINTER(ctypes.c_int32), ctypes.c_int32, ctypes.c_int32]
+-    access.restype = ctypes.c_int
+-    physical = []
+-    for index in (0, 1):
+-        value = ctypes.c_int32(-1)
+-        if convert(index, ctypes.byref(value)) != 0:
+-            raise RuntimeError("CANN could not resolve the physical device mapping")
+-        physical.append(value.value)
+-    if physical != args.physical_devices or torch.npu.current_device() != args.device_rank:
+-        raise RuntimeError(f"Unexpected logical-to-physical mapping: {physical}")
+-    peer = ctypes.c_int32()
+-    if access(ctypes.byref(peer), args.device_rank, 1 - args.device_rank) != 0 or peer.value != 1:
+-        raise RuntimeError("The two exposed devices do not report direct peer access")
+-    return None, {"logical_to_physical": physical, "logical_rank": args.device_rank,
+-                  "can_access_peer": peer.value,
+-                  "acl_header_sha256": "5ffca8a8cd22258c587a0a1c6c66e8a8605deac00005d9de896be0ab1f7c3769"}
++    from communication_order_devicecheck import device_mapping as verify
++
++    return None, verify(torch, args.physical_devices, args.device_rank)
+ 
+ 
+ def worker(rank, args):
+@@ -43,7 +25,7 @@
+     os.dup2(log.fileno(), 1)
+     os.dup2(log.fileno(), 2)
+     sys.stdout = sys.stderr = log
+-    report = {"rank": rank, "device_participant": rank < 2, "stages": []}
++    report = {"rank": rank, "device_participant": rank < 3, "stages": []}
+     state, groups = None, ()
+ 
+     def stage(name, action):
+@@ -70,7 +52,7 @@
+         report.update(torch=torch.__version__, torch_npu=torch_npu.__version__,
+                       python=sys.version, runtime_image=os.environ.get("VENDOR_HOOK_RUNTIME_IMAGE"),
+                       npu_initialized_before=torch.npu.is_initialized())
+-        if rank >= 2:
++        if rank >= 3:
+             def refuse_init(*unused_args, **unused_kwargs):
+                 raise RuntimeError("A CPU participant may not initialize the NPU")
+             torch.npu._lazy_init = refuse_init
+@@ -82,7 +64,7 @@
+         state, groups, details = initialize_constructor_groups(torch, rank, args)
+         report["stages"].append({"name": "actual_tp16_gloo_geometry", "success": True, **details})
+         success = True
+-        if rank < 2:
++        if rank < 3:
+             from tp_constructor import run_device_rank
+ 
+             current = copy.copy(args)
+@@ -97,7 +79,7 @@
+         else:
+             stage("device_group_nonmember", lambda: (
+                 create_communication_groups(torch, state, rank),
+-                {"mc2_singletons": [[0], [1]], "hccl_oracle": [0, 1],
++                {"mc2_singletons": [[0], [1], [2]], "hccl_oracle": [0, 1, 2],
+                  "device_group_member": False}))
+         statuses = [None] * 16
+         torch.distributed.all_gather_object(statuses, {"rank": rank, "success": success},
+@@ -127,7 +109,7 @@
+     for name in ("output", "runtime", "adapter", "indexed-library", "shared-library", "sfa-library"):
+         parser.add_argument("--" + name, type=Path, required=True)
+     parser.add_argument("--extension-sha256", required=True)
+-    parser.add_argument("--physical-devices", type=int, nargs=2, required=True)
++    parser.add_argument("--physical-devices", type=int, nargs=3, required=True)
+     parser.add_argument("--shmem-endpoint", default="tcp://127.0.0.1:24571")
+     parser.add_argument("--timeout", type=int, default=900)
+     parser.add_argument("--mode", choices=("int8",), default="int8")
+@@ -140,7 +122,8 @@
+                            ("tp-library", "layer_tp_chain.so")):
+         parser.add_argument("--" + name, type=Path, default=Path(__file__).with_name(filename))
+     args = parser.parse_args()
+-    if (args.physical_devices[0] >= args.physical_devices[1]
++    if (any(left >= right for left, right in
++            zip(args.physical_devices, args.physical_devices[1:]))
+             or args.physical_devices[0] < 0 or args.timeout < 1
+             or len(set(args.forward_widths)) != len(args.forward_widths)
+             or any(rows not in (1, 2, 12, 32) for rows in args.forward_widths)
+@@ -188,7 +171,7 @@
+         if process.is_alive():
+             process.kill()
+             process.join()
+-    report = {"scope": "Two controlled TP16-shaped shards; real HCCL2 versus SHMEM2 layer launches",
++    report = {"scope": "Three controlled TP16-shaped shards; real FP32 HCCL3 versus SHMEM3 layer launches",
+         "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+         "arguments": {key: str(value) if isinstance(value, Path) else value
+                       for key, value in vars(args).items()},
+
+--- parent/tp_graph_device.py
++++ candidate/tp_graph_device.py
+@@ -1,4 +1,4 @@
+-"""Run two device participants and fourteen CPU constructor-geometry peers."""
++"""Run three device participants and thirteen CPU constructor-geometry peers."""
+ 
+ import argparse
+ import copy
+@@ -15,27 +15,9 @@
+ 
+ 
+ def device_mapping(torch, args):
+-    library = ctypes.CDLL("libascendcl.so")
+-    convert = library.aclrtGetPhyDevIdByLogicDevId
+-    convert.argtypes = [ctypes.c_int32, ctypes.POINTER(ctypes.c_int32)]
+-    convert.restype = ctypes.c_int
+-    access = library.aclrtDeviceCanAccessPeer
+-    access.argtypes = [ctypes.POINTER(ctypes.c_int32), ctypes.c_int32, ctypes.c_int32]
+-    access.restype = ctypes.c_int
+-    physical = []
+-    for index in (0, 1):
+-        value = ctypes.c_int32(-1)
+-        if convert(index, ctypes.byref(value)) != 0:
+-            raise RuntimeError("CANN could not resolve the physical device mapping")
+-        physical.append(value.value)
+-    if physical != args.physical_devices or torch.npu.current_device() != args.device_rank:
+-        raise RuntimeError(f"Unexpected logical-to-physical mapping: {physical}")
+-    peer = ctypes.c_int32()
+-    if access(ctypes.byref(peer), args.device_rank, 1 - args.device_rank) != 0 or peer.value != 1:
+-        raise RuntimeError("The two exposed devices do not report direct peer access")
+-    return None, {"logical_to_physical": physical, "logical_rank": args.device_rank,
+-                  "can_access_peer": peer.value,
+-                  "acl_header_sha256": "5ffca8a8cd22258c587a0a1c6c66e8a8605deac00005d9de896be0ab1f7c3769"}
++    from communication_order_devicecheck import device_mapping as verify
++
++    return None, verify(torch, args.physical_devices, args.device_rank)
+ 
+ 
+ def worker(rank, args):
+@@ -43,7 +25,7 @@
+     os.dup2(log.fileno(), 1)
+     os.dup2(log.fileno(), 2)
+     sys.stdout = sys.stderr = log
+-    report = {"rank": rank, "device_participant": rank < 2, "stages": []}
++    report = {"rank": rank, "device_participant": rank < 3, "stages": []}
+     state, groups = None, ()
+ 
+     def stage(name, action):
+@@ -70,7 +52,7 @@
+         report.update(torch=torch.__version__, torch_npu=torch_npu.__version__,
+                       python=sys.version, runtime_image=os.environ.get("VENDOR_HOOK_RUNTIME_IMAGE"),
+                       npu_initialized_before=torch.npu.is_initialized())
+-        if rank >= 2:
++        if rank >= 3:
+             def refuse_init(*unused_args, **unused_kwargs):
+                 raise RuntimeError("A CPU participant may not initialize the NPU")
+             torch.npu._lazy_init = refuse_init
+@@ -82,7 +64,7 @@
+         state, groups, details = initialize_constructor_groups(torch, rank, args)
+         report["stages"].append({"name": "actual_tp16_gloo_geometry", "success": True, **details})
+         success = True
+-        if rank < 2:
++        if rank < 3:
+             from tp_graph_constructor import run_device_rank
+ 
+             current = copy.copy(args)
+@@ -97,7 +79,7 @@
+         else:
+             stage("device_group_nonmember", lambda: (
+                 create_communication_groups(torch, state, rank),
+-                {"mc2_singletons": [[0], [1]], "hccl_oracle": [0, 1],
++                {"mc2_singletons": [[0], [1], [2]], "hccl_oracle": [0, 1, 2],
+                  "device_group_member": False}))
+         statuses = [None] * 16
+         torch.distributed.all_gather_object(statuses, {"rank": rank, "success": success},
+@@ -127,7 +109,7 @@
+     for name in ("output", "runtime", "adapter", "indexed-library", "shared-library", "sfa-library"):
+         parser.add_argument("--" + name, type=Path, required=True)
+     parser.add_argument("--extension-sha256", required=True)
+-    parser.add_argument("--physical-devices", type=int, nargs=2, required=True)
++    parser.add_argument("--physical-devices", type=int, nargs=3, required=True)
+     parser.add_argument("--shmem-endpoint", default="tcp://127.0.0.1:24571")
+     parser.add_argument("--timeout", type=int, default=900)
+     parser.add_argument("--mode", choices=("int8",), default="int8")
+@@ -140,7 +122,8 @@
+                            ("tp-library", "layer_tp_chain.so")):
+         parser.add_argument("--" + name, type=Path, default=Path(__file__).with_name(filename))
+     args = parser.parse_args()
+-    if (args.physical_devices[0] >= args.physical_devices[1]
++    if (any(left >= right for left, right in
++            zip(args.physical_devices, args.physical_devices[1:]))
+             or args.physical_devices[0] < 0 or args.timeout < 1
+             or len(set(args.forward_widths)) != len(args.forward_widths)
+             or any(rows not in (1, 2, 12, 32) for rows in args.forward_widths)
+@@ -188,7 +171,7 @@
+         if process.is_alive():
+             process.kill()
+             process.join()
+-    report = {"scope": "Two controlled TP16-shaped shards; real HCCL2 versus SHMEM2 layer launches",
++    report = {"scope": "Three controlled TP16-shaped shards; real FP32 HCCL3 versus SHMEM3 layer launches",
+         "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+         "arguments": {key: str(value) if isinstance(value, Path) else value
+                       for key, value in vars(args).items()},
+
+--- parent/tp_constructor.py
++++ candidate/tp_constructor.py
+@@ -1,4 +1,4 @@
+-"""Original constructor and postprocessing with explicit two-device setup."""
++"""Original constructor and postprocessing with explicit three-device setup."""
+ 
+ import ctypes
+ import hashlib
+@@ -62,8 +62,8 @@
+     stage("npu_bind", lambda: (torch.npu.set_device(args.device_rank), {
+         "device_count": torch.npu.device_count(), "logical_device": args.device_rank,
+         "device_name": torch.npu.get_device_name(args.device_rank)}))
+-    if torch.npu.device_count() != 2:
+-        raise RuntimeError("Expose exactly two NPUs")
++    if torch.npu.device_count() != 3:
++        raise RuntimeError("Expose exactly three NPUs")
+     stage("physical_device_mapping", lambda: device_mapping(torch, args))
+     torch.npu.config.allow_internal_format = True
+     config = stage("engine_configuration_tp16", lambda: make_configuration(args))
+@@ -233,12 +233,12 @@
+                 layers.append(layer)
+             from decoder_storage_tp_chain import run_decoder_forward
+ 
+-            stage("actual_two_rank_component_chain", lambda: (
++            stage("actual_three_rank_component_chain", lambda: (
+                 run_decoder_forward(torch, layers, config, state, args),
+                 {"report": str(args.output / "tp-chain.json")}))
+             return {"constructed_layers": [6, 7], "official_postprocessing": True,
+                     "full_decoder_forward_executed": False,
+-                    "two_rank_component_chain_executed": True,
++                    "three_rank_component_chain_executed": True,
+                     "tp16_collectives_executed": 0,
+                     "scope": "Two TP16-shaped shards; separate native components and HCCL2 versus in-kernel SHMEM2",
+                     "mc2_scope": "actual per-device singleton used only by the original W4A8 constructor"}
+
+--- parent/tp_graph_constructor.py
++++ candidate/tp_graph_constructor.py
+@@ -1,4 +1,4 @@
+-"""Original constructor and postprocessing with explicit two-device setup."""
++"""Original constructor and postprocessing with explicit three-device setup."""
+ 
+ import ctypes
+ import hashlib
+@@ -62,8 +62,8 @@
+     stage("npu_bind", lambda: (torch.npu.set_device(args.device_rank), {
+         "device_count": torch.npu.device_count(), "logical_device": args.device_rank,
+         "device_name": torch.npu.get_device_name(args.device_rank)}))
+-    if torch.npu.device_count() != 2:
+-        raise RuntimeError("Expose exactly two NPUs")
++    if torch.npu.device_count() != 3:
++        raise RuntimeError("Expose exactly three NPUs")
+     stage("physical_device_mapping", lambda: device_mapping(torch, args))
+     torch.npu.config.allow_internal_format = True
+     config = stage("engine_configuration_tp16", lambda: make_configuration(args))
+@@ -233,12 +233,12 @@
+                 layers.append(layer)
+             from decoder_storage_tp_graph import run_decoder_forward
+ 
+-            stage("actual_two_rank_component_graph", lambda: (
++            stage("actual_three_rank_component_graph", lambda: (
+                 run_decoder_forward(torch, layers, config, state, args),
+                 {"report": str(args.output / "tp-chain-graph.json")}))
+             return {"constructed_layers": [6, 7], "official_postprocessing": True,
+                     "full_decoder_forward_executed": False,
+-                    "two_rank_component_graph_executed": True,
++                    "three_rank_component_graph_executed": True,
+                     "tp16_collectives_executed": 0,
+                     "scope": "Two TP16-shaped shards; separate native components and HCCL2 versus in-kernel SHMEM2",
+                     "mc2_scope": "actual per-device singleton used only by the original W4A8 constructor"}
+
+--- parent/tp_nonmember_cpu.py
++++ candidate/tp_nonmember_cpu.py
+@@ -24,12 +24,12 @@
+         torch.npu._lazy_init = refuse
+         torch_npu._C._npu_init = refuse
+         torch.distributed.init_process_group(
+-            "gloo", rank=rank, world_size=3,
++            "gloo", rank=rank, world_size=4,
+             init_method=f"file://{root / 'rendezvous'}", timeout=timedelta(seconds=60))
+         initialized = True
+         torch.distributed.barrier()
+-        if rank == 2:
+-            result = torch.distributed.new_group([0, 1], backend="hccl", pg_options=None)
++        if rank == 3:
++            result = torch.distributed.new_group([0, 1, 2], backend="hccl", pg_options=None)
+             if result != torch.distributed.GroupMember.NON_GROUP_MEMBER:
+                 raise RuntimeError("The real Torch nonmember path created a device group")
+             report.update(nonmember_result=result, pg_options=None, actual_entry="torch.distributed.new_group")
+@@ -52,7 +52,7 @@
+ 
+     with tempfile.TemporaryDirectory(prefix="tp-nonmember-") as directory:
+         context = multiprocessing.get_context("spawn")
+-        processes = [context.Process(target=worker, args=(rank, directory)) for rank in range(3)]
++        processes = [context.Process(target=worker, args=(rank, directory)) for rank in range(4)]
+         for process in processes:
+             process.start()
+         for process in processes:
+@@ -62,13 +62,13 @@
+                 process.kill()
+                 process.join()
+         reports = [json.loads((Path(directory) / f"rank-{rank}.json").read_text())
+-                   for rank in range(3)]
++                   for rank in range(4)]
+         if any(process.exitcode != 0 for process in processes):
+             raise RuntimeError(f"The actual CPU nonmember probe failed: {reports}")
+     functions = (distributed_c10d.new_group, distributed_c10d._new_group_with_tag,
+                  distributed_c10d._new_process_group_helper)
+     source_path = Path(inspect.getfile(distributed_c10d))
+-    return {"scope": "Real three-rank CPU Gloo world; only global rank2 enters the HCCL nonmember path; no HCCL group created",
++    return {"scope": "Real four-rank CPU Gloo world; only global rank3 enters the HCCL nonmember path; no HCCL group created",
+             "exitcodes": [process.exitcode for process in processes], "ranks": reports,
+             "torch": torch.__version__, "source_path": str(source_path),
+             "source_sha256": hashlib.sha256(source_path.read_bytes()).hexdigest(),
+
+--- parent/device_tp_run.sh
++++ candidate/device_tp_run.sh
+@@ -1,21 +1,22 @@
+ #!/usr/bin/env bash
+ set -euo pipefail
+ 
+-if [[ $# -lt 3 ]]; then
+-    echo 'Usage: device_run.sh PHYSICAL_FIRST PHYSICAL_SECOND REPORT_NAME [--mode int8|bf16]' >&2
++if [[ $# -lt 4 ]]; then
++    echo 'Usage: device_run.sh PHYSICAL_FIRST PHYSICAL_SECOND PHYSICAL_THIRD REPORT_NAME [--mode int8|bf16]' >&2
+     exit 2
+ fi
+ physical_first=$1
+ physical_second=$2
+-report_name=$3
+-shift 3
+-if [[ ! $physical_first =~ ^[0-9]+$ || ! $physical_second =~ ^[0-9]+$ || ! $report_name =~ ^[a-zA-Z0-9._-]+$ ]]; then
++physical_third=$3
++report_name=$4
++shift 4
++if [[ ! $physical_first =~ ^[0-9]+$ || ! $physical_second =~ ^[0-9]+$ || ! $physical_third =~ ^[0-9]+$ || ! $report_name =~ ^[a-zA-Z0-9._-]+$ ]]; then
+     echo 'Use an integer device and a simple report name.' >&2
+     exit 2
+ fi
+ task_root=${VENDOR_HOOK_TASK_ROOT:-/home/shanshan/tilert-megakernel-20261021}
+ runtime_root=$task_root/vendor-hook-runtime212
+-decoder_root=$task_root/vendor-hook-tp-chain-v2
++decoder_root=$task_root/vendor-hook-tp-tree-v1
+ oracle_root=$task_root/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install
+ cann_root=${VENDOR_HOOK_CANN_ROOT:-/home/shanshan/megamoe-mask-only-20261021/sdk/cann-9.2.0}
+ image=sha256:1910b1acedb37acc42beda9cb695c2cf84c57c81d8dd8b5191a98a97bc6d5fe6
+@@ -31,7 +32,7 @@
+ docker run --rm --pull=never --name "shanshan-tilert-decoder212-$report_name" \
+     --read-only --network none --workdir /tmp \
+     --cpus 8 --memory 64g --pids-limit 1024 --shm-size 1g \
+-    --device "/dev/davinci$physical_first" --device "/dev/davinci$physical_second" \
++    --device "/dev/davinci$physical_first" --device "/dev/davinci$physical_second" --device "/dev/davinci$physical_third" \
+     --device /dev/davinci_manager --device /dev/devmm_svm --device /dev/hisi_hdc \
+     --tmpfs /tmp:rw,exec,nosuid,nodev,size=1g \
+     --tmpfs /root/ascend/log:rw,nosuid,nodev,size=128m \
+@@ -60,14 +61,17 @@
+         ASCEND_PROCESS_LOG_PATH="/evidence/$1-driver" \
+         GLOO_SOCKET_IFNAME=lo OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+         OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 \
+-        env -u ASCEND_DOCKER_RUNTIME \
++        HCCL_OP_EXPANSION_MODE=AIV HCCL_DETERMINISTIC=true \
++        ASCEND_GLOBAL_LOG_LEVEL=0 ASCEND_SLOG_PRINT_TO_STDOUT=0 \
++        env -u ASCEND_DOCKER_RUNTIME -u ASCEND_RT_VISIBLE_DEVICES \
++        -u HCCL_ALGO -u HCCL_ALGO_CONFIG \
+         python3 /decoder/tp_device.py --runtime /workspace \
+             --output "/evidence/$1" --mode int8 --timeout 900 \
+-            --physical-devices "$2" "$3" \
++            --physical-devices "$2" "$3" "$4" \
+             --extension-sha256 acac5e7220b51bdd24e41352ffc52f88aac5f58dd9d262b0a43aad2ca9efd0fc \
+             --adapter /workspace/tilert/models/glm_5_2_ascend/attention_native.py \
+             --indexed-library /workspace/native/indexed/whole_layer_indexed_attention.so \
+             --shared-library /workspace/native/shared/whole_layer_full_attention.so \
+             --sfa-library /workspace/native/sfa/vendor_sfa_adapter.so \
+-            "${@:4}"
+-    ' decoder212 "$report_name" "$physical_first" "$physical_second" "$@"
++            "${@:5}"
++    ' decoder212 "$report_name" "$physical_first" "$physical_second" "$physical_third" "$@"
+
+--- parent/device_tp_graph_run.sh
++++ candidate/device_tp_graph_run.sh
+@@ -1,21 +1,22 @@
+ #!/usr/bin/env bash
+ set -euo pipefail
+ 
+-if [[ $# -lt 3 ]]; then
+-    echo 'Usage: device_run.sh PHYSICAL_FIRST PHYSICAL_SECOND REPORT_NAME [--mode int8|bf16]' >&2
++if [[ $# -lt 4 ]]; then
++    echo 'Usage: device_run.sh PHYSICAL_FIRST PHYSICAL_SECOND PHYSICAL_THIRD REPORT_NAME [--mode int8|bf16]' >&2
+     exit 2
+ fi
+ physical_first=$1
+ physical_second=$2
+-report_name=$3
+-shift 3
+-if [[ ! $physical_first =~ ^[0-9]+$ || ! $physical_second =~ ^[0-9]+$ || ! $report_name =~ ^[a-zA-Z0-9._-]+$ ]]; then
++physical_third=$3
++report_name=$4
++shift 4
++if [[ ! $physical_first =~ ^[0-9]+$ || ! $physical_second =~ ^[0-9]+$ || ! $physical_third =~ ^[0-9]+$ || ! $report_name =~ ^[a-zA-Z0-9._-]+$ ]]; then
+     echo 'Use an integer device and a simple report name.' >&2
+     exit 2
+ fi
+ task_root=${VENDOR_HOOK_TASK_ROOT:-/home/shanshan/tilert-megakernel-20261021}
+ runtime_root=$task_root/vendor-hook-runtime212
+-decoder_root=$task_root/vendor-hook-tp-graph-v1
++decoder_root=$task_root/vendor-hook-tp-tree-v1
+ oracle_root=$task_root/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install
+ cann_root=${VENDOR_HOOK_CANN_ROOT:-/home/shanshan/megamoe-mask-only-20261021/sdk/cann-9.2.0}
+ image=sha256:1910b1acedb37acc42beda9cb695c2cf84c57c81d8dd8b5191a98a97bc6d5fe6
+@@ -31,7 +32,7 @@
+ docker run --rm --pull=never --name "shanshan-tilert-decoder212-$report_name" \
+     --read-only --network none --workdir /tmp \
+     --cpus 8 --memory 64g --pids-limit 1024 --shm-size 1g \
+-    --device "/dev/davinci$physical_first" --device "/dev/davinci$physical_second" \
++    --device "/dev/davinci$physical_first" --device "/dev/davinci$physical_second" --device "/dev/davinci$physical_third" \
+     --device /dev/davinci_manager --device /dev/devmm_svm --device /dev/hisi_hdc \
+     --tmpfs /tmp:rw,exec,nosuid,nodev,size=1g \
+     --tmpfs /root/ascend/log:rw,nosuid,nodev,size=128m \
+@@ -60,14 +61,17 @@
+         ASCEND_PROCESS_LOG_PATH="/evidence/$1-driver" \
+         GLOO_SOCKET_IFNAME=lo OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+         OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 \
+-        env -u ASCEND_DOCKER_RUNTIME \
++        HCCL_OP_EXPANSION_MODE=AIV HCCL_DETERMINISTIC=true \
++        ASCEND_GLOBAL_LOG_LEVEL=0 ASCEND_SLOG_PRINT_TO_STDOUT=0 \
++        env -u ASCEND_DOCKER_RUNTIME -u ASCEND_RT_VISIBLE_DEVICES \
++        -u HCCL_ALGO -u HCCL_ALGO_CONFIG \
+         python3 /decoder/tp_graph_device.py --runtime /workspace \
+             --output "/evidence/$1" --mode int8 --timeout 900 \
+-            --physical-devices "$2" "$3" \
++            --physical-devices "$2" "$3" "$4" \
+             --extension-sha256 acac5e7220b51bdd24e41352ffc52f88aac5f58dd9d262b0a43aad2ca9efd0fc \
+             --adapter /workspace/tilert/models/glm_5_2_ascend/attention_native.py \
+             --indexed-library /workspace/native/indexed/whole_layer_indexed_attention.so \
+             --shared-library /workspace/native/shared/whole_layer_full_attention.so \
+             --sfa-library /workspace/native/sfa/vendor_sfa_adapter.so \
+-            "${@:4}"
+-    ' decoder212 "$report_name" "$physical_first" "$physical_second" "$@"
++            "${@:5}"
++    ' decoder212 "$report_name" "$physical_first" "$physical_second" "$physical_third" "$@"
+
+--- parent/tp_host.py
++++ candidate/tp_host.py
+@@ -30,24 +30,24 @@
+                         ctypes.c_uint64, ctypes.c_uint64, ctypes.c_uint64], ctypes.c_int),
+         }
+         for name, (arguments, result) in signatures.items():
+-            function = getattr(self.handle, "layer_tp_" + name)
++            function = getattr(self.handle, "layer_tp_tree_" + name)
+             function.argtypes = arguments
+             function.restype = result
+-        sizes = tuple(self.handle.layer_tp_record_bytes(index) for index in range(3))
++        sizes = tuple(self.handle.layer_tp_tree_record_bytes(index) for index in range(3))
+         if sizes != (664, 928, 48):
+             raise RuntimeError(f"The TP layer record ABI changed: {sizes}")
+ 
+     def check(self, status):
+         if status != 0:
+-            message = self.handle.layer_tp_last_error().decode("utf-8")
++            message = self.handle.layer_tp_tree_last_error().decode("utf-8")
+             raise RuntimeError(f"TP layer status {status}: {message}")
+ 
+     def initialize(self, device, rank, ranks, endpoint, heap_bytes):
+-        self.check(self.handle.layer_tp_initialize(
++        self.check(self.handle.layer_tp_tree_initialize(
+             device, rank, ranks, endpoint.encode("utf-8"), heap_bytes))
+ 
+     def finalize(self):
+-        self.check(self.handle.layer_tp_finalize())
++        self.check(self.handle.layer_tp_tree_finalize())
+ 
+ 
+ class Window:
+@@ -56,15 +56,15 @@
+     def __init__(self, library, capacity):
+         self.library = library
+         handle = ctypes.c_uint64()
+-        library.check(library.handle.layer_tp_window_create(capacity, ctypes.byref(handle)))
++        library.check(library.handle.layer_tp_tree_window_create(capacity, ctypes.byref(handle)))
+         self.handle = handle.value
+         fields = (ctypes.c_uint64 * 6)()
+-        library.check(library.handle.layer_tp_window_info(self.handle, fields, len(fields)))
++        library.check(library.handle.layer_tp_tree_window_info(self.handle, fields, len(fields)))
+         self.address, self.bytes, self.capacity, self.rank, self.ranks, self.device = fields
+ 
+     def close(self):
+         """Call after destroying all graphs and synchronizing all ranks."""
+-        self.library.check(self.library.handle.layer_tp_window_destroy(self.handle))
++        self.library.check(self.library.handle.layer_tp_tree_window_destroy(self.handle))
+         self.handle = 0
+ 
+ 
+@@ -105,7 +105,7 @@
+         if tuple(value.data_ptr() for value in self.outputs) != self.output_pointers:
+             raise RuntimeError("A retained reduction output changed its data address")
+         library = self.window.library
+-        library.check(library.handle.layer_tp_submit(
++        library.check(library.handle.layer_tp_tree_submit(
+             local.device, local.sync, local.config, len(local.config),
+             local.addresses, len(local.addresses), local.indexed,
+             self.window.handle, *self.output_pointers))

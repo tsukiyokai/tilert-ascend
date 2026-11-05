@@ -1,0 +1,541 @@
+{
+  "status": "closed: direct native get_top_tokens did not improve this TP2 probe; no new device work",
+  "activation_scope": "Synthetic seeded CPU BF16 rows; not model-captured hidden. Checkpoint weights are real and match historical frozen-shard hashes.",
+  "weight_scope": "two address-distinct identical BF16 banks per physical rank, original FP32 aten.mm.dtype projection; no timed copy",
+  "eager_pairs": 10,
+  "graph_pairs": 30,
+  "calls_per_graph": 10,
+  "communication_warmups": 10,
+  "TP_scope": "Real vLLM TP2 STANDARD HCCL; logical vocab19360, columns9680/rank, padding1. No TP16 latency claim.",
+  "weight_shape": [
+    9680,
+    6144
+  ],
+  "weight_bf16_sha256": [
+    [
+      "246bbe0d32783e6400630c124d13797792a529a9bf131fe6972688ea6d9c7b86",
+      "246bbe0d32783e6400630c124d13797792a529a9bf131fe6972688ea6d9c7b86"
+    ],
+    [
+      "551e1ad90682322e6f75afa1eb0bed3dd517ed8c98f6b21702575b1bfe73cace",
+      "551e1ad90682322e6f75afa1eb0bed3dd517ed8c98f6b21702575b1bfe73cace"
+    ]
+  ],
+  "metadata": [
+    {
+      "parallel_mode": "STANDARD",
+      "tp_size": 2,
+      "tp_rank": 0,
+      "weight_shape": [
+        9680,
+        6144
+      ],
+      "shard_indices": {
+        "padded_org_vocab_start_index": 0,
+        "padded_org_vocab_end_index": 9680,
+        "padded_added_vocab_start_index": 19360,
+        "padded_added_vocab_end_index": 19360,
+        "org_vocab_start_index": 0,
+        "org_vocab_end_index": 9680,
+        "added_vocab_start_index": 19360,
+        "added_vocab_end_index": 19360
+      },
+      "scale": 1.0,
+      "soft_cap": null,
+      "head_dtype": "None",
+      "use_all_gather": true
+    },
+    {
+      "parallel_mode": "STANDARD",
+      "tp_size": 2,
+      "tp_rank": 1,
+      "weight_shape": [
+        9680,
+        6144
+      ],
+      "shard_indices": {
+        "padded_org_vocab_start_index": 9680,
+        "padded_org_vocab_end_index": 19360,
+        "padded_added_vocab_start_index": 19360,
+        "padded_added_vocab_end_index": 19360,
+        "org_vocab_start_index": 9680,
+        "org_vocab_end_index": 19360,
+        "added_vocab_start_index": 19360,
+        "added_vocab_end_index": 19360
+      },
+      "scale": 1.0,
+      "soft_cap": null,
+      "head_dtype": "None",
+      "use_all_gather": true
+    }
+  ],
+  "loaded_implementations": {
+    "LogitsProcessor": {
+      "file": "/workspace/src/vllm-unified/vllm/model_executor/layers/logits_processor.py",
+      "sha256": "35cf8235cb529ba2d37358fe9b9e5a29f40b5c3cbcc9e6750c8480c51bd7da83"
+    },
+    "AscendLogitsProcessor": {
+      "file": "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/vocab_parallel_embedding.py",
+      "sha256": "800bf3a92f54ec3c15f967f94e40bc0f811507c1c23b724bf66beb53b8631d2a"
+    },
+    "get_top_tokens": {
+      "file": "/workspace/src/vllm-unified/vllm/model_executor/layers/logits_processor.py",
+      "sha256": "35cf8235cb529ba2d37358fe9b9e5a29f40b5c3cbcc9e6750c8480c51bd7da83"
+    },
+    "tp_gather": {
+      "file": "/workspace/src/vllm-unified/vllm/distributed/communication_op.py",
+      "sha256": "3c3f8ac60db38ece891d39dc1e2f6f1947ad438685893d2e5777d072320bd1b8"
+    },
+    "group_all_gather": {
+      "file": "/workspace/src/vllm-unified/vllm/distributed/parallel_state.py",
+      "sha256": "a33fc846e0f4e682a644ce712d862806ecfa12dca6e5f641806e2e7991cd0087"
+    },
+    "device_all_gather": {
+      "file": "/workspace/src/vllm-unified/vllm/distributed/device_communicators/base_device_communicator.py",
+      "sha256": "a5367728622586e78e3ca327d6dddd268560ef6ade4db640d853d9600ffeee31"
+    }
+  },
+  "memory": [
+    {
+      "rank": 0,
+      "device": 14,
+      "torch_quota_bytes": 536870912,
+      "weight_banks": 2,
+      "weight_pointers": [
+        20618009378816,
+        20618128916480
+      ],
+      "peak_allocated_bytes": 262539776,
+      "peak_reserved_bytes": 377487360
+    },
+    {
+      "rank": 1,
+      "device": 15,
+      "torch_quota_bytes": 536870912,
+      "weight_banks": 2,
+      "weight_pointers": [
+        20618009378816,
+        20618128916480
+      ],
+      "peak_allocated_bytes": 262539776,
+      "peak_reserved_bytes": 377487360
+    }
+  ],
+  "cases": [
+    {
+      "width": 1,
+      "eager": {
+        "event_us": {
+          "full": {
+            "p50": 296.63001000881195,
+            "p90": 314.0200078487396,
+            "p99": 365.3799891471863,
+            "std": 18.663516947301076
+          },
+          "reduced": {
+            "p50": 453.7300020456314,
+            "p90": 470.12001276016235,
+            "p99": 500.88000297546387,
+            "std": 14.473878834223836
+          },
+          "paired_delta": {
+            "p50": 154.37499433755875,
+            "p90": 171.27999663352966,
+            "p99": 191.2499964237213,
+            "std": 16.59310539644542
+          },
+          "wins": 0
+        },
+        "wall_us": {
+          "full": {
+            "p50": 432.99199999999996,
+            "p90": 459.688,
+            "p99": 689.727,
+            "std": 59.05960279859237
+          },
+          "reduced": {
+            "p50": 589.494,
+            "p90": 616.015,
+            "p99": 646.106,
+            "std": 21.775887464349175
+          },
+          "paired_delta": {
+            "p50": 163.14425000000006,
+            "p90": 173.24649999999997,
+            "p99": 180.03200000000004,
+            "std": 40.284953342066814
+          },
+          "wins": 0
+        },
+        "host_submit_us": {
+          "full": {
+            "p50": 280.31100000000004,
+            "p90": 288.961,
+            "p99": 298.962,
+            "std": 6.476271874311637
+          },
+          "reduced": {
+            "p50": 453.433,
+            "p90": 464.309,
+            "p99": 512.671,
+            "std": 14.46214682922284
+          },
+          "paired_delta": {
+            "p50": 175.44174999999998,
+            "p90": 180.14750000000004,
+            "p99": 199.748,
+            "std": 9.683811514068207
+          },
+          "wins": 0
+        }
+      },
+      "graph": {
+        "event_us": {
+          "full": {
+            "p50": 127.5629997253418,
+            "p90": 129.31599617004395,
+            "p99": 130.28199672698975,
+            "std": 2.1976353687059036
+          },
+          "reduced": {
+            "p50": 141.88500046730042,
+            "p90": 143.47599744796753,
+            "p99": 147.17600345611572,
+            "std": 2.3898139091173607
+          },
+          "paired_delta": {
+            "p50": 14.256000518798828,
+            "p90": 16.117000579833984,
+            "p99": 16.57199263572693,
+            "std": 1.1396211309775417
+          },
+          "wins": 0
+        },
+        "wall_us": {
+          "full": {
+            "p50": 135.8625,
+            "p90": 137.0655,
+            "p99": 329.5263,
+            "std": 44.498989972842324
+          },
+          "reduced": {
+            "p50": 150.04305,
+            "p90": 151.21099999999998,
+            "p99": 165.37470000000002,
+            "std": 24.04373137230778
+          },
+          "paired_delta": {
+            "p50": 14.178600000000017,
+            "p90": 15.44459999999998,
+            "p99": 109.82444999999996,
+            "std": 36.00757748800355
+          },
+          "wins": 2
+        },
+        "host_submit_us": {
+          "full": {
+            "p50": 8.2988,
+            "p90": 9.6953,
+            "p99": 10.5274,
+            "std": 1.980370117116158
+          },
+          "reduced": {
+            "p50": 8.0708,
+            "p90": 9.5524,
+            "p99": 10.330400000000001,
+            "std": 2.3326875490223475
+          },
+          "paired_delta": {
+            "p50": -0.03327499999999972,
+            "p90": 0.6320499999999996,
+            "p99": 1.7665000000000006,
+            "std": 0.8004474154583103
+          },
+          "wins": 16
+        }
+      }
+    },
+    {
+      "width": 8,
+      "eager": {
+        "event_us": {
+          "full": {
+            "p50": 280.96000850200653,
+            "p90": 287.4999940395355,
+            "p99": 290.9199893474579,
+            "std": 6.909762354197263
+          },
+          "reduced": {
+            "p50": 440.43000042438507,
+            "p90": 452.3000121116638,
+            "p99": 459.03998613357544,
+            "std": 8.221221696848476
+          },
+          "paired_delta": {
+            "p50": 160.38500517606735,
+            "p90": 169.23999786376953,
+            "p99": 174.43999648094177,
+            "std": 6.727137456527753
+          },
+          "wins": 0
+        },
+        "wall_us": {
+          "full": {
+            "p50": 367.3695,
+            "p90": 376.045,
+            "p99": 383.896,
+            "std": 6.258486464593494
+          },
+          "reduced": {
+            "p50": 538.5865,
+            "p90": 546.262,
+            "p99": 554.532,
+            "std": 9.784798424597208
+          },
+          "paired_delta": {
+            "p50": 170.72925000000004,
+            "p90": 174.74200000000002,
+            "p99": 176.82249999999993,
+            "std": 8.484472211192625
+          },
+          "wins": 0
+        },
+        "host_submit_us": {
+          "full": {
+            "p50": 284.3515,
+            "p90": 289.131,
+            "p99": 292.662,
+            "std": 3.7812005752141715
+          },
+          "reduced": {
+            "p50": 449.59299999999996,
+            "p90": 455.729,
+            "p99": 464.238,
+            "std": 6.515632316974313
+          },
+          "paired_delta": {
+            "p50": 164.1085,
+            "p90": 168.87600000000003,
+            "p99": 173.85649999999998,
+            "std": 4.229310233359578
+          },
+          "wins": 0
+        }
+      },
+      "graph": {
+        "event_us": {
+          "full": {
+            "p50": 140.33400416374207,
+            "p90": 149.81800317764282,
+            "p99": 160.29800176620483,
+            "std": 5.500675940974081
+          },
+          "reduced": {
+            "p50": 161.87000274658203,
+            "p90": 175.98199844360352,
+            "p99": 180.12200593948364,
+            "std": 6.288111987541242
+          },
+          "paired_delta": {
+            "p50": 21.20649814605713,
+            "p90": 28.616005182266235,
+            "p99": 31.41000270843506,
+            "std": 3.5796633362406656
+          },
+          "wins": 0
+        },
+        "wall_us": {
+          "full": {
+            "p50": 148.36350000000002,
+            "p90": 164.0346,
+            "p99": 172.6299,
+            "std": 7.833839640186916
+          },
+          "reduced": {
+            "p50": 169.1988,
+            "p90": 188.2756,
+            "p99": 194.2558,
+            "std": 48.87659353253807
+          },
+          "paired_delta": {
+            "p50": 20.736850000000032,
+            "p90": 26.142600000000016,
+            "p99": 208.9034,
+            "std": 33.81195409965469
+          },
+          "wins": 0
+        },
+        "host_submit_us": {
+          "full": {
+            "p50": 4.953200000000001,
+            "p90": 9.1814,
+            "p99": 18.5417,
+            "std": 3.2086761955776506
+          },
+          "reduced": {
+            "p50": 5.0282,
+            "p90": 8.6513,
+            "p99": 11.2745,
+            "std": 2.9070207651171365
+          },
+          "paired_delta": {
+            "p50": -0.015750000000000153,
+            "p90": 0.8595499999999996,
+            "p99": 5.227149999999998,
+            "std": 1.760678309995579
+          },
+          "wins": 15
+        }
+      }
+    },
+    {
+      "width": 32,
+      "eager": {
+        "event_us": {
+          "full": {
+            "p50": 360.4600131511688,
+            "p90": 387.2799873352051,
+            "p99": 495.92000246047974,
+            "std": 43.51038191887993
+          },
+          "reduced": {
+            "p50": 454.89999651908875,
+            "p90": 493.05999279022217,
+            "p99": 508.53997468948364,
+            "std": 28.10311552203464
+          },
+          "paired_delta": {
+            "p50": 104.14999723434448,
+            "p90": 135.61999797821045,
+            "p99": 144.66999471187592,
+            "std": 33.369793741412394
+          },
+          "wins": 0
+        },
+        "wall_us": {
+          "full": {
+            "p50": 462.25350000000003,
+            "p90": 532.892,
+            "p99": 592.534,
+            "std": 51.66531626545995
+          },
+          "reduced": {
+            "p50": 585.528,
+            "p90": 620.915,
+            "p99": 631.866,
+            "std": 29.635385160986182
+          },
+          "paired_delta": {
+            "p50": 113.34200000000004,
+            "p90": 149.22650000000004,
+            "p99": 160.78649999999993,
+            "std": 29.74672725090946
+          },
+          "wins": 0
+        },
+        "host_submit_us": {
+          "full": {
+            "p50": 277.361,
+            "p90": 337.374,
+            "p99": 408.336,
+            "std": 38.75069915382173
+          },
+          "reduced": {
+            "p50": 449.0985,
+            "p90": 489.71,
+            "p99": 499.73,
+            "std": 23.188403356581063
+          },
+          "paired_delta": {
+            "p50": 170.07949999999997,
+            "p90": 181.58749999999998,
+            "p99": 189.02199999999993,
+            "std": 27.869421270498222
+          },
+          "wins": 0
+        }
+      },
+      "graph": {
+        "event_us": {
+          "full": {
+            "p50": 167.65999794006348,
+            "p90": 180.29600381851196,
+            "p99": 193.1980013847351,
+            "std": 9.254283269875819
+          },
+          "reduced": {
+            "p50": 194.90900039672852,
+            "p90": 211.1720085144043,
+            "p99": 218.08600425720215,
+            "std": 9.241519873664732
+          },
+          "paired_delta": {
+            "p50": 28.371500968933105,
+            "p90": 35.52200794219971,
+            "p99": 42.30799674987793,
+            "std": 8.750531075554655
+          },
+          "wins": 0
+        },
+        "wall_us": {
+          "full": {
+            "p50": 180.12075,
+            "p90": 194.5238,
+            "p99": 206.66729999999998,
+            "std": 9.149300985725025
+          },
+          "reduced": {
+            "p50": 206.88935,
+            "p90": 225.55010000000001,
+            "p99": 243.10880000000003,
+            "std": 12.222232799462901
+          },
+          "paired_delta": {
+            "p50": 29.85175000000001,
+            "p90": 37.600449999999995,
+            "p99": 62.12745000000001,
+            "std": 10.574052861075659
+          },
+          "wins": 0
+        },
+        "host_submit_us": {
+          "full": {
+            "p50": 9.307400000000001,
+            "p90": 14.5916,
+            "p99": 20.096799999999998,
+            "std": 3.7521654214066844
+          },
+          "reduced": {
+            "p50": 7.9468499999999995,
+            "p90": 12.7625,
+            "p99": 33.137299999999996,
+            "std": 5.950914148489896
+          },
+          "paired_delta": {
+            "p50": -1.005799999999999,
+            "p90": 2.7420500000000008,
+            "p99": 13.518049999999999,
+            "std": 4.245697277854434
+          },
+          "wins": 21
+        }
+      }
+    }
+  ],
+  "frozen_input_file_sha256": {
+    "hidden-A.pt": "489b24116fa3f6754425744d73013fe6af221279f1dd8e4c3ea14ba2dc60f975",
+    "hidden-B.pt": "199009e85381918690f4a210760d8459d84f345673be23d35960d4482d0542fa"
+  },
+  "source_sha256": {
+    "probe.py": "d490492ee9378fe79949b98bd26e8539c69aa08c146c752c97cfa138f0bcaf36",
+    "head_frozen.py": "b8392261a07cc3e9803e479f3e2b4c5edb5c5cd7f80698291db0bb0a8cb44922",
+    "run.sh": "87fcb4a537d13ea9af0a7c16ebde3f35e088555bc50feebdf18e6260a85e1a30"
+  },
+  "execution": {
+    "launcher_returncode": 0,
+    "both_ranks_status": "pass",
+    "groups_destroyed": "finally calls destroy_model_parallel and destroy_distributed_environment",
+    "precheck": "precheck.txt",
+    "postcheck": "postcheck.txt"
+  }
+}

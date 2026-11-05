@@ -1,0 +1,12 @@
+diff --git a/tilelang/version.py b/tilelang/version.py
+index 651de2c..0e4560a 100644
+--- a/tilelang/version.py
++++ b/tilelang/version.py
+@@ -36,6 +36,7 @@ def get_git_commit_id() -> Union[str, None]:
+     """
+     try:
+         return subprocess.check_output(['git', 'rev-parse', 'HEAD'],
++                                       cwd=develop_project_root_dir,
+                                        stderr=subprocess.DEVNULL,
+                                        encoding='utf-8').strip()
+     except subprocess.SubprocessError:

@@ -1,0 +1,22 @@
+{
+  "image_id": "sha256:9afbed90a0f92e228cc1ba13adf3cee2e89e34f1dd4cad1ed8eb5ce8c091b4af",
+  "cpu_only_target_environment": {
+    "TRITON_ASCEND_ARCH": "Ascend910_9392"
+  },
+  "sources": [
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/triton/backends/ascend/driver.py",
+      "sha256": "945924163ea2a9170b9ae605716b4787ee128a3a887f1127d1927f9f6af826d7",
+      "first_line": 166,
+      "last_line": 175,
+      "text": "166:     def get_current_target(self):\n167:         backend = \"npu\"\n168:         env_target = get_ascend_arch_from_env()\n169:         if env_target:\n170:             arch = env_target\n171:         else:\n172:             arch = self.utils.get_arch()\n173:         warp_size = 0\n174:         return GPUTarget(backend, arch, warp_size)\n175: "
+    },
+    {
+      "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/triton/backends/ascend/utils.py",
+      "sha256": "83cf94b1b5760537ab4ff4406ebf04ad0bea47343ac76bfce813cd8f163577b7",
+      "first_line": 506,
+      "last_line": 541,
+      "text": "506: def get_ascend_arch_from_env():\n507:     arch = os.getenv(\"TRITON_ASCEND_ARCH\", \"\")\n508:     if arch == \"\":\n509:         # User does not set arch by ENV. Thus directly return.\n510:         return arch\n511:     # User sets arch by ENV. Thus we need to check if it is supported.\n512:     valid_arch_list = [\n513:         \"Ascend910B1\",\n514:         \"Ascend910B2\",\n515:         \"Ascend910B3\",\n516:         \"Ascend910B4\",\n517:         \"Ascend910_9362\",\n518:         \"Ascend910_9372\",\n519:         \"Ascend910_9381\",\n520:         \"Ascend910_9382\",\n521:         \"Ascend910_9391\",\n522:         \"Ascend910_9392\",\n523:         \"Ascend310B1\",\n524:         \"Ascend310B2\",\n525:         \"Ascend310B3\",\n526:         \"Ascend310B4\",\n527:         \"Ascend910_9579\",\n528:         \"Ascend910_9581\",\n529:         \"Ascend910_9589\",\n530:         \"Ascend910_9599\",\n531:     ]\n532:     is_valid = arch in valid_arch_list\n533:     if not is_valid:\n534:         valid_arch_str = \", \".join(valid_arch_list)\n535:         raise ValueError(f\"TRITON_ASCEND_ARCH = {arch} is invalid!\"\n536:                          f\"Candidates are [{valid_arch_str}]\")\n537:     return arch\n538: \n539: \n540: def is_ffts_supported(arch: str):\n541:     '''"
+    }
+  ]
+}

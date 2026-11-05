@@ -1,0 +1,543 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-10-17T20:05:23.721454+00:00",
+  "status": "pass",
+  "scope": "Read-only source/input/recorded-trajectory attribution audit",
+  "numerical_execution": false,
+  "npu_execution": false,
+  "large_pt_or_weight_files_read": false,
+  "checks": {
+    "count": 24,
+    "passed": 24,
+    "failures": []
+  },
+  "baseline_files": {
+    "environment.json": {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/vllm-baseline-20261017/environment.json",
+      "sha256": "dbe9b99983d08557903efe7e10a7d97aff37370d79df7f1543c6f2bbc6d91922",
+      "bytes": 3272,
+      "hash_recomputed": true
+    },
+    "source-patches.json": {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/vllm-baseline-20261017/source-patches.json",
+      "sha256": "30493e649b0e5086a568bfb7eb6c3d452fda2b15ce7af0c94fb23b56859fd50f",
+      "bytes": 575,
+      "hash_recomputed": true
+    },
+    "command.txt": {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/vllm-baseline-20261017/command.txt",
+      "sha256": "21678b95ae0372d2062f24963a480ac13628409cf05c64d51626e0d37583005b",
+      "bytes": 890,
+      "hash_recomputed": true
+    },
+    "teacher-32.json": {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/vllm-baseline-20261017/teacher-32.json",
+      "sha256": "82d011962a288b30b777fc4964d5c96c6b9784cb13b97f509322f603b263b655",
+      "bytes": 961,
+      "hash_recomputed": true
+    },
+    "benchmark.json": {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/vllm-baseline-20261017/benchmark.json",
+      "sha256": "43991c7d96477be4376cecaa1a4975a2aca060c693e55f7d7c3e15df3d7ad359",
+      "bytes": 2810712,
+      "hash_recomputed": true
+    },
+    "vllm-build-compat.patch": {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/vllm-baseline-20261017/vllm-build-compat.patch",
+      "sha256": "d25359ac58be06e7288de26c447d3bd6e3ea7e6213987539cd4d64fd28832652",
+      "bytes": 1130,
+      "hash_recomputed": true
+    },
+    "vllm-ascend-build-compat.patch": {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/vllm-baseline-20261017/vllm-ascend-build-compat.patch",
+      "sha256": "5338011c84b5a3464e089fcb8cef8e77011975985335bf2938a9685ca5997c50",
+      "bytes": 3088,
+      "hash_recomputed": true
+    }
+  },
+  "baseline_launcher": {
+    "path": "/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/serve_vllm_baseline.sh",
+    "sha256": "18858a75e159e53fafdb347a96e2dfec51ead1a36722d04171780119b06b4bf8",
+    "bytes": 1940,
+    "hash_recomputed": true
+  },
+  "baseline": {
+    "packages": {
+      "torch": "2.12.0+cpu",
+      "torch-npu": "2.12.0",
+      "vllm": "0.30.1rc1.dev447+gc4df37dfc.d20261015.empty",
+      "vllm-ascend": "0.19.1rc2.dev2828+gf558b58c1.d20261015",
+      "transformers": "5.14.1"
+    },
+    "source_commits": {
+      "vllm": "c4df37dfcc7f72ca41cd43801a468526ecf99a2b",
+      "vllm_ascend": "f558b58c177916424ae9dcf9bb8e66c0b9031236"
+    },
+    "custom_opp_path": "/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer",
+    "configuration": "TP16; MTP3; target FULL_DECODE_ONLY[4]; draft eager; async scheduling; AIV",
+    "build_patches_scope": "Dependency and custom-op build compatibility only; serving/model sources unchanged",
+    "saved_requests": 32,
+    "unique_sequences": 32,
+    "first_divergence_vs_request0_one_based": {
+      "84": 2,
+      "12": 3,
+      "5": 17,
+      "33": 3,
+      "110": 1,
+      "82": 1,
+      "8": 1,
+      "21": 1,
+      "74": 2
+    },
+    "kernel_open_trace_saved_for_baseline": false
+  },
+  "teacher": {
+    "artifact": {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/vllm-baseline-20261017/teacher-32.json",
+      "sha256": "82d011962a288b30b777fc4964d5c96c6b9784cb13b97f509322f603b263b655",
+      "bytes": 961,
+      "hash_recomputed": true
+    },
+    "request_id": "cmpl-9aa86ab6d6f99327",
+    "teacher_tokens": [
+      6500,
+      382,
+      262,
+      576,
+      2524,
+      5496,
+      64623,
+      264,
+      3210,
+      1140,
+      13,
+      19262,
+      7168,
+      24187,
+      279,
+      198,
+      262,
+      1681,
+      6337,
+      323,
+      64019,
+      11288,
+      13,
+      6944,
+      20757,
+      5258,
+      323,
+      3796,
+      198,
+      262,
+      1105,
+      13
+    ],
+    "expected_next_tokens": [
+      382,
+      262,
+      576,
+      2524,
+      5496,
+      64623,
+      264,
+      3210,
+      1140,
+      13,
+      19262,
+      7168,
+      24187,
+      279,
+      198,
+      262,
+      1681,
+      6337,
+      323,
+      64019,
+      11288,
+      13,
+      6944,
+      20757,
+      5258,
+      323,
+      3796,
+      198,
+      262,
+      1105,
+      13,
+      9897
+    ],
+    "derived_from": "/home/shanshan/trt-asc/experiments/glm52/vllm-baseline-20261017/benchmark.json",
+    "role": "Fixed trajectory anchor; no replacement or threshold change"
+  },
+  "prefix": {
+    "manifest": {
+      "path": "/home/shanshan/trt-asc/offline/prefix8k-allocation-20261017/capture/case-00/manifest.json",
+      "sha256": "b01cceb2d2e30564807ce9efc441ad535999b56b73d0c333e93bb18694ccda74",
+      "bytes": 156199,
+      "hash_recomputed": true
+    },
+    "input_receipt": {
+      "path": "/home/shanshan/trt-asc/offline/prefix8k-allocation-20261017/capture/inputs.json",
+      "sha256": "c5ec297eeb9e03056d77eb100239f70fd36cee86c149cde8545dd2445b61262d",
+      "bytes": 1182,
+      "hash_recomputed": true
+    },
+    "prompt_file": {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/prompt-8192-code-review.json",
+      "sha256": "d70449c0bb76f23c8641a4ea1037a3586dcd87e22e395d0961b2e0a11712ba0c",
+      "bytes": 46154,
+      "hash_recomputed": true
+    },
+    "request_id": "ba210bea41854af3",
+    "generation": 1,
+    "rows": 8192,
+    "prompt_token_ids_sha256": "fe53282d0b732f6a1cbd9b6587903127f73ba645f2303a246656286704142afa",
+    "first_token_id": 6500,
+    "checkpoint_sha256": {
+      "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+      "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+      "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+    },
+    "producer_launcher": {
+      "path": "/home/shanshan/trt-asc/offline/prefix8k-allocation-20261017/source/tests/glm52/serve_vllm_prefill.sh",
+      "sha256": "d6813f35bc37454fd69b209e52282b01e053e1c3d2eef71d62112ecfb3be62db",
+      "bytes": 3069,
+      "hash_recomputed": true
+    },
+    "producer_configuration": "TP16; MTP1; eager; no async; original vendor",
+    "producer_source_lines": [
+      50,
+      58,
+      70,
+      72
+    ],
+    "same_prompt_as_baseline": true,
+    "same_request_as_teacher": false,
+    "baseline_request_kv_bitwise_identity_established": false,
+    "prefix_pt_hashes": "Bound by manifest; not recomputed in this audit"
+  },
+  "native32": {
+    "report": {
+      "path": "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/paired/rank-0.json",
+      "sha256": "b0e7b6019c51c7edc74aa471c39e0fbda17ba7c560259b8b9cca3bebe0e08786",
+      "bytes": 15777606,
+      "hash_recomputed": true
+    },
+    "configuration": "M1; eager; FP32 TP sum; AI_CPU; patched vendor",
+    "inputs": {
+      "prompt_length": 8192,
+      "prompt_sha256": "fe53282d0b732f6a1cbd9b6587903127f73ba645f2303a246656286704142afa",
+      "last_prompt_token": 9249,
+      "initial_position": 8192,
+      "first_token_id": 6500,
+      "request_id": "ba210bea41854af3",
+      "generation": 1,
+      "prefix_file": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/main-prefix/rank-0.pt",
+      "prefix_sha256": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+      "capture_manifest_sha256": "b01cceb2d2e30564807ce9efc441ad535999b56b73d0c333e93bb18694ccda74"
+    },
+    "independent_cache_allocations": true,
+    "tp_reduction": "float32",
+    "collective_env": {
+      "HCCL_DETERMINISTIC": "true",
+      "HCCL_OP_EXPANSION_MODE": "AI_CPU",
+      "HCCL_BUFFSIZE": "200",
+      "ASCEND_CUSTOM_OPP_PATH": "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp:/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer:/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib:/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer:/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer"
+    },
+    "trajectories": [
+      {
+        "phase": "native",
+        "steps": 32,
+        "successor_tokens": [
+          382,
+          262,
+          576,
+          2524,
+          5496,
+          64623,
+          264,
+          3210,
+          1140,
+          13,
+          19262,
+          7168,
+          24187,
+          279,
+          198,
+          262,
+          1681,
+          6337,
+          323,
+          279,
+          9249,
+          6500,
+          13,
+          19262,
+          7168,
+          594,
+          9249,
+          6500,
+          374,
+          279,
+          198,
+          262
+        ],
+        "position_8211": {
+          "path": "/workspace/offline/cann-native-vllm-20261017-03/paired/native/rank-0/step-08211.pt",
+          "sha256": "89ad30c777b26d3633436e00b866b7e3be55287782b5ce5cae743fa59b974a7d",
+          "exists": true,
+          "bytes": 26326667,
+          "hash_recomputed": false,
+          "hash_source": "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/paired/rank-0.json:trace_sha256",
+          "token_source": "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/paired/rank-0.json:greedy_agreement",
+          "successor": 279
+        }
+      },
+      {
+        "phase": "first",
+        "steps": 32,
+        "successor_tokens": [
+          382,
+          262,
+          576,
+          2524,
+          5496,
+          64623,
+          264,
+          3210,
+          1140,
+          13,
+          19262,
+          7168,
+          24187,
+          279,
+          198,
+          262,
+          1681,
+          6337,
+          323,
+          279,
+          9249,
+          6500,
+          13,
+          19262,
+          7168,
+          594,
+          9249,
+          6500,
+          374,
+          279,
+          198,
+          262
+        ],
+        "position_8211": {
+          "path": "/workspace/offline/cann-native-vllm-20261017-03/paired/tilert/rank-0/first-08211.pt",
+          "sha256": "eb9df992bd975fb9167ce92b1fd110ccdf3ffa0e27b78fcfb44d97b04fa78314",
+          "exists": true,
+          "bytes": 26325899,
+          "hash_recomputed": false,
+          "hash_source": "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/paired/rank-0.json:trace_sha256",
+          "token_source": "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/paired/rank-0.json:greedy_agreement",
+          "successor": 279
+        }
+      },
+      {
+        "phase": "reset",
+        "steps": 32,
+        "successor_tokens": [
+          382,
+          262,
+          576,
+          2524,
+          5496,
+          64623,
+          264,
+          3210,
+          1140,
+          13,
+          19262,
+          7168,
+          24187,
+          279,
+          198,
+          262,
+          1681,
+          6337,
+          323,
+          279,
+          9249,
+          6500,
+          13,
+          19262,
+          7168,
+          594,
+          9249,
+          6500,
+          374,
+          279,
+          198,
+          262
+        ],
+        "position_8211": {
+          "path": "/workspace/offline/cann-native-vllm-20261017-03/paired/tilert/rank-0/reset-08211.pt",
+          "sha256": "4216664f4b279946427dba5312eb7a99083fc907e64841f12d980f6df19460c8",
+          "exists": true,
+          "bytes": 26325899,
+          "hash_recomputed": false,
+          "hash_source": "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/paired/rank-0.json:trace_sha256",
+          "token_source": "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/paired/rank-0.json:greedy_agreement",
+          "successor": 279
+        }
+      }
+    ],
+    "full_trace_index": {
+      "report_field": "trace_sha256",
+      "entries": 96,
+      "hash_recomputed": false
+    },
+    "first_baseline_difference": {
+      "one_based_successor": 20,
+      "position": 8211,
+      "input": 323,
+      "native": 279,
+      "candidate": 279,
+      "reset": 279,
+      "baseline_teacher_successor": 64019,
+      "same_history_through_this_input": true
+    },
+    "graph_free_report": {
+      "path": "/home/shanshan/trt-asc/offline/cann-graph-20261017-02/checked/rank-0.json",
+      "sha256": "97580b274e91596c12f4751757fd6385da623b0c7b6c3254eb7d91d5aad9165a",
+      "bytes": 33106,
+      "hash_recomputed": true
+    },
+    "free_successors_matching_teacher": 19,
+    "source": {
+      "cann_model": {
+        "path": "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/source/tilert/models/glm_5_2_ascend/cann_model.py",
+        "sha256": "b0e9632395148f2bc5bff9bd1ca09cc3a9e79b90caefadfaf5001a38db04cbb0",
+        "bytes": 16126,
+        "hash_recomputed": true
+      },
+      "runner": {
+        "path": "/home/shanshan/trt-asc/offline/cann-native-vllm-20261017-03/source/tests/glm52/run_cann_vllm_parity.py",
+        "sha256": "a73273cdf2dc745678e3cc8b9f19469b36eb4541bef386f2e35a3c3ac34662cd",
+        "bytes": 21596,
+        "hash_recomputed": true
+      }
+    }
+  },
+  "vendor": {
+    "manifest": {
+      "path": "/home/shanshan/trt-asc/offline/cann-workspace-owner-20261017/kernel-overlay/overlay-manifest.json",
+      "sha256": "c597e29cb2f9dae749957edbe480e23042f6a063ae78dad285898ba79012a031",
+      "bytes": 340964,
+      "hash_recomputed": true
+    },
+    "files": {
+      "op_impl/ai_core/tbe/custom_transformer_impl/ascendc/grouped_matmul_swiglu_quant_v2/grouped_matmul_swiglu_quant_v2_a8w4_msd_post.h": {
+        "original": {
+          "path": "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_impl/ai_core/tbe/custom_transformer_impl/ascendc/grouped_matmul_swiglu_quant_v2/grouped_matmul_swiglu_quant_v2_a8w4_msd_post.h",
+          "sha256": "8cf63fb3e34955a2ed28d4f9f56c2030e74744cbe5a63aaeb5d130eb0940758f",
+          "bytes": 23370,
+          "hash_recomputed": true
+        },
+        "overlay": {
+          "path": "/home/shanshan/trt-asc/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer/op_impl/ai_core/tbe/custom_transformer_impl/ascendc/grouped_matmul_swiglu_quant_v2/grouped_matmul_swiglu_quant_v2_a8w4_msd_post.h",
+          "sha256": "730e0bac7ce6ea3e085a48225d27093431debcd6f05c542378beefc7e96d3689",
+          "bytes": 23397,
+          "hash_recomputed": true
+        }
+      },
+      "op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_fa3d6d3de6e1f32e170e39d2ddd3a20e.json": {
+        "original": {
+          "path": "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_fa3d6d3de6e1f32e170e39d2ddd3a20e.json",
+          "sha256": "29b3966755c90e6758efd2f33d4d36ccdc8d2dd94f5dc529f2b3b3d6b94c329d",
+          "bytes": 4790,
+          "hash_recomputed": true
+        },
+        "overlay": {
+          "path": "/home/shanshan/trt-asc/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_fa3d6d3de6e1f32e170e39d2ddd3a20e.json",
+          "sha256": "7206a41e602e858a44198a98256b65705e76fe01def8472a55f9f1b61b741979",
+          "bytes": 4790,
+          "hash_recomputed": true
+        }
+      },
+      "op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_fa3d6d3de6e1f32e170e39d2ddd3a20e.o": {
+        "original": {
+          "path": "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_fa3d6d3de6e1f32e170e39d2ddd3a20e.o",
+          "sha256": "2444c7e7a4d157d69e42cb40a4841e6f7331392cd07b2f65969b382db9b5d4b2",
+          "bytes": 78904,
+          "hash_recomputed": true
+        },
+        "overlay": {
+          "path": "/home/shanshan/trt-asc/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_fa3d6d3de6e1f32e170e39d2ddd3a20e.o",
+          "sha256": "2eb81546c23639026b979c93aef1ffc20132390cfc3395f1b837a1d0cdf24c3d",
+          "bytes": 78904,
+          "hash_recomputed": true
+        }
+      },
+      "op_api/lib/libcust_opapi.so": {
+        "original": {
+          "path": "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_api/lib/libcust_opapi.so",
+          "sha256": "cab8daebbbe285814636dc1839de18dc83028b69ceb28a74fcf51e2184cf0163",
+          "bytes": 1142864,
+          "hash_recomputed": true
+        },
+        "overlay": {
+          "path": "/home/shanshan/trt-asc/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer/op_api/lib/libcust_opapi.so",
+          "sha256": "cab8daebbbe285814636dc1839de18dc83028b69ceb28a74fcf51e2184cf0163",
+          "bytes": 1142864,
+          "hash_recomputed": true
+        }
+      }
+    },
+    "original_header_copy_then_abs_lines": [
+      205,
+      209,
+      219
+    ],
+    "patch": "PipeBarrier<PIPE_V>() after SwiGLU UB-to-UB DataCopy",
+    "host_library_unchanged": true,
+    "baseline_declares_original_vendor": true,
+    "specific_teacher_request_stale_amax_observed": false
+  },
+  "current_run_source": {
+    "launcher": {
+      "path": "/home/shanshan/trt-asc/offline/cann-layer-major-20261018-02/run-78x32-sfa-02/launch.sh",
+      "sha256": "7610a1c3a96d968c0d7e7d05e5045e118223e9a83f5dfd039aed145f8341f8f7",
+      "bytes": 1327,
+      "hash_recomputed": true
+    },
+    "runner": {
+      "path": "/home/shanshan/trt-asc/offline/cann-layer-major-20261018-02/source/tests/glm52/run_cann_layer_major.py",
+      "sha256": "8c5b0e700a2aa584bce3d23589f13df8a25a1e1e77021bd290a34bc547a58767",
+      "bytes": 27322,
+      "hash_recomputed": true
+    },
+    "cann_model": {
+      "path": "/home/shanshan/trt-asc/offline/cann-layer-major-20261018-02/source/tilert/models/glm_5_2_ascend/cann_model.py",
+      "sha256": "cd860f60a9b6fc314af750df3d605be79e23ddaeff8e1eae4a4793539028c25e",
+      "bytes": 18859,
+      "hash_recomputed": true
+    },
+    "final_logits_dtype_source": {
+      "expected": "torch.bfloat16",
+      "runner_lines": [
+        489,
+        495
+      ],
+      "actual_current_final_pt_read": false
+    },
+    "completion_or_precision_result": "Not audited here"
+  },
+  "conclusions": {
+    "same_configuration": "At position8211 native, TileRT and reset all predict279 with the same preceding teacher inputs. The recorded comparison excludes a TileRT-only token divergence in this frozen path; it does not exclude shared defects.",
+    "configuration_boundary": "M1/FP32/AI_CPU/patched-vendor and MTP3/graph4/AIV/original-vendor differ in multiple variables.",
+    "input_boundary": "Teacher and frozen KV come from distinct requests. Prompt IDs and g0 agree, but baseline-request KV was not saved for bitwise comparison.",
+    "operator_boundary": "Original and patched GMM1 binaries differ, with identical host library. No captured teacher-request GMM1 intermediate identifies the cause of its particular successor.",
+    "cause": "Not separated; no attribution of successor20 to one cause",
+    "hf": "Independent HF diagnostics retain their role; this is not a replacement numerical oracle or a threshold change"
+  }
+}

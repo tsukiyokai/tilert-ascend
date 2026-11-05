@@ -1,0 +1,75 @@
+{
+  "scope": "Official ACLGraphWrapper for two consecutive local MoE layers: one MIX launch per layer with direct persistent top-k, N512 Down and observation consumers",
+  "host": "a3-194",
+  "physical_die": 4,
+  "mode": "int8",
+  "rows": [
+    1,
+    2,
+    12,
+    32
+  ],
+  "blocks": 24,
+  "cases": 32,
+  "raw_byte_checks": 3488,
+  "pass": true,
+  "weight_source": "Synthetic parameters in original Decoder6/7 classes with official postprocessing",
+  "norm_reference": "Original input norm and npu_dynamic_quant",
+  "reference_libraries": [
+    "8deff750464e23bb871302c8626b86d37b60c28a00991d550f95dfcfd47ecb6f",
+    "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c",
+    "c90b3666a1697070eda19d5b3e133e9ed58f36fe429abefceae6ffe102a6a032"
+  ],
+  "candidate_library_sha256": "6a326292287a17254b48376400e1b852093ebfe10fbf228938336693402aa528",
+  "defined_boundaries_per_case": 109,
+  "changing_inputs_and_outputs": {
+    "1": {
+      "output_hashes": 8,
+      "retained_hashes": 8,
+      "hidden_hashes": 8,
+      "main_slots_hashes": 8,
+      "index_slots_hashes": 8,
+      "live_length_sets": 8
+    },
+    "2": {
+      "output_hashes": 8,
+      "retained_hashes": 8,
+      "hidden_hashes": 8,
+      "main_slots_hashes": 8,
+      "index_slots_hashes": 8,
+      "live_length_sets": 8
+    },
+    "12": {
+      "output_hashes": 8,
+      "retained_hashes": 8,
+      "hidden_hashes": 8,
+      "main_slots_hashes": 8,
+      "index_slots_hashes": 8,
+      "live_length_sets": 8
+    },
+    "32": {
+      "output_hashes": 8,
+      "retained_hashes": 8,
+      "hidden_hashes": 8,
+      "main_slots_hashes": 8,
+      "index_slots_hashes": 8,
+      "live_length_sets": 8
+    }
+  },
+  "tp_contract": "Both TP reductions are identity; actual local attention output feeds FFN",
+  "next_layer_input": "Previous layer combined output and retained residual, same GPU owners",
+  "topk_transfer": "Candidate selector writes the persistent owner directly; separate parent retains explicit copy",
+  "candidate_topk_copy_calls": 0,
+  "unused_internal_topk_unchanged": true,
+  "inactive_persistent_rows_unchanged": true,
+  "down_tiling_200_byte_checks": 136,
+  "graph_capture": true,
+  "actual_captures": 4,
+  "explicit_replays": 32,
+  "python_calls_per_capture": 1,
+  "python_calls_per_replay": 0,
+  "timing": false,
+  "tp16_collectives": 0,
+  "checkpoint_loaded": false,
+  "report_sha256": "fb4a77c39fca327a0fe2ec1f5ee10842d9101ee6ac9d1d6d392d9b71ab6a8740"
+}

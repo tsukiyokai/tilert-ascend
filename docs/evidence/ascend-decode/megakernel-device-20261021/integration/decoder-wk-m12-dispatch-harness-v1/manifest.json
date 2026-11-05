@@ -1,0 +1,129 @@
+{
+  "scope": "One captured M12 original F.linear call; actual dispatch, no timing or native modification",
+  "files": {
+    "README.md": "7ad9ed3238e0049c5e76e299f434801ef5fc036af31545a8f3ca591d6d905e8c",
+    "contract.py": "28a1f26d1f9de88b6454b3b9a03eff622f63c039c47467eb45ac871c6387eff3",
+    "dispatch.py": "41e111768c3f8ec35bddb4ad5b58c98816b001f2af59a4ad13d72428baa18407",
+    "run_dispatch.sh": "01d832c84b467f78e03e707de98e37215e82eb44c3e9a6c644a1345611f6fad4"
+  },
+  "capture_sha256": "fb187d933ca499bec2ecc938184949775025ccbc90e0de894503e1dba2bae0bb",
+  "image": "sha256:1910b1acedb37acc42beda9cb695c2cf84c57c81d8dd8b5191a98a97bc6d5fe6",
+  "cpu_contract": {
+    "scope": "Captured full Decoder M12 WK only; one original F.linear call, no timing",
+    "script": {
+      "path": "/home/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/whole_layer/indexer_wk_m12/dispatch.py",
+      "sha256": "41e111768c3f8ec35bddb4ad5b58c98816b001f2af59a4ad13d72428baa18407"
+    },
+    "contract_source": {
+      "path": "/home/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/whole_layer/indexer_wk_m12/contract.py",
+      "sha256": "28a1f26d1f9de88b6454b3b9a03eff622f63c039c47467eb45ac871c6387eff3"
+    },
+    "capture": {
+      "path": "/tmp/tilert-megakernel-validation-20261021/decoder-index-m12-v1/decoder-index-diagnostic.pt",
+      "sha256": "fb187d933ca499bec2ecc938184949775025ccbc90e0de894503e1dba2bae0bb"
+    },
+    "python": "3.12.13 (main, Jun 23 2026, 15:18:55) [Clang 22.1.3 ]",
+    "platform": "Linux-6.18.33.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "environment": {
+      "ASCEND_GLOBAL_LOG_LEVEL": null,
+      "ASCEND_SLOG_PRINT_TO_STDOUT": null,
+      "ASCEND_PROCESS_LOG_PATH": null,
+      "ASCEND_DOCKER_RUNTIME": null
+    },
+    "completed": true,
+    "cpu_only": true,
+    "call_count": 0,
+    "operator": "torch.nn.functional.linear(hidden, NZ_weight, bias=None)",
+    "cpu_oracle_scope": "Auxiliary FP64 dot; numerical acceptance targets captured vendor BF16 bytes",
+    "torch": "2.9.1+cpu",
+    "witnesses": [
+      {
+        "coordinate": [
+          5,
+          95
+        ],
+        "vendor": {
+          "value": -0.05615234375,
+          "bits": "0xbd66"
+        },
+        "native": {
+          "value": -0.055908203125,
+          "bits": "0xbd65"
+        },
+        "native_accumulator": {
+          "value": -0.05603018403053284,
+          "bits": "0xbd657fe8"
+        },
+        "cpu_fp64_dot": -0.05603019639238482,
+        "cpu_fp64_cast_fp32": {
+          "value": -0.05603019520640373,
+          "bits": "0xbd657feb"
+        },
+        "cpu_fp64_cast_bfloat16": {
+          "value": -0.055908203125,
+          "bits": "0xbd65"
+        },
+        "bf16_midpoint": -0.0560302734375,
+        "native_accumulator_minus_fp64": 1.236185198649764e-08,
+        "native_accumulator_minus_midpoint": 8.940696716308594e-08,
+        "fp64_minus_midpoint": 7.70451151765883e-08
+      },
+      {
+        "coordinate": [
+          6,
+          115
+        ],
+        "vendor": {
+          "value": -0.00028228759765625,
+          "bits": "0xb994"
+        },
+        "native": {
+          "value": -0.0002803802490234375,
+          "bits": "0xb993"
+        },
+        "native_accumulator": {
+          "value": -0.0002812296152114868,
+          "bits": "0xb9937200"
+        },
+        "cpu_fp64_dot": -0.00028121993091190234,
+        "cpu_fp64_cast_fp32": {
+          "value": -0.0002812199236359447,
+          "bits": "0xb99370b3"
+        },
+        "cpu_fp64_cast_bfloat16": {
+          "value": -0.0002803802490234375,
+          "bits": "0xb993"
+        },
+        "bf16_midpoint": -0.00028133392333984375,
+        "native_accumulator_minus_fp64": -9.68429958447814e-09,
+        "native_accumulator_minus_midpoint": 1.043081283569336e-07,
+        "fp64_minus_midpoint": 1.1399242794141173e-07
+      }
+    ],
+    "input": {
+      "shape": [
+        12,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "sha256": "1064e933e840343021a674c501f7f968282252e57a8fcf9cd06305af7389823d"
+    },
+    "weight": {
+      "shape": [
+        160,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "sha256": "7603cd9fa93def32472a3e7b28d00c9cc88421588f1acf1ac70b03fc070a813b"
+    },
+    "expected": {
+      "shape": [
+        12,
+        160
+      ],
+      "dtype": "torch.bfloat16",
+      "sha256": "d3046d9b818f1240ad69b8731cc6d200c639d57df20e255af4d00b4350b3fd48"
+    }
+  },
+  "device_executed": false
+}

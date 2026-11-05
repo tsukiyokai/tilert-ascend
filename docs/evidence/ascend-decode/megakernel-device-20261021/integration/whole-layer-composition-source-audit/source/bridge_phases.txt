@@ -1,0 +1,141 @@
+Original lines 25-163
+   25 };
+   26 
+   27 #define MoeGatingTopKTilingData BridgeTopKTiling
+   28 #include "moe_gating_top_k_without_group.h"
+   29 #undef MoeGatingTopKTilingData
+   30 
+   31 namespace ffn_bridge::device {
+   32 using namespace AscendC;
+   33 using namespace matmul;
+   34 
+   35 template <HardEvent event>
+   36 __aicore__ inline void Fence()
+   37 {
+   38     SetFlag<event>(EVENT_ID0);
+   39     WaitFlag<event>(EVENT_ID0);
+   40 }
+   41 
+   42 __aicore__ inline void EndPhase(TPipe& pipe)
+   43 {
+   44     PipeBarrier<PIPE_ALL>();
+   45     DataSyncBarrier<MemDsbT::DDR>();
+   46     SyncAll<false>();
+   47     pipe.Reset();
+   48 }
+   49 
+   50 using BF16 = MatmulType<TPosition::GM, CubeFormat::ND, bfloat16_t, false>;
+   51 using FP32 = MatmulType<TPosition::GM, CubeFormat::ND, float>;
+   52 using GateMatmul = Matmul<BF16, BF16, FP32, FP32>;
+   53 
+   54 __aicore__ inline void Gate(TPipe& pipe, __gm__ bfloat16_t* input,
+   55     __gm__ bfloat16_t* weight, __gm__ float* output, GM_ADDR tiling,
+   56     int64_t rows, int64_t blocks)
+   57 {
+   58     if ASCEND_IS_AIC {
+   59         const int64_t core = GetBlockIdx();
+   60         if (core >= kExperts / kGateTile) {
+   61             return;
+   62         }
+   63         TCubeTiling cube;
+   64         auto* words = reinterpret_cast<uint32_t*>(&cube);
+   65         const auto* source = reinterpret_cast<__gm__ uint32_t*>(tiling);
+   66         for (int64_t i = 0; i < sizeof(cube) / sizeof(uint32_t); ++i) {
+   67             words[i] = source[i];
+   68         }
+   69         GateMatmul mm;
+   70         mm.Init(&cube, &pipe);
+   71         GlobalTensor<bfloat16_t> a, b;
+   72         GlobalTensor<float> c;
+   73         a.SetGlobalBuffer(input, rows * kHidden);
+   74         b.SetGlobalBuffer(weight, kHidden * kExperts);
+   75         c.SetGlobalBuffer(output, rows * kExperts);
+   76         for (int64_t tile = core; tile < kExperts / kGateTile; tile += blocks) {
+   77             const int64_t column = tile * kGateTile;
+   78             mm.SetOrgShape(Capacity(rows), kExperts, kHidden);
+   79             mm.SetSingleShape(rows, kGateTile, kHidden);
+   80             mm.SetTensorA(a, false);
+   81             mm.SetTensorB(b[column], false);
+   82             mm.IterateAll(c[column]);
+   83             mm.End();
+   84         }
+   85     }
+   86 }
+   87 
+   88 __aicore__ inline void TopK(TPipe& pipe, GM_ADDR logits, GM_ADDR bias,
+   89     GM_ADDR probabilities, GM_ADDR ids, GM_ADDR system, int64_t rows)
+   90 {
+   91     if ASCEND_IS_AIV {
+   92         // Every active AIV owns exactly one full row. Both tail counts are
+   93         // one, so the standalone GetBlockNum convention cannot change it.
+   94         if (GetBlockIdx() < rows) {
+   95             BridgeTopKTiling tiling;
+   96             MoeGatingTopK::MoeGatingTopKWithoutGroup<float> router;
+   97             router.Init(logits, bias, probabilities, ids, logits, system,
+   98                         &tiling, &pipe);
+   99             router.Process();
+  100         }
+  101     }
+  102 }
+  103 
+  104 __aicore__ inline void Quantize(TPipe& pipe, __gm__ bfloat16_t* input,
+  105     __gm__ int8_t* output, __gm__ float* scales, int64_t rows)
+  106 {
+  107     if ASCEND_IS_AIV {
+  108         const int64_t row = GetBlockIdx();
+  109         if (row < rows) {
+  110             whole_layer_norm::device::DynamicQuantRow quant;
+  111             quant.Init(pipe);
+  112             quant.Process(input + row * kHidden, output + row * kHidden,
+  113                           scales + row);
+  114         }
+  115     }
+  116 }
+  117 
+  118 __aicore__ inline void Epilogue(TPipe& pipe, GM_ADDR routed, GM_ADDR shared,
+  119     GM_ADDR scaled, GM_ADDR combined, int64_t rows, int64_t blocks)
+  120 {
+  121     if ASCEND_IS_AIV {
+  122         constexpr int64_t tile = 1024;
+  123         TBuf<TPosition::VECCALC> buffer;
+  124         pipe.InitBuffer(buffer, tile * 12);
+  125         auto bytes = buffer.Get<uint8_t>();
+  126         auto x = bytes.ReinterpretCast<bfloat16_t>();
+  127         auto y = bytes[tile * 2].ReinterpretCast<bfloat16_t>();
+  128         auto value = bytes[tile * 4].ReinterpretCast<float>();
+  129         auto term = bytes[tile * 8].ReinterpretCast<float>();
+  130         GlobalTensor<bfloat16_t> input, other, intermediate, output;
+  131         input.SetGlobalBuffer((__gm__ bfloat16_t*)routed, rows * kHidden);
+  132         other.SetGlobalBuffer((__gm__ bfloat16_t*)shared, rows * kHidden);
+  133         intermediate.SetGlobalBuffer((__gm__ bfloat16_t*)scaled, rows * kHidden);
+  134         output.SetGlobalBuffer((__gm__ bfloat16_t*)combined, rows * kHidden);
+  135         for (int64_t index = GetBlockIdx(); index < rows * kHidden / tile;
+  136              index += 2 * blocks) {
+  137             const int64_t begin = index * tile;
+  138             DataCopy(x, input[begin], tile);
+  139             DataCopy(y, other[begin], tile);
+  140             Fence<HardEvent::MTE2_V>();
+  141             Cast(value, x, RoundMode::CAST_NONE, tile);
+  142             Cast(term, y, RoundMode::CAST_NONE, tile);
+  143             PipeBarrier<PIPE_V>();
+  144             Muls(value, value, 2.5F, tile);
+  145             PipeBarrier<PIPE_V>();
+  146             Cast(x, value, RoundMode::CAST_RINT, tile);
+  147             Fence<HardEvent::V_MTE3>();
+  148             DataCopy(intermediate[begin], x, tile);
+  149             PipeBarrier<PIPE_V>();
+  150             Cast(value, x, RoundMode::CAST_NONE, tile);
+  151             PipeBarrier<PIPE_V>();
+  152             Add(value, value, term, tile);
+  153             PipeBarrier<PIPE_V>();
+  154             Cast(y, value, RoundMode::CAST_RINT, tile);
+  155             Fence<HardEvent::V_MTE3>();
+  156             DataCopy(output[begin], y, tile);
+  157             Fence<HardEvent::MTE3_MTE2>();
+  158         }
+  159     }
+  160 }
+  161 
+  162 }  // namespace ffn_bridge::device
+  163 #endif
+

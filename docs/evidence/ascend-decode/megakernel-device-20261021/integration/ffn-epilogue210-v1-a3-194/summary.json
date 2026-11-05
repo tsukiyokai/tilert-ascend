@@ -1,0 +1,34 @@
+{
+  "scope": "Rank-local BF16 routed scaling and shared addition",
+  "pass": true,
+  "host": "a3-194",
+  "physical_die": 4,
+  "rows": [
+    1,
+    2,
+    12,
+    32
+  ],
+  "blocks": [
+    16,
+    24
+  ],
+  "captures": 8,
+  "changing_input_replays": 64,
+  "raw_byte_comparisons": 128,
+  "reference": "Torch BF16 scaled = routed * 2.5; BF16 combined = scaled + shared",
+  "boundaries": [
+    "scaled_routed",
+    "combined"
+  ],
+  "fixtures_include": [
+    "random inputs",
+    "negative zero",
+    "routed/shared cancellation input",
+    "alternating magnitude64 routed input"
+  ],
+  "timing": false,
+  "source_sha256": "4980973cced90d1abc2c7f3df258ca60a0b7f0723784dec807f3131df44dbb67",
+  "native_library_sha256": "d979e9b7b5d963039796d2a89f08e253d368f0a61a4b4670f309aba4b7f74a3f",
+  "report_sha256": "ec9e866ed151d78d61b352469799eae674c09c517ac2c54c7069e6e21f5c0e32"
+}

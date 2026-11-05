@@ -1,0 +1,79 @@
+{
+  "scope": "Source mechanism for the measured C1 regression; no per-stage timing attribution.",
+  "source": {
+    "file": "/tmp/sfa-c1-bounds-20261019-codex/source-evidence/service-cube-actual.h",
+    "actual_installed_sha256": "dbc124eb56d0e1a3bb625930fe66653246335e28dd5f490a25ec3713262550e7"
+  },
+  "facts": [
+    {
+      "lines": [
+        528,
+        559
+      ],
+      "function": "CalcTopKBlockInfo",
+      "fact": "For sparseBlockSize=1 and a visible token, blockLen=1 and copyRowCnt=1. Moving to the next token reads topKGm and calculates its new interval."
+    },
+    {
+      "lines": [
+        759,
+        767
+      ],
+      "function": "ComputeMm1",
+      "fact": "RoPE64 uses the 576-wide path with two 288-wide K passes. The separate NoRope path is not active for this experiment."
+    },
+    {
+      "lines": [
+        859,
+        933
+      ],
+      "function": "ComputeMm1",
+      "fact": "The C-template while loop calls CalcTopKBlockInfo and DataCopyPA for K and RoPE, then advances copyFinishRowCnt by copyRowCnt. At C1 this is one token per iteration, revisited across the two K passes."
+    },
+    {
+      "lines": [
+        83,
+        110
+      ],
+      "function": "DataCopyPA",
+      "fact": "Every such row reads the block table, computes the selected physical GM address and issues ND2NZ through DataCopyGmNDToL1."
+    },
+    {
+      "lines": [
+        55,
+        60
+      ],
+      "function": "DataCopyGmNDToL1",
+      "fact": "nValue=rowAct, so the C1 operation above submits a one-row copy."
+    },
+    {
+      "lines": [
+        1122,
+        1162
+      ],
+      "function": "ComputeMm2",
+      "fact": "The V-input copy repeats the same one-token walker for each output-column tile."
+    },
+    {
+      "lines": [
+        817,
+        855
+      ],
+      "function": "ComputeMm1 V_TEMPLATE branch",
+      "fact": "The packed V-template source is contiguous. It issues ND2NZ with nValue=nL1Size, which is 128 for the full tiles in this fixture."
+    },
+    {
+      "lines": [
+        1110,
+        1120
+      ],
+      "function": "ComputeMm2 V_TEMPLATE branch",
+      "fact": "The packed V-template path issues ND2NZ with nValue=kL0Size, 128 for these full tiles."
+    }
+  ],
+  "conclusion": "C1 exposes a serial chain of selected-index reads, page-table reads and one-row copies inside both matrix multiplications. The paired timing measures the whole V1-to-C1 route change; it does not price this loop separately.",
+  "measured_pairs": {
+    "AB_c1_over_v1": 11.086582144294495,
+    "BA_c1_over_v1": 10.849219621722792
+  },
+  "additional_profiler_runs": 0
+}

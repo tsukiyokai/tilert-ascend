@@ -1,0 +1,48 @@
+{
+  "patch_sha256": "5532e3438a0cf7d246a12c28773827f73efe6602561555abecbd8e5230eb581b",
+  "candidate_manifest": {
+    "grouped_matmul_active_groups_a8w4.h": {
+      "source_sha256": null,
+      "candidate_sha256": "6b08613596630f33075ee429e2aca1ac49d4357bd4623716956fa26a5989cc37"
+    },
+    "grouped_matmul.cpp": {
+      "source_sha256": "12e4d86d672e88c4cdda1cb5ea5ab8e1298ac205ebf76c708363930c437d562a",
+      "candidate_sha256": "8c1d30f25f2a3125f3cb3ed0e2cfe87d6ac8ef31aad21216a8916254b7a30a95"
+    },
+    "grouped_matmul_antiquant_a8w4_msd.h": {
+      "source_sha256": "a8b7c446d5373f5f50d3ee22bdf6631a8468973da420791bb97ccf0e2f351fbb",
+      "candidate_sha256": "28aa760a1745e8d9fd2760a2b54a119d018f4ddaa18670716c85f91f399d6acb"
+    },
+    "patch_sha256": "5532e3438a0cf7d246a12c28773827f73efe6602561555abecbd8e5230eb581b"
+  },
+  "conclusion": "No source-level correctness blocker found within the explicit guard and valid nonnegative counts summing to m. This does not assert runtime correctness or speed; first candidate/control device outputs and actual enablement are still required.",
+  "workspace": {
+    "runtime_total": 117440512,
+    "runtime_allocation_with_alignment": 117441024,
+    "reserved_prefix": 16777216,
+    "ring_half_elements": 3145728,
+    "ring_bytes": 6291456,
+    "records_relative_user_begin": 6291456,
+    "records_bytes_max": 2080,
+    "records_relative_system_begin": 23068672,
+    "records_relative_system_end": 23070752,
+    "available_user_bytes": 100663296,
+    "guard_disables_preNZ_and_offset": true
+  },
+  "ub": {
+    "allocation": 4128,
+    "counts_bytes": 2048,
+    "output_bytes": 2080,
+    "max_active": 256,
+    "max_padded_length": 260
+  },
+  "publish_order": "AIV0 finishes MTE3 write before existing preprocessor. Every AIV then reaches original pre.h:213 SyncAll<false>; AIC reaches matching compute Process:273 SyncAll<false>. Actual c220 implementation PIPE_ALL then AIV→AIC flag + AIC collective + AIC→AIV release precedes all consumers Invalidate/Size/Get.",
+  "numerical_invariant": "Positive experts emitted ascending with (original_expert,end). Adjacent end differences recover dense counts; skipping zeros leaves per-core task order, preCount rotation, doubled input offsetM, cubeCount ring slot and vecCount AIV phase identical. MMCompute/VectorCompute unchanged and use original groupIdx, including255; row/token-scale offsets remain based on original sorted row prefix.",
+  "replay": "Each invocation rewrites head and all active records, then invalidates consumer Dcache. Shrinking active count does not read old tail. No persistent cursor or table source is reused across forwards.",
+  "template_scope": "5532e343 adds API_DEQUANT-only Publish; vector-dequant no longer incurs a publication or write in its different scratch layout.",
+  "required_fixture_witnesses": [
+    "original-vs-candidate bit exact on same frozen inputs with INT8 x restored every call",
+    "active expert255 and sparse holes, producer list change A/B/reset, same shape",
+    "actual runtime tiling fields satisfy every helper guard, and same selected API template key/compiler control"
+  ]
+}

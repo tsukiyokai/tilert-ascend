@@ -1,0 +1,647 @@
+{
+  "created_at": "2026-10-16T15:53:45.690033+00:00",
+  "scope": "CPU RoPE arithmetic, instance isolation and real-checkpoint MTP construction",
+  "device_execution": false,
+  "full_model_execution": false,
+  "oracle": "Python float64 scalar products/sums and independent BF16 RNE",
+  "input_coefficients": "Installed HF rotary embedding, BF16 before rotation",
+  "environment": {
+    "python": "3.11.12",
+    "torch": "2.12.0+cpu",
+    "autoload": "0",
+    "torch_npu_imported": true,
+    "npu_runtime_initialized": false
+  },
+  "source_sha256": {
+    "/workspace/src/TileRT-Ascend/tilert/models/glm_5_2_ascend/reference.py": "2802cdd8c787c2a6e2306f65cba7e735f49ee42011a8270cf5b47979b5d84a11",
+    "/workspace/experiments/glm52/check-rope-adapter-cpu-20261016-mtp.py": "a1adc84679332ccce82f4c56fff364e9245dd0ff65cff2e955e5728013696e12",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/transformers/models/glm_moe_dsa/modeling_glm_moe_dsa.py": "adb8317a21716b01273046e46c807f14f0dbaf035af59b60d52bd6bc3007cf72",
+    "/workspace/models/GLM-5.2-w4a8c8/config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+    "/workspace/src/TileRT-Ascend/tilert/models/glm_5_2_ascend/mtp_reference.py": "151cc64dfaca541b00dc31996e2a1103b8495f0f76d0f89e9d82b2be675ed732"
+  },
+  "checks": [
+    {
+      "name": "coefficients.0.M1",
+      "passed": true,
+      "positions": [
+        0
+      ]
+    },
+    {
+      "name": "position0.M1.q4.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        4,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position0.M1.q4.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        4,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position0.M1.q4.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        4,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position0.M1.k1.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position0.M1.k1.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position0.M1.k1.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "coefficients.0.M4",
+      "passed": true,
+      "positions": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "position0.M4.q4.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        4,
+        64
+      ],
+      "elements": 1024,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position0.M4.q4.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        4,
+        64
+      ],
+      "elements": 1024,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position0.M4.q4.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        4,
+        64
+      ],
+      "elements": 1024,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position0.M4.k1.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        1,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position0.M4.k1.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        1,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position0.M4.k1.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        1,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "coefficients.1.M1",
+      "passed": true,
+      "positions": [
+        1
+      ]
+    },
+    {
+      "name": "position1.M1.q4.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        4,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position1.M1.q4.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        4,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position1.M1.q4.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        4,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position1.M1.k1.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position1.M1.k1.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position1.M1.k1.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "coefficients.1.M4",
+      "passed": true,
+      "positions": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "position1.M4.q4.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        4,
+        64
+      ],
+      "elements": 1024,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position1.M4.q4.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        4,
+        64
+      ],
+      "elements": 1024,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position1.M4.q4.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        4,
+        64
+      ],
+      "elements": 1024,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position1.M4.k1.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        1,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position1.M4.k1.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        1,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position1.M4.k1.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        1,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "coefficients.8192.M1",
+      "passed": true,
+      "positions": [
+        8192
+      ]
+    },
+    {
+      "name": "position8192.M1.q4.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        4,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position8192.M1.q4.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        4,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position8192.M1.q4.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        4,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position8192.M1.k1.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position8192.M1.k1.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position8192.M1.k1.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "coefficients.8192.M4",
+      "passed": true,
+      "positions": [
+        8192,
+        8193,
+        8194,
+        8195
+      ]
+    },
+    {
+      "name": "position8192.M4.q4.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        4,
+        64
+      ],
+      "elements": 1024,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position8192.M4.q4.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        4,
+        64
+      ],
+      "elements": 1024,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position8192.M4.q4.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        4,
+        64
+      ],
+      "elements": 1024,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position8192.M4.k1.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        1,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position8192.M4.k1.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        1,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position8192.M4.k1.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        1,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "rounding_witness.scalar",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0
+    },
+    {
+      "name": "rounding_witness.distinguishes_bf16_steps",
+      "passed": true,
+      "bf16_steps": -0.3046875,
+      "adapter": -0.302734375,
+      "independent_float64_real": -0.303131103515625
+    },
+    {
+      "name": "installation.same_code_object",
+      "passed": true
+    },
+    {
+      "name": "installation.same_call_defaults",
+      "passed": true
+    },
+    {
+      "name": "installation.instance_private_lookup",
+      "passed": true,
+      "changed_globals": [
+        "apply_rotary_pos_emb_interleave"
+      ]
+    },
+    {
+      "name": "installation.hf_module_unchanged",
+      "passed": true
+    },
+    {
+      "name": "installation.second_instance_and_class_unchanged",
+      "passed": true
+    },
+    {
+      "name": "mtp.constructs_real_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "mtp.instance_forward_binding",
+      "passed": true
+    },
+    {
+      "name": "mtp.private_rope_lookup",
+      "passed": true,
+      "changed_globals": [
+        "apply_rotary_pos_emb_interleave"
+      ]
+    },
+    {
+      "name": "mtp.rotary_contract_matches_independent_copy",
+      "passed": true,
+      "contract": {
+        "intermediates": "FP32 products and sum; one BF16 output cast",
+        "angles": "HF FP32 generation followed by BF16 cast",
+        "main_basis": "real half, imaginary half",
+        "index_basis": "alternating real and imaginary",
+        "cann_source_sha256": "96028ea9c3f2b5426b60c00e03951fafbcd4903ceff5880b4ad31482d37e0a8a",
+        "hf_adapter": "Instance forward globals; HF bytecode unchanged"
+      }
+    },
+    {
+      "name": "mtp.indexer_bf16_configuration",
+      "passed": true
+    },
+    {
+      "name": "mtp.indexer_bf16_encode",
+      "passed": true
+    },
+    {
+      "name": "mtp.indexer_bf16_cache",
+      "passed": true
+    },
+    {
+      "name": "mtp.cpu_parameters_and_empty_reset",
+      "passed": true
+    },
+    {
+      "name": "mtp.hf_module_classes_and_other_instance_unchanged",
+      "passed": true
+    },
+    {
+      "name": "reference_source_stable",
+      "passed": true
+    },
+    {
+      "name": "mtp_source_stable",
+      "passed": true
+    },
+    {
+      "name": "npu_runtime_not_initialized",
+      "passed": true
+    }
+  ],
+  "passed": 61,
+  "failed": 0,
+  "status": "pass"
+}

@@ -1,0 +1,95 @@
+{
+  "scope": "One source mechanism audit; no repository change, device launch, compilation, or performance measurement.",
+  "observed_utc": "2026-10-19T15:46:29.902834+00:00",
+  "conclusion": "Do not device-launch the current prototype for correctness or timing evidence. Rebuild a real tile producer against the existing communication protocol.",
+  "sha256": {
+    "/home/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/shmem/fused_proj_reduce_kernel.cpp": "b801b88e30cac7ed24ef284627dde235800f15d47d7a91a344d1f76ab5515d29",
+    "/home/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/shmem/fused_main.cpp": "881956a1f99fbe3704e8a4263351d54aade6e47bc1f721da6732690b95457c0a",
+    "/home/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/shmem/fused_proj_reduce_kernel.h": "0a3a08bba2817aa54e410e11781f4246c2c3c1624d29035041cc1ad614569aa9",
+    "/home/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/shmem/tp_push_kernel.cpp": "6542576d54fcfe44f753ed62ba567f057f25b294fae72203c0e82f5955e42a8b",
+    "/home/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/shmem/CMakeLists.txt": "77d3a36dc6d3549c047d181a10054241cce215c4ad3d974664f2c12cbe162cb6"
+  },
+  "server_snapshot": {
+    "source_root": "a3-84:trt-asc:/workspace/src/shmem-build/shmem",
+    "examples/fused_proj_reduce/fused_proj_reduce_kernel.cpp": "d8301ff83d93e72e3591bb128a4e37a5e6e15432cc40fdb5d05c65802e891232",
+    "examples/fused_proj_reduce/main.cpp": "1ecdbe836bb391d4df627245407f2e6abed7885c3f8c56a2845b53c7c8ec7bb3",
+    "build/lib/libfused_proj_reduce_kernel.so": "a07f8e04939a1faed8a03e962f0cf1f135fc427791d1a70e01e913d200060f15",
+    "build/bin/fused_proj_reduce": "1ea2838da130c0aaa03106f88074e8bec66988232cb6d069c9e58bf204ed27fd",
+    "src/device/gm2gm/engine/shmem_device_mte.hpp": "3068cc10188242e5cc7b74f9f141df3dd8a6d394292b2ebe95f060a9540912fd",
+    "src/device/gm2gm/shmem_device_mo.hpp": "40381b5183666735bb99ed2374a83d77e5b687f91663009baabfa461fc06b68b",
+    "src/device/gm2gm/shmemi_device_cc.h": "a345ff2dc10202f43ba7229df976d7ba9f62b8c335b163d38c32eadf44b1d85e",
+    "variant": "Server kernel declares core_ratio(1,2); local source uses KERNEL_TASK_TYPE_DEFAULT(MIX_AIC_1_2). Remaining kernel statements match; server lines after the declaration are one lower.",
+    "exports": "nm -D confirms fused_proj_reduce_demo(unsigned int,void*,unsigned long,int8_t*,int8_t*,float*,float*,uint8_t*,uint8_t*,int,int,int,int) and fused_proj_reduce_kernel. Existing binary CLI is <pe_size> <pe_id> <ip_port> <rows> <inner> <cols> <rounds>; presence is not a valid execution receipt."
+  },
+  "defects": [
+    {
+      "root_cause": "No initialized matmul tiling.",
+      "anchors": "fused_main.cpp:85-99,110-120; fused_proj_reduce_kernel.cpp:138-145",
+      "witness": "Host allocates4096 bytes for tiling but never generates TCubeTiling or copies any content. Kernel reads those bytes and mm.Init consumes them. K is not otherwise passed into the kernel.",
+      "consequence": "No defined shape/configuration for the matmul; the existing executable is not a correctness harness."
+    },
+    {
+      "root_cause": "Wrong cross-core synchronization mode.",
+      "anchors": "fused_proj_reduce_kernel.cpp:158,162; asc-devkit CrossCoreSetFlag_ISASI.md:38-40",
+      "witness": "One AIC and its two AIVs suffice: AIC sets mode0 flag5; AIVs wait on flag5 without an AIV mode0 producer. Mode0 synchronizes the same core kind. Mode2 supplies the intended one-AIC-to-two-AIV handoff.",
+      "consequence": "The first handoff has no valid release relation. The defect is mode0, not one producer versus two consumers by itself."
+    },
+    {
+      "root_cause": "The outer tile loop reuses an asynchronous transfer stage before consumption.",
+      "anchors": "fused_proj_reduce_kernel.cpp:74-75,166-172; server shmem_device_mte.hpp:196-211",
+      "witness": "For E>8192 floats, call0 issues MTE3 from stage for tile0 and returns without the final MTE3-to-MTE2 wait. Call1 can refill the same stage before call0 MTE3 consumes it. The SDK explicitly leaves that last wait to the caller. A distinct-valued tile1 can replace data from tile0. Quiet after all calls is too late.",
+      "consequence": "Incorrect data is permitted before the PE sync, even after the flag mode is repaired."
+    },
+    {
+      "root_cause": "Single partial buffer has no consumer acknowledgement between internal rounds.",
+      "anchors": "fused_proj_reduce_kernel.cpp:133-175",
+      "witness": "After publishing ready(r), AIC can write partial(r+1) while AIV still reads partial(r) for a push. The two window planes do not protect this separate single buffer.",
+      "consequence": "A protocol repair needs explicit producer-slot ownership; static identical all-ones rounds cannot expose this generation race."
+    }
+  ],
+  "unsupported_overlap_claim": {
+    "anchors": "fused_proj_reduce_kernel.cpp:154-170",
+    "actual_order": "IterateAll(c) -> End() -> one PROJECT_READY -> all tile puts",
+    "conclusion": "No tile-level compute/communication overlap is implemented. A true tile-ready producer has not been established."
+  },
+  "reusable_protocol": {
+    "source": "tests/glm52/shmem/tp_push_kernel.cpp",
+    "pieces": "TpPushPlane:48-59; TpPushPublish:64-83; TpPushReduce:85-119; stage0 dispatch in tp_push_once:486-526.",
+    "contract": "Use one full-payload mte_put_nbi call per sender-to-peer, then each participating AIV quiet, vector PE sync, and ascending-rank reduction. The SDK full-payload loop handles staging reuse internally; do not replace it with repeated calls sharing one stage without ownership.",
+    "prior_numerical_receipt": "docs/evidence/ascend-decode/onesided-allreduce-20261018/README.md documents wrong0 for the standalone protocol. No new receipt or latency is claimed here.",
+    "two_plane_invariant": "Under matching PE round numbers and all-AIV participation, starting window reuse at r+2 requires passing sync(r+1); every peer reaches sync(r+1) after finishing reduction(r). Thus the window two-plane design has a valid reuse argument. This does not establish ownership of the producer partial or UB stage.",
+    "current_quiet_boundary": "The inspected server quiet implementation has PIPE_ALL before its transport-mask branch (:92), then dcci. Historical text saying zero-mask quiet performs no MTE barrier does not describe this snapshot."
+  },
+  "minimum_correct_two_die_version": [
+    "Host establishes initialized TCubeTiling and actual NZ-packed weights for the declared M/N/K/dtypes. Start with one AIC and two AIVs to avoid an additional multi-core projection partitioning problem.",
+    "Producer exposes completed tile boundaries after their Fixpipe stores; use an appropriate AIC/AIV handshake and explicit ownership/consumed acknowledgement for every reused producer slot. Publishing only after IterateAll is not tile production.",
+    "Retain the established vector-side push/quiet/sync/ordered-reduce protocol and its two window planes; preserve UB stage ownership through the final MTE3 completion.",
+    "State the tail contract. Current ReduceStripe uses plain DataCopy(count), which rounds down non-32B counts; either restrict every span to multiples of8 float elements or handle the remaining elements explicitly. Rank, tile and generation tags must survive the tail.",
+    "Validate distinguishable rank/tile/generation data and output sentinels on both PEs for at least three generations with skew. Compare every element against a CPU reference. Three separately synchronized single-round launches cannot falsify an internal-round partial-buffer race; the internal loop needs distinguishable generations."
+  ],
+  "small_correctness_shape": {
+    "P": 2,
+    "die_ids": [
+      0,
+      1
+    ],
+    "block_dim": 1,
+    "M": 16,
+    "K": 32,
+    "N": 528,
+    "reason": "K32/N528 allow ordinary int8 NZ blocking; E8448 floats exercises one full8192-float chunk and an aligned256-float tail.",
+    "bytes_per_die": {
+      "activation": 512,
+      "packed_weight_without_extra_padding": 16896,
+      "partial": 33792,
+      "out": 33792,
+      "window": 139264,
+      "tiling_allocation": 4096,
+      "logical_total": 228352,
+      "UB_buffers_per_AIV": 98304
+    },
+    "heap_boundary": "Existing host requests1GiB SHMEM heap per die; window resides inside that heap. Additional named non-heap allocations total89088 bytes, excluding runtime/workspace/alignment overhead. Logical buffers are223KiB per die; no measured peak-memory claim.",
+    "entry": "fused_proj_reduce_demo(1,stream,ffts,A,B_nz,partial,out,window,valid_tiling,16,528,rounds,round_base). This is the target call contract after reconstruction, not authorization to launch the broken implementation.",
+    "payload": "Use rank-distinct int8 activation and column/tile-varying NZ weights; add distinguishable generation inputs within a multi-round invocation. All-ones data masks rank duplication, layout permutations and stale-generation reads."
+  }
+}

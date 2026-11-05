@@ -1,0 +1,196 @@
+{
+  "status": "complete",
+  "input_sha256": {
+    "/home/shanshan/trt-asc/offline/cann-traffic-review-20261017-01/runtime-traffic.json": "c80bd5500d3330b07b9a8d8d661b50462acda98533d04968bd4e9fa3385365e2",
+    "/home/shanshan/trt-asc/offline/cann-traffic-review-20261017-01/prior-runtime-traffic.json": "da5ff3c0ea027e7f401a52977873df51a91923981b83460bba27aef0fe3fbcd5",
+    "/home/shanshan/trt-asc/offline/cann-mtp-profile-20261017-01/analysis/export-rank-0/rank-0_1269872_20261017224550394_ascend_pt/ASCEND_PROFILER_OUTPUT/kernel_details.csv": "21143c144fb26fc03df38748bc2719b542a10dd22cbf4fbbca94143f6042880b",
+    "/home/shanshan/trt-asc/offline/cann-traffic-review-20261017-01/source-audit.py": "d95d02bb426d4480f9d58fb5d5549df9cd6ad39be44689ff1f93c96432b8fc5b"
+  },
+  "representation_witnesses": {
+    "tp_sharded_bf16_lm_head": {
+      "Name": "aclnnMatmul_MatMulCommon_MatMulV2",
+      "Type": "MatMulV2",
+      "Task ID": "16350",
+      "Input Shapes": "\"1,6144;9680,6144\"",
+      "Input Data Types": "DT_BF16;DT_BF16",
+      "Input Formats": "ND;ND",
+      "Output Shapes": "\"1,9680\"",
+      "Output Data Types": "DT_BF16"
+    },
+    "replicated_bf16_rotation": {
+      "Name": "aclnnMatmul_MatMulCommon_MatMulV2",
+      "Type": "MatMulV2",
+      "Task ID": "16381",
+      "Input Shapes": "\"1,6144;6144,6144\"",
+      "Input Data Types": "DT_BF16;DT_BF16",
+      "Input Formats": "ND;ND",
+      "Output Shapes": "\"1,6144\"",
+      "Output Data Types": "DT_BF16"
+    },
+    "replicated_bf16_eh_proj": {
+      "Name": "aclnnMatmul_MatMulCommon_MatMulV2",
+      "Type": "MatMulV2",
+      "Task ID": "16406",
+      "Input Shapes": "\"1,12288;6144,12288\"",
+      "Input Data Types": "DT_BF16;DT_BF16",
+      "Input Formats": "ND;ND",
+      "Output Shapes": "\"1,6144\"",
+      "Output Data Types": "DT_BF16"
+    },
+    "prolog_fp32_scales": {
+      "Name": "MlaPrologV3",
+      "Type": "MlaPrologV3",
+      "Task ID": "16410",
+      "Input Shapes": "\"1,6144;6144,2048;2048,1024;4,192,512;6144,576;2048;512;1,64;1,64;73,128,1,512;73,128,1,64;1;1,1;1,2048;1,1024;1,576;;;;;\"",
+      "Input Data Types": "INT8;INT8;INT8;DT_BF16;INT8;DT_BF16;DT_BF16;DT_BF16;DT_BF16;DT_BF16;DT_BF16;INT64;FLOAT;FLOAT;FLOAT;FLOAT;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED",
+      "Input Formats": "ND;FRACTAL_NZ;FRACTAL_NZ;ND;FRACTAL_NZ;ND;ND;ND;ND;ND;ND;ND;ND;ND;ND;ND;NULL;NULL;NULL;NULL;NULL",
+      "Output Shapes": "\"1,4,512;1,4,64;73,128,1,512;73,128,1,64;;1,2048;1,1\"",
+      "Output Data Types": "DT_BF16;DT_BF16;DT_BF16;DT_BF16;FLOAT;INT8;FLOAT"
+    },
+    "ordinary_w8_bf16_scales": {
+      "Name": "aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3",
+      "Type": "QuantBatchMatmulV3",
+      "Task ID": "16424",
+      "Input Shapes": "\"1,1024;192,64,16,32;6144;1\"",
+      "Input Data Types": "INT8;INT8;DT_BF16;FLOAT",
+      "Input Formats": "ND;FRACTAL_NZ;ND;ND",
+      "Output Shapes": "\"1,6144\"",
+      "Output Data Types": "DT_BF16"
+    },
+    "replicated_router_bf16_to_fp32": {
+      "Name": "aclnnMm_MatMulV3Common_MatMulV3",
+      "Type": "MatMulV3",
+      "Task ID": "16431",
+      "Input Shapes": "\"1,6144;256,6144\"",
+      "Input Data Types": "DT_BF16;DT_BF16",
+      "Input Formats": "ND;ND",
+      "Output Shapes": "\"1,256\"",
+      "Output Data Types": "FLOAT"
+    },
+    "packed_w4_scale_and_compensation": {
+      "Name": "aclnnGroupedMatmulSwigluQuantWeightNzV2_GroupedMatmulSwigluQuantV2_GroupedMatmulSwigluQuantV2",
+      "Type": "GroupedMatmulSwigluQuantV2",
+      "Task ID": "16434",
+      "Input Shapes": "\"8,6144;8;256;256,4,384,16,64;256,256;256,256\"",
+      "Input Data Types": "INT8;FLOAT;INT64;DT_INT4;UINT64;FLOAT",
+      "Input Formats": "ND;ND;ND;FRACTAL_NZ;ND;ND",
+      "Output Shapes": "\"8,128;8\"",
+      "Output Data Types": "INT8;FLOAT"
+    }
+  },
+  "runtime_source_sha256": {
+    "vllm-unified/vllm/model_executor/models/deepseek_v2.py": "5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408",
+    "vllm-unified/vllm/model_executor/models/deepseek_mtp.py": "aae80e30b2dbfd1df41b83f51aaba4722e9f2dc3b4479d2a38ce1e32926fac11",
+    "vllm-unified/vllm/model_executor/layers/logits_processor.py": "35cf8235cb529ba2d37358fe9b9e5a29f40b5c3cbcc9e6750c8480c51bd7da83",
+    "vllm-ascend-unified/vllm_ascend/attention/sfa_v1.py": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+    "vllm-ascend-unified/vllm_ascend/attention/indexer.py": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1",
+    "vllm-ascend-unified/vllm_ascend/ops/fused_moe/gate_linear.py": "b4cafe1e79b13f3561c53765cc1e33a312c67052e5a54c927a6f229ddd70d0bf",
+    "vllm-ascend-unified/vllm_ascend/quantization/methods/w4a8/w4a8.py": "d06549f45637300df3e4915823f4f71a913ce7059d1e3a4c475ab1f225e1a28a",
+    "vllm-ascend-unified/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py": "47444be0a5017d012401685d89134200f39c5e706f7941797fa7ecfccf1bba0d"
+  },
+  "scenario_changes": [
+    {
+      "expert_union_scenario": 8,
+      "kv_read_passes": 1,
+      "old_bytes": 5250553088,
+      "new_bytes": 5003789568,
+      "delta_bytes": -246763520
+    },
+    {
+      "expert_union_scenario": 8,
+      "kv_read_passes": 4,
+      "old_bytes": 5898573056,
+      "new_bytes": 5651809536,
+      "delta_bytes": -246763520
+    },
+    {
+      "expert_union_scenario": 16,
+      "kv_read_passes": 1,
+      "old_bytes": 6014473472,
+      "new_bytes": 5767709952,
+      "delta_bytes": -246763520
+    },
+    {
+      "expert_union_scenario": 16,
+      "kv_read_passes": 4,
+      "old_bytes": 6662493440,
+      "new_bytes": 6415729920,
+      "delta_bytes": -246763520
+    },
+    {
+      "expert_union_scenario": 32,
+      "kv_read_passes": 1,
+      "old_bytes": 7542314240,
+      "new_bytes": 7295550720,
+      "delta_bytes": -246763520
+    },
+    {
+      "expert_union_scenario": 32,
+      "kv_read_passes": 4,
+      "old_bytes": 8190334208,
+      "new_bytes": 7943570688,
+      "delta_bytes": -246763520
+    }
+  ],
+  "actual_m4_expert_unions": null,
+  "route_capture_evidence": {
+    "/home/shanshan/trt-asc/offline/cann-mtp-rounds-20261017-01/checked/rank-0.json": {
+      "sha256": "48741c0bd86cdf7c5d6f1b1a90bd2563ffaac698eeb7228fb53c1d7bb078c95b",
+      "coverage": {
+        "greedy_tokens": true,
+        "valid_new_main_mtp_kv": true,
+        "frozen_prefix_exact": true,
+        "reset_exact": true,
+        "intermediate_hidden_logits": false,
+        "routes_indices": false
+      },
+      "saved_phases": [
+        "serial",
+        "speculative",
+        "reset"
+      ]
+    },
+    "/home/shanshan/trt-asc/offline/cann-mtp-target-graph-20261017-01/checked/rank-0.json": {
+      "sha256": "1d344fe701c204b3851c60c98b7fc85946bbfb72a847404436d036609341953f",
+      "coverage": {
+        "greedy_tokens": true,
+        "valid_new_main_mtp_kv": true,
+        "frozen_prefix_exact": true,
+        "reset_exact": true,
+        "intermediate_hidden_logits": false,
+        "routes_indices": false
+      },
+      "saved_phases": [
+        "serial",
+        "speculative",
+        "graph",
+        "reset"
+      ]
+    }
+  },
+  "source_anchors": {
+    "router": "gate_linear.py:123-134: BF16 operands, FP32 output",
+    "prolog": "sfa_v1.py:1098-1115: replicated dq/dkv, TP uq, FP32 scales",
+    "index_chain": "indexer.py:320-322,422-431: fused K/weights GEMM runs before compute_topk=False returns",
+    "w4": "w4a8.py:174-185,599-608,639-664: packed INT4, INT64 scales, FP32 compensation; no selected-weight materialization here",
+    "mtp": "deepseek_mtp.py:85-87,127-144,226-235: replicated eh_proj; head norm for recycle and again for logits; Ascend deepseek_mtp.py:19-33 adds replicated rot",
+    "logits": "logits_processor.py:188-198: full logits gather before argmax; CannModel.verify:348-352 discards only afterward"
+  },
+  "minimal_capture": {
+    "method": "Wrap final AscendRoutedExperts._select_experts result[1]",
+    "target_object": "engine.model.model.layers[l].mlp.experts.routed_experts, l=3..77",
+    "mtp_object": "draft.model.model.layers['78'].mtp_block.mlp.experts.routed_experts",
+    "source": "routed_experts.py:638-691 then 731-744",
+    "graph": "Before capture, allocate persistent int32/int64 [75,4,8] storage and record per-layer copy_ into it inside the graph. Read after each verify outside timing. A Python callback on replay alone cannot observe routes.",
+    "draft": "Eager hooks record seed/chain/conditioned phase, round, position and [M,8] final IDs after overrides",
+    "derive": "For every layer/call compute len(set(ids.flatten())); record all ranks or establish rank equality first",
+    "size": "Target INT32 IDs: 9600B/rank/round; MTP three steady forwards: 192B, plus one initial seed of 32B",
+    "measurement_scope": "Diagnostic run only, no TPOT from this capture"
+  },
+  "limits": [
+    "Saved rounds/new_cache do not contain actual per-layer routes",
+    "No PT tensors, model weights or NPU were read by this analysis",
+    "Expert union gives logical active weights, not DRAM transactions",
+    "MSD workspace, repeated reads and L2 reuse remain unmeasured"
+  ]
+}

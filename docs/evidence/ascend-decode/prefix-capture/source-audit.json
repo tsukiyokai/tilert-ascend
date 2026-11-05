@@ -1,0 +1,2118 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-10-16T12:19:15.390631+00:00",
+  "hostname": "liteserver-hps-c180-00044",
+  "scope": "Read-only source audit of max_tokens=1 prefill and initial MTP cache export",
+  "collection": "Python stdlib source reads, SHA256, git rev-parse HEAD and git show HEAD:path",
+  "numerical_execution": false,
+  "device_execution": false,
+  "container_started": false,
+  "runtime_configuration_observed": false,
+  "repositories": {
+    "vllm": {
+      "path": "/home/shanshan/trt-asc/src/vllm-glm52",
+      "expected_head": "c4df37dfcc7f72ca41cd43801a468526ecf99a2b",
+      "head": "c4df37dfcc7f72ca41cd43801a468526ecf99a2b",
+      "head_matches_expected": true,
+      "files": {
+        "vllm/config/speculative.py": {
+          "path": "/home/shanshan/trt-asc/src/vllm-glm52/vllm/config/speculative.py",
+          "sha256": "88cec427b52bb1cb56842f9034a4d49a915d05302b92b0249227feaf4d81f3e1",
+          "head_sha256": "88cec427b52bb1cb56842f9034a4d49a915d05302b92b0249227feaf4d81f3e1",
+          "matches_head_content": true,
+          "contexts": [
+            {
+              "purpose": "parallel_drafting_field",
+              "start_line": 477,
+              "end_line": 483,
+              "lines": [
+                {
+                  "number": 477,
+                  "text": ""
+                },
+                {
+                  "number": 478,
+                  "text": "    # Alternative drafting strategies"
+                },
+                {
+                  "number": 479,
+                  "text": "    parallel_drafting: bool = False"
+                },
+                {
+                  "number": 480,
+                  "text": "    \"\"\"Enable parallel drafting, where all speculative tokens are generated"
+                },
+                {
+                  "number": 481,
+                  "text": "    in parallel rather than sequentially. This can improve performance but"
+                },
+                {
+                  "number": 482,
+                  "text": "    requires the speculative model be trained to support parallel drafting."
+                },
+                {
+                  "number": 483,
+                  "text": "    Only compatible with EAGLE and draft model methods.\"\"\""
+                }
+              ]
+            },
+            {
+              "purpose": "mtp_uses_eagle_proposer",
+              "start_line": 1938,
+              "end_line": 1942,
+              "lines": [
+                {
+                  "number": 1938,
+                  "text": "    def use_eagle(self) -> bool:"
+                },
+                {
+                  "number": 1939,
+                  "text": "        # NOTE: This method is usually a stand-in for \"speculative decoding using"
+                },
+                {
+                  "number": 1940,
+                  "text": "        # target model hidden states\""
+                },
+                {
+                  "number": 1941,
+                  "text": "        # TODO(ben): Refactor this so the naming is clearer"
+                },
+                {
+                  "number": 1942,
+                  "text": "        return self.method in (\"eagle\", \"eagle3\", \"mtp\", \"dflash\", \"dspark\")"
+                }
+              ]
+            }
+          ]
+        },
+        "vllm/v1/core/sched/scheduler.py": {
+          "path": "/home/shanshan/trt-asc/src/vllm-glm52/vllm/v1/core/sched/scheduler.py",
+          "sha256": "8f833ef99943e69802de1b16f6b4b84c2f99d9732767865d9e46a8fa51bf1c79",
+          "head_sha256": "8f833ef99943e69802de1b16f6b4b84c2f99d9732767865d9e46a8fa51bf1c79",
+          "matches_head_content": true,
+          "contexts": [
+            {
+              "purpose": "configured_K_and_optional_dynamic_lookup",
+              "start_line": 274,
+              "end_line": 301,
+              "lines": [
+                {
+                  "number": 274,
+                  "text": "        speculative_config = vllm_config.speculative_config"
+                },
+                {
+                  "number": 275,
+                  "text": "        self.use_eagle = False"
+                },
+                {
+                  "number": 276,
+                  "text": "        self.use_eagle_block_drop = False"
+                },
+                {
+                  "number": 277,
+                  "text": "        self.num_spec_tokens = vllm_config.num_speculative_tokens"
+                },
+                {
+                  "number": 278,
+                  "text": "        self.num_lookahead_tokens = vllm_config.num_lookahead_tokens"
+                },
+                {
+                  "number": 279,
+                  "text": "        # DSV41 SWA bounded replay: groups that declare a replay window are rebuilt"
+                },
+                {
+                  "number": 280,
+                  "text": "        # after a prefix hit by recomputing its trailing tokens. One window"
+                },
+                {
+                  "number": 281,
+                  "text": "        # for all such groups, so the rewind matches every group's allocation."
+                },
+                {
+                  "number": 282,
+                  "text": "        replay_windows = {"
+                },
+                {
+                  "number": 283,
+                  "text": "            group.kv_cache_spec.prefix_replay_tokens"
+                },
+                {
+                  "number": 284,
+                  "text": "            for group in kv_cache_config.kv_cache_groups"
+                },
+                {
+                  "number": 285,
+                  "text": "            if group.kv_cache_spec.prefix_replay_tokens > 0"
+                },
+                {
+                  "number": 286,
+                  "text": "        }"
+                },
+                {
+                  "number": 287,
+                  "text": "        assert len(replay_windows) <= 1, ("
+                },
+                {
+                  "number": 288,
+                  "text": "            f\"Prefix replay windows should agree: {sorted(replay_windows)}\""
+                },
+                {
+                  "number": 289,
+                  "text": "        )"
+                },
+                {
+                  "number": 290,
+                  "text": "        self.prefix_replay_tokens = replay_windows.pop() if replay_windows else 0"
+                },
+                {
+                  "number": 291,
+                  "text": "        self.num_prefill_lookahead = vllm_config.num_prefill_lookahead_tokens"
+                },
+                {
+                  "number": 292,
+                  "text": "        self.dynamic_sd_lookup: list[int] | None = None"
+                },
+                {
+                  "number": 293,
+                  "text": "        if speculative_config is not None:"
+                },
+                {
+                  "number": 294,
+                  "text": "            if speculative_config.num_speculative_tokens_per_batch_size:"
+                },
+                {
+                  "number": 295,
+                  "text": "                self.dynamic_sd_lookup = build_dynamic_sd_schedule_lookup("
+                },
+                {
+                  "number": 296,
+                  "text": "                    speculative_config.num_speculative_tokens_per_batch_size,"
+                },
+                {
+                  "number": 297,
+                  "text": "                    vllm_max_batch_size=self.scheduler_config.max_num_seqs,"
+                },
+                {
+                  "number": 298,
+                  "text": "                    vllm_num_speculative_tokens=self.num_spec_tokens,"
+                },
+                {
+                  "number": 299,
+                  "text": "                )"
+                },
+                {
+                  "number": 300,
+                  "text": "            self.use_eagle = speculative_config.use_eagle()"
+                },
+                {
+                  "number": 301,
+                  "text": "            self.use_eagle_block_drop = speculative_config.use_eagle_block_drop()"
+                }
+              ]
+            },
+            {
+              "purpose": "output_budget_guard_is_for_a_later_running_step",
+              "start_line": 635,
+              "end_line": 649,
+              "lines": [
+                {
+                  "number": 635,
+                  "text": "            if ("
+                },
+                {
+                  "number": 636,
+                  "text": "                request.num_output_placeholders > 0"
+                },
+                {
+                  "number": 637,
+                  "text": "                # This is (num_computed_tokens + 1) - (num_output_placeholders - 1)."
+                },
+                {
+                  "number": 638,
+                  "text": "                # Since output placeholders are also included in the computed tokens"
+                },
+                {
+                  "number": 639,
+                  "text": "                # count, we subtract (num_output_placeholders - 1) to remove any draft"
+                },
+                {
+                  "number": 640,
+                  "text": "                # tokens, so that we can be sure no further steps are needed even if"
+                },
+                {
+                  "number": 641,
+                  "text": "                # they are all rejected."
+                },
+                {
+                  "number": 642,
+                  "text": "                and request.num_computed_tokens + 2 - request.num_output_placeholders"
+                },
+                {
+                  "number": 643,
+                  "text": "                >= request.num_prompt_tokens + request.max_tokens"
+                },
+                {
+                  "number": 644,
+                  "text": "            ):"
+                },
+                {
+                  "number": 645,
+                  "text": "                # Async scheduling: Avoid scheduling an extra step when we are sure that"
+                },
+                {
+                  "number": 646,
+                  "text": "                # the previous step has reached request.max_tokens. We don't schedule"
+                },
+                {
+                  "number": 647,
+                  "text": "                # partial draft tokens since this prevents uniform decode optimizations."
+                },
+                {
+                  "number": 648,
+                  "text": "                req_index += 1"
+                },
+                {
+                  "number": 649,
+                  "text": "                continue"
+                }
+              ]
+            },
+            {
+              "purpose": "scheduled_K_not_clipped_to_request_output_budget",
+              "start_line": 1444,
+              "end_line": 1452,
+              "lines": [
+                {
+                  "number": 1444,
+                  "text": "        pending_kv_cache_block_copies = kv_cache_block_copies or None"
+                },
+                {
+                  "number": 1445,
+                  "text": ""
+                },
+                {
+                  "number": 1446,
+                  "text": "        # Dynamic speculative decoding: compute optimal K"
+                },
+                {
+                  "number": 1447,
+                  "text": "        num_spec_tokens_to_schedule = self.num_spec_tokens"
+                },
+                {
+                  "number": 1448,
+                  "text": "        if self.dynamic_sd_lookup is not None and len(num_scheduled_tokens) > 0:"
+                },
+                {
+                  "number": 1449,
+                  "text": "            num_spec_tokens_to_schedule = self.dynamic_sd_lookup["
+                },
+                {
+                  "number": 1450,
+                  "text": "                len(num_scheduled_tokens)"
+                },
+                {
+                  "number": 1451,
+                  "text": "            ]"
+                },
+                {
+                  "number": 1452,
+                  "text": ""
+                }
+              ]
+            },
+            {
+              "purpose": "K_carried_in_scheduler_output",
+              "start_line": 1472,
+              "end_line": 1483,
+              "lines": [
+                {
+                  "number": 1472,
+                  "text": "            # finished_req_ids is an existing state in the scheduler,"
+                },
+                {
+                  "number": 1473,
+                  "text": "            # instead of being newly scheduled in this step."
+                },
+                {
+                  "number": 1474,
+                  "text": "            # It contains the request IDs that are finished in between"
+                },
+                {
+                  "number": 1475,
+                  "text": "            # the previous and the current steps."
+                },
+                {
+                  "number": 1476,
+                  "text": "            finished_req_ids=self.finished_req_ids,"
+                },
+                {
+                  "number": 1477,
+                  "text": "            free_encoder_mm_hashes=self.encoder_cache_manager.get_freed_mm_hashes(),"
+                },
+                {
+                  "number": 1478,
+                  "text": "            new_block_ids_to_zero=self._get_new_block_ids_to_zero(),"
+                },
+                {
+                  "number": 1479,
+                  "text": "            has_sync_kv_loads=has_sync_kv_loads,"
+                },
+                {
+                  "number": 1480,
+                  "text": "            kv_cache_block_copies=pending_kv_cache_block_copies,"
+                },
+                {
+                  "number": 1481,
+                  "text": "            kv_connector_block_state=kv_connector_block_state,"
+                },
+                {
+                  "number": 1482,
+                  "text": "            num_spec_tokens_to_schedule=num_spec_tokens_to_schedule,"
+                },
+                {
+                  "number": 1483,
+                  "text": "            ec_manager_metadata=self.encoder_cache_manager.get_manager_metadata(),"
+                }
+              ]
+            },
+            {
+              "purpose": "output_stop_check_after_runner_result",
+              "start_line": 2435,
+              "end_line": 2452,
+              "lines": [
+                {
+                  "number": 2435,
+                  "text": "    def _update_request_with_output("
+                },
+                {
+                  "number": 2436,
+                  "text": "        self, request: Request, new_token_ids: list[int], is_stale: bool = False"
+                },
+                {
+                  "number": 2437,
+                  "text": "    ) -> tuple[list[int], bool]:"
+                },
+                {
+                  "number": 2438,
+                  "text": "        # is_stale is only used by the AsyncScheduler override."
+                },
+                {
+                  "number": 2439,
+                  "text": "        # Append generated tokens and check for stop. Note that if"
+                },
+                {
+                  "number": 2440,
+                  "text": "        # a request is still being prefilled, we expect the model runner"
+                },
+                {
+                  "number": 2441,
+                  "text": "        # to return empty token ids for the request."
+                },
+                {
+                  "number": 2442,
+                  "text": "        stopped = False"
+                },
+                {
+                  "number": 2443,
+                  "text": "        for num_new, output_token_id in enumerate(new_token_ids, 1):"
+                },
+                {
+                  "number": 2444,
+                  "text": "            request.append_output_token_ids(output_token_id)"
+                },
+                {
+                  "number": 2445,
+                  "text": ""
+                },
+                {
+                  "number": 2446,
+                  "text": "            # Check for stop and update request state."
+                },
+                {
+                  "number": 2447,
+                  "text": "            # This must be called before we make the EngineCoreOutput."
+                },
+                {
+                  "number": 2448,
+                  "text": "            stopped = check_stop(request, self.max_model_len)"
+                },
+                {
+                  "number": 2449,
+                  "text": "            if stopped:"
+                },
+                {
+                  "number": 2450,
+                  "text": "                del new_token_ids[num_new:]  # Trim new tokens if needed."
+                },
+                {
+                  "number": 2451,
+                  "text": "                break"
+                },
+                {
+                  "number": 2452,
+                  "text": "        return new_token_ids, stopped"
+                }
+              ]
+            }
+          ]
+        },
+        "vllm/v1/worker/kv_connector_model_runner_mixin.py": {
+          "path": "/home/shanshan/trt-asc/src/vllm-glm52/vllm/v1/worker/kv_connector_model_runner_mixin.py",
+          "sha256": "c201b6f21e100bc6fa56b39b5c3e5b8e52e4a77511d730ca98afccecdc2a1317",
+          "head_sha256": "c201b6f21e100bc6fa56b39b5c3e5b8e52e4a77511d730ca98afccecdc2a1317",
+          "matches_head_content": true,
+          "contexts": [
+            {
+              "purpose": "deferred_finalize_waits_for_save_then_clears_metadata",
+              "start_line": 52,
+              "end_line": 61,
+              "lines": [
+                {
+                  "number": 52,
+                  "text": "    @staticmethod"
+                },
+                {
+                  "number": 53,
+                  "text": "    def finalize_kv_connector() -> None:"
+                },
+                {
+                  "number": 54,
+                  "text": "        \"\"\"Finalize the KV connector: wait_for_save and clear metadata."
+                },
+                {
+                  "number": 55,
+                  "text": ""
+                },
+                {
+                  "number": 56,
+                  "text": "        Call after draft model forward when defer_finalize=True was used."
+                },
+                {
+                  "number": 57,
+                  "text": "        \"\"\""
+                },
+                {
+                  "number": 58,
+                  "text": "        if has_kv_transfer_group():"
+                },
+                {
+                  "number": 59,
+                  "text": "            kv_connector = get_kv_transfer_group()"
+                },
+                {
+                  "number": 60,
+                  "text": "            kv_connector.wait_for_save()"
+                },
+                {
+                  "number": 61,
+                  "text": "            kv_connector.clear_connector_metadata()"
+                }
+              ]
+            },
+            {
+              "purpose": "ordinary_forward_skips_save_when_finalize_deferred",
+              "start_line": 86,
+              "end_line": 107,
+              "lines": [
+                {
+                  "number": 86,
+                  "text": "        try:"
+                },
+                {
+                  "number": 87,
+                  "text": "            yield output"
+                },
+                {
+                  "number": 88,
+                  "text": "        finally:"
+                },
+                {
+                  "number": 89,
+                  "text": "            if start_after_forward:"
+                },
+                {
+                  "number": 90,
+                  "text": "                kv_connector.start_load_kv(get_forward_context())"
+                },
+                {
+                  "number": 91,
+                  "text": "            if not defer_finalize:"
+                },
+                {
+                  "number": 92,
+                  "text": "                kv_connector.wait_for_save()"
+                },
+                {
+                  "number": 93,
+                  "text": ""
+                },
+                {
+                  "number": 94,
+                  "text": "            transfer_results = kv_connector.get_transfer_results("
+                },
+                {
+                  "number": 95,
+                  "text": "                scheduler_output.finished_req_ids"
+                },
+                {
+                  "number": 96,
+                  "text": "            )"
+                },
+                {
+                  "number": 97,
+                  "text": "            output.finished_sending = transfer_results.finished_sending"
+                },
+                {
+                  "number": 98,
+                  "text": "            output.finished_recving = transfer_results.finished_recving"
+                },
+                {
+                  "number": 99,
+                  "text": "            output.failed_recving = transfer_results.failed_recving"
+                },
+                {
+                  "number": 100,
+                  "text": "            output.invalid_block_ids = kv_connector.get_block_ids_with_load_errors()"
+                },
+                {
+                  "number": 101,
+                  "text": ""
+                },
+                {
+                  "number": 102,
+                  "text": "            output.kv_connector_stats = kv_connector.get_kv_connector_stats()"
+                },
+                {
+                  "number": 103,
+                  "text": "            output.kv_cache_events = kv_connector.get_kv_connector_kv_cache_events()"
+                },
+                {
+                  "number": 104,
+                  "text": "            output.kv_connector_worker_meta = kv_connector.build_connector_worker_meta()"
+                },
+                {
+                  "number": 105,
+                  "text": ""
+                },
+                {
+                  "number": 106,
+                  "text": "            if not defer_finalize:"
+                },
+                {
+                  "number": 107,
+                  "text": "                kv_connector.clear_connector_metadata()"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "vllm_ascend": {
+      "path": "/home/shanshan/trt-asc/src/vllm-ascend-unified",
+      "expected_head": "f558b58c177916424ae9dcf9bb8e66c0b9031236",
+      "head": "f558b58c177916424ae9dcf9bb8e66c0b9031236",
+      "head_matches_expected": true,
+      "files": {
+        "vllm_ascend/worker/model_runner_v1.py": {
+          "path": "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/worker/model_runner_v1.py",
+          "sha256": "f0a3079900c9b2628437195ef21d0631c747aa1a49b663c1b27fddf379cbf8f5",
+          "head_sha256": "f0a3079900c9b2628437195ef21d0631c747aa1a49b663c1b27fddf379cbf8f5",
+          "matches_head_content": true,
+          "contexts": [
+            {
+              "purpose": "pass_scheduled_K_and_target_state_to_drafter",
+              "start_line": 2183,
+              "end_line": 2206,
+              "lines": [
+                {
+                  "number": 2183,
+                  "text": "            assert self.drafter is not None"
+                },
+                {
+                  "number": 2184,
+                  "text": "            # Dynamic SD: pass the scheduled per-step K explicitly, unified with"
+                },
+                {
+                  "number": 2185,
+                  "text": "            # the other proposers (ngram/suffix/medusa/extract) and matching"
+                },
+                {
+                  "number": 2186,
+                  "text": "            # vLLM's ``propose(num_speculative_tokens=...)``. ``_propose`` sets"
+                },
+                {
+                  "number": 2187,
+                  "text": "            # ``self.num_speculative_tokens`` from it, so the model runner no"
+                },
+                {
+                  "number": 2188,
+                  "text": "            # longer mutates the drafter's state here."
+                },
+                {
+                  "number": 2189,
+                  "text": "            draft_token_ids = self.drafter._propose("
+                },
+                {
+                  "number": 2190,
+                  "text": "                num_speculative_tokens=scheduler_output.num_spec_tokens_to_schedule,"
+                },
+                {
+                  "number": 2191,
+                  "text": "                target_token_ids=target_token_ids,"
+                },
+                {
+                  "number": 2192,
+                  "text": "                target_positions=target_positions,"
+                },
+                {
+                  "number": 2193,
+                  "text": "                target_hidden_states=target_hidden_states,"
+                },
+                {
+                  "number": 2194,
+                  "text": "                next_token_ids=next_token_ids,"
+                },
+                {
+                  "number": 2195,
+                  "text": "                token_indices_to_sample=token_indices_to_sample,"
+                },
+                {
+                  "number": 2196,
+                  "text": "                common_attn_metadata=common_attn_metadata,"
+                },
+                {
+                  "number": 2197,
+                  "text": "                target_model_batch_desc=target_model_batch_desc,"
+                },
+                {
+                  "number": 2198,
+                  "text": "                sampling_metadata=sampling_metadata,"
+                },
+                {
+                  "number": 2199,
+                  "text": "                req_scheduled_tokens=req_scheduled_tokens,"
+                },
+                {
+                  "number": 2200,
+                  "text": "                long_seq_metadata=long_seq_metadata,"
+                },
+                {
+                  "number": 2201,
+                  "text": "                num_prefill_reqs=num_prefill_reqs,"
+                },
+                {
+                  "number": 2202,
+                  "text": "                num_decode_reqs=num_decode_reqs,"
+                },
+                {
+                  "number": 2203,
+                  "text": "                scheduler_output=scheduler_output,"
+                },
+                {
+                  "number": 2204,
+                  "text": "                num_scheduled_tokens=num_scheduled_tokens,"
+                },
+                {
+                  "number": 2205,
+                  "text": "                num_rejected_tokens_gpu=num_rejected_tokens_gpu,"
+                },
+                {
+                  "number": 2206,
+                  "text": "            )"
+                }
+              ]
+            },
+            {
+              "purpose": "defer_connector_finalize_with_speculative_model",
+              "start_line": 2637,
+              "end_line": 2664,
+              "lines": [
+                {
+                  "number": 2637,
+                  "text": "        )"
+                },
+                {
+                  "number": 2638,
+                  "text": "        # Run forward pass"
+                },
+                {
+                  "number": 2639,
+                  "text": "        defer_kv_connector_finalize = self.speculative_config is not None and ("
+                },
+                {
+                  "number": 2640,
+                  "text": "            get_pp_group().is_last_rank or self.broadcast_pp_output"
+                },
+                {
+                  "number": 2641,
+                  "text": "        )"
+                },
+                {
+                  "number": 2642,
+                  "text": "        active_device_metadata_executor = self._prepare_device_metadata_for_forward(cudagraph_mode)"
+                },
+                {
+                  "number": 2643,
+                  "text": "        with ("
+                },
+                {
+                  "number": 2644,
+                  "text": "            record_function_or_nullcontext(\"forward\"),"
+                },
+                {
+                  "number": 2645,
+                  "text": "            set_ascend_forward_context("
+                },
+                {
+                  "number": 2646,
+                  "text": "                attn_metadata,"
+                },
+                {
+                  "number": 2647,
+                  "text": "                self.vllm_config,"
+                },
+                {
+                  "number": 2648,
+                  "text": "                num_tokens=num_tokens_padded,"
+                },
+                {
+                  "number": 2649,
+                  "text": "                num_tokens_across_dp=num_tokens_across_dp,"
+                },
+                {
+                  "number": 2650,
+                  "text": "                aclgraph_runtime_mode=cudagraph_mode,"
+                },
+                {
+                  "number": 2651,
+                  "text": "                batch_descriptor=batch_desc,"
+                },
+                {
+                  "number": 2652,
+                  "text": "                num_actual_tokens=scheduler_output.total_num_scheduled_tokens,"
+                },
+                {
+                  "number": 2653,
+                  "text": "                model_instance=self.model,"
+                },
+                {
+                  "number": 2654,
+                  "text": "                device_metadata_executor=active_device_metadata_executor,"
+                },
+                {
+                  "number": 2655,
+                  "text": "                skip_compiled=has_encoder_input,"
+                },
+                {
+                  "number": 2656,
+                  "text": "                has_sinks=self._has_sinks,"
+                },
+                {
+                  "number": 2657,
+                  "text": "                eplb_heat_collection_status=self.eplb_heat_collection_status if self.dynamic_eplb else False,"
+                },
+                {
+                  "number": 2658,
+                  "text": "            ),"
+                },
+                {
+                  "number": 2659,
+                  "text": "            self.maybe_get_kv_connector_output("
+                },
+                {
+                  "number": 2660,
+                  "text": "                scheduler_output,"
+                },
+                {
+                  "number": 2661,
+                  "text": "                **("
+                },
+                {
+                  "number": 2662,
+                  "text": "                    {\"defer_finalize\": defer_kv_connector_finalize}"
+                },
+                {
+                  "number": 2663,
+                  "text": "                ),"
+                },
+                {
+                  "number": 2664,
+                  "text": "            ) as kv_connector_output,"
+                }
+              ]
+            },
+            {
+              "purpose": "draft_query_width_and_model_capacity_guard",
+              "start_line": 2771,
+              "end_line": 2792,
+              "lines": [
+                {
+                  "number": 2771,
+                  "text": "    def _num_drafter_query_tokens(self) -> int:"
+                },
+                {
+                  "number": 2772,
+                  "text": "        \"\"\"Return the maximum query width consumed by one drafter request.\"\"\""
+                },
+                {
+                  "number": 2773,
+                  "text": "        assert self.speculative_config is not None"
+                },
+                {
+                  "number": 2774,
+                  "text": "        if isinstance(self.drafter, AscendDSparkProposer):"
+                },
+                {
+                  "number": 2775,
+                  "text": "            # DSpark variants use either K or K + 1 queries per request."
+                },
+                {
+                  "number": 2776,
+                  "text": "            return self.drafter.num_query_per_req"
+                },
+                {
+                  "number": 2777,
+                  "text": "        return self.num_spec_tokens + int(self.speculative_config.use_dflash())"
+                },
+                {
+                  "number": 2778,
+                  "text": ""
+                },
+                {
+                  "number": 2779,
+                  "text": "    def _input_fits_in_drafter("
+                },
+                {
+                  "number": 2780,
+                  "text": "        self, common_attn_metadata: CommonAttentionMetadata | None"
+                },
+                {
+                  "number": 2781,
+                  "text": "    ) -> bool:"
+                },
+                {
+                  "number": 2782,
+                  "text": "        \"\"\"Return whether the complete drafter query fits its model limit.\"\"\""
+                },
+                {
+                  "number": 2783,
+                  "text": "        if common_attn_metadata is None:"
+                },
+                {
+                  "number": 2784,
+                  "text": "            return False"
+                },
+                {
+                  "number": 2785,
+                  "text": "        if self.drafter is None:"
+                },
+                {
+                  "number": 2786,
+                  "text": "            # Only the last PP rank owns and runs the drafter. Other PP ranks"
+                },
+                {
+                  "number": 2787,
+                  "text": "            # must not apply a local drafter limit or join drafter DP work."
+                },
+                {
+                  "number": 2788,
+                  "text": "            return True"
+                },
+                {
+                  "number": 2789,
+                  "text": "        return ("
+                },
+                {
+                  "number": 2790,
+                  "text": "            common_attn_metadata.max_seq_len + self._num_drafter_query_tokens()"
+                },
+                {
+                  "number": 2791,
+                  "text": "            <= self.effective_drafter_max_model_len"
+                },
+                {
+                  "number": 2792,
+                  "text": "        )"
+                }
+              ]
+            },
+            {
+              "purpose": "skip_only_when_draft_query_does_not_fit",
+              "start_line": 2915,
+              "end_line": 2940,
+              "lines": [
+                {
+                  "number": 2915,
+                  "text": "        input_fits_in_drafter = self.speculative_config is None or self._input_fits_in_drafter("
+                },
+                {
+                  "number": 2916,
+                  "text": "            spec_decode_common_attn_metadata"
+                },
+                {
+                  "number": 2917,
+                  "text": "        )"
+                },
+                {
+                  "number": 2918,
+                  "text": ""
+                },
+                {
+                  "number": 2919,
+                  "text": "        def propose_draft_token_ids(sampled_token_ids):"
+                },
+                {
+                  "number": 2920,
+                  "text": "            if not input_fits_in_drafter:"
+                },
+                {
+                  "number": 2921,
+                  "text": "                self._skip_drafting("
+                },
+                {
+                  "number": 2922,
+                  "text": "                    scheduler_output,"
+                },
+                {
+                  "number": 2923,
+                  "text": "                    sampled_token_ids if use_padded_batch else None,"
+                },
+                {
+                  "number": 2924,
+                  "text": "                )"
+                },
+                {
+                  "number": 2925,
+                  "text": "                return"
+                },
+                {
+                  "number": 2926,
+                  "text": "            assert spec_decode_common_attn_metadata is not None"
+                },
+                {
+                  "number": 2927,
+                  "text": "            self._draft_token_ids = self.propose_draft_token_ids("
+                },
+                {
+                  "number": 2928,
+                  "text": "                sampled_token_ids,"
+                },
+                {
+                  "number": 2929,
+                  "text": "                self.input_batch.sampling_metadata,"
+                },
+                {
+                  "number": 2930,
+                  "text": "                scheduler_output,"
+                },
+                {
+                  "number": 2931,
+                  "text": "                spec_decode_metadata,"
+                },
+                {
+                  "number": 2932,
+                  "text": "                spec_decode_common_attn_metadata,"
+                },
+                {
+                  "number": 2933,
+                  "text": "                positions,"
+                },
+                {
+                  "number": 2934,
+                  "text": "                scheduler_output.total_num_scheduled_tokens,"
+                },
+                {
+                  "number": 2935,
+                  "text": "                hidden_states,"
+                },
+                {
+                  "number": 2936,
+                  "text": "                aux_hidden_states,"
+                },
+                {
+                  "number": 2937,
+                  "text": "                sample_hidden_states,"
+                },
+                {
+                  "number": 2938,
+                  "text": "                batch_desc,"
+                },
+                {
+                  "number": 2939,
+                  "text": "            )"
+                },
+                {
+                  "number": 2940,
+                  "text": "            self._copy_draft_token_ids_to_cpu(scheduler_output)"
+                }
+              ]
+            },
+            {
+              "purpose": "speculative_padded_path_selection",
+              "start_line": 2942,
+              "end_line": 2961,
+              "lines": [
+                {
+                  "number": 2942,
+                  "text": "        output_spec_token_ids = None"
+                },
+                {
+                  "number": 2943,
+                  "text": "        use_padded_batch = False"
+                },
+                {
+                  "number": 2944,
+                  "text": "        early_pp_padded_drafter = False"
+                },
+                {
+                  "number": 2945,
+                  "text": "        if self.speculative_config:"
+                },
+                {
+                  "number": 2946,
+                  "text": "            use_padded_batch = ("
+                },
+                {
+                  "number": 2947,
+                  "text": "                self.speculative_config.use_eagle()"
+                },
+                {
+                  "number": 2948,
+                  "text": "                or self.speculative_config.uses_draft_model()"
+                },
+                {
+                  "number": 2949,
+                  "text": "                or self.speculative_config.uses_extract_hidden_states()"
+                },
+                {
+                  "number": 2950,
+                  "text": "                or self.speculative_config.use_ngram_gpu()"
+                },
+                {
+                  "number": 2951,
+                  "text": "            ) and not self.speculative_config.disable_padded_drafter_batch"
+                },
+                {
+                  "number": 2952,
+                  "text": "            early_pp_padded_drafter = ("
+                },
+                {
+                  "number": 2953,
+                  "text": "                use_pp_spec_decode"
+                },
+                {
+                  "number": 2954,
+                  "text": "                and not self.use_async_scheduling"
+                },
+                {
+                  "number": 2955,
+                  "text": "                and use_padded_batch"
+                },
+                {
+                  "number": 2956,
+                  "text": "            )"
+                },
+                {
+                  "number": 2957,
+                  "text": "            if early_pp_padded_drafter:"
+                },
+                {
+                  "number": 2958,
+                  "text": "                self._draft_token_ids = None"
+                },
+                {
+                  "number": 2959,
+                  "text": "                self._draft_token_req_ids = None"
+                },
+                {
+                  "number": 2960,
+                  "text": "                with record_function_or_nullcontext(\"draft_token\"):"
+                },
+                {
+                  "number": 2961,
+                  "text": "                    propose_draft_token_ids(sampler_output.sampled_token_ids)"
+                }
+              ]
+            },
+            {
+              "purpose": "propose_then_finalize_after_sampling",
+              "start_line": 2981,
+              "end_line": 2999,
+              "lines": [
+                {
+                  "number": 2981,
+                  "text": "        with record_function_or_nullcontext(\"draft_token\"):"
+                },
+                {
+                  "number": 2982,
+                  "text": "            if self.speculative_config:"
+                },
+                {
+                  "number": 2983,
+                  "text": "                if not early_pp_padded_drafter:"
+                },
+                {
+                  "number": 2984,
+                  "text": "                    self._draft_token_ids = None"
+                },
+                {
+                  "number": 2985,
+                  "text": "                    self._draft_token_req_ids = None"
+                },
+                {
+                  "number": 2986,
+                  "text": "                if use_padded_batch and not early_pp_padded_drafter:"
+                },
+                {
+                  "number": 2987,
+                  "text": "                    # EAGLE speculative decoding can use the GPU sampled tokens"
+                },
+                {
+                  "number": 2988,
+                  "text": "                    # as inputs, and does not need to wait for bookkeeping to finish."
+                },
+                {
+                  "number": 2989,
+                  "text": "                    propose_draft_token_ids(sampler_output.sampled_token_ids)"
+                },
+                {
+                  "number": 2990,
+                  "text": "                if self.speculative_config and not use_padded_batch:"
+                },
+                {
+                  "number": 2991,
+                  "text": "                    # ngram and other speculative decoding methods use the sampled"
+                },
+                {
+                  "number": 2992,
+                  "text": "                    # tokens on the CPU, so they are run after bookkeeping."
+                },
+                {
+                  "number": 2993,
+                  "text": "                    propose_draft_token_ids(valid_sampled_token_ids)"
+                },
+                {
+                  "number": 2994,
+                  "text": ""
+                },
+                {
+                  "number": 2995,
+                  "text": "            # vLLM v0.18 defers KV connector finalization during target-model"
+                },
+                {
+                  "number": 2996,
+                  "text": "            # forward when speculative decoding is enabled. Finalize here after"
+                },
+                {
+                  "number": 2997,
+                  "text": "            # draft model runs so KV pool save/put can complete."
+                },
+                {
+                  "number": 2998,
+                  "text": "            if self.speculative_config is not None:"
+                },
+                {
+                  "number": 2999,
+                  "text": "                self.finalize_kv_connector()"
+                }
+              ]
+            }
+          ]
+        },
+        "vllm_ascend/spec_decode/llm_base_proposer.py": {
+          "path": "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/spec_decode/llm_base_proposer.py",
+          "sha256": "b4925648562de8cffd7bf678bf695d512c184d70484b949c42a40897793b8b07",
+          "head_sha256": "b4925648562de8cffd7bf678bf695d512c184d70484b949c42a40897793b8b07",
+          "matches_head_content": true,
+          "contexts": [
+            {
+              "purpose": "zero_K_early_return_and_positive_K_first_pass",
+              "start_line": 1034,
+              "end_line": 1080,
+              "lines": [
+                {
+                  "number": 1034,
+                  "text": "        batch_size = common_attn_metadata.batch_size()"
+                },
+                {
+                  "number": 1035,
+                  "text": ""
+                },
+                {
+                  "number": 1036,
+                  "text": "        # Dynamic SD: take the scheduled per-step K as an explicit argument and"
+                },
+                {
+                  "number": 1037,
+                  "text": "        # set it here -- mirroring vLLM's ``propose(num_speculative_tokens=...)``"
+                },
+                {
+                  "number": 1038,
+                  "text": "        # (which sets ``self.num_speculative_tokens`` on entry) and unified with"
+                },
+                {
+                  "number": 1039,
+                  "text": "        # the other proposers (ngram/suffix/medusa/extract) that also receive the"
+                },
+                {
+                  "number": 1040,
+                  "text": "        # scheduled K through their propose call. The value never exceeds the"
+                },
+                {
+                  "number": 1041,
+                  "text": "        # configured maximum, so pre-allocated buffers stay valid; K == 0 is"
+                },
+                {
+                  "number": 1042,
+                  "text": "        # handled just below."
+                },
+                {
+                  "number": 1043,
+                  "text": "        self.num_speculative_tokens = num_speculative_tokens"
+                },
+                {
+                  "number": 1044,
+                  "text": ""
+                },
+                {
+                  "number": 1045,
+                  "text": "        # Dynamic SD may schedule K == 0 draft tokens for the current batch"
+                },
+                {
+                  "number": 1046,
+                  "text": "        # size. Return an empty [batch_size, 0] draft so downstream copy/unpack"
+                },
+                {
+                  "number": 1047,
+                  "text": "        # paths (which key off ``draft_token_ids.shape[1]``) stay consistent."
+                },
+                {
+                  "number": 1048,
+                  "text": "        # Mirrors vLLM's llm_base_proposer._propose empty-draft early return."
+                },
+                {
+                  "number": 1049,
+                  "text": "        if self.num_speculative_tokens == 0:"
+                },
+                {
+                  "number": 1050,
+                  "text": "            return torch.empty("
+                },
+                {
+                  "number": 1051,
+                  "text": "                batch_size,"
+                },
+                {
+                  "number": 1052,
+                  "text": "                0,"
+                },
+                {
+                  "number": 1053,
+                  "text": "                device=target_token_ids.device,"
+                },
+                {
+                  "number": 1054,
+                  "text": "                dtype=torch.int64,"
+                },
+                {
+                  "number": 1055,
+                  "text": "            )"
+                },
+                {
+                  "number": 1056,
+                  "text": ""
+                },
+                {
+                  "number": 1057,
+                  "text": "        if token_indices_to_sample is None:"
+                },
+                {
+                  "number": 1058,
+                  "text": "            token_indices_to_sample = common_attn_metadata.query_start_loc[1:] - 1"
+                },
+                {
+                  "number": 1059,
+                  "text": ""
+                },
+                {
+                  "number": 1060,
+                  "text": "        if self.method in (\"eagle3\", \"dflash\", \"dspark\"):"
+                },
+                {
+                  "number": 1061,
+                  "text": "            model = self.model"
+                },
+                {
+                  "number": 1062,
+                  "text": "            if isinstance(model, BreakableACLGraphWrapper):"
+                },
+                {
+                  "number": 1063,
+                  "text": "                model = model.unwrap()"
+                },
+                {
+                  "number": 1064,
+                  "text": "            assert isinstance(model, _HIDDEN_STATE_DRAFTER_TYPES)"
+                },
+                {
+                  "number": 1065,
+                  "text": "            target_hidden_states = cast(_HiddenStateDrafter, model).combine_hidden_states(target_hidden_states)"
+                },
+                {
+                  "number": 1066,
+                  "text": "            assert target_hidden_states.shape[-1] == self.hidden_size"
+                },
+                {
+                  "number": 1067,
+                  "text": ""
+                },
+                {
+                  "number": 1068,
+                  "text": "        num_tokens, token_indices_to_sample, common_attn_metadata, long_seq_args = self.set_inputs_first_pass("
+                },
+                {
+                  "number": 1069,
+                  "text": "            target_token_ids=target_token_ids,"
+                },
+                {
+                  "number": 1070,
+                  "text": "            next_token_ids=next_token_ids,"
+                },
+                {
+                  "number": 1071,
+                  "text": "            target_positions=target_positions,"
+                },
+                {
+                  "number": 1072,
+                  "text": "            target_hidden_states=target_hidden_states,"
+                },
+                {
+                  "number": 1073,
+                  "text": "            token_indices_to_sample=token_indices_to_sample,"
+                },
+                {
+                  "number": 1074,
+                  "text": "            cad=common_attn_metadata,"
+                },
+                {
+                  "number": 1075,
+                  "text": "            num_rejected_tokens_gpu=num_rejected_tokens_gpu,"
+                },
+                {
+                  "number": 1076,
+                  "text": "            req_scheduled_tokens=req_scheduled_tokens,"
+                },
+                {
+                  "number": 1077,
+                  "text": "            long_seq_metadata=long_seq_metadata,"
+                },
+                {
+                  "number": 1078,
+                  "text": "            num_prefill_reqs=num_prefill_reqs,"
+                },
+                {
+                  "number": 1079,
+                  "text": "            num_decode_reqs=num_decode_reqs,"
+                },
+                {
+                  "number": 1080,
+                  "text": "        )"
+                }
+              ]
+            },
+            {
+              "purpose": "run_first_draft_inside_forward_context",
+              "start_line": 1373,
+              "end_line": 1395,
+              "lines": [
+                {
+                  "number": 1373,
+                  "text": "            model_inputs: dict[str, Any] = {"
+                },
+                {
+                  "number": 1374,
+                  "text": "                \"num_input_tokens\": num_input_tokens,"
+                },
+                {
+                  "number": 1375,
+                  "text": "                \"batch_size\": batch_size,"
+                },
+                {
+                  "number": 1376,
+                  "text": "                \"token_indices_to_sample\": self.token_indices_to_sample[:token_indices_to_sample_len],"
+                },
+                {
+                  "number": 1377,
+                  "text": "                \"target_positions\": target_positions,"
+                },
+                {
+                  "number": 1378,
+                  "text": "                \"inputs_embeds\": inputs_embeds,"
+                },
+                {
+                  "number": 1379,
+                  "text": "                \"multi_steps_attn_metadata\": multi_steps_attn_metadata,"
+                },
+                {
+                  "number": 1380,
+                  "text": "                \"num_tokens\": num_tokens,"
+                },
+                {
+                  "number": 1381,
+                  "text": "                \"is_prefill\": is_prefill_batch,"
+                },
+                {
+                  "number": 1382,
+                  "text": "                \"sampling_metadata\": sampling_metadata,"
+                },
+                {
+                  "number": 1383,
+                  "text": "            }"
+                },
+                {
+                  "number": 1384,
+                  "text": "            runnable = cast(Callable[..., Any], self._runnable)"
+                },
+                {
+                  "number": 1385,
+                  "text": "            run_draft: Callable[[], Any] = partial(runnable, **model_inputs)"
+                },
+                {
+                  "number": 1386,
+                  "text": ""
+                },
+                {
+                  "number": 1387,
+                  "text": "            if self.enable_enpu:"
+                },
+                {
+                  "number": 1388,
+                  "text": "                self._update_full_graph_params_if_needed(forward_context, num_input_tokens, multi_steps_attn_metadata)"
+                },
+                {
+                  "number": 1389,
+                  "text": "                draft_token_ids = run_draft()"
+                },
+                {
+                  "number": 1390,
+                  "text": "            else:"
+                },
+                {
+                  "number": 1391,
+                  "text": "                draft_token_ids = run_draft()"
+                },
+                {
+                  "number": 1392,
+                  "text": "                self._update_full_graph_params_if_needed(forward_context, num_input_tokens, multi_steps_attn_metadata)"
+                },
+                {
+                  "number": 1393,
+                  "text": "        if active_device_metadata_executor is not None:"
+                },
+                {
+                  "number": 1394,
+                  "text": "            active_device_metadata_executor.release()"
+                },
+                {
+                  "number": 1395,
+                  "text": "        return draft_token_ids"
+                }
+              ]
+            },
+            {
+              "purpose": "merged_draft_step_zero_calls_model",
+              "start_line": 1473,
+              "end_line": 1492,
+              "lines": [
+                {
+                  "number": 1473,
+                  "text": "        model_input_ids = self.input_ids[:num_input_tokens]"
+                },
+                {
+                  "number": 1474,
+                  "text": "        model_positions = self._get_positions(num_input_tokens)"
+                },
+                {
+                  "number": 1475,
+                  "text": "        model_kwargs = {\"input_ids\": model_input_ids, \"positions\": model_positions, \"inputs_embeds\": inputs_embeds}"
+                },
+                {
+                  "number": 1476,
+                  "text": ""
+                },
+                {
+                  "number": 1477,
+                  "text": "        if self.method in (\"dflash\", \"dspark\"):"
+                },
+                {
+                  "number": 1478,
+                  "text": "            self.build_model_inputs_first_pass(num_input_tokens, self._context_slot_mapping_buffers)"
+                },
+                {
+                  "number": 1479,
+                  "text": "        else:"
+                },
+                {
+                  "number": 1480,
+                  "text": "            if self.pass_hidden_states_to_model:"
+                },
+                {
+                  "number": 1481,
+                  "text": "                model_hidden_states = self.hidden_states[:num_input_tokens]"
+                },
+                {
+                  "number": 1482,
+                  "text": "                model_kwargs[\"hidden_states\"] = model_hidden_states"
+                },
+                {
+                  "number": 1483,
+                  "text": "                if self.method == \"mtp\":"
+                },
+                {
+                  "number": 1484,
+                  "text": "                    model_kwargs[\"positions\"] = model_positions"
+                },
+                {
+                  "number": 1485,
+                  "text": ""
+                },
+                {
+                  "number": 1486,
+                  "text": "        # step 0"
+                },
+                {
+                  "number": 1487,
+                  "text": "        draft_model = getattr(self.model, \"model\", None)"
+                },
+                {
+                  "number": 1488,
+                  "text": "        if self._share_mtp_indices and draft_model is not None and hasattr(draft_model, \"set_skip_topk\"):"
+                },
+                {
+                  "number": 1489,
+                  "text": "            draft_model.set_skip_topk(False)"
+                },
+                {
+                  "number": 1490,
+                  "text": ""
+                },
+                {
+                  "number": 1491,
+                  "text": "        ret_hidden_states = self.model(**model_kwargs)"
+                },
+                {
+                  "number": 1492,
+                  "text": "        last_hidden_states, hidden_states = _split_draft_outputs(ret_hidden_states)"
+                }
+              ]
+            },
+            {
+              "purpose": "shift_input_ids_and_put_first_sample_at_last_row",
+              "start_line": 1793,
+              "end_line": 1806,
+              "lines": [
+                {
+                  "number": 1793,
+                  "text": "        if not self.needs_extra_input_slots:"
+                },
+                {
+                  "number": 1794,
+                  "text": "            # Default EAGLE pathway: no reshaping of input tensors needed."
+                },
+                {
+                  "number": 1795,
+                  "text": "            # Simply rotate the input ids and leave the positions unchanged,"
+                },
+                {
+                  "number": 1796,
+                  "text": "            # Inserting the next token ids at the last slot in each request."
+                },
+                {
+                  "number": 1797,
+                  "text": "            if token_indices_to_sample is None:"
+                },
+                {
+                  "number": 1798,
+                  "text": "                token_indices_to_sample = cad.query_start_loc[1:] - 1"
+                },
+                {
+                  "number": 1799,
+                  "text": ""
+                },
+                {
+                  "number": 1800,
+                  "text": "            num_tokens = target_token_ids.shape[0]"
+                },
+                {
+                  "number": 1801,
+                  "text": "            # Shift the input ids by one token."
+                },
+                {
+                  "number": 1802,
+                  "text": "            # E.g., [a1, b1, b2, c1, c2, c3] -> [b1, b2, c1, c2, c3, c3]"
+                },
+                {
+                  "number": 1803,
+                  "text": "            self.input_ids[: num_tokens - 1] = target_token_ids[1:]"
+                },
+                {
+                  "number": 1804,
+                  "text": "            # Replace the last token with the next token."
+                },
+                {
+                  "number": 1805,
+                  "text": "            # E.g., [b1, b2, c1, c2, c3, c3] -> [a2, b2, b3, c2, c3, c4]"
+                },
+                {
+                  "number": 1806,
+                  "text": "            self.input_ids[token_indices_to_sample] = next_token_ids"
+                }
+              ]
+            },
+            {
+              "purpose": "keep_target_positions_and_hidden_states",
+              "start_line": 1834,
+              "end_line": 1838,
+              "lines": [
+                {
+                  "number": 1834,
+                  "text": "            # copy inputs to buffer for cudagraph"
+                },
+                {
+                  "number": 1835,
+                  "text": "            self._set_positions(num_tokens, target_positions)"
+                },
+                {
+                  "number": 1836,
+                  "text": "            self.hidden_states[:num_tokens] = target_hidden_states.view(num_tokens, -1)"
+                },
+                {
+                  "number": 1837,
+                  "text": ""
+                },
+                {
+                  "number": 1838,
+                  "text": "            return num_tokens, token_indices_to_sample, cad, long_seq_args"
+                }
+              ]
+            },
+            {
+              "purpose": "draft_runnable_binding",
+              "start_line": 297,
+              "end_line": 305,
+              "lines": [
+                {
+                  "number": 297,
+                  "text": "        # since final block table tensor is not ready in __init__, it is delayed until dummy_run"
+                },
+                {
+                  "number": 298,
+                  "text": "        self.block_table_tensor_clone: torch.Tensor | None = None"
+                },
+                {
+                  "number": 299,
+                  "text": ""
+                },
+                {
+                  "number": 300,
+                  "text": "        self._runnable: Any = self._run_merged_draft"
+                },
+                {
+                  "number": 301,
+                  "text": "        if self.uses_mrope:"
+                },
+                {
+                  "number": 302,
+                  "text": "            num_dims = self.draft_model_config.mrope_num_dims"
+                },
+                {
+                  "number": 303,
+                  "text": "            self.mrope_positions = torch.zeros((num_dims, self.max_num_tokens + 1), dtype=torch.int32, device=device)"
+                },
+                {
+                  "number": 304,
+                  "text": "        else:"
+                },
+                {
+                  "number": 305,
+                  "text": "            # RoPE need (max_num_tokens,)"
+                }
+              ]
+            },
+            {
+              "purpose": "draft_runnable_binding",
+              "start_line": 643,
+              "end_line": 651,
+              "lines": [
+                {
+                  "number": 643,
+                  "text": "                self.enable_enpu,"
+                },
+                {
+                  "number": 644,
+                  "text": "            )"
+                },
+                {
+                  "number": 645,
+                  "text": "            self.update_stream = None"
+                },
+                {
+                  "number": 646,
+                  "text": "            self._runnable = ACLGraphWrapper("
+                },
+                {
+                  "number": 647,
+                  "text": "                self._run_merged_draft,"
+                },
+                {
+                  "number": 648,
+                  "text": "                self.vllm_config,"
+                },
+                {
+                  "number": 649,
+                  "text": "                runtime_mode=CUDAGraphMode.FULL,"
+                },
+                {
+                  "number": 650,
+                  "text": "                use_eagle=self.use_eagle,"
+                },
+                {
+                  "number": 651,
+                  "text": "                enable_enpu=self.enable_enpu,"
+                }
+              ]
+            }
+          ]
+        },
+        "vllm_ascend/attention/sfa_v1.py": {
+          "path": "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/attention/sfa_v1.py",
+          "sha256": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+          "head_sha256": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+          "matches_head_content": true,
+          "contexts": [
+            {
+              "purpose": "main_and_index_cache_written_notification",
+              "start_line": 2087,
+              "end_line": 2091,
+              "lines": [
+                {
+                  "number": 2087,
+                  "text": "        # Notify for every layer that wrote the cache, not just indexer layers:"
+                },
+                {
+                  "number": 2088,
+                  "text": "        # by this point all of the layer's KV (main + indexer) has been"
+                },
+                {
+                  "number": 2089,
+                  "text": "        # scattered - indexer layers persisted it inside indexer.forward"
+                },
+                {
+                  "number": 2090,
+                  "text": "        # above - so the connector can dispatch the PD pull."
+                },
+                {
+                  "number": 2091,
+                  "text": "        notify_kv_cache_written(self.layer_name or \"\")"
+                }
+              ]
+            },
+            {
+              "purpose": "attention_layer_save_callback",
+              "start_line": 2116,
+              "end_line": 2124,
+              "lines": [
+                {
+                  "number": 2116,
+                  "text": "        self._finalize_o_proj("
+                },
+                {
+                  "number": 2117,
+                  "text": "            attn_output,"
+                },
+                {
+                  "number": 2118,
+                  "text": "            output[:num_input_tokens],"
+                },
+                {
+                  "number": 2119,
+                  "text": "            parallel_context.gather_full_o_proj,"
+                },
+                {
+                  "number": 2120,
+                  "text": "        )"
+                },
+                {
+                  "number": 2121,
+                  "text": ""
+                },
+                {
+                  "number": 2122,
+                  "text": "        maybe_save_kv_layer_to_connector(layer_name, list(kv_cache))"
+                },
+                {
+                  "number": 2123,
+                  "text": ""
+                },
+                {
+                  "number": 2124,
+                  "text": "        return output"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "conditions": [
+    "Pinned V1 model runner; fresh complete batch1 prefill with PP1 and no prefix hit or chunking.",
+    "speculative_config.method is mtp, configured K is positive, and the dynamic per-batch K schedule is disabled.",
+    "parallel_drafting is false; the input-shifted first pass uses target positions unchanged.",
+    "The complete draft query fits effective_drafter_max_model_len: P + K <= that limit for this MTP path.",
+    "Forward and connector callbacks complete successfully; this audit does not establish NPU operator or HIXL success."
+  ],
+  "conclusion": {
+    "classification": "source-derived conditional control-flow conclusion",
+    "statement": "A request with max_tokens=1 still runs the initial MTP proposal before deferred connector wait_for_save under the listed conditions. The request output budget does not set this step K to zero.",
+    "cache_scope": "The initial MTP pass writes layer78 cache. Exporting only rows [0,P-1) excludes its final row conditioned on the first sampled token.",
+    "no_workaround_required_for_output_budget": true,
+    "not_proven": [
+      "Successful NPU launch",
+      "Actual layer78 writes",
+      "Numerical parity",
+      "HIXL completion",
+      "Measured performance"
+    ],
+    "capacity_example": {
+      "P": 8192,
+      "K": 3,
+      "assumed_drafter_limit": 9216,
+      "P_plus_K": 8195,
+      "fits": true,
+      "kind": "arithmetic example, not observed runtime state"
+    }
+  },
+  "application_guard_source": {
+    "path": "/home/shanshan/trt-asc/src/TileRT-Ascend/tilert/pd_vllm/ascend_connector.py",
+    "sha256": "89dc76e54d30b9d7fab343712609f514c07ec9c957925901ef5ca038872534f5",
+    "contexts": [
+      {
+        "start_line": 119,
+        "end_line": 127,
+        "lines": [
+          {
+            "number": 119,
+            "text": "        if ("
+          },
+          {
+            "number": 120,
+            "text": "            speculative is None or speculative.method != \"mtp\""
+          },
+          {
+            "number": 121,
+            "text": "            or speculative.num_speculative_tokens < 1"
+          },
+          {
+            "number": 122,
+            "text": "            or speculative.num_speculative_tokens_per_batch_size"
+          },
+          {
+            "number": 123,
+            "text": "        ):"
+          },
+          {
+            "number": 124,
+            "text": "            raise ValueError("
+          },
+          {
+            "number": 125,
+            "text": "                \"Ascend PD requires a fixed positive MTP draft count\""
+          },
+          {
+            "number": 126,
+            "text": "            )"
+          },
+          {
+            "number": 127,
+            "text": "        if speculative.parallel_drafting:"
+          }
+        ]
+      },
+      {
+        "start_line": 124,
+        "end_line": 132,
+        "lines": [
+          {
+            "number": 124,
+            "text": "            raise ValueError("
+          },
+          {
+            "number": 125,
+            "text": "                \"Ascend PD requires a fixed positive MTP draft count\""
+          },
+          {
+            "number": 126,
+            "text": "            )"
+          },
+          {
+            "number": 127,
+            "text": "        if speculative.parallel_drafting:"
+          },
+          {
+            "number": 128,
+            "text": "            raise ValueError(\"Ascend PD requires sequential MTP drafting\")"
+          },
+          {
+            "number": 129,
+            "text": "        if Path(speculative.draft_model_config.model).resolve() != Path("
+          },
+          {
+            "number": 130,
+            "text": "            config.model_config.model,"
+          },
+          {
+            "number": 131,
+            "text": "        ).resolve():"
+          },
+          {
+            "number": 132,
+            "text": "            raise ValueError(\"MTP must use the same local checkpoint\")"
+          }
+        ]
+      },
+      {
+        "start_line": 167,
+        "end_line": 175,
+        "lines": [
+          {
+            "number": 167,
+            "text": "            if ("
+          },
+          {
+            "number": 168,
+            "text": "                len(tokens) > self._max_seq"
+          },
+          {
+            "number": 169,
+            "text": "                or len(tokens) > config.scheduler_config.max_num_batched_tokens"
+          },
+          {
+            "number": 170,
+            "text": "                or len(tokens) + speculative.num_speculative_tokens"
+          },
+          {
+            "number": 171,
+            "text": "                > speculative.draft_model_config.max_model_len"
+          },
+          {
+            "number": 172,
+            "text": "            ):"
+          },
+          {
+            "number": 173,
+            "text": "                raise ValueError("
+          },
+          {
+            "number": 174,
+            "text": "                    \"Prompt leaves no room for the MTP first pass\""
+          },
+          {
+            "number": 175,
+            "text": "                )"
+          }
+        ]
+      },
+      {
+        "start_line": 222,
+        "end_line": 230,
+        "lines": [
+          {
+            "number": 222,
+            "text": "            region.layer_name for name, region in self._binding.regions.items()"
+          },
+          {
+            "number": 223,
+            "text": "            if name.startswith(\"mla_latent.\")"
+          },
+          {
+            "number": 224,
+            "text": "        }"
+          },
+          {
+            "number": 225,
+            "text": "        missing = expected_layers - self._written_layers"
+          },
+          {
+            "number": 226,
+            "text": "        if missing:"
+          },
+          {
+            "number": 227,
+            "text": "            raise RuntimeError("
+          },
+          {
+            "number": 228,
+            "text": "                f\"Unwritten backbone/MTP cache layers: {sorted(missing)}\""
+          },
+          {
+            "number": 229,
+            "text": "            )"
+          },
+          {
+            "number": 230,
+            "text": "        import torch"
+          }
+        ]
+      },
+      {
+        "start_line": 229,
+        "end_line": 237,
+        "lines": [
+          {
+            "number": 229,
+            "text": "            )"
+          },
+          {
+            "number": 230,
+            "text": "        import torch"
+          },
+          {
+            "number": 231,
+            "text": ""
+          },
+          {
+            "number": 232,
+            "text": "        torch.npu.synchronize(self._binding.device_id)"
+          },
+          {
+            "number": 233,
+            "text": "        for request in metadata.requests:"
+          },
+          {
+            "number": 234,
+            "text": "            self._ensure_transport(request.tilert_host)"
+          },
+          {
+            "number": 235,
+            "text": "            self._send_request(request)"
+          },
+          {
+            "number": 236,
+            "text": ""
+          },
+          {
+            "number": 237,
+            "text": "    def _validate_hello(self, hello):"
+          }
+        ]
+      }
+    ]
+  },
+  "checks": {
+    "both_heads_match_pins": true,
+    "all_sampled_upstream_files_match_HEAD": true,
+    "sampled_upstream_file_count": 6
+  }
+}

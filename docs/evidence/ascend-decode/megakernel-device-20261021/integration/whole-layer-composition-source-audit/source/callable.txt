@@ -1,0 +1,74 @@
+Original lines 1-72
+    1 #ifndef TILERT_FFN_CALLABLE_NATIVE_H
+    2 #define TILERT_FFN_CALLABLE_NATIVE_H
+    3 
+    4 #ifndef ASCENDC_CUBE_ONLY
+    5 #define ASCENDC_CUBE_ONLY
+    6 #endif
+    7 
+    8 #include "contract.h"
+    9 #include "../bridge/source/ffn_bridge/body_native.h"
+   10 #include "../body/source/routed_int4/routed_body_native.h"
+   11 
+   12 namespace ffn_callable_device {
+   13 using namespace AscendC;
+   14 using namespace routed_int4;
+   15 
+   16 struct BodyAddresses {
+   17     GM_ADDR values[ffn_callable::kBodyBuffers];
+   18 };
+   19 
+   20 struct WeightAddresses {
+   21     GM_ADDR values[ffn_callable::kRoutedWeights];
+   22 };
+   23 
+   24 template <CubeFormat format>
+   25 __aicore__ inline
+   26 void Forward(TPipe& pipe, GM_ADDR input, GM_ADDR residual, GM_ADDR gamma,
+   27     GM_ADDR gate, GM_ADDR bias, WeightAddresses w, ffn_bridge::Addresses bridge,
+   28     BodyAddresses body, pipeline::Input shared, int64_t rows, int64_t blocks,
+   29     float epsilon)
+   30 {
+   31     ffn_bridge::Forward(pipe, input, residual, gamma, gate, bias,
+   32                         bridge, rows, blocks, epsilon);
+   33 
+   34     // The bridge's final EndPhase has drained all CUBE work and reset UB.
+   35     // Only its GM outputs survive into the unchanged routed/shared body.
+   36     SetSysWorkspace(body.values[kMatmulWorkspace]);
+   37     DispatchInput dispatch;
+   38     dispatch.bf16_rows = (uint64_t)bridge.values[ffn_bridge::kNormalized];
+   39     dispatch.expert_ids = (uint64_t)bridge.values[ffn_bridge::kIds];
+   40     dispatch.probabilities = (uint64_t)bridge.values[ffn_bridge::kProbabilities];
+   41     routed_body::Forward<format, true>(pipe,
+   42         (__gm__ int8_t*)body.values[kRestoredRows],
+   43         (__gm__ int4b_t*)w.values[0], (__gm__ float*)w.values[1],
+   44         (__gm__ ScaleStorage*)w.values[2], (__gm__ int4b_t*)w.values[3],
+   45         (__gm__ float*)w.values[4], (__gm__ ScaleStorage*)w.values[5],
+   46         (__gm__ float*)body.values[kRestoredScale],
+   47         (__gm__ int32_t*)body.values[kGroupCount],
+   48         (__gm__ int32_t*)body.values[kGroupStart],
+   49         (__gm__ int32_t*)body.values[kSourceRow],
+   50         (__gm__ int32_t*)body.values[kSourceSlot],
+   51         (__gm__ float*)body.values[kRowWeight],
+   52         (__gm__ int4b_t*)body.values[kStacked],
+   53         (__gm__ int32_t*)body.values[kGateProduct],
+   54         (__gm__ int4b_t*)body.values[kMiddle],
+   55         (__gm__ float*)body.values[kMiddleScale],
+   56         (__gm__ int32_t*)body.values[kDownProduct],
+   57         (__gm__ bfloat16_t*)body.values[kRouteOutput],
+   58         (__gm__ bfloat16_t*)body.values[kOutput],
+   59         body.values[kGateTiling], body.values[kDownTiling],
+   60         body.values[kMatmulWorkspace], ffn_bridge::kExperts, rows, blocks,
+   61         dispatch, nullptr, shared);
+   62     // NoTrace::FinishFinal is empty. This is the required publication seam,
+   63     // after every body-local TBuf and matrix object has left scope.
+   64     ffn_bridge::device::EndPhase(pipe);
+   65     ffn_bridge::device::Epilogue(pipe, body.values[kOutput],
+   66         body.values[pipeline::kSharedOutput], bridge.values[ffn_bridge::kScaledRouted],
+   67         bridge.values[ffn_bridge::kCombined], rows, blocks);
+   68     ffn_bridge::device::EndPhase(pipe);
+   69 }
+   70 }  // namespace ffn_callable_device
+   71 
+   72 #endif
+

@@ -1,0 +1,796 @@
+{
+  "identity": {
+    "utc": "2026-10-21T14:20:15.794893+00:00",
+    "host": "9c4bba37b475",
+    "platform": "Linux-5.10.0-182.0.0.95.r2220_157.hce2.aarch64-aarch64-with-glibc2.34",
+    "python": "3.11.12",
+    "torch": "2.12.0+cu130",
+    "torch_npu": "2.12.0",
+    "versions": {
+      "CANN": "9.2.0",
+      "RUNTIME": "9.2.0",
+      "DRIVER": "9.2.0"
+    },
+    "device": "npu:0",
+    "device_properties": "_NPUDeviceProperties(name='Ascend910_9392', total_memory=62740MB, cube_core_num=24, vector_core_num=48, uuid=00cc0800-d001-0000-0000-e4dccc1a64f7, L2_cache_size=192MB)",
+    "harness": "/workspace/tests/glm52/whole_layer/sfa_packed_shadow/pack_check.py",
+    "harness_sha256": "4f413c8787cc1d1ec1ac70a9349f246492429e68970ccafb245329fc117478ee",
+    "operator_library": "/usr/local/lib/python3.11/site-packages/torch_npu/lib/libtorch_npu.so",
+    "operator_library_sha256": "4c886c78d4c032bd96afa8155106d2d2d223b4e118e9020a59944b75cb269362"
+  },
+  "fixture": {
+    "seed": 20261021,
+    "type": "BF16 random normal with signed-zero/Inf/NaN bit witnesses"
+  },
+  "cases": [
+    {
+      "physical_pages": 68,
+      "page_size": 128,
+      "shapes": [
+        [
+          68,
+          128,
+          1,
+          512
+        ],
+        [
+          68,
+          128,
+          1,
+          64
+        ],
+        [
+          68,
+          128,
+          576
+        ]
+      ],
+      "dtypes": [
+        "torch.bfloat16",
+        "torch.bfloat16",
+        "torch.bfloat16"
+      ],
+      "formats": [
+        2,
+        2,
+        2
+      ],
+      "addresses": [
+        20618009378816,
+        20618018292224,
+        20618019406848
+      ],
+      "persistent_shadow_bytes": 10027008,
+      "logical_read_plus_write_bytes": 20054016,
+      "warmup_per_arm_before_each_sample": 5,
+      "pack_operations_per_event": 1,
+      "samples_per_arm": 30,
+      "initial": {
+        "pass": true,
+        "boundaries": {
+          "packed": {
+            "pass": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "bytes": 10027008
+          },
+          "latent_unchanged": {
+            "pass": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "bytes": 8912896
+          },
+          "rope_unchanged": {
+            "pass": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "bytes": 1114112
+          }
+        }
+      },
+      "pass": true,
+      "scope": "One direct torch.cat(out=packed) or one graph replay per event. Inputs and output use fixed, preallocated ND addresses. Compilation, allocation, graph capture, warmup and byte checks are outside events. This is prewarmed initialization-operation cost, not cold first use or per-decode shadow update. The 2*S payload is logical traffic, not measured HBM traffic. Direct events can include host enqueue gaps.",
+      "changing_graph_input": {
+        "pass": true,
+        "bitwise_equal": true,
+        "bitwise_different_bytes": 0,
+        "bytes": 10027008
+      },
+      "captured": {
+        "pass": true,
+        "boundaries": {
+          "packed": {
+            "pass": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "bytes": 10027008
+          },
+          "latent_unchanged": {
+            "pass": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "bytes": 8912896
+          },
+          "rope_unchanged": {
+            "pass": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "bytes": 1114112
+          }
+        }
+      },
+      "event_samples_us": [
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 72.08000123500824,
+          "graph_replay": 85.04000306129456
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 82.16000348329544,
+          "direct_event": 71.13999873399734
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 69.83999907970428,
+          "graph_replay": 76.1599987745285
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 79.58000153303146,
+          "direct_event": 62.3599998652935
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 69.20000165700912,
+          "graph_replay": 76.5800029039383
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 76.27999782562256,
+          "direct_event": 61.36000156402588
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 63.960000872612,
+          "graph_replay": 80.61999827623367
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 78.74000072479248,
+          "direct_event": 58.740001171827316
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 69.17999684810638,
+          "graph_replay": 75.58000087738037
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 74.8400017619133,
+          "direct_event": 59.7199983894825
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 63.53999674320221,
+          "graph_replay": 83.03999900817871
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 76.55999809503555,
+          "direct_event": 61.900001019239426
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 63.66000324487686,
+          "graph_replay": 79.76000010967255
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 76.83999836444855,
+          "direct_event": 61.45999953150749
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 59.780001640319824,
+          "graph_replay": 79.83999699354172
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 75.87999850511551,
+          "direct_event": 60.32000109553337
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 68.83999705314636,
+          "graph_replay": 76.9599974155426
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 75.65999776124954,
+          "direct_event": 62.10000067949295
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 63.66000324487686,
+          "graph_replay": 89.46000039577484
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 77.04000174999237,
+          "direct_event": 62.460001558065414
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 64.52000141143799,
+          "graph_replay": 78.16000282764435
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 74.29999858140945,
+          "direct_event": 62.32000142335892
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 59.7199983894825,
+          "graph_replay": 75.93999803066254
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 75.1200020313263,
+          "direct_event": 62.380000948905945
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 69.76000219583511,
+          "graph_replay": 87.71999925374985
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 76.99999958276749,
+          "direct_event": 70.16000151634216
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 63.680000603199005,
+          "graph_replay": 77.07999646663666
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 77.17999815940857,
+          "direct_event": 62.39999830722809
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 62.73999810218811,
+          "graph_replay": 79.70000058412552
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 78.62000167369843,
+          "direct_event": 60.180000960826874
+        }
+      ],
+      "summary": {
+        "direct_event": {
+          "samples": 30,
+          "p50_us": 62.59999983012676,
+          "p90_us": 69.87199932336807,
+          "p99_us": 71.80740050971508,
+          "mean_us": 64.1053336362044,
+          "std_us": 3.85409525375211,
+          "min_us": 58.740001171827316,
+          "max_us": 72.08000123500824
+        },
+        "graph_replay": {
+          "samples": 30,
+          "p50_us": 77.05999910831451,
+          "p90_us": 83.2399994134903,
+          "p99_us": 88.9554000645876,
+          "mean_us": 78.58133316040039,
+          "std_us": 3.6330594740532822,
+          "min_us": 74.29999858140945,
+          "max_us": 89.46000039577484
+        }
+      },
+      "post_timing": {
+        "pass": true,
+        "boundaries": {
+          "packed": {
+            "pass": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "bytes": 10027008
+          },
+          "latent_unchanged": {
+            "pass": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "bytes": 8912896
+          },
+          "rope_unchanged": {
+            "pass": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "bytes": 1114112
+          }
+        }
+      }
+    },
+    {
+      "physical_pages": 64,
+      "page_size": 128,
+      "shapes": [
+        [
+          64,
+          128,
+          1,
+          512
+        ],
+        [
+          64,
+          128,
+          1,
+          64
+        ],
+        [
+          64,
+          128,
+          576
+        ]
+      ],
+      "dtypes": [
+        "torch.bfloat16",
+        "torch.bfloat16",
+        "torch.bfloat16"
+      ],
+      "formats": [
+        2,
+        2,
+        2
+      ],
+      "addresses": [
+        20618009378816,
+        20618017767936,
+        20618018817024
+      ],
+      "persistent_shadow_bytes": 9437184,
+      "logical_read_plus_write_bytes": 18874368,
+      "warmup_per_arm_before_each_sample": 5,
+      "pack_operations_per_event": 1,
+      "samples_per_arm": 30,
+      "initial": {
+        "pass": true,
+        "boundaries": {
+          "packed": {
+            "pass": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "bytes": 9437184
+          },
+          "latent_unchanged": {
+            "pass": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "bytes": 8388608
+          },
+          "rope_unchanged": {
+            "pass": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "bytes": 1048576
+          }
+        }
+      },
+      "pass": true,
+      "scope": "One direct torch.cat(out=packed) or one graph replay per event. Inputs and output use fixed, preallocated ND addresses. Compilation, allocation, graph capture, warmup and byte checks are outside events. This is prewarmed initialization-operation cost, not cold first use or per-decode shadow update. The 2*S payload is logical traffic, not measured HBM traffic. Direct events can include host enqueue gaps.",
+      "changing_graph_input": {
+        "pass": true,
+        "bitwise_equal": true,
+        "bitwise_different_bytes": 0,
+        "bytes": 9437184
+      },
+      "captured": {
+        "pass": true,
+        "boundaries": {
+          "packed": {
+            "pass": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "bytes": 9437184
+          },
+          "latent_unchanged": {
+            "pass": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "bytes": 8388608
+          },
+          "rope_unchanged": {
+            "pass": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "bytes": 1048576
+          }
+        }
+      },
+      "event_samples_us": [
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 75.53999871015549,
+          "graph_replay": 85.41999757289886
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 76.61999762058258,
+          "direct_event": 71.29999995231628
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 60.54000183939934,
+          "graph_replay": 76.8200010061264
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 76.4399990439415,
+          "direct_event": 69.09999996423721
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 61.480000615119934,
+          "graph_replay": 78.18000018596649
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 77.33999937772751,
+          "direct_event": 66.32000207901001
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 63.87999653816223,
+          "graph_replay": 78.44000309705734
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 80.45999705791473,
+          "direct_event": 60.35999953746796
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 61.8400014936924,
+          "graph_replay": 76.11999660730362
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 79.43999767303467,
+          "direct_event": 68.31999868154526
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 69.20000165700912,
+          "graph_replay": 85.60000360012054
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 73.61999899148941,
+          "direct_event": 64.06000256538391
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 70.28000056743622,
+          "graph_replay": 73.83999973535538
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 76.92000269889832,
+          "direct_event": 64.71999734640121
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 71.65999710559845,
+          "graph_replay": 77.69999653100967
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 79.89999651908875,
+          "direct_event": 70.63999772071838
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 69.30000334978104,
+          "graph_replay": 79.00000363588333
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 76.73999667167664,
+          "direct_event": 70.1799988746643
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 60.8999989926815,
+          "graph_replay": 78.0399963259697
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 77.8999999165535,
+          "direct_event": 70.29999792575836
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 64.07999992370605,
+          "graph_replay": 77.60000228881836
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 74.94000345468521,
+          "direct_event": 60.46000123023987
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 68.93999874591827,
+          "graph_replay": 76.36000216007233
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 77.32000201940536,
+          "direct_event": 63.06000053882599
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 56.15999922156334,
+          "graph_replay": 76.49999856948853
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 80.1599994301796,
+          "direct_event": 65.77999889850616
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 58.29999968409538,
+          "graph_replay": 79.09999787807465
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 74.94000345468521,
+          "direct_event": 57.999998331069946
+        },
+        {
+          "order": [
+            "direct_event",
+            "graph_replay"
+          ],
+          "direct_event": 58.04000049829483,
+          "graph_replay": 77.42000371217728
+        },
+        {
+          "order": [
+            "graph_replay",
+            "direct_event"
+          ],
+          "graph_replay": 85.5799987912178,
+          "direct_event": 57.64000117778778
+        }
+      ],
+      "summary": {
+        "direct_event": {
+          "samples": 30,
+          "p50_us": 64.39999863505363,
+          "p90_us": 70.70599794387817,
+          "p99_us": 74.41479824483395,
+          "mean_us": 65.01266645888488,
+          "std_us": 5.080260772318802,
+          "min_us": 56.15999922156334,
+          "max_us": 75.53999871015549
+        },
+        "graph_replay": {
+          "samples": 30,
+          "p50_us": 77.51000300049782,
+          "p90_us": 80.95599710941315,
+          "p99_us": 85.59420220553875,
+          "mean_us": 78.14866652091344,
+          "std_us": 2.955887340348849,
+          "min_us": 73.61999899148941,
+          "max_us": 85.60000360012054
+        }
+      },
+      "post_timing": {
+        "pass": true,
+        "boundaries": {
+          "packed": {
+            "pass": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "bytes": 9437184
+          },
+          "latent_unchanged": {
+            "pass": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "bytes": 8388608
+          },
+          "rope_unchanged": {
+            "pass": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "bytes": 1048576
+          }
+        }
+      }
+    }
+  ],
+  "pass": true
+}

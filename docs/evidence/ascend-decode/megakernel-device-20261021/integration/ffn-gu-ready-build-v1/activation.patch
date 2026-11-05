@@ -1,0 +1,72 @@
+--- parent/body/source/shared_w8/shared_w8_native.h
++++ candidate/body/source/shared_w8/shared_w8_native.h
+@@ -138,18 +138,13 @@
+             Fence<HardEvent::MTE2_S>();
+             // INT8 products and their six-way sum fit exactly in INT32:
+             // 6144 * 128 * 128 = 100663296 < 2^31.
+-            Cast(held.values, held.sum, RoundMode::CAST_RINT, kGateColumns);
++            Cast(held.values, held.sum, RoundMode::CAST_NONE, kGateColumns);
+             PipeBarrier<PIPE_V>();
+             Mul(held.values, held.values, held.scales, kGateColumns);
+             PipeBarrier<PIPE_V>();
+             Muls(held.values, held.values,
+                  held.scales.GetValue(kGateColumns), kGateColumns);
+             PipeBarrier<PIPE_V>();
+-            if constexpr (kGroupedQuant) {
+-                Adds(held.values[kIntermediate], held.values[kIntermediate],
+-                     0.0F, kIntermediate);
+-                PipeBarrier<PIPE_V>();
+-            }
+             Muls(held.work, held.values, -1.0F, kIntermediate);
+             PipeBarrier<PIPE_V>();
+             Exp(held.work, held.work, kIntermediate);
+@@ -167,35 +162,20 @@
+             ReduceMax(held.maximum, held.work, held.work[kIntermediate],
+                       kIntermediate, false);
+             PipeBarrier<PIPE_V>();
+-            if constexpr (kGroupedQuant) {
+-                Muls(held.maximum, held.maximum, 1.0F / 127.0F, kScaleStride);
+-                Fence<HardEvent::V_S>();
+-                const float scale = held.maximum.GetValue(0);
+-                Duplicate(held.work, scale, kIntermediate);
+-                PipeBarrier<PIPE_V>();
+-                Div(held.values, held.values, held.work, kIntermediate);
+-                PipeBarrier<PIPE_V>();
+-                Cast(held.sum, held.values, RoundMode::CAST_RINT, kIntermediate);
+-                PipeBarrier<PIPE_V>();
+-                SetDeqScale(static_cast<half>(1.0F));
+-                Cast(held.halves, held.sum, RoundMode::CAST_ROUND, kIntermediate);
+-                PipeBarrier<PIPE_V>();
+-                Cast(held.codes, held.halves, RoundMode::CAST_TRUNC, kIntermediate);
+-            } else {
+-                Fence<HardEvent::V_S>();
+-                // The legacy mode-0 operator uses scalar division and reciprocal.
+-                const float scale = held.maximum.GetValue(0) / 127.0F;
+-                held.maximum.SetValue(0, scale);
+-                Fence<HardEvent::S_V>();
+-                Muls(held.values, held.values, 1.0F / scale, kIntermediate);
+-                PipeBarrier<PIPE_V>();
+-                auto integers = held.sum.ReinterpretCast<int16_t>();
+-                Cast(integers, held.values, RoundMode::CAST_RINT, kIntermediate);
+-                PipeBarrier<PIPE_V>();
+-                Cast(held.halves, integers, RoundMode::CAST_NONE, kIntermediate);
+-                PipeBarrier<PIPE_V>();
+-                Cast(held.codes, held.halves, RoundMode::CAST_NONE, kIntermediate);
+-            }
++            Fence<HardEvent::V_S>();
++            // CANN 9.2 key 30013: scalar scale and reciprocal multiplication.
++            const float scale = held.maximum.GetValue(0) / 127.0F;
++            held.maximum.SetValue(0, scale);
++            const float factor = scale == 0.0F ? 1.0F : 1.0F / scale;
++            Fence<HardEvent::S_V>();
++            Muls(held.values, held.values, factor, kIntermediate);
++            PipeBarrier<PIPE_V>();
++            auto integers = held.sum.ReinterpretCast<int16_t>();
++            Cast(integers, held.values, RoundMode::CAST_RINT, kIntermediate);
++            PipeBarrier<PIPE_V>();
++            Cast(held.halves, integers, RoundMode::CAST_NONE, kIntermediate);
++            PipeBarrier<PIPE_V>();
++            Cast(held.codes, held.halves, RoundMode::CAST_NONE, kIntermediate);
+         }
+         Fence<HardEvent::V_MTE3>();
+         DataCopy(output[row * kIntermediate], held.codes, kIntermediate);

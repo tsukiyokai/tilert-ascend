@@ -1,0 +1,1711 @@
+{
+  "timestamp_utc": "2026-10-21T11:51:41.361554+00:00",
+  "scope": "BF16 input through independent routed and shared BF16 outputs; no TP reduce",
+  "arguments": {
+    "library": "tests/glm52/routed_int4/build-pipeline-zero/routed_int4_torch.so",
+    "routed_library": "tests/glm52/routed_int4/build-balanced-zero/routed_int4_torch.so",
+    "shared_library": "/workspace/tests/glm52/shared_w8/build-grouped/shared_w8.so",
+    "vendor_library": "/workspace/tests/glm52/routed_int4/build-reference/nz_reference.so",
+    "swiglu_library": "/workspace/tests/glm52/shared_w8/build-swiglu-reference-v4/shared_swiglu_reference.so",
+    "device": "npu:0",
+    "widths": [
+      12
+    ],
+    "blocks": 24,
+    "banks": 4,
+    "calls": 16,
+    "replays": 4,
+    "seed": 20261021,
+    "iterations": 10,
+    "timing_pairs": 6,
+    "queued_producer": false,
+    "no_timing": false,
+    "output": "logs/routed-shared-zero-m12-bank4.json",
+    "fixture": null,
+    "checkpoint": null
+  },
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "cann": {
+    "CANN": "9.2.0",
+    "RUNTIME": "9.2.0",
+    "COMPILER": "9.2.0",
+    "OPP": "9.2.0",
+    "OPP_KERNEL": "9.2.0",
+    "DRIVER": "9.2.0"
+  },
+  "device": "_NPUDeviceProperties(name='Ascend910_9392', total_memory=62740MB, cube_core_num=24, vector_core_num=48, uuid=00cc0800-d001-0000-0000-e4dccc1a64f7, L2_cache_size=192MB)",
+  "libraries_sha256": {
+    "library": "d311bcffc7b64ccc102537ec8743f9accc8239edd261d93e0cff67a2165e165a",
+    "routed_library": "c6e0116ffca2c15567f6741bfc45789e9930c20af3e2243319f73d2e80c29200",
+    "shared_library": "3c6bd9dd66c0d84bf9ff7ffb32aa2094109ba96f75ceac739036eec92379c04a",
+    "vendor_library": "bd04f6a350fe1e10e8207fe069b12187ce9f278f3e986b993b023c15eeefafc2",
+    "swiglu_library": "7221f01c4fea66293ee2ddc4223533283c845cd8ec78030a9568ff0347c0caf4"
+  },
+  "source_sha256": {
+    "check_pipeline.py": "b87866bfa21cf9057061d7965719399781c1e19af1e917034720d72e0fd46c3f",
+    "check.py": "69cd1012cca56de8c1a9df9efeba8ee6797a3228bec5be1ef5367c806ef95b93"
+  },
+  "build_identity": {
+    "library/identity.sha256": {
+      "sha256": "d0705d8390424f9b054fedd3f30bb58dcedcfbb373dfaa6ff5d106e082d55157",
+      "text": "031db03067e90a8361a6f21011093fd033c5225e4b333c375e6489edd1e262af  /workspace/tests/glm52/routed_int4/routed_int4_binding.cpp\n5ded2388da6e15ff90c2c49d6dd9a339decafacd73d3a92706e3c03f356b38ff  /workspace/tests/glm52/routed_int4/routed_int4_contract.h\n5fd7e469f1230ff8feb9a554b4bfd5a8cb653fb28fd7cd3bfce1da61ac724c7f  /workspace/tests/glm52/routed_int4/routed_int4_dispatch.h\n13504b147ca8df2255a845a79f2e8911e1c290bfa3ae4fe3ebdd973cac5a8183  /workspace/tests/glm52/routed_int4/routed_int4_kernel.cpp\n9de7e8da2d57e63503bd07f89ae88e259976efa3e8de4969133788d929b9d99d  /workspace/tests/glm52/routed_int4/routed_int4_kernel.h\nde97bdaa15146d50d6357a8a0cfd65ed7f74a82164bdd81bafad3c3d5e5ebae3  /workspace/tests/glm52/routed_int4/routed_int4_tiling.cpp\ncab822760d5ea544d8ba0666b548b4dd16a0bcf29252fea6e26a6b83d14f9749  /workspace/tests/glm52/routed_int4/routed_int4_trace.h\n59d7c3b99bc1632e22c60d0d52969db62505b8829f9aa658655ed1d703909372  /workspace/tests/glm52/routed_int4/routed_int4_profile.h\n9b310cf5264ad343eaa962e1c96e655eecab574f5d9805583432d5449ee1a169  /workspace/tests/glm52/routed_int4/routed_int4_pipeline.h\nc6171f0d2fbbe1893fa4b80967ade83286452c38b6374f2960fa5e01b421b1c8  /workspace/tests/glm52/routed_int4/routed_int4_pipeline_native.h\n7d7a6fe6a83c6fb7f5cf1729b03b114da39415159629b4c81e51c7633d3ab0bf  /workspace/tests/glm52/routed_int4/routed_int4_pipeline_tiling.cpp\n40895a7eb28e70e8d463dfa5baaf812afe309660b27090ed3066c3a32f880935  /workspace/tests/glm52/routed_int4/build_common.sh\nc44fbccf69018fcdee70fbf36d3d72622026e8aa42c92cfa7f907443d6c0cc3d  /workspace/tests/glm52/routed_int4/build_so.sh\n809186dd88c5164e0332113b270dbfaa0cef7b66a298b860ae469224c0717b6c  /workspace/tests/glm52/routed_int4/build_pipeline.sh\n4bd2f8d5651ea4e7c9ccbc3677e6bf00228bc34649332220b52a31b5e25c0ed5  /workspace/tests/glm52/routed_int4/../shared_w8/shared_w8.h\nfaa1c9ca599e2c7a26397ef687153cb1ebdc40d8696b2e90b6317722da03d7c5  /workspace/tests/glm52/routed_int4/../shared_w8/shared_w8_native.h\nf0557964f075db75987e5df8fff87d28718595ac1f8c654a292e47d34bc3c362  /workspace/tests/glm52/routed_int4/../mla_tail/mla_tail_dequant.h\nb7ad1b066ffda77cf6f43bf44ec632a3e23819723452107a0d654e72ce31d6f3  /workspace/tests/glm52/routed_int4/../mla_tail/mla_tail_native.h\nca13e082d775154ea9357c2b12968da0a234b180f2ce6621675602414a8c7e9e  /workspace/tests/glm52/routed_int4/../mla_tail/mla_tail.h\n41a7a38c0f5eb3cafb2ab5539bb404b7d30c19487e647789cd2982abd7c11d36  tests/glm52/routed_int4/build-pipeline-zero/kernel.o\n90ead1eb10db1745e7b014de0faf1020719918578876230f5c97726d771e1123  tests/glm52/routed_int4/build-pipeline-zero/tiling.o\nf52a1e5bdea5ecb23269f9249fed6e806c2e30a29fa5b6989ce0637eda7c7700  tests/glm52/routed_int4/build-pipeline-zero/shared_tiling.o\ne5bf7c2bc653d06e80df424408312728269d546f6b0e2e1a0f68ff0a2be5ee91  tests/glm52/routed_int4/build-pipeline-zero/binding.o\nd311bcffc7b64ccc102537ec8743f9accc8239edd261d93e0cff67a2165e165a  tests/glm52/routed_int4/build-pipeline-zero/routed_int4_torch.so\n"
+    },
+    "routed_library/identity.sha256": {
+      "sha256": "08b633744947edf517702a867679af92d3622b3eb1bc0a1105204adcfe8d30ea",
+      "text": "031db03067e90a8361a6f21011093fd033c5225e4b333c375e6489edd1e262af  /workspace/tests/glm52/routed_int4/routed_int4_binding.cpp\n5ded2388da6e15ff90c2c49d6dd9a339decafacd73d3a92706e3c03f356b38ff  /workspace/tests/glm52/routed_int4/routed_int4_contract.h\n5fd7e469f1230ff8feb9a554b4bfd5a8cb653fb28fd7cd3bfce1da61ac724c7f  /workspace/tests/glm52/routed_int4/routed_int4_dispatch.h\n13504b147ca8df2255a845a79f2e8911e1c290bfa3ae4fe3ebdd973cac5a8183  /workspace/tests/glm52/routed_int4/routed_int4_kernel.cpp\n9de7e8da2d57e63503bd07f89ae88e259976efa3e8de4969133788d929b9d99d  /workspace/tests/glm52/routed_int4/routed_int4_kernel.h\nde97bdaa15146d50d6357a8a0cfd65ed7f74a82164bdd81bafad3c3d5e5ebae3  /workspace/tests/glm52/routed_int4/routed_int4_tiling.cpp\ncab822760d5ea544d8ba0666b548b4dd16a0bcf29252fea6e26a6b83d14f9749  /workspace/tests/glm52/routed_int4/routed_int4_trace.h\n59d7c3b99bc1632e22c60d0d52969db62505b8829f9aa658655ed1d703909372  /workspace/tests/glm52/routed_int4/routed_int4_profile.h\n40895a7eb28e70e8d463dfa5baaf812afe309660b27090ed3066c3a32f880935  /workspace/tests/glm52/routed_int4/build_common.sh\nc44fbccf69018fcdee70fbf36d3d72622026e8aa42c92cfa7f907443d6c0cc3d  /workspace/tests/glm52/routed_int4/build_so.sh\n64742df0807e65e9098cf32b2124136914464ef2387e62ed8499798d4fa0fffd  /workspace/tests/glm52/routed_int4/build_balanced.sh\na0cd5de5f38498e2406f136787e1603acbbb3d9f7bd45adeadc31e7432cbc4d3  /workspace/tests/glm52/routed_int4/check.py\ndc54a125b584d2113cf952eef4925278f7d4818630ee16c86864367da65a6650  tests/glm52/routed_int4/build-balanced-zero/kernel.o\n94d6239d07927d0d24589dd913033e23991ef137cdd6d36fdeb26f8375197722  tests/glm52/routed_int4/build-balanced-zero/tiling.o\n666bf4b7964ddb170c972ac024e17ea638b6902542a8ff59755e538fde98f52d  tests/glm52/routed_int4/build-balanced-zero/binding.o\nc6e0116ffca2c15567f6741bfc45789e9930c20af3e2243319f73d2e80c29200  tests/glm52/routed_int4/build-balanced-zero/routed_int4_torch.so\n"
+    },
+    "shared_library/build-manifest.json": {
+      "sha256": "564aa9e8b1ecd442affaafd431813e89b324868d2848e411fed29f93fef9313c",
+      "text": "{\n  \"timestamp_utc\": \"2026-10-21T11:16:20.248943+00:00\",\n  \"cann_root\": \"/opt/ascend/cann-9.2.0\",\n  \"activation_contract\": \"grouped\",\n  \"compiler\": \"/opt/ascend/cann-9.2.0/bin/bisheng\",\n  \"compiler_version\": \"2026-09-15T22:19:26+08:00 clang version 15.0.5 (clang-5c68a1cb1231 flang-5c68a1cb1231)\\nTarget: aarch64-unknown-linux-gnu\\nThread model: posix\\nInstalledDir: /opt/ascend/cann-9.2.0/bin\\n\",\n  \"source_sha256\": {\n    \"sources/mla_tail/mla_tail.h\": \"ca13e082d775154ea9357c2b12968da0a234b180f2ce6621675602414a8c7e9e\",\n    \"sources/mla_tail/mla_tail_dequant.h\": \"f0557964f075db75987e5df8fff87d28718595ac1f8c654a292e47d34bc3c362\",\n    \"sources/mla_tail/mla_tail_native.h\": \"b7ad1b066ffda77cf6f43bf44ec632a3e23819723452107a0d654e72ce31d6f3\",\n    \"sources/shared_w8/build.sh\": \"a58fd99eba2de44998e3fccbc2355d3992d4096264db14592b750386aed2b5fa\",\n    \"sources/shared_w8/shared_w8.h\": \"4bd2f8d5651ea4e7c9ccbc3677e6bf00228bc34649332220b52a31b5e25c0ed5\",\n    \"sources/shared_w8/shared_w8_host.cpp\": \"b5fada7b97f4b95a18b7dce98f3b60b4a010bf3f659ca12092e226542d958ba6\",\n    \"sources/shared_w8/shared_w8_kernel.cpp\": \"38ceaf73d81ad4d3b01898617617a392d5b73b3bb2d06106ae108a78d39b84b9\"\n  },\n  \"library_sha256\": \"3c6bd9dd66c0d84bf9ff7ffb32aa2094109ba96f75ceac739036eec92379c04a\"\n}\n"
+    },
+    "swiglu_library/build-manifest.json": {
+      "sha256": "a791b6bfa453406f5e5aac49a66fedc9ca4a0bb43737c4e523a00cc42e10fe8c",
+      "text": "{\n  \"timestamp_utc\": \"2026-10-21T11:16:13.348794+00:00\",\n  \"scope\": \"Unmodified source kernel with explicit fixed-shape tiling\",\n  \"cann_root\": \"/opt/ascend/cann-9.2.0\",\n  \"source_sha256\": {\n    \"source/dequant_swiglu_quant.h\": \"2e516dc7332449057ea8379eebd61a0b6f2a2917907b7f88d07b6025d3cf72b2\",\n    \"source/dequant_swiglu_quant_tiling.h\": \"8e1f31d7dc581181a8d37cfeb97461ccb05b9ee83991ab33c2e56710b7a1e226\",\n    \"source/kernel_tiling/kernel_tiling.h\": \"05474ac6c4e8518420b91e4f09cc8c2f1188293ba311ce7cb29d559caa600d2f\",\n    \"source/swiglu_reference.cpp\": \"ad571ce7509987b04a4404c2ac10f55084ad448b047e967803e85534297f53f1\"\n  },\n  \"library_sha256\": \"7221f01c4fea66293ee2ddc4223533283c845cd8ec78030a9568ff0347c0caf4\"\n}\n"
+    }
+  },
+  "shared_reference": "CANN QMM + unmodified vLLM grouped SwiGLU source + CANN QMM",
+  "shared_weight_layouts": {
+    "interleaved": "ND tiles",
+    "separate_native": "same ND allocations",
+    "vendor": "separate NZ allocations, equal logical values"
+  },
+  "routed_reference": "stock CANN canonical NZ bridge with shared weight allocations",
+  "weight_storage_bytes": {
+    "routed_shared_between_arms": 1207959552,
+    "shared_native": 9437184,
+    "shared_vendor": 9437184
+  },
+  "cases": [
+    {
+      "rows": 12,
+      "blocks": 24,
+      "capacity": 16,
+      "checks": [
+        {
+          "replay": 0,
+          "active_experts": 8,
+          "zero_probabilities": 0,
+          "pass": true,
+          "boundaries": {
+            "interleaved/routed_output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/restored_input": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/restored_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/routed_middle": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12288,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/routed_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/routed_before_combine": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed_output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/restored_input": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/restored_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed_middle": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12288,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed_before_combine": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/0": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/1": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 49152,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/2": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12288,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/3": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/4": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 1179648,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/5": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/9": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/10": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/11": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/12": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/13": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/14": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/15": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/16": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared_gate": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 3072,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared_codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 1536,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared_output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared_gate": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 3072,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared_codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 1536,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared_output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        },
+        {
+          "replay": 1,
+          "active_experts": 8,
+          "zero_probabilities": 0,
+          "pass": true,
+          "boundaries": {
+            "interleaved/routed_output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/restored_input": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/restored_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/routed_middle": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12288,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/routed_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/routed_before_combine": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed_output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/restored_input": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/restored_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed_middle": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12288,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed_before_combine": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/0": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/1": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 49152,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/2": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12288,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/3": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/4": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 1179648,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/5": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/9": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/10": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/11": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/12": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/13": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/14": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/15": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/16": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared_gate": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 3072,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared_codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 1536,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared_output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared_gate": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 3072,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared_codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 1536,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared_output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        },
+        {
+          "replay": 2,
+          "active_experts": 87,
+          "zero_probabilities": 0,
+          "pass": true,
+          "boundaries": {
+            "interleaved/routed_output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/restored_input": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/restored_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/routed_middle": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12288,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/routed_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/routed_before_combine": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed_output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/restored_input": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/restored_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed_middle": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12288,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed_before_combine": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/0": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/1": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 49152,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/2": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12288,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/3": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/4": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 1179648,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/5": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/9": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/10": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/11": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/12": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/13": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/14": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/15": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/16": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared_gate": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 3072,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared_codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 1536,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared_output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared_gate": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 3072,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared_codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 1536,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared_output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        },
+        {
+          "replay": 3,
+          "active_experts": 81,
+          "zero_probabilities": 0,
+          "pass": true,
+          "boundaries": {
+            "interleaved/routed_output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/restored_input": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/restored_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/routed_middle": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12288,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/routed_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/routed_before_combine": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed_output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/restored_input": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/restored_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed_middle": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12288,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed_before_combine": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/0": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/1": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 49152,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/2": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12288,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/3": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/4": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 1179648,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/5": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 589824,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/9": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/10": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/11": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/12": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/13": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/14": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/15": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "native_scratch/16": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 96,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared_gate": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 3072,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared_codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 1536,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared_output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared_gate": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 3072,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared_codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 1536,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 12,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared_output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        }
+      ],
+      "pass": true,
+      "scratch_bytes": {
+        "interleaved": 24442288,
+        "separate_native": 41219504
+      },
+      "timing_output_checks": [
+        {
+          "replay": 0,
+          "outputs": {
+            "interleaved/routed": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        },
+        {
+          "replay": 1,
+          "outputs": {
+            "interleaved/routed": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        },
+        {
+          "replay": 2,
+          "outputs": {
+            "interleaved/routed": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        },
+        {
+          "replay": 3,
+          "outputs": {
+            "interleaved/routed": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "interleaved/shared": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/routed": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "separate_native/shared": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 73728,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        }
+      ],
+      "pairs_us_per_call": [
+        {
+          "interleaved": 187.29300498962402,
+          "separate_native": 218.90711784362793,
+          "vendor": 300.70488452911377
+        },
+        {
+          "separate_native": 219.2732572555542,
+          "vendor": 300.22099018096924,
+          "interleaved": 187.73237466812134
+        },
+        {
+          "vendor": 300.4162549972534,
+          "interleaved": 187.53399848937988,
+          "separate_native": 219.4251298904419
+        },
+        {
+          "vendor": 300.4040002822876,
+          "separate_native": 219.4075107574463,
+          "interleaved": 187.03737258911133
+        },
+        {
+          "interleaved": 186.9073748588562,
+          "vendor": 300.4780054092407,
+          "separate_native": 219.21286582946777
+        },
+        {
+          "separate_native": 219.04561519622803,
+          "interleaved": 186.9634985923767,
+          "vendor": 300.4603862762451
+        }
+      ],
+      "median_us_per_call": {
+        "interleaved": 187.16518878936768,
+        "separate_native": 219.243061542511,
+        "vendor": 300.43832063674927
+      }
+    }
+  ],
+  "pass": true,
+  "loaded_libraries_sha256": {
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libascendcl.so": "1c06b9c4a8910cfb585eab4ed0066bc09e28a0cf273dfcb15458f7cc49a78cea",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libruntime.so": "f664ffa8934e702e7d8858d7b301bd8c610365f38ce2e12ab9a631114e45b3bb",
+    "/usr/local/lib/python3.11/site-packages/torch_npu/lib/libtorch_npu.so": "4c886c78d4c032bd96afa8155106d2d2d223b4e118e9020a59944b75cb269362"
+  }
+}

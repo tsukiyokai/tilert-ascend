@@ -1,0 +1,170 @@
+{
+  "scope": "Independent GU three-way K split on one A3 die. Canonical NZ weights, BF16 routed input and shared scales. No TP reduction, final addition or model timing.",
+  "candidate_library_sha256": "9b6854271602050a5f8435a229add58e665d6bbfa2218362c055b7d54f963625",
+  "control_library_sha256": "b0a87a13cf07ce653e6e602c4dfad9eadbbe4ace91cf6f65b0ef673efce74016",
+  "candidate_namespace": "tilert_pipeline_front_splitk",
+  "activation": "24 core groups and 1-8 active experts; otherwise original schedule",
+  "integer_contract": "Three K2048 INT32 products sum before original scale and FP16 conversion; first plane retains full sum.",
+  "build": "routed-pipeline-front-splitk-v1-build",
+  "harness": "routed-pipeline-front-splitk-v1-harness/source-sha256.json",
+  "numerical_records": [
+    {
+      "path": "routed-front-splitk-v1-smoke-r8.json",
+      "sha256": "48e0c224364462ff4eb317cc03c6281cdca551ff0961475a152c27a9d4e43f3d",
+      "blocks": 24,
+      "route_pattern": "shared8",
+      "cases": [
+        {
+          "width": 1,
+          "replays": 8,
+          "raw_byte_comparisons": 296,
+          "scratch_bytes": {
+            "interleaved_front": 17997860,
+            "interleaved_front_control": 17965092
+          }
+        }
+      ]
+    },
+    {
+      "path": "routed-front-splitk-v1-mixed-b24.json",
+      "sha256": "167059ecc13f2809923d7cb6360b83a768f54b409dd4d8915c1bccb7db63bffa",
+      "blocks": 24,
+      "route_pattern": "mixed",
+      "cases": [
+        {
+          "width": 1,
+          "replays": 8,
+          "raw_byte_comparisons": 296,
+          "scratch_bytes": {
+            "interleaved_front": 17997860,
+            "interleaved_front_control": 17965092
+          }
+        },
+        {
+          "width": 2,
+          "replays": 8,
+          "raw_byte_comparisons": 296,
+          "scratch_bytes": {
+            "interleaved_front": 18619464,
+            "interleaved_front_control": 18553928
+          }
+        },
+        {
+          "width": 12,
+          "replays": 8,
+          "raw_byte_comparisons": 296,
+          "scratch_bytes": {
+            "interleaved_front": 24835504,
+            "interleaved_front_control": 24442288
+          }
+        },
+        {
+          "width": 32,
+          "replays": 8,
+          "raw_byte_comparisons": 296,
+          "scratch_bytes": {
+            "interleaved_front": 37859968,
+            "interleaved_front_control": 36811392
+          }
+        }
+      ]
+    },
+    {
+      "path": "routed-front-splitk-v1-shared8-b24.json",
+      "sha256": "34a084e093d9f1c2532296e58d93cb30672f338c14687f89c0f0df638b52d070",
+      "blocks": 24,
+      "route_pattern": "shared8",
+      "cases": [
+        {
+          "width": 1,
+          "replays": 8,
+          "raw_byte_comparisons": 296,
+          "scratch_bytes": {
+            "interleaved_front": 17997860,
+            "interleaved_front_control": 17965092
+          }
+        },
+        {
+          "width": 2,
+          "replays": 8,
+          "raw_byte_comparisons": 296,
+          "scratch_bytes": {
+            "interleaved_front": 18619464,
+            "interleaved_front_control": 18553928
+          }
+        },
+        {
+          "width": 12,
+          "replays": 8,
+          "raw_byte_comparisons": 296,
+          "scratch_bytes": {
+            "interleaved_front": 24835504,
+            "interleaved_front_control": 24442288
+          }
+        },
+        {
+          "width": 32,
+          "replays": 8,
+          "raw_byte_comparisons": 296,
+          "scratch_bytes": {
+            "interleaved_front": 37859968,
+            "interleaved_front_control": 36811392
+          }
+        }
+      ]
+    },
+    {
+      "path": "routed-front-splitk-v1-shared8-b16.json",
+      "sha256": "db9568df918ea00ddd457f039e5e103b8f32dc8b3b0b17c5303f55fca6960c34",
+      "blocks": 16,
+      "route_pattern": "shared8",
+      "cases": [
+        {
+          "width": 1,
+          "replays": 8,
+          "raw_byte_comparisons": 296,
+          "scratch_bytes": {
+            "interleaved_front": 17997860,
+            "interleaved_front_control": 17965092
+          }
+        },
+        {
+          "width": 2,
+          "replays": 8,
+          "raw_byte_comparisons": 296,
+          "scratch_bytes": {
+            "interleaved_front": 18619464,
+            "interleaved_front_control": 18553928
+          }
+        },
+        {
+          "width": 12,
+          "replays": 8,
+          "raw_byte_comparisons": 296,
+          "scratch_bytes": {
+            "interleaved_front": 24835504,
+            "interleaved_front_control": 24442288
+          }
+        },
+        {
+          "width": 32,
+          "replays": 8,
+          "raw_byte_comparisons": 296,
+          "scratch_bytes": {
+            "interleaved_front": 37859968,
+            "interleaved_front_control": 36811392
+          }
+        }
+      ]
+    }
+  ],
+  "numerical_replays": 104,
+  "raw_byte_comparisons": 3848,
+  "numerical_pass": true,
+  "timing_status": "complete",
+  "selected": false,
+  "placement_report": "routed-pipeline-front-splitk-v1-placement-summary.json",
+  "total_numerical_replays": 1256,
+  "total_raw_byte_comparisons": 46472,
+  "decision": "Retain the selected control. Shared-eight gains of 0.27-1.48 us do not offset mixed-route regressions of 5.27-6.20 us."
+}

@@ -1,0 +1,202 @@
+{
+  "scope": "Single-die production gate/topk and independent CPU HF arithmetic",
+  "precision_verified": false,
+  "performance_measured": false,
+  "router": [
+    {
+      "report": "/workspace/offline/cann-router-20261017/device-step0-layer3-v3/report.json",
+      "report_sha256": "eb340a0fc83e5cec4a5f6e6b8a16c47aec0841e60ff80259c4d7b404a55488e6",
+      "position": 0,
+      "layer": 3,
+      "device": "npu:15",
+      "checks": 17,
+      "experts_executed": false,
+      "collectives_executed": false,
+      "selection_boundary": {
+        "eighth_expert": 206,
+        "ninth_expert": 237,
+        "eighth_score": 34.92705154418945,
+        "ninth_score": 34.926902770996094,
+        "eighth_minus_ninth": 0.000148773193359375,
+        "boundary_tie": false,
+        "boundary_equal_scores": 1,
+        "adjacent_equal_scores": 1
+      },
+      "scale_placement": {
+        "hf": "BF16(normalized_weights * 2.5) before expert combine",
+        "cann": "BF16(normalized_weights); combine; BF16(output * 2.5)",
+        "router_scale": 1.0,
+        "scope": "Real probabilities; synthetic unit output of one expert",
+        "bf16_weight_rounding_witnesses": [
+          {
+            "expert": 163,
+            "normalized_probability": 0.09104562550783157,
+            "hf_unit_expert_output": 0.2275390625,
+            "cann_unit_expert_output": 0.2265625
+          },
+          {
+            "expert": 26,
+            "normalized_probability": 0.08871378004550934,
+            "hf_unit_expert_output": 0.2216796875,
+            "cann_unit_expert_output": 0.22265625
+          }
+        ],
+        "max_abs": 0.0009765625,
+        "expert_combine_validated": false
+      },
+      "production_source_sha256": {
+        "/workspace/src/vllm-unified/vllm/model_executor/models/deepseek_v2.py": "5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408",
+        "/workspace/src/vllm-unified/vllm/model_executor/layers/fused_moe/runner/moe_runner.py": "8c3860e0149dcbe2e338393d14f4972c267c93082112d87144593e7a30a9c8f5",
+        "/workspace/src/vllm-ascend-unified/vllm_ascend/patch/platform/patch_fused_moe.py": "54d3ac8a349e3ea40d3353a9bdb0d4fa514f93aab863482e43912ca330161793",
+        "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/fused_moe.py": "d4dfab36e66bd0a2ab9d78b9a867335adfc8cf0c418c93b34f5ccef63df00e27",
+        "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/token_dispatcher.py": "1dcfd8181cb2d34c584d8336c3379dbeefba75c0bf664f924063701b93295cbb",
+        "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/gate_linear.py": "b4cafe1e79b13f3561c53765cc1e33a312c67052e5a54c927a6f229ddd70d0bf",
+        "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/router/fused_topk_router.py": "06c47fd91e8c36f6f5465cea0b32a184280f842833c2bff27a18fc6d17fcb838"
+      },
+      "probe_source_sha256": {
+        "tilert/models/glm_5_2_ascend/reference.py": "f3802133b9ebd3280503d98fe86712f2fc0b51bcddebbab44f2962e6a99d44fb",
+        "tilert/models/glm_5_2_ascend/reference_weights.py": "3880a4310602e8c34848f0344253c861a1e41a34dddf1a9d9d12364701634527",
+        "tilert/models/glm_5_2_ascend/ops/indexer.py": "b8536fd5f41fe1f194ef4f3f34d30d4090c3b943c69d69a0445666d41396172a",
+        "tilert/models/glm_5_2_ascend/reference_prolog.py": "3a53834ff4a612183f0f35c09e5e30d7620ed7e303a122dc01215a6e6a3aacff",
+        "/workspace/offline/cann-router-20261017/source-v3/tilert/models/glm_5_2_ascend/reference.py": "f3802133b9ebd3280503d98fe86712f2fc0b51bcddebbab44f2962e6a99d44fb",
+        "/workspace/offline/cann-router-20261017/source-v3/tests/glm52/check_cann_router.py": "774dcd49516a6a09c9b37943272f13e50132ae3cf7f8da6b91bbe5fc67cfd423",
+        "/workspace/offline/cann-router-20261017/source-v3/tests/glm52/check_saved_hf_boundary.py": "2adc2525a20ae0b695e463f09e49804fa3980b411768542bd3ecfa7e24205abe"
+      },
+      "device_metadata": {
+        "gate": "AscendGateLinear.forward; BF16 operands / FP32 output",
+        "gate_context": "Explicit weight/bias/out_dtype/return_bias fields",
+        "weight_format": 2,
+        "router": "AscendFusedTopKRouter._compute_routing",
+        "router_scale": 1.0,
+        "output_scale": "Production runner multiplies combined output by 2.5",
+        "allocator_limit_bytes": 1610612736,
+        "source_sha256": {
+          "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/gate_linear.py": "b4cafe1e79b13f3561c53765cc1e33a312c67052e5a54c927a6f229ddd70d0bf",
+          "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/router/fused_topk_router.py": "06c47fd91e8c36f6f5465cea0b32a184280f842833c2bff27a18fc6d17fcb838",
+          "/workspace/src/vllm-ascend-unified/vllm_ascend/utils.py": "2cc5992b79d507f302615bee2228302c0d99fe9de7b02fbb825b76689974a115",
+          "/workspace/src/vllm-ascend-unified/csrc/moe/moe_gating_top_k/moe_gating_top_k_torch_adpt.h": "b475c974a0d5bf4e8bb5e607a2c717bd2d59fbf5e248cabbb873e2529560aec0",
+          "/workspace/src/vllm-ascend-unified/csrc/moe/moe_gating_top_k/op_host/moe_gating_top_k_tiling.cpp": "74da9716d3466f3382d6b11114aaf06d4ab222bda44088492249d477e2726a07",
+          "/workspace/src/vllm-ascend-unified/csrc/moe/moe_gating_top_k/op_kernel/moe_gating_top_k_without_group.h": "0a3ba990a9503c48129a03b28d178f0040fb73b34eb37b7dfdda25726e5845d6"
+        },
+        "peak_allocated_bytes": 24136192,
+        "peak_reserved_bytes": 46137344
+      }
+    },
+    {
+      "report": "/workspace/offline/cann-router-20261017/device-step1-layer3-v3/report.json",
+      "report_sha256": "7786bfa337e21572247e076717de997228806bab2614cf5bc7fd877ab6202111",
+      "position": 1,
+      "layer": 3,
+      "device": "npu:15",
+      "checks": 17,
+      "experts_executed": false,
+      "collectives_executed": false,
+      "selection_boundary": {
+        "eighth_expert": 190,
+        "ninth_expert": 26,
+        "eighth_score": 34.93004608154297,
+        "ninth_score": 34.92899703979492,
+        "eighth_minus_ninth": 0.001049041748046875,
+        "boundary_tie": false,
+        "boundary_equal_scores": 1,
+        "adjacent_equal_scores": 1
+      },
+      "scale_placement": {
+        "hf": "BF16(normalized_weights * 2.5) before expert combine",
+        "cann": "BF16(normalized_weights); combine; BF16(output * 2.5)",
+        "router_scale": 1.0,
+        "scope": "Real probabilities; synthetic unit output of one expert",
+        "bf16_weight_rounding_witnesses": [
+          {
+            "expert": 143,
+            "normalized_probability": 0.1628895401954651,
+            "hf_unit_expert_output": 0.40625,
+            "cann_unit_expert_output": 0.408203125
+          },
+          {
+            "expert": 218,
+            "normalized_probability": 0.09653252363204956,
+            "hf_unit_expert_output": 0.2412109375,
+            "cann_unit_expert_output": 0.2421875
+          },
+          {
+            "expert": 190,
+            "normalized_probability": 0.09881290793418884,
+            "hf_unit_expert_output": 0.2470703125,
+            "cann_unit_expert_output": 0.24609375
+          }
+        ],
+        "max_abs": 0.001953125,
+        "expert_combine_validated": false
+      },
+      "production_source_sha256": {
+        "/workspace/src/vllm-unified/vllm/model_executor/models/deepseek_v2.py": "5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408",
+        "/workspace/src/vllm-unified/vllm/model_executor/layers/fused_moe/runner/moe_runner.py": "8c3860e0149dcbe2e338393d14f4972c267c93082112d87144593e7a30a9c8f5",
+        "/workspace/src/vllm-ascend-unified/vllm_ascend/patch/platform/patch_fused_moe.py": "54d3ac8a349e3ea40d3353a9bdb0d4fa514f93aab863482e43912ca330161793",
+        "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/fused_moe.py": "d4dfab36e66bd0a2ab9d78b9a867335adfc8cf0c418c93b34f5ccef63df00e27",
+        "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/token_dispatcher.py": "1dcfd8181cb2d34c584d8336c3379dbeefba75c0bf664f924063701b93295cbb",
+        "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/gate_linear.py": "b4cafe1e79b13f3561c53765cc1e33a312c67052e5a54c927a6f229ddd70d0bf",
+        "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/router/fused_topk_router.py": "06c47fd91e8c36f6f5465cea0b32a184280f842833c2bff27a18fc6d17fcb838"
+      },
+      "probe_source_sha256": {
+        "tilert/models/glm_5_2_ascend/reference.py": "f3802133b9ebd3280503d98fe86712f2fc0b51bcddebbab44f2962e6a99d44fb",
+        "tilert/models/glm_5_2_ascend/reference_weights.py": "3880a4310602e8c34848f0344253c861a1e41a34dddf1a9d9d12364701634527",
+        "tilert/models/glm_5_2_ascend/ops/indexer.py": "b8536fd5f41fe1f194ef4f3f34d30d4090c3b943c69d69a0445666d41396172a",
+        "tilert/models/glm_5_2_ascend/reference_prolog.py": "3a53834ff4a612183f0f35c09e5e30d7620ed7e303a122dc01215a6e6a3aacff",
+        "/workspace/offline/cann-router-20261017/source-v3/tests/glm52/check_saved_hf_boundary.py": "2adc2525a20ae0b695e463f09e49804fa3980b411768542bd3ecfa7e24205abe",
+        "/workspace/offline/cann-router-20261017/source-v3/tilert/models/glm_5_2_ascend/reference.py": "f3802133b9ebd3280503d98fe86712f2fc0b51bcddebbab44f2962e6a99d44fb",
+        "/workspace/offline/cann-router-20261017/source-v3/tests/glm52/check_cann_router.py": "774dcd49516a6a09c9b37943272f13e50132ae3cf7f8da6b91bbe5fc67cfd423"
+      },
+      "device_metadata": {
+        "gate": "AscendGateLinear.forward; BF16 operands / FP32 output",
+        "gate_context": "Explicit weight/bias/out_dtype/return_bias fields",
+        "weight_format": 2,
+        "router": "AscendFusedTopKRouter._compute_routing",
+        "router_scale": 1.0,
+        "output_scale": "Production runner multiplies combined output by 2.5",
+        "allocator_limit_bytes": 1610612736,
+        "source_sha256": {
+          "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/gate_linear.py": "b4cafe1e79b13f3561c53765cc1e33a312c67052e5a54c927a6f229ddd70d0bf",
+          "/workspace/src/vllm-ascend-unified/vllm_ascend/utils.py": "2cc5992b79d507f302615bee2228302c0d99fe9de7b02fbb825b76689974a115",
+          "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/router/fused_topk_router.py": "06c47fd91e8c36f6f5465cea0b32a184280f842833c2bff27a18fc6d17fcb838",
+          "/workspace/src/vllm-ascend-unified/csrc/moe/moe_gating_top_k/moe_gating_top_k_torch_adpt.h": "b475c974a0d5bf4e8bb5e607a2c717bd2d59fbf5e248cabbb873e2529560aec0",
+          "/workspace/src/vllm-ascend-unified/csrc/moe/moe_gating_top_k/op_host/moe_gating_top_k_tiling.cpp": "74da9716d3466f3382d6b11114aaf06d4ab222bda44088492249d477e2726a07",
+          "/workspace/src/vllm-ascend-unified/csrc/moe/moe_gating_top_k/op_kernel/moe_gating_top_k_without_group.h": "0a3ba990a9503c48129a03b28d178f0040fb73b34eb37b7dfdda25726e5845d6"
+        },
+        "peak_allocated_bytes": 24136192,
+        "peak_reserved_bytes": 46137344
+      }
+    }
+  ],
+  "hf_reference": {
+    "report": "/workspace/offline/hf-cann-arithmetic-20261017/two-step/manifest.json",
+    "report_sha256": "889f149f7eac588af20c700afa1cc78d8d28d073be1949c5009dc72cad75bb4f",
+    "checks": 1273,
+    "teacher_tokens": [
+      154820,
+      198
+    ],
+    "generated_tokens": [
+      17351
+    ],
+    "expert_combine": "Unscaled BF16 probabilities; FP32 weighted sum; BF16 output; BF16 routed scale; BF16 shared add; FP32 TP sum; BF16 output",
+    "source_sha256": {
+      "tests/glm52/run_hf_reference.py": "06f287d15e0ac437071644a0893b68e70cd9a13c77c6f798daabcdeb57f9c7c4",
+      "tests/glm52/run_native_decode.py": "bc40b579824eb6def8fa9fc7fb2acd045774088f1e841e514279aa6818870adc",
+      "tests/glm52/prefix_io.py": "b0f1a76b565d6d97b3ef1e64b7810d1efe7c22470e2b1c46bd64911341559c90",
+      "tilert/models/glm_5_2_ascend/reference.py": "99e5410758829d52d20cb23725d23f0798e50f403871fae5f85bbff4947fd59e",
+      "tilert/models/glm_5_2_ascend/reference_weights.py": "3880a4310602e8c34848f0344253c861a1e41a34dddf1a9d9d12364701634527",
+      "tilert/models/glm_5_2_ascend/ops/indexer.py": "b8536fd5f41fe1f194ef4f3f34d30d4090c3b943c69d69a0445666d41396172a",
+      "tilert/models/glm_5_2_ascend/reference_prolog.py": "3a53834ff4a612183f0f35c09e5e30d7620ed7e303a122dc01215a6e6a3aacff"
+    },
+    "trace_sha256": {
+      "step-00000.pt": "4ce7fc5e9c7e3d57df8af6ac8e1a65c87c82b1965863d716ca1ce02c1a1902a2",
+      "step-00001.pt": "3a28ee91fba6e699dd3283d59fb8485cbe887678f03c9950bb2470e30a8d5904"
+    },
+    "checkpoint_sha256": {
+      "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+      "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+      "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+    }
+  }
+}

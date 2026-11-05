@@ -1,0 +1,16 @@
+--- parent/source/kernel.cpp
++++ candidate/source/kernel.cpp
+@@ -32,9 +32,10 @@
+     routed_body::Forward<format, true>(pipe, arguments,
+         (__gm__ bfloat16_t*)bridge.values[ffn_bridge::kScaledRouted],
+         (__gm__ bfloat16_t*)bridge.values[ffn_bridge::kCombined]);
+-    // NoTrace::FinishFinal is empty. This is the required publication seam,
+-    // after every body-local TBuf and matrix object has left scope.
+-    ffn_bridge::device::EndPhase(pipe);
++    // All output consumers follow this global task on the same stream.
++    // The callable body and its internal publication boundaries are unchanged.
++    PipeBarrier<PIPE_ALL>();
++    DataSyncBarrier<MemDsbT::DDR>();
+ 
+ }
+ }  // namespace ffn_token_split_device

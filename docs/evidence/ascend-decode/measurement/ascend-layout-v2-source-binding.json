@@ -1,0 +1,304 @@
+{
+  "status": "pass",
+  "command": [
+    "/root/miniconda3/bin/python3",
+    "tests/glm52/check_ascend_layout.py",
+    "--output",
+    "/home/shanshan/trt-asc/experiments/glm52/measurement/ascend-layout-v2-source-binding.json",
+    "--vllm-root",
+    "/home/shanshan/trt-asc/src/vllm-unified",
+    "--vllm-ascend-root",
+    "/home/shanshan/trt-asc/src/vllm-ascend-unified"
+  ],
+  "host": "liteserver-hps-c180-00044",
+  "python": "3.13.13 | packaged by Anaconda, Inc. | (main, Apr 14 2026, 06:21:46) [GCC 14.3.0]",
+  "source_sha256": {
+    "tilert/pd_vllm/ascend_layout.py": "326e2b0796990a5cbd94ca13c00fb997bd867dcfdf2c51f1ab9835839818b7e7",
+    "tilert/pd_vllm/ascend_source.py": "88a863574b1220a823af5885b15e5ff7d1ba49a89f37629ae70c63abc6559128",
+    "tests/glm52/check_ascend_layout.py": "d19e81c0f0985440249c65454d84bde9a7b98a2587f77b08585c6183d68df189"
+  },
+  "vllm_ascend": {
+    "root": "/home/shanshan/trt-asc/src/vllm-ascend-unified",
+    "revision": "f558b58c177916424ae9dcf9bb8e66c0b9031236",
+    "sha256": {
+      "vllm_ascend/worker/model_runner_v1.py": "f0a3079900c9b2628437195ef21d0631c747aa1a49b663c1b27fddf379cbf8f5",
+      "vllm_ascend/worker/v2/attn_utils.py": "39844c3051dd784f819e52e8119a65cbe025271f838d3cb38112a16e9bb359d8",
+      "vllm_ascend/attention/sfa_v1.py": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+      "vllm_ascend/core/kv_cache_interface.py": "46888315206b2ee5265007f413e0d321e99506c5181592000b40b8f2355fac51"
+    }
+  },
+  "vllm": {
+    "root": "/home/shanshan/trt-asc/src/vllm-unified",
+    "revision": "c4df37dfcc7f72ca41cd43801a468526ecf99a2b",
+    "sha256": {
+      "vllm/v1/kv_cache_interface.py": "f420e9661230d45234fd44cd1f577f5672e075993e5e6f0e91a8c13ab26c9f33",
+      "vllm/model_executor/models/deepseek_mtp.py": "aae80e30b2dbfd1df41b83f51aaba4722e9f2dc3b4479d2a38ce1e32926fac11"
+    }
+  },
+  "allocated_bytes_per_rank": 884166656,
+  "8k_transfer_bytes_per_rank": 775159808,
+  "regions": 196,
+  "checks_total": 63,
+  "checks_failed": 0,
+  "scope": "Host stdlib address plans with tensor metadata doubles",
+  "pending": [
+    "Binding real vLLM-Ascend NPU tensors",
+    "Producer completion and valid main/MTP prefix lengths",
+    "Caller enforcement of TP16, PP1, PCP1, and DCP1",
+    "HIXL registration, WRITE, and receiver cache consumption"
+  ],
+  "checks": [
+    {
+      "name": "capacity_page_rounding",
+      "passed": true
+    },
+    {
+      "name": "tp16_layout",
+      "passed": true
+    },
+    {
+      "name": "layout_version",
+      "passed": true
+    },
+    {
+      "name": "full_indexer_layers",
+      "passed": true
+    },
+    {
+      "name": "int8_indexer_layers",
+      "passed": true
+    },
+    {
+      "name": "mla_latent.count",
+      "passed": true
+    },
+    {
+      "name": "mla_rope.count",
+      "passed": true
+    },
+    {
+      "name": "index.count",
+      "passed": true
+    },
+    {
+      "name": "index_scale.count",
+      "passed": true
+    },
+    {
+      "name": "mtp_index_bfloat16",
+      "passed": true
+    },
+    {
+      "name": "shared_index_absent",
+      "passed": true
+    },
+    {
+      "name": "capacity_bytes",
+      "passed": true
+    },
+    {
+      "name": "8k_prefix_bytes",
+      "passed": true
+    },
+    {
+      "name": "contiguous_regions",
+      "passed": true
+    },
+    {
+      "name": "json_layout_roundtrip",
+      "passed": true
+    },
+    {
+      "name": "contiguous.device",
+      "passed": true
+    },
+    {
+      "name": "contiguous.regions",
+      "passed": true
+    },
+    {
+      "name": "contiguous.storage_dedup",
+      "passed": true
+    },
+    {
+      "name": "contiguous.tensor_lifetime",
+      "passed": true
+    },
+    {
+      "name": "contiguous.257.bytes",
+      "passed": true
+    },
+    {
+      "name": "contiguous.257.every_row_address",
+      "passed": true
+    },
+    {
+      "name": "contiguous.512.bytes",
+      "passed": true
+    },
+    {
+      "name": "contiguous.512.every_row_address",
+      "passed": true
+    },
+    {
+      "name": "contiguous.8192.bytes",
+      "passed": true
+    },
+    {
+      "name": "contiguous.8192.every_row_address",
+      "passed": true
+    },
+    {
+      "name": "contiguous.8k_coalescing",
+      "passed": true
+    },
+    {
+      "name": "page_strided.device",
+      "passed": true
+    },
+    {
+      "name": "page_strided.regions",
+      "passed": true
+    },
+    {
+      "name": "page_strided.storage_dedup",
+      "passed": true
+    },
+    {
+      "name": "page_strided.tensor_lifetime",
+      "passed": true
+    },
+    {
+      "name": "page_strided.257.bytes",
+      "passed": true
+    },
+    {
+      "name": "page_strided.257.every_row_address",
+      "passed": true
+    },
+    {
+      "name": "page_strided.512.bytes",
+      "passed": true
+    },
+    {
+      "name": "page_strided.512.every_row_address",
+      "passed": true
+    },
+    {
+      "name": "page_strided.8192.bytes",
+      "passed": true
+    },
+    {
+      "name": "page_strided.8192.every_row_address",
+      "passed": true
+    },
+    {
+      "name": "missing.mtp.model.layers.78.self_attn.attn",
+      "passed": true
+    },
+    {
+      "name": "missing.mtp.model.layers.78.self_attn.indexer.k_cache",
+      "passed": true
+    },
+    {
+      "name": "missing.model.layers.0.self_attn.indexer.k_cache",
+      "passed": true
+    },
+    {
+      "name": "missing.c8_scale",
+      "passed": true
+    },
+    {
+      "name": "wrong.c8_dtype",
+      "passed": true
+    },
+    {
+      "name": "wrong.scale_dtype",
+      "passed": true
+    },
+    {
+      "name": "wrong.inner_stride",
+      "passed": true
+    },
+    {
+      "name": "wrong.storage_bounds",
+      "passed": true
+    },
+    {
+      "name": "wrong.cpu_memory",
+      "passed": true
+    },
+    {
+      "name": "wrong.multiple_devices",
+      "passed": true
+    },
+    {
+      "name": "wrong.host_group",
+      "passed": true
+    },
+    {
+      "name": "wrong.nontransferable_group",
+      "passed": true
+    },
+    {
+      "name": "missing.group",
+      "passed": true
+    },
+    {
+      "name": "alias.index_cache",
+      "passed": true
+    },
+    {
+      "name": "alias.mla_components",
+      "passed": true
+    },
+    {
+      "name": "wrong.spec.block_size",
+      "passed": true
+    },
+    {
+      "name": "wrong.spec.num_kv_heads",
+      "passed": true
+    },
+    {
+      "name": "wrong.indexer_dcp",
+      "passed": true
+    },
+    {
+      "name": "block_table.missing",
+      "passed": true
+    },
+    {
+      "name": "block_table.short",
+      "passed": true
+    },
+    {
+      "name": "block_table.negative",
+      "passed": true
+    },
+    {
+      "name": "block_table.out_of_bounds",
+      "passed": true
+    },
+    {
+      "name": "prefix.0",
+      "passed": true
+    },
+    {
+      "name": "prefix.9345",
+      "passed": true
+    },
+    {
+      "name": "reject_combined_wire_version",
+      "passed": true
+    },
+    {
+      "name": "no_torch_import",
+      "passed": true
+    },
+    {
+      "name": "no_torch_npu_import",
+      "passed": true
+    }
+  ]
+}

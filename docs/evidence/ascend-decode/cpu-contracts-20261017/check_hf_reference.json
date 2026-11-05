@@ -1,0 +1,226 @@
+{
+  "created_at": "2026-10-16T16:24:31.460868+00:00",
+  "scope": "stdlib metadata and AST; no Torch, numerical decode or NPU",
+  "checks": [
+    {
+      "name": "prefix.valid.0",
+      "expected_acceptance": true,
+      "passed": true
+    },
+    {
+      "name": "prefix.valid.1",
+      "expected_acceptance": true,
+      "passed": true
+    },
+    {
+      "name": "prefix.valid.8192",
+      "expected_acceptance": true,
+      "passed": true
+    },
+    {
+      "name": "prefix.short_index",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "prefix.short_rope",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "prefix.wrong_latent",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "prefix.wrong_c8_dtype",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "prefix.wrong_scale_dtype",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "prefix.short_scale",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "prefix.missing_scale",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "prefix.missing_layer",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "trace.valid",
+      "expected_acceptance": true,
+      "passed": true
+    },
+    {
+      "name": "trace.empty.hidden_states",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "trace.empty.layer_logits",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "trace.empty.indices",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "trace.empty.routes",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "trace.empty.cache_rows",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "trace.missing_index",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "trace.missing_scale",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "trace.missing_latent",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "trace.uncommitted",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "manifest.valid",
+      "expected_acceptance": true,
+      "passed": true
+    },
+    {
+      "name": "manifest.reject.status.running",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "manifest.reject.status.fail",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "manifest.reject.status.error",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "manifest.reject.status.metadata_only",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "manifest.reject.numerical_execution.False",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "manifest.reject.tp_size.8",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "manifest.reject.metadata_sha256.{}",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "manifest.reject.source_sha256.{}",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "manifest.reject.source_sha256.{'generator.py': 'generator'}",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "manifest.reject.source_sha256.{'tilert/models/glm_5_2_ascend/ops/indexer.py': '0000000000000000000000000000000000000000000000000000000000000000'}",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "manifest.reject.weight_arithmetic.{}",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "manifest.reject.installed_hf_source_sha256.{}",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "manifest.reject.trace_sha256.{}",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "manifest.reject.index_rope_basis.half",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "manifest.reject.rms_norm_eps.{'ordinary': 1e-05, 'q_a': 1e-06, 'kv_a': 1e-06}",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "manifest.reject.scoring.source_verified",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "manifest.reject.scoring.source_sha256",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "manifest.reject.scoring.reference_source_sha256",
+      "expected_acceptance": false,
+      "passed": true
+    },
+    {
+      "name": "independent_imports.reference.py",
+      "passed": true,
+      "forbidden": []
+    },
+    {
+      "name": "independent_imports.reference_weights.py",
+      "passed": true,
+      "forbidden": []
+    }
+  ],
+  "checks_total": 42,
+  "checks_failed": 0,
+  "source_sha256": {
+    "tests/glm52/check_hf_reference.py": "93d1a20bb2ba052c176fceb52ca83f5d38fa29fce301a8971c4767354c4fdf55",
+    "tilert/models/glm_5_2_ascend/reference.py": "2802cdd8c787c2a6e2306f65cba7e735f49ee42011a8270cf5b47979b5d84a11",
+    "tests/glm52/run_native_decode.py": "bc40b579824eb6def8fa9fc7fb2acd045774088f1e841e514279aa6818870adc",
+    "tests/glm52/run_hf_reference.py": "2c14e8433e3b7c17de95a867aaef05f5380fa659d9d0efc7d6149ca640f71090",
+    "tilert/models/glm_5_2_ascend/ops/indexer.py": "b8536fd5f41fe1f194ef4f3f34d30d4090c3b943c69d69a0445666d41396172a"
+  },
+  "status": "pass"
+}

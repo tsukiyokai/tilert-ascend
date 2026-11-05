@@ -1,0 +1,83 @@
+{
+  "scope": "Actual Torch212 host protocol, CPU ownership/observation contracts, CLI and native schema co-load",
+  "runner_fixture_scope": "Actual classes and helper functions; registry entries bypass constructors; collective replaced by a recorded CPU cut",
+  "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "torch_path": "/usr/local/lib/python3.11/site-packages/torch/__init__.py",
+  "torch_npu_path": "/usr/local/lib/python3.11/site-packages/torch_npu/__init__.py",
+  "cxx11_abi": true,
+  "mapped_davinci_devices": [],
+  "device_execution": false,
+  "npu_initialized_before": false,
+  "npu_initialized_after": false,
+  "script_sha256": "89c5c8c072e7dfefa747f9868e8503780452e8c8afa6fa1efdf8c351ecd2b215",
+  "decoder_manifest_sha256": "e787cdc36624aaec311bcfcd340c98055fee1772911338689a5e70796c44125d",
+  "decoder_files_verified": 796,
+  "runtime_files_verified": 7953,
+  "unchanged_observation_definitions": [
+    "DecoderInputs",
+    "DecoderObservation",
+    "validate_observation"
+  ],
+  "contracts_run": 18,
+  "contract_log": "test_actual_lengths_and_independent_maps_change_at_fixed_geometry (test_decoder_graph.DecoderGraphContracts.test_actual_lengths_and_independent_maps_change_at_fixed_geometry) ... ok\ntest_empty_replay_cannot_reuse_valid_observation (test_decoder_graph.DecoderGraphContracts.test_empty_replay_cannot_reuse_valid_observation) ... ok\ntest_exact_boundary_gate_rejects_stale_cut_and_residual (test_decoder_graph.DecoderGraphContracts.test_exact_boundary_gate_rejects_stale_cut_and_residual) ... ok\ntest_gate_keeps_signed_zero_and_ordered_topk (test_decoder_graph.DecoderGraphContracts.test_gate_keeps_signed_zero_and_ordered_topk) ... ok\ntest_equal_valued_clone_is_not_the_pending_normalized_owner (test_ffn_host_adapter.PendingContracts.test_equal_valued_clone_is_not_the_pending_normalized_owner) ... ok\ntest_interleaved_post_norm_cannot_overwrite_pending_output (test_ffn_host_adapter.PendingContracts.test_interleaved_post_norm_cannot_overwrite_pending_output) ... ok\ntest_mlp_cannot_consume_another_stream_or_consume_twice (test_ffn_host_adapter.PendingContracts.test_mlp_cannot_consume_another_stream_or_consume_twice) ... ok\ntest_retained_and_normalized_keep_their_real_owners (test_ffn_host_adapter.PendingContracts.test_retained_and_normalized_keep_their_real_owners) ... ok\ntest_capture_refuses_unreserved_exact_width (test_ffn_host_adapter.PoolContracts.test_capture_refuses_unreserved_exact_width) ... ok\ntest_reservation_cannot_allocate_during_capture (test_ffn_host_adapter.PoolContracts.test_reservation_cannot_allocate_during_capture) ... ok\ntest_two_layers_do_not_alias_retained_residual_banks (test_ffn_host_adapter.PoolContracts.test_two_layers_do_not_alias_retained_residual_banks) ... ok\ntest_warmup_preserves_capture_reserve (test_ffn_host_adapter.PoolContracts.test_warmup_preserves_capture_reserve) ... ok\ntest_actual_torch212_opaque_branch_matches_both_original_entries (test_ffn_runner_protocol.RunnerLookupContracts.test_actual_torch212_opaque_branch_matches_both_original_entries) ... ok\ntest_legacy_duplicate_lookup_exhausts_the_original_registry (test_ffn_runner_protocol.RunnerLookupContracts.test_legacy_duplicate_lookup_exhausts_the_original_registry) ... ok\ntest_legacy_explicit_name_does_not_advance_cursor (test_ffn_runner_protocol.RunnerLookupContracts.test_legacy_explicit_name_does_not_advance_cursor) ... ok\ntest_legacy_ordered_branch_advances_exactly_once_per_layer (test_ffn_runner_protocol.RunnerLookupContracts.test_legacy_ordered_branch_advances_exactly_once_per_layer) ... ok\ntest_lookup_refuses_a_different_registered_runner (test_ffn_runner_protocol.RunnerLookupContracts.test_lookup_refuses_a_different_registered_runner) ... ok\ntest_mlp_retains_one_original_reduction_and_zero_expert_helper (test_ffn_runner_protocol.RunnerLookupContracts.test_mlp_retains_one_original_reduction_and_zero_expert_helper) ... ok\n\n----------------------------------------------------------------------\nRan 18 tests in 0.084s\n\nOK\n",
+  "use_layername": true,
+  "helper_source_sha256": {
+    "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/layers/fused_moe/runner/moe_runner.py": "20b69fe514bebd6723a1378f89a564c8fec4144c30244101f629c3f32c188183",
+    "/decoder/python/vllm_ascend/ops/fused_moe/fused_moe.py": "d4dfab36e66bd0a2ab9d78b9a867335adfc8cf0c418c93b34f5ccef63df00e27",
+    "/decoder/ffn_host_adapter.py": "772c6acf7b97edfa6a17cd6b5d2d0628a446530b1a24659d30395b614cc38f29"
+  },
+  "libraries": {
+    "/evidence/attention-wk-m1-build-v1/whole_layer_indexed_attention.so": "8deff750464e23bb871302c8626b86d37b60c28a00991d550f95dfcfd47ecb6f",
+    "/workspace/native/shared/whole_layer_full_attention.so": "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c",
+    "/decoder/complete_ffn.so": "381febf94f918cc7393019b6f99ec8dc38e9a5cc9e63b2d49d5fe483158e3ff2"
+  },
+  "schemas": [
+    "tilert::indexed_attention_out(Tensor hidden, Tensor token_x, Tensor token_scale, Tensor[] main_weights, Tensor[] front_weights, Tensor[] tail_weights, Tensor? bias, Tensor[] main_metadata, Tensor[] indexer_metadata, Tensor(a!)[] caches, Tensor(b!) scratch, Tensor tiling, Tensor(c!) output, float scale, float epsilon_cq, float epsilon_ckv, int blocks, int sync_base) -> Tensor(c!)",
+    "tilert::indexed_attention_prepare(Tensor token_x, int pages, int table_pages, int index_pages, int index_table_pages, bool quantized, int blocks=0) -> (Tensor, Tensor, Dict(str, int), int, int)",
+    "tilert::shared_full_attention_out(Tensor token_x, Tensor token_scale, Tensor weight_dq, Tensor weight_uq_qr, Tensor weight_uk, Tensor weight_dkv_kr, Tensor scale_dq, Tensor scale_uq_qr, Tensor scale_dkv_kr, Tensor gamma_cq, Tensor gamma_ckv, Tensor sin, Tensor cos, Tensor slots, Tensor(a!) kv_cache, Tensor(b!) rope_cache, Tensor topk, Tensor query_lengths, Tensor kv_lengths, Tensor page_table, Tensor value_weight, Tensor output_weight, Tensor output_scale, Tensor? bias, Tensor(c!) scratch, Tensor tiling, Tensor(d!) output, float scale, float epsilon_cq, float epsilon_ckv, int blocks, int sync_base) -> Tensor(d!)",
+    "tilert::shared_full_attention_prepare(Tensor token_x, int pages, int table_pages, int blocks=0) -> (Tensor, Tensor, int, int)",
+    "tilert_ffn_original_shared_gu_static::forward_out(Tensor input, Tensor residual, Tensor gamma, Tensor gate, Tensor bias, Tensor[] routed_weights, Tensor[] shared_weights, Tensor(a!)[] bridge_scratch, Tensor(b!)[] body_scratch, float epsilon, int blocks, int weight_layout, int sync) -> ()",
+    "tilert_ffn_original_shared_gu_static::prepare(Tensor input, int blocks=24, int weight_layout=1) -> (Tensor[], Tensor[], int)"
+  ],
+  "cli_controls": [
+    {
+      "arguments": [
+        "--help"
+      ],
+      "exit_code": 0,
+      "stdout": "usage: device_full_graph.py [-h] --output OUTPUT --runtime RUNTIME\n                            --extension-sha256 EXTENSION_SHA256\n                            [--mode {int8,bf16}] [--timeout TIMEOUT] --adapter\n                            ADAPTER --indexed-library INDEXED_LIBRARY\n                            --shared-library SHARED_LIBRARY --sfa-library\n                            SFA_LIBRARY\n                            [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                            [--forward-replays FORWARD_REPLAYS]\n                            [--forward-sequence FORWARD_SEQUENCE]\n                            [--graph-residual-modes {none,provided} [{none,provided} ...]]\n                            [--ffn-library FFN_LIBRARY]\n\nCompare real decoder layers with explicit rank-local TP boundary inputs.\n\noptions:\n  -h, --help            show this help message and exit\n  --output OUTPUT\n  --runtime RUNTIME\n  --extension-sha256 EXTENSION_SHA256\n  --mode {int8,bf16}\n  --timeout TIMEOUT\n  --adapter ADAPTER\n  --indexed-library INDEXED_LIBRARY\n  --shared-library SHARED_LIBRARY\n  --sfa-library SFA_LIBRARY\n  --forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]\n  --forward-replays FORWARD_REPLAYS\n  --forward-sequence FORWARD_SEQUENCE\n  --graph-residual-modes {none,provided} [{none,provided} ...]\n  --ffn-library FFN_LIBRARY\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "--forward-widths",
+        "3"
+      ],
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "usage: device_full_graph.py [-h] --output OUTPUT --runtime RUNTIME\n                            --extension-sha256 EXTENSION_SHA256\n                            [--mode {int8,bf16}] [--timeout TIMEOUT] --adapter\n                            ADAPTER --indexed-library INDEXED_LIBRARY\n                            --shared-library SHARED_LIBRARY --sfa-library\n                            SFA_LIBRARY\n                            [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                            [--forward-replays FORWARD_REPLAYS]\n                            [--forward-sequence FORWARD_SEQUENCE]\n                            [--graph-residual-modes {none,provided} [{none,provided} ...]]\n                            [--ffn-library FFN_LIBRARY]\ndevice_full_graph.py: error: Use widths 1/2/12/32, 1..32 replays and a sequence covering every width\n"
+    },
+    {
+      "arguments": [
+        "--forward-replays",
+        "0"
+      ],
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "usage: device_full_graph.py [-h] --output OUTPUT --runtime RUNTIME\n                            --extension-sha256 EXTENSION_SHA256\n                            [--mode {int8,bf16}] [--timeout TIMEOUT] --adapter\n                            ADAPTER --indexed-library INDEXED_LIBRARY\n                            --shared-library SHARED_LIBRARY --sfa-library\n                            SFA_LIBRARY\n                            [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                            [--forward-replays FORWARD_REPLAYS]\n                            [--forward-sequence FORWARD_SEQUENCE]\n                            [--graph-residual-modes {none,provided} [{none,provided} ...]]\n                            [--ffn-library FFN_LIBRARY]\ndevice_full_graph.py: error: Use widths 1/2/12/32, 1..32 replays and a sequence covering every width\n"
+    },
+    {
+      "arguments": [
+        "--graph-residual-modes",
+        "none",
+        "none"
+      ],
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "usage: device_full_graph.py [-h] --output OUTPUT --runtime RUNTIME\n                            --extension-sha256 EXTENSION_SHA256\n                            [--mode {int8,bf16}] [--timeout TIMEOUT] --adapter\n                            ADAPTER --indexed-library INDEXED_LIBRARY\n                            --shared-library SHARED_LIBRARY --sfa-library\n                            SFA_LIBRARY\n                            [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                            [--forward-replays FORWARD_REPLAYS]\n                            [--forward-sequence FORWARD_SEQUENCE]\n                            [--graph-residual-modes {none,provided} [{none,provided} ...]]\n                            [--ffn-library FFN_LIBRARY]\ndevice_full_graph.py: error: Each initial residual branch needs one distinct capture\n"
+    }
+  ],
+  "pass": true
+}

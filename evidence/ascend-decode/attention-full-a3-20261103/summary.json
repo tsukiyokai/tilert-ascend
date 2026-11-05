@@ -1,0 +1,55 @@
+{
+  "scope": "one native shared-indexer attention launch versus separate native attention/tail; before TP reduction",
+  "hardware": {
+    "host": "7.150.10.194",
+    "chip": "Ascend910_9392",
+    "dies": 1,
+    "cann": "9.1.0",
+    "driver": "25.5.5"
+  },
+  "provenance": {
+    "library": "/work/source-opt-v1/tests/glm52/whole_layer/attention_full_build/whole_layer_full_attention.so",
+    "library_sha256": "2fd44f6ff36309cfcb520cc5e34dd771f255dafb4365e6c7e119c7815dbc66ea",
+    "vendor_headers_matched": "29 / 29 (100%)"
+  },
+  "numerical_results": {
+    "width_1_blocks_24": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "max_abs": 0.0,
+      "rms": 0.0
+    },
+    "width_4_blocks_24": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "max_abs": 0.0,
+      "rms": 0.0
+    },
+    "width_32_blocks_24": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "workspace_bytes": {
+        "full": 88489984,
+        "separate": 106349568,
+        "saved_bytes": 17859584
+      }
+    }
+  },
+  "timing_results_width_32_blocks_24": {
+    "capture": true,
+    "iterations": 50,
+    "timing_pairs": 5,
+    "full_graph_us": [209.2168, 208.7216, 209.0336, 209.1672, 208.7916],
+    "full_graph_median_us": 209.0336,
+    "separate_graph_us": [238.0420, 237.8280, 237.6768, 237.4084, 237.7488],
+    "separate_graph_median_us": 237.7488,
+    "latency_saving_us": 28.7152,
+    "speedup_ratio": 0.8792,
+    "whole_model_78_layers_projected_saving_ms": 2.24
+  }
+}

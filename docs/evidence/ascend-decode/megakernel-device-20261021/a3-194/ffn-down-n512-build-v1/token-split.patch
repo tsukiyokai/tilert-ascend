@@ -1,0 +1,71 @@
+--- parent/body/source/routed_int4/routed_body_native.h
++++ candidate/body/source/routed_int4/routed_body_native.h
+@@ -16,6 +16,7 @@
+ 
+ #include "routed_int4_kernel.h"
+ #include "../../../source/output_contract.h"
++#include "../../../source/split_contract.h"
+ #include "../../../source/descriptor.h"
+ #include "routed_int4_dispatch.h"
+ #include "routed_int4_trace.h"
+@@ -510,6 +511,7 @@
+ }
+ 
+ #include "../../../source/output_native.h"
++#include "../../../source/split_native.h"
+ 
+ }  // namespace
+ 
+@@ -598,48 +600,11 @@
+ 
+     // Every core reaches every barrier, including empty expert owners.
+     if ASCEND_IS_AIV {
+-#ifdef ROUTED_ROW_BALANCED
+-        const int64_t workers = 2 * arguments.blocks;
+-        int64_t next = GetBlockIdx();
+-#ifdef ROUTED_ACTIVE_LIST
+-        for (int64_t ordinal = 0; ordinal < active_count; ++ordinal) {
+-            const int64_t expert = held.active.GetValue(
+-                kActiveHeaderElements + ordinal);
+-#else
+-        for (int64_t expert = 0; expert < ffn_bridge::kExperts; ++expert) {
+-#endif
+-            const int64_t count = held.count.GetValue(expert);
+-            const int64_t begin = held.start.GetValue(expert);
+-            if (next >= begin + count) {
+-                continue;
+-            }
+-            Split<true>(held, ((__gm__ int8_t*)arguments.scratch[kRestoredRows]), Nibbles(((__gm__ int4b_t*)arguments.scratch[kStacked]), GateStorageRow(begin) * kHidden),
+-                        count, begin, arguments.rows, next - begin, workers);
+-            do {
+-                next += workers;
+-            } while (next < begin + count);
+-        }
++        SplitTokens(held, (__gm__ int8_t*)arguments.scratch[kRestoredRows],
++            (__gm__ int4b_t*)arguments.scratch[kStacked],
++            (__gm__ int32_t*)arguments.dispatch.expert_ids,
++            arguments.rows, arguments.blocks);
+         Publish();
+-#else
+-        if (GetSubBlockIdx() == 0) {
+-            int64_t active = 0;
+-            int64_t next = GetBlockIdx() / 2;
+-            for (int64_t expert = 0; expert < ffn_bridge::kExperts; ++expert) {
+-                if (held.count.GetValue(expert) == 0) {
+-                    continue;
+-                }
+-                if (active++ != next) {
+-                    continue;
+-                }
+-                next += arguments.blocks;
+-                const int64_t begin = held.start.GetValue(expert);
+-                Split(held, ((__gm__ int8_t*)arguments.scratch[kRestoredRows]), Nibbles(((__gm__ int4b_t*)arguments.scratch[kStacked]), GateStorageRow(begin) * kHidden),
+-                      held.count.GetValue(expert), held.start.GetValue(expert),
+-                      arguments.rows);
+-            }
+-            Publish();
+-        }
+-#endif
+     }
+     timing.Barrier(1);
+     timing.Begin(2);

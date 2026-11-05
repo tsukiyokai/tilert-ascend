@@ -1,0 +1,17 @@
+{
+  "scope": "Before-change CPU counterexample to longest-tail lookup policy; target verification is unaffected",
+  "head": "1ef8a8d425f9bb0646e7661ea538a4f0eb1bad16",
+  "command": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "-m",
+    "unittest",
+    "check_lookup.LookupChecks.test_distinct_tails_do_not_hide_the_longer_match"
+  ],
+  "returncode": 1,
+  "stdout": "",
+  "stderr": "F\n======================================================================\nFAIL: test_distinct_tails_do_not_hide_the_longer_match (check_lookup.LookupChecks.test_distinct_tails_do_not_hide_the_longer_match)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/Users/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/check_lookup.py\", line 121, in test_distinct_tails_do_not_hide_the_longer_match\n    self.assertEqual(drafter.propose(1), [111])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: Lists differ: [333] != [111]\n\nFirst differing element 0:\n333\n111\n\n- [333]\n+ [111]\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n",
+  "source_sha256": {
+    "tilert/models/glm_5_2_ascend/lookup_draft.py": "8f363b3ce4817a705de4ef619e2466978685c977af20c3ae10a8d3ce81c94ea0",
+    "tests/glm52/check_lookup.py": "ffc5426de0f7b44f44ff0416bb5611250338c40467606321982d73facc61d54e"
+  }
+}

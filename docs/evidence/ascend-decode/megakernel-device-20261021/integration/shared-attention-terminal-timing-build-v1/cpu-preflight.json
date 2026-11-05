@@ -1,0 +1,22 @@
+{
+  "pass": true,
+  "cpu_tests": 2,
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "npu_initialized": false,
+  "schemas": {
+    "shared_full_attention_prepare": {
+      "control": "tilert::shared_full_attention_prepare(Tensor token_x, int pages, int table_pages, int blocks=0) -> (Tensor, Tensor, int, int)",
+      "candidate": "tilert_attention_terminal::shared_full_attention_prepare(Tensor token_x, int pages, int table_pages, int blocks=0) -> (Tensor, Tensor, int, int)"
+    },
+    "shared_full_attention_out": {
+      "control": "tilert::shared_full_attention_out(Tensor token_x, Tensor token_scale, Tensor weight_dq, Tensor weight_uq_qr, Tensor weight_uk, Tensor weight_dkv_kr, Tensor scale_dq, Tensor scale_uq_qr, Tensor scale_dkv_kr, Tensor gamma_cq, Tensor gamma_ckv, Tensor sin, Tensor cos, Tensor slots, Tensor(a!) kv_cache, Tensor(b!) rope_cache, Tensor topk, Tensor query_lengths, Tensor kv_lengths, Tensor page_table, Tensor value_weight, Tensor output_weight, Tensor output_scale, Tensor? bias, Tensor(c!) scratch, Tensor tiling, Tensor(d!) output, float scale, float epsilon_cq, float epsilon_ckv, int blocks, int sync_base) -> Tensor(d!)",
+      "candidate": "tilert_attention_terminal::shared_full_attention_out(Tensor token_x, Tensor token_scale, Tensor weight_dq, Tensor weight_uq_qr, Tensor weight_uk, Tensor weight_dkv_kr, Tensor scale_dq, Tensor scale_uq_qr, Tensor scale_dkv_kr, Tensor gamma_cq, Tensor gamma_ckv, Tensor sin, Tensor cos, Tensor slots, Tensor(a!) kv_cache, Tensor(b!) rope_cache, Tensor topk, Tensor query_lengths, Tensor kv_lengths, Tensor page_table, Tensor value_weight, Tensor output_weight, Tensor output_scale, Tensor? bias, Tensor(c!) scratch, Tensor tiling, Tensor(d!) output, float scale, float epsilon_cq, float epsilon_ckv, int blocks, int sync_base) -> Tensor(d!)"
+    }
+  },
+  "library_sha256": {
+    "control": "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c",
+    "candidate": "2a2deacf850ce108825002559a1a44e08d6176fdc1c9a092955acc6840eb1ea4"
+  },
+  "bench_sha256": "c79a60350411ae22030159f263e2549fac8ec5ee9c698d1a9ef44195f5890859"
+}

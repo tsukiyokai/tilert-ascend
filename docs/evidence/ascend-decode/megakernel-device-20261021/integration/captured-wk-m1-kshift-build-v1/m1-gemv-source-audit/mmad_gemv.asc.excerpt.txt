@@ -1,0 +1,124 @@
+72:         return (numerator + denominator - 1) / denominator * denominator;
+73:     }
+74: 
+75:     __aicore__ inline void CopyIn(AscendC::LocalTensor<U>& a1Local, AscendC::LocalTensor<U>& b1Local)
+76:     {
+77:         AscendC::Nd2NzParams nd2nzA1Params;
+78: 
+79:         // ND -> Nz
+80:         nd2nzA1Params.ndNum = 1;
+81:         nd2nzA1Params.nValue = M;
+82:         nd2nzA1Params.dValue = K;
+83:         nd2nzA1Params.srcNdMatrixStride = 0;
+84:         nd2nzA1Params.srcDValue = K;
+85: #if defined(DISABLE_GEMV) && (DISABLE_GEMV == 1)
+86:         // L1上，A为Nz
+87:         nd2nzA1Params.dstNzC0Stride = BLOCK_CUBE;
+88: #else
+89:         // L1上，A为vector
+90:         nd2nzA1Params.dstNzC0Stride = 1;
+91: #endif
+92:         nd2nzA1Params.dstNzNStride = 1;
+93:         nd2nzA1Params.dstNzMatrixStride = 0;
+94:         AscendC::DataCopy(a1Local, aGM, nd2nzA1Params);
+95:         AscendC::SetFlag<AscendC::HardEvent::MTE2_MTE1>(EVENT_ID0);
+96: 
+97:         AscendC::Nd2NzParams nd2nzB1Params;
+98:         nd2nzB1Params.ndNum = 1;
+99:         nd2nzB1Params.nValue = N;
+100:         nd2nzB1Params.dValue = K;
+101:         nd2nzB1Params.srcNdMatrixStride = 0;
+102:         nd2nzB1Params.srcDValue = K;
+103:         nd2nzB1Params.dstNzC0Stride = CeilAlign(N, BLOCK_CUBE);
+104:         nd2nzB1Params.dstNzNStride = 1;
+105:         nd2nzB1Params.dstNzMatrixStride = 0;
+106:         AscendC::DataCopy(b1Local, bGM, nd2nzB1Params);
+107:         AscendC::SetFlag<AscendC::HardEvent::MTE2_MTE1>(EVENT_ID1);
+108:     }
+109: 
+110:     __aicore__ inline void SplitA(AscendC::LocalTensor<U>& a1Local, AscendC::LocalTensor<U>& a2Local)
+111:     {
+112:         AscendC::WaitFlag<AscendC::HardEvent::MTE2_MTE1>(EVENT_ID0);
+113: #if defined(__NPU_ARCH__) && (__NPU_ARCH__ == 3510)
+114:         // Nz -> Nz，__NPU_ARCH__为3510时，要求A2上的数据排布为: Nz
+115:         AscendC::LoadData2DParamsV2 loadDataParams;
+116:         loadDataParams.mStartPosition = 0;
+117:         loadDataParams.kStartPosition = 0;
+118: #if defined(DISABLE_GEMV) && (DISABLE_GEMV == 1)
+119:         loadDataParams.mStep = CeilDiv(M, BLOCK_CUBE);
+120:         loadDataParams.kStep = CeilDiv(K, C0_SIZE);
+121: #else
+122:         loadDataParams.mStep = 1;
+123:         loadDataParams.kStep = CeilDiv(K, FRACTAL_SIZE);
+124: #endif
+125:         loadDataParams.srcStride = 1;
+126:         loadDataParams.dstStride = 1;
+127:         loadDataParams.ifTranspose = false;
+128: #else
+129:         // Nz -> Zz，__NPU_ARCH__为2201时，要求A2上的数据排布为: Zz
+130:         AscendC::LoadData2DParams loadDataParams;
+131:         loadDataParams.startIndex = 0;
+132:         loadDataParams.repeatTimes = CeilDiv(K, FRACTAL_SIZE);
+133:         loadDataParams.srcStride = 1;
+134:         loadDataParams.dstGap = 0;
+135:         loadDataParams.ifTranspose = false;
+136: #endif
+137:         AscendC::LoadData(a2Local, a1Local, loadDataParams);
+138:         AscendC::SetFlag<AscendC::HardEvent::MTE1_M>(EVENT_ID0);
+139:     }
+140: 
+141:     __aicore__ inline void SplitB(AscendC::LocalTensor<U>& b1Local, AscendC::LocalTensor<U>& b2Local)
+142:     {
+143:         AscendC::WaitFlag<AscendC::HardEvent::MTE2_MTE1>(EVENT_ID1);
+144:         // B2上的数据排布为: Zn
+145: #if defined(__NPU_ARCH__) && (__NPU_ARCH__ == 3510)
+146:         AscendC::LoadData2DParamsV2 loadDataParams;
+147:         loadDataParams.mStartPosition = 0;
+148:         loadDataParams.kStartPosition = 0;
+149:         loadDataParams.mStep = CeilDiv(N, BLOCK_CUBE);
+150:         loadDataParams.kStep = CeilDiv(K, C0_SIZE);
+151:         loadDataParams.srcStride = CeilDiv(N, BLOCK_CUBE);
+152:         loadDataParams.dstStride = CeilDiv(N, BLOCK_CUBE);
+153:         loadDataParams.ifTranspose = false;
+154: #else
+155:         AscendC::LoadData2DParams loadDataParams;
+156:         loadDataParams.repeatTimes = CeilDiv(N, BLOCK_CUBE) * CeilDiv(K, C0_SIZE);
+157:         loadDataParams.srcStride = 1;
+158:         loadDataParams.dstGap = 0;
+159:         loadDataParams.ifTranspose = false;
+160: #endif
+161:         AscendC::LoadData(b2Local, b1Local, loadDataParams);
+162:         AscendC::SetFlag<AscendC::HardEvent::MTE1_M>(EVENT_ID1);
+163:     }
+164: 
+165:     __aicore__ inline void Compute(
+166:         AscendC::LocalTensor<U>& a2Local, AscendC::LocalTensor<U>& b2Local, AscendC::LocalTensor<T>& co1Local)
+167:     {
+168:         AscendC::WaitFlag<AscendC::HardEvent::MTE1_M>(EVENT_ID0);
+169:         AscendC::WaitFlag<AscendC::HardEvent::MTE1_M>(EVENT_ID1);
+170: 
+171:         AscendC::MmadParams mmadParams;
+172:         mmadParams.m = M;
+173:         mmadParams.n = N;
+174:         mmadParams.k = K;
+175: #if defined(DISABLE_GEMV) && (DISABLE_GEMV == 1)
+176:         // 关闭GEMV，仅Ascend 950PR/Ascend 950DT支持
+177:         mmadParams.disableGemv = true;
+178: #endif
+179:         AscendC::Mmad(co1Local, a2Local, b2Local, mmadParams);
+180:         AscendC::SetFlag<AscendC::HardEvent::M_FIX>(EVENT_ID0);
+181:     }
+182:     __aicore__ inline void CopyOut(AscendC::LocalTensor<T>& co1Local)
+183:     {
+184:         AscendC::WaitFlag<AscendC::HardEvent::M_FIX>(EVENT_ID0);
+185: #if defined(__NPU_ARCH__) && (__NPU_ARCH__ == 3510)
+186:         AscendC::FixpipeParamsArch3510<AscendC::CO2Layout::ROW_MAJOR> fixpipeParams;
+187: #else
+188:         AscendC::FixpipeParamsV220 fixpipeParams;
+189:         fixpipeParams.ndNum = 1;
+190:         fixpipeParams.srcNdStride = 0;
+191:         fixpipeParams.dstNdStride = 0;
+192: #endif
+193:         fixpipeParams.mSize = M;
+194:         fixpipeParams.nSize = N;
+195:         fixpipeParams.srcStride = BLOCK_CUBE;

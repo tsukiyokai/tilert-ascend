@@ -1,0 +1,83 @@
+{
+  "gemm_tiling_util.py": {
+    "local_path": "/tmp/tilert-cann92-wk-audit/ops_legacy/gemm_tiling_util.py",
+    "sha256": "05e033838e714b2648f75f09ae193b73206c825712a55fa5d70c9b7ff1029b39",
+    "line_ranges": [
+      [
+        1053,
+        1068
+      ]
+    ]
+  },
+  "gemm_integrated_schedule.py": {
+    "local_path": "/tmp/tilert-cann92-wk-audit/ops_legacy/gemm_integrated_schedule.py",
+    "sha256": "66530bca26f4b6087fa9e430f92575d7cc22012ab908bcc488ef72670176ff2c",
+    "line_ranges": [
+      [
+        557,
+        571
+      ],
+      [
+        678,
+        730
+      ]
+    ]
+  },
+  "wk-m1-98513-objdump.txt": {
+    "local_path": "/tmp/tilert-cann92-wk-audit/ops_legacy/wk-m1-98513-objdump.txt",
+    "sha256": "e65fb2f778e87aac4a98f19a4079c2a470fca927f55dd6012fcd1c08a604e428",
+    "line_ranges": [
+      [
+        6,
+        19
+      ],
+      [
+        112,
+        153
+      ],
+      [
+        350,
+        368
+      ],
+      [
+        450,
+        535
+      ],
+      [
+        1645,
+        1662
+      ]
+    ]
+  },
+  "installed_fatbin": {
+    "host": "a3-194",
+    "path": "/home/shanshan/megamoe-mask-only-20261021/sdk/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/kernel/ascend910_93/ops_legacy/mat_mul/MatMulV2_ND_ND_FP16_FP16_false_true_all.o",
+    "sha256": "4130b46a9d485607e8a32213b005cf96f896766aaa1aeb853930c465a8c180fa",
+    "runtime_entry": "0x1240002d0094",
+    "runtime_binary_base": "0x124000200000",
+    "relative_entry": "0xd0094",
+    "selected_kernel_length": 7460
+  },
+  "disassembler": {
+    "host": "a3-194",
+    "path": "/home/shanshan/megamoe-mask-only-20261021/sdk/cann-9.2.0/bin/llvm-objdump",
+    "sha256": "c1c63a83f8bde5d637c27163e2305a01c1b216569453485e02e7c48b09d5f324",
+    "arguments": [
+      "-d",
+      "--start-address=852116",
+      "--stop-address=859576"
+    ],
+    "device_execution": false
+  },
+  "actual_sdk_source_identity": "The a3-194 CANN9.2 gemm_tiling_util.py and gemm_integrated_schedule.py SHA256 values match the retained copies.",
+  "k_rotation_instructions": {
+    "0xd085c": "max(m_dim,n_dim)=10",
+    "0xd0878": "number of axis pairs=10/2=5",
+    "0xd0890": "outer segment count=12",
+    "0xd0894-0xd08a0": "floor(N_tile/2)",
+    "0xd08a4": "rotation step=12/5=2, integer division",
+    "0xd08ac-0xd08bc": "even tile: i; odd tile: 11-i",
+    "0xd08c0-0xd08c4": "add pair*2 and reduce modulo12",
+    "0xd1a68": "MMAD.bf162f32"
+  }
+}

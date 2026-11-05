@@ -1,0 +1,21 @@
+{
+  "sdk": "CANN 9.2.0",
+  "architecture": "dav_c220",
+  "source": "/home/shanshan/megamoe-mask-only-20261021/sdk/cann-9.2.0/aarch64-linux/asc/impl/basic_api/dav_c220/kernel_operator_common_impl.h",
+  "source_sha256": "ae49069a7116b929325fcd7be7be91a25a6c12915f056baa515174a1490fa3ee",
+  "source_lines": [
+    30,
+    53
+  ],
+  "profile_library_sha256": "cb88ddf9bc72997838d80855a138cbeea3e2018a0ff8a31e658983e09c991a6c",
+  "profile_device_elf_sha256": "022d554236874fed7d0f021289decceeb915c94a92db7e692bd8675e53d1a766",
+  "disassembler": "/home/shanshan/megamoe-mask-only-20261021/sdk/cann-9.2.0/bin/llvm-objdump -d --demangle profile.elf",
+  "observations": [
+    "SetSysWorkspace assigns only when the reserved pointer is null; a later call alone does not switch the selected system workspace.",
+    "The profile NZ AIV instruction window 0x1d538..0x1d548 implements that conditional assignment.",
+    "The ordinary frozen FFN calls SetSysWorkspace for bridge then body; each explicit workspace allocation is 16 MiB.",
+    "The profile NZ AIV window between marks 3 and 4 contains 71 disassembly lines, 31 LD/LDP and 30 ST/STP instructions. This is a static count, not a hardware stall measurement."
+  ],
+  "performance_claim": false,
+  "candidate_change": false
+}

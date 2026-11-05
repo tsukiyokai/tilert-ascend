@@ -1,0 +1,106 @@
+{
+  "scope": "Matched-address norm-publication FFN with original shared quantization versus its static-GU parent, TP excluded",
+  "candidate": "norm_join",
+  "host": "a3-194",
+  "physical_die": 4,
+  "rows": 12,
+  "blocks": 24,
+  "weight_banks": 16,
+  "calls_per_graph": 16,
+  "graph_replays_per_event": 30,
+  "pairs_per_arena": 30,
+  "raw_byte_boundary_checks": 19200,
+  "post_event_tail_checks": 360,
+  "pass": true,
+  "performance_pass": false,
+  "promotion": "not selected; both arenas regress against the static-GU parent",
+  "scratch_matching": "All 33 tensors, including the INT32[264] active table, share exact addresses within each pair",
+  "fresh_write_gate": "Before each checked CABI replay and timed arm warmup: logical floating outputs become NaN, bounded integer metadata becomes zero, other integer outputs become one; padding/tilings/system/inputs stay unchanged",
+  "active_table_checks": 696,
+  "active_table_gate": "Both arms replace all 264 INT32 words from identical poison",
+  "minimum_logical_active_matrix_bytes": 239075328,
+  "payload_interpretation": "Selected matrix sizes only; no HBM traffic or cache-miss measurement",
+  "candidate_library": {
+    "path": "/workspace/tests/glm52/whole_layer/ffn_norm_join/build-v1/ffn_norm_join.so",
+    "sha256": "ddd2f7b94bef711b09b78a90315d6ba8a0f77fb349ccb56d5859255d11782303"
+  },
+  "sources": {
+    "/workspace/tests/glm52/whole_layer/ffn_norm_join/timing-v1/bench.py": "bd7240b8e1fb22ff02d7ff83f4b7534132266432dac39fe3a1b8f40ecbb31d25",
+    "/workspace/tests/glm52/whole_layer/ffn_composed/build-v2/harness-v1/check.py": "d5c1f9f3214a1461d0aff29e166ec781d894c6bd991369bbac27f80baed3c9bb",
+    "/workspace/logs/ffn-bridge-runtime212-v1/check.py": "6a36334a25bbde2f76c8749a0a385db48078deb3549c3a321aed1d43c4089afa",
+    "/workspace/logs/ffn-bridge-runtime212-v1/fixtures.py": "c0b010dadbdfe3e47918e5a84184ab295d4ac3a4da818066bee93e5e215b05f9",
+    "/workspace/logs/ffn-bridge-runtime212-v1/gate_probe.py": "0bf8e940836905d37e396e04bea1440485e0472e0c68cdb6b4b738b8e7105276",
+    "/workspace/tests/glm52/whole_layer/ffn_composed/build-v2/body/source/routed_int4/check.py": "4a28c5cdbbd4e7e4d71ea22e8b2e01e6337aacb0c7c2887442c3d25d1c2fd0fd",
+    "/workspace/tests/glm52/whole_layer/ffn_composed/build-v2/body/source/routed_int4/check_pipeline.py": "3eb8c327b01da2671d77a66f38e4bc201c4c727f113bae38a4023172ee344f25"
+  },
+  "arenas": [
+    {
+      "owner": "fused",
+      "active_experts": 65,
+      "candidate_us": {
+        "samples": 30,
+        "p50": 205.44462998708087,
+        "p90": 205.7410446802775,
+        "p99": 205.88135973612467,
+        "std": 0.2340621776547405,
+        "min": 204.93645668029785,
+        "max": 205.9016227722168
+      },
+      "parent_us": {
+        "samples": 30,
+        "p50": 204.48139508565265,
+        "p90": 204.63323593139648,
+        "p99": 204.68183771769205,
+        "std": 0.1431716941646084,
+        "min": 204.20788129170737,
+        "max": 204.69361941019693
+      },
+      "paired_saving_us": {
+        "samples": 30,
+        "p50": -0.9528398513793945,
+        "p90": -0.6922817230224524,
+        "p99": -0.5879519780476861,
+        "std": 0.2185148047112691,
+        "min": -1.4134565989176338,
+        "max": -0.5777835845947266
+      },
+      "paired_wins": 0,
+      "pairs": 30
+    },
+    {
+      "owner": "separate",
+      "active_experts": 65,
+      "candidate_us": {
+        "samples": 30,
+        "p50": 207.0341428120931,
+        "p90": 207.19220161437988,
+        "p99": 207.26975663503012,
+        "std": 0.15436485669493172,
+        "min": 206.62562052408853,
+        "max": 207.28254318237305
+      },
+      "parent_us": {
+        "samples": 30,
+        "p50": 206.59809907277423,
+        "p90": 206.7833169301351,
+        "p99": 206.8289451599121,
+        "std": 0.12477417739627991,
+        "min": 206.35395050048828,
+        "max": 206.8429946899414
+      },
+      "paired_saving_us": {
+        "samples": 30,
+        "p50": -0.4749218622843472,
+        "p90": -0.21178404490153177,
+        "p99": -0.03222211201985,
+        "std": 0.1782637001278697,
+        "min": -0.6852149963378906,
+        "max": -0.01813570658364938
+      },
+      "paired_wins": 0,
+      "pairs": 30
+    }
+  ],
+  "report_sha256": "1cc24ef28a632f759e38b70688309159001cfda157a2c84faabc1a98a73fcc51",
+  "interpretation": "Positive paired saving means private norm final-join removal is faster than the original-shared static-GU parent with the same corrected activation arithmetic. Local M12/24 E65 FFN only, with synthetic weights and no TP collectives or model TPOT."
+}

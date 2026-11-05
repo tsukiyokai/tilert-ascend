@@ -1,0 +1,40 @@
+Original lines 78-115
+   78             output_size,
+   79             bias=bias,
+   80             skip_bias_add=skip_bias_add,
+   81             params_dtype=params_dtype,
+   82             quant_config=quant_config,
+   83             prefix=prefix,
+   84             return_bias=return_bias,
+   85         )
+   86         # NPU default: fp32 logits when out_dtype is None (see class
+   87         # docstring); out_dtype is immutable afterwards.
+   88         self.out_dtype = out_dtype if out_dtype is not None else torch.float32
+   89 
+   90     def forward(self, x: torch.Tensor):
+   91         # Tier 4: bf16 x bf16 -> fp32 accumulation. Eligibility mirrors
+   92         # upstream: bf16 weight (i.e. no fp32 upcast requested), fp32
+   93         # out_dtype, no bias (torch.mm has no bias term).
+   94         if (
+   95             self.weight.dtype == torch.bfloat16
+   96             and x.dtype == torch.bfloat16
+   97             and self.out_dtype == torch.float32
+   98             and self.bias is None
+   99         ):
+  100             output = torch.mm(x, self.weight.t(), out_dtype=torch.float32)
+  101             return output if not self.return_bias else (output, None)
+  102         # Tier 5: cast x to the weight dtype, compute, cast the output to
+  103         # out_dtype (upstream fallback semantics; out_dtype is always set
+  104         # after __init__).
+  105         if x.dtype != self.weight.dtype:
+  106             x = x.to(self.weight.dtype)
+  107         base_output = ReplicatedLinear.forward(self, x)
+  108         output_bias = None
+  109         if isinstance(base_output, tuple):
+  110             output, output_bias = base_output
+  111         else:
+  112             output = base_output
+  113         if output.dtype != self.out_dtype:
+  114             output = output.to(self.out_dtype)
+  115         return output if not self.return_bias else (output, output_bias)
+

@@ -1,0 +1,127 @@
+--- parent/decoder_graph.py
++++ candidate/decoder_full_graph.py
+@@ -267,8 +267,12 @@
+     originals = [impl.forward for impl in implementations]
+     restores = [adapter.install(layer.self_attn.mla_attn.mla_attn, pool) for layer in layers]
+     installed = [impl.forward for impl in implementations]
++    from ffn_host_adapter import LayerFFNAdapter, load as load_ffn
++    complete_ffn = load_ffn(args.ffn_library)
++    ffn_adapters = [LayerFFNAdapter(torch, torch_npu, layer, config, complete_ffn)
++                    for layer in layers]
+     report = {
+-        "scope": "Official ACLGraphWrapper around original DecoderLayer 6 then 7; original FFN in both arms; native attention in one arm",
++        "scope": "Official ACLGraphWrapper around original DecoderLayer 6 then 7; original attention/FFN versus native attention and complete FFN",
+         "script": source_identity(run_decoder_graph),
+         "decoder_forward": source_identity(type(layers[0]).forward),
+         "forward_context": source_identity(inspect.unwrap(set_ascend_forward_context)),
+@@ -286,7 +290,11 @@
+         "host_sequence_bound": 8192, "actual_length_rule": "8192 - iteration % 11",
+         "page_table_columns": 64, "updatable_graph_branch": False,
+         "initial_cache_rule": "base.roll(iteration, page dimension), restored before every arm",
+-        "original_ffn_disposal": "Unmodified; no GMM hooks or diagnostic synchronization",
++        "original_ffn_disposal": "Unmodified in the vendor oracle; the native arm uses one complete FFN",
++        "ffn_library": {"path": str(args.ffn_library), "sha256": hashlib.sha256(args.ffn_library.read_bytes()).hexdigest()},
++        "ffn_adapter": source_identity(LayerFFNAdapter),
++        "ffn_workspace_contract": "Separate layer identity, exact row count and actual stream",
++        "ffn_packed_weight_pointers": [value.packed_weight_pointers for value in ffn_adapters],
+         "capture_observation": "Strong device clones; CPU snapshots only after explicit replay",
+         "configuration_enforce_eager": config.model_config.enforce_eager,
+         "captures": [], "cases": [], "pass": False,
+@@ -337,6 +345,11 @@
+     def choose(forwards):
+         for impl, forward in zip(implementations, forwards):
+             impl.forward = forward
++        for value in ffn_adapters:
++            if forwards is installed:
++                value.enable()
++            else:
++                value.disable()
+ 
+     def collect(observation, inputs, result):
+         torch.npu.synchronize()
+@@ -363,6 +376,10 @@
+         for name in ("entries", "capture_reserves", "slot_entries", "slot_reserves"):
+             getattr(pool, name).clear()
+         pool.captured_slot_sources.clear()
++        for value in ffn_adapters:
++            value.pool.entries.clear()
++            value.pool.reserves.clear()
++            value.pool.claims.clear()
+ 
+     persist()
+     try:
+@@ -406,6 +423,7 @@
+                         arms.append(arm)
+                         reset(0)
+                         before_hits = len(hits)
++                        before_ffn_hits = [len(value.hits) for value in ffn_adapters]
+                         counter = compilation_counter.num_cudagraph_captured
+                         caller = torch.npu.current_stream(device)
+                         record = {"rows": rows, "initial_residual": residual_mode,
+@@ -414,10 +432,13 @@
+                         persist()
+                         with context(inputs, CUDAGraphMode.FULL):
+                             reserves, slots = {}, {}
++                            ffn_reserves = []
+                             if name == "native":
+                                 pool.reserve_capture(inputs.hidden)
+                                 reserves = dict(pool.capture_reserves)
+                                 slots = dict(pool.slot_reserves)
++                                ffn_reserves = [value.pool.reserve(inputs.hidden)
++                                                for value in ffn_adapters]
+                                 if len(reserves) != 2 or len(slots) != 3:
+                                     raise RuntimeError("Expected two geometries and three independent slot sources")
+                             enabled = monitor.cudagraph_capturing_enabled
+@@ -458,6 +479,28 @@
+                             if any(pool.slot_entries.get((stream, *key)) is not value
+                                    for key, value in slots.items()):
+                                 raise RuntimeError("Capture substituted a reserved slot destination")
++                        ffn_claimed = None
++                        ffn_calls = [value.hits[start:] for value, start
++                                     in zip(ffn_adapters, before_ffn_hits)]
++                        expected_ffn = [] if name == "vendor" else ["complete_ffn", "original_final_reduce"]
++                        if any([call["phase"] for call in calls] != expected_ffn for calls in ffn_calls):
++                            raise RuntimeError("Capture entered the wrong FFN implementation")
++                        if name == "native":
++                            if any(not calls[1]["lookup_same_runner"]
++                                   or calls[1]["layer_name"] != value.runner.layer_name
++                                   for value, calls in zip(ffn_adapters, ffn_calls)):
++                                raise RuntimeError("Capture resolved a different FFN runner")
++                            ffn_key = (inputs.hidden.device.index, stream, rows)
++                            ffn_claimed = all(value.pool.entries.get(ffn_key) is reserved
++                                              and not value.pool.reserves
++                                              for value, reserved in zip(ffn_adapters, ffn_reserves))
++                            if not ffn_claimed or ffn_reserves[0] is ffn_reserves[1]:
++                                raise RuntimeError("Capture did not claim separate layer-owned FFN buffers")
++                            for value in ffn_adapters:
++                                value.pending.require_empty()
++                        record.update(ffn_reserve_claimed=ffn_claimed,
++                                      ffn_capture_calls=ffn_calls,
++                                      ffn_reserved_bytes=[value.bytes() for value in ffn_reserves])
+                         record.update(
+                             phase="captured_not_executed", runnable_calls=observation.calls,
+                             native_python_modes=expected_modes, capture_counter_delta=1,
+@@ -499,12 +542,15 @@
+                             observation = arm["observation"]
+                             observation.poison()
+                             before_hits, calls = len(hits), observation.calls
++                            before_ffn_hits = [len(value.hits) for value in ffn_adapters]
+                             counter = compilation_counter.num_cudagraph_captured
+                             with context(inputs, CUDAGraphMode.FULL):
+                                 result = arm["wrapper"](inputs.positions, inputs.hidden, inputs.residual)
+                             if (len(hits) != before_hits or observation.calls != calls
+                                     or compilation_counter.num_cudagraph_captured != counter):
+                                 raise RuntimeError("Replay ran Python or captured another graph")
++                            if before_ffn_hits != [len(value.hits) for value in ffn_adapters]:
++                                raise RuntimeError("Replay re-entered a Python FFN adapter")
+                             if [value.data_ptr() for value in result] != [
+                                     value.data_ptr() for value in observation.output]:
+                                 raise RuntimeError("Replay replaced a strongly owned output")
+@@ -556,5 +602,7 @@
+         raise
+     finally:
+         destroy_graphs()
++        for value in ffn_adapters:
++            value.restore()
+         for restore in reversed(restores):
+             restore()

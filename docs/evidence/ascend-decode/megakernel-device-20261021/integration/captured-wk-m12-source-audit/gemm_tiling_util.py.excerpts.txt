@@ -1,0 +1,16 @@
+1053:         elif context.get_addition("binary_constant_type") == "matmul":
+1054:             attrs = ({"name": "transpose_x1", "dtype": "bool", "value": context.get_addition("trans_a")},
+1055:                      {"name": "transpose_x2", "dtype": "bool", "value": context.get_addition("trans_b")},
+1056:                      {"name": "offset_x", "dtype": "int64", "value": 0},
+1057:                      {"name": "input_size", "dtype": "int64", "value": -1},
+1058:                      {"name": "hidden_size", "dtype": "int64", "value": -1},
+1059:                      {"name": "_op_impl_mode_enum", "dtype": "int", "value": get_op_impl_mode_enum("MatMul")},
+1060:                      {"name": "enable_pad", "dtype": "int", "value": 0})
+1061:             run_info = do_op_tiling("MatMulV2", get_compile_info(), inputs, outputs, None, None, attrs)
+1062:             tiling_format += ["k_ori", "m_ori", "n_ori", "k", "m", "n", "batch_single_core", "m_single_core",
+1063:                                 "n_single_core", "batch_dim", "n_dim", "m_dim", "k_dim", "m_al1", "n_bl1", "cub_n1",
+1064:                                 "m_l0", "k_l0", "n_ub_l0_time", "kal0_factor", "kbl0_factor", "kal1_factor",
+1065:                                 "kbl1_factor", "kal1_16", "kbl1_16", "kl1_times", "batch_l1_factor",
+1066:                                 "batch_ub_l0_time", "batch_cub", "out_branch_flag",
+1067:                                 "bias_flag", "hf32_flag", "datatype_bf16", "al1_db", "bl1_db", "l0c_db",
+1068:                                 "l2_cache_flag", "close_k_shift"]

@@ -1,0 +1,76 @@
+--- src/device/gm2gm/shmemi_device_cc_kernel.cpp.orig	2026-10-18 20:00:06.276836884 +0800
++++ src/device/gm2gm/shmemi_device_cc_kernel.cpp	2026-10-18 22:06:47.915243478 +0800
+@@ -15,13 +15,17 @@
+ #include "shmemi_device_common.h"
+ #include "device/gm2gm/engine/shmem_device_rdma.h"
+ 
+-ACLSHMEM_GLOBAL void aclshmemi_sync_on_stream_kernel(aclshmem_team_t team, uint64_t ffts_config)
++// ffts_config must precede team: an 8-byte kernel argument placed after a 4-byte one lands at a
++// non-8-byte-aligned offset in the packed argument buffer, and the device-side prologue then loads it
++// from the next aligned offset, which is past the end of the buffer. The kernel received the high half
++// of the FFTS base address and every cross-core sync faulted with aclError 507015.
++ACLSHMEM_GLOBAL void aclshmemi_sync_on_stream_kernel(uint64_t ffts_config, aclshmem_team_t team)
+ {
+     util_set_ffts_config(ffts_config);
+     aclshmemi_sync_algo<false>(team);
+ }
+ 
+-ACLSHMEM_GLOBAL void aclshmemi_barrier_on_stream_kernel(aclshmem_team_t team, uint64_t ffts_config)
++ACLSHMEM_GLOBAL void aclshmemi_barrier_on_stream_kernel(uint64_t ffts_config, aclshmem_team_t team)
+ {
+     util_set_ffts_config(ffts_config);
+     aclshmemi_barrier_algo<false>(team);
+@@ -31,14 +35,14 @@
+ int32_t aclshmemi_call_barrier_on_stream_kernel(aclshmem_team_t team, aclrtStream stream)
+ {
+     (void)aclrtGetLastError(ACL_RT_THREAD_LEVEL);
+-    aclshmemi_barrier_on_stream_kernel<<<1, nullptr, stream>>>(team, util_get_ffts_config());
++    aclshmemi_barrier_on_stream_kernel<<<1, nullptr, stream>>>(util_get_ffts_config(), team);
+     return aclrtGetLastError(ACL_RT_THREAD_LEVEL);
+ }
+ 
+ int32_t aclshmemi_call_sync_on_stream_kernel(aclshmem_team_t team, aclrtStream stream)
+ {
+     (void)aclrtGetLastError(ACL_RT_THREAD_LEVEL);
+-    aclshmemi_sync_on_stream_kernel<<<1, nullptr, stream>>>(team, util_get_ffts_config());
++    aclshmemi_sync_on_stream_kernel<<<1, nullptr, stream>>>(util_get_ffts_config(), team);
+     return aclrtGetLastError(ACL_RT_THREAD_LEVEL);
+ }
+ 
+--- src/host/bootstrap/config_store/acc_links/csrc/acc_tcp_link_complex_default.h.orig	2026-10-18 23:30:11.755074969 +0800
++++ src/host/bootstrap/config_store/acc_links/csrc/acc_tcp_link_complex_default.h	2026-10-18 23:30:11.779075887 +0800
+@@ -350,11 +350,11 @@
+             }
+             /* if errno is eagain is normal, need to continue to receive */
+             /* else meaning failed to read from socket, socket is error */
+-            if (errorNumber != EAGAIN) {
++            if (errorNumber != EAGAIN && errorNumber != EINTR) {
+                 LOG_ERROR("Link " << id_ << " receive header failed, errno " << errorNumber);
+             }
+ 
+-            return (errorNumber == EAGAIN ? ACC_LINK_EAGAIN : ACC_LINK_ERROR);
++            return ((errorNumber == EAGAIN || errorNumber == EINTR) ? ACC_LINK_EAGAIN : ACC_LINK_ERROR);
+         }
+     }
+ 
+@@ -379,11 +379,11 @@
+         }
+         /* if errno is eagain is normal, need to continue to receive */
+         /* else meaning failed to read from socket,socket is error */
+-        if (errorNumber != EAGAIN) {
++        if (errorNumber != EAGAIN && errorNumber != EINTR) {
+             LOG_ERROR("Link " << id_ << " receive body failed, errno " << errorNumber);
+         }
+ 
+-        return (errorNumber == EAGAIN ? ACC_LINK_EAGAIN : ACC_LINK_ERROR);
++        return ((errorNumber == EAGAIN || errorNumber == EINTR) ? ACC_LINK_EAGAIN : ACC_LINK_ERROR);
+     }
+ }
+ 
+@@ -453,7 +453,7 @@
+         return ACC_LINK_ERROR;
+     }
+ 
+-    if (errorNumber == EAGAIN) { /* send buff is full not send */
++    if (errorNumber == EAGAIN || errorNumber == EINTR) { /* buffer full, or interrupted by a signal */
+         return ACC_LINK_EAGAIN;

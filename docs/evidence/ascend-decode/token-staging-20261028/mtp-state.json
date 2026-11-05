@@ -1,0 +1,124 @@
+{
+  "created_utc": "2026-10-27T16:38:32.690882+00:00",
+  "hostname": "fanshanshandeMacBook-Pro.local",
+  "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [Clang 21.0.0 (clang-2100.1.1.101)]",
+  "command": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "tests/glm52/check_mtp_state.py",
+    "--output",
+    "/tmp/tilert-frontier-mtp-state.json"
+  ],
+  "scope": "Greedy control and labelled cache semantics on CPU",
+  "target_conditioned_mtp": {
+    "row": "position p uses target hidden[p] and token[p+1]",
+    "chained_hidden": "must be overwritten before retaining KV",
+    "main_and_mtp_commit_lengths": "both P+A",
+    "prefill_seed": "MTP length P-1 needs seed at P-1; P is seeded",
+    "vllm_commit": "c4df37dfcc7f72ca41cd43801a468526ecf99a2b",
+    "vllm_ascend_commit": "f558b58c177916424ae9dcf9bb8e66c0b9031236",
+    "source_anchors": {
+      "vllm_ascend/spec_decode/eagle_proposer.py": "10-12",
+      "vllm/v1/spec_decode/llm_base_proposer.py": "113-120",
+      "vllm_ascend/spec_decode/llm_base_proposer.py": "1801-1838, 2033-2131"
+    },
+    "corrected_assumption": "The previous report used token position p+1 as cache row; the fixed vLLM source keeps the parent position p."
+  },
+  "device_execution": false,
+  "model_numerics": false,
+  "performance_measured": false,
+  "torch_imported": false,
+  "python_311_syntax": true,
+  "source_sha256": {
+    "tests/glm52/check_mtp_state.py": "a912d1505cb9f6f2460e9461f3e3f04d261226124b5db63c84b31d5a5c711fb9",
+    "tilert/models/glm_5_2_ascend/mtp_state.py": "863e5e649c13cf4b9b5db78e8f49de7e515c096d17301af0d093c65828364f3f"
+  },
+  "passed": true,
+  "checks": [
+    {
+      "name": "exhaustive",
+      "passed": true,
+      "detail": {
+        "rounds": 84,
+        "accepted_spans": [
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            4,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "name": "stop_boundaries",
+      "passed": true,
+      "detail": {
+        "cases": 25
+      }
+    },
+    {
+      "name": "capacity_boundaries",
+      "passed": true,
+      "detail": {
+        "cases": 21,
+        "page_size": 128
+      }
+    },
+    {
+      "name": "reset_abort_and_errors",
+      "passed": true,
+      "detail": {
+        "reset_replay": true,
+        "abort_preserves_prefix": true
+      }
+    },
+    {
+      "name": "parent_hidden_detection",
+      "passed": true,
+      "detail": {
+        "same_token_wrong_parent_detected": true
+      }
+    },
+    {
+      "name": "alternating_rounds",
+      "passed": true,
+      "detail": {
+        "counts": {
+          "1": 5000,
+          "4": 5000
+        },
+        "statistics": {
+          "rounds": 10000,
+          "verified_positions": 40000,
+          "matched_drafts": 15000,
+          "natural_accepted": 25000,
+          "committed": 25000,
+          "emitted": 25001,
+          "mean_committed_per_round": 2.5
+        }
+      }
+    }
+  ]
+}

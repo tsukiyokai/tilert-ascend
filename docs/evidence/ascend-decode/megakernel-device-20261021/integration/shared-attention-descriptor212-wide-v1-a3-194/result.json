@@ -1,0 +1,3058 @@
+{
+  "scope": "shared-attention descriptor versus frozen one-launch parent; before TP reduction",
+  "atol": 0.0,
+  "rtol": 0.0,
+  "provenance": {
+    "utc": "2026-10-21T19:06:20.694075+00:00",
+    "host": "20354f365374",
+    "platform": "Linux-5.10.0-182.0.0.95.r2220_157.hce2.aarch64-aarch64-with-glibc2.34",
+    "torch": "2.12.0+cu130",
+    "torch_npu": "2.12.0",
+    "versions": {
+      "CANN": "9.2.0",
+      "RUNTIME": "9.2.0",
+      "DRIVER": "`\t/m"
+    },
+    "device_properties": "_NPUDeviceProperties(name='Ascend910_9392', total_memory=62740MB, cube_core_num=24, vector_core_num=48, uuid=00cc0800-d001-0000-0000-bcd20648923c, L2_cache_size=192MB)",
+    "library": "/workspace/tests/glm52/whole_layer/attention_shared_descriptor/build-v1/shared_attention_descriptor.so",
+    "library_sha256": "ff36c603205f43420b2181ae7193a3b6b4b8a3a2445db84a3cf74840664c4d64",
+    "build_manifest": {
+      "vendor_root": "/workspace/attention_vendor",
+      "vendor_revision": null,
+      "vendor_headers": {
+        "attention/mla_prolog/op_kernel/arch22/kernel_mla_prolog_split_n_arch22.h": "e1c6d8eb3ea58a884c65c1923c0a2d9d18741393f272b83bf683f35e0be3be25",
+        "attention/mla_prolog/op_kernel/arch22/mla_prolog_comm_arch22.h": "e977456ed248a643161d6e7f740909f6d02ec10c819cdb3111b7f2ad0d88d86b",
+        "attention/mla_prolog/op_kernel/arch22/mla_prolog_vector_comm_arch22.h": "73e17afa4f5b646c1e52eee8af489a8a180e2346ca62dde191e3cdd297b275a7",
+        "attention/mla_prolog/op_kernel/arch22/rms_norm.h": "b10727462d8062ddac6c78510a326ce9e93a861fbe3c616485fdd22feba0bc08",
+        "attention/mla_prolog/op_kernel/arch22/service_dequant_arch22.h": "2b0d6968bb386882de9c1cba234e9ed08a3af304843f6434a602d3d4bf707842",
+        "attention/mla_prolog/op_kernel/arch22/service_dynamic_quant_qn_mul_qr_arch22.h": "49f25e80eaa3052cbf87bfd0a3cf525d3b6ae1e397cea53191c43a49fd6d549c",
+        "attention/mla_prolog/op_kernel/arch22/service_gather_sin_cos_arch22.h": "5eb087353157c486ac86fc039e993efe99882778ba1d145ca31229bd0e413691",
+        "attention/mla_prolog/op_kernel/arch22/service_matmul_arch22.h": "ea0e6a3488d5a0297375793d8b21bdd41d60d5f6798265ab665e46b835351d68",
+        "attention/mla_prolog/op_kernel/arch22/service_rms_norm_arch22.h": "e01ee9747c3224f7b9d6d49fe412c64efb0a250cbdd5e4cc4df1a985ea7d5a38",
+        "attention/mla_prolog/op_kernel/arch22/service_rope_arch22.h": "83ecac3419098c4ec99dc6a78db204dde69e95acc310a34f7d41ffd33b4bc318",
+        "attention/mla_prolog/op_kernel/arch22/service_rotary_position_embedding_arch22.h": "6f86884143acdd17f7d51800bb378d7ac31e699fb1f3ee0fd3ae45e3247df842",
+        "attention/mla_prolog/op_kernel/arch22/service_scatter_cache_arch22.h": "3d3e59ec7177c6381c75e9f9b025c9a5401dcdb14d52b35a1f6c16d2165ee547",
+        "attention/mla_prolog/op_kernel/mla_prolog_template_tiling_key.h": "1743f02661fd53cc088836dc0efc22214724fab1ea1aaafae0f3f531c38df6ab",
+        "attention/mla_prolog/op_kernel/mla_prolog_tiling_data.h": "13ef25288c1407af60baaaed0a0aa227dc4c4d73f7712ec0194fb905084ca7b0",
+        "attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_common.h": "d3f5204b5602ca3aa677812103162d504b2d220415f683df6e7767d140bad632",
+        "attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_kernel_mla.h": "f6c6b092ccfe09e65e9fa371b29de153d800918290ef2a08f799f0ac53f2bacd",
+        "attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_service_cube_mla.h": "63db752f6168d38029392d331c60891efe40975e3e175136d1e00e647aa74aaf",
+        "attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_service_vector_mla.h": "681ff5278aa25abaa2741fbbd9528aedba19394548f9d98be069f71046b341bd",
+        "attention/sparse_flash_attention/op_kernel/sparse_flash_attention_template_tiling_key.h": "5be6686a5f2beca1c2ea54451cb92c3107ee644e648547ab6c0563f7bc35c376"
+      },
+      "sources_and_artifacts": {
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_binding.cpp": "fdb57b534d5dc6bf4e8b48202c7f66ba54b72898bdb3213abda5439b2a0c2f32",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_build.sh": "ee75687e6748bbaa4262b027418d0c6246d65dfba9292871d59983223c2defe2",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_check.py": "94be7f24a6a548263eacbd9c88e69a8172faf9dad3e80ddfcfa074bb9745af77",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_contract.h": "6563a81322a9d8f4ca03e7517e20315cbf3df5d9f778b206c1cac13eaf7ccfc1",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_contract_test.cpp": "fa2fa80a999b2b4e3fdda2b4caf3ad3b29cbecea05806fad402caccd79563536",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_full_binding.cpp": "509c3092610ad6b34ae504dbdb6d39634290176da9fca2d5f4a676f9be82506c",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_full_build.sh": "4d857cb9c1fb756bbcce4065e22d4541d5464aded3b581ed98d9cbe62cbc30ea",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_full_check.py": "41d909ff3bd2803aa86634b70f7894373311161b299156435775c01028b6d707",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_full_contract.h": "6589c74aaa66694cc554ccd5eb81b3bfcdabe7a85b6b2254ed13a1a9b21c13e4",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_full_kernel.cpp": "5399b5288ea17138739c7bf7b33b4550c5247fb96cc3f98feb3fb4042a16bf72",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_full_native.h": "435b3752a278c03a8dc1bbf01e766d7c5b9403fe2b5282ea3e637482eb3498ce",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_host.h": "97eb3709c4ecb2be0f237ad0e29da4ec97d7c9bd9aeef9e57f8dfd5547e6dc9d",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_kernel.cpp": "536d8b480827deb9ae7cd22f2c6d6ef65308ba1ad5409aec95d625780add6ce2",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_native.h": "8f9caaf1490d42d66141ea8d1c3fa352a530dfc6fe3ae733cb8caa45ce46bf28",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_norm_binding.cpp": "4304b706e5b8cd422a13dedb6a2ce922d6ce63b197502566c7053d3188424d39",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_norm_build.sh": "23f9d110a961f86ca04ea157a04421c2ac5c25ed623621eed9edf444232ba5b2",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_norm_check.py": "af363c02460d0c8069d1483f15bc17d93591f9df662fca0f91ac3aeffdec21a1",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_norm_contract.h": "3736993e77b5d1037a034cc9c007f435e506440188e28865dcc957aaa6ef069c",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_norm_contract.md": "ed36a4e817bc48ddffedc6a0b51852f9d2a2269a52594d2bf4df807fb8022644",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_norm_kernel.cpp": "e8b33fe8dacb06bac29ed3ccd0b4125fafdfa0046dd8cf5243c1d9e161d286a1",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_norm_native.h": "48857e78d2d15ebc39b3899daccefa628d6e516a52898b3657d73e3007c51bc3",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_provenance.py": "f160352bc59bcc00c2270551122e8627aede8459da74a21644d6220c376e3c7c",
+        "/candidate/build-v1/source/tests/glm52/whole_layer/attention_sfa_tiling.h": "8c24b9c2ac6625a2e46afad0997b91785e1e78174c41c1abbf96808129b259bf",
+        "/candidate/build-v1/source/tests/glm52/mla_tail/mla_tail.h": "15b2577be5e41a11a97d36f68f219e3f0c39b9eabbcca016d803f9807d5d1cff",
+        "/candidate/build-v1/source/tests/glm52/mla_tail/mla_tail_native.h": "a742b9d273e6af9afe7e5f7986f2840ef6aa1b299d1c6a0348a10006fb8d6dc0",
+        "/candidate/build-v1/source/tests/glm52/mla_tail/mla_tail_tiling.cpp": "60f026c1231eda3d966f7438570b9a9ee2e9ea4a62679dc83aeab28b950eec16",
+        "/candidate/build-v1/attention_full_binding.o": "f9c0e65864e4cdf56832c65fcc075fc48868452c253b2d4416b6705a0a1ae6c2",
+        "/candidate/build-v1/attention_full_kernel.o": "a56e6e2bce408fbaaa99014d9727ba9496e6854a89efa098c5ab9f45dd77d2d2",
+        "/candidate/build-v1/mla_tail_tiling.o": "a90c640597f3f0353eae768b3273bbe0f6838390ff2afc6d8549bebc688d89ac",
+        "/candidate/build-v1/whole_layer_full_attention.so": "ff36c603205f43420b2181ae7193a3b6b4b8a3a2445db84a3cf74840664c4d64"
+      },
+      "norm_vendor_headers": {},
+      "cann_root": "/opt/ascend/cann-9.2.0",
+      "cann_versions": {
+        "opp/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+        "opp/built-in/op_impl/ai_core/tbe/kernel/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nops_version=9.2.0\nadk_version=9.2.0\n",
+        "share/info/dvpp/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+        "share/info/mstx/version.info": "[PACKAGE]\nName=mindstudio-TX\nVersion=26.2.0\n",
+        "share/info/dflow-executor/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_hcomm_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/oam_tools/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=9.0\"\nrequired_package_bisheng-compiler_version=\">=9.0\"\nrequired_package_ops-cv_version=\">=9.0\"\nrequired_package_ops-math_version=\">=9.0\"\nrequired_package_ops-legacy_version=\">=9.0\"\nrequired_package_metadef_version=\">=9.0\"\nrequired_package_hcomm_version=\">=9.0\"\nrequired_package_hccl_version=\">=9.0\"\nrequired_package_ge-executor_version=\">=9.0\"\nrequired_package_ge-compiler_version=\">=9.0\"\nrequired_package_tbe-tik_version=\">=9.0\"\nrequired_package_asc-devkit_version=\">=9.0\"\nrequired_package_graph-autofusion_version=\">=9.0\"\nrequired_package_opbase_version=\">=9.0\"\nrequired_package_ops-nn_version=\">=9.0\"\nrequired_package_ops-transformer_version=\">=9.0\"\ntimestamp=20260917_111743075\n",
+        "share/info/graph_autofusion/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_asc-devkit_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/pto_isa/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_opbase_version=\"9.2\"\nrequired_package_asc-devkit_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_asc-tools_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/pypto/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_driver_version=\">=25.5.0\"\ntimestamp=20260917_111743075\n",
+        "share/info/mindstudio-sanitizer/version.info": "[PACKAGE]\nName=mindstudio-sanitizer\nVersion=26.2.0",
+        "share/info/ops_transformer/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_hcomm_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_ge-compiler_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_ops-nn_version=\">=8.5\"\nrequired_package_hccl_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+        "share/info/runtime/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\n",
+        "share/info/platform_profiler/version.info": "[PACKAGE]\nName=platform-profiler\nVersion=1.0.0",
+        "share/info/mindstudio-opprof/version.info": "[PACKAGE]\nName=mindstudio-opprof\nVersion=26.2.0",
+        "share/info/ops_cv/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_ops-legacy_version=\">=8.5\"\nrequired_package_ops-math_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+        "share/info/mindstudio-debugger/version.info": "[PACKAGE]\nName=mindstudio-debugger\nVersion=26.2.0\n",
+        "share/info/ncs/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nrequired_package_acl-extend_version=\"9.2\"\nrequired_package_aoe_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_opbase_version=\"9.2\"\nrequired_package_runtime_version=\"9.2\"\nrequired_package_tbe-tik_version=\"9.2\"\n",
+        "share/info/bisheng-compiler/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\n",
+        "share/info/asc-devkit/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_tbe-tik_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/ops_math/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_ops-legacy_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+        "share/info/ops_nn/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_ops_legacy_version=\">=8.5\"\nrequired_package_ops_math_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+        "share/info/mspti/version.info": "[PACKAGE]\nName=mindstudio-profiler-tools-interface\nVersion=26.2.0",
+        "share/info/opbase/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+        "share/info/ge-compiler/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_hcomm_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/mindstudio-operator-tools/version.info": "[PACKAGE]\nName=mindstudio-operator-tools\nVersion=26.2.0",
+        "share/info/simulator/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\n",
+        "share/info/ge-executor/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_hcomm_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/pyACL/version.info": "Version=9.2.0\n",
+        "share/info/ms_fmk_transplt/version.info": "[PACKAGE]\nName=mindstudio-transplt\nVersion=26.2.0",
+        "share/info/ops_ras/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_ops_legacy_version=\">=8.5\"\nrequired_package_ops_math_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+        "share/info/ops_legacy/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nops_version=9.2.0\nadk_version=9.2.0\n",
+        "share/info/hixl/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_hcomm_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+        "share/info/acl_extend/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/ascendnpu-ir/version.info": "Version=1.2.0\n",
+        "share/info/asc-tools/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_asc-devkit_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/aoe/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nrequired_package_acl-extend_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_ncs_version=\"9.2\"\nrequired_package_opbase_version=\"9.2\"\nrequired_package_runtime_version=\"9.2\"\nrequired_package_tbe-tik_version=\"9.2\"\n",
+        "share/info/operator_cmp/version.info": "[PACKAGE]\nName=mindstudio-accucmp\nVersion=26.2.0",
+        "share/info/msmemscope/version.info": "[PACKAGE]\nName=mindstudio-memscope\nVersion=26.2.0\n",
+        "share/info/metadef/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/msboost/version.info": "[PACKAGE]\nName=mindstudio-boost\nVersion=26.2.0\n",
+        "share/info/msprof/version.info": "[PACKAGE]\nName=mindstudio-profiler\nVersion=26.2.0",
+        "share/info/hccl/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_hcomm_version=\">=8.5\"\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\ntimestamp=20260917_111743075\nhost_only=false\n",
+        "share/info/test-ops/version.info": "Version=9.2.0\n",
+        "share/info/msserviceprofiler/version.info": "[PACKAGE]\nName=mindstudio-serviceprofiler\nVersion=26.2.0",
+        "share/info/pto_as/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_opbase_version=\"9.2\"\nrequired_package_asc-devkit_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_asc-tools_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/hcomm/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\ntimestamp=20260917_111743075\nhost_only=true\n",
+        "share/info/tbe-tik/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nrequired_opp_abi_version=tbe-tik\nrequired_package_ge-compiler_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_runtime_version=\"9.2\"\n",
+        "compiler/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_tbe-tik_version=\"9.2\"\ntimestamp=20260917_111743075\n"
+      }
+    },
+    "harness_sha256": "94be7f24a6a548263eacbd9c88e69a8172faf9dad3e80ddfcfa074bb9745af77",
+    "fixture": "synthetic-seed-20261021",
+    "fixture_sha256": null
+  },
+  "comparison_libraries": {
+    "/workspace/vendor-hook-runtime212/native/shared/whole_layer_full_attention.so": "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c"
+  },
+  "harness_sha256": "ea99ad955d066d0612bec7fe2ecba703d794095136afc09fead6637c8cc87c59",
+  "cases": [
+    {
+      "width": 1,
+      "blocks": 16,
+      "capture": true,
+      "sequence": 8192,
+      "checks": [
+        {
+          "replay": 0,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 2048
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 6144
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 1,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 2048
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 6144
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 2,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 2048
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 6144
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 3,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 2048
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 6144
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 4,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 2048
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 6144
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 5,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 2048
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 6144
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 6,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 2048
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 6144
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 7,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 2048
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 6144
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        }
+      ],
+      "pass": true,
+      "requested_workspace_bytes": {
+        "full": 40460800,
+        "separate": 40460800
+      }
+    },
+    {
+      "width": 2,
+      "blocks": 16,
+      "capture": true,
+      "sequence": 8192,
+      "checks": [
+        {
+          "replay": 0,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4096
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 12288
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 1,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4096
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 12288
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 2,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4096
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 12288
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 3,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4096
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 12288
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 4,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4096
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 12288
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 5,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4096
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 12288
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 6,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4096
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 12288
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 7,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4096
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 12288
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        }
+      ],
+      "pass": true,
+      "requested_workspace_bytes": {
+        "full": 40469504,
+        "separate": 40469504
+      }
+    },
+    {
+      "width": 12,
+      "blocks": 16,
+      "capture": true,
+      "sequence": 8192,
+      "checks": [
+        {
+          "replay": 0,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 24576
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 1,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 24576
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 2,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 24576
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 3,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 24576
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 4,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 24576
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 5,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 24576
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 6,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 24576
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 7,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 24576
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        }
+      ],
+      "pass": true,
+      "requested_workspace_bytes": {
+        "full": 45799424,
+        "separate": 45799424
+      }
+    },
+    {
+      "width": 32,
+      "blocks": 16,
+      "capture": true,
+      "sequence": 8192,
+      "checks": [
+        {
+          "replay": 0,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 65536
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 196608
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 1,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 65536
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 196608
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 2,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 65536
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 196608
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 3,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 65536
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 196608
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 4,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 65536
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 196608
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 5,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 65536
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 196608
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 6,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 65536
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 196608
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 7,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 65536
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 196608
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        }
+      ],
+      "pass": true,
+      "requested_workspace_bytes": {
+        "full": 59097088,
+        "separate": 59097088
+      }
+    },
+    {
+      "width": 1,
+      "blocks": 24,
+      "capture": true,
+      "sequence": 8192,
+      "checks": [
+        {
+          "replay": 0,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 2048
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 6144
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 1,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 2048
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 6144
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 2,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 2048
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 6144
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 3,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 2048
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 6144
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 4,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 2048
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 6144
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 5,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 2048
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 6144
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 6,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 2048
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 6144
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 7,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 2048
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 6144
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        }
+      ],
+      "pass": true,
+      "requested_workspace_bytes": {
+        "full": 60678656,
+        "separate": 60678656
+      }
+    },
+    {
+      "width": 2,
+      "blocks": 24,
+      "capture": true,
+      "sequence": 8192,
+      "checks": [
+        {
+          "replay": 0,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4096
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 12288
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 1,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4096
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 12288
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 2,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4096
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 12288
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 3,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4096
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 12288
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 4,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4096
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 12288
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 5,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4096
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 12288
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 6,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4096
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 12288
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 7,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4096
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 12288
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        }
+      ],
+      "pass": true,
+      "requested_workspace_bytes": {
+        "full": 60687360,
+        "separate": 60687360
+      }
+    },
+    {
+      "width": 12,
+      "blocks": 24,
+      "capture": true,
+      "sequence": 8192,
+      "checks": [
+        {
+          "replay": 0,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 24576
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 1,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 24576
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 2,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 24576
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 3,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 24576
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 4,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 24576
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 5,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 24576
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 6,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 24576
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 7,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 24576
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        }
+      ],
+      "pass": true,
+      "requested_workspace_bytes": {
+        "full": 68638720,
+        "separate": 68638720
+      }
+    },
+    {
+      "width": 32,
+      "blocks": 24,
+      "capture": true,
+      "sequence": 8192,
+      "checks": [
+        {
+          "replay": 0,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 65536
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 196608
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 1,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 65536
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 196608
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 2,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 65536
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 196608
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 3,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 65536
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 196608
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 4,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 65536
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 196608
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 5,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 65536
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 196608
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 6,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 65536
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 196608
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        },
+        {
+          "replay": 7,
+          "latent": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 65536
+          },
+          "output": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 196608
+          },
+          "kv_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 4456448
+          },
+          "rope_cache": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 557056
+          },
+          "pass": true
+        }
+      ],
+      "pass": true,
+      "requested_workspace_bytes": {
+        "full": 88489984,
+        "separate": 88489984
+      }
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+# Down K128 with one L0B buffer
+
+This private candidate changes the accepted `bbd52e42` FFN's Down geometry from M32/N1024/K64 to M32/N1024/K128. The installed CANN 9.2 constant tiling API supplies six named fields. The runtime host tiler first generates and verifies the complete accepted `c207230a` record, applies those fields, and verifies the complete `c2b73af9` record. Both records are 200 bytes and identical between ND and NZ weights.
+
+`static_down_plan.cpp` is a host constant provider compiled with Bisheng for dav-2201. Its 24-byte PODs contain `baseK`, `depthA1`, `depthB1`, `stepKa`, `stepKb`, and `dbL0B`. They are linked into the host DSO and read by the host tiler. The planner disables its unused INT32-output quantization reserve; the device Matmul configuration remains unchanged. Copying the whole constant tiling record would be incorrect: even the accepted control plans have compile-time `transLength=131072`, whereas the accepted runtime record has `transLength=0`. The other 176 runtime bytes remain unchanged.
+
+| Field | Parent | Candidate |
+| --- | ---: | ---: |
+| baseK | 64 | 128 |
+| depthA1 | 4 | 2 |
+| depthB1 | 12 | 6 |
+| stepKa | 2 | 1 |
+| stepKb | 2 | 1 |
+| dbL0B | 2 | 1 |
+
+The device consumer remains `CFG_NORM` with dynamic `SetSingleShape(2 * count, 6144, 128)`. For one expert, six N1024 tiles cover all 6144 columns. Counts 1–16 use one M tile; counts 17–32 use two. K128 requires one INT32 MMAD per output tile, replacing two K64 steps. Each dot product has magnitude at most `128 * 64 = 8192`, so regrouping these integer products introduces no rounding or overflow. All later FP16 MSD reconstruction, BF16 route/combine boundaries, shared branch, five body joins and terminal publication retain their parent statements.
+
+The resource contract is L0A operand 2 KiB, L0B operand 64 KiB, L0C 128 KiB, and L1 397312 bytes: `2 * 32 * 128 / 2 + 6 * 1024 * 128 / 2`. The CANN `TBufPoolL0Base` selects ping-pong jointly from `dbL0A` and `dbL0B`; setting B to one buffer also stops A ping-pong. `Allocate/EnQue/DeQue/Free` still issue both directions of the MTE1/M event protocol. This reduces K-loop work but can remove useful load/compute overlap. No UB or GM allocation is removed. The routed body uses 116480 UB bytes; the complete FFN's preceding norm stage peaks at 195584 bytes.
+
+The public contract remains 33 scratch tensors, a 408-byte body descriptor and a 112-byte shared input POD. The private namespace is `tilert_ffn_down_k128`; the C ABI is `ffn_down_k128_launch`. Source normalization must recover every parent C++ device consumer exactly. CPU tests check all counts 1–32, the original NZ full-K stride, both complete tiling records, six-field isolation and the original ABI. The build verifies that the planner object is a relocatable AArch64 host ELF, checks its linked ND/NZ PODs, runs both actual host tilers, and co-loads parent/child Torch schemas without initializing NPU.
+
+The [CPU build-v2 evidence](../../../../docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-down-k128-build-v2/summary.json) verifies all 104 source files and seven artifacts, including DSO `0842cd0f3a946c39aefb3e926e01eb870a61d6d1ad8689aebcf52a1b3daa2b65`. Five contracts pass on both x86 and ARM; actual Torch 2.12 co-loading preserves both schemas with NPU uninitialized. Both compiled host tilers reproduce their complete ND/NZ records, and GU bytes are unchanged. The linked planner PODs contain `[128, 2, 6, 1, 1, 1]`. The planner TU gives the SDK's `g_tilingKey` a private name; the kernel's original symbol is retained. The failed v1 duplicate-symbol link and both symbol tables are preserved with the build evidence. [Installed-source contract](../../../../docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-down-k128-source-audit/AUDIT.md).
+
+The [original Decoder norm/MLP gate](../../../../docs/evidence/ascend-decode/megakernel-device-20261021/integration/vendor-hook-decoder212-ffn-down-k128-wide-v1-a3-194/summary.json) passes M1/2/12/32 with two synthetic weight sets and eight changing inputs on one idle A3 die. All 704 byte comparisons pass, including 256 immediate graph-consumer checks. All 72 complete Down records match `c2b73af9`. The original GMM1/GMM2/shared operators supply the reference; the candidate uses native graph replay. Only rank 0 initializes NPU among the 16 constructor processes; this gate executes no attention or TP collective.
+
+The hot eight-expert gates also pass with [24 groups](../../../../docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-down-k128-hot-b24-v1-a3-194/summary.json) and [16 groups](../../../../docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-down-k128-hot-b16-v1-a3-194/summary.json). Each run covers M17/32, eight changing inputs and both layer weight sets: 32 cases, 480 raw comparisons including 128 immediate consumers and 128 routing-metadata checks, plus 36 complete tiling checks. Every token selects the same eight experts, each with count M; both M32 tiles are exercised, including the two-row tail at M17. The original router-bias owner, NZ allocations and weight bytes remain unchanged. Across the random and hot gates, all 1664 raw comparisons and 144 complete Down records pass.
+
+The [same-owner M12/24 timing](../../../../docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-down-k128-timing-v1-a3-194/summary.json) saves 7.339/5.872 us against `bbd52e42` across two scratch arenas, with all 60 pairs favoring K128. Candidate/control medians are 203.950/211.309 and 203.187/209.089 us. The run uses 65 active experts, 16 distinct weight banks, 16 calls per graph and 30 replays per event sample. All 19,200 numerical checks, 360 event-tail checks, 696 active-table checks and 20 complete tiling checks pass. Both arms share every writable address and retain their own immutable Down record.
+
+This standalone result must be tested directly in the same 609 + TopK-copy whole-layer chain against N512. The complete chain changes the surrounding dependencies and weight working set; results from different comparisons are not additive.

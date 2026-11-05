@@ -1,0 +1,21 @@
+{
+  "scope": "Single captured WK, seven BF16 control arms followed by two stock FP32 arms on TorchNPU 2.12; no NPU invocation by author",
+  "image": "sha256:1910b1acedb37acc42beda9cb695c2cf84c57c81d8dd8b5191a98a97bc6d5fe6",
+  "cann": "9.2.0 mounted SDK",
+  "capture_sha256": "0b6e5a0198e0423f4a1c644016089cc2723ddfd7768f8b4d11b7ac4e25008725",
+  "files": {
+    "check_fp32.py": "642d054c7e61579b8fbddd705a9e3ffdbafecb94a4df65ff95ae8955f07e0184",
+    "cpu-contract.json": "6c12f97382074ecfa40c14fbc3c78611cd331cb88ccc9045912bea8fb5654fa4",
+    "run_fp32.sh": "4c7d497fb7a4f5d5f201fde21e897e2c503f2a30799736750527e2bb95b5d0c1"
+  },
+  "parent_check_sha256": "df015159cf56cebf7ce4d0b36f7f3db0270195cfca855873412ca77c55021798",
+  "production_gate": "All full-N160 BF16 arms match captured vendor; all split-N32 BF16 arms match captured native before either FP32 call",
+  "fp32_entry": "torch.mm(hidden, operand, out_dtype=torch.float32)",
+  "limitation": "Changing output dtype may change CANN dispatch; FP32 observations alone do not isolate Fixpipe",
+  "cpu_validation": {
+    "captured_contract": true,
+    "shell_syntax": true,
+    "torch": "2.9.1+cpu"
+  },
+  "device_validation": "pending root-controlled invocation"
+}

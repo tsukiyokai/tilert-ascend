@@ -1,0 +1,131 @@
+{
+  "library_sha256": "609c973e92b61637f7768ccefb0fbd84b2e13fcfb066b241a41cd5d8376fdd0f",
+  "scope": "Read-only phase, reset, include-order and GM ownership audit; no device execution",
+  "tail_definition_difference": "Only standalone Forward chooses CombinedScales in the attention copy; shared.Store explicitly selects CombinedScales in both copies",
+  "files": {
+    "source/kernel.cpp": {
+      "sha256": "2cc240336eed2a8f952f0e58c9f018e5c61dde141e86e1a535aba179a11b0542",
+      "ranges": [
+        [
+          1,
+          10
+        ],
+        [
+          42,
+          106
+        ]
+      ]
+    },
+    "source/host.cpp": {
+      "sha256": "cd29abe75fdc430993c17fc4f8f1a4b5fd41cd3d5033ba3eb0445c9a05c46ca2",
+      "ranges": [
+        [
+          53,
+          91
+        ]
+      ]
+    },
+    "source/contract.h": {
+      "sha256": "fe63f75b89fb06437ba9aa6ba4652bcda3ca4822b6a819fe77cee0546cd108aa",
+      "ranges": [
+        [
+          52,
+          107
+        ]
+      ]
+    },
+    "attention/source/tests/glm52/whole_layer/attention_native.h": {
+      "sha256": "a7d92853f15174736899ae8aa4407f46b7fe2875fda7db81b525311fb2acc0b7",
+      "ranges": [
+        [
+          121,
+          155
+        ],
+        [
+          158,
+          175
+        ]
+      ]
+    },
+    "attention/source/tests/glm52/whole_layer/attention_indexed_native.h": {
+      "sha256": "6f1be4b93d9e103634200449cbdad38bf50002befd02dbd2d48d98696e4e0fdc",
+      "ranges": [
+        [
+          22,
+          74
+        ]
+      ]
+    },
+    "attention/source/tests/glm52/whole_layer/attention_full_native.h": {
+      "sha256": "90e6d754d13ff4d7d15dc04f47f36f9d37deaf5428e32486ea5094744405601f",
+      "ranges": [
+        [
+          15,
+          34
+        ]
+      ]
+    },
+    "attention/source/tests/glm52/mla_tail/mla_tail_native.h": {
+      "sha256": "dafafe680633a71fd3eded30c77c3aa44145c10154a89b321fca963ccc1e472b",
+      "ranges": [
+        [
+          423,
+          481
+        ]
+      ]
+    },
+    "ffn/bridge/source/norm_native.h": {
+      "sha256": "d18573f199777f4fbf7acbe9bab378469d0655c283141008c53597026e1590b4",
+      "ranges": [
+        [
+          112,
+          159
+        ]
+      ]
+    },
+    "ffn/bridge/source/ffn_bridge/body_native.h": {
+      "sha256": "f75ae3bb7ea18d0ef8ebc4bc5ece23e7d135ab2205107baa7a74d008f59b3745",
+      "ranges": [
+        [
+          1,
+          30
+        ]
+      ]
+    },
+    "ffn/body/source/routed_int4/routed_body_native.h": {
+      "sha256": "cd5dd0b7b3c97c9bf60e16f116996da3e73c4418ca92e94fb37fda750008274b",
+      "ranges": [
+        [
+          706,
+          764
+        ]
+      ]
+    },
+    "ffn/body/source/routed_int4/routed_int4_pipeline_native.h": {
+      "sha256": "3b30b04f86111867ae305f0c4608a9554a69347078a417e0584dbf0be71b3bbb",
+      "ranges": [
+        [
+          93,
+          115
+        ]
+      ]
+    },
+    "ffn/body/source/mla_tail/mla_tail_dequant.h": {
+      "sha256": "f0557964f075db75987e5df8fff87d28718595ac1f8c654a292e47d34bc3c362",
+      "ranges": [
+        [
+          1,
+          6
+        ]
+      ]
+    }
+  },
+  "findings": [],
+  "required_conditions": [
+    "All resident mixed cores reach every retained phase join.",
+    "Attention and FFN arenas and retained residuals use distinct GM storage checked by the parent fixture.",
+    "The first selected bridge system workspace remains alive for the complete launch; later SetSysWorkspace calls do not switch it.",
+    "The current terminal FFN has no in-kernel consumer; an AR2 insertion requires a full publication/join/reset before communication buffers.",
+    "The fixture invokes the original parent validators before the raw C ABI and retains all tensors through completion."
+  ]
+}

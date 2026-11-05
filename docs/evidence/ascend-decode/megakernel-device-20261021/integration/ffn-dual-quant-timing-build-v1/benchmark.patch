@@ -1,0 +1,42 @@
+--- original-shared-gu-static-timing-v1/bench.py
++++ dual-quant/bench.py
+@@ -36,9 +36,9 @@
+     def __init__(self, fused, bridge, body, candidate, kind, active):
+         self.libraries = [ctypes.CDLL(str(path.resolve())) for path in (fused, bridge, body)]
+         self.libraries.append(ctypes.CDLL(str(active.resolve())))
+-        self.base = self.libraries[-1].ffn_original_shared_terminal_launch
++        self.base = self.libraries[-1].ffn_down_n512_launch
+         self.libraries.append(ctypes.CDLL(str(candidate.resolve())))
+-        self.fused = self.libraries[-1].ffn_original_shared_gu_static_launch
++        self.fused = self.libraries[-1].ffn_dual_quant_launch
+         self.kind = kind
+         self.extra_by_arena = {}
+         array = ctypes.POINTER(ctypes.c_void_p)
+@@ -120,14 +120,14 @@
+     def owning_torch(self, owner):
+         b, r, sync = self.arena
+         torch, bank = self.torch, self.bank
+-        torch.ops.tilert_ffn_original_shared_terminal.forward_out(
++        torch.ops.tilert_ffn_down_n512.forward_out(
+             self.hidden, self.residual, bank["gamma"], bank["gate"], bank["bias"],
+             bank["routed"], bank["shared"], b, [*r, self.extra],
+             1e-5, self.blocks, self.layout, sync)
+ 
+ 
+ def prepare_arena(torch, launchers, hidden, blocks):
+-    bridge, body, sync = torch.ops.tilert_ffn_original_shared_terminal.prepare(
++    bridge, body, sync = torch.ops.tilert_ffn_down_n512.prepare(
+         hidden, blocks, 1)
+     launchers.extra_by_arena[bridge[8].data_ptr()] = body[20]
+     return bridge, body[:20], sync
+@@ -226,8 +226,8 @@
+                           args.candidate_kind, args.active_library)
+     args.output.mkdir(parents=True, exist_ok=True)
+     report = {
+-        "scope": "Matched-address static-GU FFN with original shared quantization versus its token-terminal parent, TP excluded",
+-        "arm_names": {"fused": "original_shared_gu_static", "separate": "original_shared_terminal_parent"},
++        "scope": "Shared input-quantization prefix versus the N512 complete-FFN parent at identical addresses, TP excluded",
++        "arm_names": {"fused": "dual_quant", "separate": "down_n512_parent"},
+         "candidate_library": {"path": str(args.candidate_library), "sha256": digest(args.candidate_library)},
+         "scratch_matching": "All 33 tensors, including the INT32[264] active table, share exact addresses within each pair",
+         "owner_validation": "Original-shared Torch validator checks all 33 tensors in both independently allocated arenas before CABI comparison",

@@ -1,0 +1,49 @@
+{
+  "scope": "Installed CANN 9.2 source audit and logical work model; no new device measurements",
+  "parent_library_sha256": "276352762139244a1ddfc8184065a856c2ae75ee2ccad5961af2af93f0dd5e00",
+  "host_tiler_sha256": "de97bdaa15146d50d6357a8a0cfd65ed7f74a82164bdd81bafad3c3d5e5ebae3",
+  "geometry": {
+    "hidden": 6144,
+    "gate_up_columns": 256,
+    "max_expert_count": 32,
+    "base_m": 64,
+    "base_n": 256,
+    "base_k": 256,
+    "k_steps_per_expert": 24
+  },
+  "per_expert": {
+    "rows": "2*c",
+    "a_logical_bytes": "6144*c",
+    "b_logical_bytes": 786432,
+    "c_logical_bytes": "2048*c",
+    "macs": "3145728*c",
+    "max_absolute_int32_accumulator": 393216
+  },
+  "m12_e65": {
+    "routes": 96,
+    "experts": 65,
+    "logical_a_bytes": 589824,
+    "logical_b_bytes": 51118080,
+    "logical_c_bytes": 196608,
+    "macs": 301989888,
+    "mmad_calls": 1560,
+    "max_expert_tasks_per_aic": 3
+  },
+  "m12_e8": {
+    "routes": 96,
+    "experts": 8,
+    "logical_b_bytes": 6291456,
+    "mmad_calls": 192,
+    "max_expert_tasks_per_aic": 1
+  },
+  "resource_payloads": {
+    "l0a_double_buffer_bytes": 16384,
+    "l0b_double_buffer_bytes": 65536,
+    "l0c_single_buffer_bytes": 65536,
+    "retained_host_l1_reservation_bytes": 458752,
+    "proposed_manual_two_panel_l1_bytes": 81920
+  },
+  "retained_small_m_obligation": "Installed MmadCompute emits PIPE_M if floor(m/16)*floor(n/16)<10; for n=256 and m=2*c this includes c<=7. This is not removed.",
+  "candidate": "21 constant fields in MatmulApiStaticTiling, cfg=CFG_NORM; M and singleCoreM remain -1, original SetSingleShape preserved",
+  "manual_lower_level_status": "Not implemented; A3 uses Load3D for A and LoadDataWithTranspose for INT4 B, not Load2DV2"
+}

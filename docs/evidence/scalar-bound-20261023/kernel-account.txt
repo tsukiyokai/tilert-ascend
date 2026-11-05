@@ -1,0 +1,76 @@
+round totals, ms
+  Duration(us)             53.052
+  aicore_time(us)          25.734
+  aic_mac_time(us)          1.158
+  aic_mte2_time(us)         8.236
+  aic_scalar_time(us)      15.480
+  aiv_time(us)             40.899
+  aiv_vec_time(us)          1.752
+  aiv_scalar_time(us)      13.471
+
+    dur    core    mac   mte2    scal  aivsc  kernel   (ms a round)
+  8.840   7.471   0.212   1.286   4.855   2.036  aclnnGroupedMatmulSwigluQuantW
+  7.089   3.895   0.392   1.703   1.402   2.575  SparseFlashAttention
+  6.566   0.000   0.000   0.000   0.000   1.399  sk
+  6.554   5.890   0.106   2.934   5.089   3.670  aclnnGroupedMatmulWeightNz
+  3.942   3.178   0.133   0.805   2.042   0.515  aclnnQuantMatmulWeightNz
+  3.055   2.748   0.169   0.964   0.784   1.109  MlaPrologV3
+  2.968   0.000   0.000   0.000   0.000   0.139  aclnnInplaceCopy
+  2.288   0.000   0.000   0.000   0.000   0.040  aclnnIndex
+  1.720   0.000   0.000   0.000   0.000   0.290  aclnnMoeInitRoutingV3
+  1.491   0.000   0.000   0.000   0.000   0.518  aclnnForeachAddListV2
+
+ us/call  calls    mac   mte1   mte2  scala  fixpi  time(    vec  scala  time(  kernel
+  117.87   75.0     2%    13%    15%    55%     2%    85%     1%    23%    96%  aclnnGroupedMatmulSwigluQuantWeigh
+   90.88   78.0     6%    15%    24%    20%    23%    55%     1%    36%    55%  SparseFlashAttention
+   41.82  157.0     0%     0%     0%     0%     0%     0%     0%    21%    97%  sk
+   87.39   75.0     2%     9%    45%    78%    29%    90%     3%    56%    93%  aclnnGroupedMatmulWeightNz
+   15.46  255.0     3%    11%    20%    52%     2%    81%     2%    13%    65%  aclnnQuantMatmulWeightNz
+   39.17   78.0     6%    14%    32%    26%     2%    90%     1%    36%    86%  MlaPrologV3
+    5.59  531.0     0%     0%     0%     0%     0%     0%     1%     5%    65%  aclnnInplaceCopy
+  127.12   18.0     0%     0%     0%     0%     0%     0%     0%     2%    95%  aclnnIndex
+   22.94   75.0     0%     0%     0%     0%     0%     0%     7%    17%    76%  aclnnMoeInitRoutingV3
+   19.89   75.0     0%     0%     0%     0%     0%     0%     1%    35%    78%  aclnnForeachAddListV2
+   16.84   76.0     5%     8%    22%    37%     2%    75%     0%     0%     0%  aclnnMm
+    3.95  269.0     0%     0%     0%     0%     0%     0%    36%    29%    80%  aclnnDynamicQuantV2
+
+/root/work/out/w12-profile/capture/devserver-hps-41f23766-00011.novalocal_282496_20261023123215169_ascend_pt/ASCEND_PROFILER_OUTPUT/kernel_details.csv
+131529 launches over 51 rounds, 260 distinct kernels
+round 53.052 ms, layer 680.2 us, passes 56.7, launches 2579.0 a round (33.1 a layer)
+at the floor 8.047 ms a round, floor inside the larger kernels 12.648 ms, so merging answers for 39%
+
+ us/round   calls  us/call  busy  kernel
+   8840.3    75.0   117.87    3%  aclnnGroupedMatmulSwigluQuantWeightNzV2_GroupedMatmulSwigluQuantV2_GroupedMatmulSwigluQuantV2 [GroupedMatmulSwigluQuantV2]
+   7089.0    78.0    90.88    7%  SparseFlashAttention [SparseFlashAttention]
+   6554.4    75.0    87.39    5%  aclnnGroupedMatmulWeightNz_GroupedMatmul_GroupedMatmul [GroupedMatmul]
+   3941.8   255.0    15.46    5%  aclnnQuantMatmulWeightNz_QuantBatchMatmulV3_QuantBatchMatmulV3 [QuantBatchMatmulV3]
+   3055.0    78.0    39.17    7%  MlaPrologV3 [MlaPrologV3]
+   2824.0   489.0     5.78    1%  aclnnInplaceCopy_CastAiCore_Cast [Cast]
+   2212.8     6.0   368.81    0%  aclnnIndex_SliceAiCore_Slice [Slice]
+   1720.2    75.0    22.94    7%  aclnnMoeInitRoutingV3_MoeInitRoutingV3_MoeInitRoutingV3 [MoeInitRoutingV3]
+   1491.4    75.0    19.89    1%  aclnnForeachAddListV2_ForeachAddListV2_ForeachAddList [ForeachAddList]
+   1279.9    76.0    16.84    5%  aclnnMm_MatMulV3Common_MatMulV3 [MatMulV3]
+   1063.7   269.0     3.95   36%  aclnnDynamicQuantV2_DynamicQuant_DynamicQuant [DynamicQuant]
+   1029.8    78.0    13.20    1%  aclnnTransposeBatchMatMul_TransposeBatchMatMul_TransposeBatchMatMul [TransposeBatchMatMul]
+    778.5   156.0     4.99   31%  AddRmsNormBias [AddRmsNormBias]
+    681.8    16.0    42.61   21%  QuantLightningIndexer [QuantLightningIndexer]
+    600.5     1.0   600.52    0%  sk_319_full_model_start_aiv_all_reduce_cn_float_end_aiv_all_reduce_cn_float [SuperKernel]
+    593.6    75.0     7.91    1%  aclnnMuls_Muls_Muls [Muls]
+    460.7    75.0     6.14   30%  MoeTokenUnpermute [MoeTokenUnpermute]
+    449.4    53.0     8.48    8%  aclnnMatmul_MatMulCommon_MatMulV2 [MatMulV2]
+    446.5    75.0     5.95   11%  MoeGatingTopK [MoeGatingTopK]
+    412.9    37.0    11.16    0%  aclnnScatterNdUpdateSk_ScatterNdUpdateSkAiCore_ScatterNdUpdateSk [ScatterNdUpdateSk]
+
+w12-auto     r3 tpot  23.8642 accepted  2.570 sha 2cb99464d9a4 distinct   139 variety 0.249 
+w12-auto     r4 tpot  23.8197 accepted  2.570 sha 2cb99464d9a4 distinct   139 variety 0.249 
+w12-auto     r5 tpot  23.7988 accepted  2.570 sha 2cb99464d9a4 distinct   139 variety 0.249 
+w12-profile  r1 tpot  49.5384 accepted  1.235 sha d6707e701b99 distinct    46 variety 0.968 
+w12-profile  r2 tpot  49.9536 accepted  1.235 sha d6707e701b99 distinct    46 variety 0.968 PROFILED
+w4-auto      r3 tpot  23.9948 accepted  2.325 sha f06b1373167f distinct   136 variety 0.233 
+w4-auto      r4 tpot  24.0224 accepted  2.325 sha f06b1373167f distinct   136 variety 0.233 
+w4-auto      r5 tpot  23.9603 accepted  2.325 sha f06b1373167f distinct   136 variety 0.233 
+w12-lookup   r3 tpot  22.1478 accepted  2.590 sha 2cb99464d9a4 distinct   139 variety 0.249 
+w12-lookup   r4 tpot  22.1623 accepted  2.590 sha 2cb99464d9a4 distinct   139 variety 0.249 
+w12-lookup   r5 tpot  22.1541 accepted  2.590 sha 2cb99464d9a4 distinct   139 variety 0.249 
+w12-routed   error: AttributeError: '_OpNamespace' 'tilert' object has no attribute 'routed_experts_prepare'
+w12-mla      error: RuntimeError: Apply patches/vllm-ascend/mla-tail-hook.patch to vLLM-Ascend before enabling the MLA tail

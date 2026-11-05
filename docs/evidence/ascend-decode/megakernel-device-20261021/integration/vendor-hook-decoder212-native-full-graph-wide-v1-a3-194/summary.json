@@ -1,0 +1,53 @@
+{
+  "pass": true,
+  "scope": "Official ACLGraphWrapper around original DecoderLayer 6 then 7; original attention/FFN versus native attention and complete FFN",
+  "rows": [
+    1,
+    2,
+    12,
+    32
+  ],
+  "iterations_per_residual_mode": 8,
+  "residual_modes": [
+    "none",
+    "provided"
+  ],
+  "real_graph_captures": 16,
+  "explicit_graph_replays": 128,
+  "raw_byte_boundary_checks": 3264,
+  "python_calls_during_replay": 0,
+  "actual_lengths_and_distinct_page_maps_change": true,
+  "strong_output_owners_and_poisoned_observations": true,
+  "native_capture_reserves_claimed": true,
+  "original_ffn_disposal": "Unmodified in the vendor oracle; the native arm uses one complete FFN",
+  "original_decoder_module_sha256": "96f4f755f62caa85869fb884209e7f8869882ddb6efbd40c930778b27bd3e39d",
+  "native_libraries": [
+    {
+      "path": "/evidence/attention-wk-m1-build-v1/whole_layer_indexed_attention.so",
+      "sha256": "8deff750464e23bb871302c8626b86d37b60c28a00991d550f95dfcfd47ecb6f"
+    },
+    {
+      "path": "/workspace/native/shared/whole_layer_full_attention.so",
+      "sha256": "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c"
+    }
+  ],
+  "complete_ffn_library": {
+    "path": "/decoder/complete_ffn.so",
+    "sha256": "381febf94f918cc7393019b6f99ec8dc38e9a5cc9e63b2d49d5fe483158e3ff2"
+  },
+  "ffn_adapter": {
+    "path": "/decoder/ffn_host_adapter.py",
+    "sha256": "772c6acf7b97edfa6a17cd6b5d2d0628a446530b1a24659d30395b614cc38f29"
+  },
+  "original_final_reduction_helper_retained": true,
+  "ffn_capture_reserves_claimed": true,
+  "physical_dies": 1,
+  "completed_gloo_ranks": 16,
+  "npu_ranks": [
+    0
+  ],
+  "tp_geometry": 16,
+  "tp_collectives_executed": 0,
+  "report_sha256": "d265b15151bd1607b4bf2716351a6fae776bae770a95c082b322b1864b26ecc3",
+  "next_gate": "Single-launch local dataflow comparison, then real TP integration"
+}

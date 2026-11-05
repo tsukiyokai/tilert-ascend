@@ -1,0 +1,41 @@
+{
+  "local": "/tmp/tilert-megakernel-validation-20261021/vendor-hook-decoder212-ffn-down-k128-v1",
+  "remote_host": "a3-194",
+  "remote": "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-ffn-down-k128-v1",
+  "library_sha256": "0842cd0f3a946c39aefb3e926e01eb870a61d6d1ad8689aebcf52a1b3daa2b65",
+  "manifest_sha256": "e15d91fce8dcd3c96a3f10a719145893ba43a6523c1698c4293743cab1e520be",
+  "decoder_sha256": "98875d72d623ab6f1a26b2751c04f027abfc48369a685e67f89628a8b668dd38",
+  "remote_verified_files": 789,
+  "cpu_scale_contracts": 4,
+  "cpu_stage_contracts": 3,
+  "actual_cpu_co_load": {
+    "pass": true,
+    "npu_initialized": false,
+    "library_sha256": "0842cd0f3a946c39aefb3e926e01eb870a61d6d1ad8689aebcf52a1b3daa2b65",
+    "torch": "2.12.0+cu130",
+    "torch_npu": "2.12.0",
+    "schemas": {
+      "prepare": "tilert_ffn_down_k128::prepare(Tensor input, int blocks=24, int weight_layout=1) -> (Tensor[], Tensor[], int)",
+      "forward_out": "tilert_ffn_down_k128::forward_out(Tensor input, Tensor residual, Tensor gamma, Tensor gate, Tensor bias, Tensor[] routed_weights, Tensor[] shared_weights, Tensor(a!)[] bridge_scratch, Tensor(b!)[] body_scratch, float epsilon, int blocks, int weight_layout, int sync) -> ()"
+    }
+  },
+  "scope": "Original Decoder post-attention norm plus MLP; 2 actual synthetic weight sets; 11 boundaries including 4 immediate graph consumers; no attention or TP collective",
+  "down_tiling": "All 200 bytes candidate c2b73af9... after each prepare and replay; parent c207230a... rejected",
+  "device_argv": [
+    "bash",
+    "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-ffn-down-k128-v1/device_ffn_run.sh",
+    "4",
+    "vendor-hook-decoder212-ffn-down-k128-wide-v1",
+    "--mode",
+    "int8",
+    "--forward-widths",
+    "1",
+    "2",
+    "12",
+    "32",
+    "--forward-replays",
+    "8"
+  ],
+  "device_execution": "Root only; not run by agent",
+  "cpu_command_file": "/tmp/tilert-megakernel-validation-20261021/decoder-ffn-down-k128-cpu-v2.command.json"
+}

@@ -1,0 +1,426 @@
+{
+  "scope": "Synthetic post-Hadamard BF16 input -> dynamic_quant -> FP16 scale -> actual write_cache methods",
+  "npu_launched": false,
+  "cpu_check": {
+    "only_change": "INT8 C8 early return in write_cache",
+    "other_module_ast_unchanged": true,
+    "cases": [
+      {
+        "width": 1,
+        "state": "A",
+        "slots": [
+          128
+        ],
+        "bf16_input_sha256": "41e2999e5816eb28f8282b40a69a862c226aafa6d665126d26a1f1f29d7dfc82",
+        "full_backing_byte_equal": true
+      },
+      {
+        "width": 1,
+        "state": "B",
+        "slots": [
+          9343
+        ],
+        "bf16_input_sha256": "41784ab6048f29ff7f7dd11765ca2156e55d50edb16f16d1ac0bd38afe4baa2e",
+        "full_backing_byte_equal": true
+      },
+      {
+        "width": 1,
+        "state": "reset",
+        "slots": [
+          128
+        ],
+        "bf16_input_sha256": "41e2999e5816eb28f8282b40a69a862c226aafa6d665126d26a1f1f29d7dfc82",
+        "full_backing_byte_equal": true
+      },
+      {
+        "width": 8,
+        "state": "A",
+        "slots": [
+          124,
+          125,
+          126,
+          127,
+          128,
+          129,
+          130,
+          131
+        ],
+        "bf16_input_sha256": "00a1fc1c56e7e81d88d5fd5c17fa7315ce5b69fcc72591cc5d46788bb2541756",
+        "full_backing_byte_equal": true
+      },
+      {
+        "width": 8,
+        "state": "B",
+        "slots": [
+          9336,
+          9337,
+          9338,
+          9339,
+          9340,
+          9341,
+          9342,
+          9343
+        ],
+        "bf16_input_sha256": "cda1c7dd2ad2472d17506975fe04ba9ec119a7494353bea4c50334361b308758",
+        "full_backing_byte_equal": true
+      },
+      {
+        "width": 8,
+        "state": "reset",
+        "slots": [
+          124,
+          125,
+          126,
+          127,
+          128,
+          129,
+          130,
+          131
+        ],
+        "bf16_input_sha256": "00a1fc1c56e7e81d88d5fd5c17fa7315ce5b69fcc72591cc5d46788bb2541756",
+        "full_backing_byte_equal": true
+      },
+      {
+        "width": 32,
+        "state": "A",
+        "slots": [
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          124,
+          125,
+          126,
+          127,
+          128,
+          129,
+          130,
+          131,
+          132,
+          133,
+          134,
+          135,
+          136,
+          137,
+          138,
+          139,
+          140,
+          141,
+          142,
+          143
+        ],
+        "bf16_input_sha256": "af568d7d6f724a6887272047fea82c1f261cf9e9297d1e2e5440e8c5ce4fdd1f",
+        "full_backing_byte_equal": true
+      },
+      {
+        "width": 32,
+        "state": "B",
+        "slots": [
+          9312,
+          9313,
+          9314,
+          9315,
+          9316,
+          9317,
+          9318,
+          9319,
+          9320,
+          9321,
+          9322,
+          9323,
+          9324,
+          9325,
+          9326,
+          9327,
+          9328,
+          9329,
+          9330,
+          9331,
+          9332,
+          9333,
+          9334,
+          9335,
+          9336,
+          9337,
+          9338,
+          9339,
+          9340,
+          9341,
+          9342,
+          9343
+        ],
+        "bf16_input_sha256": "0242f62795334f9c0964bf6b5cd4cee21f1358b7ce2597b11e3d369a9847e3a9",
+        "full_backing_byte_equal": true
+      },
+      {
+        "width": 32,
+        "state": "reset",
+        "slots": [
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          124,
+          125,
+          126,
+          127,
+          128,
+          129,
+          130,
+          131,
+          132,
+          133,
+          134,
+          135,
+          136,
+          137,
+          138,
+          139,
+          140,
+          141,
+          142,
+          143
+        ],
+        "bf16_input_sha256": "af568d7d6f724a6887272047fea82c1f261cf9e9297d1e2e5440e8c5ce4fdd1f",
+        "full_backing_byte_equal": true
+      }
+    ],
+    "key_byte_offset": 256,
+    "scale_byte_offset": 1196352,
+    "backing_bytes": 1215296,
+    "npu_launched": false
+  },
+  "files": [
+    {
+      "path": "/workspace/experiments/index-cache-pair-20261020/quant-write/probe_quant_write.py",
+      "sha256": "1b65ea61e90cc6189893ddcd8eaf1d0b36456108afd8526bd77e78478302ff54"
+    },
+    {
+      "path": "/workspace/experiments/index-cache-pair-20261020/quant-write/index-cache-pair.patch",
+      "sha256": "d0bb1dfd67b343a410c6334fb4492a80ce8ff1c4b8989c1ad69d2e6755da2e72"
+    },
+    {
+      "path": "/workspace/experiments/index-cache-pair-20261020/quant-write/control/indexer.py",
+      "sha256": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1"
+    },
+    {
+      "path": "/workspace/experiments/index-cache-pair-20261020/quant-write/candidate/indexer.py",
+      "sha256": "1d1e9d3ee778f9b4b4e62a3daba4bd662bcf08393e122ac72052e1bb7afcf799"
+    }
+  ],
+  "runtime_source": {
+    "files": [
+      {
+        "path": "/workspace/experiments/index-cache-pair-20261020/probe.py",
+        "sha256": "18df66d94d4c0cdb3e6be684762001885bf6e713cbb9595279813f763d062c27"
+      },
+      {
+        "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/indexer.py",
+        "sha256": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1"
+      },
+      {
+        "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/device/device_op.py",
+        "sha256": "0488cb2578df5075a73245a0d540ee8de93ea71972ae8b636cc7cdef83823b8e"
+      },
+      {
+        "path": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc/scatter_pa_kv_cache/op_kernel/scatter_pa_kv_cache.cpp",
+        "sha256": "2fbd82777ec1bdfdf230e32aaeab41464906317584342cddba256d888f410b05"
+      },
+      {
+        "path": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc/scatter_pa_kv_cache/op_kernel/scatter_pa_kv_cache_normal.h",
+        "sha256": "e133ed28c80f0662fc164305bca0815f7a47927364da169a215c9be1fe181123"
+      },
+      {
+        "path": "/opt/ascend/cann-9.2.0/include/aclnnop/aclnn_scatter_pa_kv_cache.h",
+        "sha256": "af23e40c36e2f414617ac934111767b0d0e37f3bc0df067873856b48f0d9c696"
+      },
+      {
+        "path": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/config/ascend910_93/aic-ascend910_93-ops-info-transformer.json",
+        "sha256": "41c724311cbb8aca00594663c697c6cbfa23ece737ec8822ca4cf84b9a9538f0"
+      }
+    ],
+    "candidate_descriptor": {
+      "path": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/kernel/ascend910_93/ops_transformer/scatter_pa_kv_cache/ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6.json",
+      "sha256": "d13cee9c37f02e0c4c7730ef3d3c4df2f2fba8ed5c9ae632a2a24d95ccc4b848"
+    },
+    "candidate_elf": {
+      "path": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/kernel/ascend910_93/ops_transformer/scatter_pa_kv_cache/ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6.o",
+      "sha256": "4548b3a8758c11d7c5a2278d056936303a11aa41843026e5f239130b10b127ff"
+    },
+    "baseline_descriptors": [
+      {
+        "path": "/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/scatter_nd_update_sk/ScatterNdUpdateSk_38f6c0f42e6dd25f1ba132d7ecf7990f.json",
+        "sha256": "994faef67ba313fb76910d630e2264b56e8e2dce4d4c8571c82f2f0e0acec4a0"
+      },
+      {
+        "path": "/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/scatter_nd_update_sk/ScatterNdUpdateSk_0be86e3b56504af1b118b0d1a2a8e1bc.json",
+        "sha256": "287b1d13b6d1f69e3d683e9b22a74d9eb430c2c8226fd6868331202adfef90c3"
+      }
+    ],
+    "baseline_elfs": [
+      {
+        "path": "/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/scatter_nd_update_sk/ScatterNdUpdateSk_38f6c0f42e6dd25f1ba132d7ecf7990f.o",
+        "sha256": "30abdfd0f8ecb0b7cd89975d76fc7c929b5c9c0ab002699be93f3d39267dcb64"
+      },
+      {
+        "path": "/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/scatter_nd_update_sk/ScatterNdUpdateSk_0be86e3b56504af1b118b0d1a2a8e1bc.o",
+        "sha256": "64227ad8528127bb999c21034fa28b35caf4ec4e56e213348be787df35f6e7ee"
+      }
+    ],
+    "elf_hashes_verified_in_process": true,
+    "descriptor_is_loaded_elf_proof": false,
+    "candidate_signature": [
+      {
+        "name": "key",
+        "index": 0,
+        "dtype": "int8",
+        "format": "ND",
+        "paramType": "required",
+        "shape": [
+          -2
+        ],
+        "format_match_mode": "FormatAgnostic"
+      },
+      {
+        "name": "key_cache",
+        "index": 1,
+        "dtype": "int8",
+        "format": "ND",
+        "paramType": "required",
+        "shape": [
+          -2
+        ],
+        "format_match_mode": "FormatAgnostic"
+      },
+      {
+        "name": "slot_mapping",
+        "index": 2,
+        "dtype": "int32",
+        "format": "ND",
+        "paramType": "required",
+        "shape": [
+          -2
+        ],
+        "format_match_mode": "FormatAgnostic"
+      },
+      {
+        "name": "value",
+        "index": 3,
+        "dtype": "int8",
+        "format": "ND",
+        "paramType": "required",
+        "shape": [
+          -2
+        ],
+        "format_match_mode": "FormatAgnostic"
+      },
+      {
+        "name": "value_cache",
+        "index": 4,
+        "dtype": "int8",
+        "format": "ND",
+        "paramType": "required",
+        "shape": [
+          -2
+        ],
+        "format_match_mode": "FormatAgnostic"
+      },
+      {
+        "name": "compress_lens",
+        "index": 5,
+        "dtype": "int32",
+        "format": "ND",
+        "paramType": "optional",
+        "shape": [
+          -2
+        ],
+        "format_match_mode": "FormatAgnostic"
+      },
+      {
+        "name": "compress_seq_offset",
+        "index": 6,
+        "dtype": "int32",
+        "format": "ND",
+        "paramType": "optional",
+        "shape": [
+          -2
+        ],
+        "format_match_mode": "FormatAgnostic"
+      },
+      {
+        "name": "seq_lens",
+        "index": 7,
+        "dtype": "int32",
+        "format": "ND",
+        "paramType": "optional",
+        "shape": [
+          -2
+        ],
+        "format_match_mode": "FormatAgnostic"
+      }
+    ],
+    "candidate_kernels": [
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_1001"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_1000"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_2001"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_2000"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_3000"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_5001"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_5000"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_7001"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_7000"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_8001"
+      },
+      {
+        "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_8000"
+      }
+    ],
+    "custom_opp_path": "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer:/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib:/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer:/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer",
+    "process_log_path": ""
+  },
+  "quota_bytes": 268435456,
+  "quota_scope": "Torch allocator; runtime/driver excluded",
+  "persistent_tensor_bytes_max": 3670848,
+  "pairs": 10,
+  "calls_per_sample": 5,
+  "max_update_calls": 402,
+  "timing_scope": "Each graph contains calls_per_sample complete producer+method updates; one replay/sample. View creation executes inside eager/capture; metadata is replay-free. Eager validation wall includes host view creation. Cache reset excluded identically.",
+  "progress": {},
+  "widths": [],
+  "passed": true
+}

@@ -1,0 +1,1 @@
+aclshmem_add_collective_example(tp_push)

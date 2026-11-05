@@ -1,0 +1,60 @@
+{
+  "scope": "CPU exact integer reconstruction from saved M12 replay4 device failure; no new device execution",
+  "failure_dump": "/tmp/tilert-megakernel-validation-20261021/a3-162/indexer-front-fp32-regression-int8-m12-r4.pt",
+  "failure_dump_sha256": "ee38175b3ea320d3f9245fe5c5f04a1955cc66480fcc67b7b4b190954eeefd36",
+  "original_channel_dtype": "torch.float32",
+  "rows": 12,
+  "valid_elements": 49152,
+  "all_integer_accumulators_equal_device_scratch": true,
+  "different_bf16_elements": {
+    "channel_then_token": {
+      "vs_vendor": 1,
+      "vs_native": 0
+    },
+    "combined_scales": {
+      "vs_vendor": 0,
+      "vs_native": 1
+    },
+    "token_then_channel": {
+      "vs_vendor": 1,
+      "vs_native": 0
+    },
+    "single_fp32_round": {
+      "vs_vendor": 0,
+      "vs_native": 1
+    }
+  },
+  "witnesses": [
+    {
+      "row": 6,
+      "channel": 34,
+      "acc": 2284,
+      "channel_scale": 0.0029848176054656506,
+      "channel_f32_bits": "0x3b439cee",
+      "token_scale": 0.035167187452316284,
+      "token_f32_bits": "0x3d100b78",
+      "native_bf16_bits": "0x3e75",
+      "vendor_bf16_bits": "0x3e76",
+      "channel_product_f32_bits": "0x40da2783",
+      "combined_scales_f32_bits": "0x38dc2213",
+      "results": {
+        "channel_then_token": {
+          "f32_bits": "0x3e757fff",
+          "bf16_bits": "0x3e75"
+        },
+        "combined_scales": {
+          "f32_bits": "0x3e758000",
+          "bf16_bits": "0x3e76"
+        },
+        "token_then_channel": {
+          "f32_bits": "0x3e757fff",
+          "bf16_bits": "0x3e75"
+        },
+        "single_fp32_round": {
+          "f32_bits": "0x3e758000",
+          "bf16_bits": "0x3e76"
+        }
+      }
+    }
+  ]
+}

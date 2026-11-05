@@ -1,0 +1,41 @@
+{
+  "scope": "CPU replay of original source SplitCore only; host wrapper formula evaluated separately; no installed-host tiling call and no NPU work",
+  "source_files": {
+    "/tmp/fia-joint-read-20261020/source/attention/common/op_host/split_core.cpp": "7a45c1e33258acd1b85b9a4919f1dd3d315f35201431983ddfdd79fa19710452",
+    "/tmp/fia-joint-read-20261020/source/attention/common/op_host/split_core.h": "66bbf019c72f28cac7bb6f11848b6d7ec04265eabfb67d3b28fb7590c4ab8ddc",
+    "/tmp/fia-m32-source-20261020/main.cpp": "93a40af698151eaef96d744ef42732b1354dfb7d188a7f33654dbf95d437b995"
+  },
+  "command": [
+    "g++",
+    "-std=c++17",
+    "-O2",
+    "-I",
+    "/tmp/fia-joint-read-20261020/split-replay",
+    "-I",
+    "/tmp/fia-joint-read-20261020/source/attention/common/op_host",
+    "/tmp/fia-joint-read-20261020/source/attention/common/op_host/split_core.cpp",
+    "/tmp/fia-m32-source-20261020/main.cpp",
+    "-o",
+    "/tmp/fia-m32-source-20261020/run"
+  ],
+  "workspace_source_formula": {
+    "8": {
+      "mm1ResSize_elements": 16384,
+      "mm2ResSize_elements": 16384,
+      "normal_bytes": 11108352,
+      "fd_bytes": 25952256,
+      "total_excluding_platform_libapi_bytes": 37060608,
+      "total_excluding_platform_libapi_MiB": 35.34375,
+      "mask_bytes": 74752
+    },
+    "32": {
+      "mm1ResSize_elements": 65536,
+      "mm2ResSize_elements": 65536,
+      "normal_bytes": 44138496,
+      "fd_bytes": 25952256,
+      "total_excluding_platform_libapi_bytes": 70090752,
+      "total_excluding_platform_libapi_MiB": 66.84375,
+      "mask_bytes": 299008
+    }
+  }
+}

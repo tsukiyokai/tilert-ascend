@@ -1,0 +1,17 @@
+--- original/vllm/model_executor/model_loader/sharded_state_loader.py
++++ compatible/vllm/model_executor/model_loader/sharded_state_loader.py
+@@ -211,12 +211,12 @@
+             # TODO: support un-sharded checkpoints too
+             raise ValueError(
+                 f"Could not find checkpoint files "
+-                f"'{
++                f"""'{
+                     os.path.join(
+                         local_model_path,
+                         rendered_pattern,
+                     )
+-                }', "
++                }', """
+                 f"only pre-sharded checkpoints are currently supported!"
+             )
+         state_dict = self._filter_subtensors(model.state_dict())

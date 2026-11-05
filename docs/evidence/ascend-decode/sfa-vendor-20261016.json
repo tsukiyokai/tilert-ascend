@@ -1,0 +1,208 @@
+{
+  "host": "a3-187",
+  "container": "trt-asc",
+  "timed": false,
+  "profiled": false,
+  "equation": "softmax((q_abs @ K_latent.T + q_rope @ K_rope.T) / 16) @ K_latent",
+  "before": {
+    "report": {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/mla-two-key-20261016/report.json",
+      "sha256": "cc9fa0bfd1400b27247b3833859ec32e607a71b98f03ce1d5623f93aff357d5b"
+    },
+    "checks": [
+      {
+        "name": "P1.query_projection",
+        "passed": true,
+        "exact_required": false,
+        "shape": [
+          1,
+          4,
+          512
+        ],
+        "max_abs": 0.0,
+        "nrmse": 0.0,
+        "cosine": 0.9999998807907104
+      },
+      {
+        "name": "P1.sfa",
+        "passed": true,
+        "exact_required": false,
+        "shape": [
+          1,
+          4,
+          512
+        ],
+        "max_abs": 0.0,
+        "nrmse": 0.0,
+        "cosine": 1.0000004768371582
+      },
+      {
+        "name": "P1.expanded_attention",
+        "passed": true,
+        "exact_required": false,
+        "shape": [
+          1,
+          1024
+        ],
+        "max_abs": 0.0,
+        "nrmse": 0.0,
+        "cosine": 1.0000003576278687
+      },
+      {
+        "name": "P2.query_projection",
+        "passed": true,
+        "exact_required": false,
+        "shape": [
+          1,
+          4,
+          512
+        ],
+        "max_abs": 0.0,
+        "nrmse": 0.0,
+        "cosine": 0.9999998807907104
+      },
+      {
+        "name": "P2.sfa",
+        "passed": false,
+        "exact_required": false,
+        "shape": [
+          1,
+          4,
+          512
+        ],
+        "max_abs": 1.21875,
+        "nrmse": 0.3407429012899687,
+        "cosine": 0.9401566982269287
+      },
+      {
+        "name": "P2.expanded_attention",
+        "passed": false,
+        "exact_required": false,
+        "shape": [
+          1,
+          1024
+        ],
+        "max_abs": 0.0015411376953125,
+        "nrmse": 0.513360199912679,
+        "cosine": 0.9096494317054749
+      }
+    ]
+  },
+  "after": {
+    "report": {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/mla-two-key-vendor-20261016/report.json",
+      "sha256": "6f35c69280a60855a81f62671442afbdc79051022997be99ec76d836d6874215"
+    },
+    "checks": [
+      {
+        "name": "P1.query_projection",
+        "passed": true,
+        "exact_required": false,
+        "shape": [
+          1,
+          4,
+          512
+        ],
+        "max_abs": 0.0,
+        "nrmse": 0.0,
+        "cosine": 0.9999998807907104
+      },
+      {
+        "name": "P1.sfa",
+        "passed": true,
+        "exact_required": false,
+        "shape": [
+          1,
+          4,
+          512
+        ],
+        "max_abs": 0.0,
+        "nrmse": 0.0,
+        "cosine": 1.0000004768371582
+      },
+      {
+        "name": "P1.expanded_attention",
+        "passed": true,
+        "exact_required": false,
+        "shape": [
+          1,
+          1024
+        ],
+        "max_abs": 0.0,
+        "nrmse": 0.0,
+        "cosine": 1.0000003576278687
+      },
+      {
+        "name": "P2.query_projection",
+        "passed": true,
+        "exact_required": false,
+        "shape": [
+          1,
+          4,
+          512
+        ],
+        "max_abs": 0.0,
+        "nrmse": 0.0,
+        "cosine": 0.9999998807907104
+      },
+      {
+        "name": "P2.sfa",
+        "passed": true,
+        "exact_required": false,
+        "shape": [
+          1,
+          4,
+          512
+        ],
+        "max_abs": 0.0078125,
+        "nrmse": 0.001059234262080257,
+        "cosine": 0.9999996423721313
+      },
+      {
+        "name": "P2.expanded_attention",
+        "passed": true,
+        "exact_required": false,
+        "shape": [
+          1,
+          1024
+        ],
+        "max_abs": 1.52587890625e-05,
+        "nrmse": 0.003790316428259913,
+        "cosine": 0.9999929666519165
+      }
+    ]
+  },
+  "vendor": "/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer",
+  "vendor_lib_sha256": "cab8daebbbe285814636dc1839de18dc83028b69ceb28a74fcf51e2184cf0163",
+  "builtin_transformer_sha256": "3eebcd29e93860ea2aafaf9dfe269e98a28dc90c7cc325914e479be43bd247cf",
+  "fla_lib_sha256": "f81c882edadb261acdce7f85bf4aa7c7cc7e4a94571a665ffc8a41cb150238a6",
+  "symbol_resolution": "FLA has no SparseFlashAttention API; adding the vLLM vendor resolves it before builtin libopapi_transformer.",
+  "activation": {
+    "path": "/home/shanshan/trt-asc/environment/activate.sh",
+    "sha256": "10dfda724b0b9e3d438d69a498fa65ea9a847bda971d6475a5f3170cb87b38db"
+  },
+  "reproducers": [
+    {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/mla-two-key-20261016.py",
+      "sha256": "d6bef8cbbb3166207d6f884ba6c5d0a79e505dba256a994d02c4d0c8e56e00b5"
+    },
+    {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/mla-two-key-libraries-20261016.py",
+      "sha256": "883c39e7215460a76f06ae225d835f6cbc21965f2b16dea5636fd979650a9702"
+    },
+    {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/mla-two-key-vendor-20261016.py",
+      "sha256": "25c790ca6615cf4502e66de4d22a485c57d0aae60c59d8ac42c9318a6d5b1e3b"
+    }
+  ],
+  "logs": [
+    {
+      "path": "/home/shanshan/trt-asc/logs/mla-two-key-libraries-20261016.log",
+      "sha256": "ae6142ac0469e0f5949cb9f1d42a68537e643c2943614b14c3126ea137575b63"
+    },
+    {
+      "path": "/home/shanshan/trt-asc/logs/mla-two-key-vendor-20261016.log",
+      "sha256": "1b4f393abb7e1d3530a739b6c0c149a719e97791b2eec2cab0c544b14989b1d3"
+    }
+  ]
+}

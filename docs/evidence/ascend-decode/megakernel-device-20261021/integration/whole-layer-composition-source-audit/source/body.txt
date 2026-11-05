@@ -1,0 +1,233 @@
+Original lines 500-730
+  500 template <CubeFormat weight_format, bool from_dispatch>
+  501 __aicore__ inline void Forward(
+  502     TPipe& pipe, __gm__ int8_t* rows, __gm__ int4b_t* gate_up,
+  503     __gm__ float* gu_bias, __gm__ ScaleStorage* gu_scale, __gm__ int4b_t* down,
+  504     __gm__ float* down_bias, __gm__ ScaleStorage* down_scale,
+  505     __gm__ float* token_scale, __gm__ int32_t* group_count,
+  506     __gm__ int32_t* group_start, __gm__ int32_t* source_row,
+  507     __gm__ int32_t* source_slot, __gm__ float* row_weight,
+  508     __gm__ int4b_t* stacked, __gm__ RoutedProduct* partial,
+  509     __gm__ int4b_t* middle, __gm__ float* middle_scale,
+  510     __gm__ RoutedProduct* wide, __gm__ bfloat16_t* route_output,
+  511     __gm__ bfloat16_t* out, __gm__ uint8_t* gu_tiling,
+  512     __gm__ uint8_t* down_tiling, GM_ADDR workspace,
+  513     int64_t experts, int64_t tokens, int64_t blocks, DispatchInput dispatch_input,
+  514     __gm__ int64_t* trace
+  515 #ifdef ROUTED_SHARED_PIPELINE
+  516     , pipeline::Input shared_input
+  517 #endif
+  518     )
+  519 {
+  520     Timing timing;
+  521     timing.Begin(0);
+  522 #ifdef ROUTED_SHARED_PIPELINE
+  523     static_assert(from_dispatch, "the shared pipeline requires input preparation");
+  524     pipeline::Stages shared(shared_input, tokens, blocks);
+  525     shared.StageInput(pipe);
+  526 #endif
+  527     if constexpr (from_dispatch) {
+  528 #ifdef ROUTED_INPUT_FRONT
+  529         if (dispatch_input.bf16_rows != 0) {
+  530             front::Prepare(pipe, dispatch_input, rows, token_scale, group_count,
+  531                            group_start, source_row, source_slot, row_weight,
+  532                            tokens, blocks, timing);
+  533         } else
+  534 #endif
+  535         {
+  536             dispatch::Restore(pipe, dispatch_input, rows, token_scale, group_count,
+  537                               group_start, source_row, source_slot, row_weight,
+  538                               tokens, blocks, timing);
+  539         }
+  540     }
+  541     timing.Begin(1);
+  542     Workspace held;
+  543 #ifdef ROUTED_SHARED_PIPELINE
+  544     shared.InitResident(pipe);
+  545     shared.Gate(pipe);
+  546 #endif
+  547     GlobalTensor<int32_t> counts, starts;
+  548     if ASCEND_IS_AIC {
+  549         counts.SetGlobalBuffer(group_count, kMaxExperts);
+  550         starts.SetGlobalBuffer(group_start, kMaxExperts);
+  551         // Replayed graphs update counts at the same GM address. Scalar
+  552         // loads must discard the preceding replay's data-cache lines.
+  553         DataCacheCleanAndInvalid<int32_t, CacheLine::ENTIRE_DATA_CACHE,
+  554                                  DcciDst::CACHELINE_OUT>(counts);
+  555     }
+  556     if ASCEND_IS_AIV {
+  557         held.Init(pipe);
+  558         GlobalTensor<int32_t> sources, slots;
+  559         GlobalTensor<float> weights, input_scales;
+  560         counts.SetGlobalBuffer(group_count, kMaxExperts);
+  561         starts.SetGlobalBuffer(group_start, kMaxExperts);
+  562         sources.SetGlobalBuffer(source_row, kMaxRoutes);
+  563         slots.SetGlobalBuffer(source_slot, kMaxRoutes);
+  564         weights.SetGlobalBuffer(row_weight, kMaxRoutes);
+  565         input_scales.SetGlobalBuffer(token_scale, tokens);
+  566         DataCopy(held.count, counts, kMaxExperts);
+  567         DataCopy(held.start, starts, kMaxExperts);
+  568         DataCopy(held.source, sources, kMaxRoutes);
+  569         DataCopy(held.slot, slots, kMaxRoutes);
+  570         DataCopy(held.weight, weights, kMaxRoutes);
+  571         DataCopyPad(held.input_scale, input_scales,
+  572                     DataCopyExtParams{1, uint32_t(tokens * sizeof(float)),
+  573                                       0, 0, 0},
+  574                     DataCopyPadExtParams<float>{false, 0, 0, 0});
+  575         Fence<HardEvent::MTE2_S>();
+  576         for (int64_t route = 0; route < tokens * kTopK; ++route) {
+  577             const int64_t original = held.source.GetValue(route) * kTopK
+  578                                      + held.slot.GetValue(route);
+  579             held.original_weight.SetValue(original, held.weight.GetValue(route));
+  580         }
+  581     }
+  582 
+  583     // Every core reaches every barrier, including empty expert owners.
+  584     if ASCEND_IS_AIV {
+  585 #ifdef ROUTED_ROW_BALANCED
+  586         const int64_t workers = 2 * blocks;
+  587         int64_t next = GetBlockIdx();
+  588         for (int64_t expert = 0; expert < experts; ++expert) {
+  589             const int64_t count = held.count.GetValue(expert);
+  590             const int64_t begin = held.start.GetValue(expert);
+  591             if (next >= begin + count) {
+  592                 continue;
+  593             }
+  594             Split<true>(held, rows, Nibbles(stacked, GateStorageRow(begin) * kHidden),
+  595                         count, begin, tokens, next - begin, workers);
+  596             do {
+  597                 next += workers;
+  598             } while (next < begin + count);
+  599         }
+  600         Publish();
+  601 #else
+  602         if (GetSubBlockIdx() == 0) {
+  603             int64_t active = 0;
+  604             int64_t next = GetBlockIdx() / 2;
+  605             for (int64_t expert = 0; expert < experts; ++expert) {
+  606                 if (held.count.GetValue(expert) == 0) {
+  607                     continue;
+  608                 }
+  609                 if (active++ != next) {
+  610                     continue;
+  611                 }
+  612                 next += blocks;
+  613                 const int64_t begin = held.start.GetValue(expert);
+  614                 Split(held, rows, Nibbles(stacked, GateStorageRow(begin) * kHidden),
+  615                       held.count.GetValue(expert), held.start.GetValue(expert),
+  616                       tokens);
+  617             }
+  618             Publish();
+  619         }
+  620 #endif
+  621     }
+  622     timing.Barrier(1);
+  623     timing.Begin(2);
+  624 #ifdef ROUTED_SHARED_PIPELINE
+  625     shared.Activate();
+  626 #endif
+  627     if ASCEND_IS_AIC {
+  628 #ifdef ROUTED_SHARED_PIPELINE
+  629         // The shared gate projection ended before barrier 1.
+  630         pipe.Reset();
+  631 #endif
+  632         TCubeTiling gate_cube;
+  633         LoadTiling(gate_cube, gu_tiling);
+  634         GateProjection<weight_format> gate_mm;
+  635         gate_mm.Init(&gate_cube, &pipe);
+  636         int64_t active = 0;
+  637         int64_t next = GetBlockIdx();
+  638         for (int64_t expert = 0; expert < experts; ++expert) {
+  639             if (counts.GetValue(expert) == 0) {
+  640                 continue;
+  641             }
+  642             if (active++ != next) {
+  643                 continue;
+  644             }
+  645             next += blocks;
+  646             const int64_t begin = starts.GetValue(expert);
+  647             Project<kPadGateRows>(gate_mm,
+  648                     Nibbles(stacked, GateStorageRow(begin) * kHidden),
+  649                     Nibbles(gate_up, expert * kGateUp * kHidden),
+  650                     partial + GateStorageRow(begin) * kGateUp,
+  651                     gu_scale + expert * kGateUp, kGateUp, kHidden,
+  652                     counts.GetValue(expert));
+  653         }
+  654         Publish();
+  655     }
+  656     timing.Barrier(2);
+  657     timing.Begin(3);
+  658 #ifdef ROUTED_SHARED_PIPELINE
+  659     shared.Down(pipe);
+  660 #endif
+  661     if ASCEND_IS_AIV {
+  662 #ifdef ROUTED_ROW_BALANCED
+  663         const int64_t workers = 2 * blocks;
+  664         int64_t next = GetBlockIdx();
+  665         for (int64_t expert = 0; expert < experts; ++expert) {
+  666             const int64_t count = held.count.GetValue(expert);
+  667             const int64_t begin = held.start.GetValue(expert);
+  668             if (next >= begin + count) {
+  669                 continue;
+  670             }
+  671             Activate<true>(held, count, begin,
+  672                 partial + GateStorageRow(begin) * kGateUp,
+  673                 gu_bias + expert * kGateUp, gu_scale + expert * kGateUp,
+  674                 Nibbles(middle, 2 * begin * kIntermediate),
+  675                 middle_scale + begin, next - begin, workers);
+  676             do {
+  677                 next += workers;
+  678             } while (next < begin + count);
+  679         }
+  680         Publish();
+  681 #else
+  682         if (GetSubBlockIdx() == 0) {
+  683             int64_t active = 0;
+  684             int64_t next = GetBlockIdx() / 2;
+  685             for (int64_t expert = 0; expert < experts; ++expert) {
+  686                 if (held.count.GetValue(expert) == 0) {
+  687                     continue;
+  688                 }
+  689                 if (active++ != next) {
+  690                     continue;
+  691                 }
+  692                 next += blocks;
+  693                 const int64_t begin = held.start.GetValue(expert);
+  694                 Activate(held, held.count.GetValue(expert),
+  695                          held.start.GetValue(expert),
+  696                          partial + GateStorageRow(begin) * kGateUp,
+  697                          gu_bias + expert * kGateUp, gu_scale + expert * kGateUp,
+  698                          Nibbles(middle, 2 * begin * kIntermediate),
+  699                          middle_scale + begin);
+  700             }
+  701             Publish();
+  702         }
+  703 #endif
+  704     }
+  705     timing.Barrier(3);
+  706     timing.Begin(4);
+  707 #ifdef ROUTED_SHARED_PIPELINE
+  708     shared.Store(pipe);
+  709 #endif
+  710     if ASCEND_IS_AIC {
+  711         // Gate matmul has ended on every AIC before reusing L1 and events.
+  712         pipe.Reset();
+  713         TCubeTiling down_cube;
+  714         LoadTiling(down_cube, down_tiling);
+  715         Projection<weight_format> down_mm;
+  716         down_mm.Init(&down_cube, &pipe);
+  717         int64_t active = 0;
+  718         int64_t next = GetBlockIdx();
+  719         for (int64_t expert = 0; expert < experts; ++expert) {
+  720             if (counts.GetValue(expert) == 0) {
+  721                 continue;
+  722             }
+  723             if (active++ != next) {
+  724                 continue;
+  725             }
+  726             next += blocks;
+  727             const int64_t begin = starts.GetValue(expert);
+  728             Project(down_mm, Nibbles(middle, 2 * begin * kIntermediate),
+  729                     Nibbles(down, expert * kHidden * kIntermediate),
+  730                     wide + 2 * begin * kHidden,
+

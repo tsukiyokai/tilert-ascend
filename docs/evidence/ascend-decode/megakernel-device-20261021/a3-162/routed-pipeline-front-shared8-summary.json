@@ -1,0 +1,92 @@
+{
+  "scope": "Routed/shared local body before final addition, routed scaling and TP reduction. Synthetic shared8 routing; original BF16 hidden/shared inputs and slot probabilities retained from case 3. Each arm includes shared input DynamicQuant.",
+  "fixture_identity": "routed-pipeline-front-route-pattern-harness/target-cpu-fixture-identities.json",
+  "working_set": "routed-pipeline-front-route-pattern-harness/working-set.json",
+  "harness": "routed-pipeline-front-route-pattern-harness/source-identities.json",
+  "selected_library_sha256": "b0a87a13cf07ce653e6e602c4dfad9eadbbe4ace91cf6f65b0ef673efce74016",
+  "cases": [
+    {
+      "width": 12,
+      "report": "routed-pipeline-front-shared8-m12-bank24.json",
+      "report_sha256": "548b4b91cb6f8776013bc65e5d2a068b7decbad3f3e17fe139b27d87e62559bb",
+      "banks": 24,
+      "calls": 24,
+      "samples_per_arm": 30,
+      "replays_per_event": 30,
+      "changing_replays_per_bank": 8,
+      "checked_boundaries_per_replay": 37,
+      "active_experts": 8,
+      "rows_per_expert": 12,
+      "all_production_bytes_pass": true,
+      "statistics_us_per_call": {
+        "interleaved_front": {
+          "samples": 30,
+          "p50": 113.47830560472276,
+          "p90": 113.55483373006184,
+          "p99": 114.39080789354114,
+          "std": 0.22569662931287227
+        },
+        "interleaved_dispatch": {
+          "samples": 30,
+          "p50": 138.25407028198242,
+          "p90": 138.36210356818304,
+          "p99": 139.1749793158637,
+          "std": 0.22757501658253806
+        },
+        "vendor": {
+          "samples": 30,
+          "p50": 220.7674132453071,
+          "p90": 220.84595150417752,
+          "p99": 222.64484469095865,
+          "std": 0.47519084855714366
+        }
+      },
+      "selected_wins": {
+        "interleaved_dispatch": 30,
+        "vendor": 30
+      }
+    },
+    {
+      "width": 32,
+      "report": "routed-pipeline-front-shared8-m32-bank24.json",
+      "report_sha256": "c6dc039436edd008a903c68e96670c3734e807a653079e2576210526ecf5b1e9",
+      "banks": 24,
+      "calls": 24,
+      "samples_per_arm": 30,
+      "replays_per_event": 30,
+      "changing_replays_per_bank": 8,
+      "checked_boundaries_per_replay": 37,
+      "active_experts": 8,
+      "rows_per_expert": 32,
+      "all_production_bytes_pass": true,
+      "statistics_us_per_call": {
+        "interleaved_front": {
+          "samples": 30,
+          "p50": 162.3289426167806,
+          "p90": 162.39003393385147,
+          "p99": 163.34901279873318,
+          "std": 0.2594933662269038
+        },
+        "interleaved_dispatch": {
+          "samples": 30,
+          "p50": 184.591187371148,
+          "p90": 184.73765267266168,
+          "p99": 185.16156429714627,
+          "std": 0.17942123406729965
+        },
+        "vendor": {
+          "samples": 30,
+          "p50": 243.38478512234158,
+          "p90": 243.45098495483398,
+          "p99": 244.95743073357477,
+          "std": 0.3904126797080817
+        }
+      },
+      "selected_wins": {
+        "interleaved_dispatch": 30,
+        "vendor": 30
+      }
+    }
+  ],
+  "interpretation": "These shared8 measurements describe a different routing fixture and bank count from the earlier mixed-route four-bank results. They do not measure the routing distribution or round time of the full model."
+}

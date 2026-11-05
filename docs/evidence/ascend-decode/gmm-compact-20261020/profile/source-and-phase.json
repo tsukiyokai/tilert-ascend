@@ -1,0 +1,1424 @@
+{
+  "synced": {
+    "log_path": "/workspace/experiments/phases-20261019/synced/launch.log",
+    "log_sha256": "80774c55e9ed59c564db05b5de66e0250872264e492646a1478f990f8a07884c",
+    "phase_summary_lines": [
+      "[phase] 1363 rounds",
+      "[phase] chain        p10    1.731  median    1.853  p90    2.075 ms a call   6.00 calls a round",
+      "[phase] verify       p10   40.080  median   40.401  p90   40.715 ms a call   1.00 calls a round",
+      "[phase] conditioned  p10    2.080  median    2.167  p90    2.362 ms a call   1.00 calls a round",
+      "[phase] host_tokens  p10    0.263  median    0.280  p90    0.297 ms a call   1.00 calls a round",
+      "[phase] seed         p10    9.356  median   10.974  p90 2404.927 ms a call   0.01 calls a round",
+      "[phase] floor sums to   52.857 ms a round"
+    ],
+    "rank0_sha256": "c5fd9681e6c0de017ab7ffa5bc40eaa1389cdaef424c0f78528fd06efba154f8",
+    "profiled": false,
+    "command": [
+      "/opt/trt-asc/venv/bin/python",
+      "tests/glm52/bench_cann_mtp.py",
+      "--checkpoint",
+      "/workspace/models/GLM-5.2-w4a8c8",
+      "--capture-case",
+      "/workspace/offline/prefix8k-allocation-20261017/capture/case-00",
+      "--source-commit",
+      "phases-synced",
+      "--max-tokens",
+      "1024",
+      "--capacity",
+      "9344",
+      "--warmup",
+      "3",
+      "--requests",
+      "3",
+      "--width",
+      "8",
+      "--output",
+      "/workspace/experiments/phases-20261019/synced",
+      "--target-graph",
+      "--draft-graph",
+      "--draft-projection-tp",
+      "--compile-target",
+      "--super-kernel",
+      "--attention-kernel",
+      "sfa",
+      "--fp32-head",
+      "--conditioned-graph"
+    ],
+    "measured_requests": [
+      {
+        "request_index": 3,
+        "tpot_ms": 12.340440802541545,
+        "output_count": 1024,
+        "rounds": 227
+      },
+      {
+        "request_index": 4,
+        "tpot_ms": 12.363702157380255,
+        "output_count": 1024,
+        "rounds": 227
+      },
+      {
+        "request_index": 5,
+        "tpot_ms": 12.324530177908112,
+        "output_count": 1024,
+        "rounds": 227
+      }
+    ]
+  },
+  "decompose2": {
+    "log_path": "/workspace/experiments/phases-20261019/decompose2/launch.log",
+    "log_sha256": "37cfce19cd4505499f98b9771df58c3e1b4cd24d4b00d51fe0bc131acaa8a978",
+    "phase_summary_lines": [
+      "[phase] 1363 rounds",
+      "[phase] chain        p10    0.942  median    1.682  p90    1.876 ms a call   6.00 calls a round",
+      "[phase] verify       p10    2.196  median    2.366  p90    2.510 ms a call   1.00 calls a round",
+      "[phase] conditioned  p10   42.877  median   43.311  p90   43.763 ms a call   1.00 calls a round",
+      "[phase] host_tokens  p10    0.489  median    1.248  p90    2.198 ms a call   1.00 calls a round",
+      "[phase] seed         p10    5.326  median    5.480  p90 2299.054 ms a call   0.01 calls a round",
+      "[phase] floor sums to   51.239 ms a round"
+    ],
+    "rank0_sha256": "196f57e4f85519e9711a31577c6d8a4194f8d43085e6afe98286bf0ae734ce2b",
+    "profiled": false,
+    "command": [
+      "/opt/trt-asc/venv/bin/python",
+      "tests/glm52/bench_cann_mtp.py",
+      "--checkpoint",
+      "/workspace/models/GLM-5.2-w4a8c8",
+      "--capture-case",
+      "/workspace/offline/prefix8k-allocation-20261017/capture/case-00",
+      "--source-commit",
+      "phases-decompose2",
+      "--max-tokens",
+      "1024",
+      "--capacity",
+      "9344",
+      "--warmup",
+      "3",
+      "--requests",
+      "3",
+      "--width",
+      "8",
+      "--output",
+      "/workspace/experiments/phases-20261019/decompose2",
+      "--target-graph",
+      "--draft-graph",
+      "--draft-projection-tp",
+      "--compile-target",
+      "--super-kernel",
+      "--attention-kernel",
+      "sfa",
+      "--fp32-head"
+    ],
+    "measured_requests": [
+      {
+        "request_index": 3,
+        "tpot_ms": 12.577414021505376,
+        "output_count": 1024,
+        "rounds": 227
+      },
+      {
+        "request_index": 4,
+        "tpot_ms": 12.669848279569893,
+        "output_count": 1024,
+        "rounds": 227
+      },
+      {
+        "request_index": 5,
+        "tpot_ms": 12.916498643206255,
+        "output_count": 1024,
+        "rounds": 227
+      }
+    ]
+  },
+  "profile_record": {
+    "path": "/workspace/experiments/profile8-20261019/out/rank-0.json",
+    "sha256": "ad7a8a534aed49852e19c12e3f08812de46d07a4b2b957207a6a32d5f75bc4e1",
+    "status": "pass",
+    "precision_verified": false,
+    "command": [
+      "/opt/trt-asc/venv/bin/python",
+      "tests/glm52/run_cann_mtp_rounds.py",
+      "--checkpoint",
+      "/workspace/models/GLM-5.2-w4a8c8",
+      "--capture-case",
+      "/workspace/offline/prefix8k-allocation-20261017/capture/case-00",
+      "--source-commit",
+      "profile8",
+      "--max-tokens",
+      "6",
+      "--capacity",
+      "9344",
+      "--ignore-eos",
+      "--output",
+      "/workspace/experiments/profile8-20261019/out",
+      "--profile-output",
+      "/workspace/experiments/profile8-20261019/prof",
+      "--width",
+      "8",
+      "--target-graph",
+      "--draft-graph",
+      "--conditioned-graph",
+      "--draft-projection-tp",
+      "--compile-target",
+      "--super-kernel",
+      "--attention-kernel",
+      "sfa",
+      "--fp32-head"
+    ],
+    "source_sha256": {
+      "/workspace/experiments/positions-20261019/tree/tilert/models/glm_5_2_ascend/cann_head.py": "b8392261a07cc3e9803e479f3e2b4c5edb5c5cd7f80698291db0bb0a8cb44922",
+      "/workspace/experiments/positions-20261019/tree/tilert/models/glm_5_2_ascend/cann_model.py": "2931c9b902ff36b6826608497e8638aa5b76e2e867da245e57cf77d390a64153",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/ascend_forward_context.py": "848112214c9f56371b4bf43a59d39fadbed0e0e864581e300a3a89778d4083cb",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/indexer.py": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/sfa_v1.py": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/compilation/compiler_interface.py": "d31c36db24ee40cb7b49a0e75d13a8cc9375a37af94637034dcc4f637072ecce",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/models/deepseek_mtp.py": "4ed40eae69848d1fac7c901a1c73b0532a71473a045af1aa79508f9c74be0a2b",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/model_runner_v1.py": "f0a3079900c9b2628437195ef21d0631c747aa1a49b663c1b27fddf379cbf8f5",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/worker.py": "1859b05db9bdbb9fd69a86e08bb67a1de2c964ed4b7ab75abc88492c9b910abc",
+      "/workspace/src/vllm-unified/vllm/compilation/decorators.py": "605fb8b1df7503dc17743e336d1a398a79c698fd05513d4bb2e462b3a1aa9fd7",
+      "/workspace/src/vllm-unified/vllm/compilation/wrapper.py": "6ccd968e997c350d07565477cb883779773f3372e02876d08d6043abbc08cbac",
+      "/workspace/src/vllm-unified/vllm/model_executor/models/deepseek_v2.py": "5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408",
+      "/workspace/experiments/positions-20261019/tree/tests/glm52/prefix_io.py": "b0f1a76b565d6d97b3ef1e64b7810d1efe7c22470e2b1c46bd64911341559c90",
+      "/workspace/experiments/positions-20261019/tree/tests/glm52/run_cann_model.py": "757d7f0614d54c26f9d060e29cd3db704d52419762febd240bdfb17a2c58e67d",
+      "/workspace/experiments/positions-20261019/tree/tests/glm52/run_cann_mtp_rounds.py": "993c2a158996bd07f1581e04cb73d74c65486927d1416ca4fcafddfbab7a68f0",
+      "/workspace/experiments/positions-20261019/tree/tests/glm52/run_native_decode.py": "34258181f4ef257e9c226ba232ada69d78aa8ec4ef7f2bb92a723d348a1483f4",
+      "/workspace/experiments/positions-20261019/tree/tilert/models/glm_5_2_ascend/cann_graph.py": "9f5e766b4a7eee122ce8332a5bd88f8ad2ec87d57878f3e217aac3c4a1995874",
+      "/workspace/experiments/positions-20261019/tree/tilert/models/glm_5_2_ascend/cann_mtp.py": "25f5bae4fda8785aed893f0dd07240c103531115f8516aad40039c139b2c6f04",
+      "/workspace/experiments/positions-20261019/tree/tilert/models/glm_5_2_ascend/cann_mtp_graph.py": "76c591bba1e631be31d4e0d2bd6cbe4de9327a3441763e6f77834085addf22a2",
+      "/workspace/experiments/positions-20261019/tree/tilert/models/glm_5_2_ascend/cann_mtp_projection.py": "68cb044b132ae04dcf6b5594c4c58d38db15a949855628190fd316a79a2a7fed",
+      "/workspace/experiments/positions-20261019/tree/tilert/models/glm_5_2_ascend/mtp_round.py": "848438be7712cc5c438f975f2c921c6e10eb6793344a614ad7112f5ed5451e34",
+      "/workspace/experiments/positions-20261019/tree/tilert/models/glm_5_2_ascend/mtp_state.py": "e049db4aba2cce10efb6f47ca9aa93d17c7b44e0dbcb6fa16b39940936be05eb",
+      "/workspace/experiments/positions-20261019/tree/tilert/pd_vllm/ascend_cache.py": "59fe1dcf185641ce0d245dcb4c4aa384a9bda110b49b6891ef2e0d0eebaf1275",
+      "/workspace/experiments/positions-20261019/tree/tilert/pd_vllm/ascend_layout.py": "653a8bd71c697d50727e57a5c35d0dc7d2e2e32058417601ad6eb08fad81d704",
+      "/workspace/experiments/positions-20261019/tree/tilert/pd_vllm/prefix_capture.py": "d5bf74d0ba8a6f479190f517d0e304a34115261561f593eb551fd1e35ea98f03",
+      "/workspace/src/vllm-unified/vllm/model_executor/model_loader/default_loader.py": "d17ab54969489de2338bea88190b4af78c8a1f66e866796f612ff554eea3cca9",
+      "/workspace/src/vllm-unified/vllm/model_executor/model_loader/utils.py": "e6e3477d926deb12fd1b50d4e6a7d649f97a5c2b6524cc2e4a604c80bb653f20",
+      "/workspace/src/vllm-unified/vllm/model_executor/models/deepseek_mtp.py": "aae80e30b2dbfd1df41b83f51aaba4722e9f2dc3b4479d2a38ce1e32926fac11"
+    },
+    "runtime_env": null
+  },
+  "source_snippets": [
+    {
+      "path": "/workspace/experiments/positions-20261019/tree/tilert/models/glm_5_2_ascend/cann_model.py",
+      "sha256": "273c63edbac6a84ad84a32ac1afe77f9f0279baa6d43d908897d0ad1789f280f",
+      "lines": [
+        {
+          "line": 510,
+          "text": "            raise ValueError(\"Verify requires 1, 2, 4, 8 or 16 tokens\")"
+        },
+        {
+          "line": 511,
+          "text": "        if self.position + width > self.capacity:"
+        },
+        {
+          "line": 512,
+          "text": "            raise ValueError(\"Decode exceeds cache capacity\")"
+        },
+        {
+          "line": 513,
+          "text": "        if self.attention_kernel == \"gather_fia\" and self.position < 2047:"
+        },
+        {
+          "line": 514,
+          "text": "            raise ValueError(\"Gather/FIA requires 2048 valid selected rows\")"
+        },
+        {
+          "line": 515,
+          "text": "        use_graph = self.graph is not None and self.graph.width == width"
+        },
+        {
+          "line": 516,
+          "text": "        with torch.npu.device(self.device), torch.inference_mode(), ("
+        },
+        {
+          "line": 517,
+          "text": "            set_current_vllm_config(self.config)"
+        },
+        {
+          "line": 518,
+          "text": "        ):"
+        },
+        {
+          "line": 519,
+          "text": "            metadata = self._metadata(width, graphed=use_graph)"
+        },
+        {
+          "line": 520,
+          "text": "            if use_graph:"
+        },
+        {
+          "line": 521,
+          "text": "                self.refresh_hoisted_rope(width, self.positions)"
+        },
+        {
+          "line": 522,
+          "text": "            self.input_ids.copy_(tokens)"
+        },
+        {
+          "line": 523,
+          "text": "            with set_ascend_forward_context("
+        },
+        {
+          "line": 524,
+          "text": "                metadata, self.config, num_tokens=width,"
+        },
+        {
+          "line": 525,
+          "text": "                num_actual_tokens=width,"
+        },
+        {
+          "line": 526,
+          "text": "                model_instance=self.model,"
+        },
+        {
+          "line": 527,
+          "text": "            ):"
+        },
+        {
+          "line": 528,
+          "text": "                hidden = (self.model(self.input_ids, self.positions)"
+        },
+        {
+          "line": 529,
+          "text": "                          if not use_graph"
+        },
+        {
+          "line": 530,
+          "text": "                          else self.graph.forward(metadata))"
+        },
+        {
+          "line": 531,
+          "text": "                logits = self.model.compute_logits(hidden)"
+        },
+        {
+          "line": 532,
+          "text": "                token_ids = logits.argmax(dim=-1)"
+        },
+        {
+          "line": 533,
+          "text": "            self.position += width"
+        },
+        {
+          "line": 534,
+          "text": "            return CannStep("
+        },
+        {
+          "line": 535,
+          "text": "                logits if full_logits else None, hidden, token_ids,"
+        },
+        {
+          "line": 536,
+          "text": "            )"
+        },
+        {
+          "line": 537,
+          "text": ""
+        },
+        {
+          "line": 538,
+          "text": "    def host_tokens(self, *groups):"
+        },
+        {
+          "line": 539,
+          "text": "        \"\"\"Read several token groups to the host in one transfer."
+        },
+        {
+          "line": 540,
+          "text": ""
+        },
+        {
+          "line": 541,
+          "text": "        A round issues every kernel before calling this, so this is its only"
+        },
+        {
+          "line": 542,
+          "text": "        synchronisation. The host needs these values to commit cache lengths"
+        },
+        {
+          "line": 543,
+          "text": "        and to deliver text."
+        },
+        {
+          "line": 544,
+          "text": "        \"\"\""
+        },
+        {
+          "line": 545,
+          "text": "        import torch"
+        },
+        {
+          "line": 546,
+          "text": ""
+        },
+        {
+          "line": 547,
+          "text": "        tensors = [device_tokens(group, self.device) for group in groups]"
+        },
+        {
+          "line": 548,
+          "text": "        read = torch.cat(tensors).tolist()"
+        },
+        {
+          "line": 549,
+          "text": "        result, start = [], 0"
+        },
+        {
+          "line": 550,
+          "text": "        for tensor in tensors:"
+        },
+        {
+          "line": 551,
+          "text": "            width = tensor.shape[0]"
+        },
+        {
+          "line": 552,
+          "text": "            result.append(tuple(int(value) for value in"
+        },
+        {
+          "line": 553,
+          "text": "                                read[start:start + width]))"
+        },
+        {
+          "line": 554,
+          "text": "            start += width"
+        },
+        {
+          "line": 555,
+          "text": "        return tuple(result)"
+        },
+        {
+          "line": 556,
+          "text": ""
+        },
+        {
+          "line": 557,
+          "text": "    def step(self, token):"
+        },
+        {
+          "line": 558,
+          "text": "        return self.verify((token,), full_logits=False)"
+        },
+        {
+          "line": 559,
+          "text": ""
+        },
+        {
+          "line": 560,
+          "text": "    def predict(self, normalized_parent, *, full_logits=False):"
+        },
+        {
+          "line": 561,
+          "text": "        \"\"\"Project transferred hidden[P-1] without changing the KV length.\"\"\""
+        },
+        {
+          "line": 562,
+          "text": "        import torch"
+        },
+        {
+          "line": 563,
+          "text": "        from vllm.config import set_current_vllm_config"
+        },
+        {
+          "line": 564,
+          "text": ""
+        },
+        {
+          "line": 565,
+          "text": "        if (normalized_parent.shape != (1, 6144)"
+        },
+        {
+          "line": 566,
+          "text": "                or normalized_parent.dtype != torch.bfloat16"
+        },
+        {
+          "line": 567,
+          "text": "                or normalized_parent.device != self.device):"
+        },
+        {
+          "line": 568,
+          "text": "            raise ValueError(\"Parent must be normalized device BF16 [1,6144]\")"
+        },
+        {
+          "line": 569,
+          "text": "        with torch.npu.device(self.device), torch.inference_mode(), ("
+        },
+        {
+          "line": 570,
+          "text": "            set_current_vllm_config(self.config)"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/experiments/positions-20261019/tree/tilert/models/glm_5_2_ascend/cann_mtp_graph.py",
+      "sha256": "76c591bba1e631be31d4e0d2bd6cbe4de9327a3441763e6f77834085addf22a2",
+      "lines": [
+        {
+          "line": 56,
+          "text": "    def _execute(self):"
+        },
+        {
+          "line": 57,
+          "text": "        from .cann_model import CannModel"
+        },
+        {
+          "line": 58,
+          "text": ""
+        },
+        {
+          "line": 59,
+          "text": "        # Captured here rather than issued per round: the gather reads the"
+        },
+        {
+          "line": 60,
+          "text": "        # resident positions and writes the rope slices this graph captured,"
+        },
+        {
+          "line": 61,
+          "text": "        # so a replay refreshes them with no host launch at all."
+        },
+        {
+          "line": 62,
+          "text": "        CannModel.refresh_hoisted_rope(self.draft, self.width, self.positions)"
+        },
+        {
+          "line": 63,
+          "text": "        model = self.draft.model"
+        },
+        {
+          "line": 64,
+          "text": "        pre_norm, recycle = model("
+        },
+        {
+          "line": 65,
+          "text": "            input_ids=self.tokens, positions=self.positions,"
+        },
+        {
+          "line": 66,
+          "text": "            hidden_states=self.parent, spec_step_idx=0,"
+        },
+        {
+          "line": 67,
+          "text": "        )"
+        },
+        {
+          "line": 68,
+          "text": "        logits = model.compute_logits(pre_norm, spec_step_idx=0)"
+        },
+        {
+          "line": 69,
+          "text": "        return (pre_norm, recycle, logits, logits.argmax(dim=-1),"
+        },
+        {
+          "line": 70,
+          "text": "                self.draft.indices_buffer[:self.width].clone())"
+        },
+        {
+          "line": 71,
+          "text": ""
+        },
+        {
+          "line": 72,
+          "text": "    def forward(self, metadata, parent):"
+        },
+        {
+          "line": 73,
+          "text": "        import torch"
+        },
+        {
+          "line": 74,
+          "text": "        from vllm.config import set_current_vllm_config"
+        },
+        {
+          "line": 75,
+          "text": "        from vllm_ascend.ascend_forward_context import ("
+        },
+        {
+          "line": 76,
+          "text": "            set_ascend_forward_context,"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/experiments/positions-20261019/tree/tilert/models/glm_5_2_ascend/mtp_round.py",
+      "sha256": "848438be7712cc5c438f975f2c921c6e10eb6793344a614ad7112f5ed5451e34",
+      "lines": [
+        {
+          "line": 70,
+          "text": "        # replay would rewrite a proposal already placed among the candidates."
+        },
+        {
+          "line": 71,
+          "text": "        # Snapshot the token on the device; the host still reads nothing."
+        },
+        {
+          "line": 72,
+          "text": "        return DraftSeed("
+        },
+        {
+          "line": 73,
+          "text": "            result.token_ids[row].clone(),"
+        },
+        {
+          "line": 74,
+          "text": "            result.recycle_hidden[row:row + 1], result.indices[row:row + 1],"
+        },
+        {
+          "line": 75,
+          "text": "        )"
+        },
+        {
+          "line": 76,
+          "text": ""
+        },
+        {
+          "line": 77,
+          "text": "    def advance(self):"
+        },
+        {
+          "line": 78,
+          "text": "        \"\"\"Propose, verify, recompute MTP parents, and commit one prefix."
+        },
+        {
+          "line": 79,
+          "text": ""
+        },
+        {
+          "line": 80,
+          "text": "        Accepted tokens include a terminating EOS when present; serving"
+        },
+        {
+          "line": 81,
+          "text": "        filters that ID before delivering text. Chained draft KV is never"
+        },
+        {
+          "line": 82,
+          "text": "        committed as target-conditioned KV, even for an accepted token."
+        },
+        {
+          "line": 83,
+          "text": "        \"\"\""
+        },
+        {
+          "line": 84,
+          "text": "        if self.failed:"
+        },
+        {
+          "line": 85,
+          "text": "            raise RuntimeError(\"Inject fresh prefixes after a failed round\")"
+        },
+        {
+          "line": 86,
+          "text": "        if (self.target.position != self.state.main_length"
+        },
+        {
+          "line": 87,
+          "text": "                or self.draft.position != self.state.draft_length):"
+        },
+        {
+          "line": 88,
+          "text": "            raise ValueError(\"Engine lengths differ from the MTP state\")"
+        },
+        {
+          "line": 89,
+          "text": "        plan = self.state.begin()"
+        },
+        {
+          "line": 90,
+          "text": "        try:"
+        },
+        {
+          "line": 91,
+          "text": "            if self.seed is None:"
+        },
+        {
+          "line": 92,
+          "text": "                if self.seed_parent_hidden is None:"
+        },
+        {
+          "line": 93,
+          "text": "                    raise ValueError(\"MTP seed needs the parent hidden\")"
+        },
+        {
+          "line": 94,
+          "text": "                self.draft.truncate(plan.main_start - 1)"
+        },
+        {
+          "line": 95,
+          "text": "                seeded = self.draft.forward("
+        },
+        {
+          "line": 96,
+          "text": "                    (plan.pending_token,), self.seed_parent_hidden,"
+        },
+        {
+          "line": 97,
+          "text": "                    full_logits=False,"
+        },
+        {
+          "line": 98,
+          "text": "                )"
+        },
+        {
+          "line": 99,
+          "text": "                self.seed = self._seed(seeded, 0)"
+        },
+        {
+          "line": 100,
+          "text": "            seed = self.seed"
+        },
+        {
+          "line": 101,
+          "text": "            candidates = [plan.pending_token]"
+        },
+        {
+          "line": 102,
+          "text": "            shared_indices = seed.indices"
+        },
+        {
+          "line": 103,
+          "text": "            while len(candidates) < plan.width:"
+        },
+        {
+          "line": 104,
+          "text": "                candidates.append(seed.token)"
+        },
+        {
+          "line": 105,
+          "text": "                if len(candidates) < plan.width:"
+        },
+        {
+          "line": 106,
+          "text": "                    chained = self.draft.forward("
+        },
+        {
+          "line": 107,
+          "text": "                        [seed.token], seed.recycle_hidden,"
+        },
+        {
+          "line": 108,
+          "text": "                        full_logits=False, external_indices=shared_indices,"
+        },
+        {
+          "line": 109,
+          "text": "                    )"
+        },
+        {
+          "line": 110,
+          "text": "                    seed = self._seed(chained, 0)"
+        },
+        {
+          "line": 111,
+          "text": "            verified = self.target.verify(candidates, full_logits=False)"
+        },
+        {
+          "line": 112,
+          "text": "            self.draft.truncate(plan.main_start)"
+        },
+        {
+          "line": 113,
+          "text": "            conditioned = self.draft.forward("
+        },
+        {
+          "line": 114,
+          "text": "                verified.token_ids, verified.last_hidden, full_logits=False,"
+        },
+        {
+          "line": 115,
+          "text": "            )"
+        },
+        {
+          "line": 116,
+          "text": "            proposals, predictions = self.target.host_tokens("
+        },
+        {
+          "line": 117,
+          "text": "                candidates, verified.token_ids,"
+        },
+        {
+          "line": 118,
+          "text": "            )"
+        },
+        {
+          "line": 119,
+          "text": "            commit = self.state.resolve(plan, proposals, predictions)"
+        },
+        {
+          "line": 120,
+          "text": "            self.target.truncate(commit.main.retained)"
+        },
+        {
+          "line": 121,
+          "text": "            self.draft.truncate(commit.draft.retained)"
+        },
+        {
+          "line": 122,
+          "text": "            self.seed = self._seed(conditioned, commit.committed - 1)"
+        },
+        {
+          "line": 123,
+          "text": "            self.seed_parent_hidden = None"
+        },
+        {
+          "line": 124,
+          "text": "            return ExecutedRound(proposals, predictions, commit)"
+        },
+        {
+          "line": 125,
+          "text": "        except Exception:"
+        },
+        {
+          "line": 126,
+          "text": "            self.failed = True"
+        },
+        {
+          "line": 127,
+          "text": "            raise"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/experiments/positions-20261019/tree/tilert/models/glm_5_2_ascend/cann_head.py",
+      "sha256": "b8392261a07cc3e9803e479f3e2b4c5edb5c5cd7f80698291db0bb0a8cb44922",
+      "lines": [
+        {
+          "line": 1,
+          "text": "\"\"\"FP32 logits from the existing CANN BF16 vocabulary projection.\"\"\""
+        },
+        {
+          "line": 2,
+          "text": ""
+        },
+        {
+          "line": 3,
+          "text": "from copy import copy"
+        },
+        {
+          "line": 4,
+          "text": "from types import MethodType"
+        },
+        {
+          "line": 5,
+          "text": ""
+        },
+        {
+          "line": 6,
+          "text": ""
+        },
+        {
+          "line": 7,
+          "text": "def fp32_projection(method, layer, hidden, bias=None):"
+        },
+        {
+          "line": 8,
+          "text": "    import torch"
+        },
+        {
+          "line": 9,
+          "text": ""
+        },
+        {
+          "line": 10,
+          "text": "    assert bias is None"
+        },
+        {
+          "line": 11,
+          "text": "    return torch.ops.aten.mm.dtype(hidden, layer.weight.t(), torch.float32)"
+        },
+        {
+          "line": 12,
+          "text": ""
+        },
+        {
+          "line": 13,
+          "text": ""
+        },
+        {
+          "line": 14,
+          "text": "def install_fp32_head(head, processor):"
+        },
+        {
+          "line": 15,
+          "text": "    \"\"\"Keep the BF16 TP16 weights and the original gather/vocabulary crop.\"\"\""
+        },
+        {
+          "line": 16,
+          "text": "    import torch"
+        },
+        {
+          "line": 17,
+          "text": "    import torch_npu"
+        },
+        {
+          "line": 18,
+          "text": "    from vllm.model_executor.layers.vocab_parallel_embedding import ("
+        },
+        {
+          "line": 19,
+          "text": "        UnquantizedEmbeddingMethod,"
+        },
+        {
+          "line": 20,
+          "text": "    )"
+        },
+        {
+          "line": 21,
+          "text": ""
+        },
+        {
+          "line": 22,
+          "text": "    assert isinstance(head.quant_method, UnquantizedEmbeddingMethod)"
+        },
+        {
+          "line": 23,
+          "text": "    assert processor.head_dtype in (None, torch.bfloat16)"
+        },
+        {
+          "line": 24,
+          "text": "    assert head.weight.dtype == torch.bfloat16"
+        },
+        {
+          "line": 25,
+          "text": "    assert torch_npu.get_npu_format(head.weight) == 2"
+        },
+        {
+          "line": 26,
+          "text": "    method = copy(head.quant_method)"
+        },
+        {
+          "line": 27,
+          "text": "    method.apply = MethodType(fp32_projection, method)"
+        },
+        {
+          "line": 28,
+          "text": "    head.quant_method = method"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/src/vllm-unified/vllm/model_executor/layers/logits_processor.py",
+      "sha256": "35cf8235cb529ba2d37358fe9b9e5a29f40b5c3cbcc9e6750c8480c51bd7da83",
+      "lines": [
+        {
+          "line": 122,
+          "text": "    def _gather_logits(self, logits: torch.Tensor) -> torch.Tensor:"
+        },
+        {
+          "line": 123,
+          "text": "        \"\"\"gather/all-gather the logits tensor across model parallel group.\"\"\""
+        },
+        {
+          "line": 124,
+          "text": "        if self.use_all_gather:"
+        },
+        {
+          "line": 125,
+          "text": "            # Gather is not supported for some devices such as TPUs."
+        },
+        {
+          "line": 126,
+          "text": "            # Use all-gather instead."
+        },
+        {
+          "line": 127,
+          "text": "            # NOTE(woosuk): Here, the outputs of every device should not be None"
+        },
+        {
+          "line": 128,
+          "text": "            # because XLA requires strict SPMD among all devices. Every device"
+        },
+        {
+          "line": 129,
+          "text": "            # should execute the same operations after gathering the logits."
+        },
+        {
+          "line": 130,
+          "text": "            logits = tensor_model_parallel_all_gather(logits)"
+        },
+        {
+          "line": 131,
+          "text": "        else:"
+        },
+        {
+          "line": 132,
+          "text": "            # None may be returned for rank > 0"
+        },
+        {
+          "line": 133,
+          "text": "            logits = tensor_model_parallel_gather(logits)"
+        },
+        {
+          "line": 134,
+          "text": "        return logits"
+        },
+        {
+          "line": 135,
+          "text": ""
+        },
+        {
+          "line": 136,
+          "text": "    def _apply_head("
+        },
+        {
+          "line": 137,
+          "text": "        self,"
+        },
+        {
+          "line": 138,
+          "text": "        lm_head: VocabParallelEmbedding,"
+        },
+        {
+          "line": 139,
+          "text": "        hidden_states: torch.Tensor,"
+        },
+        {
+          "line": 140,
+          "text": "        embedding_bias: torch.Tensor | None,"
+        },
+        {
+          "line": 141,
+          "text": "    ) -> torch.Tensor:"
+        },
+        {
+          "line": 142,
+          "text": "        \"\"\"Project hidden states through the lm_head, honoring head_dtype.\"\"\""
+        },
+        {
+          "line": 143,
+          "text": "        if self.head_dtype is None or self.head_dtype == hidden_states.dtype:"
+        },
+        {
+          "line": 144,
+          "text": "            return lm_head.quant_method.apply("
+        },
+        {
+          "line": 145,
+          "text": "                lm_head, hidden_states, bias=embedding_bias"
+        },
+        {
+          "line": 146,
+          "text": "            )"
+        },
+        {
+          "line": 147,
+          "text": ""
+        },
+        {
+          "line": 148,
+          "text": "        # A quant config that excludes lm_head hands out UnquantizedLinearMethod"
+        },
+        {
+          "line": 149,
+          "text": "        # rather than UnquantizedEmbeddingMethod, so accept both: either way the"
+        },
+        {
+          "line": 150,
+          "text": "        # weight is plain and `lm_head.weight` can be cast directly."
+        },
+        {
+          "line": 151,
+          "text": "        if not isinstance("
+        },
+        {
+          "line": 152,
+          "text": "            lm_head.quant_method, (UnquantizedEmbeddingMethod, UnquantizedLinearMethod)"
+        },
+        {
+          "line": 153,
+          "text": "        ):"
+        },
+        {
+          "line": 154,
+          "text": "            raise ValueError("
+        },
+        {
+          "line": 155,
+          "text": "                \"A head_dtype different from the model dtype is only \""
+        },
+        {
+          "line": 156,
+          "text": "                \"supported for an unquantized lm_head.\""
+        },
+        {
+          "line": 157,
+          "text": "            )"
+        },
+        {
+          "line": 158,
+          "text": "        if ("
+        },
+        {
+          "line": 159,
+          "text": "            self.head_dtype == torch.float32"
+        },
+        {
+          "line": 160,
+          "text": "            and (current_platform.is_cuda() or current_platform.is_rocm())"
+        },
+        {
+          "line": 161,
+          "text": "            and hidden_states.is_cuda"
+        },
+        {
+          "line": 162,
+          "text": "        ):"
+        },
+        {
+          "line": 163,
+          "text": "            # Accumulate the projection directly into fp32. This avoids"
+        },
+        {
+          "line": 164,
+          "text": "            # materializing an fp32 copy of the lm_head weight on every step,"
+        },
+        {
+          "line": 165,
+          "text": "            # unlike casting both operands. `torch.mm(out_dtype=...)` only"
+        },
+        {
+          "line": 166,
+          "text": "            # supports fp32 output for fp16/bf16 inputs, and is only"
+        },
+        {
+          "line": 167,
+          "text": "            # implemented for CUDA and ROCm (the latter via the non-Lt GEMM"
+        },
+        {
+          "line": 168,
+          "text": "            # path); other platforms fall back to the cast path below."
+        },
+        {
+          "line": 169,
+          "text": "            flat = hidden_states.reshape(-1, hidden_states.shape[-1])"
+        },
+        {
+          "line": 170,
+          "text": "            logits = torch.mm(flat, lm_head.weight.t(), out_dtype=self.head_dtype)"
+        },
+        {
+          "line": 171,
+          "text": "            if embedding_bias is not None:"
+        },
+        {
+          "line": 172,
+          "text": "                logits = logits + embedding_bias.to(self.head_dtype)"
+        },
+        {
+          "line": 173,
+          "text": "            return logits.reshape(*hidden_states.shape[:-1], -1)"
+        },
+        {
+          "line": 174,
+          "text": "        return F.linear("
+        },
+        {
+          "line": 175,
+          "text": "            hidden_states.to(self.head_dtype),"
+        },
+        {
+          "line": 176,
+          "text": "            lm_head.weight.to(self.head_dtype),"
+        },
+        {
+          "line": 177,
+          "text": "            embedding_bias.to(self.head_dtype) if embedding_bias is not None else None,"
+        },
+        {
+          "line": 178,
+          "text": "        )"
+        },
+        {
+          "line": 179,
+          "text": ""
+        },
+        {
+          "line": 180,
+          "text": "    def _get_logits("
+        },
+        {
+          "line": 181,
+          "text": "        self,"
+        },
+        {
+          "line": 182,
+          "text": "        hidden_states: torch.Tensor,"
+        },
+        {
+          "line": 183,
+          "text": "        lm_head: VocabParallelEmbedding,"
+        },
+        {
+          "line": 184,
+          "text": "        embedding_bias: torch.Tensor | None,"
+        },
+        {
+          "line": 185,
+          "text": "        skip_gather: bool = False,"
+        },
+        {
+          "line": 186,
+          "text": "    ) -> torch.Tensor | None:"
+        },
+        {
+          "line": 187,
+          "text": "        # Get the logits for the next tokens."
+        },
+        {
+          "line": 188,
+          "text": "        logits = self._apply_head(lm_head, hidden_states, embedding_bias)"
+        },
+        {
+          "line": 189,
+          "text": "        if skip_gather:"
+        },
+        {
+          "line": 190,
+          "text": "            return logits"
+        },
+        {
+          "line": 191,
+          "text": ""
+        },
+        {
+          "line": 192,
+          "text": "        # Gather logits for TP"
+        },
+        {
+          "line": 193,
+          "text": "        if lm_head.tp_size > 1:"
+        },
+        {
+          "line": 194,
+          "text": "            logits = self._gather_logits(logits)"
+        },
+        {
+          "line": 195,
+          "text": ""
+        },
+        {
+          "line": 196,
+          "text": "        # Remove paddings in vocab (if any)."
+        },
+        {
+          "line": 197,
+          "text": "        if logits is not None:"
+        },
+        {
+          "line": 198,
+          "text": "            logits = logits[..., : self.org_vocab_size]"
+        },
+        {
+          "line": 199,
+          "text": "        return logits"
+        },
+        {
+          "line": 200,
+          "text": ""
+        },
+        {
+          "line": 201,
+          "text": "    def get_top_tokens("
+        },
+        {
+          "line": 202,
+          "text": "        self,"
+        },
+        {
+          "line": 203,
+          "text": "        lm_head: VocabParallelEmbedding,"
+        },
+        {
+          "line": 204,
+          "text": "        hidden_states: torch.Tensor,"
+        },
+        {
+          "line": 205,
+          "text": "        embedding_bias: torch.Tensor | None = None,"
+        },
+        {
+          "line": 206,
+          "text": "    ) -> torch.Tensor:"
+        },
+        {
+          "line": 207,
+          "text": "        \"\"\"Vocab-parallel argmax without all-gathering full logits."
+        },
+        {
+          "line": 208,
+          "text": ""
+        },
+        {
+          "line": 209,
+          "text": "        Each TP rank computes local argmax, then only the (value, index) pairs"
+        },
+        {
+          "line": 210,
+          "text": "        are gathered and reduced. Communication: O(batch * 2 * tp_size) vs"
+        },
+        {
+          "line": 211,
+          "text": "        O(batch * vocab_size)."
+        },
+        {
+          "line": 212,
+          "text": "        \"\"\""
+        },
+        {
+          "line": 213,
+          "text": "        if self.scale <= 0.0 and self.scale != 1.0:"
+        },
+        {
+          "line": 214,
+          "text": "            raise ValueError("
+        },
+        {
+          "line": 215,
+          "text": "                \"The local argmax reduction optimization is not supported for \""
+        },
+        {
+          "line": 216,
+          "text": "                \"non-positive logit scaling factors.\""
+        },
+        {
+          "line": 217,
+          "text": "            )"
+        },
+        {
+          "line": 218,
+          "text": "        tp_size = lm_head.tp_size"
+        },
+        {
+          "line": 219,
+          "text": ""
+        },
+        {
+          "line": 220,
+          "text": "        logits = self._apply_head(lm_head, hidden_states, embedding_bias)"
+        },
+        {
+          "line": 221,
+          "text": "        if self.soft_cap is not None:"
+        },
+        {
+          "line": 222,
+          "text": "            logits = torch.tanh(logits / self.soft_cap) * self.soft_cap"
+        },
+        {
+          "line": 223,
+          "text": "        if self.scale != 1.0:"
+        },
+        {
+          "line": 224,
+          "text": "            logits = logits * self.scale"
+        },
+        {
+          "line": 225,
+          "text": ""
+        },
+        {
+          "line": 226,
+          "text": "        # Mask out padding entries beyond org_vocab_size on this shard."
+        },
+        {
+          "line": 227,
+          "text": "        num_pad = lm_head.shard_indices.num_org_vocab_padding"
+        },
+        {
+          "line": 228,
+          "text": "        if num_pad > 0:"
+        },
+        {
+          "line": 229,
+          "text": "            logits[..., -num_pad:] = -float(\"inf\")"
+        },
+        {
+          "line": 230,
+          "text": ""
+        },
+        {
+          "line": 231,
+          "text": "        local_max_vals, local_max_indices = logits.max(dim=-1)"
+        },
+        {
+          "line": 232,
+          "text": ""
+        },
+        {
+          "line": 233,
+          "text": "        # Convert shard-local indices to global vocab indices."
+        },
+        {
+          "line": 234,
+          "text": "        vocab_start = lm_head.shard_indices.org_vocab_start_index"
+        },
+        {
+          "line": 235,
+          "text": "        global_indices = local_max_indices + vocab_start"
+        },
+        {
+          "line": 236,
+          "text": ""
+        },
+        {
+          "line": 237,
+          "text": "        if tp_size == 1:"
+        },
+        {
+          "line": 238,
+          "text": "            return global_indices"
+        },
+        {
+          "line": 239,
+          "text": ""
+        },
+        {
+          "line": 240,
+          "text": "        # All-gather (value, index) pairs, then reduce to global argmax."
+        },
+        {
+          "line": 241,
+          "text": "        # Use float32 to avoid bf16 precision loss on large vocab indices."
+        },
+        {
+          "line": 242,
+          "text": "        local_pair = torch.stack("
+        },
+        {
+          "line": 243,
+          "text": "            [local_max_vals.float(), global_indices.float()], dim=-1"
+        },
+        {
+          "line": 244,
+          "text": "        )"
+        },
+        {
+          "line": 245,
+          "text": "        # [batch, 2] -> [batch, 2 * tp_size]"
+        },
+        {
+          "line": 246,
+          "text": "        gathered = tensor_model_parallel_all_gather(local_pair, dim=-1)"
+        },
+        {
+          "line": 247,
+          "text": "        # [batch, tp_size, 2] where [:, :, 0]=values, [:, :, 1]=indices"
+        },
+        {
+          "line": 248,
+          "text": "        gathered = gathered.view(hidden_states.shape[0], tp_size, 2)"
+        },
+        {
+          "line": 249,
+          "text": "        max_rank_idx = gathered[:, :, 0].argmax(dim=-1, keepdim=True)"
+        },
+        {
+          "line": 250,
+          "text": "        top_tokens = gathered[:, :, 1].gather(dim=-1, index=max_rank_idx)"
+        },
+        {
+          "line": 251,
+          "text": "        return top_tokens.squeeze(-1).to(torch.int64)"
+        }
+      ]
+    }
+  ]
+}

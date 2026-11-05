@@ -1,0 +1,345 @@
+{
+  "created_utc": "2026-10-16T11:18:10.758176+00:00",
+  "hostname": "liteserver-hps-c180-00044",
+  "python": "3.13.13 | packaged by Anaconda, Inc. | (main, Apr 14 2026, 06:21:46) [GCC 14.3.0]",
+  "command": [
+    "/root/miniconda3/bin/python3",
+    "tests/glm52/check_mtp_contract.py",
+    "--output",
+    "/home/shanshan/trt-asc/experiments/glm52/mtp-serving/mtp-contract-metadata.json",
+    "--checkpoint",
+    "/data/shanshan/trt-asc/models/GLM-5.2-w4a8c8",
+    "--vllm",
+    "/home/shanshan/trt-asc/src/vllm-unified",
+    "--ascend",
+    "/home/shanshan/trt-asc/src/vllm-ascend-unified"
+  ],
+  "scope": "Checkpoint headers, source anchors and Python syntax",
+  "passed": true,
+  "contract": {
+    "architecture": [
+      "GlmMoeDsaForCausalLM"
+    ],
+    "layer": 78,
+    "tp_size": 16,
+    "epsilon": 1e-05,
+    "index_share_for_mtp_iteration": true,
+    "index_cache_dtype": "BF16",
+    "tensors": {
+      "rot.weight": {
+        "file": "rot.safetensors",
+        "shape": [
+          6144,
+          6144
+        ],
+        "dtype": "BF16"
+      },
+      "model.layers.78.enorm.weight": {
+        "file": "quant_model_weights-00093-of-00095.safetensors",
+        "shape": [
+          6144
+        ],
+        "dtype": "BF16"
+      },
+      "model.layers.78.hnorm.weight": {
+        "file": "quant_model_weights-00093-of-00095.safetensors",
+        "shape": [
+          6144
+        ],
+        "dtype": "BF16"
+      },
+      "model.layers.78.eh_proj.weight": {
+        "file": "quant_model_weights-00093-of-00095.safetensors",
+        "shape": [
+          6144,
+          12288
+        ],
+        "dtype": "BF16"
+      },
+      "model.layers.78.shared_head.norm.weight": {
+        "file": "quant_model_weights-00093-of-00095.safetensors",
+        "shape": [
+          6144
+        ],
+        "dtype": "BF16"
+      },
+      "model.layers.78.shared_head.head.weight": {
+        "file": "quant_model_weights-00093-of-00095.safetensors",
+        "shape": [
+          154880,
+          6144
+        ],
+        "dtype": "BF16"
+      },
+      "model.embed_tokens.weight": {
+        "file": "quant_model_weights-00094-of-00095.safetensors",
+        "shape": [
+          154880,
+          6144
+        ],
+        "dtype": "BF16"
+      }
+    },
+    "embedding": "target embedding, PP1 and no compression",
+    "head": "checkpoint MTP head; equality with target is not assumed",
+    "position": "MTP row p consumes token[p+1] and parent hidden[p]",
+    "parent_hidden": "normalized target or normalized MTP recycle",
+    "rotation": "every forward: parent @ rot.weight.T before hnorm",
+    "concat": [
+      "enorm(embedding)",
+      "hnorm(rotated_parent)"
+    ],
+    "logits": "own_head(shared_head.norm(pre_norm_hidden))",
+    "recycle_hidden": "shared_head.norm(pre_norm_hidden)"
+  },
+  "source_sha256": {
+    "tilert/models/glm_5_2_ascend/native_mtp.py": "b01fd16727018b82e91c1caae883095461c9528581f64c6bcf2d00d01ca8d416",
+    "tilert/models/glm_5_2_ascend/ops/indexer.py": "b8536fd5f41fe1f194ef4f3f34d30d4090c3b943c69d69a0445666d41396172a",
+    "tests/glm52/run_native_mtp.py": "44a0d37f2f8491f556357be2916802547806e6bc140d1fe1a2deccc312134101",
+    "tests/glm52/check_mtp_contract.py": "4961a49cd3c06de36772cbdc4bc1b6ad1e58335547bd7b4c119c0ff3c571b0fa"
+  },
+  "checkpoint_sha256": {
+    "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+    "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+    "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+  },
+  "device_execution": false,
+  "numerical_parity": false,
+  "checks": [
+    {
+      "name": "vllm.commit",
+      "actual": "c4df37dfcc7f72ca41cd43801a468526ecf99a2b",
+      "passed": true
+    },
+    {
+      "name": "vllm/v1/spec_decode/llm_base_proposer.py",
+      "sha256": "5793b956de30b63ff56a81b730af30bab6ebb6cf45914b2638ed58d67c9bceff",
+      "passed": true,
+      "anchors": [
+        {
+          "fragment": "self.needs_extra_input_slots = self.net_num_new_slots_per_request > 0",
+          "lines": [
+            120
+          ]
+        },
+        {
+          "fragment": "1 if (self.pass_hidden_states_to_model and self.method != \"dflash\") else 0",
+          "lines": [
+            118
+          ]
+        }
+      ]
+    },
+    {
+      "name": "vllm/model_executor/models/deepseek_mtp.py",
+      "sha256": "aae80e30b2dbfd1df41b83f51aaba4722e9f2dc3b4479d2a38ce1e32926fac11",
+      "passed": true,
+      "anchors": [
+        {
+          "fragment": "previous_hidden_states = self.hnorm(previous_hidden_states)",
+          "lines": [
+            125
+          ]
+        },
+        {
+          "fragment": "torch.cat([inputs_embeds, previous_hidden_states], dim=-1)",
+          "lines": [
+            128
+          ]
+        },
+        {
+          "fragment": "return hidden_states, self.shared_head(hidden_states)",
+          "lines": [
+            144
+          ]
+        },
+        {
+          "fragment": "torch.where(positions.unsqueeze(-1) == 0, 0, inputs_embeds)",
+          "lines": [
+            123
+          ]
+        }
+      ]
+    },
+    {
+      "name": "vllm/model_executor/models/deepseek_v2.py",
+      "sha256": "5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408",
+      "passed": true,
+      "anchors": [
+        {
+          "fragment": "hidden_states, _ = self.norm(hidden_states, residual)",
+          "lines": [
+            1588
+          ]
+        }
+      ]
+    },
+    {
+      "name": "vllm/config/speculative.py",
+      "sha256": "88cec427b52bb1cb56842f9034a4d49a915d05302b92b0249227feaf4d81f3e1",
+      "passed": true,
+      "anchors": [
+        {
+          "fragment": "parallel_drafting: bool = False",
+          "lines": [
+            479
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ascend.commit",
+      "actual": "f558b58c177916424ae9dcf9bb8e66c0b9031236",
+      "passed": true
+    },
+    {
+      "name": "vllm_ascend/spec_decode/eagle_proposer.py",
+      "sha256": "aa5994f69f3050dd0a7cd374676857ddb787153083d7f6f9b3566cd3e4dc3474",
+      "passed": true,
+      "anchors": [
+        {
+          "fragment": "device, True, runner=runner)",
+          "lines": [
+            12
+          ]
+        }
+      ]
+    },
+    {
+      "name": "vllm_ascend/models/deepseek_mtp.py",
+      "sha256": "4ed40eae69848d1fac7c901a1c73b0532a71473a045af1aa79508f9c74be0a2b",
+      "passed": true,
+      "anchors": [
+        {
+          "fragment": "hidden_states = self.rot(hidden_states)",
+          "lines": [
+            33
+          ]
+        }
+      ]
+    },
+    {
+      "name": "vllm_ascend/spec_decode/llm_base_proposer.py",
+      "sha256": "b4925648562de8cffd7bf678bf695d512c184d70484b949c42a40897793b8b07",
+      "passed": true,
+      "anchors": [
+        {
+          "fragment": "self.input_ids[: num_tokens - 1] = target_token_ids[1:]",
+          "lines": [
+            1803
+          ]
+        },
+        {
+          "fragment": "self._set_positions(num_tokens, target_positions)",
+          "lines": [
+            1835
+          ]
+        },
+        {
+          "fragment": "self.hidden_states[:num_tokens] = target_hidden_states.view",
+          "lines": [
+            1836
+          ]
+        },
+        {
+          "fragment": "share_embeddings = not self.use_compress",
+          "lines": [
+            550
+          ]
+        },
+        {
+          "fragment": "draft_model.set_skip_topk(True)",
+          "lines": [
+            1497
+          ]
+        },
+        {
+          "fragment": "slot_mapping = block_ids * block_size + clamped_positions % block_size",
+          "lines": [
+            2131
+          ]
+        }
+      ]
+    },
+    {
+      "name": "vllm_ascend/attention/sfa_v1.py",
+      "sha256": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+      "passed": true,
+      "anchors": [
+        {
+          "fragment": "compute_topk=not self.skip_topk and has_local_query",
+          "lines": [
+            2073
+          ]
+        },
+        {
+          "fragment": "self._get_indexcache_topk_indices(parallel_context.topk_num_tokens)",
+          "lines": [
+            2077,
+            2083
+          ]
+        }
+      ]
+    },
+    {
+      "name": "reference_hash_accepts_matching_bytes",
+      "passed": true
+    },
+    {
+      "name": "reference_rejects.status.metadata_only",
+      "passed": true
+    },
+    {
+      "name": "reference_rejects.numerical_execution.False",
+      "passed": true
+    },
+    {
+      "name": "reference_rejects.source_sha256.{'fixture.py': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}",
+      "passed": true
+    },
+    {
+      "name": "reference_rejects.source_sha256.{'tilert/models/glm_5_2_ascend/ops/indexer.py': '0000000000000000000000000000000000000000000000000000000000000000'}",
+      "passed": true
+    },
+    {
+      "name": "reference_rejects_production_implementation",
+      "passed": true
+    },
+    {
+      "name": "reference_prefix_accepts_matching_hash",
+      "passed": true
+    },
+    {
+      "name": "reference_prefix_rejects_mismatch",
+      "passed": true
+    },
+    {
+      "name": "reference_hash_rejects_changed_bytes",
+      "passed": true
+    },
+    {
+      "name": "reference_requires_rank_hash",
+      "passed": true
+    },
+    {
+      "name": "tilert/models/glm_5_2_ascend/native_mtp.py.line_length",
+      "passed": true
+    },
+    {
+      "name": "tilert/models/glm_5_2_ascend/ops/indexer.py.line_length",
+      "passed": true
+    },
+    {
+      "name": "tests/glm52/run_native_mtp.py.line_length",
+      "passed": true
+    },
+    {
+      "name": "tests/glm52/check_mtp_contract.py.line_length",
+      "passed": true
+    },
+    {
+      "name": "ordinary_import_without_torch",
+      "passed": true
+    }
+  ]
+}

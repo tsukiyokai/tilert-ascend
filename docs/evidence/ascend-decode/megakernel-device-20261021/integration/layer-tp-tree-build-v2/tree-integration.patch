@@ -1,0 +1,485 @@
+--- parent/source/contract.h
++++ candidate/source/contract.h
+@@ -1,10 +1,10 @@
+-#ifndef TILERT_LAYER_TP_CHAIN_CONTRACT_H
+-#define TILERT_LAYER_TP_CHAIN_CONTRACT_H
++#ifndef TILERT_LAYER_TP_TREE_CHAIN_CONTRACT_H
++#define TILERT_LAYER_TP_TREE_CHAIN_CONTRACT_H
+ 
+ #include "../local/source/contract.h"
+ #include "../communication/communication.h"
+ 
+-namespace layer_tp_chain {
++namespace layer_tp_tree_chain {
+ 
+ using Config = layer_local_chain::Config;
+ using Addresses = layer_local_chain::Addresses;
+@@ -34,7 +34,7 @@
+         communication.output == addresses.bridge[ffn_bridge::kCombined]) {
+         return false;
+     }
+-    return communication.window_bytes == whole_layer::MakeCommunicationLayout(
++    return communication.window_bytes == whole_layer_tree::MakeCommunicationLayout(
+         communication.capacity, communication.ranks).bytes;
+ }
+ 
+@@ -51,15 +51,15 @@
+ static_assert(sizeof(Config) + sizeof(Addresses) + sizeof(Communication) +
+               sizeof(uint64_t) == 1648);
+ 
+-}  // namespace layer_tp_chain
++}  // namespace layer_tp_tree_chain
+ 
+-extern "C" int layer_tp_indexed_launch(void* stream, uint64_t sync,
+-    const layer_tp_chain::Config* config,
+-    const layer_tp_chain::Addresses* addresses,
+-    const layer_tp_chain::Communication* communication);
+-extern "C" int layer_tp_shared_launch(void* stream, uint64_t sync,
+-    const layer_tp_chain::Config* config,
+-    const layer_tp_chain::Addresses* addresses,
+-    const layer_tp_chain::Communication* communication);
++extern "C" int layer_tp_tree_indexed_launch(void* stream, uint64_t sync,
++    const layer_tp_tree_chain::Config* config,
++    const layer_tp_tree_chain::Addresses* addresses,
++    const layer_tp_tree_chain::Communication* communication);
++extern "C" int layer_tp_tree_shared_launch(void* stream, uint64_t sync,
++    const layer_tp_tree_chain::Config* config,
++    const layer_tp_tree_chain::Addresses* addresses,
++    const layer_tp_tree_chain::Communication* communication);
+ 
+ #endif
+--- parent/source/contract_test.cpp
++++ candidate/source/contract_test.cpp
+@@ -5,7 +5,7 @@
+ 
+ int main()
+ {
+-    using namespace layer_tp_chain;
++    using namespace layer_tp_tree_chain;
+     Addresses addresses{};
+     addresses.attention.output = 0x1000;
+     addresses.bridge[ffn_bridge::kCombined] = 0x2000;
+@@ -14,7 +14,7 @@
+         for (int ranks : {2, 16}) {
+             Config config{};
+             config.indexed.attention.rows = rows;
+-            const auto bytes = whole_layer::MakeCommunicationLayout(32, ranks).bytes;
++            const auto bytes = whole_layer_tree::MakeCommunicationLayout(32, ranks).bytes;
+             Communication communication{0x10000, bytes, 0x3000, 0x4000,
+                                         32, ranks - 1, ranks};
+             assert(ValidCommunication(config, addresses, communication));
+--- parent/source/host.cpp
++++ candidate/source/host.cpp
+@@ -22,7 +22,7 @@
+ uint64_t next_handle = 1;
+ 
+ struct WindowOwner {
+-    whole_layer::CommunicationWindow window;
++    whole_layer_tree::CommunicationWindow window;
+     void* stream;
+ };
+ std::unordered_map<uint64_t, WindowOwner> windows;
+@@ -60,29 +60,29 @@
+ 
+ }  // namespace
+ 
+-extern "C" const char* layer_tp_last_error()
++extern "C" const char* layer_tp_tree_last_error()
+ {
+     return last_error.c_str();
+ }
+ 
+-extern "C" size_t layer_tp_record_bytes(int record)
++extern "C" size_t layer_tp_tree_record_bytes(int record)
+ {
+     switch (record) {
+-        case 0: return sizeof(layer_tp_chain::Config);
+-        case 1: return sizeof(layer_tp_chain::Addresses);
+-        case 2: return sizeof(layer_tp_chain::Communication);
++        case 0: return sizeof(layer_tp_tree_chain::Config);
++        case 1: return sizeof(layer_tp_tree_chain::Addresses);
++        case 2: return sizeof(layer_tp_tree_chain::Communication);
+         default: return 0;
+     }
+ }
+ 
+-extern "C" int layer_tp_initialize(int device, int rank, int ranks,
++extern "C" int layer_tp_tree_initialize(int device, int rank, int ranks,
+     const char* endpoint, uint64_t heap_bytes)
+ {
+     return Guard([&] {
+         Check(device >= 0 && ranks >= 2 && ranks <= 16 && rank >= 0 &&
+               rank < ranks && endpoint != nullptr && endpoint[0] != '\0' &&
+               std::strlen(endpoint) < ACLSHMEM_MAX_IP_PORT_LEN &&
+-              heap_bytes >= whole_layer::MakeCommunicationLayout(32, ranks).bytes,
++              heap_bytes >= whole_layer_tree::MakeCommunicationLayout(32, ranks).bytes,
+               "Invalid TP SHMEM context geometry or endpoint");
+         Check(world_device == -1 && windows.empty() &&
+               aclshmemx_init_status() != ACLSHMEM_STATUS_IS_INITIALIZED,
+@@ -106,7 +106,7 @@
+     });
+ }
+ 
+-extern "C" int layer_tp_window_create(int64_t capacity, uint64_t* handle)
++extern "C" int layer_tp_tree_window_create(int64_t capacity, uint64_t* handle)
+ {
+     return Guard([&] {
+         Check(handle != nullptr && capacity >= 1 && capacity <= 32 &&
+@@ -116,19 +116,19 @@
+             c10::Device(c10::DeviceType::PrivateUse1, world_device));
+         WindowOwner owner{};
+         owner.stream = c10_npu::getCurrentNPUStream().stream();
+-        owner.window = whole_layer::AllocateCommunicationWindow(
++        owner.window = whole_layer_tree::AllocateCommunicationWindow(
+             capacity, world_rank, world_ranks);
+         try {
+             windows.emplace(next_handle, owner);
+         } catch (...) {
+-            whole_layer::ReleaseCommunicationWindow(owner.window);
++            whole_layer_tree::ReleaseCommunicationWindow(owner.window);
+             throw;
+         }
+         *handle = next_handle++;
+     });
+ }
+ 
+-extern "C" int layer_tp_window_info(uint64_t handle, uint64_t* fields,
++extern "C" int layer_tp_tree_window_info(uint64_t handle, uint64_t* fields,
+     size_t count)
+ {
+     return Guard([&] {
+@@ -143,13 +143,13 @@
+     });
+ }
+ 
+-extern "C" int layer_tp_submit(int device, uint64_t sync,
++extern "C" int layer_tp_tree_submit(int device, uint64_t sync,
+     const void* config_record, size_t config_bytes, const void* address_record,
+     size_t address_bytes, bool indexed, uint64_t handle,
+     uint64_t attention_sum, uint64_t output)
+ {
+     return Guard([&] {
+-        using namespace layer_tp_chain;
++        using namespace layer_tp_tree_chain;
+         Check(device >= 0 && device == world_device && sync != 0 &&
+               config_record != nullptr && address_record != nullptr &&
+               config_bytes == sizeof(Config) && address_bytes == sizeof(Addresses),
+@@ -171,7 +171,7 @@
+         auto* stream = c10_npu::getCurrentNPUStream().stream();
+         Check(stream == owner.stream,
+               "A communication window belongs to its original serialized stream");
+-        const auto launch = indexed ? layer_tp_indexed_launch : layer_tp_shared_launch;
++        const auto launch = indexed ? layer_tp_tree_indexed_launch : layer_tp_tree_shared_launch;
+         Check(launch(stream, sync, &config, &addresses, &communication) == 0,
+               "The TP layer launch rejected its metadata");
+     });
+@@ -179,18 +179,18 @@
+ 
+ // The caller destroys every graph and synchronizes all participating ranks
+ // before releasing windows. SHMEM allocations are collective in creation order.
+-extern "C" int layer_tp_window_destroy(uint64_t handle)
++extern "C" int layer_tp_tree_window_destroy(uint64_t handle)
+ {
+     return Guard([&] {
+         auto& owner = FindWindow(handle);
+         const c10::OptionalDeviceGuard guard(
+             c10::Device(c10::DeviceType::PrivateUse1, owner.window.device));
+-        whole_layer::ReleaseCommunicationWindow(owner.window);
++        whole_layer_tree::ReleaseCommunicationWindow(owner.window);
+         windows.erase(handle);
+     });
+ }
+ 
+-extern "C" int layer_tp_finalize()
++extern "C" int layer_tp_tree_finalize()
+ {
+     return Guard([] {
+         Check(world_device >= 0 && windows.empty(),
+--- parent/source/kernel.cpp
++++ candidate/source/kernel.cpp
+@@ -4,12 +4,12 @@
+ 
+ #include "contract.h"
+ #include "../communication/communication_device.h"
+-#include "../local/attention/source/tests/glm52/whole_layer/attention_indexed_native.h"
+-#include "../local/attention/source/tests/glm52/whole_layer/attention_full_native.h"
++#include "../local/attention/source/tests/glm52/whole_layer_tree/attention_indexed_native.h"
++#include "../local/attention/source/tests/glm52/whole_layer_tree/attention_full_native.h"
+ #include "../local/ffn/bridge/source/ffn_bridge/body_native.h"
+ #include "../local/ffn/body/source/routed_int4/routed_body_native.h"
+ 
+-namespace layer_tp_chain {
++namespace layer_tp_tree_chain {
+ using namespace AscendC;
+ 
+ __aicore__ inline whole_layer_indexed::DeviceArgs IndexedArguments(
+@@ -44,11 +44,11 @@
+     const Communication& communication, uint64_t partial,
+     uint64_t output, int64_t rows, int64_t blocks)
+ {
+-    whole_layer::CommunicationBuffers buffers;
++    whole_layer_tree::CommunicationBuffers buffers;
+     if ASCEND_IS_AIV {
+         buffers.Init(pipe);
+     }
+-    whole_layer::AllReduceBf16(buffers,
++    whole_layer_tree::AllReduceBf16(buffers,
+         (__gm__ uint8_t*)communication.window,
+         (__gm__ bfloat16_t*)partial, (__gm__ bfloat16_t*)output,
+         rows, communication.capacity, communication.rank,
+@@ -127,33 +127,33 @@
+     DataSyncBarrier<MemDsbT::DDR>();
+ }
+ 
+-}  // namespace layer_tp_chain
++}  // namespace layer_tp_tree_chain
+ 
+-extern "C" int layer_tp_indexed_launch(void* stream, uint64_t sync,
+-    const layer_tp_chain::Config* config,
+-    const layer_tp_chain::Addresses* addresses,
+-    const layer_tp_chain::Communication* communication)
++extern "C" int layer_tp_tree_indexed_launch(void* stream, uint64_t sync,
++    const layer_tp_tree_chain::Config* config,
++    const layer_tp_tree_chain::Addresses* addresses,
++    const layer_tp_tree_chain::Communication* communication)
+ {
+     if (config == nullptr || addresses == nullptr || communication == nullptr ||
+-        !layer_tp_chain::Valid(*config, *addresses, *communication)) {
++        !layer_tp_tree_chain::Valid(*config, *addresses, *communication)) {
+         return -1;
+     }
+-    layer_tp_chain::Kernel<true><<<addresses->body.blocks, nullptr, stream>>>(
++    layer_tp_tree_chain::Kernel<true><<<addresses->body.blocks, nullptr, stream>>>(
+         sync, *config, *addresses, *communication);
+     return 0;
+ }
+ 
+-extern "C" int layer_tp_shared_launch(void* stream, uint64_t sync,
+-    const layer_tp_chain::Config* config,
+-    const layer_tp_chain::Addresses* addresses,
+-    const layer_tp_chain::Communication* communication)
++extern "C" int layer_tp_tree_shared_launch(void* stream, uint64_t sync,
++    const layer_tp_tree_chain::Config* config,
++    const layer_tp_tree_chain::Addresses* addresses,
++    const layer_tp_tree_chain::Communication* communication)
+ {
+     if (config == nullptr || addresses == nullptr || communication == nullptr ||
+         addresses->shared_topk == 0 ||
+-        !layer_tp_chain::Valid(*config, *addresses, *communication)) {
++        !layer_tp_tree_chain::Valid(*config, *addresses, *communication)) {
+         return -1;
+     }
+-    layer_tp_chain::Kernel<false><<<addresses->body.blocks, nullptr, stream>>>(
++    layer_tp_tree_chain::Kernel<false><<<addresses->body.blocks, nullptr, stream>>>(
+         sync, *config, *addresses, *communication);
+     return 0;
+ }
+--- parent/communication/communication.h
++++ candidate/communication/communication.h
+@@ -1,10 +1,10 @@
+-#ifndef TESTS_GLM52_WHOLE_LAYER_COMMUNICATION_H
+-#define TESTS_GLM52_WHOLE_LAYER_COMMUNICATION_H
++#ifndef TESTS_GLM52_COMMUNICATION_TREE_COMMUNICATION_H
++#define TESTS_GLM52_COMMUNICATION_TREE_COMMUNICATION_H
+ 
+ #include <cstddef>
+ #include <cstdint>
+ 
+-namespace whole_layer {
++namespace whole_layer_tree {
+ 
+ #if defined(__CCE_AICORE__) || defined(__CCE_KT_TEST__)
+ #define WHOLE_LAYER_COMMUNICATION_DEVICE __aicore__
+@@ -17,7 +17,7 @@
+ constexpr int32_t kCommunicationMaximumRanks = 16;
+ constexpr uint64_t kCommunicationCacheLine = 64;
+ constexpr int64_t kCommunicationChunk = 2048;
+-constexpr uint64_t kCommunicationUbBytes = kCommunicationChunk * 10;
++constexpr uint64_t kCommunicationUbBytes = kCommunicationChunk * 22;
+ 
+ // Epoch, each sender's ready word, and payload occupy separate cache lines.
+ // Both ready and payload have two planes; they share the same epoch parity.
+@@ -65,5 +65,5 @@
+ 
+ #undef WHOLE_LAYER_COMMUNICATION_DEVICE
+ 
+-}  // namespace whole_layer
++}  // namespace whole_layer_tree
+ #endif
+--- parent/communication/communication_device.h
++++ candidate/communication/communication_device.h
+@@ -1,24 +1,24 @@
+-#ifndef TESTS_GLM52_WHOLE_LAYER_COMMUNICATION_DEVICE_H
+-#define TESTS_GLM52_WHOLE_LAYER_COMMUNICATION_DEVICE_H
++#ifndef TESTS_GLM52_COMMUNICATION_TREE_COMMUNICATION_DEVICE_H
++#define TESTS_GLM52_COMMUNICATION_TREE_COMMUNICATION_DEVICE_H
+ 
+ #include "communication.h"
+ #include "kernel_operator.h"
+ #include "shmem.h"
++#include "tree_plan.h"
+ 
+-namespace whole_layer {
++namespace whole_layer_tree {
+ 
+-// Call Init only on AIV, with 20 KiB available in the caller's TPipe arena.
++// Call Init only on AIV, with 44 KiB available in the caller's TPipe arena.
+ // Finish all Matmul operations before this phase; its HardEvent 0 is reused.
+ class CommunicationBuffers {
+  public:
+     __aicore__ inline void Init(AscendC::TPipe& pipe)
+     {
+         pipe.InitBuffer(narrow_buffer_, kCommunicationChunk * 2);
+-        pipe.InitBuffer(accumulator_buffer_, kCommunicationChunk * 4);
+-        pipe.InitBuffer(term_buffer_, kCommunicationChunk * 4);
++        pipe.InitBuffer(accumulator_buffer_, kCommunicationChunk * 4 * 5);
+         narrow = narrow_buffer_.Get<bfloat16_t>();
+         accumulator = accumulator_buffer_.Get<float>();
+-        term = term_buffer_.Get<float>();
++        term = accumulator[kCommunicationChunk];
+     }
+ 
+     AscendC::LocalTensor<bfloat16_t> narrow;
+@@ -28,7 +28,6 @@
+  private:
+     AscendC::TBuf<AscendC::TPosition::VECCALC> narrow_buffer_;
+     AscendC::TBuf<AscendC::TPosition::VECCALC> accumulator_buffer_;
+-    AscendC::TBuf<AscendC::TPosition::VECCALC> term_buffer_;
+ };
+ 
+ template <AscendC::HardEvent event>
+@@ -93,49 +92,7 @@
+     }
+ }
+ 
+-__aicore__ inline void ReduceCommunicationPayload(
+-    CommunicationBuffers& buffers, __gm__ uint8_t* window,
+-    const CommunicationLayout& layout, __gm__ bfloat16_t* output,
+-    int64_t elements, int32_t ranks, uint32_t epoch,
+-    int64_t vector_index, int64_t vectors)
+-{
+-    const int32_t signal = static_cast<int32_t>(epoch);
+-    const int64_t tiles = elements / kCommunicationChunk;
+-    for (int64_t tile = vector_index; tile < tiles; tile += vectors) {
+-        const int64_t begin = tile * kCommunicationChunk;
+-        for (int32_t sender = 0; sender < ranks; ++sender) {
+-            aclshmem_signal_wait_until(
+-                CommunicationReady(window, layout, ranks, epoch, sender),
+-                ACLSHMEM_CMP_EQ, signal);
+-            AscendC::GlobalTensor<bfloat16_t> source;
+-            source.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(
+-                window + layout.payload + (epoch & 1U) * layout.plane_bytes
+-                + sender * layout.rank_bytes) + begin, kCommunicationChunk);
+-            AscendC::DataCopy(buffers.narrow, source, kCommunicationChunk);
+-            CommunicationFence<AscendC::HardEvent::MTE2_V>();
+-            if (sender == 0) {
+-                AscendC::Cast(buffers.accumulator, buffers.narrow,
+-                              AscendC::RoundMode::CAST_NONE, kCommunicationChunk);
+-            } else {
+-                AscendC::Cast(buffers.term, buffers.narrow,
+-                              AscendC::RoundMode::CAST_NONE, kCommunicationChunk);
+-                AscendC::PipeBarrier<PIPE_V>();
+-                AscendC::Add(buffers.accumulator, buffers.accumulator,
+-                             buffers.term, kCommunicationChunk);
+-            }
+-            CommunicationFence<AscendC::HardEvent::V_MTE2>();
+-        }
+-        AscendC::PipeBarrier<PIPE_V>();
+-        AscendC::Cast(buffers.narrow, buffers.accumulator,
+-                      AscendC::RoundMode::CAST_RINT, kCommunicationChunk);
+-        CommunicationFence<AscendC::HardEvent::V_MTE3>();
+-        AscendC::GlobalTensor<bfloat16_t> destination;
+-        destination.SetGlobalBuffer(output + begin, kCommunicationChunk);
+-        AscendC::DataCopy(destination, buffers.narrow, kCommunicationChunk);
+-        // The next tile loads into the same narrow buffer through MTE2.
+-        CommunicationFence<AscendC::HardEvent::MTE3_MTE2>();
+-    }
+-}
++#include "reduce.inc"
+ 
+ // All resident AIC and AIV cores call this function in the same phase order.
+ // AICs participate in the three SyncAll barriers and issue no SHMEM operation.
+@@ -183,5 +140,5 @@
+     AscendC::SyncAll<false>();
+ }
+ 
+-}  // namespace whole_layer
++}  // namespace whole_layer_tree
+ #endif
+--- parent/communication/communication_host.cpp
++++ candidate/communication/communication_host.cpp
+@@ -5,7 +5,7 @@
+ #include "acl/acl.h"
+ #include "shmem.h"
+ 
+-namespace whole_layer {
++namespace whole_layer_tree {
+ 
+ CommunicationWindow AllocateCommunicationWindow(int64_t capacity,
+                                                 int32_t expected_rank,
+@@ -57,4 +57,4 @@
+     window = {};
+ }
+ 
+-}  // namespace whole_layer
++}  // namespace whole_layer_tree
+--- parent/host.py
++++ candidate/source/host.py
+@@ -30,24 +30,24 @@
+                         ctypes.c_uint64, ctypes.c_uint64, ctypes.c_uint64], ctypes.c_int),
+         }
+         for name, (arguments, result) in signatures.items():
+-            function = getattr(self.handle, "layer_tp_" + name)
++            function = getattr(self.handle, "layer_tp_tree_" + name)
+             function.argtypes = arguments
+             function.restype = result
+-        sizes = tuple(self.handle.layer_tp_record_bytes(index) for index in range(3))
++        sizes = tuple(self.handle.layer_tp_tree_record_bytes(index) for index in range(3))
+         if sizes != (664, 928, 48):
+             raise RuntimeError(f"The TP layer record ABI changed: {sizes}")
+ 
+     def check(self, status):
+         if status != 0:
+-            message = self.handle.layer_tp_last_error().decode("utf-8")
++            message = self.handle.layer_tp_tree_last_error().decode("utf-8")
+             raise RuntimeError(f"TP layer status {status}: {message}")
+ 
+     def initialize(self, device, rank, ranks, endpoint, heap_bytes):
+-        self.check(self.handle.layer_tp_initialize(
++        self.check(self.handle.layer_tp_tree_initialize(
+             device, rank, ranks, endpoint.encode("utf-8"), heap_bytes))
+ 
+     def finalize(self):
+-        self.check(self.handle.layer_tp_finalize())
++        self.check(self.handle.layer_tp_tree_finalize())
+ 
+ 
+ class Window:
+@@ -56,15 +56,15 @@
+     def __init__(self, library, capacity):
+         self.library = library
+         handle = ctypes.c_uint64()
+-        library.check(library.handle.layer_tp_window_create(capacity, ctypes.byref(handle)))
++        library.check(library.handle.layer_tp_tree_window_create(capacity, ctypes.byref(handle)))
+         self.handle = handle.value
+         fields = (ctypes.c_uint64 * 6)()
+-        library.check(library.handle.layer_tp_window_info(self.handle, fields, len(fields)))
++        library.check(library.handle.layer_tp_tree_window_info(self.handle, fields, len(fields)))
+         self.address, self.bytes, self.capacity, self.rank, self.ranks, self.device = fields
+ 
+     def close(self):
+         """Call after destroying all graphs and synchronizing all ranks."""
+-        self.library.check(self.library.handle.layer_tp_window_destroy(self.handle))
++        self.library.check(self.library.handle.layer_tp_tree_window_destroy(self.handle))
+         self.handle = 0
+ 
+ 
+@@ -105,7 +105,7 @@
+         if tuple(value.data_ptr() for value in self.outputs) != self.output_pointers:
+             raise RuntimeError("A retained reduction output changed its data address")
+         library = self.window.library
+-        library.check(library.handle.layer_tp_submit(
++        library.check(library.handle.layer_tp_tree_submit(
+             local.device, local.sync, local.config, len(local.config),
+             local.addresses, len(local.addresses), local.indexed,
+             self.window.handle, *self.output_pointers))

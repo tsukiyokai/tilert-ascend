@@ -1,0 +1,532 @@
+{
+  "scope": "TP16 shared-device full BF16 push/FP32 ordered sum/BF16 result versus matched HCCL graph control",
+  "calls_per_graph": 10,
+  "warmup_graphs": 10,
+  "samples_per_rank": 30,
+  "decoder_performance_measured": false,
+  "idle_latency_measured": false,
+  "formal_idle_budget_us": 8,
+  "external_jobs_unchanged": [
+    977057,
+    977058,
+    977059,
+    977060,
+    977061,
+    977062,
+    977063,
+    977064,
+    977065,
+    977066,
+    977067,
+    977068,
+    977069,
+    977070,
+    977071,
+    977072
+  ],
+  "postflight_healthy_dies": 16,
+  "source_artifacts": {
+    "two_kernel": {
+      "path": "hccl-peer-probe-20261018-01/push-epoch-01/root-audit.json",
+      "sha256": "3451630535f76726e70f1ea729e4082f64b05a46d556e2c11372676d0541766a"
+    },
+    "one_kernel_batch": {
+      "path": "hccl-peer-probe-20261018-01/push-epoch-fused-batch-01/root-audit.json",
+      "sha256": "ed1c528db8fa919534940a891423f11ff16c96c262973afa76ce4b6a9f33205a"
+    },
+    "hccl_contract_control": {
+      "path": "hccl-peer-probe-20261018-01/hccl-contract-01/root-audit.json",
+      "sha256": "8d2346f73c255ae7fd721794a093c02a1b6f65c5254d3f1620b53498fc6afd6f"
+    },
+    "source_review": {
+      "path": "hccl-peer-probe-20261018-01/push-root-source-review.json",
+      "sha256": "d7d6df103ff3049c881f6f3af8e0f1476ec023aa4bf8c3e5e230dd33ac94012e"
+    },
+    "double_slot_no_ack": {
+      "path": "hccl-peer-probe-20261018-01/push-pingpong-01/root-audit.json",
+      "sha256": "beb3d280118848fb7f8aaf020f3863463e2281f6e71f4cc42da6dc43f62382fb",
+      "causal_proof_sha256": "3cfaa3d32bbe8893576f85a96831fda493aaa379ef774e9ea324a4b92c61b35f",
+      "source_build_sha256": "932b8943c8a96718d34fceac2b678bf1e7c43f85e3d367696ec72a76daccb86e"
+    }
+  },
+  "audits": {
+    "two_kernel": {
+      "status": "pass",
+      "scope": "TP16 48KiB full one-shot protocol",
+      "shared_device": true,
+      "decoder_performance_measured": false,
+      "source_build_sha256": "232dd013bc7d147220d4aef48eab09eb56f162214d5c306b6a6d93c73727957a",
+      "functional_output_elements": 1572864,
+      "integer_rne_oracle_sha256": {
+        "1": "e4f9e1af524f8f3f381b2b1453347e01077ae5aea79ad230cfcc4e3a0abf5415",
+        "-1": "62acd135d49ec01066fe7e88a714c58168c58018353d6599c008af865458bb37"
+      },
+      "raw_rank_timing_samples": 480,
+      "rank_max_us_per_call": {
+        "p50": 43.61799955368042,
+        "p95": 51.95469856262206,
+        "min": 38.55200111865997,
+        "max": 55.268001556396484
+      },
+      "control_flags": "Driver-reported retirement/canary checks; raw flags not archived",
+      "ranks": [
+        {
+          "rank": 0,
+          "report_sha256": "d94e2ad8312fa81c717f618654d5a230eafd641c57e4fac0d4e759ea08c0d628",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 1,
+          "report_sha256": "f357397fb7470f93e880e9ebc0d9a19f28261158f11614c12c4368ed5449f731",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 2,
+          "report_sha256": "d4d6d63b39befbe68b57216f2f3f0ed4532e574efd218b0a238d7dcb706f5ad1",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 3,
+          "report_sha256": "43953f9a7b09e0583ceb30730f1c4ac0c69fa65717bf5fa5970f4a1e5673e2cf",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 4,
+          "report_sha256": "88238a8512e25f3c676c7f388d0c6653720bb0173e3601d15045679adac73c13",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 5,
+          "report_sha256": "183d81c5a7ad655e972b4d59a8d8f110ac35854d2c274c122b5f66ed098a5b6f",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 6,
+          "report_sha256": "c6d1e380dc4372e4300fca2d7cdaf7dde285e97b9a1061f78b4caf3bb5248dcf",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 7,
+          "report_sha256": "149d358e38f8e9c9301c11e1f77c3309ebea9a2836d037085d5f5a8448706384",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 8,
+          "report_sha256": "ec0a1188d50b2be651282406f8530661fbf16be999bc212ed382b44d429386e4",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 9,
+          "report_sha256": "e76f083016ff3e9625931985e1794a2fb054c3b7b89bc8e52cb58b3b2adf993d",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 10,
+          "report_sha256": "f22da8b1a211077060e1cabb05222f26f57ddbb5f4a0cc6195ef29a6e041c9ac",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 11,
+          "report_sha256": "55fa94d620471dba6f1b8c2c8c227320a833906a0f6a29f096ef6c6ce17b0d60",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 12,
+          "report_sha256": "ff1b8a16e957db980ea782ad5e177a01038484317a928ae59b307c6dc24d3183",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 13,
+          "report_sha256": "762ee143154ac2d839d39beb65731e2a724c8a2b1e0868cd6e1df1c080ca842a",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 14,
+          "report_sha256": "4cc7234cba1cae4184adcb7bf88903b2fecee65763cba2909daf67f1d62a37d3",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 15,
+          "report_sha256": "0dd33912dd619e9b1b4f6231d3cf4f594859e14412a5b3daf3167a849518e1d4",
+          "reported_driver_checks": 13
+        }
+      ]
+    },
+    "one_kernel_batch": {
+      "status": "pass",
+      "scope": "TP16 48KiB full one-shot protocol",
+      "shared_device": true,
+      "decoder_performance_measured": false,
+      "source_build_sha256": "f8cccb6eec30857edb96bb09e05cd489a2a9be388e80fc7734ff4cdeaced5a40",
+      "functional_output_elements": 1572864,
+      "integer_rne_oracle_sha256": {
+        "1": "e4f9e1af524f8f3f381b2b1453347e01077ae5aea79ad230cfcc4e3a0abf5415",
+        "-1": "62acd135d49ec01066fe7e88a714c58168c58018353d6599c008af865458bb37"
+      },
+      "raw_rank_timing_samples": 480,
+      "rank_max_us_per_call": {
+        "p50": 38.05900067090988,
+        "p95": 47.746599912643426,
+        "min": 32.642000913619995,
+        "max": 99.235999584198
+      },
+      "control_flags": "Driver-reported retirement/canary checks; raw flags not archived",
+      "ranks": [
+        {
+          "rank": 0,
+          "report_sha256": "5faf43cead91d7c66938d21097b27a50cb6a44d31b7b1c23c54932498b5e1825",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 1,
+          "report_sha256": "dfe3fbef08366d087735de9d95fc2549f38fe6e9d3a96c23e6108cb7ba384f81",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 2,
+          "report_sha256": "0e87ceb0ead71c846efeecc3a15a9a12aaa54c0c49d3942fa6bea466931e107f",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 3,
+          "report_sha256": "fb49da9aecd4fbc38f6a3da1796e2e5689b9f7dadccd5c59cc172a1b89be2eab",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 4,
+          "report_sha256": "313dd8ea1d7630b3e0bece106a77aafd0f82663035cbf2255a3d8eb241a81ca7",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 5,
+          "report_sha256": "648aacc8a9844dfe475c24bbdee5f3dd59d01eeeb58e438f6f055a272afb61f6",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 6,
+          "report_sha256": "6a42cf2ada6fd9e53747013a99831e102d71ddcc328d7f7e6e49f8a3610a67ef",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 7,
+          "report_sha256": "6f0df2cc4d6e50211343dfc1d4564f0e187b4904a6a71c115329dd05d55f7f84",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 8,
+          "report_sha256": "8f3c455d61b7b7701fe36bd63bc587a6ed49fb13f0f170bbdde86ec5eabfd0d2",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 9,
+          "report_sha256": "1c77b1c8786d09b8ebae7cd71785ea4e54353a9a5087551e261af3c21956ef89",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 10,
+          "report_sha256": "5a0d0f9170cf9c85df9498a5aa4146c802105543a4e4fc6324b218264e26f0cb",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 11,
+          "report_sha256": "4c96445a4f3727b19e29c79d561de4a9f49a01c3767fe76cb07d825f19cf17b6",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 12,
+          "report_sha256": "d1fa49b00839431ae00aeeee1de3fc01a655c7bf17a89bab286d5139ddb3d84c",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 13,
+          "report_sha256": "4e3ac5abc9668a9bead24b6eb0206f301ac08bfbb20f5c2a25aa52d5849715a7",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 14,
+          "report_sha256": "365094dde07da02d9cdcff3f71ccd739ef8a7870a67173ae78b6a673d6dfe1d3",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 15,
+          "report_sha256": "58870bc77764ff672fc850225f918ba3a426bd08ed65d4ef750a47e836e08eb6",
+          "reported_driver_checks": 13
+        }
+      ]
+    },
+    "hccl_contract_control": {
+      "status": "pass",
+      "scope": "Shared-device TP16 10-dependent-sum graph control; no decoder timing",
+      "manifest_sha256": "4d068a60b17f9428a35b81268903b9b3418e4e5309bd67e1fac4a9ecc58a124b",
+      "samples_audited": 1440,
+      "cases": [
+        {
+          "name": "bf16_fp32_sum_bf16",
+          "p50_us": 59.18300151824951,
+          "p95_us": 74.83700007200238,
+          "raw_rank_max_us_per_call": [
+            79.6559989452362,
+            64.02199864387512,
+            59.39800143241882,
+            70.66799998283386,
+            56.35799765586853,
+            78.2480001449585,
+            59.552001953125,
+            62.117999792099,
+            57.74800181388855,
+            56.164002418518066,
+            59.46999788284302,
+            55.95200061798096,
+            62.2439980506897,
+            60.33400297164917,
+            56.050002574920654,
+            59.83399748802185,
+            54.56799864768982,
+            55.9719979763031,
+            66.04599952697754,
+            57.349997758865356,
+            57.87799954414368,
+            59.342002868652344,
+            57.49199986457825,
+            59.02400016784668,
+            56.49999976158142,
+            57.08799958229065,
+            56.742000579833984,
+            56.68799877166748,
+            60.04599928855896,
+            60.38399934768677
+          ]
+        },
+        {
+          "name": "bare_fp32",
+          "p50_us": 56.82600140571594,
+          "p95_us": 64.90259915590285,
+          "raw_rank_max_us_per_call": [
+            49.9779999256134,
+            54.019999504089355,
+            59.73600149154663,
+            56.90000057220459,
+            52.10999846458435,
+            57.788002490997314,
+            59.16000008583069,
+            50.70599913597107,
+            67.89000034332275,
+            61.61800026893616,
+            61.2820029258728,
+            59.696000814437866,
+            59.46199893951416,
+            59.48399901390076,
+            61.40599846839905,
+            56.731998920440674,
+            50.23999810218811,
+            57.165998220443726,
+            67.58999824523926,
+            53.75400185585022,
+            46.459999680519104,
+            53.28400135040283,
+            56.752002239227295,
+            57.27800130844116,
+            53.293997049331665,
+            55.01199960708618,
+            56.4300000667572,
+            57.204002141952515,
+            47.675999999046326,
+            55.84999918937683
+          ]
+        },
+        {
+          "name": "native_bf16",
+          "p50_us": 48.42899888753891,
+          "p95_us": 59.51180040836332,
+          "raw_rank_max_us_per_call": [
+            646.7599868774414,
+            51.8559992313385,
+            48.87399971485138,
+            44.34399902820587,
+            47.71600067615509,
+            50.42999982833862,
+            62.713998556137085,
+            46.62399888038635,
+            45.74199914932251,
+            45.816001296043396,
+            49.82599914073944,
+            48.28999936580658,
+            52.06000208854675,
+            50.46200156211853,
+            49.66999888420105,
+            51.914000511169434,
+            48.19999933242798,
+            45.50999999046326,
+            46.60800099372864,
+            55.598002672195435,
+            51.71999931335449,
+            45.50800025463104,
+            53.16799879074097,
+            48.010000586509705,
+            50.599998235702515,
+            46.81200087070465,
+            48.451998829841614,
+            48.405998945236206,
+            46.57999873161316,
+            45.33199965953827
+          ]
+        }
+      ],
+      "reports_sha256": {
+        "0": "4b4d22f5ff5e2e24712822578fe778072bed9d32422d93199666266f7e74a102",
+        "1": "f973b38a10c63f262dab045ba3f7b85237a7cd797da185c335e9e974ccfb5cd4",
+        "2": "a717978b7c51fde4e3f6320af9e03a0714ae295a95f6f857fdcd8aa7d09e0c50",
+        "3": "8186fb2c9a1de390b56cd62a08f62a6b37697ed6f63c80c46ce0230ccae54ed0",
+        "4": "ed2deadcde49132cd0eee9ce707e999801a522e13ad5671b98f42049e402216e",
+        "5": "21bfd2c75843278388d8f30fa8f5e8321a1e161a2aa77ae13b47067f58e0cc9c",
+        "6": "605607dc1dcca26e09f1f24f7a23f25ce01dee1a9f0b68e2d1cfb5d11fba69bb",
+        "7": "38c87c07aa1fe909d6f153b9531c88c83aa95e34b638a524f68cb74b23eb4e4a",
+        "8": "2f939c82db896e069fa89fdf1c02fd63641258dfc78681a738d6c30156c2e83c",
+        "9": "4b7494e5470af6fea96eab772dfc5bc06a10d4425ef61aa0e36b154a07c57ac7",
+        "10": "efd4d8f511e1e8fdcdbd42650922334165c2485b842101ca258236c80bc69bac",
+        "11": "13dd96de4de22834c4b247b8dfde38d4f0071c46487610d5e0965723edc8b6fa",
+        "12": "df7273d14f178b20482dc5833791d8274e3a068e5de4178d64fe1f721f51c09e",
+        "13": "848cec842ec1ba0ab37bec063d69af16267ad657761fe3d3ae038dc2b73a64bf",
+        "14": "c9b11e5588065954dd33ab80f402a47fd5a287be1089044e8d9103959576063c",
+        "15": "2227b22acefdecb6a48778ff17d6cfb543d8eceda2879eb3c844f3e4e6db5fb6"
+      }
+    },
+    "source_review": {
+      "scope": "Root source and binding review; no NPU execution",
+      "reviewed_at": "2026-10-17T19:51:48.569870+00:00",
+      "protocol": [
+        "One writer per sender/tile mailbox and READY slot; one per consumer/tile ACK slot",
+        "Payload MTE3 completion precedes READY publication; READY read completes before mailbox MTE2",
+        "All mailbox reads and output MTE3 complete before ACK; next producer waits all consumers ACK",
+        "Input/output alias in dependent chain is protected per tile by those ACKs",
+        "Fused variant requests documented batch admission for all16 AIV blocks, using exact40B generated argument ABI",
+        "Producer TPipe destructor completes before consumer TPipe Init; installed destructor calls Destroy"
+      ],
+      "acceptance": "Shared-device matched-contract HCCL screen; idle formal8us criterion; no decoder TPOT inferred",
+      "frozen_contract_note": "The source resource-contract timing.decision contains the earlier unconditional8us wording; project decision uses idle calibration only",
+      "variants": {
+        "push-epoch-source": {
+          "build_sha256": "232dd013bc7d147220d4aef48eab09eb56f162214d5c306b6a6d93c73727957a",
+          "bound_files": 17
+        },
+        "push-epoch-fused-batch-source": {
+          "build_sha256": "f8cccb6eec30857edb96bb09e05cd489a2a9be388e80fc7734ff4cdeaced5a40",
+          "bound_files": 23
+        }
+      },
+      "tpipe_header": {
+        "path": "/opt/ascend/cann-9.2.0/compiler/tikcpp/tikcfw/impl/kernel_tpipe_impl.h",
+        "sha256": "f5085e9d904f716a2058f040a6756f9c48e8a000f1afee58b2ba780848c33070",
+        "destructor_lines": [
+          80,
+          85
+        ]
+      }
+    },
+    "double_slot_no_ack": {
+      "status": "pass",
+      "scope": "TP16 48KiB double-slot no-ACK push",
+      "double_payload_and_ready": true,
+      "ack_used": false,
+      "shared_device": true,
+      "decoder_performance_measured": false,
+      "source_build_sha256": "932b8943c8a96718d34fceac2b678bf1e7c43f85e3d367696ec72a76daccb86e",
+      "functional_output_elements": 1572864,
+      "integer_rne_oracle_sha256": {
+        "1": "e4f9e1af524f8f3f381b2b1453347e01077ae5aea79ad230cfcc4e3a0abf5415",
+        "-1": "62acd135d49ec01066fe7e88a714c58168c58018353d6599c008af865458bb37"
+      },
+      "raw_rank_timing_samples": 480,
+      "rank_max_us_per_call": {
+        "p50": 35.71600019931793,
+        "p95": 41.518800258636475,
+        "min": 28.19400131702423,
+        "max": 44.648000597953796
+      },
+      "control_flags": "Driver-reported retirement/canary checks; raw flags not archived",
+      "ranks": [
+        {
+          "rank": 0,
+          "report_sha256": "3951f446a63a9dbc48a11cded5cfb67d8d9a61dca2cba875ef47bd04e91a7cb3",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 1,
+          "report_sha256": "36f0c251b8ad0230d49db2c68ed4cbc3caac5fc7d39f54e827171eeed2dfef02",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 2,
+          "report_sha256": "2f7c687d44a30550a9e4bab189e422c0cdbe11c3505d3121905fb22f1c3e6270",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 3,
+          "report_sha256": "c561998b61fd044a2203cb27e23c8d05a442c559e239985cd36d7f3ff0a158ac",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 4,
+          "report_sha256": "1e91c0e4368279d384389f5947ce6d77a6137582d2f48012335848afb353b6b0",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 5,
+          "report_sha256": "26079f481ab04e96853b397fa8f39ca6eeea5bfa743052ff95aef972a0b33db2",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 6,
+          "report_sha256": "4506472a651acea2093f9649cdb33686a9bb131098ecc080f7135a38a2fe0dc0",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 7,
+          "report_sha256": "e35422b7bd203068cba01bce6b1e4afc88b1e91c2afadcaa393786ce48161e5e",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 8,
+          "report_sha256": "b22aaa44dc8a1cda74c8937de4828531b1c29a99a54b456dce4d1af048a74c39",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 9,
+          "report_sha256": "9eeaca6996419a9fccd3c9958ef689c9511f513dc42266184095300f185eea89",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 10,
+          "report_sha256": "c7af08c10146a8f7686fc3a5620b4710eba570028c4b70a75325214c079b258b",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 11,
+          "report_sha256": "db71fa63952e6da49833af78047cb96f0acc6763892309287429d75fd380f029",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 12,
+          "report_sha256": "2fceb78c911d53021af96746bd10f849fdccf6315da189e7498d9dc2c9a59e11",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 13,
+          "report_sha256": "3266d9babab8550ae7a13b143dfe759bbafcfb89d9052b45b72b679905072024",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 14,
+          "report_sha256": "4c3fb80739890b3bd061671cca9a6ff82c1249424e973b8083ab7d5236a1a22f",
+          "reported_driver_checks": 13
+        },
+        {
+          "rank": 15,
+          "report_sha256": "a2a56b6adca5c762f1fe55b301abc3fadce53d2af1147a11eca0ad7676598aac",
+          "reported_driver_checks": 13
+        }
+      ]
+    }
+  },
+  "decision": "Double payload and READY slots remove ACK under the checked causal retirement argument; TP16 changing-input and graph-reuse checks pass. Shared p50 35.716us remains far above 8us. Stop standalone flag/tiling tuning; pursue producer fusion and compiled execution. Idle calibration and decoder TPOT gain remain unmeasured."
+}

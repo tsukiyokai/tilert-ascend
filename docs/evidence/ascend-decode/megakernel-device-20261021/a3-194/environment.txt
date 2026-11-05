@@ -1,0 +1,25 @@
+Host: a3-194; physical die 4 only; logical npu:0
+Recorded UTC: 2026-10-21T16:07:19.466721+00:00
+
+$ date -u
+Wed Oct 21 16:07:19 UTC 2026
+
+$ uname -srvmo
+Linux 5.10.0-182.0.0.95.r2220_157.hce2.aarch64 #1 SMP Wed Jul 30 11:31:47 UTC 2025 aarch64 GNU/Linux
+
+$ cat /usr/local/Ascend/driver/version.info
+Version=25.5.5
+ascendhal_version=7.35.23
+aicpu_version=1.0
+tdt_version=1.0
+log_version=1.0
+prof_version=2.0
+dvppkernels_version=1.1
+tsfw_version=1.0
+Innerversion=V100R001C23SPC009B220
+compatible_version=[V100R001C19],[V100R001C20],[V100R001C21],[V100R001C22],[V100R001C23]
+compatible_version_fw=[7.0.0,8.9.9]
+package_version=25.5.5
+
+$ docker inspect --format '{{json .Id}} {{json .Config.Image}} {{json .HostConfig.Devices}} {{.HostConfig.NanoCpus}} {{.HostConfig.Memory}} {{.HostConfig.ShmSize}} {{.HostConfig.Privileged}}' shanshan-tilert-megakernel-20261021
+"efd104ff13262c31eb8ce26b1a4866b7cd07bcd999ccd17a7eeb406c6a69bb15" "1910b1acedb3" [{"CgroupPermissions":"rwm","PathInContainer":"/dev/davinci4","PathOnHost":"/dev/davinci4"},{"CgroupPermissions":"rwm","PathInContainer":"/dev/davinci_manager","PathOnHost":"/dev/davinci_manager"},{"CgroupPermissions":"rwm","PathInContainer":"/dev/devmm_svm","PathOnHost":"/dev/devmm_svm"},{"CgroupPermissions":"rwm","PathInContainer":"/dev/hisi_hdc","PathOnHost":"/dev/hisi_hdc"}] 8000000000 17179869184 2147483648 false

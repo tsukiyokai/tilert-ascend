@@ -1,0 +1,168 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: shanshan <samsom0409@gmail.com>
+Date: Sun, 19 Oct 2026 03:00:00 +0800
+Subject: [PATCH] w4a8: declare only the experts a MoE call can route to
+
+`npu_grouped_matmul` charges for every expert the weight tensor declares, not
+for the ones the group list activates. On one TP16 `down` shard, K=128 N=6144,
+eight active experts of one row each, a call that declares all 256 costs
+76.644 us and one that declares eight costs 31.240.
+
+The saving is in the declaration rather than in the bytes. A three-arm control
+holding the allocation, the bytes read and the reuse distance fixed, and varying
+only the declared count, puts the declaration effect at 41.511 us on ND weights
+with read locality separated out as a further 0.8 to 9.2 us. Counting only the
+declaration and charging the gather in full, the net is 26.3 us per layer; the
+measured end to end is 76.644 against 29.530 plus a 15.190 us gather, so 31.9 us
+per layer, and at roughly 75 built-in grouped calls in a round that is 2.4 ms.
+
+The compaction is device-side and static-shaped so it survives graph capture.
+`topk` over the counts returns `active` slots, which cover every nonzero one
+whenever `active` is at least the number of experts a call can route to, and
+sorting them ascending preserves the row-to-expert order the operator walks.
+Nothing is read back to the host, so no synchronisation is introduced into the
+decode stream.
+
+Two things this does not do, with the reasons.
+
+It does not take the cheaper path of narrowing a view when the active experts
+happen to be contiguous, even though the operator accepts such a view, keeps it
+in FRACTAL_NZ and returns bit-identical output. Choosing that path means testing
+the group list's contents, and inside a captured graph that test is a device to
+host read. The view path stays available to eager callers and would be free
+under a routing policy that guaranteed contiguity, which is a model-quality
+change and out of scope.
+
+It requires w2 to be left in ND. `index_select` on a FRACTAL_NZ weight fails
+inside TransData, a per-expert `copy_` into an NZ destination fails the same
+way, and so does casting back out of NZ, so the gather is not expressible on the
+tensor `maybe_trans_nz` produces. Leaving w2 in ND is not a cost: at full
+declaration on this shape ND measures 71.041 us against NZ's 76.644, so it is
+5.603 us per call faster on its own. The NZ conversion for w13 is untouched.
+
+Verified bit-exact on real checkpoint weights, not on synthesised ones. Real
+`down_proj` tensors for eight experts of layer 3 out of
+/workspace/models/GLM-5.2-w4a8c8 -- (3072, 2048) int8, 6144 float32 scales,
+(6144, 16) correction, four bits -- placed in the production raw layout and put
+through the real `process_weights_after_loading`. The compacted call and the
+full-bank call agree on every one of the 49,152 output elements, maximum
+absolute difference 0.0.
+
+The rows beyond `sum(group_list)` were checked explicitly rather than assumed,
+because an active-row comparison would hide a difference there and a combine
+step that indexed by global expert id would see it: with eight live rows and
+eight dead tail rows, both arms leave the tail all zero and bit-identical. The
+operator mutates its activation in place -- up to 251 on the int8 input -- and
+mutates it identically in both arms; the per-token scale is untouched.
+
+Limits of the figures. The per-call numbers are from a single die with
+neighbouring tenants present, timed inside captured graphs because this
+operator's eager host enqueue is 28.6 us against 59.1 us of device time and an
+event pair around eager calls can read the host rather than the kernel; the
+round figure multiplies them by a family count taken from a 16-rank profile.
+The gather moves 12.6 MB at 15.19 us, which is 824 GB/s against the die's
+1540 GB/s marginal read rate, so roughly 7 us per layer of headroom remains in
+the copy itself. Dividing its bytes by peak bandwidth would have predicted
+4.1 us and been optimistic by 3.7 times.
+
+`apply_gmm1`'s built-in path is not the one in use -- the fused
+`grouped_matmul_swiglu_quant_v2` serves `gate_up` -- but the same change applies
+there if it is ever enabled, worth 10.5 us per layer at that shape.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+--- a/vllm_ascend/quantization/methods/w4a8/w4a8.py
++++ b/vllm_ascend/quantization/methods/w4a8/w4a8.py
+@@ -115,6 +115,59 @@
+     )
+ 
+ 
++
++# The built-in grouped matmul charges for every expert the weight tensor
++# declares, not for the ones the group list activates. Setting this False
++# restores the previous behaviour; see _compact_expert_declaration.
++_COMPACT_EXPERT_DECLARATION = True
++# ACL's ND format code. vllm_ascend names only ACL_FORMAT_FRACTAL_NZ, so this
++# one is spelled out rather than imported.
++_ACL_FORMAT_ND = 2
++
++
++def _compact_expert_declaration(layer, weight, scale, bias, group_list, active):
++    """Hand the grouped matmul only as many experts as this call can use.
++
++    At 256 declared experts against eight active, one TP16 `down` call costs
++    76.6 us; declaring eight costs 31.2. The saving is in the declaration, not
++    in the bytes: a three-arm control holding the allocation, the bytes read and
++    the reuse distance fixed, and varying only the declared count, puts it at
++    41.5 us with read locality separated out.
++
++    The compaction is device-side and static-shaped so it survives graph
++    capture. `topk` over the counts returns `active` slots, which necessarily
++    cover every nonzero one when `active` is at least the number of experts a
++    call can route to, and sorting them ascending preserves the row-to-expert
++    order the operator walks. Nothing is read back to the host, so no
++    synchronisation is introduced.
++
++    Returns its arguments unchanged unless every weight is ND. `index_select`
++    on a FRACTAL_NZ weight fails inside TransData, and so does casting back out
++    of one, so this route requires w2 to be left in ND at load time -- which is
++    also 5.6 us per call faster than NZ at full declaration on the decode shape.
++    """
++    if not _COMPACT_EXPERT_DECLARATION or active >= group_list.shape[0]:
++        return weight, scale, bias, group_list
++    if any(torch_npu.get_npu_format(tensor) != _ACL_FORMAT_ND
++           for tensor in weight):
++        return weight, scale, bias, group_list
++    index = torch.sort(torch.topk(group_list, active).indices).values
++    buffers = getattr(layer, "_compact_expert_buffers", None)
++    if buffers is None or buffers["index"].shape != index.shape:
++        buffers = {"index": torch.empty_like(index),
++                   "group_list": torch.empty_like(group_list[:active]),
++                   "weight": [tensor[:active].clone() for tensor in weight],
++                   "scale": [tensor[:active].clone() for tensor in scale],
++                   "bias": [tensor[:active].clone() for tensor in bias]}
++        layer._compact_expert_buffers = buffers
++    for name, group in (("weight", weight), ("scale", scale), ("bias", bias)):
++        for position, tensor in enumerate(group):
++            torch.index_select(tensor, 0, index, out=buffers[name][position])
++    torch.index_select(group_list, 0, index, out=buffers["group_list"])
++    return (buffers["weight"], buffers["scale"], buffers["bias"],
++            buffers["group_list"])
++
++
+ @register_scheme("W4A8_DYNAMIC", "moe")
+ class AscendW4A8DynamicFusedMoEMethod(AscendMoEScheme):
+     """FusedMoE method for Ascend W4A8_DYNAMIC.
+@@ -376,7 +429,11 @@
+         else:
+             self.process_weights_after_loading_modelslim(layer)
+         layer.w13_weight.data = maybe_trans_nz(layer.w13_weight.data)
+-        layer.w2_weight.data = maybe_trans_nz(layer.w2_weight.data)
++        if not _COMPACT_EXPERT_DECLARATION:
++            # The expert compaction gathers w2 with index_select, which fails
++            # inside TransData on a FRACTAL_NZ weight; ND is also 5.603 us per
++            # call faster at full declaration on the decode shape.
++            layer.w2_weight.data = maybe_trans_nz(layer.w2_weight.data)
+         tensor_names = (
+             "w13_weight",
+             "w2_weight",
+@@ -637,9 +694,14 @@
+         return torch_npu.npu_dynamic_quant(hidden_states, dst_type=torch.int8)
+ 
+     def apply_gmm2(self, mlp_compute_input: MoEMlpComputeInput, hidden_states, act_out_scale):
+-        _, _, w2, w2_scale = self._get_mlp_weights(mlp_compute_input.layer)
+-        _, bias2 = self._get_mlp_scale_bias(mlp_compute_input.layer)
++        layer = mlp_compute_input.layer
++        _, _, w2, w2_scale = self._get_mlp_weights(layer)
++        _, bias2 = self._get_mlp_scale_bias(layer)
+         group_list, group_list_type = self._maybe_convert_group_list(mlp_compute_input)
++        if group_list_type == 1:
++            w2, w2_scale, bias2, group_list = _compact_expert_declaration(
++                layer, w2, w2_scale, bias2, group_list,
++                hidden_states.shape[0])
+         return torch_npu.npu_grouped_matmul(
+             x=[hidden_states],
+             weight=w2,
+-- 
+2.43.0
+

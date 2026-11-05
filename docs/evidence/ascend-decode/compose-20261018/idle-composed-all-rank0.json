@@ -1,0 +1,146 @@
+{
+  "status": "completed",
+  "created_at": "2026-10-18T04:13:43.383858+00:00",
+  "hostname": "trt-asc",
+  "source_commit": "04a6628a1d0472f5cb2d6f6c80496ccd13520628",
+  "world_size": 16,
+  "width": 4,
+  "max_tokens": 1024,
+  "capacity": 9344,
+  "warmup": 3,
+  "measured_requests": 3,
+  "target_graph": true,
+  "draft_graph": true,
+  "draft_projection_tp": true,
+  "compile_target": true,
+  "super_kernel": true,
+  "attention_kernel": "gather_fia",
+  "fp32_head": true,
+  "draft_execution": "chain_graph",
+  "model_tp_reduction": "float32",
+  "command_serial": 1813,
+  "scope": "M4 internal TP16 session delivery; HTTP/HIXL excluded",
+  "clock": "perf_counter_ns; rank-local host clocks",
+  "tpot_formula": "(last_callback-first_callback)/(output_tokens-1)",
+  "round_scope": "Gloo, draft chain, verify, MTP recompute, commit",
+  "profiled": false,
+  "precision_verified": false,
+  "formal_1024_token_run": false,
+  "command": [
+    "/opt/trt-asc/venv/bin/python3",
+    "tests/glm52/bench_cann_mtp.py",
+    "--checkpoint",
+    "/workspace/models/GLM-5.2-w4a8c8",
+    "--capture-case",
+    "/workspace/offline/prefix8k-allocation-20261017/capture/case-00",
+    "--source-commit",
+    "04a6628a1d0472f5cb2d6f6c80496ccd13520628",
+    "--max-tokens",
+    "1024",
+    "--capacity",
+    "9344",
+    "--warmup",
+    "3",
+    "--requests",
+    "3",
+    "--output",
+    "/workspace/experiments/compose-20261018/composed-all",
+    "--target-graph",
+    "--draft-graph",
+    "--draft-projection-tp",
+    "--compile-target",
+    "--super-kernel",
+    "--attention-kernel",
+    "gather_fia",
+    "--fp32-head"
+  ],
+  "rank": 0,
+  "device": "npu:0",
+  "checkpoint_sha256": {
+    "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+    "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+    "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+  },
+  "packages": {
+    "torch": "2.12.0+cpu",
+    "torch-npu": "2.12.0",
+    "vllm": "0.30.1rc1.dev447+gc4df37dfc.d20261015.empty",
+    "vllm-ascend": "0.19.1rc2.dev2828+gf558b58c1.d20261015"
+  },
+  "runtime_env": {
+    "HCCL_OP_EXPANSION_MODE": null,
+    "HCCL_BUFFSIZE": null,
+    "HCCL_DETERMINISTIC": null,
+    "TASK_QUEUE_ENABLE": null,
+    "ASCEND_LAUNCH_BLOCKING": null,
+    "ASCEND_CUSTOM_OPP_PATH": "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp:/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer:/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib:/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer:/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer",
+    "ASCEND_RT_VISIBLE_DEVICES": null
+  },
+  "graph": {
+    "width": 4,
+    "captures": 1,
+    "replays": 1788,
+    "entries": [
+      {
+        "descriptor": "BatchDescriptor(num_tokens=4, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0)",
+        "has_aclgraph": true,
+        "input_addresses": [
+          20627253364736,
+          20627961676800
+        ]
+      }
+    ]
+  },
+  "requests": [
+    {
+      "warmup": true,
+      "output_tokens": 1024,
+      "span_ns": 20174826836,
+      "tpot_ms": 19.721238353861192,
+      "zero_intervals": 0
+    },
+    {
+      "warmup": true,
+      "output_tokens": 1024,
+      "span_ns": 16985508197,
+      "tpot_ms": 16.603624826001955,
+      "zero_intervals": 0
+    },
+    {
+      "warmup": true,
+      "output_tokens": 1024,
+      "span_ns": 17079365234,
+      "tpot_ms": 16.695371685239493,
+      "zero_intervals": 0
+    },
+    {
+      "warmup": false,
+      "output_tokens": 1024,
+      "span_ns": 17019480003,
+      "tpot_ms": 16.636832847507332,
+      "zero_intervals": 0
+    },
+    {
+      "warmup": false,
+      "output_tokens": 1024,
+      "span_ns": 17022710225,
+      "tpot_ms": 16.639990444770284,
+      "zero_intervals": 0
+    },
+    {
+      "warmup": false,
+      "output_tokens": 1024,
+      "span_ns": 17087716567,
+      "tpot_ms": 16.703535256109483,
+      "zero_intervals": 0
+    }
+  ],
+  "rounds_per_request": [
+    298,
+    298,
+    298,
+    298,
+    298,
+    298
+  ]
+}

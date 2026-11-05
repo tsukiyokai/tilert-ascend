@@ -1,0 +1,39 @@
+--- parent/body/source/routed_int4/routed_int4_tiling.cpp
++++ candidate/body/source/routed_int4/routed_int4_tiling.cpp
+@@ -9,6 +9,7 @@
+ #include <cstring>
+ 
+ #include "routed_int4_kernel.h"
++#include "../../../source/down_tiling_contract.h"
+ #include "lib/matmul/matmul_tiling.h"
+ 
+ extern "C" int routed_int4_build_tiling(int rows, int columns, int inner,
+@@ -40,6 +41,18 @@
+     tiling.SetBias(false);
+     tiling.SetBufferSpace(-1, -1, -1);
+ 
++    const bool is_down = columns == routed_int4::kHidden &&
++                         inner == routed_int4::kIntermediate;
++    if (is_down) {
++        if (rows != routed_int4::kMaxStackedRows || width != routed_int4::kHidden) {
++            return -2;
++        }
++        const int split_status = tiling.SetFixSplit(-1, 512, -1);
++        if (split_status != 0) {
++            return split_status;
++        }
++    }
++
+     AscendC::tiling::TCubeTiling cube;
+     static_assert(sizeof(cube) <= routed_int4::kTilingBytes,
+                   "Increase the shared tiling allocation for this CANN version");
+@@ -47,6 +60,9 @@
+     if (status != 0) {
+         return static_cast<int>(status);
+     }
++    if (is_down && !ffn_down_n512::IsExpectedDownTiling(cube)) {
++        return -3;
++    }
+     std::memcpy(buffer, &cube, sizeof(cube));
+     return 0;
+ }

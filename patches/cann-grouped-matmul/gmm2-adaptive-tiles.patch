@@ -1,0 +1,122 @@
+--- a/grouped_matmul_active_groups_a8w4.h
++++ b/grouped_matmul_active_groups_a8w4.h
+@@ -31,6 +31,47 @@
+ #endif
+     }
+
++    // CANN B114 tiling API: INT4 ND x NZ, M32/N1024/K128, baseK64.
++    template <typename T>
++    __aicore__ inline void SelectTiles(T &cfg)
++    {
++        if (enabled && (records.GetValue(0) >> 32) != 0) {
++            cfg.usedCoreNum = 1;
++            cfg.M = 32;
++            cfg.N = 6144;
++            cfg.Ka = 128;
++            cfg.Kb = 128;
++            cfg.singleCoreM = 32;
++            cfg.singleCoreN = 1024;
++            cfg.singleCoreK = 128;
++            cfg.baseM = 32;
++            cfg.baseN = 1024;
++            cfg.baseK = 64;
++            cfg.depthA1 = 2;
++            cfg.depthB1 = 2;
++            cfg.stepM = 1;
++            cfg.stepN = 1;
++            cfg.stepKa = 2;
++            cfg.stepKb = 2;
++            cfg.dbL0A = 2;
++            cfg.dbL0B = 2;
++            cfg.dbL0C = 1;
++            cfg.shareL1Size = 67584;
++            cfg.shareL0CSize = 131072;
++            cfg.shareUbSize = 0;
++            cfg.isBias = 0;
++            cfg.iterateOrder = 0;
++            cfg.transLength = 0;
++            cfg.shareMode = 0;
++            cfg.batchM = 1;
++            cfg.batchN = 1;
++            cfg.singleBatchM = 1;
++            cfg.singleBatchN = 1;
++            cfg.depthAL1CacheUB = 0;
++            cfg.depthBL1CacheUB = 0;
++        }
++    }
++
+     __aicore__ inline void Publish(GM_ADDR countsAddress, TPipe *pipe)
+     {
+         if ASCEND_IS_AIV {
+@@ -46,16 +87,24 @@
+             DataCopy(counts, input, EXPERTS);
+             SetFlag<HardEvent::MTE2_S>(EVENT_ID0);
+             WaitFlag<HardEvent::MTE2_S>(EVENT_ID0);
++            bool wide = true;
++            uint32_t splitExperts = 0;
+             uint32_t active = 0;
+             uint32_t end = 0;
+             for (uint32_t expert = 0; expert < EXPERTS; ++expert) {
+                 const auto rows = counts.GetValue(expert);
+                 if (rows > 0) {
++                    wide = wide && rows <= 32;
++                    splitExperts += rows > 16;
+                     end += rows;
+                     output.SetValue(++active, (static_cast<uint64_t>(end) << 32) | expert);
+                 }
+             }
+-            output.SetValue(0, active);
++            // Split groups need enough parallel work to offset weight rereads.
++            // Limit the added passes to one eighth of the active experts.
++            wide = wide && (splitExperts == 0 ||
++                (end == 256 && active >= 64 && splitExperts * 8 <= active));
++            output.SetValue(0, (static_cast<uint64_t>(wide) << 32) | active);
+             const uint32_t length = ((active + 4) / 4) * 4;
+             for (uint32_t i = active + 1; i < length; ++i) {
+                 output.SetValue(i, 0);
+--- a/grouped_matmul.cpp
++++ b/grouped_matmul.cpp
+@@ -299,6 +299,15 @@
+             using matmulType = MMImplType<aT, bT, cT, biasT, cfg>;                                                     \
+             matmulType::MT mm;                                                                                         \
+             GET_TILING_DATA_MEMBER(GMMTilingData, mmTilingData, mmTilingData_, tiling);                                \
++            if constexpr (A8W4_KERNEL_TEMPLATE == GROUPED_MATMUL_A8W4_KERNEL_TEMPLATE_MSD_API_DEQUANT) { \
++                GMMActiveGroups groups; \
++                groups.Init(user1, gmmBaseParams_); \
++                if (groups.enabled) { \
++                    if ASCEND_IS_AIC { SyncAll<false>(); } \
++                    groups.Invalidate(); \
++                    groups.SelectTiles(mmTilingData_); \
++                } \
++            } \
+             GET_TILING_DATA_MEMBER_ADDR(GMMTilingData, gmmArray, gmmArrayAddr_, tiling);                               \
+             if ASCEND_IS_AIC {                                                                                         \
+                 mm.SetSubBlockIdx(0);                                                                                  \
+--- a/grouped_matmul_antiquant_a8w4_msd.h
++++ b/grouped_matmul_antiquant_a8w4_msd.h
+@@ -240,7 +240,10 @@
+     pipe->InitBuffer(perTokenScaleInQueue, BUFFER_NUM, Ceil(tiling->vBaseM * sizeof(float), 32) * 32);
+     pipe->InitBuffer(vecInQueue, BUFFER_NUM, tiling->ubCalSize * 2 * sizeof(cT::T));
+     pipe->InitBuffer(vecOutQueue, BUFFER_NUM, tiling->ubCalSize * sizeof(DTYPE_OUT));
+-    pipe->InitBuffer(tmpBuff, tiling->ubRestBytes);
++    // The FP32 epilogue owns four ubCalSize regions after the queues.
++    const uint32_t tmpBytes = activeGroups.enabled ?
++        4 * tiling->ubCalSize * sizeof(float) : tiling->ubRestBytes;
++    pipe->InitBuffer(tmpBuff, tmpBytes);
+
+     uint32_t ubCalSizeFloat = tiling->ubCalSize * sizeof(float);
+     // ub分配，依次划分中间结果，划分方式参考设计文档
+@@ -270,10 +273,9 @@
+     mnConfig.singleN = mnConfig.baseN;
+     mnConfig.blockDimN = Ceil(tiling->n, mnConfig.singleN);
+     if ASCEND_IS_AIC {
+-        SyncAll<false>();
+-    }
+-    if (activeGroups.enabled) {
+-        activeGroups.Invalidate();
++        if (!activeGroups.enabled) {
++            SyncAll<false>();
++        }
+     }
+     const uint32_t groups = activeGroups.enabled ? activeGroups.Size() : tiling->groupNum;
+     uint32_t previousEnd = 0;

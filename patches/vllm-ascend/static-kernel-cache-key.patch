@@ -1,0 +1,80 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: shanshan <samsom0409@gmail.com>
+Date: Sun, 19 Oct 2026 10:15:00 +0800
+Subject: [PATCH] static kernel: compile the package rather than installing one
+ the working directory happens to carry
+
+`enable_static_kernel` recompiles every operator in the decode graph for the
+capture sizes and installs the result as a package that overrides dispatch for
+those shapes. Before compiling, `_merge_and_compile_install`
+(`torch_npu/dynamo/npugraph_ex/_acl_concrete_graph/static_kernel.py:385-391`)
+asks a cache whether a package for this key already exists and installs it if
+so. `_get_static_kernel_cache_key` (`:1071-1092`) builds that key from the
+dumped operator parameters, the super-kernel option string and the determinism
+flag, and the cache index lives under the process's working directory
+(`_get_cache_path(result_root)`). So a run inherits whatever package an earlier
+run left there, from whatever tree that run was built in.
+
+The W4A8 routed-expert section is where that shows. Only the captured width has
+static kernels (`compiler_interface.py:135`), and two of the fused MoE
+operators carry an `AscendC::SyncAll` inside the kernel -- `GroupedMatmul`,
+which serves `apply_gmm2`, and `GroupedMatmulSwigluQuantV2`, which serves
+`apply_gmm1_act_quant`; the compiled package reports `sub_op_with_sync_all`
+true, `supportSuperKernel` 1 and `blockDim` 24 for both, so each is fused into
+a larger super kernel.
+
+Measured on a3-84, 16 ranks, GLM-5.2-W4A8, the captured 8K prefix, 1024 output
+tokens, three warmups and three measured requests, `--width 8 --target-graph
+--draft-graph --draft-projection-tp --compile-target --super-kernel
+--attention-kernel sfa --fp32-head`. Both arms run from
+`/workspace/experiments/snapshot-final`, both resolve the gmm1 operator to the
+barrier-patched overlay at index 3 of the inherited `ASCEND_CUSTOM_OPP_PATH`,
+read from each run's own record. `68f2bc184553` is the width-4 reference
+stream.
+
+| arm | rounds | token streams | median TPOT | range |
+|---|---|---|---|---|
+| without this change | 251, 266, 258 | 3, none `68f2bc184553` | 14.4640 ms | 0.8178 |
+| with this change | 227, 227, 227 | 1, `68f2bc184553` | 13.0657 ms | 0.8178 |
+
+Width 8 becomes reproducible and emits the same 1024 tokens as width 4, at
+1.42 ms a token less. Of 36 recorded 1024-token runs in this project, no width
+6 or width 8 arm had ever emitted `68f2bc184553`; `--expert-parallel` is stable
+at `fa509e7339c2`, a different stream, so it bought reproducibility without
+correctness.
+
+Six `target.verify` calls on one identical input, distinct hidden states, same
+configuration:
+
+| static kernel package | processes | distinct hidden, width 8 | width 4 |
+|---|---|---|---|
+| installed from the index in the working directory | 3 | 6, 6, 6 | 1, 1, 1 |
+| compiled in this process | 8 | 1 each | 1 each |
+
+Recompiling costs start-up time, not decode time.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+--- a/vllm_ascend/compilation/compiler_interface.py
++++ b/vllm_ascend/compilation/compiler_interface.py
+@@ -128,6 +128,15 @@
+         if ascend_compilation_config.enable_static_kernel:
+             logger.info_once(
+                 "enable_static_kernel is enabled, static shape kernel will be used to accelerate aclgraph execution.",
+                 scope="global",
+             )
+             options["static_kernel_compile"] = True
++            # The package cache's key (`static_kernel.py:1071-1092`) covers the
++            # dumped operator parameters, the super-kernel option string and
++            # the determinism flag, and the index lives under the process's
++            # working directory. A hit therefore installs a package another run
++            # built, from another tree, for the capture sizes only -- which is
++            # how the routed-expert section comes to return a different hidden
++            # state on every forward at the captured width while every
++            # non-captured width stays bit-identical. Recompiling costs
++            # start-up time, not decode time.
++            options["disable_static_kernel_compile_cache"] = True
+             # Set sym_range to limit static kernel compilation to specified batch sizes.
+             options["_vllm_aclnn_static_kernel_sym_range"] = _compute_decode_cudagraph_batch_sizes(vllm_config)
+-- 
+2.43.0

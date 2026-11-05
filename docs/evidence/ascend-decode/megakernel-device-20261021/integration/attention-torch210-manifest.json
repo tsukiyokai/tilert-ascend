@@ -1,0 +1,484 @@
+{
+  "scope": "Torch binding rebuild; accepted device and tiling objects reused",
+  "script_sha256": "6dab124ce7add289bda373ebacf268efa2c26ee314e2d27f71e8f083945a2d04",
+  "image_id": "sha256:9afbed90a0f92e228cc1ba13adf3cee2e89e34f1dd4cad1ed8eb5ce8c091b4af",
+  "python": "3.12.13 (main, Jul  7 2026, 19:40:26) [GCC 11.4.0]",
+  "torch": "2.10.0+cpu",
+  "torch_npu": "2.10.0.post2",
+  "cxx11_abi": true,
+  "compiler": "g++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0\nCopyright (C) 2021 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "cann_root": "/opt/ascend/cann-9.2.0",
+  "cann_version_files": {
+    "/opt/ascend/cann-9.2.0/aarch64-linux/ascend_toolkit_install.info": {
+      "sha256": "0391193a0a405d26775cc56eeced6fd9560ebe11873205d3aec77486c5bd319e",
+      "text": "package_name=Ascend-cann-toolkit\nversion=9.2.0\ninnerversion=V100R001C25B114\ncompatible_version=[V100R001C15],[V100R001C23],[V100R001C10],[V100R001C11],[V100R001C12]\narch=aarch64\nos=linux\npath=/opt/ascend/cann-9.2.0\n"
+    },
+    "/opt/ascend/cann-9.2.0/opp/version.info": {
+      "sha256": "21a1f9fbbea6de30cfd4d4bc8d9c653172037011b3aeb4a462a7d31407b056ab",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/compiler/version.info": {
+      "sha256": "32ceec75dba2915171690a7d8e9434c51e7250cedae2804a55a5303784e234ea",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_tbe-tik_version=\"9.2\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/kernel/version.info": {
+      "sha256": "586a706b326a44cfe704f2a0d4c9af03d0393d435faa36c49db6842b77ae1437",
+      "text": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nops_version=9.2.0\nadk_version=9.2.0\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/dvpp/version.info": {
+      "sha256": "91709510d8a3437fde86de7ea1df5558f5f99483b8389d902a8824e1dd13af3b",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/mstx/version.info": {
+      "sha256": "a2a999fbb6af23baf3996ac9e6e1372b7af6d654d544b0ca470d0d1f2f0e091f",
+      "text": "[PACKAGE]\nName=mindstudio-TX\nVersion=26.2.0\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/dflow-executor/version.info": {
+      "sha256": "133f49d0929f0de46adb4583149a2e3337b2fffe173c4aa7aec3e68b6e108ea7",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_hcomm_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/oam_tools/version.info": {
+      "sha256": "d55fd3ce979a5240a17cf72176f297f06dff438500a853f0fa78796bbc3e3202",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=9.0\"\nrequired_package_bisheng-compiler_version=\">=9.0\"\nrequired_package_ops-cv_version=\">=9.0\"\nrequired_package_ops-math_version=\">=9.0\"\nrequired_package_ops-legacy_version=\">=9.0\"\nrequired_package_metadef_version=\">=9.0\"\nrequired_package_hcomm_version=\">=9.0\"\nrequired_package_hccl_version=\">=9.0\"\nrequired_package_ge-executor_version=\">=9.0\"\nrequired_package_ge-compiler_version=\">=9.0\"\nrequired_package_tbe-tik_version=\">=9.0\"\nrequired_package_asc-devkit_version=\">=9.0\"\nrequired_package_graph-autofusion_version=\">=9.0\"\nrequired_package_opbase_version=\">=9.0\"\nrequired_package_ops-nn_version=\">=9.0\"\nrequired_package_ops-transformer_version=\">=9.0\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/graph_autofusion/version.info": {
+      "sha256": "8e029f03928f65acab214f7210b9c242b8704a78516f5b78f8cac50062f0ea17",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_asc-devkit_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/pto_isa/version.info": {
+      "sha256": "c63892e09cf3efc033221c1006bf9bd65a4bb8e7fe3dfce291f8cc4288d289d9",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_opbase_version=\"9.2\"\nrequired_package_asc-devkit_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_asc-tools_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/pypto/version.info": {
+      "sha256": "8dc2617379e75d24766e6efbcd8ffffcf874a62847191fbb412e314f87efc009",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_driver_version=\">=25.5.0\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/mindstudio-sanitizer/version.info": {
+      "sha256": "2c6f69448a5e15c2ab3eb58371f12b0bb8d9f98c324a76d8f50f282ad87f2206",
+      "text": "[PACKAGE]\nName=mindstudio-sanitizer\nVersion=26.2.0"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/ops_transformer/version.info": {
+      "sha256": "d4c5beec6fcb71de15b20894b1b38f5c0eefeddb3923a221bf274856ced77cab",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_hcomm_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_ge-compiler_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_ops-nn_version=\">=8.5\"\nrequired_package_hccl_version=\">=8.5\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/runtime/version.info": {
+      "sha256": "46b82bfbf342bbc295d654ee99f698b231efc6e9d719c69838ef426557644991",
+      "text": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/platform_profiler/version.info": {
+      "sha256": "913d79c156a9b3214b4989e8bc66c97f3e4eecd6242899ba84630dc30aa27011",
+      "text": "[PACKAGE]\nName=platform-profiler\nVersion=1.0.0"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/mindstudio-opprof/version.info": {
+      "sha256": "c6d66690fd2c6792e6344dd74502dee6b912d58f6c06dd778727afa78ae96667",
+      "text": "[PACKAGE]\nName=mindstudio-opprof\nVersion=26.2.0"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/ops_cv/version.info": {
+      "sha256": "047ea99c241ea47741331ea104afa28d81250d28e78d0273e94d951593259516",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_ops-legacy_version=\">=8.5\"\nrequired_package_ops-math_version=\">=8.5\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/mindstudio-debugger/version.info": {
+      "sha256": "bf974234bae2b9bbc85b9423c339bb9ba38dbe2d514e49bb1c5565bf116bb9e4",
+      "text": "[PACKAGE]\nName=mindstudio-debugger\nVersion=26.2.0\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/ncs/version.info": {
+      "sha256": "7b2f3f17bae746daa369c7b0328b92bd0de50987fd5d0f5870382b137529e167",
+      "text": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nrequired_package_acl-extend_version=\"9.2\"\nrequired_package_aoe_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_opbase_version=\"9.2\"\nrequired_package_runtime_version=\"9.2\"\nrequired_package_tbe-tik_version=\"9.2\"\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/bisheng-compiler/version.info": {
+      "sha256": "46b82bfbf342bbc295d654ee99f698b231efc6e9d719c69838ef426557644991",
+      "text": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/asc-devkit/version.info": {
+      "sha256": "32ceec75dba2915171690a7d8e9434c51e7250cedae2804a55a5303784e234ea",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_tbe-tik_version=\"9.2\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/ops_math/version.info": {
+      "sha256": "1829c6f9e78123295db7f1da0488433ddaf6d0329ffd95c213815d12ad5b1324",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_ops-legacy_version=\">=8.5\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/ops_nn/version.info": {
+      "sha256": "a1eb0ec36f734dc3f17486c470e5b7cba0d4a3059066da9aa5518cde22b77c27",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_ops_legacy_version=\">=8.5\"\nrequired_package_ops_math_version=\">=8.5\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/mspti/version.info": {
+      "sha256": "1ea5332e0782c2bd0a1d119b7f8c8b544b58d662aea46cf7758530eab70d358e",
+      "text": "[PACKAGE]\nName=mindstudio-profiler-tools-interface\nVersion=26.2.0"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/opbase/version.info": {
+      "sha256": "21a1f9fbbea6de30cfd4d4bc8d9c653172037011b3aeb4a462a7d31407b056ab",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/ge-compiler/version.info": {
+      "sha256": "cc1eb14631024d84900dc6b8c2a745573b2fbd9639715199faac1a58904abfca",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_hcomm_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/mindstudio-operator-tools/version.info": {
+      "sha256": "f3b75cb1cdb0d90ba078081353146dcf42a738bbe56709212d45ad193ea019d6",
+      "text": "[PACKAGE]\nName=mindstudio-operator-tools\nVersion=26.2.0"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/simulator/version.info": {
+      "sha256": "46b82bfbf342bbc295d654ee99f698b231efc6e9d719c69838ef426557644991",
+      "text": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/ge-executor/version.info": {
+      "sha256": "d693e0250c1d84f7a10fdaea215da44093c1771fff461457683153d1bc835617",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_hcomm_version=\"9.2\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/pyACL/version.info": {
+      "sha256": "81cd47eda457f719c914e7d3597cac16f14d36919ff67dc786e21b5cf72f7848",
+      "text": "Version=9.2.0\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/ms_fmk_transplt/version.info": {
+      "sha256": "e7c7cb89bc86af2dd003aad3bba19cc79d428dafcb427530db7ca7a9df685a16",
+      "text": "[PACKAGE]\nName=mindstudio-transplt\nVersion=26.2.0"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/ops_ras/version.info": {
+      "sha256": "a1eb0ec36f734dc3f17486c470e5b7cba0d4a3059066da9aa5518cde22b77c27",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_ops_legacy_version=\">=8.5\"\nrequired_package_ops_math_version=\">=8.5\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/ops_legacy/version.info": {
+      "sha256": "586a706b326a44cfe704f2a0d4c9af03d0393d435faa36c49db6842b77ae1437",
+      "text": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nops_version=9.2.0\nadk_version=9.2.0\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/hixl/version.info": {
+      "sha256": "cd6ee2e42a2ebc76a575660742c750ae7dc53e0038b28ac35d221e747f2f0b18",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_hcomm_version=\">=8.5\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/acl_extend/version.info": {
+      "sha256": "8ad9bc20b36bcf48828514b63bf504ae2148f5cb3a1d69ef6358644577d5b103",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/ascendnpu-ir/version.info": {
+      "sha256": "caa72d84cac4d3245cd99e5a0b4c57a5529dfeba4cbf17b9aa0d82c467e44296",
+      "text": "Version=1.2.0\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/asc-tools/version.info": {
+      "sha256": "6021bb1581beb3fb88f8fd290c8667412b92d760f6c1b0cb92e0bc3f1d1dcc28",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_asc-devkit_version=\"9.2\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/aoe/version.info": {
+      "sha256": "d2fb3bc43f4791d1b38f5c16fceb983a38b6be52d484cf6dcb27efab722e3c77",
+      "text": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nrequired_package_acl-extend_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_ncs_version=\"9.2\"\nrequired_package_opbase_version=\"9.2\"\nrequired_package_runtime_version=\"9.2\"\nrequired_package_tbe-tik_version=\"9.2\"\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/operator_cmp/version.info": {
+      "sha256": "5ba48bf5e10c40468ef620d8c90a4973189da56e0d61ac89e7e412968d48b3c8",
+      "text": "[PACKAGE]\nName=mindstudio-accucmp\nVersion=26.2.0"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/msmemscope/version.info": {
+      "sha256": "13f294a1c97a8a694b746a61d5111a35ce54f16f1d6d93485aaf900c05b7911c",
+      "text": "[PACKAGE]\nName=mindstudio-memscope\nVersion=26.2.0\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/metadef/version.info": {
+      "sha256": "8ad9bc20b36bcf48828514b63bf504ae2148f5cb3a1d69ef6358644577d5b103",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/msboost/version.info": {
+      "sha256": "8a06f1c23fff73e441e90024b3cdf7c4afbb3b8342a53076e8b07280e890ade8",
+      "text": "[PACKAGE]\nName=mindstudio-boost\nVersion=26.2.0\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/msprof/version.info": {
+      "sha256": "efe75d563d7a8e48c92c43d90a83aa6630124f80ac87b8110092e0df989963c5",
+      "text": "[PACKAGE]\nName=mindstudio-profiler\nVersion=26.2.0"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/hccl/version.info": {
+      "sha256": "fd9ded8ff8418220ee5bbf0edf65bffa5ecdddf31d7f93c8fa734142be35e1a4",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_hcomm_version=\">=8.5\"\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\ntimestamp=20260917_111743075\nhost_only=false\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/test-ops/version.info": {
+      "sha256": "81cd47eda457f719c914e7d3597cac16f14d36919ff67dc786e21b5cf72f7848",
+      "text": "Version=9.2.0\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/msserviceprofiler/version.info": {
+      "sha256": "c756a159b27e5064825097a2b542be775b1fad6c4a47327ce9e4939f9ae4a7a6",
+      "text": "[PACKAGE]\nName=mindstudio-serviceprofiler\nVersion=26.2.0"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/pto_as/version.info": {
+      "sha256": "c63892e09cf3efc033221c1006bf9bd65a4bb8e7fe3dfce291f8cc4288d289d9",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_opbase_version=\"9.2\"\nrequired_package_asc-devkit_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_asc-tools_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\ntimestamp=20260917_111743075\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/hcomm/version.info": {
+      "sha256": "b33d83949ab092f79916e6aed9c0c859e70a212ff6c7faeb5cefbecf80eec729",
+      "text": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\ntimestamp=20260917_111743075\nhost_only=true\n"
+    },
+    "/opt/ascend/cann-9.2.0/share/info/tbe-tik/version.info": {
+      "sha256": "314bdd148dac35a93d939b1af9cc39dba37aee767198910dc753c1ba8a4f4afc",
+      "text": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nrequired_opp_abi_version=tbe-tik\nrequired_package_ge-compiler_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_runtime_version=\"9.2\"\n"
+    }
+  },
+  "builds": [
+    {
+      "mode": "indexed",
+      "accepted_library": "/workspace/tests/glm52/whole_layer/attention_indexed_build-scale-order/whole_layer_indexed_attention.so",
+      "accepted_library_sha256": "6588e1dcde9dd843c10479ce1276ae069d89a9e60c16bc296f20ba4afb7c1c34",
+      "reused_objects": {
+        "attention_indexed_kernel.o": {
+          "path": "/workspace/tests/glm52/whole_layer/attention_indexed_build-scale-order/attention_indexed_kernel.o",
+          "sha256": "e9fefce770b0c4e6dac025a904bbed747048ca5a7f49a3b2f08595eb46493ae3"
+        },
+        "indexer_front_tiling.o": {
+          "path": "/workspace/tests/glm52/whole_layer/attention_indexed_build-scale-order/indexer_front_tiling.o",
+          "sha256": "fe1c6036ea231cd950bc8f3d30e332af7f74314a328fffd7be89d58bdffbc045"
+        },
+        "mla_tail_tiling.o": {
+          "path": "/workspace/tests/glm52/whole_layer/attention_indexed_build-scale-order/mla_tail_tiling.o",
+          "sha256": "82412f13a1ddfe2c78ba0c4b2dea3fbb7b6755050f6623d152dac2ca5194c766"
+        }
+      },
+      "source_root": "/workspace/tests/glm52/whole_layer/attention_indexed_build-scale-order/source",
+      "source_hashes": {
+        "tests/glm52/mla_tail/mla_tail.h": "ca13e082d775154ea9357c2b12968da0a234b180f2ce6621675602414a8c7e9e",
+        "tests/glm52/mla_tail/mla_tail_native.h": "b7ad1b066ffda77cf6f43bf44ec632a3e23819723452107a0d654e72ce31d6f3",
+        "tests/glm52/mla_tail/mla_tail_tiling.cpp": "3bffe7fe39cb268da01a88625c335ad3940efc71da6fd86760c5d6ba31938ff2",
+        "tests/glm52/whole_layer/attention_binding.cpp": "141abf9d9e80b15e3a12430c7e3711c6d448c629242c4a9b1bf9bb8382a21de8",
+        "tests/glm52/whole_layer/attention_build.sh": "9a367ed3e19b23be91737c7a18669c8ceb4d25cc68af21de0995c69868119aae",
+        "tests/glm52/whole_layer/attention_check.py": "3172070ad5209b91756550cc89cd42f707a63cee632bca2cc93a9b105400594b",
+        "tests/glm52/whole_layer/attention_contract.h": "3e27dd9ec5b7d19f864e2830a28eee044e463d4943c000302cce802117c4d0e7",
+        "tests/glm52/whole_layer/attention_contract_test.cpp": "5fb17522f7cafd22cc620f278cce2744d3461e57ae496b6f0da24b6a320d9650",
+        "tests/glm52/whole_layer/attention_export_binding.cpp": "7d1a14da9e2c71892cfd0f246d1f2d5b7c7530d610ef567fceb05554e506f64b",
+        "tests/glm52/whole_layer/attention_export_build.sh": "1578c499681067becb98e3328108bb9645468190883b1587e3c548170467753f",
+        "tests/glm52/whole_layer/attention_export_check.py": "3ca148005c934de14cb79e73b8a89cc84f319a0a83821cbe29d2aeae02171b3a",
+        "tests/glm52/whole_layer/attention_export_contract.h": "8600d123fd1c12758e1062665dd521378c133fb68ba5072a1e00a05e0f84c459",
+        "tests/glm52/whole_layer/attention_export_kernel.cpp": "77fef50f704310835e9fa244efb29c4eeb5d915df57367a83bce523d2caec464",
+        "tests/glm52/whole_layer/attention_full.md": "e63a8bbada8b00de8d52d39f26ec958d90d883299f55251f4b149aa84d4f315f",
+        "tests/glm52/whole_layer/attention_full_binding.cpp": "657136933f8a9283dcc7663fbf901300d9121b90d73eadc882e335815f3189d5",
+        "tests/glm52/whole_layer/attention_full_build.sh": "4d857cb9c1fb756bbcce4065e22d4541d5464aded3b581ed98d9cbe62cbc30ea",
+        "tests/glm52/whole_layer/attention_full_check.py": "41d909ff3bd2803aa86634b70f7894373311161b299156435775c01028b6d707",
+        "tests/glm52/whole_layer/attention_full_contract.h": "b71aaf5ca3edac589f645070a3ad5f20ff7be3a151a5abadd23cb547770bd893",
+        "tests/glm52/whole_layer/attention_full_kernel.cpp": "a3ce48d4e7f8e9a7f769c4874d6d24386aa3ddaa4f5234622b0712b3024beb24",
+        "tests/glm52/whole_layer/attention_full_native.h": "90e6d754d13ff4d7d15dc04f47f36f9d37deaf5428e32486ea5094744405601f",
+        "tests/glm52/whole_layer/attention_host.h": "15e79702c5bb0b1ec2e3db41cd1bc489810c05b9183e58be7428c0b2b9fc126e",
+        "tests/glm52/whole_layer/attention_indexed.md": "c7f5bd451d3c72d758c4a9d42440b3e553c9461d601b24ac949f60296db81882",
+        "tests/glm52/whole_layer/attention_indexed_binding.cpp": "a2bc593721b58882dbd845c6ebc2b5014cb098e29a80d8134c6e84d9a9acdf96",
+        "tests/glm52/whole_layer/attention_indexed_build.sh": "32cbe827acda1823481087bd673a24b5c369d8269740e4045999cca1d4b2334a",
+        "tests/glm52/whole_layer/attention_indexed_check.py": "cbba16fc97ffd7e105fdca75d440e0f256e4a9dfabe356f33b1d241b129c5ab2",
+        "tests/glm52/whole_layer/attention_indexed_contract.h": "bf387686b8cc1f6019e52405c79d5a1df9818fd543d321c06e43c727fb81fb77",
+        "tests/glm52/whole_layer/attention_indexed_contract_test.cpp": "3c769fcffd07370ac7377a8397e2d5f9880cfa8536840e970df41732d77370c2",
+        "tests/glm52/whole_layer/attention_indexed_kernel.cpp": "5e621ca6c69d26a1bf119604179bc8822616f8f30ce4c674b2c175ccf8a7826f",
+        "tests/glm52/whole_layer/attention_indexed_native.h": "6f1be4b93d9e103634200449cbdad38bf50002befd02dbd2d48d98696e4e0fdc",
+        "tests/glm52/whole_layer/attention_indexed_sfa.h": "43d3218514e0fce78362b0f1891b33e7f6a4b59b385ee712ae82d65bbb974b2a",
+        "tests/glm52/whole_layer/attention_indexed_test.py": "81fa0602e640e0deec592a1e32452d6fa2609962fd9731a42c448aec60b56708",
+        "tests/glm52/whole_layer/attention_kernel.cpp": "1eba2192e85ab91ff93961f18e43c73bc27154819cd93b534181506bfdeefa32",
+        "tests/glm52/whole_layer/attention_native.h": "a7d92853f15174736899ae8aa4407f46b7fe2875fda7db81b525311fb2acc0b7",
+        "tests/glm52/whole_layer/attention_norm_binding.cpp": "10035bf2e849a44828bc508a02045e762dbfef9f81bcc168c5d1b5a36930b6c7",
+        "tests/glm52/whole_layer/attention_norm_build.sh": "23f9d110a961f86ca04ea157a04421c2ac5c25ed623621eed9edf444232ba5b2",
+        "tests/glm52/whole_layer/attention_norm_check.py": "af363c02460d0c8069d1483f15bc17d93591f9df662fca0f91ac3aeffdec21a1",
+        "tests/glm52/whole_layer/attention_norm_contract.h": "49c7cc28b06c752eba561d0813dcc35bc8ad2d5e40db6073e1a67a3466b6da82",
+        "tests/glm52/whole_layer/attention_norm_contract.md": "ed36a4e817bc48ddffedc6a0b51852f9d2a2269a52594d2bf4df807fb8022644",
+        "tests/glm52/whole_layer/attention_norm_contract_test.cpp": "5d592c51f484c908e7ce9a71cfcd35995803cd120d28a61af333f48b4b759123",
+        "tests/glm52/whole_layer/attention_norm_kernel.cpp": "a3ace10b563170254e2d04cd8891719ed919cdd682aca70b30a4adac84409c33",
+        "tests/glm52/whole_layer/attention_norm_native.h": "8f62f0af92d633c0fa8063c0181b83a4d585def4adc814efae324a3cb91a668f",
+        "tests/glm52/whole_layer/attention_provenance.py": "937eb59f7fdee4a584c9899c528d9a7a95b7bdac6dd83192fc697ff60679f49d",
+        "tests/glm52/whole_layer/attention_sfa_tiling.h": "8c24b9c2ac6625a2e46afad0997b91785e1e78174c41c1abbf96808129b259bf",
+        "tests/glm52/whole_layer/indexer_contract.h": "172d585e1f0387767ea7b586a34558e40852950d62433114501dfbee7ea71b83",
+        "tests/glm52/whole_layer/indexer_front.md": "be50068449a498c2ffffa5dd8b9da7f56c56619e97b4f653bce16ae53d140610",
+        "tests/glm52/whole_layer/indexer_front_binding.cpp": "a1caef63e14778ba8a3962af79a109d910f9eb222838b389d97fd12aba6cb61a",
+        "tests/glm52/whole_layer/indexer_front_build.sh": "6f7302f1af1606b51c7372d08d0de8e2c749611e2118e31bac8195c8721cfbdc",
+        "tests/glm52/whole_layer/indexer_front_check.py": "3f03230af6fe5e62348236f9144cd5c8f46ec8ef8911a53fd03e7ee650f268a1",
+        "tests/glm52/whole_layer/indexer_front_contract.h": "b3cdf1e6f08a106da03c7039202ee34ed7faecb03c6d485cb5fc3bfef62d5db4",
+        "tests/glm52/whole_layer/indexer_front_contract_test.cpp": "ed1bc6d83a679f54ae1489ebf8ced9eb314f53c4a93dc8c615752374c83afebc",
+        "tests/glm52/whole_layer/indexer_front_kernel.cpp": "ac4e52a0a211b335e9b4c5c1209f7af02f69403e653834e4afdaea5bc124699d",
+        "tests/glm52/whole_layer/indexer_front_native.h": "772a591f78b5276013f67970e106566119c566e14a272f3ee5703a675865a184",
+        "tests/glm52/whole_layer/indexer_front_provenance.py": "263bc30e77f9ef97153c2eed73e576d7f965c98d178348d7d2a83ce6c91a7356",
+        "tests/glm52/whole_layer/indexer_front_test.py": "208f90bf5d5f23a0368513eed5167059a0aa9ee8bc13601e17ecd3db6f210ffd",
+        "tests/glm52/whole_layer/indexer_front_tiling.cpp": "b8573364d193f4a106424e5408c881fe4eee18a4888509752543a1400259521d",
+        "tests/glm52/whole_layer/indexer_native.h": "6b2704d15774b3611be46558bddb8f2e6225e70fbae08a11bddfcbcc44ed6a6f",
+        "tests/glm52/whole_layer/indexer_tiling.h": "e03ab7920afdd5678ad60aedef212d9d076c3edf5ff0e2466afdbd7939edc61d"
+      },
+      "compile_command": [
+        "g++",
+        "-std=c++17",
+        "-O2",
+        "-fPIC",
+        "-D_GLIBCXX_USE_CXX11_ABI=1",
+        "-I",
+        "/workspace/tests/glm52/whole_layer/attention_indexed_build-scale-order/source/tests/glm52/whole_layer",
+        "-I",
+        "/opt/ascend/cann-9.2.0/include",
+        "-I",
+        "/opt/ascend/cann-9.2.0/aarch64-linux/include",
+        "-I",
+        "/workspace/attention_vendor",
+        "-I",
+        "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/include",
+        "-I",
+        "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/include/torch/csrc/api/include",
+        "-I",
+        "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/include",
+        "-I",
+        "/opt/ascend/cann-9.2.0/aarch64-linux/asc",
+        "-I",
+        "/opt/ascend/cann-9.2.0/aarch64-linux/asc/include",
+        "-I",
+        "/opt/ascend/cann-9.2.0/aarch64-linux/asc/include/adv_api",
+        "-I",
+        "/opt/ascend/cann-9.2.0/aarch64-linux/asc/include/basic_api",
+        "-I",
+        "/opt/ascend/cann-9.2.0/aarch64-linux/asc/include/utils",
+        "-I",
+        "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/adv_api",
+        "-I",
+        "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/basic_api",
+        "-c",
+        "/workspace/tests/glm52/whole_layer/attention_indexed_build-scale-order/source/tests/glm52/whole_layer/attention_indexed_binding.cpp",
+        "-o",
+        "/evidence/attention-torch210-v2/indexed/attention_indexed_binding.o"
+      ],
+      "link_command": [
+        "g++",
+        "-shared",
+        "/evidence/attention-torch210-v2/indexed/attention_indexed_kernel.o",
+        "/evidence/attention-torch210-v2/indexed/indexer_front_tiling.o",
+        "/evidence/attention-torch210-v2/indexed/mla_tail_tiling.o",
+        "/evidence/attention-torch210-v2/indexed/attention_indexed_binding.o",
+        "-o",
+        "/evidence/attention-torch210-v2/indexed/whole_layer_indexed_attention.so",
+        "-L",
+        "/opt/ascend/cann-9.2.0/aarch64-linux/lib64",
+        "-L",
+        "/opt/ascend/cann-9.2.0/lib64",
+        "-L",
+        "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/lib",
+        "-L",
+        "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/lib",
+        "-lascendcl",
+        "-lruntime",
+        "-lunified_dlog",
+        "-lc_sec",
+        "-lregister",
+        "-lprofapi",
+        "-ltiling_api",
+        "-lplatform",
+        "-ltorch",
+        "-ltorch_cpu",
+        "-lc10",
+        "-ltorch_npu"
+      ],
+      "binding_sha256": "54afb601cf1fc383854114382839a2d54fcf5be1b867457f0d44e4e20858e9da",
+      "library": "/evidence/attention-torch210-v2/indexed/whole_layer_indexed_attention.so",
+      "library_sha256": "5d5e8ddb6527bcf50ee4e90507723d2b37cd66ea5f7a4734f7ce5995b13e46f7"
+    },
+    {
+      "mode": "shared",
+      "accepted_library": "/workspace/tests/glm52/whole_layer/attention_full_build-dequant/whole_layer_full_attention.so",
+      "accepted_library_sha256": "dce289d8fa391921348b50505f5eaf96a496546f0f359d7b38c39ee3ab4b0d06",
+      "reused_objects": {
+        "attention_full_kernel.o": {
+          "path": "/workspace/tests/glm52/whole_layer/attention_full_build-dequant/attention_full_kernel.o",
+          "sha256": "7355cc66d49630316e0a5f280bc8a31dd59981127bfe2eff25f56742e2e344cb"
+        },
+        "mla_tail_tiling.o": {
+          "path": "/workspace/tests/glm52/whole_layer/attention_full_build-dequant/mla_tail_tiling.o",
+          "sha256": "82412f13a1ddfe2c78ba0c4b2dea3fbb7b6755050f6623d152dac2ca5194c766"
+        }
+      },
+      "source_root": "/workspace/tests/glm52/whole_layer/attention_full_build-dequant/sources",
+      "source_hashes": {
+        "tests/glm52/mla_tail/mla_tail.h": "ca13e082d775154ea9357c2b12968da0a234b180f2ce6621675602414a8c7e9e",
+        "tests/glm52/mla_tail/mla_tail_native.h": "69e31791e869b65a1046486901cea028abe38c75c0e8bcba0e324e1ccab282c6",
+        "tests/glm52/mla_tail/mla_tail_tiling.cpp": "3bffe7fe39cb268da01a88625c335ad3940efc71da6fd86760c5d6ba31938ff2",
+        "tests/glm52/whole_layer/attention_binding.cpp": "141abf9d9e80b15e3a12430c7e3711c6d448c629242c4a9b1bf9bb8382a21de8",
+        "tests/glm52/whole_layer/attention_build.sh": "ee75687e6748bbaa4262b027418d0c6246d65dfba9292871d59983223c2defe2",
+        "tests/glm52/whole_layer/attention_check.py": "94be7f24a6a548263eacbd9c88e69a8172faf9dad3e80ddfcfa074bb9745af77",
+        "tests/glm52/whole_layer/attention_contract.h": "3e27dd9ec5b7d19f864e2830a28eee044e463d4943c000302cce802117c4d0e7",
+        "tests/glm52/whole_layer/attention_contract_test.cpp": "5fb17522f7cafd22cc620f278cce2744d3461e57ae496b6f0da24b6a320d9650",
+        "tests/glm52/whole_layer/attention_full_binding.cpp": "657136933f8a9283dcc7663fbf901300d9121b90d73eadc882e335815f3189d5",
+        "tests/glm52/whole_layer/attention_full_build.sh": "4d857cb9c1fb756bbcce4065e22d4541d5464aded3b581ed98d9cbe62cbc30ea",
+        "tests/glm52/whole_layer/attention_full_check.py": "41d909ff3bd2803aa86634b70f7894373311161b299156435775c01028b6d707",
+        "tests/glm52/whole_layer/attention_full_contract.h": "b71aaf5ca3edac589f645070a3ad5f20ff7be3a151a5abadd23cb547770bd893",
+        "tests/glm52/whole_layer/attention_full_kernel.cpp": "a3ce48d4e7f8e9a7f769c4874d6d24386aa3ddaa4f5234622b0712b3024beb24",
+        "tests/glm52/whole_layer/attention_full_native.h": "90e6d754d13ff4d7d15dc04f47f36f9d37deaf5428e32486ea5094744405601f",
+        "tests/glm52/whole_layer/attention_host.h": "15e79702c5bb0b1ec2e3db41cd1bc489810c05b9183e58be7428c0b2b9fc126e",
+        "tests/glm52/whole_layer/attention_kernel.cpp": "1eba2192e85ab91ff93961f18e43c73bc27154819cd93b534181506bfdeefa32",
+        "tests/glm52/whole_layer/attention_native.h": "1af9eb60effdec7d215dac1675892ac8e92c5b4accf5bc327676effcdf91dce6",
+        "tests/glm52/whole_layer/attention_norm_binding.cpp": "10035bf2e849a44828bc508a02045e762dbfef9f81bcc168c5d1b5a36930b6c7",
+        "tests/glm52/whole_layer/attention_norm_build.sh": "23f9d110a961f86ca04ea157a04421c2ac5c25ed623621eed9edf444232ba5b2",
+        "tests/glm52/whole_layer/attention_norm_check.py": "af363c02460d0c8069d1483f15bc17d93591f9df662fca0f91ac3aeffdec21a1",
+        "tests/glm52/whole_layer/attention_norm_contract.h": "49c7cc28b06c752eba561d0813dcc35bc8ad2d5e40db6073e1a67a3466b6da82",
+        "tests/glm52/whole_layer/attention_norm_contract.md": "ed36a4e817bc48ddffedc6a0b51852f9d2a2269a52594d2bf4df807fb8022644",
+        "tests/glm52/whole_layer/attention_norm_kernel.cpp": "a3ace10b563170254e2d04cd8891719ed919cdd682aca70b30a4adac84409c33",
+        "tests/glm52/whole_layer/attention_norm_native.h": "8f62f0af92d633c0fa8063c0181b83a4d585def4adc814efae324a3cb91a668f",
+        "tests/glm52/whole_layer/attention_provenance.py": "f160352bc59bcc00c2270551122e8627aede8459da74a21644d6220c376e3c7c",
+        "tests/glm52/whole_layer/attention_sfa_tiling.h": "8c24b9c2ac6625a2e46afad0997b91785e1e78174c41c1abbf96808129b259bf"
+      },
+      "compile_command": [
+        "g++",
+        "-std=c++17",
+        "-O2",
+        "-fPIC",
+        "-D_GLIBCXX_USE_CXX11_ABI=1",
+        "-I",
+        "/workspace/tests/glm52/whole_layer/attention_full_build-dequant/sources/tests/glm52/whole_layer",
+        "-I",
+        "/opt/ascend/cann-9.2.0/include",
+        "-I",
+        "/opt/ascend/cann-9.2.0/aarch64-linux/include",
+        "-I",
+        "/workspace/attention_vendor",
+        "-I",
+        "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/include",
+        "-I",
+        "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/include/torch/csrc/api/include",
+        "-I",
+        "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/include",
+        "-I",
+        "/opt/ascend/cann-9.2.0/aarch64-linux/asc",
+        "-I",
+        "/opt/ascend/cann-9.2.0/aarch64-linux/asc/include",
+        "-I",
+        "/opt/ascend/cann-9.2.0/aarch64-linux/asc/include/adv_api",
+        "-I",
+        "/opt/ascend/cann-9.2.0/aarch64-linux/asc/include/basic_api",
+        "-I",
+        "/opt/ascend/cann-9.2.0/aarch64-linux/asc/include/utils",
+        "-I",
+        "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/adv_api",
+        "-I",
+        "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/basic_api",
+        "-c",
+        "/workspace/tests/glm52/whole_layer/attention_full_build-dequant/sources/tests/glm52/whole_layer/attention_full_binding.cpp",
+        "-o",
+        "/evidence/attention-torch210-v2/shared/attention_full_binding.o"
+      ],
+      "link_command": [
+        "g++",
+        "-shared",
+        "/evidence/attention-torch210-v2/shared/attention_full_kernel.o",
+        "/evidence/attention-torch210-v2/shared/mla_tail_tiling.o",
+        "/evidence/attention-torch210-v2/shared/attention_full_binding.o",
+        "-o",
+        "/evidence/attention-torch210-v2/shared/whole_layer_full_attention.so",
+        "-L",
+        "/opt/ascend/cann-9.2.0/aarch64-linux/lib64",
+        "-L",
+        "/opt/ascend/cann-9.2.0/lib64",
+        "-L",
+        "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/lib",
+        "-L",
+        "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/lib",
+        "-lascendcl",
+        "-lruntime",
+        "-lunified_dlog",
+        "-lc_sec",
+        "-lregister",
+        "-lprofapi",
+        "-ltiling_api",
+        "-lplatform",
+        "-ltorch",
+        "-ltorch_cpu",
+        "-lc10",
+        "-ltorch_npu"
+      ],
+      "binding_sha256": "b839a23032b16d92bd6f68ef1171673b24e908c9481f59f72c166c9c9b7abac5",
+      "library": "/evidence/attention-torch210-v2/shared/whole_layer_full_attention.so",
+      "library_sha256": "245ae243c779594664ebe80ce91b5f84bc133457d47da56734261bce2347ee0f"
+    }
+  ],
+  "schemas": {
+    "indexed_attention_prepare": "tilert::indexed_attention_prepare(Tensor token_x, int pages, int table_pages, int index_pages, int index_table_pages, bool quantized, int blocks=0) -> (Tensor, Tensor, Dict(str, int), int, int)",
+    "indexed_attention_out": "tilert::indexed_attention_out(Tensor hidden, Tensor token_x, Tensor token_scale, Tensor[] main_weights, Tensor[] front_weights, Tensor[] tail_weights, Tensor? bias, Tensor[] main_metadata, Tensor[] indexer_metadata, Tensor(a!)[] caches, Tensor(b!) scratch, Tensor tiling, Tensor(c!) output, float scale, float epsilon_cq, float epsilon_ckv, int blocks, int sync_base) -> Tensor(c!)",
+    "shared_full_attention_prepare": "tilert::shared_full_attention_prepare(Tensor token_x, int pages, int table_pages, int blocks=0) -> (Tensor, Tensor, int, int)",
+    "shared_full_attention_out": "tilert::shared_full_attention_out(Tensor token_x, Tensor token_scale, Tensor weight_dq, Tensor weight_uq_qr, Tensor weight_uk, Tensor weight_dkv_kr, Tensor scale_dq, Tensor scale_uq_qr, Tensor scale_dkv_kr, Tensor gamma_cq, Tensor gamma_ckv, Tensor sin, Tensor cos, Tensor slots, Tensor(a!) kv_cache, Tensor(b!) rope_cache, Tensor topk, Tensor query_lengths, Tensor kv_lengths, Tensor page_table, Tensor value_weight, Tensor output_weight, Tensor output_scale, Tensor? bias, Tensor(c!) scratch, Tensor tiling, Tensor(d!) output, float scale, float epsilon_cq, float epsilon_ckv, int blocks, int sync_base) -> Tensor(d!)"
+  },
+  "npu_initialized": false
+}

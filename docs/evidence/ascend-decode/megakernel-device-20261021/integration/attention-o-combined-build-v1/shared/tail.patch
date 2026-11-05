@@ -1,0 +1,68 @@
+--- accepted-shared/tests/glm52/mla_tail/mla_tail_native.h
++++ candidate-shared/tests/glm52/mla_tail/mla_tail_native.h
+@@ -276,7 +276,7 @@
+         }
+         Cast(held.value, held.accumulator, RoundMode::CAST_RINT, kOutputTile);
+         PipeBarrier<PIPE_V>();
+-        // CANN per-token epilogues apply channel scale before token scale.
++        // Preserve the channel-then-token order of this projection's epilogue.
+         Mul(held.value, held.value, held.other, kOutputTile);
+         PipeBarrier<PIPE_V>();
+         Muls(held.value, held.value, row_scale, kOutputTile);
+@@ -323,6 +323,9 @@
+     }
+ };
+ 
++enum class ScaleOrder { ChannelThenToken, CombinedScales };
++
++template <ScaleOrder order = ScaleOrder::ChannelThenToken>
+ __aicore__ inline void DequantizeOutputRows(
+     TPipe& pipe, __gm__ int32_t* accumulators, __gm__ float* weight_scales,
+     __gm__ float* token_scales, __gm__ uint8_t* bias, int bias_kind,
+@@ -335,6 +338,12 @@
+     }
+     OutputWorkspace held;
+     held.Init(pipe);
++    TBuf<TPosition::VECCALC> combined_buffer;
++    LocalTensor<float> combined;
++    if constexpr (order == ScaleOrder::CombinedScales) {
++        pipe.InitBuffer(combined_buffer, kOutputTile * sizeof(float));
++        combined = combined_buffer.Get<float>();
++    }
+     GlobalTensor<int32_t> source, integer_bias;
+     GlobalTensor<float> weight_scale, token_scale, floating_bias;
+     GlobalTensor<bfloat16_t> destination;
+@@ -375,11 +384,19 @@
+             Cast(held.values[offset], held.accumulators[offset],
+                    RoundMode::CAST_RINT, kOutputTile);
+             PipeBarrier<PIPE_V>();
+-            Mul(held.values[offset], held.values[offset], held.weights,
+-                kOutputTile);
+-            PipeBarrier<PIPE_V>();
+             const float scale = held.scales.GetValue(row * kScaleStride);
+-            Muls(held.values[offset], held.values[offset], scale, kOutputTile);
++            if constexpr (order == ScaleOrder::CombinedScales) {
++                Muls(combined, held.weights, scale, kOutputTile);
++                PipeBarrier<PIPE_V>();
++                Mul(held.values[offset], held.values[offset], combined,
++                    kOutputTile);
++            } else {
++                Mul(held.values[offset], held.values[offset], held.weights,
++                    kOutputTile);
++                PipeBarrier<PIPE_V>();
++                Muls(held.values[offset], held.values[offset], scale,
++                     kOutputTile);
++            }
+             PipeBarrier<PIPE_V>();
+             if (bias_kind == 2) {
+                 Add(held.values[offset], held.values[offset],
+@@ -452,7 +469,8 @@
+     }
+     SyncAll<false>();
+     if ASCEND_IS_AIV {
+-        DequantizeOutputRows(pipe, accumulators, output_scale, scales, bias,
++        DequantizeOutputRows<ScaleOrder::CombinedScales>(
++            pipe, accumulators, output_scale, scales, bias,
+                             bias_kind, output, rows, capacity, GetBlockIdx(),
+                             2 * blocks);
+         Publish();

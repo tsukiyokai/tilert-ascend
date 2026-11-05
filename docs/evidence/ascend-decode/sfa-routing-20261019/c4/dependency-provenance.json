@@ -1,0 +1,42 @@
+{
+  "source_root": "/workspace/src/vllm-ascend-unified",
+  "source_identity": "Installed tree has no Git metadata; files are identified by SHA256.",
+  "control_source": {
+    "path": "/workspace/offline/sfa-c4-20261019-codex/control/attention/sparse_flash_attention/op_host/sparse_flash_attention_tiling.cpp",
+    "resolved": "/workspace/offline/sfa-c4-20261019-codex/control/attention/sparse_flash_attention/op_host/sparse_flash_attention_tiling.cpp",
+    "sha256": "2007140f568b2b7bc4f3a90f3d06f092913f2439bcc00c1fea4a26801f46ad78",
+    "bytes": 81594
+  },
+  "candidate_source": {
+    "path": "/workspace/offline/sfa-c4-20261019-codex/source/csrc/attention/sparse_flash_attention/op_host/sparse_flash_attention_tiling.cpp",
+    "resolved": "/workspace/offline/sfa-c4-20261019-codex/source/csrc/attention/sparse_flash_attention/op_host/sparse_flash_attention_tiling.cpp",
+    "sha256": "006ad2936f4a0117ec81439f43780eb4ffdac73031dac0d0f675adfcb93c356f",
+    "bytes": 81594
+  },
+  "dependency": {
+    "reason": "Installed source has nlohmann 3.11.3 modular json.hpp but lacks detail/output/binary_writer.hpp.",
+    "url": "https://raw.githubusercontent.com/nlohmann/json/v3.11.3/single_include/nlohmann/json.hpp",
+    "original_sha256": "2432cbf7f4258453538eca193cd937fc777462ae2ce8ee9f46e6ee460ef56bea",
+    "replacement_sha256": "9bea4c8066ef4a1c206b2be5a36302f8926f7fdc6087af5d20b417d0cf103ea6",
+    "scope": "Experiment source snapshot only; same repair for rebuilt control and candidate."
+  },
+  "json_replacement_in_snapshot": "third_party/json/include/nlohmann/json.hpp",
+  "build_script_sha256": "7be2f5278d5b3eba202edec950a34912543e9bebc3027cd62de81e41c7b90f97",
+  "original_successful_target": [
+    "cmake",
+    "--build",
+    "build",
+    "--target",
+    "cust_opmaster",
+    "-j16"
+  ],
+  "full_package_blocker": "cmake/third_party/build/modules/patch/protobuf_25.1_change_version.patch missing; cust_opmaster does not depend on this package target",
+  "scope": "Host target only. Preserve all installed vendor packages and reuse existing device ELFs. Current host library registers SFA only.",
+  "direct_configure_target_validated": {
+    "host": "a3-84:trt-asc",
+    "snapshot": "/workspace/offline/sfa-c1-20261019-codex/source/csrc",
+    "exit_code": 0,
+    "log": "/tmp/sfa-c1-20261019-codex/host-candidate-build.log",
+    "scope": "Same SFA-only target and dependency snapshot; C1 route instead of C4 route."
+  }
+}

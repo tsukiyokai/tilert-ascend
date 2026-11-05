@@ -1,0 +1,117 @@
+{
+  "status": "pass",
+  "real_saved_hf_steps_read": 96,
+  "received_frames": 3,
+  "received_rows": 96,
+  "exact_field_rows_checked": 60288,
+  "scalar_oracles_recomputed": 629,
+  "legacy_empty_reference": {
+    "name": "empty_reference",
+    "accepted": true,
+    "check_count": 0,
+    "failures": []
+  },
+  "legacy_type_aliases": [
+    {
+      "field": "width",
+      "legacy_header_equal": true
+    },
+    {
+      "field": "layer_count",
+      "legacy_header_equal": true
+    },
+    {
+      "field": "fp32_head",
+      "legacy_header_equal": true
+    }
+  ],
+  "rejected_cases": [
+    {
+      "name": "empty_reference",
+      "rejected": true,
+      "error": "ValueError: Expected exactly 32 HF reference rows"
+    },
+    {
+      "name": "one_reference_row",
+      "rejected": true,
+      "error": "ValueError: Expected exactly 32 HF reference rows"
+    },
+    {
+      "name": "31_reference_rows",
+      "rejected": true,
+      "error": "ValueError: Expected exactly 32 HF reference rows"
+    },
+    {
+      "name": "33_reference_rows",
+      "rejected": true,
+      "error": "ValueError: Expected exactly 32 HF reference rows"
+    },
+    {
+      "name": "width_type_alias",
+      "rejected": true,
+      "error": "ValueError: Header width, layers and head mode must have exact types"
+    },
+    {
+      "name": "layer_count_type_alias",
+      "rejected": true,
+      "error": "ValueError: Header width, layers and head mode must have exact types"
+    },
+    {
+      "name": "fp32_head_type_alias",
+      "rejected": true,
+      "error": "ValueError: Header width, layers and head mode must have exact types"
+    },
+    {
+      "name": "bool_input_token",
+      "rejected": true,
+      "error": "ValueError: Typed frame identity differs"
+    },
+    {
+      "name": "float_row_ids",
+      "rejected": true,
+      "error": "ValueError: Typed row or replay identity differs"
+    },
+    {
+      "name": "bool_row_id",
+      "rejected": true,
+      "error": "ValueError: Typed row or replay identity differs"
+    },
+    {
+      "name": "float_index_lengths",
+      "rejected": true,
+      "error": "ValueError: Index lengths must be positive integers"
+    },
+    {
+      "name": "source_sha256_receipt_missing_or_repeated",
+      "rejected": true,
+      "error": "Required project source identity is missing"
+    },
+    {
+      "name": "installed_hf_source_sha256_receipt_missing_or_repeated",
+      "rejected": true,
+      "error": "Installed HF source inventory differs"
+    },
+    {
+      "name": "loaded_reference_sources_receipt_missing_or_repeated",
+      "rejected": true,
+      "error": "Loaded reference classes differ"
+    },
+    {
+      "name": "model_state_checks_receipt_missing_or_repeated",
+      "rejected": true,
+      "error": "Repeated or missing cache state check"
+    }
+  ],
+  "owned_row_snapshots": true,
+  "hf_constructed": false,
+  "hf_forward_executed": false,
+  "precision_verified": false,
+  "npu_executed": false,
+  "data_manifest_sha256": "512c314347774eef40fc0e4003604d3d1b5e126c7330d097c697fd8df32079b7",
+  "source_sha256": {
+    "check_readback.py": "0dc379951246dd69931c2386e407cb0644557a727e351cc28e5873ff24c1c8e1",
+    "receiver.py": "22111cb5fa5733f270d44417bf3bcef61f7d042ff9f83f41c3751a035b74e695",
+    "audit.py": "4dcfd44ba471f71d1f5ec2d1ecf9bae915564d9398eafde5b513641344b7dad3",
+    "frozen/tilert-cann-frame32-experiment-20261028.py": "c165abcc5fe61ee8c6e9ae76159a5fe509b4b586296eaa21e66691c6a26f8c44"
+  }
+}

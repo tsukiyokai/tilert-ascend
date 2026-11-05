@@ -1,0 +1,38 @@
+Original lines 1-36
+    1 #ifndef TESTS_GLM52_WHOLE_LAYER_ATTENTION_NORM_NATIVE_H
+    2 #define TESTS_GLM52_WHOLE_LAYER_ATTENTION_NORM_NATIVE_H
+    3 
+    4 #include "attention_full_native.h"
+    5 #include "attention_norm_contract.h"
+    6 #include "norm_native.h"
+    7 
+    8 namespace whole_layer_attention {
+    9 
+   10 __aicore__ inline void NormForward(
+   11     AscendC::TPipe& pipe, const NormConfig& config, DeviceArgs attention,
+   12     GM_ADDR input, GM_ADDR residual, GM_ADDR norm_gamma, GM_ADDR norm_beta,
+   13     GM_ADDR retained, GM_ADDR value_weight, GM_ADDR output_weight,
+   14     GM_ADDR output_scale, GM_ADDR bias, int bias_kind, GM_ADDR scratch,
+   15     GM_ADDR tail_tiling, GM_ADDR output)
+   16 {
+   17     GM_ADDR full_arena = scratch + config.full_offset;
+   18     attention.token_x = scratch;
+   19     attention.token_scale = scratch + config.scale_offset;
+   20     whole_layer_norm::device::Forward(pipe,
+   21         (__gm__ bfloat16_t*)input, (__gm__ bfloat16_t*)residual,
+   22         (__gm__ bfloat16_t*)norm_gamma, (__gm__ bfloat16_t*)norm_beta,
+   23         (__gm__ bfloat16_t*)full_arena, (__gm__ bfloat16_t*)retained,
+   24         (__gm__ float*)(full_arena + config.rstd_offset),
+   25         (__gm__ int8_t*)attention.token_x, (__gm__ float*)attention.token_scale,
+   26         config.full.attention.rows, config.full.attention.blocks, config.epsilon);
+   27     // Publish the norm outputs before Prolog reads their quantized form.
+   28     // normalized/rstd are dead after this barrier; retained remains external.
+   29     EndPhase(pipe);
+   30     FullForward(pipe, config.full, attention, value_weight, output_weight,
+   31         output_scale, bias, bias_kind, full_arena, tail_tiling, output);
+   32 }
+   33 
+   34 }  // namespace whole_layer_attention
+   35 
+   36 #endif
+

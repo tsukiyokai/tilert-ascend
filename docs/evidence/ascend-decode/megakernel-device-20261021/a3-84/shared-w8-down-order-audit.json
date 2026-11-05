@@ -1,0 +1,317 @@
+{
+  "scope": "CPU arithmetic audit of captured A3 shared W8 down failure",
+  "input_path": "/tmp/tilert-megakernel-validation-20261021/a3-84/shared-w8-down-diagnostic-m12-r0.pt",
+  "input_sha256": "ea12ff4656589f078804299547cfdb1c04b4b7a625d88141fb855025e3438a87",
+  "torch_cpu": "2.9.1+cpu",
+  "rows": 12,
+  "native_middle_vs_vendor": {
+    "shape": [
+      12,
+      128
+    ],
+    "dtype": "torch.int8",
+    "bitwise_equal": true,
+    "different_elements": 0,
+    "different_bytes": 0
+  },
+  "native_scale_vs_vendor": {
+    "shape": [
+      12
+    ],
+    "dtype": "torch.float32",
+    "bitwise_equal": true,
+    "different_elements": 0,
+    "different_bytes": 0
+  },
+  "int64_dot_range": [
+    -113399,
+    99392
+  ],
+  "native_accumulator_vs_int64_dot": {
+    "shape": [
+      12,
+      6144
+    ],
+    "dtype": "torch.int32",
+    "bitwise_equal": true,
+    "different_elements": 0,
+    "different_bytes": 0
+  },
+  "native_output_vs_vendor": {
+    "shape": [
+      12,
+      6144
+    ],
+    "dtype": "torch.bfloat16",
+    "bitwise_equal": false,
+    "different_elements": 1,
+    "different_bytes": 1
+  },
+  "fp32_orders": {
+    "(accumulator*channel_scale)*token_scale": {
+      "vs_native": {
+        "shape": [
+          12,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0
+      },
+      "vs_vendor": {
+        "shape": [
+          12,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1
+      }
+    },
+    "(accumulator*token_scale)*channel_scale": {
+      "vs_native": {
+        "shape": [
+          12,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": false,
+        "different_elements": 2,
+        "different_bytes": 2
+      },
+      "vs_vendor": {
+        "shape": [
+          12,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1
+      }
+    },
+    "(channel_scale*accumulator)*token_scale": {
+      "vs_native": {
+        "shape": [
+          12,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0
+      },
+      "vs_vendor": {
+        "shape": [
+          12,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1
+      }
+    },
+    "(channel_scale*token_scale)*accumulator": {
+      "vs_native": {
+        "shape": [
+          12,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1
+      },
+      "vs_vendor": {
+        "shape": [
+          12,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0
+      }
+    },
+    "(token_scale*accumulator)*channel_scale": {
+      "vs_native": {
+        "shape": [
+          12,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": false,
+        "different_elements": 2,
+        "different_bytes": 2
+      },
+      "vs_vendor": {
+        "shape": [
+          12,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1
+      }
+    },
+    "(token_scale*channel_scale)*accumulator": {
+      "vs_native": {
+        "shape": [
+          12,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1
+      },
+      "vs_vendor": {
+        "shape": [
+          12,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0
+      }
+    },
+    "fp64_product_single_fp32_round": {
+      "vs_native": {
+        "shape": [
+          12,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1
+      },
+      "vs_vendor": {
+        "shape": [
+          12,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0
+      }
+    }
+  },
+  "witnesses": [
+    {
+      "index": [
+        11,
+        5240
+      ],
+      "accumulator": -15243,
+      "channel_scale": {
+        "value": 0.0005920213297940791,
+        "bits_hex": "0x3a1b31e1"
+      },
+      "token_scale": {
+        "value": 0.6042792201042175,
+        "bits_hex": "0x3f1ab20b"
+      },
+      "native_output": {
+        "value": -5.46875,
+        "bits_hex": "0xc0af"
+      },
+      "vendor_output": {
+        "value": -5.4375,
+        "bits_hex": "0xc0ae"
+      },
+      "orders": {
+        "(accumulator*channel_scale)*token_scale": {
+          "fp32": {
+            "value": -5.453125476837158,
+            "bits_hex": "0xc0ae8001"
+          },
+          "bf16": {
+            "value": -5.46875,
+            "bits_hex": "0xc0af"
+          }
+        },
+        "(accumulator*token_scale)*channel_scale": {
+          "fp32": {
+            "value": -5.453125,
+            "bits_hex": "0xc0ae8000"
+          },
+          "bf16": {
+            "value": -5.4375,
+            "bits_hex": "0xc0ae"
+          }
+        },
+        "(channel_scale*accumulator)*token_scale": {
+          "fp32": {
+            "value": -5.453125476837158,
+            "bits_hex": "0xc0ae8001"
+          },
+          "bf16": {
+            "value": -5.46875,
+            "bits_hex": "0xc0af"
+          }
+        },
+        "(channel_scale*token_scale)*accumulator": {
+          "fp32": {
+            "value": -5.453125,
+            "bits_hex": "0xc0ae8000"
+          },
+          "bf16": {
+            "value": -5.4375,
+            "bits_hex": "0xc0ae"
+          }
+        },
+        "(token_scale*accumulator)*channel_scale": {
+          "fp32": {
+            "value": -5.453125,
+            "bits_hex": "0xc0ae8000"
+          },
+          "bf16": {
+            "value": -5.4375,
+            "bits_hex": "0xc0ae"
+          }
+        },
+        "(token_scale*channel_scale)*accumulator": {
+          "fp32": {
+            "value": -5.453125,
+            "bits_hex": "0xc0ae8000"
+          },
+          "bf16": {
+            "value": -5.4375,
+            "bits_hex": "0xc0ae"
+          }
+        },
+        "fp64_product_single_fp32_round": {
+          "fp32": {
+            "value": -5.453125,
+            "bits_hex": "0xc0ae8000"
+          },
+          "bf16": {
+            "value": -5.4375,
+            "bits_hex": "0xc0ae"
+          }
+        }
+      }
+    }
+  ],
+  "installed_sdk_source": {
+    "path": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/quant_batch_matmul_v3/quant_batch_matmul_v3_pertoken_opt.h",
+    "sha256": "1885876467fc58fabd5aba043363cefa2aaa96cc25eb7e36fa57b00ca675cc5f",
+    "scale_product_lines": [
+      494,
+      514,
+      530
+    ],
+    "accumulator_cast_multiply_bf16_lines": [
+      575,
+      580,
+      586
+    ]
+  }
+}

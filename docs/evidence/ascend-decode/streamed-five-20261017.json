@@ -1,0 +1,2475 @@
+{
+  "scope": "Real TP16, layers0-4 at P8192, one teacher token; exact weight reconstruction replay and actual M1 per-layer logits",
+  "execution_status": "pass",
+  "precision_verified": false,
+  "performance_measured": false,
+  "environment": {
+    "host": "a3-gs",
+    "container": "trt-asc",
+    "torch_quota_bytes": 2147483648,
+    "gpu_memory_utilization": 0.02,
+    "hccl_buffsize_mib": 4,
+    "packages": {
+      "torch": "2.12.0+cpu",
+      "torch-npu": "2.12.0",
+      "vllm": "0.30.1rc1.dev447+gc4df37dfc.d20261015.empty",
+      "vllm-ascend": "0.19.1rc2.dev2828+gf558b58c1.d20261015"
+    },
+    "ASCEND_CUSTOM_OPP_PATH": "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp:/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer:/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib:/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer:/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer",
+    "HCCL_ALGO": null,
+    "HCCL_OP_EXPANSION_MODE": "AI_CPU",
+    "PYTORCH_NPU_ALLOC_CONF": "expandable_segments:True",
+    "ASCEND_LAUNCH_BLOCKING": null
+  },
+  "inputs": {
+    "prompt_length": 8192,
+    "prompt_sha256": "fe53282d0b732f6a1cbd9b6587903127f73ba645f2303a246656286704142afa",
+    "last_prompt_token": 9249,
+    "initial_position": 8192,
+    "first_token_id": 6500,
+    "request_id": "ba210bea41854af3",
+    "generation": 1,
+    "prefix_file": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/main-prefix/rank-0.pt",
+    "prefix_sha256": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+    "capture_manifest_sha256": "b01cceb2d2e30564807ce9efc441ad535999b56b73d0c333e93bb18694ccda74"
+  },
+  "checkpoint_sha256": {
+    "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+    "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+    "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+  },
+  "results": {
+    "ranks_passed": 16,
+    "checks_passed": 3568,
+    "checks_total": 3568,
+    "peak_allocated_bytes": 951709184,
+    "phase_end_allocated_bytes_range": [
+      257425408,
+      257425408
+    ],
+    "artifact_hashes_verified": 192,
+    "unique_source_hashes_verified": 18,
+    "decoder_allreduces_per_rank": 20
+  },
+  "rope": {
+    "max_position_embeddings": 1048576,
+    "base": 8000000,
+    "tables": {
+      "cos_sin_cache": {
+        "original_rows": 1048576,
+        "retained_rows": 8320,
+        "prefix_exact": true
+      },
+      "_rope_derived_cos_cache": {
+        "original_rows": 1048576,
+        "retained_rows": 8320,
+        "prefix_exact": true
+      },
+      "_rope_derived_sin_cache": {
+        "original_rows": 1048576,
+        "retained_rows": 8320,
+        "prefix_exact": true
+      }
+    }
+  },
+  "source_sha256": {
+    "/workspace/offline/cann-streamed-five-20261017/source-01/tilert/models/glm_5_2_ascend/cann_model.py": "09117264123b92bb506d9e922def8a7c66bf8478707e463543607aef278a6b0d",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/ascend_forward_context.py": "848112214c9f56371b4bf43a59d39fadbed0e0e864581e300a3a89778d4083cb",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/indexer.py": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/sfa_v1.py": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/models/deepseek_mtp.py": "4ed40eae69848d1fac7c901a1c73b0532a71473a045af1aa79508f9c74be0a2b",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/model_runner_v1.py": "f0a3079900c9b2628437195ef21d0631c747aa1a49b663c1b27fddf379cbf8f5",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/worker.py": "1859b05db9bdbb9fd69a86e08bb67a1de2c964ed4b7ab75abc88492c9b910abc",
+    "/workspace/src/vllm-unified/vllm/model_executor/models/deepseek_v2.py": "5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/patch/worker/patch_deepseek_v2.py": "eff4dc9ab181b5f3cdbe34e2df71334522093362dba30834f51b8db81b540b9c",
+    "/workspace/offline/cann-streamed-five-20261017/source-01/tests/glm52/run_cann_streamed.py": "a5603e3f2fc3bbe68698762c821fdd58574ced6cb2ff449916af99a1f5f70baf",
+    "/workspace/offline/cann-streamed-five-20261017/source-01/tilert/models/glm_5_2_ascend/weights.py": "5056e25fb26d45e4321b8e6045d505d095802ce74cc2add449ed16bccfda3f33",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/rotary_embedding.py": "403e1d0c0cac58a82898fa2596b923b60f19392d23560f4609967e4dfc8a411a",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/layernorm.py": "d2fda42ad99935725c98b9505a8d2e94696d9cdb2906e5cb2f1e37bf21fb27bc",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/vocab_parallel_embedding.py": "800bf3a92f54ec3c15f967f94e40bc0f811507c1c23b724bf66beb53b8631d2a",
+    "/workspace/offline/cann-streamed-five-20261017/source-01/tests/glm52/run_cann_model.py": "1ffc552916803e6d707e0b05d88353d70ad99a3f461c4392b4dc1cd57bfb5f74",
+    "/workspace/offline/cann-streamed-five-20261017/source-01/tests/glm52/run_native_decode.py": "bc40b579824eb6def8fa9fc7fb2acd045774088f1e841e514279aa6818870adc",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/eplb/adaptor/vllm_adaptor.py": "881ed7e562d59fb60f08c39a01593a37a3cea2a06316a137955711d44c0e1b94",
+    "/workspace/src/vllm-unified/vllm/model_executor/model_loader/utils.py": "e6e3477d926deb12fd1b50d4e6a7d649f97a5c2b6524cc2e4a604c80bb653f20"
+  },
+  "rank_receipts": [
+    {
+      "rank": 0,
+      "report": "/workspace/offline/cann-streamed-five-20261017/device-01/rank-0.json",
+      "report_sha256": "72c927db8ae89b0129d4c334a1f2847307ae7854aea551828cb4216c66b3b6e3",
+      "checks_passed": 223,
+      "layers": [
+        {
+          "layer": 0,
+          "first_peak_allocated": 951709184,
+          "reload_peak_allocated": 478902272,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 1,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 2,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 3,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 4,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        }
+      ]
+    },
+    {
+      "rank": 1,
+      "report": "/workspace/offline/cann-streamed-five-20261017/device-01/rank-1.json",
+      "report_sha256": "3f7d4d2cd9761297ad5de30408167ad8c540240b9ffcd3f7ec26078252c1d258",
+      "checks_passed": 223,
+      "layers": [
+        {
+          "layer": 0,
+          "first_peak_allocated": 951709184,
+          "reload_peak_allocated": 478902272,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 1,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 2,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 3,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 4,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "report": "/workspace/offline/cann-streamed-five-20261017/device-01/rank-2.json",
+      "report_sha256": "c94e5a8c9b50737e536788f5a217952959dbfc77c925a74429268a6acc52ba53",
+      "checks_passed": 223,
+      "layers": [
+        {
+          "layer": 0,
+          "first_peak_allocated": 951709184,
+          "reload_peak_allocated": 478902272,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 1,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 2,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 3,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 4,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "report": "/workspace/offline/cann-streamed-five-20261017/device-01/rank-3.json",
+      "report_sha256": "bb96c760aa29e08e785a1288c1f8ddbbff42c74e5265ecc09b69c0037244b6b8",
+      "checks_passed": 223,
+      "layers": [
+        {
+          "layer": 0,
+          "first_peak_allocated": 951709184,
+          "reload_peak_allocated": 478902272,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 1,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 2,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 3,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 4,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "report": "/workspace/offline/cann-streamed-five-20261017/device-01/rank-4.json",
+      "report_sha256": "a07e093c0525cfb62779f017c60e222f8acbcdf7fa193eca10b2fe85f1faacfd",
+      "checks_passed": 223,
+      "layers": [
+        {
+          "layer": 0,
+          "first_peak_allocated": 951709184,
+          "reload_peak_allocated": 478902272,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 1,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 2,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 3,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 4,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        }
+      ]
+    },
+    {
+      "rank": 5,
+      "report": "/workspace/offline/cann-streamed-five-20261017/device-01/rank-5.json",
+      "report_sha256": "19dbcd1fd030569e7a58b06c882979e7068171518611010ac3997e5693bfb17d",
+      "checks_passed": 223,
+      "layers": [
+        {
+          "layer": 0,
+          "first_peak_allocated": 951709184,
+          "reload_peak_allocated": 478902272,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 1,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 2,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 3,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 4,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        }
+      ]
+    },
+    {
+      "rank": 6,
+      "report": "/workspace/offline/cann-streamed-five-20261017/device-01/rank-6.json",
+      "report_sha256": "ba36026fb6a6912c0329e9c5dcd6180495a90011d790337dc43ec1fe81a79bae",
+      "checks_passed": 223,
+      "layers": [
+        {
+          "layer": 0,
+          "first_peak_allocated": 951709184,
+          "reload_peak_allocated": 478902272,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 1,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 2,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 3,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 4,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        }
+      ]
+    },
+    {
+      "rank": 7,
+      "report": "/workspace/offline/cann-streamed-five-20261017/device-01/rank-7.json",
+      "report_sha256": "f9e46be7f231dabde835d3a0325d7c25a554b390640e238d88044b85fb714d49",
+      "checks_passed": 223,
+      "layers": [
+        {
+          "layer": 0,
+          "first_peak_allocated": 951709184,
+          "reload_peak_allocated": 478902272,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 1,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 2,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 3,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 4,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        }
+      ]
+    },
+    {
+      "rank": 8,
+      "report": "/workspace/offline/cann-streamed-five-20261017/device-01/rank-8.json",
+      "report_sha256": "ed46a6f54e5853371cf6def85972b0acbb27834615dc5fc9c2e8ecfda9fed2b5",
+      "checks_passed": 223,
+      "layers": [
+        {
+          "layer": 0,
+          "first_peak_allocated": 951709184,
+          "reload_peak_allocated": 478902272,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 1,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 2,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 3,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 4,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        }
+      ]
+    },
+    {
+      "rank": 9,
+      "report": "/workspace/offline/cann-streamed-five-20261017/device-01/rank-9.json",
+      "report_sha256": "b9e2cfcbf62765d23f1f772c92be209436f98c931903c926eee7d95dc2576c4a",
+      "checks_passed": 223,
+      "layers": [
+        {
+          "layer": 0,
+          "first_peak_allocated": 951709184,
+          "reload_peak_allocated": 478902272,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 1,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 2,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 3,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 4,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        }
+      ]
+    },
+    {
+      "rank": 10,
+      "report": "/workspace/offline/cann-streamed-five-20261017/device-01/rank-10.json",
+      "report_sha256": "bc203b3e766b14e6c8b766e71b2f0c3dfd8b9ca94dcbbd76abbfb6166db9a41c",
+      "checks_passed": 223,
+      "layers": [
+        {
+          "layer": 0,
+          "first_peak_allocated": 951709184,
+          "reload_peak_allocated": 478902272,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 1,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 2,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 3,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 4,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        }
+      ]
+    },
+    {
+      "rank": 11,
+      "report": "/workspace/offline/cann-streamed-five-20261017/device-01/rank-11.json",
+      "report_sha256": "b332c789e584d551aa070aa3ce2bc3e24d192017e0a046916260f45a7967b53a",
+      "checks_passed": 223,
+      "layers": [
+        {
+          "layer": 0,
+          "first_peak_allocated": 951709184,
+          "reload_peak_allocated": 478902272,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 1,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 2,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 3,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 4,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        }
+      ]
+    },
+    {
+      "rank": 12,
+      "report": "/workspace/offline/cann-streamed-five-20261017/device-01/rank-12.json",
+      "report_sha256": "53d34fa319813564c3505d33095dee772bc9d44259ed22880e36b0ffa1749164",
+      "checks_passed": 223,
+      "layers": [
+        {
+          "layer": 0,
+          "first_peak_allocated": 951709184,
+          "reload_peak_allocated": 478902272,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 1,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 2,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 3,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 4,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        }
+      ]
+    },
+    {
+      "rank": 13,
+      "report": "/workspace/offline/cann-streamed-five-20261017/device-01/rank-13.json",
+      "report_sha256": "bffdba5dc4f00ef8335b59d8141b58517d9a076a88f10951fc2f39781979a4c5",
+      "checks_passed": 223,
+      "layers": [
+        {
+          "layer": 0,
+          "first_peak_allocated": 951709184,
+          "reload_peak_allocated": 478902272,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 1,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 2,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 3,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 4,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        }
+      ]
+    },
+    {
+      "rank": 14,
+      "report": "/workspace/offline/cann-streamed-five-20261017/device-01/rank-14.json",
+      "report_sha256": "aab9b2ceb2d891bb5cc5c5a826def76e0cd4e65b002f085c017906a424173429",
+      "checks_passed": 223,
+      "layers": [
+        {
+          "layer": 0,
+          "first_peak_allocated": 951709184,
+          "reload_peak_allocated": 478902272,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 1,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 2,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 3,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 4,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        }
+      ]
+    },
+    {
+      "rank": 15,
+      "report": "/workspace/offline/cann-streamed-five-20261017/device-01/rank-15.json",
+      "report_sha256": "f732a776d106f0a7c3ddadb62545d5f0c10b3f637a2dd7c0ee9a65a23a8797f0",
+      "checks_passed": 223,
+      "layers": [
+        {
+          "layer": 0,
+          "first_peak_allocated": 951709184,
+          "reload_peak_allocated": 478902272,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 1,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 2,
+          "first_peak_allocated": 478940672,
+          "reload_peak_allocated": 478940672,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 3,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        },
+        {
+          "layer": 4,
+          "first_peak_allocated": 828142592,
+          "reload_peak_allocated": 828142592,
+          "first_after_release": 257425408,
+          "reload_after_release": 257425408
+        }
+      ]
+    }
+  ],
+  "runs": {
+    "device-00": {
+      "status": "error",
+      "launch": {
+        "utc": "2026-10-17T10:28:44.794775+00:00",
+        "free_mib": {
+          "0": 3504,
+          "1": 3930,
+          "2": 3505,
+          "3": 3930,
+          "4": 3489,
+          "5": 3934,
+          "6": 3509,
+          "7": 3930,
+          "8": 3499,
+          "9": 3937,
+          "10": 3505,
+          "11": 3930,
+          "12": 3498,
+          "13": 3944,
+          "14": 3498,
+          "15": 3939
+        },
+        "minimum_free_mib": 3489,
+        "script_sha256": "3d07d1a225d64d05fa64e1f350d7b81c0fe9e3464c7d277b86925516f7c441b9",
+        "guard_mib": 3300,
+        "pid": 3651391,
+        "command": [
+          "docker",
+          "exec",
+          "trt-asc",
+          "bash",
+          "-lc",
+          "set -e\nsource /workspace/environment/activate.sh\ncd /workspace/offline/cann-streamed-five-20261017/source\nenv TORCH_DEVICE_BACKEND_AUTOLOAD=0 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 HCCL_BUFFSIZE=200 HCCL_OP_EXPANSION_MODE=AI_CPU HCCL_NPU_SOCKET_PORT_RANGE=auto HCCL_HOST_SOCKET_PORT_RANGE=auto TASK_QUEUE_ENABLE=1 PYTORCH_NPU_ALLOC_CONF=expandable_segments:True ASCEND_CUSTOM_OPP_PATH=/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer:/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer PYTHONPATH=\"$PWD:$PWD/tests/glm52:$PYTHONPATH\" timeout --kill-after=15s 600s python -m torch.distributed.run --standalone --nproc-per-node=16 tests/glm52/run_cann_streamed.py --checkpoint /workspace/models/GLM-5.2-w4a8c8 --capture-case /workspace/offline/prefix8k-allocation-20261017/capture/case-00 --baseline /workspace/offline/cann-routed-stage-20261017/continuation8k --output /workspace/offline/cann-streamed-five-20261017/device-00 --stop-layer 4"
+        ]
+      },
+      "exit": {
+        "exit_code": 1,
+        "utc": "2026-10-17T10:30:10.257287+00:00"
+      },
+      "log_sha256": "6d399d3bfc4886f6299c3c18feb19f3767c0407929f4b183c6d5d08b7e0c777c",
+      "phase": "first",
+      "layer": 3,
+      "observed_error": "Physical NPU OOM in layer3.prepare while Torch allocation is about 964-970 MiB; a 194 MiB allocation fails before the 2 GiB Torch quota.",
+      "error_sha256": {
+        "rank-0-error.json": "3de3d516dbe4240fc3452818fae2e8b4b1d43e6cc4aaade3484a6cd47ed1c4cb",
+        "rank-1-error.json": "b21756ebe71e733b1a67e475a35dc4c42e355ce68ff821d1d0eb037fc249d634",
+        "rank-10-error.json": "8f1a9d53d6a59bd5ed9dfa04b6ff1eda789bda324714b7de5d28702516481764",
+        "rank-11-error.json": "0c9640912ca8b197410cc4a268d023c18f79c30c714e42eb9c3afb8fceaf334f",
+        "rank-12-error.json": "ca76a34b7422543adce0720108b13c67fb1830c5c100585d66968cbbbe81f164",
+        "rank-13-error.json": "c95c981d015bec2a28d660eb9d7d098307206da541cb61a38375645a91f6910b",
+        "rank-14-error.json": "f2b814a8ef21eaabf184b48c182f1778607ed5584437a3e490aa98f60074928e",
+        "rank-15-error.json": "72f86d5057b630bac2a392165fbcf467bd2f426640fbf67f7412c4f06907961e",
+        "rank-2-error.json": "7c01232a00806bcf1297ecd5396d1e47f82b49682d81547bca25194413db506e",
+        "rank-3-error.json": "d9d56b75cd3c407ff8e257d82517320715f03268ccbb172a7b73b3dc645aadea",
+        "rank-4-error.json": "11077fc58102fc2d3cdc881e67f30b235bbec54c4ea51eda0a8916e6c8ec214b",
+        "rank-5-error.json": "b140e3cda947a570a183e1acebaec01882f3e4df8467acdfb6764daddf4a5e61",
+        "rank-6-error.json": "7f703d614ee582157d8b8b79305685f8056d20b9cc52f3ee48e0cc36810b4ca0",
+        "rank-7-error.json": "9ca5d7aa1b24d099eff611b62c7d64a682cffa9089423ceadbfe6c5ebef096da",
+        "rank-8-error.json": "39a1a92bd5f0272e1b1d83eb6fbbc0715532cef32d077a7345531453531087b4",
+        "rank-9-error.json": "1de3218e6475acd1b82c90426763be9466bc36a3dc3bbe772454b294668fd21d"
+      },
+      "partial_saved_outputs": 48
+    },
+    "device-01": {
+      "status": "pass",
+      "launch": {
+        "utc": "2026-10-17T10:39:04.604307+00:00",
+        "free_mib": {
+          "0": 2656,
+          "1": 62630,
+          "2": 62392,
+          "3": 62631,
+          "4": 62380,
+          "5": 62643,
+          "6": 62393,
+          "7": 62631,
+          "8": 62392,
+          "9": 62630,
+          "10": 62390,
+          "11": 62631,
+          "12": 62383,
+          "13": 62644,
+          "14": 62394,
+          "15": 62632
+        },
+        "minimum_free_mib": 2656,
+        "script_sha256": "a5603e3f2fc3bbe68698762c821fdd58574ced6cb2ff449916af99a1f5f70baf",
+        "guard_mib": 2500,
+        "hccl_buffsize_mib": 4,
+        "scope": "Correctness check with bounded original RoPE tables and small-message HCCL buffers",
+        "pid": 3692243,
+        "command": [
+          "docker",
+          "exec",
+          "trt-asc",
+          "bash",
+          "-lc",
+          "set -e\nsource /workspace/environment/activate.sh\ncd /workspace/offline/cann-streamed-five-20261017/source-01\nenv TORCH_DEVICE_BACKEND_AUTOLOAD=0 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 HCCL_BUFFSIZE=4 HCCL_OP_EXPANSION_MODE=AI_CPU HCCL_NPU_SOCKET_PORT_RANGE=auto HCCL_HOST_SOCKET_PORT_RANGE=auto TASK_QUEUE_ENABLE=1 PYTORCH_NPU_ALLOC_CONF=expandable_segments:True ASCEND_CUSTOM_OPP_PATH=/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer:/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer PYTHONPATH=\"$PWD:$PWD/tests/glm52:$PYTHONPATH\" timeout --kill-after=15s 600s python -m torch.distributed.run --standalone --nproc-per-node=16 tests/glm52/run_cann_streamed.py --checkpoint /workspace/models/GLM-5.2-w4a8c8 --capture-case /workspace/offline/prefix8k-allocation-20261017/capture/case-00 --baseline /workspace/offline/cann-routed-stage-20261017/continuation8k --output /workspace/offline/cann-streamed-five-20261017/device-01 --stop-layer 4"
+        ]
+      },
+      "exit": {
+        "exit_code": 0,
+        "utc": "2026-10-17T10:41:13.804266+00:00"
+      },
+      "log_sha256": "5280eaf9d0dfdbbae7e2da7f5511dd1f85ff9810dbc403d0cf14a0f39e65363d"
+    }
+  },
+  "hf_comparison": {
+    "report": "/workspace/offline/cann-streamed-five-20261017/hf-first-five-00.json",
+    "report_sha256": "2d49b37fb11c8cf48dfab3e6d2888eccdf6e58de1c76b2225b42f9326ce1b41b",
+    "launch": {
+      "utc": "2026-10-17T10:44:18.980150+00:00",
+      "command": [
+        "docker",
+        "exec",
+        "trt-asc",
+        "bash",
+        "-lc",
+        "source /workspace/environment/activate.sh\ncd /workspace/offline/cann-streamed-five-20261017/source-01\nenv TORCH_DEVICE_BACKEND_AUTOLOAD=0 OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 PYTHONPATH=\"$PWD:$PWD/tests/glm52:$PYTHONPATH\" python ../hf-first-five-00.py"
+      ],
+      "script_sha256": "02a3b510878957ec2f2d17c4fd0c049719f78d457221c6dd4289d6288d78e72c"
+    },
+    "exit": {
+      "exit_code": 0,
+      "utc": "2026-10-17T10:44:20.718551+00:00"
+    },
+    "report_data": {
+      "scope": "Rank0 reconstructed layers0-4, actual M1 head projections, frozen 8K first token and exact reconstruction replay versus independent calibrated HF",
+      "status": "fail",
+      "precision_verified": false,
+      "performance_measured": false,
+      "npu_initialized": false,
+      "checks": [
+        {
+          "name": "first.layer0.input",
+          "passed": true,
+          "exact": true,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0,
+          "cosine": 1.0000011920928955,
+          "max_abs": 0.0
+        },
+        {
+          "name": "first.layer0.merged",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.003889008502546462,
+          "cosine": 0.9999942779541016,
+          "max_abs": 0.000244140625
+        },
+        {
+          "name": "first.layer0.logits",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            154880
+          ],
+          "expected_shape": [
+            1,
+            154880
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.004526547183593529,
+          "cosine": 0.9999788999557495,
+          "max_abs": 0.0625
+        },
+        {
+          "name": "first.layer0.cache.latent",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            512
+          ],
+          "expected_shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0,
+          "cosine": 1.0000001192092896,
+          "max_abs": 0.0
+        },
+        {
+          "name": "first.layer0.cache.rope",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            64
+          ],
+          "expected_shape": [
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0,
+          "cosine": 0.9999999403953552,
+          "max_abs": 0.0
+        },
+        {
+          "name": "first.layer0.cache.index",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            128
+          ],
+          "expected_shape": [
+            128
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0,
+          "cosine": 1.0000001192092896,
+          "max_abs": 0.0
+        },
+        {
+          "name": "first.layer0.cache.index_scale",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "first.layer0.indices",
+          "passed": true,
+          "exact": true,
+          "shape": [
+            2048
+          ],
+          "expected_shape": [
+            2048
+          ],
+          "dtype": "torch.int64",
+          "expected_dtype": "torch.int64",
+          "nrmse": 0.0,
+          "cosine": 0.9999999403953552,
+          "max_abs": 0.0
+        },
+        {
+          "name": "first.layer1.input",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.003889008502546462,
+          "cosine": 0.9999942779541016,
+          "max_abs": 0.000244140625
+        },
+        {
+          "name": "first.layer1.merged",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.006167808568108745,
+          "cosine": 0.999982476234436,
+          "max_abs": 0.000244140625
+        },
+        {
+          "name": "first.layer1.logits",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            154880
+          ],
+          "expected_shape": [
+            1,
+            154880
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.006531746254651861,
+          "cosine": 0.9999672770500183,
+          "max_abs": 0.0771484375
+        },
+        {
+          "name": "first.layer1.cache.latent",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            512
+          ],
+          "expected_shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0024855743545073097,
+          "cosine": 0.9999969005584717,
+          "max_abs": 0.0078125
+        },
+        {
+          "name": "first.layer1.cache.rope",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            64
+          ],
+          "expected_shape": [
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0011920788301057602,
+          "cosine": 0.9999993443489075,
+          "max_abs": 0.015625
+        },
+        {
+          "name": "first.layer1.cache.index",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            128
+          ],
+          "expected_shape": [
+            128
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.001757739590540055,
+          "cosine": 0.9999984502792358,
+          "max_abs": 0.03125
+        },
+        {
+          "name": "first.layer1.cache.index_scale",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "first.layer1.indices",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            2048
+          ],
+          "expected_shape": [
+            2048
+          ],
+          "dtype": "torch.int64",
+          "expected_dtype": "torch.int64",
+          "nrmse": 0.00043737506543945897,
+          "cosine": 0.9999997615814209,
+          "max_abs": 68.0
+        },
+        {
+          "name": "first.layer2.input",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.006167808568108745,
+          "cosine": 0.999982476234436,
+          "max_abs": 0.000244140625
+        },
+        {
+          "name": "first.layer2.merged",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.007783396607200726,
+          "cosine": 0.9999712705612183,
+          "max_abs": 0.0003662109375
+        },
+        {
+          "name": "first.layer2.logits",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            154880
+          ],
+          "expected_shape": [
+            1,
+            154880
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.00805746688593123,
+          "cosine": 0.9999560117721558,
+          "max_abs": 0.09375
+        },
+        {
+          "name": "first.layer2.cache.latent",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            512
+          ],
+          "expected_shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.003663027876048784,
+          "cosine": 0.9999932050704956,
+          "max_abs": 0.015625
+        },
+        {
+          "name": "first.layer2.cache.rope",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            64
+          ],
+          "expected_shape": [
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0016760808473703847,
+          "cosine": 0.9999986886978149,
+          "max_abs": 0.015625
+        },
+        {
+          "name": "first.layer2.cache.index",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            128
+          ],
+          "expected_shape": [
+            128
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0009772636608240677,
+          "cosine": 0.9999997019767761,
+          "max_abs": 0.0078125
+        },
+        {
+          "name": "first.layer2.cache.index_scale",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "first.layer2.indices",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            2048
+          ],
+          "expected_shape": [
+            2048
+          ],
+          "dtype": "torch.int64",
+          "expected_dtype": "torch.int64",
+          "nrmse": 0.0027033021185250347,
+          "cosine": 0.999996542930603,
+          "max_abs": 231.0
+        },
+        {
+          "name": "first.layer3.input",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.007783396607200726,
+          "cosine": 0.9999712705612183,
+          "max_abs": 0.0003662109375
+        },
+        {
+          "name": "first.layer3.merged",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.009019340687601131,
+          "cosine": 0.9999610185623169,
+          "max_abs": 0.00048828125
+        },
+        {
+          "name": "first.layer3.logits",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            154880
+          ],
+          "expected_shape": [
+            1,
+            154880
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.009219029241940735,
+          "cosine": 0.9999462962150574,
+          "max_abs": 0.09375
+        },
+        {
+          "name": "first.layer3.cache.latent",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            512
+          ],
+          "expected_shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.004438132145866157,
+          "cosine": 0.9999900460243225,
+          "max_abs": 0.015625
+        },
+        {
+          "name": "first.layer3.cache.rope",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            64
+          ],
+          "expected_shape": [
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0014321234653591455,
+          "cosine": 0.999998927116394,
+          "max_abs": 0.03125
+        },
+        {
+          "name": "first.layer3.cache.index",
+          "passed": true,
+          "exact": false
+        },
+        {
+          "name": "first.layer3.cache.index_scale",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "first.layer3.indices",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            2048
+          ],
+          "expected_shape": [
+            2048
+          ],
+          "dtype": "torch.int64",
+          "expected_dtype": "torch.int64",
+          "nrmse": 0.0027033021185250347,
+          "cosine": 0.999996542930603,
+          "max_abs": 231.0
+        },
+        {
+          "name": "first.layer4.input",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.009019340687601131,
+          "cosine": 0.9999610185623169,
+          "max_abs": 0.00048828125
+        },
+        {
+          "name": "first.layer4.merged",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.009431215004617986,
+          "cosine": 0.9999570846557617,
+          "max_abs": 0.00048828125
+        },
+        {
+          "name": "first.layer4.logits",
+          "passed": false,
+          "exact": false,
+          "shape": [
+            1,
+            154880
+          ],
+          "expected_shape": [
+            1,
+            154880
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.009603423050564414,
+          "cosine": 0.9999440312385559,
+          "max_abs": 0.140625
+        },
+        {
+          "name": "first.layer4.cache.latent",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            512
+          ],
+          "expected_shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.005731811842317397,
+          "cosine": 0.9999836683273315,
+          "max_abs": 0.01953125
+        },
+        {
+          "name": "first.layer4.cache.rope",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            64
+          ],
+          "expected_shape": [
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.002109253320398907,
+          "cosine": 0.9999977350234985,
+          "max_abs": 0.03125
+        },
+        {
+          "name": "first.layer4.cache.index",
+          "passed": true,
+          "exact": false
+        },
+        {
+          "name": "first.layer4.cache.index_scale",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "first.layer4.indices",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            2048
+          ],
+          "expected_shape": [
+            2048
+          ],
+          "dtype": "torch.int64",
+          "expected_dtype": "torch.int64",
+          "nrmse": 0.0027033021185250347,
+          "cosine": 0.999996542930603,
+          "max_abs": 231.0
+        },
+        {
+          "name": "reload.layer0.input",
+          "passed": true,
+          "exact": true,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0,
+          "cosine": 1.0000011920928955,
+          "max_abs": 0.0
+        },
+        {
+          "name": "reload.layer0.merged",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.003889008502546462,
+          "cosine": 0.9999942779541016,
+          "max_abs": 0.000244140625
+        },
+        {
+          "name": "reload.layer0.logits",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            154880
+          ],
+          "expected_shape": [
+            1,
+            154880
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.004526547183593529,
+          "cosine": 0.9999788999557495,
+          "max_abs": 0.0625
+        },
+        {
+          "name": "reload.layer0.cache.latent",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            512
+          ],
+          "expected_shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0,
+          "cosine": 1.0000001192092896,
+          "max_abs": 0.0
+        },
+        {
+          "name": "reload.layer0.cache.rope",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            64
+          ],
+          "expected_shape": [
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0,
+          "cosine": 0.9999999403953552,
+          "max_abs": 0.0
+        },
+        {
+          "name": "reload.layer0.cache.index",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            128
+          ],
+          "expected_shape": [
+            128
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0,
+          "cosine": 1.0000001192092896,
+          "max_abs": 0.0
+        },
+        {
+          "name": "reload.layer0.cache.index_scale",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "reload.layer0.indices",
+          "passed": true,
+          "exact": true,
+          "shape": [
+            2048
+          ],
+          "expected_shape": [
+            2048
+          ],
+          "dtype": "torch.int64",
+          "expected_dtype": "torch.int64",
+          "nrmse": 0.0,
+          "cosine": 0.9999999403953552,
+          "max_abs": 0.0
+        },
+        {
+          "name": "reload.layer1.input",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.003889008502546462,
+          "cosine": 0.9999942779541016,
+          "max_abs": 0.000244140625
+        },
+        {
+          "name": "reload.layer1.merged",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.006167808568108745,
+          "cosine": 0.999982476234436,
+          "max_abs": 0.000244140625
+        },
+        {
+          "name": "reload.layer1.logits",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            154880
+          ],
+          "expected_shape": [
+            1,
+            154880
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.006531746254651861,
+          "cosine": 0.9999672770500183,
+          "max_abs": 0.0771484375
+        },
+        {
+          "name": "reload.layer1.cache.latent",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            512
+          ],
+          "expected_shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0024855743545073097,
+          "cosine": 0.9999969005584717,
+          "max_abs": 0.0078125
+        },
+        {
+          "name": "reload.layer1.cache.rope",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            64
+          ],
+          "expected_shape": [
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0011920788301057602,
+          "cosine": 0.9999993443489075,
+          "max_abs": 0.015625
+        },
+        {
+          "name": "reload.layer1.cache.index",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            128
+          ],
+          "expected_shape": [
+            128
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.001757739590540055,
+          "cosine": 0.9999984502792358,
+          "max_abs": 0.03125
+        },
+        {
+          "name": "reload.layer1.cache.index_scale",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "reload.layer1.indices",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            2048
+          ],
+          "expected_shape": [
+            2048
+          ],
+          "dtype": "torch.int64",
+          "expected_dtype": "torch.int64",
+          "nrmse": 0.00043737506543945897,
+          "cosine": 0.9999997615814209,
+          "max_abs": 68.0
+        },
+        {
+          "name": "reload.layer2.input",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.006167808568108745,
+          "cosine": 0.999982476234436,
+          "max_abs": 0.000244140625
+        },
+        {
+          "name": "reload.layer2.merged",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.007783396607200726,
+          "cosine": 0.9999712705612183,
+          "max_abs": 0.0003662109375
+        },
+        {
+          "name": "reload.layer2.logits",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            154880
+          ],
+          "expected_shape": [
+            1,
+            154880
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.00805746688593123,
+          "cosine": 0.9999560117721558,
+          "max_abs": 0.09375
+        },
+        {
+          "name": "reload.layer2.cache.latent",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            512
+          ],
+          "expected_shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.003663027876048784,
+          "cosine": 0.9999932050704956,
+          "max_abs": 0.015625
+        },
+        {
+          "name": "reload.layer2.cache.rope",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            64
+          ],
+          "expected_shape": [
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0016760808473703847,
+          "cosine": 0.9999986886978149,
+          "max_abs": 0.015625
+        },
+        {
+          "name": "reload.layer2.cache.index",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            128
+          ],
+          "expected_shape": [
+            128
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0009772636608240677,
+          "cosine": 0.9999997019767761,
+          "max_abs": 0.0078125
+        },
+        {
+          "name": "reload.layer2.cache.index_scale",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "reload.layer2.indices",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            2048
+          ],
+          "expected_shape": [
+            2048
+          ],
+          "dtype": "torch.int64",
+          "expected_dtype": "torch.int64",
+          "nrmse": 0.0027033021185250347,
+          "cosine": 0.999996542930603,
+          "max_abs": 231.0
+        },
+        {
+          "name": "reload.layer3.input",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.007783396607200726,
+          "cosine": 0.9999712705612183,
+          "max_abs": 0.0003662109375
+        },
+        {
+          "name": "reload.layer3.merged",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.009019340687601131,
+          "cosine": 0.9999610185623169,
+          "max_abs": 0.00048828125
+        },
+        {
+          "name": "reload.layer3.logits",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            154880
+          ],
+          "expected_shape": [
+            1,
+            154880
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.009219029241940735,
+          "cosine": 0.9999462962150574,
+          "max_abs": 0.09375
+        },
+        {
+          "name": "reload.layer3.cache.latent",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            512
+          ],
+          "expected_shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.004438132145866157,
+          "cosine": 0.9999900460243225,
+          "max_abs": 0.015625
+        },
+        {
+          "name": "reload.layer3.cache.rope",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            64
+          ],
+          "expected_shape": [
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0014321234653591455,
+          "cosine": 0.999998927116394,
+          "max_abs": 0.03125
+        },
+        {
+          "name": "reload.layer3.cache.index",
+          "passed": true,
+          "exact": false
+        },
+        {
+          "name": "reload.layer3.cache.index_scale",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "reload.layer3.indices",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            2048
+          ],
+          "expected_shape": [
+            2048
+          ],
+          "dtype": "torch.int64",
+          "expected_dtype": "torch.int64",
+          "nrmse": 0.0027033021185250347,
+          "cosine": 0.999996542930603,
+          "max_abs": 231.0
+        },
+        {
+          "name": "reload.layer4.input",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.009019340687601131,
+          "cosine": 0.9999610185623169,
+          "max_abs": 0.00048828125
+        },
+        {
+          "name": "reload.layer4.merged",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.009431215004617986,
+          "cosine": 0.9999570846557617,
+          "max_abs": 0.00048828125
+        },
+        {
+          "name": "reload.layer4.logits",
+          "passed": false,
+          "exact": false,
+          "shape": [
+            1,
+            154880
+          ],
+          "expected_shape": [
+            1,
+            154880
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.009603423050564414,
+          "cosine": 0.9999440312385559,
+          "max_abs": 0.140625
+        },
+        {
+          "name": "reload.layer4.cache.latent",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            512
+          ],
+          "expected_shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.005731811842317397,
+          "cosine": 0.9999836683273315,
+          "max_abs": 0.01953125
+        },
+        {
+          "name": "reload.layer4.cache.rope",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            64
+          ],
+          "expected_shape": [
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.002109253320398907,
+          "cosine": 0.9999977350234985,
+          "max_abs": 0.03125
+        },
+        {
+          "name": "reload.layer4.cache.index",
+          "passed": true,
+          "exact": false
+        },
+        {
+          "name": "reload.layer4.cache.index_scale",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "reload.layer4.indices",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            2048
+          ],
+          "expected_shape": [
+            2048
+          ],
+          "dtype": "torch.int64",
+          "expected_dtype": "torch.int64",
+          "nrmse": 0.0027033021185250347,
+          "cosine": 0.999996542930603,
+          "max_abs": 231.0
+        }
+      ],
+      "layers": [
+        {
+          "phase": "first",
+          "layer": 0,
+          "passed": 8,
+          "total": 8,
+          "failures": [],
+          "hidden_nrmse": 0.003889008502546462,
+          "logits_nrmse": 0.004526547183593529,
+          "logits_max_abs": 0.0625,
+          "greedy_actual": [
+            16812
+          ],
+          "greedy_reference": [
+            16812
+          ],
+          "common_indices": 2048
+        },
+        {
+          "phase": "first",
+          "layer": 1,
+          "passed": 7,
+          "total": 8,
+          "failures": [
+            "first.layer1.indices"
+          ],
+          "hidden_nrmse": 0.006167808568108745,
+          "logits_nrmse": 0.006531746254651861,
+          "logits_max_abs": 0.0771484375,
+          "greedy_actual": [
+            16812
+          ],
+          "greedy_reference": [
+            16812
+          ],
+          "common_indices": 2046
+        },
+        {
+          "phase": "first",
+          "layer": 2,
+          "passed": 7,
+          "total": 8,
+          "failures": [
+            "first.layer2.indices"
+          ],
+          "hidden_nrmse": 0.007783396607200726,
+          "logits_nrmse": 0.00805746688593123,
+          "logits_max_abs": 0.09375,
+          "greedy_actual": [
+            40492
+          ],
+          "greedy_reference": [
+            40492
+          ],
+          "common_indices": 2044
+        },
+        {
+          "phase": "first",
+          "layer": 3,
+          "passed": 7,
+          "total": 8,
+          "failures": [
+            "first.layer3.indices"
+          ],
+          "hidden_nrmse": 0.009019340687601131,
+          "logits_nrmse": 0.009219029241940735,
+          "logits_max_abs": 0.09375,
+          "greedy_actual": [
+            40492
+          ],
+          "greedy_reference": [
+            40492
+          ],
+          "common_indices": 2044
+        },
+        {
+          "phase": "first",
+          "layer": 4,
+          "passed": 6,
+          "total": 8,
+          "failures": [
+            "first.layer4.logits",
+            "first.layer4.indices"
+          ],
+          "hidden_nrmse": 0.009431215004617986,
+          "logits_nrmse": 0.009603423050564414,
+          "logits_max_abs": 0.140625,
+          "greedy_actual": [
+            20259
+          ],
+          "greedy_reference": [
+            20259
+          ],
+          "common_indices": 2044
+        },
+        {
+          "phase": "reload",
+          "layer": 0,
+          "passed": 8,
+          "total": 8,
+          "failures": [],
+          "hidden_nrmse": 0.003889008502546462,
+          "logits_nrmse": 0.004526547183593529,
+          "logits_max_abs": 0.0625,
+          "greedy_actual": [
+            16812
+          ],
+          "greedy_reference": [
+            16812
+          ],
+          "common_indices": 2048
+        },
+        {
+          "phase": "reload",
+          "layer": 1,
+          "passed": 7,
+          "total": 8,
+          "failures": [
+            "reload.layer1.indices"
+          ],
+          "hidden_nrmse": 0.006167808568108745,
+          "logits_nrmse": 0.006531746254651861,
+          "logits_max_abs": 0.0771484375,
+          "greedy_actual": [
+            16812
+          ],
+          "greedy_reference": [
+            16812
+          ],
+          "common_indices": 2046
+        },
+        {
+          "phase": "reload",
+          "layer": 2,
+          "passed": 7,
+          "total": 8,
+          "failures": [
+            "reload.layer2.indices"
+          ],
+          "hidden_nrmse": 0.007783396607200726,
+          "logits_nrmse": 0.00805746688593123,
+          "logits_max_abs": 0.09375,
+          "greedy_actual": [
+            40492
+          ],
+          "greedy_reference": [
+            40492
+          ],
+          "common_indices": 2044
+        },
+        {
+          "phase": "reload",
+          "layer": 3,
+          "passed": 7,
+          "total": 8,
+          "failures": [
+            "reload.layer3.indices"
+          ],
+          "hidden_nrmse": 0.009019340687601131,
+          "logits_nrmse": 0.009219029241940735,
+          "logits_max_abs": 0.09375,
+          "greedy_actual": [
+            40492
+          ],
+          "greedy_reference": [
+            40492
+          ],
+          "common_indices": 2044
+        },
+        {
+          "phase": "reload",
+          "layer": 4,
+          "passed": 6,
+          "total": 8,
+          "failures": [
+            "reload.layer4.logits",
+            "reload.layer4.indices"
+          ],
+          "hidden_nrmse": 0.009431215004617986,
+          "logits_nrmse": 0.009603423050564414,
+          "logits_max_abs": 0.140625,
+          "greedy_actual": [
+            20259
+          ],
+          "greedy_reference": [
+            20259
+          ],
+          "common_indices": 2044
+        }
+      ],
+      "artifact_sha256": {
+        "/workspace/offline/cann-streamed-five-20261017/device-01/rank-0.json": "72c927db8ae89b0129d4c334a1f2847307ae7854aea551828cb4216c66b3b6e3",
+        "/workspace/offline/cann-div-reference-20261017/hf-8k/step-08192.pt": "d02cb32ac12fefa2f93259daa82b1addb24117537231d5ad039783555775393e",
+        "/workspace/offline/cann-div-reference-20261017/hf-8k/manifest.json": "cadc87d38bf213686e97294144b16832b65e4b68636832049ee138220837417e",
+        "/workspace/offline/cann-streamed-five-20261017/device-01/rank-0-first-layer0.pt": "fa41d4a54d176b1c782923530df1a9438bc70810540f898c6ea32a7233a96c87",
+        "/workspace/offline/cann-streamed-five-20261017/device-01/rank-0-first-layer1.pt": "f8bf7e592b132a721096a17d7618e728837939918f584471a9328a180c24a81f",
+        "/workspace/offline/cann-streamed-five-20261017/device-01/rank-0-first-layer2.pt": "586ad1620c199a9115ca318148db727fb9157ad7eb55ce00be2844b9f131fc1c",
+        "/workspace/offline/cann-streamed-five-20261017/device-01/rank-0-first-layer3.pt": "e8145052535df9dce0b38a26550e302c2d58610a91c0c4eaeb62f6019d71ea37",
+        "/workspace/offline/cann-streamed-five-20261017/device-01/rank-0-first-layer4.pt": "4ef6e4b4160f43769e3160f5dae8c36806125428bedc5198f2097c1cf489e236",
+        "/workspace/offline/cann-streamed-five-20261017/device-01/rank-0-reload-layer0.pt": "c6bf851ceef7ecfdb2eec8d77159a68fcfa359044f2dbb49c990e3494715d749",
+        "/workspace/offline/cann-streamed-five-20261017/device-01/rank-0-reload-layer1.pt": "5fd3b30ceef07e5c130ea3e0a01ea7f2d4790b573f1898f8c619966a9f72b47a",
+        "/workspace/offline/cann-streamed-five-20261017/device-01/rank-0-reload-layer2.pt": "9218fc1e4658c3d98b05f1e43427d3c8f37c8857415d026c8125fcc66e89a61f",
+        "/workspace/offline/cann-streamed-five-20261017/device-01/rank-0-reload-layer3.pt": "629a13b7b55b404a16392eb4513dfb7fe2dbb78124c170891f19afbc3a859574",
+        "/workspace/offline/cann-streamed-five-20261017/device-01/rank-0-reload-layer4.pt": "cce4973a34ff798f302fea5d16e8be7424f55be80a2acc2f443038e2b64f8c32"
+      },
+      "source_sha256": {
+        "/workspace/offline/cann-streamed-five-20261017/source-01/../hf-first-five-00.py": "02a3b510878957ec2f2d17c4fd0c049719f78d457221c6dd4289d6288d78e72c",
+        "/workspace/offline/cann-streamed-five-20261017/source-01/tests/glm52/run_native_decode.py": "bc40b579824eb6def8fa9fc7fb2acd045774088f1e841e514279aa6818870adc",
+        "/workspace/offline/cann-streamed-five-20261017/source-01/tests/glm52/run_cann_model.py": "1ffc552916803e6d707e0b05d88353d70ad99a3f461c4392b4dc1cd57bfb5f74"
+      },
+      "coverage": {
+        "layers": 5,
+        "steps": 1,
+        "independent_hf_phases": 2,
+        "moe_route_capture": false
+      }
+    }
+  },
+  "skipped_preflight": {
+    "utc": "2026-10-17T10:36:36.832902+00:00",
+    "free_mib": {
+      "0": 2657,
+      "1": 62630,
+      "2": 62391,
+      "3": 62631,
+      "4": 62380,
+      "5": 62643,
+      "6": 62393,
+      "7": 62631,
+      "8": 62391,
+      "9": 62630,
+      "10": 62390,
+      "11": 62631,
+      "12": 62382,
+      "13": 62644,
+      "14": 62393,
+      "15": 62632
+    },
+    "minimum_free_mib": 2657,
+    "script_sha256": "a5603e3f2fc3bbe68698762c821fdd58574ced6cb2ff449916af99a1f5f70baf",
+    "guard_mib": 3300,
+    "intervention": "Clone original NPU RoPE prefixes to 8320 rows; retain original frequencies and max_position parameters"
+  },
+  "load_coverage_rank0": {
+    "first": [
+      {
+        "layer": 0,
+        "raw_names": 33,
+        "loaded": 26,
+        "expected": 30,
+        "synthesized_zero_norm_bias": [
+          "model.layers.0.input_layernorm.bias",
+          "model.layers.0.post_attention_layernorm.bias",
+          "model.layers.0.self_attn.kv_a_layernorm.bias",
+          "model.layers.0.self_attn.q_a_layernorm.bias"
+        ]
+      },
+      {
+        "layer": 1,
+        "raw_names": 33,
+        "loaded": 26,
+        "expected": 30,
+        "synthesized_zero_norm_bias": [
+          "model.layers.1.input_layernorm.bias",
+          "model.layers.1.post_attention_layernorm.bias",
+          "model.layers.1.self_attn.kv_a_layernorm.bias",
+          "model.layers.1.self_attn.q_a_layernorm.bias"
+        ]
+      },
+      {
+        "layer": 2,
+        "raw_names": 33,
+        "loaded": 26,
+        "expected": 30,
+        "synthesized_zero_norm_bias": [
+          "model.layers.2.input_layernorm.bias",
+          "model.layers.2.post_attention_layernorm.bias",
+          "model.layers.2.self_attn.kv_a_layernorm.bias",
+          "model.layers.2.self_attn.q_a_layernorm.bias"
+        ]
+      },
+      {
+        "layer": 3,
+        "raw_names": 3100,
+        "loaded": 30,
+        "expected": 34,
+        "synthesized_zero_norm_bias": [
+          "model.layers.3.input_layernorm.bias",
+          "model.layers.3.post_attention_layernorm.bias",
+          "model.layers.3.self_attn.kv_a_layernorm.bias",
+          "model.layers.3.self_attn.q_a_layernorm.bias"
+        ]
+      },
+      {
+        "layer": 4,
+        "raw_names": 3100,
+        "loaded": 30,
+        "expected": 34,
+        "synthesized_zero_norm_bias": [
+          "model.layers.4.input_layernorm.bias",
+          "model.layers.4.post_attention_layernorm.bias",
+          "model.layers.4.self_attn.kv_a_layernorm.bias",
+          "model.layers.4.self_attn.q_a_layernorm.bias"
+        ]
+      }
+    ],
+    "reload": [
+      {
+        "layer": 0,
+        "raw_names": 33,
+        "loaded": 26,
+        "expected": 30,
+        "synthesized_zero_norm_bias": [
+          "model.layers.0.input_layernorm.bias",
+          "model.layers.0.post_attention_layernorm.bias",
+          "model.layers.0.self_attn.kv_a_layernorm.bias",
+          "model.layers.0.self_attn.q_a_layernorm.bias"
+        ]
+      },
+      {
+        "layer": 1,
+        "raw_names": 33,
+        "loaded": 26,
+        "expected": 30,
+        "synthesized_zero_norm_bias": [
+          "model.layers.1.input_layernorm.bias",
+          "model.layers.1.post_attention_layernorm.bias",
+          "model.layers.1.self_attn.kv_a_layernorm.bias",
+          "model.layers.1.self_attn.q_a_layernorm.bias"
+        ]
+      },
+      {
+        "layer": 2,
+        "raw_names": 33,
+        "loaded": 26,
+        "expected": 30,
+        "synthesized_zero_norm_bias": [
+          "model.layers.2.input_layernorm.bias",
+          "model.layers.2.post_attention_layernorm.bias",
+          "model.layers.2.self_attn.kv_a_layernorm.bias",
+          "model.layers.2.self_attn.q_a_layernorm.bias"
+        ]
+      },
+      {
+        "layer": 3,
+        "raw_names": 3100,
+        "loaded": 30,
+        "expected": 34,
+        "synthesized_zero_norm_bias": [
+          "model.layers.3.input_layernorm.bias",
+          "model.layers.3.post_attention_layernorm.bias",
+          "model.layers.3.self_attn.kv_a_layernorm.bias",
+          "model.layers.3.self_attn.q_a_layernorm.bias"
+        ]
+      },
+      {
+        "layer": 4,
+        "raw_names": 3100,
+        "loaded": 30,
+        "expected": 34,
+        "synthesized_zero_norm_bias": [
+          "model.layers.4.input_layernorm.bias",
+          "model.layers.4.post_attention_layernorm.bias",
+          "model.layers.4.self_attn.kv_a_layernorm.bias",
+          "model.layers.4.self_attn.q_a_layernorm.bias"
+        ]
+      }
+    ]
+  }
+}

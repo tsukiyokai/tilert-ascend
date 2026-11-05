@@ -1,0 +1,1420 @@
+{
+  "scope": "rank0, layers0..7, 32 frozen teacher rows; diagnostic cross-width comparison",
+  "same_report_fields": {
+    "checkpoint_sha256": true,
+    "inputs": true,
+    "teacher_tokens": true,
+    "expected_tokens": true,
+    "packages": true
+  },
+  "reports": [
+    {
+      "path": "/workspace/experiments/layer-major-m1-m32-20261020/old/device-78x32-sfa-01/rank-0.json",
+      "sha256": "40d3d349fd70e507c7eaae7f9f0f3ba20c65afbe3d7a22c79d3c709b6eac7c2b",
+      "query_width": 1,
+      "capacity": 8320,
+      "environment": {
+        "ASCEND_CUSTOM_OPP_PATH": "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp:/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer:/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib:/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer:/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer",
+        "HCCL_OP_EXPANSION_MODE": "AI_CPU",
+        "HCCL_DETERMINISTIC": "true",
+        "HCCL_BUFFSIZE": "200",
+        "ASCEND_LAUNCH_BLOCKING": null,
+        "TASK_QUEUE_ENABLE": "1"
+      }
+    },
+    {
+      "path": "/workspace/experiments/layer-major-m32-20261020/sfa-8/rank-0.json",
+      "sha256": "e04dc19e0fe17b4d70f3f83a2fd7b97cfb38ad796e3874cd0ff3f605f08dbd5f",
+      "query_width": 32,
+      "capacity": 9344,
+      "environment": {
+        "ASCEND_CUSTOM_OPP_PATH": "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp:/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer:/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib:/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer:/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer:/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer",
+        "HCCL_OP_EXPANSION_MODE": "AI_CPU",
+        "HCCL_DETERMINISTIC": "true",
+        "HCCL_BUFFSIZE": "200",
+        "ASCEND_LAUNCH_BLOCKING": null,
+        "TASK_QUEUE_ENABLE": null
+      }
+    }
+  ],
+  "layers": [
+    {
+      "layer": 0,
+      "artifacts": [
+        {
+          "path": "/workspace/experiments/layer-major-m1-m32-20261020/old/device-78x32-sfa-01/rank-0/layer-00.pt",
+          "sha256": "5e5066cd66d9e79340ea055ce18fe7506954418833187e6cee72c2fb73eec60b"
+        },
+        {
+          "path": "/workspace/experiments/layer-major-m32-20261020/sfa-8/rank-0/layer-00.pt",
+          "sha256": "334af33327f78a2989189140c98172ea330db1e8fe8625c566d5c94df5bb9ef7"
+        }
+      ],
+      "tensors": {
+        "input_hidden": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000000000000002,
+          "maxabs": 0.0
+        },
+        "input_merged": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000000000000002,
+          "maxabs": 0.0
+        },
+        "hidden": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999998,
+          "maxabs": 0.0
+        },
+        "residual": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999999,
+          "maxabs": 0.0
+        },
+        "merged": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000000000000002,
+          "maxabs": 0.0
+        }
+      },
+      "cache_rows": {
+        "index_keys": {
+          "shape": [
+            32,
+            128
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999999,
+          "maxabs": 0.0
+        },
+        "latent": {
+          "shape": [
+            32,
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000000000000002,
+          "maxabs": 0.0
+        },
+        "rope": {
+          "shape": [
+            32,
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        }
+      },
+      "indices": {
+        "bitexact": true,
+        "same_set_every_row": true,
+        "overlap_per_row": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "mean_overlap": 1.0,
+        "minimum_overlap": 1.0,
+        "different_entries": 0
+      }
+    },
+    {
+      "layer": 1,
+      "artifacts": [
+        {
+          "path": "/workspace/experiments/layer-major-m1-m32-20261020/old/device-78x32-sfa-01/rank-0/layer-01.pt",
+          "sha256": "31d7262874a53b9149f8e618e658a73cf4fa52fbdefc7a79da5b320bbedfc30c"
+        },
+        {
+          "path": "/workspace/experiments/layer-major-m32-20261020/sfa-8/rank-0/layer-01.pt",
+          "sha256": "e8665c893572601e6b9b3c9bfb7e70d0ced3f4f713f3cf414191603f632ac6f6"
+        }
+      ],
+      "tensors": {
+        "input_hidden": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999998,
+          "maxabs": 0.0
+        },
+        "input_merged": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000000000000002,
+          "maxabs": 0.0
+        },
+        "hidden": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999999,
+          "maxabs": 0.0
+        },
+        "residual": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999999,
+          "maxabs": 0.0
+        },
+        "merged": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "input_residual": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999999,
+          "maxabs": 0.0
+        }
+      },
+      "cache_rows": {
+        "index_keys": {
+          "shape": [
+            32,
+            128
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "latent": {
+          "shape": [
+            32,
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999999,
+          "maxabs": 0.0
+        },
+        "rope": {
+          "shape": [
+            32,
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        }
+      },
+      "indices": {
+        "bitexact": false,
+        "same_set_every_row": true,
+        "overlap_per_row": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "mean_overlap": 1.0,
+        "minimum_overlap": 1.0,
+        "different_entries": 40,
+        "firstdiff": {
+          "query": 1,
+          "column": 1153,
+          "m1": 967,
+          "m32": 1063
+        }
+      }
+    },
+    {
+      "layer": 2,
+      "artifacts": [
+        {
+          "path": "/workspace/experiments/layer-major-m1-m32-20261020/old/device-78x32-sfa-01/rank-0/layer-02.pt",
+          "sha256": "8a8932e65f484275e1b1de1d32c1985f0864cfdde697ffabc094b3a1e62d200d"
+        },
+        {
+          "path": "/workspace/experiments/layer-major-m32-20261020/sfa-8/rank-0/layer-02.pt",
+          "sha256": "6c1c50661c5b80341bf9d3e6be51a2597fd9d2a1db715ebc315c952784ee080d"
+        }
+      ],
+      "tensors": {
+        "input_hidden": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999999,
+          "maxabs": 0.0
+        },
+        "input_merged": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "hidden": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999999,
+          "maxabs": 0.0
+        },
+        "residual": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999999,
+          "maxabs": 0.0
+        },
+        "merged": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000000000000002,
+          "maxabs": 0.0
+        },
+        "input_residual": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999999,
+          "maxabs": 0.0
+        }
+      },
+      "cache_rows": {
+        "index_keys": {
+          "shape": [
+            32,
+            128
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000000000000002,
+          "maxabs": 0.0
+        },
+        "latent": {
+          "shape": [
+            32,
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000000000000002,
+          "maxabs": 0.0
+        },
+        "rope": {
+          "shape": [
+            32,
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        }
+      },
+      "indices": {
+        "bitexact": false,
+        "same_set_every_row": true,
+        "overlap_per_row": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "mean_overlap": 1.0,
+        "minimum_overlap": 1.0,
+        "different_entries": 6,
+        "firstdiff": {
+          "query": 6,
+          "column": 1848,
+          "m1": 5462,
+          "m32": 5831
+        }
+      }
+    },
+    {
+      "layer": 3,
+      "artifacts": [
+        {
+          "path": "/workspace/experiments/layer-major-m1-m32-20261020/old/device-78x32-sfa-01/rank-0/layer-03.pt",
+          "sha256": "7495d2c199e33abed3dbe5c4b522b2d59aeb7289b7621309f32f5ad67bab6e92"
+        },
+        {
+          "path": "/workspace/experiments/layer-major-m32-20261020/sfa-8/rank-0/layer-03.pt",
+          "sha256": "068c7c8a5f45ebf30302286673c05f8639918c8345366375ca7519f26fbe2331"
+        }
+      ],
+      "tensors": {
+        "input_hidden": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999999,
+          "maxabs": 0.0
+        },
+        "input_merged": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000000000000002,
+          "maxabs": 0.0
+        },
+        "hidden": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "residual": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "merged": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "input_residual": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999999,
+          "maxabs": 0.0
+        }
+      },
+      "cache_rows": {
+        "latent": {
+          "shape": [
+            32,
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "rope": {
+          "shape": [
+            32,
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999999,
+          "maxabs": 0.0
+        }
+      },
+      "indices": {
+        "bitexact": false,
+        "same_set_every_row": true,
+        "overlap_per_row": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "mean_overlap": 1.0,
+        "minimum_overlap": 1.0,
+        "different_entries": 6,
+        "firstdiff": {
+          "query": 6,
+          "column": 1848,
+          "m1": 5462,
+          "m32": 5831
+        }
+      }
+    },
+    {
+      "layer": 4,
+      "artifacts": [
+        {
+          "path": "/workspace/experiments/layer-major-m1-m32-20261020/old/device-78x32-sfa-01/rank-0/layer-04.pt",
+          "sha256": "feea78f0e6033f53cbf6b6724ab0b5eb5087f02ec5704012fcbcc57891de45bf"
+        },
+        {
+          "path": "/workspace/experiments/layer-major-m32-20261020/sfa-8/rank-0/layer-04.pt",
+          "sha256": "16b277cd2e1d1ca1ae6d74d163fa24b22ad80df953bcb980574e296be66f5663"
+        }
+      ],
+      "tensors": {
+        "input_hidden": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "input_merged": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "hidden": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "residual": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000000000000002,
+          "maxabs": 0.0
+        },
+        "merged": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "input_residual": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        }
+      },
+      "cache_rows": {
+        "latent": {
+          "shape": [
+            32,
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "rope": {
+          "shape": [
+            32,
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        }
+      },
+      "indices": {
+        "bitexact": false,
+        "same_set_every_row": true,
+        "overlap_per_row": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "mean_overlap": 1.0,
+        "minimum_overlap": 1.0,
+        "different_entries": 6,
+        "firstdiff": {
+          "query": 6,
+          "column": 1848,
+          "m1": 5462,
+          "m32": 5831
+        }
+      }
+    },
+    {
+      "layer": 5,
+      "artifacts": [
+        {
+          "path": "/workspace/experiments/layer-major-m1-m32-20261020/old/device-78x32-sfa-01/rank-0/layer-05.pt",
+          "sha256": "eeeb209904812908cc24b2756ea66bd11825d2d8dc0716cce4a801adc55f0891"
+        },
+        {
+          "path": "/workspace/experiments/layer-major-m32-20261020/sfa-8/rank-0/layer-05.pt",
+          "sha256": "7032117dc539543437822281ad5500fd4685022639189004c5edb844fd1bd189"
+        }
+      ],
+      "tensors": {
+        "input_hidden": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "input_merged": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "hidden": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "residual": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "merged": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "input_residual": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000000000000002,
+          "maxabs": 0.0
+        }
+      },
+      "cache_rows": {
+        "latent": {
+          "shape": [
+            32,
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "rope": {
+          "shape": [
+            32,
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000000000000002,
+          "maxabs": 0.0
+        }
+      },
+      "indices": {
+        "bitexact": false,
+        "same_set_every_row": true,
+        "overlap_per_row": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "mean_overlap": 1.0,
+        "minimum_overlap": 1.0,
+        "different_entries": 6,
+        "firstdiff": {
+          "query": 6,
+          "column": 1848,
+          "m1": 5462,
+          "m32": 5831
+        }
+      }
+    },
+    {
+      "layer": 6,
+      "artifacts": [
+        {
+          "path": "/workspace/experiments/layer-major-m1-m32-20261020/old/device-78x32-sfa-01/rank-0/layer-06.pt",
+          "sha256": "ed4a57e34ad9592121d673744f7adcce9260b62977ab0aa303be5583b49448c6"
+        },
+        {
+          "path": "/workspace/experiments/layer-major-m32-20261020/sfa-8/rank-0/layer-06.pt",
+          "sha256": "05dce8144cde89425a8b0440e691737f09a7bfa2937405873e90cac38d7d7d13"
+        }
+      ],
+      "tensors": {
+        "input_hidden": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "input_merged": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "hidden": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000000000000002,
+          "maxabs": 0.0
+        },
+        "residual": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999999,
+          "maxabs": 0.0
+        },
+        "merged": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000000000000002,
+          "maxabs": 0.0
+        },
+        "input_residual": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        }
+      },
+      "cache_rows": {
+        "index_keys": {
+          "shape": [
+            32,
+            128
+          ],
+          "dtype": "torch.int8",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999998,
+          "maxabs": 0.0
+        },
+        "index_scales": {
+          "shape": [
+            32
+          ],
+          "dtype": "torch.float16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "latent": {
+          "shape": [
+            32,
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "rope": {
+          "shape": [
+            32,
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000000000000002,
+          "maxabs": 0.0
+        }
+      },
+      "indices": {
+        "bitexact": true,
+        "same_set_every_row": true,
+        "overlap_per_row": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "mean_overlap": 1.0,
+        "minimum_overlap": 1.0,
+        "different_entries": 0
+      }
+    },
+    {
+      "layer": 7,
+      "artifacts": [
+        {
+          "path": "/workspace/experiments/layer-major-m1-m32-20261020/old/device-78x32-sfa-01/rank-0/layer-07.pt",
+          "sha256": "55516de08882aa74d1da5f5bec939e045c688ab7a495061717b0fa21cd9fa7d2"
+        },
+        {
+          "path": "/workspace/experiments/layer-major-m32-20261020/sfa-8/rank-0/layer-07.pt",
+          "sha256": "96d0cffb29f9c054c3e3374aff7ce0248cce9d63431c6b5fc2856f645524d266"
+        }
+      ],
+      "tensors": {
+        "input_hidden": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000000000000002,
+          "maxabs": 0.0
+        },
+        "input_merged": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000000000000002,
+          "maxabs": 0.0
+        },
+        "hidden": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "residual": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0,
+          "maxabs": 0.0
+        },
+        "merged": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999998,
+          "maxabs": 0.0
+        },
+        "input_residual": {
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999999,
+          "maxabs": 0.0
+        }
+      },
+      "cache_rows": {
+        "latent": {
+          "shape": [
+            32,
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999999,
+          "maxabs": 0.0
+        },
+        "rope": {
+          "shape": [
+            32,
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "bitexact": true,
+          "different_bytes": 0,
+          "different_values": 0,
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999999,
+          "maxabs": 0.0
+        }
+      },
+      "indices": {
+        "bitexact": true,
+        "same_set_every_row": true,
+        "overlap_per_row": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "mean_overlap": 1.0,
+        "minimum_overlap": 1.0,
+        "different_entries": 0
+      }
+    }
+  ],
+  "torch_npu_imported": false
+}

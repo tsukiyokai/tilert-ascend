@@ -1,0 +1,27 @@
+{
+  "created_at": "2026-10-16T11:57:04.282349+00:00",
+  "status": "pass",
+  "scope": "TP16 Python command and MTP state; scalar cache arithmetic",
+  "excluded": "HCCL, HIXL, Torch, NPU numerics and latency",
+  "python": "3.13.13",
+  "hostname": "liteserver-hps-c180-00044",
+  "command": [
+    "/root/miniconda3/bin/python3",
+    "tests/glm52/check_mtp_tp.py",
+    "--output",
+    "/home/shanshan/trt-asc/experiments/glm52/measurement/check-mtp-tp.json"
+  ],
+  "ranks": 16,
+  "tests": 17,
+  "failures": 0,
+  "errors": 0,
+  "torch_imported": false,
+  "source_sha256": {
+    "tests/glm52/check_mtp_tp.py": "88653fba6bfb72b2ea90698b88dc5abe58ff1696c1942e49ec7c4642ea09e118",
+    "tilert/models/glm_5_2_ascend/tp_runtime.py": "78051119adfb3b0444d1e1f73333b2760e0329e5533282153e7ba7b7030d5d0c",
+    "tilert/models/glm_5_2_ascend/mtp_round.py": "a370e342a8342730022d3d26bb18304d7ade977670657991d835a4df6b996006",
+    "tilert/models/glm_5_2_ascend/mtp_state.py": "ff8ee34ae8703e2c84ee7d358f9689cffa571e3279090edb9b3c90c0123ac59c",
+    "tilert/pd_vllm/ascend_cache.py": "309d55edce0a9f57df9058ccb706798f94fc10d55d096574d2a5e2a5ad9cad4f"
+  },
+  "test_output": "test_eos_budget_and_capacity_finish_at_same_rank_positions (__main__.MtpTpChecks.test_eos_budget_and_capacity_finish_at_same_rank_positions) ... ok\ntest_finish_does_not_truncate_unchanged_lengths (__main__.MtpTpChecks.test_finish_does_not_truncate_unchanged_lengths) ... ok\ntest_finish_rejects_prompt_loss_or_unwritten_rows (__main__.MtpTpChecks.test_finish_rejects_prompt_loss_or_unwritten_rows) ... ok\ntest_finishing_without_a_round_preserves_missing_seed (__main__.MtpTpChecks.test_finishing_without_a_round_preserves_missing_seed) ... ok\ntest_mtp_commands_require_an_injected_request_and_start (__main__.MtpTpChecks.test_mtp_commands_require_an_injected_request_and_start) ... ok\ntest_normal_import_does_not_load_torch (__main__.MtpTpChecks.test_normal_import_does_not_load_torch) ... ok\ntest_partial_delivery_trims_and_allows_a_fresh_request (__main__.MtpTpChecks.test_partial_delivery_trims_and_allows_a_fresh_request) ... ok\ntest_rank_zero_finish_failure_rejects_reset_without_broadcast (__main__.MtpTpChecks.test_rank_zero_finish_failure_rejects_reset_without_broadcast) ... ok\ntest_rank_zero_start_failure_rejects_reset_without_broadcast (__main__.MtpTpChecks.test_rank_zero_start_failure_rejects_reset_without_broadcast) ... ok\ntest_reset_clears_round_and_seed_on_every_rank (__main__.MtpTpChecks.test_reset_clears_round_and_seed_on_every_rank) ... ok\ntest_send_failure_disables_further_commands (__main__.MtpTpChecks.test_send_failure_disables_further_commands) ... ok\ntest_serial_position_and_request_identity_are_checked (__main__.MtpTpChecks.test_serial_position_and_request_identity_are_checked) ... ok\ntest_sixteen_ranks_accept_reject_and_commit_identically (__main__.MtpTpChecks.test_sixteen_ranks_accept_reject_and_commit_identically) ... ok\ntest_step_and_mtp_cannot_mix_in_either_order (__main__.MtpTpChecks.test_step_and_mtp_cannot_mix_in_either_order) ... ok\ntest_uninjected_broadcast_failure_disables_the_backend (__main__.MtpTpChecks.test_uninjected_broadcast_failure_disables_the_backend) ... ok\ntest_worker_failure_disables_further_commands (__main__.MtpTpChecks.test_worker_failure_disables_further_commands) ... ok\ntest_wrong_first_token_or_terminal_start_is_rejected (__main__.MtpTpChecks.test_wrong_first_token_or_terminal_start_is_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 17 tests in 0.063s\n\nOK\n"
+}

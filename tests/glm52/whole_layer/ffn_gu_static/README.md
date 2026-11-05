@@ -1,0 +1,22 @@
+# Constant tiling for the routed gate/up projection
+
+This independent candidate starts from token-terminal library `276352762139244a1ddfc8184065a856c2ae75ee2ccad5961af2af93f0dd5e00`. Only the GU `Matmul` template receives a `MatmulApiStaticTiling` configuration. Its `cfg` remains `CFG_NORM`; BasicBlock, MDL and static padding stay disabled. Down, shared experts, all arithmetic, active ownership, five body joins and terminal completion retain the parent's implementation.
+
+The constant fields match the retained host tiler for both ND and NZ weights: base M/N/K is 64/256/256, N is 256 and K is 6144. M and singleCoreM remain dynamic tiling fields. Each expert still supplies `SetOrgShape(2*count,256,6144)` and `SetSingleShape(2*count,256,6144)`, including changing counts within the same graph. The host tiler, tensor validators and original 33 scratch addresses are unchanged. The 408-byte descriptor, 112-byte shared-input record and 116480-byte resident UB budget are unchanged.
+
+The intervention makes fixed tiling values visible to the compiler. It does not reduce selected weight bytes or the 24 K256 matrix steps per expert. `SetTensorA/B`, `IterateAll` and `End` remain in the source. Actual CANN 9.2 code generation removes 1,371 NZ AIC and 1,526 ND AIC instruction sites; both AIV instruction streams are byte-identical to the parent. This is a static code difference, not a count of executed instructions or a latency result. The [source and assembly audit](../../../../docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-gu-specialization-source-audit/README.md) records the installed headers, resource bounds and opcode comparisons.
+
+Library `05b3427aa29630c9af16ea829e2ecec8833d31a32615e6a052f6f4e9867ca6b2` exports namespace `tilert_ffn_gu_static` and C ABI `ffn_gu_static_launch`. Five x86 and five AArch64 CPU tests cover the constant fields, unchanged source regions, changing expert counts and the actual 408-byte descriptor ABI. The real parent and candidate libraries co-load without initializing NPU. [Build v2](../../../../docs/evidence/ascend-decode/megakernel-device-20261021/a3-194/ffn-gu-static-build-v2/manifest.json) retains 93 source identities and six artifact hashes; the archive omits binaries. [Build v1](../../../../docs/evidence/ascend-decode/megakernel-device-20261021/a3-194/ffn-gu-static-build-v1/archive.json) preserves the compiler rejection of an incorrect namespace qualifier for the SDK's global static-tiling types.
+
+The [complete geometry gate](../../../../docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-gu-static212-wide-v1-a3-194/summary.json) covers M1/2/12/32 at 16 and 24 groups, with eight changing-input replays per geometry. All 4,480 raw-byte boundary checks pass, including 512 immediate same-graph consumer checks and every word of the INT32[264] active table. The initial [M12/24 report](../../../../docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-gu-static212-m12-v1-a3-194/summary.json) supplies 560 of those checks.
+
+[Timing v1](../../../../docs/evidence/ascend-decode/megakernel-device-20261021/a3-194/ffn-gu-static-timing-v1/handoff.json) compares this candidate directly with `276352` using both original owners, the same 33 scratch addresses, 16 weight banks and 30 paired event samples per arm and arena. Its four x86 and four AArch64 ABI tests and actual five-library CPU preflight pass. Fresh-write poisoning, complete active-table checks and pre/post numerical gates retain the parent benchmark's implementation.
+
+The [a3-194 result](../../../../docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-gu-static-timing-v1-a3-194/summary.json) passes 19,200 raw-byte checks, 360 post-event output checks and 696 full active-table checks. Each M12/24 graph has 16 calls and E65 routes; each event sample contains 30 graph replays.
+
+| Arena owner | Candidate p50, µs | Parent p50, µs | Paired saving p50, µs | Faster pairs |
+| --- | ---: | ---: | ---: | ---: |
+| Fused | 212.0369 | 217.5455 | 5.4344 | 30/30 |
+| Separate | 208.7791 | 214.9103 | 6.1665 | 30/30 |
+
+Both arenas support a local FFN gain for this workload. The comparison uses synthetic weights, excludes TP and model latency, and retains the same historical shared-activation arithmetic in both arms. It does not measure the combination with the corrected original shared-expert quantization path, nor assign the measured saving to any single removed instruction class.

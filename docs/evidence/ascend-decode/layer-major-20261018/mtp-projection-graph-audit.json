@@ -1,0 +1,2299 @@
+{
+  "status": "pass",
+  "scope": "Independent CPU tensor audit, own configuration exactness",
+  "audited_at": "2026-10-18T00:41:20.619821+00:00",
+  "script": {
+    "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/audit.py",
+    "sha256": "7d47be41c550147a32f23c06721adeeb4237118f180c19d836a893b4b42cf793",
+    "bytes": 31976
+  },
+  "prepared": {
+    "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/prepared.json",
+    "sha256": "d33e3d0fd996b17ab3619f424801ca555582b238d6af5e62b52089b674e3bd53",
+    "bytes": 24696
+  },
+  "source_manifest": {
+    "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/source-manifest.json",
+    "sha256": "a681f4d2acb1aa54a439c8e859d109a6e3ad436fd550174d792dfa6b535b6ce9",
+    "bytes": 38127
+  },
+  "source_review": {
+    "snapshot_files": 328,
+    "external_bindings": 28,
+    "changed_or_added_snapshot_files": [
+      "tests/glm52/bench_cann_mtp.py",
+      "tests/glm52/run_cann_mtp_rounds.py",
+      "tilert/models/glm_5_2_ascend/cann_mtp.py",
+      "tilert/models/glm_5_2_ascend/cann_mtp_projection.py"
+    ],
+    "source_sha256": {
+      "tests/glm52/bench_cann_mtp.py": "3e681ea439aa5809ed61a50601b42311a7f966992f3e7710903f93e698ea638c",
+      "tests/glm52/run_cann_mtp_rounds.py": "981a8085abb5a0386adedc75d34ff86aafade620bf5fa9e3c4c3d26dc1d113ed",
+      "tilert/models/glm_5_2_ascend/cann_mtp.py": "1893bc0e1bd2a78c61dd487c7c7b2673047bdf6988c8b9eeaf534a613cd281e6",
+      "tilert/models/glm_5_2_ascend/cann_mtp_projection.py": "68cb044b132ae04dcf6b5594c4c58d38db15a949855628190fd316a79a2a7fed"
+    },
+    "driver": {
+      "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/chain_graph.py",
+      "sha256": "fdbb1f3c73ed19a9ffd7b0abcf42859926318316c4971dfff30f846b1d5e021e",
+      "bytes": 18514
+    },
+    "projection_default": false,
+    "probe_metadata_prefill": false,
+    "projection_operation": "Output-row TP16 shards, full K, AllGather before consumer",
+    "anchors": [
+      "cann_mtp_projection.py:4-26",
+      "cann_mtp.py:156-173",
+      "cann_mtp.py:305-346",
+      "cann_mtp_graph.py:64-95",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/linear.py:107-123",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/linear.py:394-471",
+      "/workspace/src/vllm-unified/vllm/model_executor/layers/linear.py:604-621"
+    ]
+  },
+  "frozen_artifacts": {
+    "inputs": {
+      "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/inputs.pt",
+      "sha256": "389d2bae047d6d08df52de032de8d378db35ff465f45c7de51e6f681e7444bd7",
+      "bytes": 63010
+    },
+    "parent_prepared": {
+      "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/prepared.json",
+      "sha256": "0cbcc0469b3310d04840f3f13228a712b53d1e7159e9e57e85c969fb21d394af",
+      "bytes": 19485
+    },
+    "prior_numerical_proof": {
+      "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/root-audit.json",
+      "sha256": "e9e316b6d4be8ad907256afcf50229bee2ce904a7ce4eda1ad1ec3c2a59b7625",
+      "bytes": 17461
+    },
+    "projection_module_audit": {
+      "path": "/workspace/offline/cann-mtp-projection-shard-20261018-01/root-audit.json",
+      "sha256": "2a5c18102ce6acfa77e00466d3a7ef17a1e2cdd589c7743e8e420188c9a705ea",
+      "bytes": 96488
+    },
+    "head_only_proof": {
+      "path": "/workspace/offline/cann-mtp-own-head-20261018-02/root-audit.json",
+      "sha256": "d58361d40330029994fd3116c0b2d6232b95b3b01637079c0c59cdeaf7ca5abe",
+      "bytes": 19377
+    },
+    "loader_prepared": {
+      "path": "/workspace/offline/cann-mtp-own-head-20261018-02/prepared.json",
+      "sha256": "8126779ab6e1d6b2f258554bd59fffcfab3fe460f77aef6427e71aacb55fc49f",
+      "bytes": 16593
+    },
+    "capture_manifest": {
+      "path": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/manifest.json",
+      "sha256": "b01cceb2d2e30564807ce9efc441ad535999b56b73d0c333e93bb18694ccda74",
+      "bytes": 156199
+    },
+    "teacher": {
+      "path": "/workspace/offline/cann-layer-major-20261018-02/source/docs/evidence/ascend-decode/vllm-baseline-20261017/teacher-32.json",
+      "sha256": "82d011962a288b30b777fc4964d5c96c6b9784cb13b97f509322f603b263b655",
+      "bytes": 961
+    },
+    "teacher_report": {
+      "path": "/workspace/offline/cann-layer-major-20261018-02/device-78x32-sfa-01/rank-0.json",
+      "sha256": "40d3d349fd70e507c7eaae7f9f0f3ba20c65afbe3d7a22c79d3c709b6eac7c2b",
+      "bytes": 16260719
+    },
+    "main_trace": {
+      "path": "/workspace/offline/cann-layer-major-20261018-02/device-78x32-sfa-01/rank-0/final.pt",
+      "sha256": "ae7aad6cad13b7c8a2b483696a166f1f8c63e0ec7ca00303995d5f4c1af5efe3",
+      "bytes": 10307557
+    }
+  },
+  "checkpoint_bindings": {
+    "checkpoint_files": {
+      "config.json": {
+        "path": "/workspace/models/GLM-5.2-w4a8c8/config.json",
+        "sha256": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+        "bytes": 3699
+      },
+      "quant_model_description.json": {
+        "path": "/workspace/models/GLM-5.2-w4a8c8/quant_model_description.json",
+        "sha256": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+        "bytes": 17224106
+      },
+      "quant_model_weights.safetensors.index.json": {
+        "path": "/workspace/models/GLM-5.2-w4a8c8/quant_model_weights.safetensors.index.json",
+        "sha256": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82",
+        "bytes": 25714395
+      }
+    },
+    "weights": {
+      "model.layers.78.shared_head.head.weight": {
+        "path": "/workspace/models/GLM-5.2-w4a8c8/quant_model_weights-00093-of-00095.safetensors",
+        "header_sha256": "14a20364bd9cf4d0e8a812d75766a00829b0eb40ebc4d7792575d1f59c49162e",
+        "dtype": "BF16",
+        "shape": [
+          154880,
+          6144
+        ],
+        "absolute_byte_range": [
+          2055304000,
+          3958469440
+        ],
+        "shards": [
+          {
+            "rank": 0,
+            "rows": [
+              0,
+              9680
+            ],
+            "sha256": "003286287a8954363be017cdc8bce21b889aeb6c1eaa3126ae5a0d684cb28a70",
+            "absolute_byte_range": [
+              2055304000,
+              2174251840
+            ]
+          },
+          {
+            "rank": 1,
+            "rows": [
+              9680,
+              19360
+            ],
+            "sha256": "e9fc59d9cdaa6f9176f7bb489134b077ccb40610288a37bf266e24c80d1417e8",
+            "absolute_byte_range": [
+              2174251840,
+              2293199680
+            ]
+          },
+          {
+            "rank": 2,
+            "rows": [
+              19360,
+              29040
+            ],
+            "sha256": "6dccb05b90b13bb33610c60c5e687fedd86fa4f62a9faa08cbfc3664ab6ebfea",
+            "absolute_byte_range": [
+              2293199680,
+              2412147520
+            ]
+          },
+          {
+            "rank": 3,
+            "rows": [
+              29040,
+              38720
+            ],
+            "sha256": "791fbd1ff44d03d9125cbdd039a8620f5db5edb34992b4b9919daaa2dacfdfb3",
+            "absolute_byte_range": [
+              2412147520,
+              2531095360
+            ]
+          },
+          {
+            "rank": 4,
+            "rows": [
+              38720,
+              48400
+            ],
+            "sha256": "6a91b1f38ca89b54cc8e9e9796669c8c5f4f521cf2a0a4dfbf412a2e6147d0b4",
+            "absolute_byte_range": [
+              2531095360,
+              2650043200
+            ]
+          },
+          {
+            "rank": 5,
+            "rows": [
+              48400,
+              58080
+            ],
+            "sha256": "9f32a30587a30ec31425e6d79ecd3b9c3fac90af532157b91a905f157c282d1d",
+            "absolute_byte_range": [
+              2650043200,
+              2768991040
+            ]
+          },
+          {
+            "rank": 6,
+            "rows": [
+              58080,
+              67760
+            ],
+            "sha256": "3ec30780d707a348aa1fe2037f3486a8a247bcfed51f81e7eccfa2acde8814e9",
+            "absolute_byte_range": [
+              2768991040,
+              2887938880
+            ]
+          },
+          {
+            "rank": 7,
+            "rows": [
+              67760,
+              77440
+            ],
+            "sha256": "75768968c3292de35c4b73c6c1d29f4e1facbb7e8f61e8332b5594451b73d32f",
+            "absolute_byte_range": [
+              2887938880,
+              3006886720
+            ]
+          },
+          {
+            "rank": 8,
+            "rows": [
+              77440,
+              87120
+            ],
+            "sha256": "e9fbe589149146b5a06ec54f6c491ec6aa358fd9a23f7fd59698d76eff9a00f2",
+            "absolute_byte_range": [
+              3006886720,
+              3125834560
+            ]
+          },
+          {
+            "rank": 9,
+            "rows": [
+              87120,
+              96800
+            ],
+            "sha256": "4628ec161375801f3a05cfaaaf4fbe70fb1aa6908f0289c8a694e6461f84a401",
+            "absolute_byte_range": [
+              3125834560,
+              3244782400
+            ]
+          },
+          {
+            "rank": 10,
+            "rows": [
+              96800,
+              106480
+            ],
+            "sha256": "6b8238535574f63a3eb76204b7ff34e3c7db4ca9980da968ca74ea86d26ae05a",
+            "absolute_byte_range": [
+              3244782400,
+              3363730240
+            ]
+          },
+          {
+            "rank": 11,
+            "rows": [
+              106480,
+              116160
+            ],
+            "sha256": "558af55c7774dedfa6382f43a1b27deefd430f07a2e362d42da22315ecde74b8",
+            "absolute_byte_range": [
+              3363730240,
+              3482678080
+            ]
+          },
+          {
+            "rank": 12,
+            "rows": [
+              116160,
+              125840
+            ],
+            "sha256": "c56b04b066ee8236321fd8690eb4b830c9f3fac5fd4e69366d9b67e6b682617d",
+            "absolute_byte_range": [
+              3482678080,
+              3601625920
+            ]
+          },
+          {
+            "rank": 13,
+            "rows": [
+              125840,
+              135520
+            ],
+            "sha256": "58f36863b6e5782eb1de8a00fa44fab936ad97dac4dd25295a5836f0cbe46fed",
+            "absolute_byte_range": [
+              3601625920,
+              3720573760
+            ]
+          },
+          {
+            "rank": 14,
+            "rows": [
+              135520,
+              145200
+            ],
+            "sha256": "24be821404584d5a1aa30fc9d757a8996710571ebd34488d0535e04c8137269c",
+            "absolute_byte_range": [
+              3720573760,
+              3839521600
+            ]
+          },
+          {
+            "rank": 15,
+            "rows": [
+              145200,
+              154880
+            ],
+            "sha256": "e3952c6b1015a6978574334adb3a1a86da96b7e231773f8a6e392088fa483a31",
+            "absolute_byte_range": [
+              3839521600,
+              3958469440
+            ]
+          }
+        ]
+      },
+      "model.layers.78.shared_head.norm.weight": {
+        "path": "/workspace/models/GLM-5.2-w4a8c8/quant_model_weights-00093-of-00095.safetensors",
+        "header_sha256": "14a20364bd9cf4d0e8a812d75766a00829b0eb40ebc4d7792575d1f59c49162e",
+        "dtype": "BF16",
+        "shape": [
+          6144
+        ],
+        "absolute_byte_range": [
+          3958469440,
+          3958481728
+        ],
+        "sha256": "d1cdce4322034c9a2a0c9736d42cedcb3a39e8452a9621e4ffa122a1af123166"
+      },
+      "model.embed_tokens.weight": {
+        "path": "/workspace/models/GLM-5.2-w4a8c8/quant_model_weights-00094-of-00095.safetensors",
+        "header_sha256": "d7df99f5306fcacb19cc891b4607591dc2c478936ce7c34c004c68a9adba1eb7",
+        "dtype": "BF16",
+        "shape": [
+          154880,
+          6144
+        ],
+        "absolute_byte_range": [
+          24768,
+          1903190208
+        ],
+        "shards": [
+          {
+            "rank": 0,
+            "rows": [
+              0,
+              9680
+            ],
+            "sha256": "8c9989446869848efb871df4426c6bb2ded9b8c1664fbb69ddd9d05fe8923d7f",
+            "absolute_byte_range": [
+              24768,
+              118972608
+            ]
+          },
+          {
+            "rank": 1,
+            "rows": [
+              9680,
+              19360
+            ],
+            "sha256": "ba567e9ed225487116b95ab13f8b7a23726638c6b2f703fdbdce7fa0ae55db2e",
+            "absolute_byte_range": [
+              118972608,
+              237920448
+            ]
+          },
+          {
+            "rank": 2,
+            "rows": [
+              19360,
+              29040
+            ],
+            "sha256": "f1c8add22733d1c5ebb942fcaa8b943a13c4f647ca12b243caec556064ac9508",
+            "absolute_byte_range": [
+              237920448,
+              356868288
+            ]
+          },
+          {
+            "rank": 3,
+            "rows": [
+              29040,
+              38720
+            ],
+            "sha256": "c8b1615dbe3c870fc31189459f11abae98e0a4483e129808765b1b64088a69fe",
+            "absolute_byte_range": [
+              356868288,
+              475816128
+            ]
+          },
+          {
+            "rank": 4,
+            "rows": [
+              38720,
+              48400
+            ],
+            "sha256": "64883b5c2ed9b12e4e853284872917c24bed50719e0d1ec4944b9b59c8ed5848",
+            "absolute_byte_range": [
+              475816128,
+              594763968
+            ]
+          },
+          {
+            "rank": 5,
+            "rows": [
+              48400,
+              58080
+            ],
+            "sha256": "2124cd9c8bed0adfb39435a25c01f7dbc678a4a36a617e4b6a24bd98824692e9",
+            "absolute_byte_range": [
+              594763968,
+              713711808
+            ]
+          },
+          {
+            "rank": 6,
+            "rows": [
+              58080,
+              67760
+            ],
+            "sha256": "83413fe63ed5e291a258f7cec263f4f953db7cec82fff9a67e6e9d431c55fdf5",
+            "absolute_byte_range": [
+              713711808,
+              832659648
+            ]
+          },
+          {
+            "rank": 7,
+            "rows": [
+              67760,
+              77440
+            ],
+            "sha256": "27584ef7ac0415dd4523d30a31b2871ad6869b08e6750798dbe9db5e707f13e4",
+            "absolute_byte_range": [
+              832659648,
+              951607488
+            ]
+          },
+          {
+            "rank": 8,
+            "rows": [
+              77440,
+              87120
+            ],
+            "sha256": "5a2388c2cfc176daff6f6b32bae4fb7cc40a6e844fb7b02997fbfe3f719c0a21",
+            "absolute_byte_range": [
+              951607488,
+              1070555328
+            ]
+          },
+          {
+            "rank": 9,
+            "rows": [
+              87120,
+              96800
+            ],
+            "sha256": "0d3e5c2a5218f6135e7a0a412ce248fcb73fd8465d17ccd26755390a39200db6",
+            "absolute_byte_range": [
+              1070555328,
+              1189503168
+            ]
+          },
+          {
+            "rank": 10,
+            "rows": [
+              96800,
+              106480
+            ],
+            "sha256": "6d922773e97be5c802474a0ccc40742e6800a9d11e39ec618c9db6fddf194e6f",
+            "absolute_byte_range": [
+              1189503168,
+              1308451008
+            ]
+          },
+          {
+            "rank": 11,
+            "rows": [
+              106480,
+              116160
+            ],
+            "sha256": "cbba9a8c2fcb9be439e51901be1ba6be9c55edcae0d5cc1e148a00e081523149",
+            "absolute_byte_range": [
+              1308451008,
+              1427398848
+            ]
+          },
+          {
+            "rank": 12,
+            "rows": [
+              116160,
+              125840
+            ],
+            "sha256": "ea20fa2f11096311c46b34d5c8e09391275e87a536afcd6674d45854265f588d",
+            "absolute_byte_range": [
+              1427398848,
+              1546346688
+            ]
+          },
+          {
+            "rank": 13,
+            "rows": [
+              125840,
+              135520
+            ],
+            "sha256": "58ab5a10891e7e1b230fb1aaa7169d4ca11b0a2dde9b5b54d2f8f83598ea3190",
+            "absolute_byte_range": [
+              1546346688,
+              1665294528
+            ]
+          },
+          {
+            "rank": 14,
+            "rows": [
+              135520,
+              145200
+            ],
+            "sha256": "9042bca80009ddbd9ef6a84ea0ff2a1ac4407d52e3d3241ca4e3d99e418133fc",
+            "absolute_byte_range": [
+              1665294528,
+              1784242368
+            ]
+          },
+          {
+            "rank": 15,
+            "rows": [
+              145200,
+              154880
+            ],
+            "sha256": "9eeb2bc64667a58c5469a3a2da1f1a24c3dd48acd9cb5673dd70d864192ecaeb",
+            "absolute_byte_range": [
+              1784242368,
+              1903190208
+            ]
+          }
+        ]
+      }
+    },
+    "projection_prepared": {
+      "path": "/workspace/offline/cann-mtp-projection-shard-20261018-01/prepared.json",
+      "sha256": "c4f7fcc58ebbc7bf97ba0bcaa79ee42ba01788e63a1552a5bbbfb7aafa3a7fc6",
+      "bytes": 11275
+    },
+    "projections": {
+      "rot": {
+        "path": "/workspace/models/GLM-5.2-w4a8c8/rot.safetensors",
+        "key": "rot.weight",
+        "shape": [
+          6144,
+          6144
+        ],
+        "dtype": "BF16",
+        "header_sha256": "67e5675a6cb4a321eb2e5b1c4c0536f6f924ae8316cbff6e618db4361c0beee5",
+        "sha256": "01235d230fa3656f8c7b3e77a58e192e8058751e9a2463d4d7777fcd3da8652c",
+        "absolute_byte_range": [
+          88,
+          75497560
+        ],
+        "shards": [
+          {
+            "rank": 0,
+            "rows": [
+              0,
+              384
+            ],
+            "sha256": "01b6c984a9974c3c3d0d7bcac091a410611f53f095057be5b788fc5a8da6857c",
+            "absolute_byte_range": [
+              88,
+              4718680
+            ]
+          },
+          {
+            "rank": 1,
+            "rows": [
+              384,
+              768
+            ],
+            "sha256": "74122e6213a682cfe8ef4f1ef4e25d60c2366453f3959d693a87a341253411bd",
+            "absolute_byte_range": [
+              4718680,
+              9437272
+            ]
+          },
+          {
+            "rank": 2,
+            "rows": [
+              768,
+              1152
+            ],
+            "sha256": "de8ba4346ab80f3116c505003168266afa6806fbbcb2ad98d88c0cceb93836a2",
+            "absolute_byte_range": [
+              9437272,
+              14155864
+            ]
+          },
+          {
+            "rank": 3,
+            "rows": [
+              1152,
+              1536
+            ],
+            "sha256": "f2c7de4f6cebcdb61adc5c7c8a5420e366ddb976b278e72a5be9a2ebe13d0d3f",
+            "absolute_byte_range": [
+              14155864,
+              18874456
+            ]
+          },
+          {
+            "rank": 4,
+            "rows": [
+              1536,
+              1920
+            ],
+            "sha256": "724a3dff9b2c5bfc374bf7f4781d53d59d2b092cc7e2d1fe721093765e68b6a9",
+            "absolute_byte_range": [
+              18874456,
+              23593048
+            ]
+          },
+          {
+            "rank": 5,
+            "rows": [
+              1920,
+              2304
+            ],
+            "sha256": "fab486861583ee7aab14056202a26f36a057f6ee5f9a77ad3b8c7233a84b65f5",
+            "absolute_byte_range": [
+              23593048,
+              28311640
+            ]
+          },
+          {
+            "rank": 6,
+            "rows": [
+              2304,
+              2688
+            ],
+            "sha256": "2c30780229fccf851e30fc1c0dfaa4bfc2551ff2117be7bc5b6e221966bebab6",
+            "absolute_byte_range": [
+              28311640,
+              33030232
+            ]
+          },
+          {
+            "rank": 7,
+            "rows": [
+              2688,
+              3072
+            ],
+            "sha256": "f049a683f532e2695cec821faba03b3d4d7eedf49c49cae35b9ef377fd44c6f9",
+            "absolute_byte_range": [
+              33030232,
+              37748824
+            ]
+          },
+          {
+            "rank": 8,
+            "rows": [
+              3072,
+              3456
+            ],
+            "sha256": "1e6d7ce0d5dc5410c9f10eed7194789568602d29b6eeaed67b9a3b9d8c938c1d",
+            "absolute_byte_range": [
+              37748824,
+              42467416
+            ]
+          },
+          {
+            "rank": 9,
+            "rows": [
+              3456,
+              3840
+            ],
+            "sha256": "30c5befc24890ea2ff3a8adce6ad11119a9547ef815db904ecd51cc8104cc97a",
+            "absolute_byte_range": [
+              42467416,
+              47186008
+            ]
+          },
+          {
+            "rank": 10,
+            "rows": [
+              3840,
+              4224
+            ],
+            "sha256": "dec2cd484dd4a1d8b5235f08d72af5f6ab8cf9718e064c5f0346c260c0c8f91f",
+            "absolute_byte_range": [
+              47186008,
+              51904600
+            ]
+          },
+          {
+            "rank": 11,
+            "rows": [
+              4224,
+              4608
+            ],
+            "sha256": "9f0dd4bd2cbd980797ad955263b75ac56e4b00ec2eb3d4cc5938b291ddce5fb3",
+            "absolute_byte_range": [
+              51904600,
+              56623192
+            ]
+          },
+          {
+            "rank": 12,
+            "rows": [
+              4608,
+              4992
+            ],
+            "sha256": "a337ab6f278636a5ca7ec307f9697161d06c236e2df418d09bee8c16d21878c6",
+            "absolute_byte_range": [
+              56623192,
+              61341784
+            ]
+          },
+          {
+            "rank": 13,
+            "rows": [
+              4992,
+              5376
+            ],
+            "sha256": "bf7b39d8866d3e92bdfe831b592049ffa513606ea622c44de263e10e69bea119",
+            "absolute_byte_range": [
+              61341784,
+              66060376
+            ]
+          },
+          {
+            "rank": 14,
+            "rows": [
+              5376,
+              5760
+            ],
+            "sha256": "ce76b92243cb4132f2b05946885acc71cae5966b22e6d909c2a7a831d9b5ce5e",
+            "absolute_byte_range": [
+              66060376,
+              70778968
+            ]
+          },
+          {
+            "rank": 15,
+            "rows": [
+              5760,
+              6144
+            ],
+            "sha256": "99dfe48f1641798b82f1744b4e422deb9748d7157b3e04d6acac95329d27b492",
+            "absolute_byte_range": [
+              70778968,
+              75497560
+            ]
+          }
+        ]
+      },
+      "eh": {
+        "path": "/workspace/models/GLM-5.2-w4a8c8/quant_model_weights-00093-of-00095.safetensors",
+        "key": "model.layers.78.eh_proj.weight",
+        "shape": [
+          6144,
+          12288
+        ],
+        "dtype": "BF16",
+        "header_sha256": "14a20364bd9cf4d0e8a812d75766a00829b0eb40ebc4d7792575d1f59c49162e",
+        "sha256": "42794209b3a8253cffac721886144f70a9bfc85587d80759fd972dc73efaa519",
+        "absolute_byte_range": [
+          1119040,
+          152113984
+        ],
+        "shards": [
+          {
+            "rank": 0,
+            "rows": [
+              0,
+              384
+            ],
+            "sha256": "bf7d680d211fbf08fa1940c031b212d09a8c69adf0c6c9a577d9882060848671",
+            "absolute_byte_range": [
+              1119040,
+              10556224
+            ]
+          },
+          {
+            "rank": 1,
+            "rows": [
+              384,
+              768
+            ],
+            "sha256": "511c1bebcff2718dae980957bbf3fa0c6acf691b07763cf8b7cad889337612f4",
+            "absolute_byte_range": [
+              10556224,
+              19993408
+            ]
+          },
+          {
+            "rank": 2,
+            "rows": [
+              768,
+              1152
+            ],
+            "sha256": "8b7048d85a9becc2519dfb77f9e3355fca077cd348c29347823c698d65f3b29c",
+            "absolute_byte_range": [
+              19993408,
+              29430592
+            ]
+          },
+          {
+            "rank": 3,
+            "rows": [
+              1152,
+              1536
+            ],
+            "sha256": "c51e6794b160deeeec6e17451fea2dd035d647bf13d2a2113d1d573987f01a11",
+            "absolute_byte_range": [
+              29430592,
+              38867776
+            ]
+          },
+          {
+            "rank": 4,
+            "rows": [
+              1536,
+              1920
+            ],
+            "sha256": "561c1a7e11df12d5c281f13c3563be4f0899fc30485a72da7a6c3df965e7c8cf",
+            "absolute_byte_range": [
+              38867776,
+              48304960
+            ]
+          },
+          {
+            "rank": 5,
+            "rows": [
+              1920,
+              2304
+            ],
+            "sha256": "ff6a8ff7189852f73cb559be93eb0dbf4f182893442666b5f12e18695f756739",
+            "absolute_byte_range": [
+              48304960,
+              57742144
+            ]
+          },
+          {
+            "rank": 6,
+            "rows": [
+              2304,
+              2688
+            ],
+            "sha256": "efd29f2d4806f1e3a62e22853616619a33fc16efac87ac07359ab5f6ebb05420",
+            "absolute_byte_range": [
+              57742144,
+              67179328
+            ]
+          },
+          {
+            "rank": 7,
+            "rows": [
+              2688,
+              3072
+            ],
+            "sha256": "fe8abfcb3ed628206fd29acb3b8713fdda3efb37139b5594a4f8b806e9bafb68",
+            "absolute_byte_range": [
+              67179328,
+              76616512
+            ]
+          },
+          {
+            "rank": 8,
+            "rows": [
+              3072,
+              3456
+            ],
+            "sha256": "35385292539e8126b212a9335a654bc948c162d90932453bf7b70d78a9801f86",
+            "absolute_byte_range": [
+              76616512,
+              86053696
+            ]
+          },
+          {
+            "rank": 9,
+            "rows": [
+              3456,
+              3840
+            ],
+            "sha256": "28fe4a70a92a6fa73a5fa58bada66155ee186dd5476a041ae36e3fb3ef03110e",
+            "absolute_byte_range": [
+              86053696,
+              95490880
+            ]
+          },
+          {
+            "rank": 10,
+            "rows": [
+              3840,
+              4224
+            ],
+            "sha256": "6e8e4bc5ac8fe5f08de8e136a97f2aa91f61f89eec0b85c0fd5f431c30a342c7",
+            "absolute_byte_range": [
+              95490880,
+              104928064
+            ]
+          },
+          {
+            "rank": 11,
+            "rows": [
+              4224,
+              4608
+            ],
+            "sha256": "5e53df8288947283d274793478c4d4c48f41f4ef30b43ace3bb8f3abeb9bda5a",
+            "absolute_byte_range": [
+              104928064,
+              114365248
+            ]
+          },
+          {
+            "rank": 12,
+            "rows": [
+              4608,
+              4992
+            ],
+            "sha256": "533b2dbb47e8480e6d9d2d8efcf921b61561130e3ab69646eb5e541f8106417b",
+            "absolute_byte_range": [
+              114365248,
+              123802432
+            ]
+          },
+          {
+            "rank": 13,
+            "rows": [
+              4992,
+              5376
+            ],
+            "sha256": "296b36845ec0d57b3c5a504172e39823bd4f1a42c3887fbcc6d74b6a91305d98",
+            "absolute_byte_range": [
+              123802432,
+              133239616
+            ]
+          },
+          {
+            "rank": 14,
+            "rows": [
+              5376,
+              5760
+            ],
+            "sha256": "f89fdde8558e06f22ab8eec378c7d30c1060342feedf93114591c84ebe860463",
+            "absolute_byte_range": [
+              133239616,
+              142676800
+            ]
+          },
+          {
+            "rank": 15,
+            "rows": [
+              5760,
+              6144
+            ],
+            "sha256": "ea74b1e727c3cc2c0706c6ffb0aeeec3e8f7a37d34b8f8337247cc694feafd08",
+            "absolute_byte_range": [
+              142676800,
+              152113984
+            ]
+          }
+        ]
+      }
+    },
+    "loaded_projection_parameter_hashes": "Driver CPU copies, matched to independently hashed row ranges",
+    "current_head_parameter_bytes_saved": false
+  },
+  "exit": {
+    "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/run-01/exit.json",
+    "sha256": "9feb3b82daa6d940d1d8516999377d444c697d3c34a7edbf66ad4fa056345b27",
+    "bytes": 111,
+    "contents": {
+      "exit_code": 0,
+      "finished_at": "2026-10-18T00:36:05.867046+00:00",
+      "wall_seconds": 53.79611479304731
+    }
+  },
+  "summary": {
+    "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/summary.json",
+    "sha256": "66684181e154f96bb16122eac94780ab7fcba7f6d3353afe2c22b7e3712e6c6f",
+    "bytes": 3957
+  },
+  "ranks": [
+    {
+      "rank": 0,
+      "report": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-0/result.json",
+        "sha256": "8c78a5c67072ba78ba3f94dd7d12cee9a101e1aa61bd80781512cbb49d424749",
+        "bytes": 51635
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-0/outputs.pt",
+        "sha256": "525918860b506e76d21a89402d2a3677aed52b6ec1ba85686ae9acfb1ad42154",
+        "bytes": 20990143
+      },
+      "journal": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-0/phase-journal.jsonl",
+        "sha256": "254d8378f5145dc0ed61a21b55955f6bc5078a55750756d90e6d7aa0cb7b4f20",
+        "bytes": 2175
+      },
+      "prefix": {
+        "path": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/mtp-prefix/rank-0.pt",
+        "sha256": "8c3324bea5fc802150da80825d11c568f56e43086fa58f2fab5324efa3467b39",
+        "bytes": 11547933
+      },
+      "original_raw": {
+        "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/device-00/rank-0/outputs.pt",
+        "sha256": "9b2d5db453213692911747a6484a8f05e3c7dffaa408b78b88cd40fee52d9de4",
+        "bytes": 20990143
+      }
+    },
+    {
+      "rank": 1,
+      "report": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-1/result.json",
+        "sha256": "57d459d0683ca2b00d436632aff8d8391db8ec9bd69904fdf98b5d55900fd381",
+        "bytes": 51635
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-1/outputs.pt",
+        "sha256": "14f2faf60807c7b2c7b078331eb6fc12f710683ba5fad04b84c89cd46509516b",
+        "bytes": 20990143
+      },
+      "journal": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-1/phase-journal.jsonl",
+        "sha256": "254d8378f5145dc0ed61a21b55955f6bc5078a55750756d90e6d7aa0cb7b4f20",
+        "bytes": 2175
+      },
+      "prefix": {
+        "path": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/mtp-prefix/rank-1.pt",
+        "sha256": "8c3324bea5fc802150da80825d11c568f56e43086fa58f2fab5324efa3467b39",
+        "bytes": 11547933
+      },
+      "original_raw": {
+        "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/device-00/rank-1/outputs.pt",
+        "sha256": "00d704c0ea8e47800e1b04fc1a5ba3799b07d3fd2f0dcb3c279323069a735ba6",
+        "bytes": 20990143
+      }
+    },
+    {
+      "rank": 2,
+      "report": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-2/result.json",
+        "sha256": "ee74c9cb1baf31d733b4619298f42ecb2f12a7c2df22e98130d040c05989c9d3",
+        "bytes": 51635
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-2/outputs.pt",
+        "sha256": "14f2faf60807c7b2c7b078331eb6fc12f710683ba5fad04b84c89cd46509516b",
+        "bytes": 20990143
+      },
+      "journal": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-2/phase-journal.jsonl",
+        "sha256": "254d8378f5145dc0ed61a21b55955f6bc5078a55750756d90e6d7aa0cb7b4f20",
+        "bytes": 2175
+      },
+      "prefix": {
+        "path": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/mtp-prefix/rank-2.pt",
+        "sha256": "8c3324bea5fc802150da80825d11c568f56e43086fa58f2fab5324efa3467b39",
+        "bytes": 11547933
+      },
+      "original_raw": {
+        "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/device-00/rank-2/outputs.pt",
+        "sha256": "00d704c0ea8e47800e1b04fc1a5ba3799b07d3fd2f0dcb3c279323069a735ba6",
+        "bytes": 20990143
+      }
+    },
+    {
+      "rank": 3,
+      "report": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-3/result.json",
+        "sha256": "93c5422909cf81185ed8b74c9136cd01fcb06df2c5f135b2526c0cc4fbf64b83",
+        "bytes": 51635
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-3/outputs.pt",
+        "sha256": "14f2faf60807c7b2c7b078331eb6fc12f710683ba5fad04b84c89cd46509516b",
+        "bytes": 20990143
+      },
+      "journal": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-3/phase-journal.jsonl",
+        "sha256": "254d8378f5145dc0ed61a21b55955f6bc5078a55750756d90e6d7aa0cb7b4f20",
+        "bytes": 2175
+      },
+      "prefix": {
+        "path": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/mtp-prefix/rank-3.pt",
+        "sha256": "8c3324bea5fc802150da80825d11c568f56e43086fa58f2fab5324efa3467b39",
+        "bytes": 11547933
+      },
+      "original_raw": {
+        "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/device-00/rank-3/outputs.pt",
+        "sha256": "655fa96695179ee660fc2140a750efeb135c55799209e12df1063784194d1563",
+        "bytes": 20990143
+      }
+    },
+    {
+      "rank": 4,
+      "report": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-4/result.json",
+        "sha256": "f0dee488b8bb66352205d73c888385a0159b2d3de099b4d62c5bc190061103a1",
+        "bytes": 51635
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-4/outputs.pt",
+        "sha256": "14f2faf60807c7b2c7b078331eb6fc12f710683ba5fad04b84c89cd46509516b",
+        "bytes": 20990143
+      },
+      "journal": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-4/phase-journal.jsonl",
+        "sha256": "254d8378f5145dc0ed61a21b55955f6bc5078a55750756d90e6d7aa0cb7b4f20",
+        "bytes": 2175
+      },
+      "prefix": {
+        "path": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/mtp-prefix/rank-4.pt",
+        "sha256": "8c3324bea5fc802150da80825d11c568f56e43086fa58f2fab5324efa3467b39",
+        "bytes": 11547933
+      },
+      "original_raw": {
+        "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/device-00/rank-4/outputs.pt",
+        "sha256": "00d704c0ea8e47800e1b04fc1a5ba3799b07d3fd2f0dcb3c279323069a735ba6",
+        "bytes": 20990143
+      }
+    },
+    {
+      "rank": 5,
+      "report": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-5/result.json",
+        "sha256": "d8340428960f0121f9aff65fb34ce4ddcb2baf2b7433976dec34e31b97eadb75",
+        "bytes": 51635
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-5/outputs.pt",
+        "sha256": "14f2faf60807c7b2c7b078331eb6fc12f710683ba5fad04b84c89cd46509516b",
+        "bytes": 20990143
+      },
+      "journal": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-5/phase-journal.jsonl",
+        "sha256": "254d8378f5145dc0ed61a21b55955f6bc5078a55750756d90e6d7aa0cb7b4f20",
+        "bytes": 2175
+      },
+      "prefix": {
+        "path": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/mtp-prefix/rank-5.pt",
+        "sha256": "8c3324bea5fc802150da80825d11c568f56e43086fa58f2fab5324efa3467b39",
+        "bytes": 11547933
+      },
+      "original_raw": {
+        "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/device-00/rank-5/outputs.pt",
+        "sha256": "655fa96695179ee660fc2140a750efeb135c55799209e12df1063784194d1563",
+        "bytes": 20990143
+      }
+    },
+    {
+      "rank": 6,
+      "report": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-6/result.json",
+        "sha256": "5d6e8ec8e6a608a968eade6b4d108a364f22ecc88cf132bb742e6e6ff5ee4d9b",
+        "bytes": 51635
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-6/outputs.pt",
+        "sha256": "14f2faf60807c7b2c7b078331eb6fc12f710683ba5fad04b84c89cd46509516b",
+        "bytes": 20990143
+      },
+      "journal": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-6/phase-journal.jsonl",
+        "sha256": "254d8378f5145dc0ed61a21b55955f6bc5078a55750756d90e6d7aa0cb7b4f20",
+        "bytes": 2175
+      },
+      "prefix": {
+        "path": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/mtp-prefix/rank-6.pt",
+        "sha256": "8c3324bea5fc802150da80825d11c568f56e43086fa58f2fab5324efa3467b39",
+        "bytes": 11547933
+      },
+      "original_raw": {
+        "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/device-00/rank-6/outputs.pt",
+        "sha256": "655fa96695179ee660fc2140a750efeb135c55799209e12df1063784194d1563",
+        "bytes": 20990143
+      }
+    },
+    {
+      "rank": 7,
+      "report": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-7/result.json",
+        "sha256": "6635c32efdb1e17e8fae2eb79f201390704d55aeb785bc8d71f7850b1e89592d",
+        "bytes": 51635
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-7/outputs.pt",
+        "sha256": "14f2faf60807c7b2c7b078331eb6fc12f710683ba5fad04b84c89cd46509516b",
+        "bytes": 20990143
+      },
+      "journal": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-7/phase-journal.jsonl",
+        "sha256": "254d8378f5145dc0ed61a21b55955f6bc5078a55750756d90e6d7aa0cb7b4f20",
+        "bytes": 2175
+      },
+      "prefix": {
+        "path": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/mtp-prefix/rank-7.pt",
+        "sha256": "8c3324bea5fc802150da80825d11c568f56e43086fa58f2fab5324efa3467b39",
+        "bytes": 11547933
+      },
+      "original_raw": {
+        "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/device-00/rank-7/outputs.pt",
+        "sha256": "00d704c0ea8e47800e1b04fc1a5ba3799b07d3fd2f0dcb3c279323069a735ba6",
+        "bytes": 20990143
+      }
+    },
+    {
+      "rank": 8,
+      "report": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-8/result.json",
+        "sha256": "4c32a62c291a5ae32cbf57a72cfd67d31685ff2b1edccbc066b7e21f83925e91",
+        "bytes": 51635
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-8/outputs.pt",
+        "sha256": "14f2faf60807c7b2c7b078331eb6fc12f710683ba5fad04b84c89cd46509516b",
+        "bytes": 20990143
+      },
+      "journal": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-8/phase-journal.jsonl",
+        "sha256": "254d8378f5145dc0ed61a21b55955f6bc5078a55750756d90e6d7aa0cb7b4f20",
+        "bytes": 2175
+      },
+      "prefix": {
+        "path": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/mtp-prefix/rank-8.pt",
+        "sha256": "8c3324bea5fc802150da80825d11c568f56e43086fa58f2fab5324efa3467b39",
+        "bytes": 11547933
+      },
+      "original_raw": {
+        "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/device-00/rank-8/outputs.pt",
+        "sha256": "00d704c0ea8e47800e1b04fc1a5ba3799b07d3fd2f0dcb3c279323069a735ba6",
+        "bytes": 20990143
+      }
+    },
+    {
+      "rank": 9,
+      "report": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-9/result.json",
+        "sha256": "5e417a6b67eb7052bc997c932f58acee0e26de739c37ada45e48c5c7f5aa7591",
+        "bytes": 51635
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-9/outputs.pt",
+        "sha256": "14f2faf60807c7b2c7b078331eb6fc12f710683ba5fad04b84c89cd46509516b",
+        "bytes": 20990143
+      },
+      "journal": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-9/phase-journal.jsonl",
+        "sha256": "254d8378f5145dc0ed61a21b55955f6bc5078a55750756d90e6d7aa0cb7b4f20",
+        "bytes": 2175
+      },
+      "prefix": {
+        "path": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/mtp-prefix/rank-9.pt",
+        "sha256": "8c3324bea5fc802150da80825d11c568f56e43086fa58f2fab5324efa3467b39",
+        "bytes": 11547933
+      },
+      "original_raw": {
+        "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/device-00/rank-9/outputs.pt",
+        "sha256": "655fa96695179ee660fc2140a750efeb135c55799209e12df1063784194d1563",
+        "bytes": 20990143
+      }
+    },
+    {
+      "rank": 10,
+      "report": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-10/result.json",
+        "sha256": "4eeca624966d7727d28852422169b2d724e805c14095244f91d01c010a851ab4",
+        "bytes": 51662
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-10/outputs.pt",
+        "sha256": "14f2faf60807c7b2c7b078331eb6fc12f710683ba5fad04b84c89cd46509516b",
+        "bytes": 20990143
+      },
+      "journal": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-10/phase-journal.jsonl",
+        "sha256": "254d8378f5145dc0ed61a21b55955f6bc5078a55750756d90e6d7aa0cb7b4f20",
+        "bytes": 2175
+      },
+      "prefix": {
+        "path": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/mtp-prefix/rank-10.pt",
+        "sha256": "8c3324bea5fc802150da80825d11c568f56e43086fa58f2fab5324efa3467b39",
+        "bytes": 11547933
+      },
+      "original_raw": {
+        "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/device-00/rank-10/outputs.pt",
+        "sha256": "655fa96695179ee660fc2140a750efeb135c55799209e12df1063784194d1563",
+        "bytes": 20990143
+      }
+    },
+    {
+      "rank": 11,
+      "report": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-11/result.json",
+        "sha256": "5e527a1ddfd4ccd6bf54d886b3da1bf439243c1a6b06f64633ae064e41d229a6",
+        "bytes": 51662
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-11/outputs.pt",
+        "sha256": "14f2faf60807c7b2c7b078331eb6fc12f710683ba5fad04b84c89cd46509516b",
+        "bytes": 20990143
+      },
+      "journal": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-11/phase-journal.jsonl",
+        "sha256": "254d8378f5145dc0ed61a21b55955f6bc5078a55750756d90e6d7aa0cb7b4f20",
+        "bytes": 2175
+      },
+      "prefix": {
+        "path": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/mtp-prefix/rank-11.pt",
+        "sha256": "8c3324bea5fc802150da80825d11c568f56e43086fa58f2fab5324efa3467b39",
+        "bytes": 11547933
+      },
+      "original_raw": {
+        "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/device-00/rank-11/outputs.pt",
+        "sha256": "655fa96695179ee660fc2140a750efeb135c55799209e12df1063784194d1563",
+        "bytes": 20990143
+      }
+    },
+    {
+      "rank": 12,
+      "report": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-12/result.json",
+        "sha256": "7c2a04353000b8e3384f222346adbb1fc07f4f0ef9ba48f9170a94ea886e615b",
+        "bytes": 51662
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-12/outputs.pt",
+        "sha256": "14f2faf60807c7b2c7b078331eb6fc12f710683ba5fad04b84c89cd46509516b",
+        "bytes": 20990143
+      },
+      "journal": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-12/phase-journal.jsonl",
+        "sha256": "254d8378f5145dc0ed61a21b55955f6bc5078a55750756d90e6d7aa0cb7b4f20",
+        "bytes": 2175
+      },
+      "prefix": {
+        "path": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/mtp-prefix/rank-12.pt",
+        "sha256": "8c3324bea5fc802150da80825d11c568f56e43086fa58f2fab5324efa3467b39",
+        "bytes": 11547933
+      },
+      "original_raw": {
+        "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/device-00/rank-12/outputs.pt",
+        "sha256": "00d704c0ea8e47800e1b04fc1a5ba3799b07d3fd2f0dcb3c279323069a735ba6",
+        "bytes": 20990143
+      }
+    },
+    {
+      "rank": 13,
+      "report": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-13/result.json",
+        "sha256": "a86778fee6f572002a9fc92592e492221b63cc1f1ac590286c61d40a7197152a",
+        "bytes": 51662
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-13/outputs.pt",
+        "sha256": "14f2faf60807c7b2c7b078331eb6fc12f710683ba5fad04b84c89cd46509516b",
+        "bytes": 20990143
+      },
+      "journal": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-13/phase-journal.jsonl",
+        "sha256": "254d8378f5145dc0ed61a21b55955f6bc5078a55750756d90e6d7aa0cb7b4f20",
+        "bytes": 2175
+      },
+      "prefix": {
+        "path": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/mtp-prefix/rank-13.pt",
+        "sha256": "8c3324bea5fc802150da80825d11c568f56e43086fa58f2fab5324efa3467b39",
+        "bytes": 11547933
+      },
+      "original_raw": {
+        "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/device-00/rank-13/outputs.pt",
+        "sha256": "00d704c0ea8e47800e1b04fc1a5ba3799b07d3fd2f0dcb3c279323069a735ba6",
+        "bytes": 20990143
+      }
+    },
+    {
+      "rank": 14,
+      "report": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-14/result.json",
+        "sha256": "795d549b191914436ec9235eb8d623dd01b4399e1fa22e6c6872bc5bf19b4245",
+        "bytes": 51662
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-14/outputs.pt",
+        "sha256": "14f2faf60807c7b2c7b078331eb6fc12f710683ba5fad04b84c89cd46509516b",
+        "bytes": 20990143
+      },
+      "journal": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-14/phase-journal.jsonl",
+        "sha256": "254d8378f5145dc0ed61a21b55955f6bc5078a55750756d90e6d7aa0cb7b4f20",
+        "bytes": 2175
+      },
+      "prefix": {
+        "path": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/mtp-prefix/rank-14.pt",
+        "sha256": "8c3324bea5fc802150da80825d11c568f56e43086fa58f2fab5324efa3467b39",
+        "bytes": 11547933
+      },
+      "original_raw": {
+        "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/device-00/rank-14/outputs.pt",
+        "sha256": "00d704c0ea8e47800e1b04fc1a5ba3799b07d3fd2f0dcb3c279323069a735ba6",
+        "bytes": 20990143
+      }
+    },
+    {
+      "rank": 15,
+      "report": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-15/result.json",
+        "sha256": "9eb5ae061f15c8efc407404e8d611b2ee8e81c3af4bcfc6bc066bf06d2edc70f",
+        "bytes": 51662
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-15/outputs.pt",
+        "sha256": "14f2faf60807c7b2c7b078331eb6fc12f710683ba5fad04b84c89cd46509516b",
+        "bytes": 20990143
+      },
+      "journal": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-15/phase-journal.jsonl",
+        "sha256": "254d8378f5145dc0ed61a21b55955f6bc5078a55750756d90e6d7aa0cb7b4f20",
+        "bytes": 2175
+      },
+      "prefix": {
+        "path": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/mtp-prefix/rank-15.pt",
+        "sha256": "8c3324bea5fc802150da80825d11c568f56e43086fa58f2fab5324efa3467b39",
+        "bytes": 11547933
+      },
+      "original_raw": {
+        "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/device-00/rank-15/outputs.pt",
+        "sha256": "00d704c0ea8e47800e1b04fc1a5ba3799b07d3fd2f0dcb3c279323069a735ba6",
+        "bytes": 20990143
+      }
+    }
+  ],
+  "exact_comparisons": {
+    "conditioned_inputs": {
+      "comparisons": 17,
+      "elements": 122880,
+      "different_elements": 0,
+      "different_bytes": 0,
+      "all_finite": true
+    },
+    "own_logits_argmax": {
+      "comparisons": 320,
+      "elements": 512,
+      "different_elements": 0,
+      "different_bytes": 0,
+      "all_finite": true
+    },
+    "returned_seed_indices": {
+      "comparisons": 192,
+      "elements": 393216,
+      "different_elements": 0,
+      "different_bytes": 0,
+      "all_finite": true
+    },
+    "append_preserves_valid_tail": {
+      "comparisons": 576,
+      "elements": 180224,
+      "different_elements": 0,
+      "different_bytes": 0,
+      "all_finite": true
+    },
+    "rollback_outputs": {
+      "comparisons": 320,
+      "elements": 10829888,
+      "different_elements": 0,
+      "different_bytes": 0,
+      "all_finite": true
+    },
+    "rollback_valid_kv": {
+      "comparisons": 192,
+      "elements": 90112,
+      "different_elements": 0,
+      "different_bytes": 0,
+      "all_finite": true
+    },
+    "same_configuration_outputs": {
+      "comparisons": 1200,
+      "elements": 64979328,
+      "different_elements": 0,
+      "different_bytes": 0,
+      "all_finite": true
+    },
+    "same_configuration_valid_kv": {
+      "comparisons": 720,
+      "elements": 405504,
+      "different_elements": 0,
+      "different_bytes": 0,
+      "all_finite": true
+    },
+    "cross_rank_outputs": {
+      "comparisons": 1500,
+      "elements": 81224160,
+      "different_elements": 0,
+      "different_bytes": 0,
+      "all_finite": true
+    },
+    "cross_rank_valid_kv": {
+      "comparisons": 900,
+      "elements": 506880,
+      "different_elements": 0,
+      "different_bytes": 0,
+      "all_finite": true
+    },
+    "original_eager_cross_rank_outputs": {
+      "comparisons": 375,
+      "elements": 20306040,
+      "different_elements": 0,
+      "different_bytes": 0,
+      "all_finite": true
+    },
+    "original_eager_cross_rank_valid_kv": {
+      "comparisons": 225,
+      "elements": 126720,
+      "different_elements": 0,
+      "different_bytes": 0,
+      "all_finite": true
+    }
+  },
+  "first_failures": [],
+  "graph_records": {
+    "captures": 32,
+    "replays": 144,
+    "max_resident_graphs_per_rank": 1,
+    "seed_eager": true,
+    "conditioned_m4_eager": true
+  },
+  "record_counts": {
+    "metadata": 320,
+    "pointer_states": 64,
+    "driver_prefix_assertions": 320,
+    "driver_invalid_dirty_tail_assertions": 64,
+    "journal": 320,
+    "cleanup": 16
+  },
+  "cross_configuration": {
+    "gate": false,
+    "reference": {
+      "path": "/workspace/offline/cann-mtp-chain-product-20261018-01/root-audit.json",
+      "sha256": "e9e316b6d4be8ad907256afcf50229bee2ce904a7ce4eda1ad1ec3c2a59b7625",
+      "bytes": 17461
+    },
+    "current": "Output-row TP16 projection shards, BF16 ND, complete K",
+    "ranks_computed": 16,
+    "diagnostics_identical_across_ranks": true,
+    "cases": {
+      "seed": {
+        "pre_norm": {
+          "nrmse": 0.0,
+          "cosine": 1.0000000000000002,
+          "max_abs": 0.0,
+          "all_finite": true
+        },
+        "recycle": {
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999999,
+          "max_abs": 0.0,
+          "all_finite": true
+        },
+        "logits": {
+          "nrmse": 0.0,
+          "cosine": 0.9999999999999778,
+          "max_abs": 0.0,
+          "all_finite": true
+        },
+        "token_agreement": {
+          "matches": 1,
+          "rows": 1,
+          "new": [
+            382
+          ],
+          "original": [
+            382
+          ]
+        },
+        "logits_kl_original_to_new": {
+          "per_row": [
+            0.0
+          ],
+          "mean": 0.0,
+          "max": 0.0,
+          "method": "FP32 stable log_softmax; FP64 accumulation, unclipped"
+        },
+        "indices_top2048_overlap": [
+          1.0
+        ],
+        "kv_nrmse": {
+          "latent": 0.0,
+          "rope": 0.0,
+          "index_keys": 0.0
+        }
+      },
+      "chain1": {
+        "pre_norm": {
+          "nrmse": 0.017468169107624304,
+          "cosine": 0.9998475947174003,
+          "max_abs": 0.017822265625,
+          "all_finite": true
+        },
+        "recycle": {
+          "nrmse": 0.017567221833291576,
+          "cosine": 0.9998456905453762,
+          "max_abs": 0.0625,
+          "all_finite": true
+        },
+        "logits": {
+          "nrmse": 0.012549793716848525,
+          "cosine": 0.9999218137189008,
+          "max_abs": 0.20352840423583984,
+          "all_finite": true
+        },
+        "token_agreement": {
+          "matches": 1,
+          "rows": 1,
+          "new": [
+            262
+          ],
+          "original": [
+            262
+          ]
+        },
+        "logits_kl_original_to_new": {
+          "per_row": [
+            4.7466121705147075e-05
+          ],
+          "mean": 4.7466121705147075e-05,
+          "max": 4.7466121705147075e-05,
+          "method": "FP32 stable log_softmax; FP64 accumulation, unclipped"
+        },
+        "indices_top2048_overlap": [
+          1.0
+        ],
+        "kv_nrmse": {
+          "latent": 0.00033713163864725943,
+          "rope": 0.0004432541286970128,
+          "index_keys": 0.0003614402173726619
+        }
+      },
+      "chain2": {
+        "pre_norm": {
+          "nrmse": 0.08080738416370492,
+          "cosine": 0.9967716965964782,
+          "max_abs": 0.0732421875,
+          "all_finite": true
+        },
+        "recycle": {
+          "nrmse": 0.08030188169380009,
+          "cosine": 0.996772250685688,
+          "max_abs": 0.294921875,
+          "all_finite": true
+        },
+        "logits": {
+          "nrmse": 0.061922645204620236,
+          "cosine": 0.9980819655212302,
+          "max_abs": 0.9074772596359253,
+          "all_finite": true
+        },
+        "token_agreement": {
+          "matches": 1,
+          "rows": 1,
+          "new": [
+            9897
+          ],
+          "original": [
+            9897
+          ]
+        },
+        "logits_kl_original_to_new": {
+          "per_row": [
+            0.011758698723314929
+          ],
+          "mean": 0.011758698723314929,
+          "max": 0.011758698723314929,
+          "method": "FP32 stable log_softmax; FP64 accumulation, unclipped"
+        },
+        "indices_top2048_overlap": [
+          1.0
+        ],
+        "kv_nrmse": {
+          "latent": 0.0031292845870898437,
+          "rope": 0.007270751147740907,
+          "index_keys": 0.005675908911302098
+        }
+      },
+      "chain1_again": {
+        "pre_norm": {
+          "nrmse": 0.017468169107624304,
+          "cosine": 0.9998475947174003,
+          "max_abs": 0.017822265625,
+          "all_finite": true
+        },
+        "recycle": {
+          "nrmse": 0.017567221833291576,
+          "cosine": 0.9998456905453762,
+          "max_abs": 0.0625,
+          "all_finite": true
+        },
+        "logits": {
+          "nrmse": 0.012549793716848525,
+          "cosine": 0.9999218137189008,
+          "max_abs": 0.20352840423583984,
+          "all_finite": true
+        },
+        "token_agreement": {
+          "matches": 1,
+          "rows": 1,
+          "new": [
+            262
+          ],
+          "original": [
+            262
+          ]
+        },
+        "logits_kl_original_to_new": {
+          "per_row": [
+            4.7466121705147075e-05
+          ],
+          "mean": 4.7466121705147075e-05,
+          "max": 4.7466121705147075e-05,
+          "method": "FP32 stable log_softmax; FP64 accumulation, unclipped"
+        },
+        "indices_top2048_overlap": [
+          1.0
+        ],
+        "kv_nrmse": {
+          "latent": 0.00033713163864725943,
+          "rope": 0.0004432541286970128,
+          "index_keys": 0.0003614402173726619
+        }
+      },
+      "conditioned4": {
+        "pre_norm": {
+          "nrmse": 0.011766638393331702,
+          "cosine": 0.999930914592237,
+          "max_abs": 0.0205078125,
+          "all_finite": true
+        },
+        "recycle": {
+          "nrmse": 0.012404123224752072,
+          "cosine": 0.9999230705855779,
+          "max_abs": 0.078125,
+          "all_finite": true
+        },
+        "logits": {
+          "nrmse": 0.010873736988730018,
+          "cosine": 0.999942755630071,
+          "max_abs": 0.8134474754333496,
+          "all_finite": true
+        },
+        "token_agreement": {
+          "matches": 4,
+          "rows": 4,
+          "new": [
+            382,
+            262,
+            576,
+            1887
+          ],
+          "original": [
+            382,
+            262,
+            576,
+            1887
+          ]
+        },
+        "logits_kl_original_to_new": {
+          "per_row": [
+            0.0,
+            0.00025224752535145894,
+            0.00013493652658367374,
+            0.0009753035155963055
+          ],
+          "mean": 0.00034062189188285955,
+          "max": 0.0009753035155963055,
+          "method": "FP32 stable log_softmax; FP64 accumulation, unclipped"
+        },
+        "indices_top2048_overlap": [
+          1.0,
+          0.9990234375,
+          1.0,
+          1.0
+        ],
+        "kv_nrmse": {
+          "latent": 0.0010106126684311261,
+          "rope": 0.00021582778323825152,
+          "index_keys": 0.0003881676552785
+        }
+      }
+    },
+    "input_scope": {
+      "seed_and_conditioned4": "Frozen input tokens/parents and prefix",
+      "chain1_and_chain1_again": "Each configuration's seed token, recycle and original seed indices",
+      "chain2": "Each configuration's chain1 token/recycle and original seed indices"
+    },
+    "same_input_operator_parity": false,
+    "index_cutoff_scores_captured": false,
+    "index_mismatch_quality_captured": false
+  },
+  "memory": {
+    "per_rank": [
+      {
+        "rank": 0,
+        "allocated": 1573738496,
+        "reserved": 1858076672
+      },
+      {
+        "rank": 1,
+        "allocated": 1573738496,
+        "reserved": 1858076672
+      },
+      {
+        "rank": 2,
+        "allocated": 1573738496,
+        "reserved": 1858076672
+      },
+      {
+        "rank": 3,
+        "allocated": 1573738496,
+        "reserved": 1858076672
+      },
+      {
+        "rank": 4,
+        "allocated": 1573738496,
+        "reserved": 1858076672
+      },
+      {
+        "rank": 5,
+        "allocated": 1573738496,
+        "reserved": 1858076672
+      },
+      {
+        "rank": 6,
+        "allocated": 1573738496,
+        "reserved": 1858076672
+      },
+      {
+        "rank": 7,
+        "allocated": 1573738496,
+        "reserved": 1858076672
+      },
+      {
+        "rank": 8,
+        "allocated": 1573738496,
+        "reserved": 1858076672
+      },
+      {
+        "rank": 9,
+        "allocated": 1573738496,
+        "reserved": 1858076672
+      },
+      {
+        "rank": 10,
+        "allocated": 1573738496,
+        "reserved": 1858076672
+      },
+      {
+        "rank": 11,
+        "allocated": 1573738496,
+        "reserved": 1858076672
+      },
+      {
+        "rank": 12,
+        "allocated": 1573738496,
+        "reserved": 1858076672
+      },
+      {
+        "rank": 13,
+        "allocated": 1573738496,
+        "reserved": 1858076672
+      },
+      {
+        "rank": 14,
+        "allocated": 1573738496,
+        "reserved": 1858076672
+      },
+      {
+        "rank": 15,
+        "allocated": 1573738496,
+        "reserved": 1858076672
+      }
+    ],
+    "max_peak_allocated": 1573738496,
+    "max_peak_reserved": 1858076672
+  },
+  "cleanup_receipts": [
+    {
+      "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-0/cleanup.json",
+      "sha256": "b14d011ea38d703461f19335120c4ccc516040dcc579e4501e8d79ffc5c129dc",
+      "bytes": 113
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-1/cleanup.json",
+      "sha256": "b14d011ea38d703461f19335120c4ccc516040dcc579e4501e8d79ffc5c129dc",
+      "bytes": 113
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-2/cleanup.json",
+      "sha256": "b14d011ea38d703461f19335120c4ccc516040dcc579e4501e8d79ffc5c129dc",
+      "bytes": 113
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-3/cleanup.json",
+      "sha256": "b14d011ea38d703461f19335120c4ccc516040dcc579e4501e8d79ffc5c129dc",
+      "bytes": 113
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-4/cleanup.json",
+      "sha256": "b14d011ea38d703461f19335120c4ccc516040dcc579e4501e8d79ffc5c129dc",
+      "bytes": 113
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-5/cleanup.json",
+      "sha256": "b14d011ea38d703461f19335120c4ccc516040dcc579e4501e8d79ffc5c129dc",
+      "bytes": 113
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-6/cleanup.json",
+      "sha256": "b14d011ea38d703461f19335120c4ccc516040dcc579e4501e8d79ffc5c129dc",
+      "bytes": 113
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-7/cleanup.json",
+      "sha256": "b14d011ea38d703461f19335120c4ccc516040dcc579e4501e8d79ffc5c129dc",
+      "bytes": 113
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-8/cleanup.json",
+      "sha256": "b14d011ea38d703461f19335120c4ccc516040dcc579e4501e8d79ffc5c129dc",
+      "bytes": 113
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-9/cleanup.json",
+      "sha256": "b14d011ea38d703461f19335120c4ccc516040dcc579e4501e8d79ffc5c129dc",
+      "bytes": 113
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-10/cleanup.json",
+      "sha256": "b14d011ea38d703461f19335120c4ccc516040dcc579e4501e8d79ffc5c129dc",
+      "bytes": 113
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-11/cleanup.json",
+      "sha256": "b14d011ea38d703461f19335120c4ccc516040dcc579e4501e8d79ffc5c129dc",
+      "bytes": 113
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-12/cleanup.json",
+      "sha256": "b14d011ea38d703461f19335120c4ccc516040dcc579e4501e8d79ffc5c129dc",
+      "bytes": 113
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-13/cleanup.json",
+      "sha256": "b14d011ea38d703461f19335120c4ccc516040dcc579e4501e8d79ffc5c129dc",
+      "bytes": 113
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-14/cleanup.json",
+      "sha256": "b14d011ea38d703461f19335120c4ccc516040dcc579e4501e8d79ffc5c129dc",
+      "bytes": 113
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/device-00/rank-15/cleanup.json",
+      "sha256": "b14d011ea38d703461f19335120c4ccc516040dcc579e4501e8d79ffc5c129dc",
+      "bytes": 113
+    }
+  ],
+  "health": {
+    "before": {
+      "receipt": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/run-01/preflight.txt",
+        "sha256": "0ea6a19c1ef9322f45d852382d88f9401ddd386dc3a269665406c5ff7dfb2a32",
+        "bytes": 8019
+      },
+      "health_ok": 16,
+      "hbm_used_mib_by_phy_id": {
+        "0": 44029,
+        "1": 43637,
+        "2": 44026,
+        "3": 43635,
+        "4": 44038,
+        "5": 43623,
+        "6": 44024,
+        "7": 43634,
+        "8": 44028,
+        "9": 43636,
+        "10": 44029,
+        "11": 43635,
+        "12": 44036,
+        "13": 43623,
+        "14": 44025,
+        "15": 43635
+      },
+      "processes": [
+        {
+          "card": 0,
+          "die": 0,
+          "pid": 977057,
+          "name": "run_test_npu.py",
+          "memory_mib": 40781
+        },
+        {
+          "card": 0,
+          "die": 1,
+          "pid": 977058,
+          "name": "run_test_npu.py",
+          "memory_mib": 40781
+        },
+        {
+          "card": 1,
+          "die": 0,
+          "pid": 977059,
+          "name": "run_test_npu.py",
+          "memory_mib": 40784
+        },
+        {
+          "card": 1,
+          "die": 1,
+          "pid": 977060,
+          "name": "run_test_npu.py",
+          "memory_mib": 40784
+        },
+        {
+          "card": 2,
+          "die": 0,
+          "pid": 977061,
+          "name": "run_test_npu.py",
+          "memory_mib": 40784
+        },
+        {
+          "card": 2,
+          "die": 1,
+          "pid": 977062,
+          "name": "run_test_npu.py",
+          "memory_mib": 40784
+        },
+        {
+          "card": 3,
+          "die": 0,
+          "pid": 977063,
+          "name": "run_test_npu.py",
+          "memory_mib": 40784
+        },
+        {
+          "card": 3,
+          "die": 1,
+          "pid": 977064,
+          "name": "run_test_npu.py",
+          "memory_mib": 40784
+        },
+        {
+          "card": 4,
+          "die": 0,
+          "pid": 977065,
+          "name": "run_test_npu.py",
+          "memory_mib": 40783
+        },
+        {
+          "card": 4,
+          "die": 1,
+          "pid": 977066,
+          "name": "run_test_npu.py",
+          "memory_mib": 40783
+        },
+        {
+          "card": 5,
+          "die": 0,
+          "pid": 977067,
+          "name": "run_test_npu.py",
+          "memory_mib": 40782
+        },
+        {
+          "card": 5,
+          "die": 1,
+          "pid": 977068,
+          "name": "run_test_npu.py",
+          "memory_mib": 40782
+        },
+        {
+          "card": 6,
+          "die": 0,
+          "pid": 977069,
+          "name": "run_test_npu.py",
+          "memory_mib": 40782
+        },
+        {
+          "card": 6,
+          "die": 1,
+          "pid": 977070,
+          "name": "run_test_npu.py",
+          "memory_mib": 40782
+        },
+        {
+          "card": 7,
+          "die": 0,
+          "pid": 977071,
+          "name": "run_test_npu.py",
+          "memory_mib": 40784
+        },
+        {
+          "card": 7,
+          "die": 1,
+          "pid": 977072,
+          "name": "run_test_npu.py",
+          "memory_mib": 40783
+        }
+      ]
+    },
+    "after": {
+      "receipt": {
+        "path": "/workspace/offline/cann-mtp-projection-product-20261018-01/run-01/postflight.txt",
+        "sha256": "7b4cb128e5e9366e625aab9673277ef9e139d209efd89097ed89971d0e3231d2",
+        "bytes": 8019
+      },
+      "health_ok": 16,
+      "hbm_used_mib_by_phy_id": {
+        "0": 44031,
+        "1": 43638,
+        "2": 44029,
+        "3": 43637,
+        "4": 44039,
+        "5": 43623,
+        "6": 44027,
+        "7": 43635,
+        "8": 44028,
+        "9": 43637,
+        "10": 44030,
+        "11": 43636,
+        "12": 44036,
+        "13": 43624,
+        "14": 44027,
+        "15": 43634
+      },
+      "processes": [
+        {
+          "card": 0,
+          "die": 0,
+          "pid": 977057,
+          "name": "run_test_npu.py",
+          "memory_mib": 40781
+        },
+        {
+          "card": 0,
+          "die": 1,
+          "pid": 977058,
+          "name": "run_test_npu.py",
+          "memory_mib": 40781
+        },
+        {
+          "card": 1,
+          "die": 0,
+          "pid": 977059,
+          "name": "run_test_npu.py",
+          "memory_mib": 40784
+        },
+        {
+          "card": 1,
+          "die": 1,
+          "pid": 977060,
+          "name": "run_test_npu.py",
+          "memory_mib": 40784
+        },
+        {
+          "card": 2,
+          "die": 0,
+          "pid": 977061,
+          "name": "run_test_npu.py",
+          "memory_mib": 40784
+        },
+        {
+          "card": 2,
+          "die": 1,
+          "pid": 977062,
+          "name": "run_test_npu.py",
+          "memory_mib": 40784
+        },
+        {
+          "card": 3,
+          "die": 0,
+          "pid": 977063,
+          "name": "run_test_npu.py",
+          "memory_mib": 40784
+        },
+        {
+          "card": 3,
+          "die": 1,
+          "pid": 977064,
+          "name": "run_test_npu.py",
+          "memory_mib": 40784
+        },
+        {
+          "card": 4,
+          "die": 0,
+          "pid": 977065,
+          "name": "run_test_npu.py",
+          "memory_mib": 40783
+        },
+        {
+          "card": 4,
+          "die": 1,
+          "pid": 977066,
+          "name": "run_test_npu.py",
+          "memory_mib": 40783
+        },
+        {
+          "card": 5,
+          "die": 0,
+          "pid": 977067,
+          "name": "run_test_npu.py",
+          "memory_mib": 40782
+        },
+        {
+          "card": 5,
+          "die": 1,
+          "pid": 977068,
+          "name": "run_test_npu.py",
+          "memory_mib": 40782
+        },
+        {
+          "card": 6,
+          "die": 0,
+          "pid": 977069,
+          "name": "run_test_npu.py",
+          "memory_mib": 40782
+        },
+        {
+          "card": 6,
+          "die": 1,
+          "pid": 977070,
+          "name": "run_test_npu.py",
+          "memory_mib": 40782
+        },
+        {
+          "card": 7,
+          "die": 0,
+          "pid": 977071,
+          "name": "run_test_npu.py",
+          "memory_mib": 40784
+        },
+        {
+          "card": 7,
+          "die": 1,
+          "pid": 977072,
+          "name": "run_test_npu.py",
+          "memory_mib": 40783
+        }
+      ]
+    },
+    "same_external_process_inventory": true,
+    "hbm_used_mib_delta_by_phy_id": {
+      "0": 2,
+      "1": 1,
+      "2": 3,
+      "3": 2,
+      "4": 1,
+      "5": 0,
+      "6": 3,
+      "7": 1,
+      "8": 0,
+      "9": 1,
+      "10": 1,
+      "11": 1,
+      "12": 0,
+      "13": 1,
+      "14": 2,
+      "15": -1
+    },
+    "snapshot_scope": "Supervisor snapshots surrounding product run"
+  },
+  "npu_initialized": false,
+  "torch_npu_imported": false,
+  "performance_measured": false,
+  "precision_verified": false,
+  "teacher_greedy_validated": false,
+  "session_validated": false,
+  "full_target_loaded": false,
+  "tpot_measured": false,
+  "limits": [
+    "The original projection comparison is an end-to-end MTP diagnostic.",
+    "Chain parents and possibly tokens/seed indices differ across configurations.",
+    "Only valid new KV tails are saved as raw tensors, not the full prefix.",
+    "Full prefix and invalid dirty row preservation use bound driver assertions.",
+    "Live alias is checked from recorded pointers and bound call source.",
+    "Post-chain seed preservation and post-close cleanup use driver receipts.",
+    "Raw per-replay metadata addresses, RoPE and post-close device state are absent.",
+    "Current head parameter bytes are not saved; checkpoint bytes are independently bound.",
+    "No teacher greedy, full session, full target or TPOT acceptance follows."
+  ]
+}

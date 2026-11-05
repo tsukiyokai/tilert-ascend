@@ -1,0 +1,155 @@
+--- parent/check.py
++++ candidate/check.py
+@@ -15,10 +15,8 @@
+     parser = argument_parser()
+     parser.description = __doc__
+     parser.set_defaults(library=here / "attention_full_build/whole_layer_full_attention.so")
+-    parser.add_argument("--attention-library", type=Path,
+-                        default=here / "attention_build/whole_layer_attention.so")
+-    parser.add_argument("--tail-library", type=Path,
+-                        default=here.parent / "mla_tail/build-composable/mla_tail_torch.so")
++    parser.add_argument("--control-library", type=Path, required=True)
++    parser.set_defaults(no_timing=True, atol=0.0, rtol=0.0)
+     return arguments(parser)
+ 
+ 
+@@ -76,19 +74,16 @@
+     page_table = empty((1, table_pages), torch.int32)
+     full_output = empty((rows, 6144), torch.bfloat16)
+     separate_output = empty((rows, 6144), torch.bfloat16)
+-    latent = empty((rows, 4, 512), torch.bfloat16)
+-    full_scratch, full_tiling, blocks, full_sync = torch.ops.tilert.shared_full_attention_prepare(
++    full_consumed = empty((rows, 6144), torch.bfloat16)
++    separate_consumed = empty((rows, 6144), torch.bfloat16)
++    full_scratch, full_tiling, blocks, full_sync = torch.ops.tilert_attention_terminal.shared_full_attention_prepare(
+         x, pages, table_pages, requested_blocks,
+     )
+-    attention_scratch, attention_blocks, attention_sync = torch.ops.tilert.shared_attention_prepare(
++    separate_scratch, separate_tiling, separate_blocks, separate_sync = torch.ops.tilert.shared_full_attention_prepare(
+         x, pages, table_pages, blocks,
+     )
+-    capacity = 16 if rows <= 16 else 32
+-    tail_scratch, tail_tiling, tail_blocks, tail_sync = torch.ops.tilert.mla_tail_prepare(
+-        latent, capacity, blocks,
+-    )
+-    if attention_blocks != blocks or tail_blocks != blocks:
+-        raise RuntimeError("full and separate launches need the same core count")
++    if separate_blocks != blocks:
++        raise RuntimeError("Both one-launch arms need the same core count")
+     core_weights = [weights[name] for name in (
+         "weight_dq", "weight_uq_qr", "weight_uk", "weight_dkv_kr",
+         "scale_dq", "scale_uq_qr", "scale_dkv_kr", "gamma_cq", "gamma_ckv",
+@@ -98,25 +93,28 @@
+     scale, epsilon = 1 / 16, 1e-5
+ 
+     def full():
+-        return torch.ops.tilert.shared_full_attention_out(
++        torch.ops.tilert_attention_terminal.shared_full_attention_out(
+             x, x_scale, *core_weights, sin, cos, slots, full_cache, full_rope,
+             topk, query_lengths, kv_lengths, page_table,
+             value_tiles, output_tiles, output_scale, bias,
+             full_scratch, full_tiling, full_output, scale, epsilon, epsilon,
+             blocks, full_sync,
+         )
++        full_consumed.copy_(full_output)
++        return full_output
++
+ 
+     def separate():
+-        torch.ops.tilert.shared_attention_out(
++        torch.ops.tilert.shared_full_attention_out(
+             x, x_scale, *core_weights, sin, cos, slots, separate_cache, separate_rope,
+             topk, query_lengths, kv_lengths, page_table,
+-            attention_scratch, latent, scale, epsilon, epsilon,
+-            blocks, attention_sync,
++            value_tiles, output_tiles, output_scale, bias,
++            separate_scratch, separate_tiling, separate_output, scale, epsilon, epsilon,
++            blocks, separate_sync,
+         )
+-        return torch.ops.tilert.mla_tail_out(
+-            latent, value_tiles, output_tiles, output_scale, bias,
+-            tail_scratch, tail_tiling, separate_output, capacity, blocks, tail_sync,
+-        )
++        separate_consumed.copy_(separate_output)
++        return separate_output
++
+ 
+     def update(replay):
+         prefix = args.sequence + replay
+@@ -158,6 +156,12 @@
+     for replay in range(args.replays):
+         with torch.npu.stream(stream):
+             update(replay)
++            full_output.fill_(float("nan"))
++            separate_output.fill_(float("nan"))
++            full_consumed.fill_(float("nan"))
++            separate_consumed.fill_(float("nan"))
++            for scratch in (full_scratch, separate_scratch):
++                scratch[:rows * 4 * 512 * 2].view(torch.bfloat16).fill_(float('nan'))
+             if args.capture:
+                 calls = (full_graph.replay, separate_graph.replay)
+             else:
+@@ -167,34 +171,29 @@
+         stream.synchronize()
+         full_latent = full_scratch[:rows * 4 * 512 * 2].cpu()
+         full_latent = full_latent.view(torch.bfloat16).reshape(rows, 4, 512)
++        latent = separate_scratch[:rows * 4 * 512 * 2].cpu()
++        latent = latent.view(torch.bfloat16).reshape(rows, 4, 512)
+         result = {
+             "replay": replay,
+             "latent": metric(torch, full_latent, latent),
+             "output": metric(torch, full_output, separate_output, args.atol, args.rtol),
++            "full_consumer": metric(torch, full_consumed, separate_output),
++            "control_consumer": metric(torch, separate_consumed, separate_output),
+             "kv_cache": metric(torch, full_cache, separate_cache),
+             "rope_cache": metric(torch, full_rope, separate_rope),
+         }
+-        result["pass"] = all(value["pass"] for value in result.values() if isinstance(value, dict))
++        result["pass"] = all(value["pass"] and value["bitwise_equal"] for value in result.values() if isinstance(value, dict))
+         checks.append(result)
+         if not result["pass"]:
+             break
+     full_bytes = full_scratch.numel() + full_tiling.numel()
+-    separate_bytes = (attention_scratch.numel() + tail_scratch.numel() +
+-                      latent.numel() * latent.element_size() + tail_tiling.numel())
++    separate_bytes = separate_scratch.numel() + separate_tiling.numel()
+     report = {
+         "width": rows, "blocks": blocks, "capture": args.capture,
+         "sequence": args.sequence, "checks": checks,
+         "pass": all(result["pass"] for result in checks),
+         "requested_workspace_bytes": {"full": full_bytes, "separate": separate_bytes},
+     }
+-    if report["pass"] and args.capture and not args.no_timing:
+-        full_times, separate_times = [], []
+-        for pair in range(args.timing_pairs):
+-            order = [(full_graph, full_times), (separate_graph, separate_times)]
+-            for graph, target in order[::1 if pair % 2 == 0 else -1]:
+-                target.append(time_graph(torch, graph, stream, args.iterations))
+-        report.update(full_graph_us=full_times, separate_graph_us=separate_times,
+-                      median_ratio=statistics.median(full_times) / statistics.median(separate_times))
+     return report
+ 
+ 
+@@ -205,7 +204,7 @@
+ 
+     torch.npu.set_device(args.device)
+     torch.npu.config.allow_internal_format = True
+-    for library in (args.library, args.attention_library, args.tail_library):
++    for library in (args.library, args.control_library):
+         torch.ops.load_library(str(library.resolve()))
+     inputs = fixture(torch, args)
+     tail_fixture(torch, args, inputs)
+@@ -223,11 +222,11 @@
+     weights["value_tiles"] = torch_npu.npu_format_cast(values.to(args.device), 2)
+     weights["output_tiles"] = torch_npu.npu_format_cast(outputs.to(args.device), 2)
+     report = {
+-        "scope": "one native shared-indexer attention launch versus separate native attention/tail; before TP reduction",
++        "scope": "shared-attention terminal completion versus frozen one-launch parent; before TP reduction",
+         "atol": args.atol, "rtol": args.rtol,
+         "provenance": provenance(torch, torch_npu, args),
+         "comparison_libraries": {str(path): sha256(path) for path in
+-                                 (args.attention_library, args.tail_library)},
++                                 (args.control_library,)},
+         "harness_sha256": sha256(Path(__file__)), "cases": [],
+     }
+     print(json.dumps({key: value for key, value in report.items() if key != "cases"}), flush=True)

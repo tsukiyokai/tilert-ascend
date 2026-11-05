@@ -1,0 +1,1953 @@
+{
+  "created_at": "2026-10-28T09:37:26.453231+00:00",
+  "scope": "A3 eager integer staging and scalar Add target round",
+  "hypothesis": "Batch host candidates reduces width32 round p50 by at least 100 us against ff2ab6c",
+  "hostname": "89170e7421ad",
+  "command": [
+    "/work/source/experiments/token-staging/device_bench.py",
+    "--baseline-root",
+    "/work/baseline",
+    "--source-commit",
+    "4d423814ff9740de02c8bbabe97bbda1dfb93834",
+    "--widths",
+    "32",
+    "--output",
+    "/work/receipts/staging-pair-v3/report.json"
+  ],
+  "candidate_parent": "4d423814ff9740de02c8bbabe97bbda1dfb93834",
+  "baseline_commit": "ff2ab6cdb9d17f34b2d0402680783eba6b00d824",
+  "source": {
+    "path": "/work/source/experiments/token-staging/device_bench.py",
+    "sha256": "8f316c4758080e2d6c06730d4ca26d5f7658e58d55413c3e128b409ca55cc9b4"
+  },
+  "shared_state": {
+    "path": "/work/source/tilert/models/glm_5_2_ascend/mtp_state.py",
+    "sha256": "863e5e649c13cf4b9b5db78e8f49de7e515c096d17301af0d093c65828364f3f"
+  },
+  "protocol": {
+    "clock": "synchronized host perf_counter_ns",
+    "profiler": false,
+    "graph_capture": false,
+    "warmup_pairs": 10,
+    "pairs": 60,
+    "pressure_mib_per_arm": 256,
+    "pressure": "read/write whole buffer before each timed round",
+    "order": "AB/BA alternating",
+    "outlier_rule": "none",
+    "truth": "all candidates, predictions, commits and lengths exact"
+  },
+  "precision_verified": false,
+  "performance_measured": false,
+  "workers": {
+    "baseline": {
+      "ready": true,
+      "device_name": "Ascend910_9392",
+      "pid": 5846,
+      "identity": {
+        "packages": {
+          "torch": "2.12.0",
+          "torch-npu": "2.12.0"
+        },
+        "modules": [
+          {
+            "path": "/work/baseline/cann_model.py",
+            "sha256": "bc37a44fa6e79f990f06a6eb30b64a86f9fccbd2ddf92deeb2a8085c50f7d709"
+          },
+          {
+            "path": "/work/baseline/mtp_round.py",
+            "sha256": "889f7cafc8843c782e5a5b779bf6e2188985deb1f8037b51281bfc8506c470c2"
+          }
+        ],
+        "libraries": [
+          {
+            "path": "/usr/local/Ascend/ascend-toolkit/vendors/omni_custom_transformer/op_api/lib/libcust_opapi.so",
+            "sha256": "aa73d7fd12f51d172c171ff4e7a36c05dc4c1c3183f69f6e0cdadecd06642d3b"
+          },
+          {
+            "path": "/usr/local/Ascend/ascend-toolkit/vendors/omni_custom_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/libcust_opmaster_rt2.0.so",
+            "sha256": "912bced88a7d9f66682bd5a9ee26ef80a153fe7f1958f4df77c1710927fcb1c8"
+          },
+          {
+            "path": "/usr/local/Ascend/ascend-toolkit/vendors/omni_custom_transformer/op_proto/lib/linux/aarch64/libcust_opsproto_rt2.0.so",
+            "sha256": "d680d91c59036ec40fb16177b66dbb5d9101bb8f468155d0d86057ce06cdbd56"
+          },
+          {
+            "path": "/usr/local/Ascend/ascend-toolkit/vendors/omni_training_custom_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/libcust_opmaster_rt2.0.so",
+            "sha256": "3297fecad050079a03ed02388efe84f42391bacb62dfb15753c2489a0ce40763"
+          },
+          {
+            "path": "/usr/local/Ascend/ascend-toolkit/vendors/omni_training_custom_transformer/op_proto/lib/linux/aarch64/libcust_opsproto_rt2.0.so",
+            "sha256": "e1a654f4036c5cbe1fd2511f090ddc4ff18f4f02a05f8314414768fc05476ad8"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libacl_mdl.so",
+            "sha256": "a23f7027d441b1788da76ef99cb5db22dd3bbf626a05b45d874df205a0f9733f"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libacl_mdl_impl.so",
+            "sha256": "707b6934eaa1c1f69ea9b420ac47f0095474976ce240fa8bef2e4a15040e4185"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libacl_mdl_impl_om2.so",
+            "sha256": "13e7fc76ac220862338e80bf1bef80686001a94c9399f133e792373a81641ca0"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libacl_op_compiler.so",
+            "sha256": "a695a324f0809ca6948eb86531d889bd330f64b6308ea682053b008a8bdd0e1d"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libacl_op_executor.so",
+            "sha256": "2309b3c02a43fbaa8f5064f57b1bdbd0bca9ba0277d7011d8a40659c256d62c3"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libacl_op_executor_impl.so",
+            "sha256": "e804f7391a4a55ea40141cdbd2c90bcb7090ef330b56fbfe8a8055e1433f95fb"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libacl_rt.so",
+            "sha256": "5a6518505ef66688f02b4bde97517ba217212f29304d59b3a6ef0db14ded6c83"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libacl_rt_impl.so",
+            "sha256": "4595d4cf50f064cc9d6a97688eecf5e95ef92a4291911e26dd301091997c37ee"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libacl_tdt_channel.so",
+            "sha256": "c91273e72e08c7156ee44def78985a77642e4ba2346cbcc92998b57c0510f237"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libaicore_utils.so",
+            "sha256": "4f37a8eb05026b512f63c4dd6d0ee1ef7369d9afe333a35766a445572a992624"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libaicpu_const_folding.so",
+            "sha256": "3cf7440b7676cdca49af41b0ca79451cc9da8fc4ab58c77035f0db3d345e315e"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libaicpu_engine_common.so",
+            "sha256": "2863857ab3f7e14eecd277d11ca03799740d27ff10bb0fe80f09292dbb15efe5"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libaihac_autofusion.so",
+            "sha256": "a80484bd00ad285df7970953dde14bdbbf14ba281986cdb261b9d8922e966339"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libaihac_codegen.so",
+            "sha256": "41f955278d8b087165a86fc715766e532c37363ad8933da58c1b5e5a1712c1c0"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libaihac_ir.so",
+            "sha256": "8c2155e3639c2cfce44a7b890434664d9d8664dc053801daa18cc41efc1c6e92"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libaihac_ir_register.so",
+            "sha256": "662829547cdc25726c569d006607ffea59df0a2e827c8bafa807ed186bafd550"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libaihac_symbolizer.so",
+            "sha256": "9d3c9b29c8306b324ae8d3730780db283349d9817250826ee523e6201dabf32b"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libaihac_symbolizer_af.so",
+            "sha256": "fe66542cc6c6bb31e3a5dcb5e83bec358cd81fedff2d14f15adb4a9c1bf1c323"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libascend_dump.so",
+            "sha256": "f1e5a58449299e93c36abc08bb0955483b08ed4f5cabd08d7dd8023f2312a1af"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libascend_protobuf.so.3.13.0.0",
+            "sha256": "27b1bfa8ae1bf2a154cfce9b5b3904fb8e1b0a73e89d6e371ab78595012c4fe6"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libascend_trace.so",
+            "sha256": "336c4bce4fbc080b03afed4a3941b7d1c0cce8969ed29f04583ebe75f4e5c8cc"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libascend_watchdog.so",
+            "sha256": "4a3e1061867bf39916bc0181f9999314b46fd6517655b9782b339d2e1aba4a6e"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libascendalog.so",
+            "sha256": "7a0c86927cb68d9c5b89050c2d830b1d73e72f5cf6a4fec8f6c96c6292a3618f"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libascendcl.so",
+            "sha256": "123d67c313f743e5d6f2e856f40c24d5edac376975cf0a7a1019e079b4171480"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libc_sec.so",
+            "sha256": "964df648e2dc8e04516b3919e259ca5a933d48dc3c4b88d4d558e7de212342e6"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libconstant_folding_ops.so",
+            "sha256": "61a7dd5de18984c33597946acd0b048fe43768855cfdcd06dac9bd36b0dc287f"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libdata_flow_base.so",
+            "sha256": "613d95be49460ffa48c84f0202b04b791fa66fa6b69034ca021a7d5c7f81dfaa"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libdavinci_executor.so",
+            "sha256": "9a67a643d6b2286e64a120500b9c8fa905b49b957f2e38495ab00d936808139c"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libdflow_runner.so",
+            "sha256": "fe6bd372f000f2a2b6980f3bed973c313a97ceb67bc283e64944adebf9a41959"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libdummy_tls.so",
+            "sha256": "9b7ca13bfa379069601d3541c2adf04bacfbf1b75d63e427c86dc8bf4bf76380"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libeager_style_graph_builder_base.so",
+            "sha256": "95a5f1c01c3194b092e50cd0580deb4a609d72f854287ed1ba1f1b515e8d94db"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/liberror_manager.so",
+            "sha256": "d741945076d8297ea71b961102c7eb3aaeaf267bcffe0e7c9f032db3d9f3a773"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libes_math.so",
+            "sha256": "311f4421ba642771775a93e0483ad6280a179bf7469c18a13001422fb722dcb2"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libes_nn.so",
+            "sha256": "7d3d0ab8cbeba3054624837a0d56b7d6abc4632aabd34e86412f6ed6c16457e3"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libes_transformer.so",
+            "sha256": "fad4d1f5b399b1f8dd1080e850df18241630e62a2b900f5ec39e481f0a36d87f"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libexe_graph.so",
+            "sha256": "92245f33c93523ecf99614c735afa89b95b443aaac876ca09c4a088fb512249e"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libflow_graph.so",
+            "sha256": "b141fd6bc1cc2c21b73edf934ef4686b8ce53667002e47e620469e7f369f5139"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libge_common.so",
+            "sha256": "35944dad1339308a7b1f7f452b83021af0d95df6fdd49dee2d1d1e89fd98afc7"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libge_common_base.so",
+            "sha256": "bcc38d1b7a882f9aa546f62e710dbc259a1f7fc52927d49fec5c7acab62084ff"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libge_compiler.so",
+            "sha256": "a76e9feda580166fa31041320df2eee3d8cd9eb63b56a91be13c0ad517397b6d"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libge_executor.so",
+            "sha256": "484635f097d4f24548a440dbedce279e5f65c1f4a89bc9f89abe9d7d170097f7"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libge_runner.so",
+            "sha256": "d4854710dab10135bce0a5bb4ecc20b4e223cea96e24c531ab26a41c1a8a9301"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libge_runner_v2.so",
+            "sha256": "767223d9afb38c9d8a085304d0171858e023a824535df643dea4625cb978e730"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libgert.so",
+            "sha256": "1f0bfc2cfd177e581f408ec9c5370e1179ebb88b391d9f2339d57fa2bd7952b5"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libgraph.so",
+            "sha256": "a81a25d0576b8b08fc3709de3c1979406e3940854f25ee75626fc07b937a939a"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libgraph_af.so",
+            "sha256": "c2b8adf5a9e52353bc4e9cb124086e5d2063cb8c13b824e2225c2d4d29a53184"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libgraph_base.so",
+            "sha256": "632ccb4e1778b549611b4580f0c5d415b7ed46f0ee6c79036cbad10ac40521dd"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libgraph_base_af.so",
+            "sha256": "8218690becc1196356dd144b42be1bdba90055d1de487bff97470260113fd85f"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libhccl.so",
+            "sha256": "e7742392619bd0f7bfd1b55552070f9811b25ed3017eefd49ed2c1f9f45fc647"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libhccl_alg.so",
+            "sha256": "ca13a5f01184871bb18319b7889ed97cb1c961ff3c23e5a849d8e85fde21e7a6"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libhccl_compat.so",
+            "sha256": "264981562fb8b5e59a67f768e194522f071fa1900c19ce16237828e3843c4d2e"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libhccl_legacy.so",
+            "sha256": "6605ec087d27e01f95c5cc53bd3cadc6e76da85b73c1dbfcfb9db148a062d3d0"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libhccl_plf.so",
+            "sha256": "ea4e467004fa28b3a09447d2e44ad85faffcc5cc43c133ec008efeb6ea7cf110"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libhccl_v2.so",
+            "sha256": "012cd19ff57ccdd8aa595d1e1c13137bfe26ef4cfd00c4f04c6f69b1154d81e7"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libhcomm.so",
+            "sha256": "648b248b39fb91164b08f20a12937ca31e780b28383b989590a7d6acc636fcb3"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libhybrid_executor.so",
+            "sha256": "f4f1e8392f9fe343fb24e99e16d226b5fb607a1765e6416ac7ec04e17cf6bb71"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/liblowering.so",
+            "sha256": "c23de2b0cc89e8bae13b3142c5ea07817759fcd87059dbc2a8130442fc9a2596"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libmetadef.so",
+            "sha256": "bfae844ce0cb90dc5ed7f320769112ccd63ae5f2ff0a0313dc23a4595b71a997"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libmmpa.so",
+            "sha256": "7cd9af70451076933bb4a4b29d024b8a7855939e7aceb60442ba65bb0f160878"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libmsprofiler.so",
+            "sha256": "bc6e19c8f9799d4c2bac0fd0d654abcbe6c3b041d8363d535eea5455bed8dbce"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libnnopbase.so",
+            "sha256": "308dda461704a6e5f70de6e0eac4495e9829b9cec3328563b75a5b382c6e438b"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libom2_executor.so",
+            "sha256": "8173651bfb51bfe8625facb05c50b41813d401e59f5739e88baf5aad4c1a95b9"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libopapi.so",
+            "sha256": "3e10def2f7158482f3967b9db6ad2707cca8691198ddae8cc52bbbaf61bb2675"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libopapi_cv.so",
+            "sha256": "1bf87eb78e05c13b1e9eff1b8104085f488829b5546f9dd1ec8ed0571980b4e5"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libopapi_math.so",
+            "sha256": "f9868c0ecdcd35c38adc44e0653463cc8d97a1a171edd4af855b3250c1c82958"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libopapi_nn.so",
+            "sha256": "6644fd0f5f1e7a5cdb7e549acc1057703bc81eb269bb95890b878a7d7f7aa131"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libopapi_oam.so",
+            "sha256": "c91ca339684cabd17f4a6a1b21e6f7e74673d0e76a54fc2f3d37d62776f1661b"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libopapi_ras.so",
+            "sha256": "3a21f8f3c57b360a55a6133bbc19e1c87d484d0e8145b11f89778ab21a7a4f19"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libopapi_transformer.so",
+            "sha256": "9a79ed65cdebf70a4ee13c0e5fe0df331f8482a079907e4f184d9851e1183100"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libopp_registry.so",
+            "sha256": "39d3bada7097847b146e76a1c3b05c1517da4e4d9a35953c859c6e80e821c9d9"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libops_base.so",
+            "sha256": "e5eda9c92528c1379fe3dc7bf6e1b8c4d02444cc2354b26e2ec41d085bd201c6"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libops_host_cpu.so",
+            "sha256": "52ce08f23a1d9d8345beb1f772257952f92500a68f22ad931c88c5ab05cdb805"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libplatform.so",
+            "sha256": "c80c6a5b72bf076240e261ab7a8cd178ba7013c8054cd1996964229d3d0c52e4"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libprofapi.so",
+            "sha256": "fcb6a88c039a6226233e5c1c10f8129141114135bd26cc0dc40a8e8965487106"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libprofimpl.so",
+            "sha256": "7c156b588d65e3f1813b52a2f328fb1cadda6352f48f2083d63cd8e02f36d92a"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libra.so",
+            "sha256": "4c220f274a1a891fe73e571922fe99b070a3607f1eef70046899dd97d6971aa3"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libra_hdc.so",
+            "sha256": "a9c56b108d1e85d81b85041d8e2ed63ba00e61e59e061299fc5e204dbae3730d"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libra_peer.so",
+            "sha256": "3883f1e220d31fe4bb78d43cde63155e1d43f89c58da9731a8dc956e902955b1"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libregister.so",
+            "sha256": "84d4cb58dbe0ef3e59e6466f2ada7c2fcee9de9ead1d3845672948b561c569fa"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/librs.so",
+            "sha256": "81ace9a2ed9de32f7118f4cded54262eb04ea09b049d9799addac5a9baf44a12"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libruntime.so",
+            "sha256": "7bc2b610dff552df2f114c95701156b4aba43ffcba24e06e3c249e1cf57bbc21"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libruntime_common.so",
+            "sha256": "b02fb580c4d3ccebfa0d481f21e5ccea7f135042e8239d57446737decb4f6958"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libruntime_v100.so",
+            "sha256": "ab4b573989e6b76e129204cf329bdd916739bdd16092a0efcfa88d8ba011d689"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libtls_adp.so",
+            "sha256": "9ac5370de6ff6ea41db9dfaf7463f6d96c1767512cb4541191459c75707d6b36"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libtopoaddrinfo.so",
+            "sha256": "39fd08cce39e3deac37c1aab40f81ab53b0006b55d31df9af9c9d356dc191f4a"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libtsdclient.so",
+            "sha256": "28308ae94e6aa5bea8f00d626991f9e1e738a993e295a8b0a49a7bc0d6a24b99"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libunified_dlog.so",
+            "sha256": "b5f9f04eea31fc121ba4dfa356620e900502b02207042d59c65824f29fa0733f"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libxpu_tprt.so",
+            "sha256": "6d7f7ca2cd3ec085b2ae801594c71efd27466b0eb9a1ab5b5e11c589d7396724"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_graph/lib/linux/aarch64/libopgraph_cv.so",
+            "sha256": "53106f4dbe19d875d2ba35e6b5c80d32aa7c5a4cb9c67b3f016420afb67d2352"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_graph/lib/linux/aarch64/libopgraph_hccl.so",
+            "sha256": "d0cb594aff218b59ecff8643de32591939fa41ba8cbb9bdb70e5a51ff4697160"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_graph/lib/linux/aarch64/libopgraph_legacy.so",
+            "sha256": "664518e63e32e4a8d6bed0d4db58b649dc85f3a5fac44f83df02e0c735c8e573"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_graph/lib/linux/aarch64/libopgraph_math.so",
+            "sha256": "7405b0c2129c0ce95b79849b68a9cfc5b8558bc02703c0de7aef3b9b3686ac99"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_graph/lib/linux/aarch64/libopgraph_nn.so",
+            "sha256": "db8aeb9f79a8dc0b0e6eea3c4f2f7b5b5d6468ae221bea22d65fde33ed2ab0b1"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_graph/lib/linux/aarch64/libopgraph_ras.so",
+            "sha256": "1030d444c073fe7252c5ecbcc0fc5a27ee8da04e6cc1650af8f6c3805cfa9f9c"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_graph/lib/linux/aarch64/libopgraph_transformer.so",
+            "sha256": "129b124c8b0fe3a0e19381fe9b7302623dd99ba035a3509431fe352c1b924630"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/ai_core/tbe/op_host/lib/linux/aarch64/libophost_comm_legacy.so",
+            "sha256": "8cd4d9b43b8f004643faf297e7fcfe7995b8cfe34a77014b14a7caecb7165087"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/ai_core/tbe/op_host/lib/linux/aarch64/libophost_cv.so",
+            "sha256": "636c4669c7191ef2ed59b275b16bbdde1db7eb0927edcf712eeda507e4589cdf"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/ai_core/tbe/op_host/lib/linux/aarch64/libophost_legacy.so",
+            "sha256": "f1e54806382decf4ca3bd1ef05efa6d3e98313bdba664efaec8524b9e7bea1ce"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/ai_core/tbe/op_host/lib/linux/aarch64/libophost_math.so",
+            "sha256": "c13c5b43f51ef59f3df48868814cd5bfe1b3d784c3138c7ad323cd753100a9aa"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/ai_core/tbe/op_host/lib/linux/aarch64/libophost_nn.so",
+            "sha256": "0257cbb6b2cc631110ceb7876e9e8f36c9ada2cb1f8150218b32f5e6d2a9722f"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/ai_core/tbe/op_host/lib/linux/aarch64/libophost_oam.so",
+            "sha256": "f6b46d786a3a50eb0e319345450e57c345a5671036748d4f38c82b4071980a91"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/ai_core/tbe/op_host/lib/linux/aarch64/libophost_transformer.so",
+            "sha256": "3f5758ed76ce537f3d005bb03b55e3030b210e206f5cb9809ab4346b98bae33b"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/liboptiling.so",
+            "sha256": "1ef91dda3af076033a49a45d4035de790577c9fd50b01802270532ae58b32edb"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/dpu/libccl_dpu.so",
+            "sha256": "943cb4aca21719647af3567d6b7b1c4cf55b33d7e5b4567297eeaca83a1eba4a"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/host_cpu/libopconstant_folding_math.so",
+            "sha256": "7d23bfd0803c38a6d30421bcd00746f541f59e064a9e5b32a36299fe039ada9a"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_proto/lib/linux/aarch64/libopsproto.so",
+            "sha256": "4ddaebf9ec022077625bab5cdd5a11fd5d9bb2a44078f99b59bb0b92486b6bf0"
+          },
+          {
+            "path": "/usr/local/Ascend/driver/lib64/driver/libascend_hal.so",
+            "sha256": "6e31ad4efa2263052666bd3bf9c2da05cdce23cd28aac433176857aebdbf1e5e"
+          },
+          {
+            "path": "/usr/local/lib/python3.11/site-packages/torch_npu/_C.cpython-311-aarch64-linux-gnu.so",
+            "sha256": "b41c0f7a6fbd21993b2a4fccf3777a1ce35d4b38f8fd78d357154f25d5516783"
+          },
+          {
+            "path": "/usr/local/lib/python3.11/site-packages/torch_npu/lib/libnpu_profiler.so",
+            "sha256": "85b4d20892326382d3b5fe3c5a89b312f1ff30bb70f79464e6982cc7f935babc"
+          },
+          {
+            "path": "/usr/local/lib/python3.11/site-packages/torch_npu/lib/libtensorpipe.so",
+            "sha256": "c9fc58b3a5f48d3f08076b4325ca5ccf2604de859582779090c2322bd5ee43c9"
+          },
+          {
+            "path": "/usr/local/lib/python3.11/site-packages/torch_npu/lib/libtorch_npu.so",
+            "sha256": "4c886c78d4c032bd96afa8155106d2d2d223b4e118e9020a59944b75cb269362"
+          }
+        ],
+        "cache_root": "/work/receipts/staging-pair-v3/cache-baseline",
+        "cache_files": []
+      }
+    },
+    "candidate": {
+      "ready": true,
+      "device_name": "Ascend910_9392",
+      "pid": 5872,
+      "identity": {
+        "packages": {
+          "torch": "2.12.0",
+          "torch-npu": "2.12.0"
+        },
+        "modules": [
+          {
+            "path": "/work/source/tilert/models/glm_5_2_ascend/cann_model.py",
+            "sha256": "1131290c3c2eb2ef1b2e5eccfab96589afbc8689f40b55699f2e52d2065c5044"
+          },
+          {
+            "path": "/work/source/tilert/models/glm_5_2_ascend/mtp_round.py",
+            "sha256": "7d1773a0dad58a4484662fea07a0aeb49b553e9f664f81c9e3d6c2df6a4ee1a6"
+          }
+        ],
+        "libraries": [
+          {
+            "path": "/usr/local/Ascend/ascend-toolkit/vendors/omni_custom_transformer/op_api/lib/libcust_opapi.so",
+            "sha256": "aa73d7fd12f51d172c171ff4e7a36c05dc4c1c3183f69f6e0cdadecd06642d3b"
+          },
+          {
+            "path": "/usr/local/Ascend/ascend-toolkit/vendors/omni_custom_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/libcust_opmaster_rt2.0.so",
+            "sha256": "912bced88a7d9f66682bd5a9ee26ef80a153fe7f1958f4df77c1710927fcb1c8"
+          },
+          {
+            "path": "/usr/local/Ascend/ascend-toolkit/vendors/omni_custom_transformer/op_proto/lib/linux/aarch64/libcust_opsproto_rt2.0.so",
+            "sha256": "d680d91c59036ec40fb16177b66dbb5d9101bb8f468155d0d86057ce06cdbd56"
+          },
+          {
+            "path": "/usr/local/Ascend/ascend-toolkit/vendors/omni_training_custom_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/libcust_opmaster_rt2.0.so",
+            "sha256": "3297fecad050079a03ed02388efe84f42391bacb62dfb15753c2489a0ce40763"
+          },
+          {
+            "path": "/usr/local/Ascend/ascend-toolkit/vendors/omni_training_custom_transformer/op_proto/lib/linux/aarch64/libcust_opsproto_rt2.0.so",
+            "sha256": "e1a654f4036c5cbe1fd2511f090ddc4ff18f4f02a05f8314414768fc05476ad8"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libacl_mdl.so",
+            "sha256": "a23f7027d441b1788da76ef99cb5db22dd3bbf626a05b45d874df205a0f9733f"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libacl_mdl_impl.so",
+            "sha256": "707b6934eaa1c1f69ea9b420ac47f0095474976ce240fa8bef2e4a15040e4185"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libacl_mdl_impl_om2.so",
+            "sha256": "13e7fc76ac220862338e80bf1bef80686001a94c9399f133e792373a81641ca0"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libacl_op_compiler.so",
+            "sha256": "a695a324f0809ca6948eb86531d889bd330f64b6308ea682053b008a8bdd0e1d"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libacl_op_executor.so",
+            "sha256": "2309b3c02a43fbaa8f5064f57b1bdbd0bca9ba0277d7011d8a40659c256d62c3"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libacl_op_executor_impl.so",
+            "sha256": "e804f7391a4a55ea40141cdbd2c90bcb7090ef330b56fbfe8a8055e1433f95fb"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libacl_rt.so",
+            "sha256": "5a6518505ef66688f02b4bde97517ba217212f29304d59b3a6ef0db14ded6c83"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libacl_rt_impl.so",
+            "sha256": "4595d4cf50f064cc9d6a97688eecf5e95ef92a4291911e26dd301091997c37ee"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libacl_tdt_channel.so",
+            "sha256": "c91273e72e08c7156ee44def78985a77642e4ba2346cbcc92998b57c0510f237"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libaicore_utils.so",
+            "sha256": "4f37a8eb05026b512f63c4dd6d0ee1ef7369d9afe333a35766a445572a992624"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libaicpu_const_folding.so",
+            "sha256": "3cf7440b7676cdca49af41b0ca79451cc9da8fc4ab58c77035f0db3d345e315e"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libaicpu_engine_common.so",
+            "sha256": "2863857ab3f7e14eecd277d11ca03799740d27ff10bb0fe80f09292dbb15efe5"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libaihac_autofusion.so",
+            "sha256": "a80484bd00ad285df7970953dde14bdbbf14ba281986cdb261b9d8922e966339"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libaihac_codegen.so",
+            "sha256": "41f955278d8b087165a86fc715766e532c37363ad8933da58c1b5e5a1712c1c0"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libaihac_ir.so",
+            "sha256": "8c2155e3639c2cfce44a7b890434664d9d8664dc053801daa18cc41efc1c6e92"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libaihac_ir_register.so",
+            "sha256": "662829547cdc25726c569d006607ffea59df0a2e827c8bafa807ed186bafd550"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libaihac_symbolizer.so",
+            "sha256": "9d3c9b29c8306b324ae8d3730780db283349d9817250826ee523e6201dabf32b"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libaihac_symbolizer_af.so",
+            "sha256": "fe66542cc6c6bb31e3a5dcb5e83bec358cd81fedff2d14f15adb4a9c1bf1c323"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libascend_dump.so",
+            "sha256": "f1e5a58449299e93c36abc08bb0955483b08ed4f5cabd08d7dd8023f2312a1af"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libascend_protobuf.so.3.13.0.0",
+            "sha256": "27b1bfa8ae1bf2a154cfce9b5b3904fb8e1b0a73e89d6e371ab78595012c4fe6"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libascend_trace.so",
+            "sha256": "336c4bce4fbc080b03afed4a3941b7d1c0cce8969ed29f04583ebe75f4e5c8cc"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libascend_watchdog.so",
+            "sha256": "4a3e1061867bf39916bc0181f9999314b46fd6517655b9782b339d2e1aba4a6e"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libascendalog.so",
+            "sha256": "7a0c86927cb68d9c5b89050c2d830b1d73e72f5cf6a4fec8f6c96c6292a3618f"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libascendcl.so",
+            "sha256": "123d67c313f743e5d6f2e856f40c24d5edac376975cf0a7a1019e079b4171480"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libc_sec.so",
+            "sha256": "964df648e2dc8e04516b3919e259ca5a933d48dc3c4b88d4d558e7de212342e6"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libconstant_folding_ops.so",
+            "sha256": "61a7dd5de18984c33597946acd0b048fe43768855cfdcd06dac9bd36b0dc287f"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libdata_flow_base.so",
+            "sha256": "613d95be49460ffa48c84f0202b04b791fa66fa6b69034ca021a7d5c7f81dfaa"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libdavinci_executor.so",
+            "sha256": "9a67a643d6b2286e64a120500b9c8fa905b49b957f2e38495ab00d936808139c"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libdflow_runner.so",
+            "sha256": "fe6bd372f000f2a2b6980f3bed973c313a97ceb67bc283e64944adebf9a41959"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libdummy_tls.so",
+            "sha256": "9b7ca13bfa379069601d3541c2adf04bacfbf1b75d63e427c86dc8bf4bf76380"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libeager_style_graph_builder_base.so",
+            "sha256": "95a5f1c01c3194b092e50cd0580deb4a609d72f854287ed1ba1f1b515e8d94db"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/liberror_manager.so",
+            "sha256": "d741945076d8297ea71b961102c7eb3aaeaf267bcffe0e7c9f032db3d9f3a773"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libes_math.so",
+            "sha256": "311f4421ba642771775a93e0483ad6280a179bf7469c18a13001422fb722dcb2"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libes_nn.so",
+            "sha256": "7d3d0ab8cbeba3054624837a0d56b7d6abc4632aabd34e86412f6ed6c16457e3"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libes_transformer.so",
+            "sha256": "fad4d1f5b399b1f8dd1080e850df18241630e62a2b900f5ec39e481f0a36d87f"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libexe_graph.so",
+            "sha256": "92245f33c93523ecf99614c735afa89b95b443aaac876ca09c4a088fb512249e"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libflow_graph.so",
+            "sha256": "b141fd6bc1cc2c21b73edf934ef4686b8ce53667002e47e620469e7f369f5139"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libge_common.so",
+            "sha256": "35944dad1339308a7b1f7f452b83021af0d95df6fdd49dee2d1d1e89fd98afc7"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libge_common_base.so",
+            "sha256": "bcc38d1b7a882f9aa546f62e710dbc259a1f7fc52927d49fec5c7acab62084ff"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libge_compiler.so",
+            "sha256": "a76e9feda580166fa31041320df2eee3d8cd9eb63b56a91be13c0ad517397b6d"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libge_executor.so",
+            "sha256": "484635f097d4f24548a440dbedce279e5f65c1f4a89bc9f89abe9d7d170097f7"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libge_runner.so",
+            "sha256": "d4854710dab10135bce0a5bb4ecc20b4e223cea96e24c531ab26a41c1a8a9301"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libge_runner_v2.so",
+            "sha256": "767223d9afb38c9d8a085304d0171858e023a824535df643dea4625cb978e730"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libgert.so",
+            "sha256": "1f0bfc2cfd177e581f408ec9c5370e1179ebb88b391d9f2339d57fa2bd7952b5"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libgraph.so",
+            "sha256": "a81a25d0576b8b08fc3709de3c1979406e3940854f25ee75626fc07b937a939a"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libgraph_af.so",
+            "sha256": "c2b8adf5a9e52353bc4e9cb124086e5d2063cb8c13b824e2225c2d4d29a53184"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libgraph_base.so",
+            "sha256": "632ccb4e1778b549611b4580f0c5d415b7ed46f0ee6c79036cbad10ac40521dd"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libgraph_base_af.so",
+            "sha256": "8218690becc1196356dd144b42be1bdba90055d1de487bff97470260113fd85f"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libhccl.so",
+            "sha256": "e7742392619bd0f7bfd1b55552070f9811b25ed3017eefd49ed2c1f9f45fc647"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libhccl_alg.so",
+            "sha256": "ca13a5f01184871bb18319b7889ed97cb1c961ff3c23e5a849d8e85fde21e7a6"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libhccl_compat.so",
+            "sha256": "264981562fb8b5e59a67f768e194522f071fa1900c19ce16237828e3843c4d2e"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libhccl_legacy.so",
+            "sha256": "6605ec087d27e01f95c5cc53bd3cadc6e76da85b73c1dbfcfb9db148a062d3d0"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libhccl_plf.so",
+            "sha256": "ea4e467004fa28b3a09447d2e44ad85faffcc5cc43c133ec008efeb6ea7cf110"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libhccl_v2.so",
+            "sha256": "012cd19ff57ccdd8aa595d1e1c13137bfe26ef4cfd00c4f04c6f69b1154d81e7"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libhcomm.so",
+            "sha256": "648b248b39fb91164b08f20a12937ca31e780b28383b989590a7d6acc636fcb3"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libhybrid_executor.so",
+            "sha256": "f4f1e8392f9fe343fb24e99e16d226b5fb607a1765e6416ac7ec04e17cf6bb71"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/liblowering.so",
+            "sha256": "c23de2b0cc89e8bae13b3142c5ea07817759fcd87059dbc2a8130442fc9a2596"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libmetadef.so",
+            "sha256": "bfae844ce0cb90dc5ed7f320769112ccd63ae5f2ff0a0313dc23a4595b71a997"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libmmpa.so",
+            "sha256": "7cd9af70451076933bb4a4b29d024b8a7855939e7aceb60442ba65bb0f160878"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libmsprofiler.so",
+            "sha256": "bc6e19c8f9799d4c2bac0fd0d654abcbe6c3b041d8363d535eea5455bed8dbce"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libnnopbase.so",
+            "sha256": "308dda461704a6e5f70de6e0eac4495e9829b9cec3328563b75a5b382c6e438b"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libom2_executor.so",
+            "sha256": "8173651bfb51bfe8625facb05c50b41813d401e59f5739e88baf5aad4c1a95b9"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libopapi.so",
+            "sha256": "3e10def2f7158482f3967b9db6ad2707cca8691198ddae8cc52bbbaf61bb2675"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libopapi_cv.so",
+            "sha256": "1bf87eb78e05c13b1e9eff1b8104085f488829b5546f9dd1ec8ed0571980b4e5"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libopapi_math.so",
+            "sha256": "f9868c0ecdcd35c38adc44e0653463cc8d97a1a171edd4af855b3250c1c82958"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libopapi_nn.so",
+            "sha256": "6644fd0f5f1e7a5cdb7e549acc1057703bc81eb269bb95890b878a7d7f7aa131"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libopapi_oam.so",
+            "sha256": "c91ca339684cabd17f4a6a1b21e6f7e74673d0e76a54fc2f3d37d62776f1661b"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libopapi_ras.so",
+            "sha256": "3a21f8f3c57b360a55a6133bbc19e1c87d484d0e8145b11f89778ab21a7a4f19"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libopapi_transformer.so",
+            "sha256": "9a79ed65cdebf70a4ee13c0e5fe0df331f8482a079907e4f184d9851e1183100"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libopp_registry.so",
+            "sha256": "39d3bada7097847b146e76a1c3b05c1517da4e4d9a35953c859c6e80e821c9d9"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libops_base.so",
+            "sha256": "e5eda9c92528c1379fe3dc7bf6e1b8c4d02444cc2354b26e2ec41d085bd201c6"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libops_host_cpu.so",
+            "sha256": "52ce08f23a1d9d8345beb1f772257952f92500a68f22ad931c88c5ab05cdb805"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libplatform.so",
+            "sha256": "c80c6a5b72bf076240e261ab7a8cd178ba7013c8054cd1996964229d3d0c52e4"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libprofapi.so",
+            "sha256": "fcb6a88c039a6226233e5c1c10f8129141114135bd26cc0dc40a8e8965487106"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libprofimpl.so",
+            "sha256": "7c156b588d65e3f1813b52a2f328fb1cadda6352f48f2083d63cd8e02f36d92a"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libra.so",
+            "sha256": "4c220f274a1a891fe73e571922fe99b070a3607f1eef70046899dd97d6971aa3"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libra_hdc.so",
+            "sha256": "a9c56b108d1e85d81b85041d8e2ed63ba00e61e59e061299fc5e204dbae3730d"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libra_peer.so",
+            "sha256": "3883f1e220d31fe4bb78d43cde63155e1d43f89c58da9731a8dc956e902955b1"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libregister.so",
+            "sha256": "84d4cb58dbe0ef3e59e6466f2ada7c2fcee9de9ead1d3845672948b561c569fa"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/librs.so",
+            "sha256": "81ace9a2ed9de32f7118f4cded54262eb04ea09b049d9799addac5a9baf44a12"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libruntime.so",
+            "sha256": "7bc2b610dff552df2f114c95701156b4aba43ffcba24e06e3c249e1cf57bbc21"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libruntime_common.so",
+            "sha256": "b02fb580c4d3ccebfa0d481f21e5ccea7f135042e8239d57446737decb4f6958"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libruntime_v100.so",
+            "sha256": "ab4b573989e6b76e129204cf329bdd916739bdd16092a0efcfa88d8ba011d689"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libtls_adp.so",
+            "sha256": "9ac5370de6ff6ea41db9dfaf7463f6d96c1767512cb4541191459c75707d6b36"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libtopoaddrinfo.so",
+            "sha256": "39fd08cce39e3deac37c1aab40f81ab53b0006b55d31df9af9c9d356dc191f4a"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libtsdclient.so",
+            "sha256": "28308ae94e6aa5bea8f00d626991f9e1e738a993e295a8b0a49a7bc0d6a24b99"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libunified_dlog.so",
+            "sha256": "b5f9f04eea31fc121ba4dfa356620e900502b02207042d59c65824f29fa0733f"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/aarch64-linux/lib64/libxpu_tprt.so",
+            "sha256": "6d7f7ca2cd3ec085b2ae801594c71efd27466b0eb9a1ab5b5e11c589d7396724"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_graph/lib/linux/aarch64/libopgraph_cv.so",
+            "sha256": "53106f4dbe19d875d2ba35e6b5c80d32aa7c5a4cb9c67b3f016420afb67d2352"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_graph/lib/linux/aarch64/libopgraph_hccl.so",
+            "sha256": "d0cb594aff218b59ecff8643de32591939fa41ba8cbb9bdb70e5a51ff4697160"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_graph/lib/linux/aarch64/libopgraph_legacy.so",
+            "sha256": "664518e63e32e4a8d6bed0d4db58b649dc85f3a5fac44f83df02e0c735c8e573"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_graph/lib/linux/aarch64/libopgraph_math.so",
+            "sha256": "7405b0c2129c0ce95b79849b68a9cfc5b8558bc02703c0de7aef3b9b3686ac99"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_graph/lib/linux/aarch64/libopgraph_nn.so",
+            "sha256": "db8aeb9f79a8dc0b0e6eea3c4f2f7b5b5d6468ae221bea22d65fde33ed2ab0b1"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_graph/lib/linux/aarch64/libopgraph_ras.so",
+            "sha256": "1030d444c073fe7252c5ecbcc0fc5a27ee8da04e6cc1650af8f6c3805cfa9f9c"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_graph/lib/linux/aarch64/libopgraph_transformer.so",
+            "sha256": "129b124c8b0fe3a0e19381fe9b7302623dd99ba035a3509431fe352c1b924630"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/ai_core/tbe/op_host/lib/linux/aarch64/libophost_comm_legacy.so",
+            "sha256": "8cd4d9b43b8f004643faf297e7fcfe7995b8cfe34a77014b14a7caecb7165087"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/ai_core/tbe/op_host/lib/linux/aarch64/libophost_cv.so",
+            "sha256": "636c4669c7191ef2ed59b275b16bbdde1db7eb0927edcf712eeda507e4589cdf"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/ai_core/tbe/op_host/lib/linux/aarch64/libophost_legacy.so",
+            "sha256": "f1e54806382decf4ca3bd1ef05efa6d3e98313bdba664efaec8524b9e7bea1ce"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/ai_core/tbe/op_host/lib/linux/aarch64/libophost_math.so",
+            "sha256": "c13c5b43f51ef59f3df48868814cd5bfe1b3d784c3138c7ad323cd753100a9aa"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/ai_core/tbe/op_host/lib/linux/aarch64/libophost_nn.so",
+            "sha256": "0257cbb6b2cc631110ceb7876e9e8f36c9ada2cb1f8150218b32f5e6d2a9722f"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/ai_core/tbe/op_host/lib/linux/aarch64/libophost_oam.so",
+            "sha256": "f6b46d786a3a50eb0e319345450e57c345a5671036748d4f38c82b4071980a91"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/ai_core/tbe/op_host/lib/linux/aarch64/libophost_transformer.so",
+            "sha256": "3f5758ed76ce537f3d005bb03b55e3030b210e206f5cb9809ab4346b98bae33b"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/liboptiling.so",
+            "sha256": "1ef91dda3af076033a49a45d4035de790577c9fd50b01802270532ae58b32edb"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/dpu/libccl_dpu.so",
+            "sha256": "943cb4aca21719647af3567d6b7b1c4cf55b33d7e5b4567297eeaca83a1eba4a"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/host_cpu/libopconstant_folding_math.so",
+            "sha256": "7d23bfd0803c38a6d30421bcd00746f541f59e064a9e5b32a36299fe039ada9a"
+          },
+          {
+            "path": "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_proto/lib/linux/aarch64/libopsproto.so",
+            "sha256": "4ddaebf9ec022077625bab5cdd5a11fd5d9bb2a44078f99b59bb0b92486b6bf0"
+          },
+          {
+            "path": "/usr/local/Ascend/driver/lib64/driver/libascend_hal.so",
+            "sha256": "6e31ad4efa2263052666bd3bf9c2da05cdce23cd28aac433176857aebdbf1e5e"
+          },
+          {
+            "path": "/usr/local/lib/python3.11/site-packages/torch_npu/_C.cpython-311-aarch64-linux-gnu.so",
+            "sha256": "b41c0f7a6fbd21993b2a4fccf3777a1ce35d4b38f8fd78d357154f25d5516783"
+          },
+          {
+            "path": "/usr/local/lib/python3.11/site-packages/torch_npu/lib/libnpu_profiler.so",
+            "sha256": "85b4d20892326382d3b5fe3c5a89b312f1ff30bb70f79464e6982cc7f935babc"
+          },
+          {
+            "path": "/usr/local/lib/python3.11/site-packages/torch_npu/lib/libtensorpipe.so",
+            "sha256": "c9fc58b3a5f48d3f08076b4325ca5ccf2604de859582779090c2322bd5ee43c9"
+          },
+          {
+            "path": "/usr/local/lib/python3.11/site-packages/torch_npu/lib/libtorch_npu.so",
+            "sha256": "4c886c78d4c032bd96afa8155106d2d2d223b4e118e9020a59944b75cb269362"
+          }
+        ],
+        "cache_root": "/work/receipts/staging-pair-v3/cache-candidate",
+        "cache_files": []
+      }
+    }
+  },
+  "results": [
+    {
+      "width": 32,
+      "wall_us": {
+        "baseline": {
+          "p50": 2474.199,
+          "p90": 2503.895,
+          "p95": 2513.146,
+          "p99": 2552.827,
+          "std": 29.414247297280237
+        },
+        "candidate": {
+          "p50": 239.239,
+          "p90": 269.66,
+          "p95": 299.201,
+          "p99": 324.292,
+          "std": 23.842179412312312
+        }
+      },
+      "paired_saving_us": {
+        "p50": 2228.885,
+        "p90": 2269.047,
+        "p95": 2275.917,
+        "p99": 2287.777,
+        "std": 37.48799236394091
+      },
+      "wins": 60,
+      "samples": [
+        {
+          "pair": 0,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2434.613,
+            "signature": "a41c5dd7a8ae797c7e91ea05343d2a75b20a89ee8585d44f3856a97107a43eec"
+          },
+          "candidate": {
+            "wall_us": 244.069,
+            "signature": "a41c5dd7a8ae797c7e91ea05343d2a75b20a89ee8585d44f3856a97107a43eec"
+          }
+        },
+        {
+          "pair": 1,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 237.009,
+            "signature": "face99db48c1961c52858162ed6a9a92d54333dcc2054d72e5f168013b7f77b1"
+          },
+          "baseline": {
+            "wall_us": 2512.926,
+            "signature": "face99db48c1961c52858162ed6a9a92d54333dcc2054d72e5f168013b7f77b1"
+          }
+        },
+        {
+          "pair": 2,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2481.314,
+            "signature": "a48e93a3b9e53bd5dee912b1707c555e2a4b7f3fad20f4c6460c84cbae8a433a"
+          },
+          "candidate": {
+            "wall_us": 259.61,
+            "signature": "a48e93a3b9e53bd5dee912b1707c555e2a4b7f3fad20f4c6460c84cbae8a433a"
+          }
+        },
+        {
+          "pair": 3,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 232.399,
+            "signature": "5af4b50b2435cb60a92f9bbc0fac2c9b1c616c5e5e886e6dd68362d991559820"
+          },
+          "baseline": {
+            "wall_us": 2479.455,
+            "signature": "5af4b50b2435cb60a92f9bbc0fac2c9b1c616c5e5e886e6dd68362d991559820"
+          }
+        },
+        {
+          "pair": 4,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2474.594,
+            "signature": "5d889a0930dd5736033c65ce01ee6ea2d66904c4f6f8460d9cacd10c7bd04ae7"
+          },
+          "candidate": {
+            "wall_us": 241.029,
+            "signature": "5d889a0930dd5736033c65ce01ee6ea2d66904c4f6f8460d9cacd10c7bd04ae7"
+          }
+        },
+        {
+          "pair": 5,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 259.79,
+            "signature": "93c625393ced00aa1d3a747d4768f814b774f67b535d9a415a671dbef28e10b9"
+          },
+          "baseline": {
+            "wall_us": 2486.745,
+            "signature": "93c625393ced00aa1d3a747d4768f814b774f67b535d9a415a671dbef28e10b9"
+          }
+        },
+        {
+          "pair": 6,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2503.895,
+            "signature": "830fed54f10045bbc308ebcd6e5d7b15f0cde951efedbad9026cbd38d7691669"
+          },
+          "candidate": {
+            "wall_us": 240.459,
+            "signature": "830fed54f10045bbc308ebcd6e5d7b15f0cde951efedbad9026cbd38d7691669"
+          }
+        },
+        {
+          "pair": 7,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 235.859,
+            "signature": "0ad6b7436a6c50193076b8f6791a11270482a15b8c41db7497b8381cc50b12da"
+          },
+          "baseline": {
+            "wall_us": 2467.724,
+            "signature": "0ad6b7436a6c50193076b8f6791a11270482a15b8c41db7497b8381cc50b12da"
+          }
+        },
+        {
+          "pair": 8,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2525.626,
+            "signature": "cf338de7e43fb2b6e43ae6dc6c620fa2c90ee5251a9c5cbc572d8b9a55c33c6d"
+          },
+          "candidate": {
+            "wall_us": 237.849,
+            "signature": "cf338de7e43fb2b6e43ae6dc6c620fa2c90ee5251a9c5cbc572d8b9a55c33c6d"
+          }
+        },
+        {
+          "pair": 9,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 230.328,
+            "signature": "9fd357aa4bc5bd42eb4bb934df1421d27a9e347da2f62c495f649f5527a7a57d"
+          },
+          "baseline": {
+            "wall_us": 2552.827,
+            "signature": "9fd357aa4bc5bd42eb4bb934df1421d27a9e347da2f62c495f649f5527a7a57d"
+          }
+        },
+        {
+          "pair": 10,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2513.146,
+            "signature": "de4226d4e2d8c596108bb6acaf609778ebc98dcd4aa6a7db4dc9a5a0dd5388ee"
+          },
+          "candidate": {
+            "wall_us": 240.659,
+            "signature": "de4226d4e2d8c596108bb6acaf609778ebc98dcd4aa6a7db4dc9a5a0dd5388ee"
+          }
+        },
+        {
+          "pair": 11,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 230.859,
+            "signature": "cc94bfd8e49f2fde4134d7aabdfbd9fa643fee89be052d6f1eb7de455de88742"
+          },
+          "baseline": {
+            "wall_us": 2502.205,
+            "signature": "cc94bfd8e49f2fde4134d7aabdfbd9fa643fee89be052d6f1eb7de455de88742"
+          }
+        },
+        {
+          "pair": 12,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2511.346,
+            "signature": "cc9213e4e14bd59060719e52ccb605bfb04f74a6f6ce8644a63ce85cef4b45d5"
+          },
+          "candidate": {
+            "wall_us": 242.299,
+            "signature": "cc9213e4e14bd59060719e52ccb605bfb04f74a6f6ce8644a63ce85cef4b45d5"
+          }
+        },
+        {
+          "pair": 13,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 277.67,
+            "signature": "ff28c957b3d13c92142d923be2d0c06cfdeb8088ce50e8df31f54dc9437870eb"
+          },
+          "baseline": {
+            "wall_us": 2495.025,
+            "signature": "ff28c957b3d13c92142d923be2d0c06cfdeb8088ce50e8df31f54dc9437870eb"
+          }
+        },
+        {
+          "pair": 14,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2593.909,
+            "signature": "7c9fdae4523990c6f7b4705fb801bfb1def810b487a471761397df01350f17ea"
+          },
+          "candidate": {
+            "wall_us": 308.172,
+            "signature": "7c9fdae4523990c6f7b4705fb801bfb1def810b487a471761397df01350f17ea"
+          }
+        },
+        {
+          "pair": 15,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 324.292,
+            "signature": "ff8baef684b2cd05be0f7a7acaa5ea0167c5b8f1e1529699184160760c376bfa"
+          },
+          "baseline": {
+            "wall_us": 2496.055,
+            "signature": "ff8baef684b2cd05be0f7a7acaa5ea0167c5b8f1e1529699184160760c376bfa"
+          }
+        },
+        {
+          "pair": 16,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2467.484,
+            "signature": "7bf6147fa25198e648fc4cd2a126765b66356c5e331c7685741870c748bb8caa"
+          },
+          "candidate": {
+            "wall_us": 250.969,
+            "signature": "7bf6147fa25198e648fc4cd2a126765b66356c5e331c7685741870c748bb8caa"
+          }
+        },
+        {
+          "pair": 17,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 258.22,
+            "signature": "e3b0477c1f0abf1cedaee6d88be18ccf64616c31e06edbc9553cbcb846bbb651"
+          },
+          "baseline": {
+            "wall_us": 2465.104,
+            "signature": "e3b0477c1f0abf1cedaee6d88be18ccf64616c31e06edbc9553cbcb846bbb651"
+          }
+        },
+        {
+          "pair": 18,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2423.973,
+            "signature": "ecdb5ff96635b15a473955f1fbbaa16462ad0729ca4fcd30c06c379ee14f504b"
+          },
+          "candidate": {
+            "wall_us": 352.014,
+            "signature": "ecdb5ff96635b15a473955f1fbbaa16462ad0729ca4fcd30c06c379ee14f504b"
+          }
+        },
+        {
+          "pair": 19,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 238.149,
+            "signature": "0ef5cc9169e3fc4f1db744b957d98f4495d4018a4470a73083f8e9485d4d0b2c"
+          },
+          "baseline": {
+            "wall_us": 2468.964,
+            "signature": "0ef5cc9169e3fc4f1db744b957d98f4495d4018a4470a73083f8e9485d4d0b2c"
+          }
+        },
+        {
+          "pair": 20,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2429.613,
+            "signature": "f9e416496cac26d388511a8e7ed165965b448ca710168ee68a73c50ddce2fb66"
+          },
+          "candidate": {
+            "wall_us": 299.201,
+            "signature": "f9e416496cac26d388511a8e7ed165965b448ca710168ee68a73c50ddce2fb66"
+          }
+        },
+        {
+          "pair": 21,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 295.752,
+            "signature": "b579bb7ee7e99864b24487f128e671541e1f1d3321d9559249faf848e7dcc72a"
+          },
+          "baseline": {
+            "wall_us": 2483.635,
+            "signature": "b579bb7ee7e99864b24487f128e671541e1f1d3321d9559249faf848e7dcc72a"
+          }
+        },
+        {
+          "pair": 22,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2495.936,
+            "signature": "6167511edcedf08e0da2865fbef99c76e294775c1d4e42f4ca80e1784290245e"
+          },
+          "candidate": {
+            "wall_us": 240.979,
+            "signature": "6167511edcedf08e0da2865fbef99c76e294775c1d4e42f4ca80e1784290245e"
+          }
+        },
+        {
+          "pair": 23,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 259.07,
+            "signature": "dc03cdf1d5ec48477160fa63d5798b143750c875220fb3562753c4940563a97c"
+          },
+          "baseline": {
+            "wall_us": 2460.273,
+            "signature": "dc03cdf1d5ec48477160fa63d5798b143750c875220fb3562753c4940563a97c"
+          }
+        },
+        {
+          "pair": 24,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2494.025,
+            "signature": "be8d322421b9667865a698ca16fdad35216e5102c7513d5360f82c128d19f56a"
+          },
+          "candidate": {
+            "wall_us": 239.559,
+            "signature": "be8d322421b9667865a698ca16fdad35216e5102c7513d5360f82c128d19f56a"
+          }
+        },
+        {
+          "pair": 25,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 235.529,
+            "signature": "7c16848aec38e7dcfd8de8f56262e83527e33d688026728334a9baf4c1143301"
+          },
+          "baseline": {
+            "wall_us": 2455.903,
+            "signature": "7c16848aec38e7dcfd8de8f56262e83527e33d688026728334a9baf4c1143301"
+          }
+        },
+        {
+          "pair": 26,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2457.794,
+            "signature": "fb689d7250f6781e340961069e4f193a7c281fd2ac60109ab97969cc477cb1c6"
+          },
+          "candidate": {
+            "wall_us": 242.399,
+            "signature": "fb689d7250f6781e340961069e4f193a7c281fd2ac60109ab97969cc477cb1c6"
+          }
+        },
+        {
+          "pair": 27,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 235.169,
+            "signature": "debe4e46c737da73fddbe8c2eb9a31092b6ffbbac86c4cce8fec52b1281727ad"
+          },
+          "baseline": {
+            "wall_us": 2472.855,
+            "signature": "debe4e46c737da73fddbe8c2eb9a31092b6ffbbac86c4cce8fec52b1281727ad"
+          }
+        },
+        {
+          "pair": 28,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2466.054,
+            "signature": "041490f771401d9c4166105303fd591c8ede4e2f284b3bd02fec1472733cbb0e"
+          },
+          "candidate": {
+            "wall_us": 256.2,
+            "signature": "041490f771401d9c4166105303fd591c8ede4e2f284b3bd02fec1472733cbb0e"
+          }
+        },
+        {
+          "pair": 29,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 243.739,
+            "signature": "3295b68ef3cd29babf4ddd53a4892b8f52034541b43c4efd3dc9ab5fbf55d600"
+          },
+          "baseline": {
+            "wall_us": 2450.384,
+            "signature": "3295b68ef3cd29babf4ddd53a4892b8f52034541b43c4efd3dc9ab5fbf55d600"
+          }
+        },
+        {
+          "pair": 30,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2487.735,
+            "signature": "df5704f08e4c998a5d78d093e2e5a2c267af4f445fae3da75dbcfe1aa6aa3644"
+          },
+          "candidate": {
+            "wall_us": 234.709,
+            "signature": "df5704f08e4c998a5d78d093e2e5a2c267af4f445fae3da75dbcfe1aa6aa3644"
+          }
+        },
+        {
+          "pair": 31,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 234.599,
+            "signature": "67c130e99b1affd5033f28b37cf9ff14f13ebc71e4375f2f436fb7e916c9db03"
+          },
+          "baseline": {
+            "wall_us": 2450.003,
+            "signature": "67c130e99b1affd5033f28b37cf9ff14f13ebc71e4375f2f436fb7e916c9db03"
+          }
+        },
+        {
+          "pair": 32,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2445.914,
+            "signature": "48f4d9962165e17c2dbd9641dce7da8c9b5721121373ac9f4ca53a971a498cd4"
+          },
+          "candidate": {
+            "wall_us": 233.599,
+            "signature": "48f4d9962165e17c2dbd9641dce7da8c9b5721121373ac9f4ca53a971a498cd4"
+          }
+        },
+        {
+          "pair": 33,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 234.869,
+            "signature": "5ffe791667348f5f69823f290653f8b469b3ad9a24f231a07ebe0e00b1ea7435"
+          },
+          "baseline": {
+            "wall_us": 2445.713,
+            "signature": "5ffe791667348f5f69823f290653f8b469b3ad9a24f231a07ebe0e00b1ea7435"
+          }
+        },
+        {
+          "pair": 34,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2443.613,
+            "signature": "9c4760e3954d34d646c9512304dbdb5e583f44464c5768843315bee63c4cef97"
+          },
+          "candidate": {
+            "wall_us": 240.549,
+            "signature": "9c4760e3954d34d646c9512304dbdb5e583f44464c5768843315bee63c4cef97"
+          }
+        },
+        {
+          "pair": 35,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 232.808,
+            "signature": "19a721cc7243fe24e250a0e9fe368d4a81af3ee874e6158c5666d37e77bea2c1"
+          },
+          "baseline": {
+            "wall_us": 2485.735,
+            "signature": "19a721cc7243fe24e250a0e9fe368d4a81af3ee874e6158c5666d37e77bea2c1"
+          }
+        },
+        {
+          "pair": 36,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2468.874,
+            "signature": "13cde969869231b51f220965766bf6bf94e602e2cb773b0954bb01f2c2987e22"
+          },
+          "candidate": {
+            "wall_us": 254.59,
+            "signature": "13cde969869231b51f220965766bf6bf94e602e2cb773b0954bb01f2c2987e22"
+          }
+        },
+        {
+          "pair": 37,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 234.009,
+            "signature": "f163a425ecdcdb709bc510fb8207ac9537cdf0af2b093bd49406aca1eef903e5"
+          },
+          "baseline": {
+            "wall_us": 2496.515,
+            "signature": "f163a425ecdcdb709bc510fb8207ac9537cdf0af2b093bd49406aca1eef903e5"
+          }
+        },
+        {
+          "pair": 38,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2473.804,
+            "signature": "2b3461c4012d13e9f861b9d4de7c343618cfc17ed52b1a81bf8fe81ef845ec05"
+          },
+          "candidate": {
+            "wall_us": 236.599,
+            "signature": "2b3461c4012d13e9f861b9d4de7c343618cfc17ed52b1a81bf8fe81ef845ec05"
+          }
+        },
+        {
+          "pair": 39,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 250.439,
+            "signature": "731ab3ea93374acf2742b9c53a06a5fcc3ffe19e14c5342b57c01b39c706e524"
+          },
+          "baseline": {
+            "wall_us": 2456.223,
+            "signature": "731ab3ea93374acf2742b9c53a06a5fcc3ffe19e14c5342b57c01b39c706e524"
+          }
+        },
+        {
+          "pair": 40,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2480.095,
+            "signature": "27eec7ee9f9a0f44c98cc7d01524826277a641a8f67b0035c88578850ba60108"
+          },
+          "candidate": {
+            "wall_us": 261.73,
+            "signature": "27eec7ee9f9a0f44c98cc7d01524826277a641a8f67b0035c88578850ba60108"
+          }
+        },
+        {
+          "pair": 41,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 233.529,
+            "signature": "60f0a14257a2790c68cdc2fcf9ef9f665e09fc8b72837c15d4cc27cf0498c275"
+          },
+          "baseline": {
+            "wall_us": 2486.355,
+            "signature": "60f0a14257a2790c68cdc2fcf9ef9f665e09fc8b72837c15d4cc27cf0498c275"
+          }
+        },
+        {
+          "pair": 42,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2444.033,
+            "signature": "930ad6bd6dd8ef1542dc1689b4cefdabae5fc87c4156a0577a4eb4e13fbf06d4"
+          },
+          "candidate": {
+            "wall_us": 238.919,
+            "signature": "930ad6bd6dd8ef1542dc1689b4cefdabae5fc87c4156a0577a4eb4e13fbf06d4"
+          }
+        },
+        {
+          "pair": 43,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 269.44,
+            "signature": "6fceafa349d7f8f182574fee05ccd5c276ed4d3ccbdd69d31d8da9bac7fec902"
+          },
+          "baseline": {
+            "wall_us": 2495.405,
+            "signature": "6fceafa349d7f8f182574fee05ccd5c276ed4d3ccbdd69d31d8da9bac7fec902"
+          }
+        },
+        {
+          "pair": 44,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2455.883,
+            "signature": "dea80e9dc1dd98c3e3b11a3fa1d43535a0ecd6d2d540254649cce6e01ab7a8bb"
+          },
+          "candidate": {
+            "wall_us": 229.158,
+            "signature": "dea80e9dc1dd98c3e3b11a3fa1d43535a0ecd6d2d540254649cce6e01ab7a8bb"
+          }
+        },
+        {
+          "pair": 45,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 230.939,
+            "signature": "df7c075816a775aae59df34458aa78ddbb44c7d5329fcfa37fbacb089b582bf7"
+          },
+          "baseline": {
+            "wall_us": 2419.082,
+            "signature": "df7c075816a775aae59df34458aa78ddbb44c7d5329fcfa37fbacb089b582bf7"
+          }
+        },
+        {
+          "pair": 46,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2473.115,
+            "signature": "780b9fcc2e9c614b14212916b03512c55d425e3153985b625a133740e19ce46c"
+          },
+          "candidate": {
+            "wall_us": 234.819,
+            "signature": "780b9fcc2e9c614b14212916b03512c55d425e3153985b625a133740e19ce46c"
+          }
+        },
+        {
+          "pair": 47,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 234.849,
+            "signature": "2162d923914cf1cb2aefcc33d3064d7ab309e91941d314a92fa30da8096890b6"
+          },
+          "baseline": {
+            "wall_us": 2483.505,
+            "signature": "2162d923914cf1cb2aefcc33d3064d7ab309e91941d314a92fa30da8096890b6"
+          }
+        },
+        {
+          "pair": 48,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2457.094,
+            "signature": "9307f495e7db5c302a3ae200edbdb8aad7c824eee97cd10c52e219fc7e6d49ee"
+          },
+          "candidate": {
+            "wall_us": 237.309,
+            "signature": "9307f495e7db5c302a3ae200edbdb8aad7c824eee97cd10c52e219fc7e6d49ee"
+          }
+        },
+        {
+          "pair": 49,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 232.279,
+            "signature": "7f33b668d5c5a7ed4f48b2ca61246708f20456ff6fe8e13cd96cf70fe9f0fa38"
+          },
+          "baseline": {
+            "wall_us": 2493.415,
+            "signature": "7f33b668d5c5a7ed4f48b2ca61246708f20456ff6fe8e13cd96cf70fe9f0fa38"
+          }
+        },
+        {
+          "pair": 50,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2501.025,
+            "signature": "e606c7d56dbf84abb342252c022a44d074c9e91a208bf8846a13ebd7d7118b26"
+          },
+          "candidate": {
+            "wall_us": 262.76,
+            "signature": "e606c7d56dbf84abb342252c022a44d074c9e91a208bf8846a13ebd7d7118b26"
+          }
+        },
+        {
+          "pair": 51,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 236.579,
+            "signature": "74bebf70d542051f06f6c391391c0c9eb4ae4e41726dd46fb9408fcb0c1d90bc"
+          },
+          "baseline": {
+            "wall_us": 2457.493,
+            "signature": "74bebf70d542051f06f6c391391c0c9eb4ae4e41726dd46fb9408fcb0c1d90bc"
+          }
+        },
+        {
+          "pair": 52,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2468.424,
+            "signature": "d2a20b6cdb26fb6016352456d30bbe9ecb5f04c55c64ed94b46d74796bbd9868"
+          },
+          "candidate": {
+            "wall_us": 234.639,
+            "signature": "d2a20b6cdb26fb6016352456d30bbe9ecb5f04c55c64ed94b46d74796bbd9868"
+          }
+        },
+        {
+          "pair": 53,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 235.009,
+            "signature": "0f4c45cd59a25f5aec033d37dcdf60ba4ce7b167a4b3c87722afc9018189dd3c"
+          },
+          "baseline": {
+            "wall_us": 2472.764,
+            "signature": "0f4c45cd59a25f5aec033d37dcdf60ba4ce7b167a4b3c87722afc9018189dd3c"
+          }
+        },
+        {
+          "pair": 54,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2447.123,
+            "signature": "4282ce00b7631db92a0c1a48d2e42ef5fc2ee99ae07d3a836544f42ab195152d"
+          },
+          "candidate": {
+            "wall_us": 269.66,
+            "signature": "4282ce00b7631db92a0c1a48d2e42ef5fc2ee99ae07d3a836544f42ab195152d"
+          }
+        },
+        {
+          "pair": 55,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 237.669,
+            "signature": "1fc28b4c8c1a6e2859412dd05051d7a797412ea8d4de4d9bb39ee7292f787a1f"
+          },
+          "baseline": {
+            "wall_us": 2488.794,
+            "signature": "1fc28b4c8c1a6e2859412dd05051d7a797412ea8d4de4d9bb39ee7292f787a1f"
+          }
+        },
+        {
+          "pair": 56,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2487.544,
+            "signature": "54d121af32d972ace6704d5b71bdba43915ea07fafcdb5b15c36bfd27b551540"
+          },
+          "candidate": {
+            "wall_us": 234.909,
+            "signature": "54d121af32d972ace6704d5b71bdba43915ea07fafcdb5b15c36bfd27b551540"
+          }
+        },
+        {
+          "pair": 57,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 235.259,
+            "signature": "92d730c2c64ad611165dc9067bd44d632a61b3a34758d855093763dd33ccca93"
+          },
+          "baseline": {
+            "wall_us": 2482.614,
+            "signature": "92d730c2c64ad611165dc9067bd44d632a61b3a34758d855093763dd33ccca93"
+          }
+        },
+        {
+          "pair": 58,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": {
+            "wall_us": 2495.325,
+            "signature": "820f62977ab19677d6649c72777fc685d2253bd9fea1d93cdf595dd296fa32c0"
+          },
+          "candidate": {
+            "wall_us": 259.44,
+            "signature": "820f62977ab19677d6649c72777fc685d2253bd9fea1d93cdf595dd296fa32c0"
+          }
+        },
+        {
+          "pair": 59,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": {
+            "wall_us": 258.59,
+            "signature": "930d857418ad4c9321d4f021a660ba6d092e9620b60113017e3cc2b1f49031c9"
+          },
+          "baseline": {
+            "wall_us": 2448.043,
+            "signature": "930d857418ad4c9321d4f021a660ba6d092e9620b60113017e3cc2b1f49031c9"
+          }
+        }
+      ]
+    }
+  ],
+  "status": "pass"
+}

@@ -1,0 +1,293 @@
+installed/quant_batch_matmul_v3_pertoken_opt.h
+488:     __aicore__ inline void MulPertokenAndScale(LocalTensor<float>& broadcastFp32, LocalTensor<float>& scaleLocalFp32,
+489:                                                const uint32_t (&broadCastDst)[2], uint32_t calCount)
+490:     {
+491:         uint32_t singleM = broadCastDst[0];
+492:         uint16_t computedAivN = broadCastDst[1];
+493:         for (uint32_t mIdx = 0; mIdx < singleM; ++mIdx) {
+494:             Mul(broadcastFp32[computedAivN * mIdx], broadcastFp32[computedAivN * mIdx], scaleLocalFp32, calCount);
+495:         }
+496:         AscendC::PipeBarrier<PIPE_V>();
+497:     }
+498: 
+499:     __aicore__ inline void BroadCastMN(LocalTensor<float>& broadcastFp32, uint32_t singleM, uint32_t computedAivN)
+500:     {
+501:         const uint32_t broadCastDst[M_N_TWO_DIMS] = {singleM, computedAivN};
+502:         const uint32_t broadCastSrc[M_N_TWO_DIMS] = {singleM, 1};
+503:         BroadCast<float, M_N_TWO_DIMS, 1>(broadcastFp32, pertokenScaleLocal_, broadCastDst, broadCastSrc);
+504:         AscendC::PipeBarrier<PIPE_V>();
+505:     }
+506: 
+507:     __aicore__ inline void PreUbProcess(LocalTensor<float>& broadcastFp32, uint32_t singleM, uint32_t curAicN)
+508:     {
+509:         // 提前做好m,n方向的scale相乘矩阵，这部分cv并行,按行组成m * baseN的fp32矩阵, 最大L0C Size
+510:         // 全部弄到shape 16对齐
+511:         uint32_t computedAivN = DequantBmm::Align(curAicN);
+512:         const uint32_t broadCastDims[M_N_TWO_DIMS] = {singleM, computedAivN};
+513:         // 清空broadcastFp32，只pertoken
+514:         BroadCastMN(broadcastFp32, singleM, computedAivN);
+515: 
+516:         if (isPerTensor_) {
+517:             Muls(broadcastFp32, broadcastFp32, scaleScalar_, singleM * computedAivN);
+518:             AscendC::PipeBarrier<PIPE_V>();
+519:         } else {
+520:             // 搬运该base块所需n scale
+521:             ScaleGm2Ub(curAicN);
+522:             LocalTensor<scaleType> scaleLocal = vecQueScale_.DeQue<scaleType>();
+523: 
+524:             if constexpr (IsSameType<scaleType, bfloat16_t>::value) {
+525:                 LocalTensor<float> scaleLocalFp32 = vecFp32Scale_.Get<float>();
+526:                 Cast(scaleLocalFp32, scaleLocal, RoundMode::CAST_NONE, computedAivN);
+527:                 AscendC::PipeBarrier<PIPE_V>();
+528:                 MulPertokenAndScale(broadcastFp32, scaleLocalFp32, broadCastDims, DequantBmm::Align(curAicN));
+529:             } else {
+530:                 MulPertokenAndScale(broadcastFp32, scaleLocal, broadCastDims,
+531:                                     DequantBmm::Align(curAicN, 8U)); // 8: 32 / sizeof(float)
+575:             Cast(srcFp32, srcLocal, RoundMode::CAST_RINT, curAivM * computedAivN);
+576:             AscendC::PipeBarrier<PIPE_V>();
+577:             // 只能取部分相乘好的scale
+578:             uint32_t curScaleOffset = mUbLoopIdx * ubCalcM_ * computedAivN;
+579:             LocalTensor curResFp32 = resFp32[curScaleOffset];
+580:             Mul(curResFp32, curResFp32, srcFp32, curAivM * computedAivN);
+581:             AscendC::PipeBarrier<PIPE_V>();
+582:             if (biasDtype_ != DT_INT32) {
+583:                 CalBiasAdd(curResFp32, biasFp32, curAivM, computedAivN);
+584:             }
+585: 
+586:             Cast(dstLocal, curResFp32, RoundMode::CAST_RINT, curAivM * computedAivN);
+
+installed/quant_batch_matmul_v3_pertoken.h
+491:             if (isPerTensor_) {
+492:                 AscendDequant(dstLocalFp32, srcLocal, scaleScalar_, tmpLocal, dequantParams);
+493:             } else {
+494:                 LocalTensor<scaleType> scaleLocal = vecQueScale_.AllocTensor<scaleType>();
+495:                 Bf16ScaleGm2Ub(scaleLocal, scaleGm_, padParams, baseNOfffset, curAicN);
+496:                 SetFlag<HardEvent::MTE2_V>(EVENT_ID1);
+497:                 WaitFlag<HardEvent::MTE2_V>(EVENT_ID1);
+498:                 AscendDequant(dstLocalFp32, srcLocal, scaleLocal, tmpLocal, dequantParams);
+518:             BroadCast<float, M_N_TWO_DIMS, 1>(broadcastFp32, pertokenScaleLocal, broadCastDst, broadCastSrc);
+519: 
+520:             AscendC::PipeBarrier<PIPE_V>();
+521:             LocalTensor<float> tmpdstLocal = vecQueTmp_.Get<float>();
+522:             if (computedAivN == ubResAlignedN) {
+523:                 Mul(tmpdstLocal, broadcastFp32, dstLocalFp32, computedAivN * curAivM);
+524:             } else {
+525:                 for (auto i = 0; i < curAivM; i++) {
+526:                     Mul(tmpdstLocal[ubResAlignedN * i], broadcastFp32[computedAivN * i], dstLocalFp32[computedAivN * i],
+527:                         computedAivN);
+528:                 }
+529:             }
+530:             vecQuePertokenScale_.FreeTensor(pertokenScaleLocal);
+531: 
+532:             if (biasDtype_ != DT_INT32) {
+533:                 CalBiasAdd(tmpdstLocal, biasFp32, oriBiasBf16, oriBiasFp16, oriBiasFp32, curAivN, curAivM);
+534:             }
+535:             AscendC::PipeBarrier<PIPE_V>();
+536:             Cast(dstLocal, tmpdstLocal, RoundMode::CAST_RINT, curAivM * ubResAlignedN);
+
+installed/quant_batch_matmul_v3.cpp
+501:         TRANS == QUANT_BATCH_MATMUL_V3_NOT_TRANS &&
+502:         KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_TBE &&
+503:         PERTOKEN == QUANT_BATCH_MATMUL_V3_IS_PERTOKEN &&
+504:         OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) { // false false pertoken begin
+505:         INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_IMPL(false, false);
+506:     } else if constexpr (
+507: #if (defined(FORMAT_X1) && FORMAT_X1 != FORMAT_FRACTAL_NZ)
+508:         TRANS == QUANT_BATCH_MATMUL_V3_B_TRANS &&
+509:         KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_TBE &&
+510:         PERTOKEN == QUANT_BATCH_MATMUL_V3_IS_PERTOKEN &&
+511:         OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) { // false true
+512:         INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_IMPL(false, true);
+513:     } else if constexpr (TRANS == QUANT_BATCH_MATMUL_V3_A_TRANS &&
+514:                          KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_TBE &&
+515:                          PERTOKEN == QUANT_BATCH_MATMUL_V3_IS_PERTOKEN &&
+516:                          OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) { // true  false
+517:         INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_IMPL(true, false);
+518:     } else if constexpr (TRANS == QUANT_BATCH_MATMUL_V3_ALL_TRANS &&
+519:                          KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_TBE &&
+520:                          PERTOKEN == QUANT_BATCH_MATMUL_V3_IS_PERTOKEN &&
+521:                          OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) { // true  true
+522:         INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_IMPL(true, true);
+523:     } else if constexpr (
+524: #endif
+525:         TRANS == QUANT_BATCH_MATMUL_V3_NOT_TRANS &&
+526:         KERNEL_TEMPLATE_TYPE == QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_OPT &&
+527:         PERTOKEN == QUANT_BATCH_MATMUL_V3_IS_PERTOKEN &&
+528:         OPTIONATTR == QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE) { // false false
+529:         INVOKE_QUANT_BATCH_MATMUL_DEQUANT_PERTOKEN_OPT_IMPL(false, false);
+
+installed/quant_batch_matmul_v3_tiling_key.h
+20: 
+21: #define QUANT_BATCH_MATMUL_V3_NOT_TRANS 0
+22: #define QUANT_BATCH_MATMUL_V3_B_TRANS 1
+23: #define QUANT_BATCH_MATMUL_V3_A_TRANS 2
+24: #define QUANT_BATCH_MATMUL_V3_ALL_TRANS 3
+25: 
+26: #define QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_TBE 0
+27: #define QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_BASIC 1
+28: #define QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_OPT 2
+29: #define QUANT_BATCH_MATMUl_V3_KERNEL_TEMPLATE_TYPE_PPMATMUL 3
+30: 
+31: #define QUANT_BATCH_MATMUL_V3_NOT_PERTOKEN 0
+32: #define QUANT_BATCH_MATMUL_V3_IS_PERTOKEN 1
+33: 
+34: #define QUANT_BATCH_MATMUL_V3_OPTION_ATTR_NONE 0
+35: #define QUANT_BATCH_MATMUL_V3_NEED_ATOMICLEAN 1
+
+local-host/quant_batch_matmul_v3_tiling.cpp
+622: uint64_t QuantBatchMatmulV3Tiling::CalcNeedWorkspace(uint64_t baseM, uint64_t baseN) const
+623: {
+624:     return ops::CeilAlign(ops::CeilDiv(inputParams_.nSize, static_cast<uint64_t>(tbeTiling_.n_dim)), baseN) * baseM *
+625:            sizeof(int32_t) * aicoreParams_.aicNum;
+626: }
+627: 
+628: // 适用整网decode m方向被切分但每核仍计算一个baseM的场景
+629: bool QuantBatchMatmulV3Tiling::IsKCNetDecode() const
+630: {
+631:     // 1. only support int8 pertoken-perchannel
+632:     if (inputParams_.aDtype != ge::DT_INT8 || !inputParams_.isPertoken || inputParams_.isPerTensor) {
+633:         return false;
+634:     }
+635:     // 2. only support no batch or batch = 1
+636:     if (inputParams_.batchC != 1UL) {
+637:         return false;
+638:     }
+639:     // 3. only support m <= 256
+640:     if (inputParams_.mSize > 256UL) {
+641:         return false;
+642:     }
+643:     // 4. only support no bias
+644:     if (inputParams_.hasBias) {
+645:         return false;
+646:     }
+647:     // 5. only support transA = false, weightnz-transB = false or weightnd-transB = true
+648:     if (inputParams_.transA || (inputParams_.bFormat == ge::FORMAT_FRACTAL_NZ && inputParams_.transB) ||
+649:         (inputParams_.bFormat == ge::FORMAT_ND && !inputParams_.transB)) {
+650:         return false;
+651:     }
+652:     // 6. only support K/N 64 aligned
+653:     if (inputParams_.kSize % 64UL != 0 || inputParams_.nSize % 64UL != 0) {
+654:         return false;
+655:     }
+656:     // 7. only support singleCoreM <= baseM for one core
+657:     if (ops::CeilDiv(inputParams_.mSize, static_cast<uint64_t>(tbeTiling_.m_dim)) >
+658:         static_cast<uint64_t>(tbeTiling_.m_l0) * BLOCK_CUBE) {
+659:         return false;
+660:     }
+661:     uint64_t baseM = static_cast<uint64_t>(tbeTiling_.m_l0) * BLOCK_CUBE;
+662:     uint64_t baseN = static_cast<uint64_t>(tbeTiling_.n_l0) * BLOCK_CUBE;
+663:     if (CalcNeedWorkspace(baseM, baseN) > WORKSPACE_LIMIT) {
+664:         return false;
+665:     }
+666:     return true;
+667: }
+668: 
+669: void QuantBatchMatmulV3Tiling::ProcessMSmall()
+670: {
+671:     QuantBatchMatmulRunParas runParams_;
+672:     SetQuantBatchMatmulRunParas(runParams_, inputParams_);
+673:     bool isAllMix = CheckSupportConditionQbmm(QbmmType::KN, runParams_, aicoreParams_.aicNum,
+674:                                               compileInfo_.supportL0c2Out) &&
+675:                     isUbQuant_ && inputParams_.batchC == 1;
+676:     uint64_t baseM = static_cast<uint64_t>(tbeTiling_.m_l0) * BLOCK_CUBE;
+677:     uint64_t baseN = static_cast<uint64_t>(tbeTiling_.n_l0) * BLOCK_CUBE;
+678:     uint64_t needWorkspace = CalcNeedWorkspace(baseM, baseN);
+679:     // 控制m方向无循环的进入增量优化模板且workspace不能超过50M限制。
+680:     bool isPertoken = (needWorkspace < WORKSPACE_LIMIT) && inputParams_.isPertoken;
+681:     bool isDecode = inputParams_.mSize <= baseM;
+682:     isBf16Opt_ = (isDecode && (isAllMix || isPertoken)) || IsKCNetDecode();
+683:     isBf16Opt_ = isBf16Opt_ || CheckSupportConditionQbmm(QbmmType::Perchannel, runParams_, aicoreParams_.aicNum,
+684:                                                          compileInfo_.supportL0c2Out);
+685:     isBf16Opt_ = isBf16Opt_ || (CheckSupportConditionQbmm(QbmmType::Pertoken, runParams_, aicoreParams_.aicNum,
+686:                                                           compileInfo_.supportL0c2Out) &&
+687:                                 isPertoken);
+688:     isBf16Opt_ = isBf16Opt_ && !isTilingOut_; // isTilingOut_表示MC2场景，不走opt模板
+689:     if (isBf16Opt_ && inputParams_.isPertoken) {
+690:         // cv并行，每次base块
+691:         tbeTiling_.m_al1 = 1;
+692:         tbeTiling_.n_bl1 = 1;
+693:     }
+978: uint64_t QuantBatchMatmulV3Tiling::GetTilingKey(bool isBasicTiling) const
+979: {
+980:     uint64_t trans = (static_cast<uint64_t>(inputParams_.transA) << 1) | static_cast<uint64_t>(inputParams_.transB);
+981:     uint64_t kernelTemplateType = (static_cast<uint64_t>(isBf16Opt_) << 1) | static_cast<uint64_t>(isBasicTiling);
+982:     uint64_t optionAttrs = 0;
+983:     if (inputParams_.cDtype != ge::DT_BF16) {
+984:         optionAttrs = NeedAtomiClean();
+985:     }
+986:     return GET_TPL_TILING_KEY(trans, kernelTemplateType, static_cast<uint64_t>(inputParams_.isPertoken), optionAttrs);
+
+local-host/quant_batch_matmul_v3_basic_tiling.cpp
+135: bool QuantBatchMatmulV3BasicTiling::IsNetBNZDecode() const
+136: {
+137:     // 增量场景:在允许不多的重复加载AL1全载矩阵下，走进基本块模板，适合网络shape，可调tiling
+138:     bool isNetDecode = inputParams_.mSize <= BASIC_BLOCK_SIZE_64; // 64: 大部分增量m在64以下
+139:     // trans属性
+140:     return inputParams_.mSizePerNpu == 0UL && isNetDecode && IsNetBNZTrans() &&
+141:            (inputParams_.kSize % BASIC_BLOCK_SIZE_128 == 0);
+142: }
+143: 
+144: // 当前只处理部分增量B NZ场景，通过tiling获取收益，而不是通过模板收益
+145: // NZ无meta问题，可以不受固定的NZ的base块约束
+146: bool QuantBatchMatmulV3BasicTiling::CanProcessNetDecode() const
+147: {
+148:     // 当前仅处理部分weight nz的纯cube增量场景
+149:     if (!IsNetBNZDecode() || inputParams_.bFormat != ge::FORMAT_FRACTAL_NZ) {
+150:         return false;
+151:     }
+152:     uint64_t coreNum = aicoreParams_.aicNum;
+153:     uint64_t maxBaseN = GetMaxBaseN();
+154:     uint64_t preBase = ops::CeilAlign(ops::CeilDiv(inputParams_.nSize, coreNum), static_cast<uint64_t>(ONE_BLK_SIZE));
+155:     // 1轮时全载矩阵不会复用多个iterate
+156:     if (preBase >= BASIC_BLOCK_SIZE_64 && preBase <= maxBaseN) {
+157:         return true;
+158:     }
+159:     // 多轮时考虑重复加载量，大m有性能下降风险，暂不考虑
+160:     if (inputParams_.mSize > BLOCK_CUBE) {
+161:         return false;
+162:     }
+163:     uint64_t aFullLoad = inputParams_.mSize * inputParams_.kSize;
+164:     uint64_t fullLoadSize = 96 * KB_SIZE; // 96: 经验值，重复加载量上限
+165:     // 多轮，控制AL1全载矩阵的大小以控制相对老模板的重复加载量，当前m过大时重复加载量过多有性能风险
+166:     uint64_t nCnt = ops::CeilDiv(inputParams_.nSize, BASIC_BLOCK_SIZE_256);
+167:     if (nCnt > coreNum && aFullLoad < fullLoadSize) {
+168:         uint64_t round = ops::CeilDiv(nCnt, coreNum);
+169:         // 8: 经验值，控制A矩阵极小，能容忍极小重复加载下的多轮，尽可能约束确保进该基本块tiling是有收益的。
+170:         bool isBNZInBasic = (inputParams_.nSize >= 8UL * inputParams_.kSize) && (round * aFullLoad <= fullLoadSize);
+171:         return ((nCnt % coreNum == 0U) || (nCnt % coreNum >= coreNum / HALF_FACTOR) || isBNZInBasic);
+172:     }
+173:     return false;
+176: bool QuantBatchMatmulV3BasicTiling::IsPertokenBasicSwitchCondition() const
+177: {
+178:     uint32_t M_LOWER_1_2 = 12544;
+179:     uint32_t N_LOWER_1_2 = 1280;
+180:     uint32_t K_LOWER_1_2 = 1152;
+181:     uint32_t K_UPPER_1_2 = 1536;
+182:     uint32_t BASE_BLOCK_1_2 = 682;
+183:     uint32_t baseM = tilingData_.matmulTiling.baseM;
+184:     uint32_t baseN = tilingData_.matmulTiling.baseN;
+185:     uint32_t baseBlock = 0;
+186: 
+187:     if (baseM > 0 && baseN > 0) {
+188:         baseBlock = ((inputParams_.mSize + baseM - 1) / baseM) * ((inputParams_.nSize + baseN - 1) / baseN);
+189:     }
+190: 
+191:     bool pertokenBasicSwitch = (((inputParams_.kSize <= K_LOWER_1_2 && baseBlock >= BASE_BLOCK_1_2) ||
+192:                                  (inputParams_.kSize > K_LOWER_1_2 && inputParams_.kSize <= K_UPPER_1_2 &&
+193:                                   inputParams_.mSize >= M_LOWER_1_2 && inputParams_.nSize >= N_LOWER_1_2))) &&
+194:                                (inputParams_.aFormat == ge::FORMAT_ND) &&
+195:                                (inputParams_.bFormat == ge::FORMAT_FRACTAL_NZ) && inputParams_.isPertoken &&
+196:                                (!inputParams_.transA) && (!inputParams_.transB);
+197:     isAicAiv1_2 = pertokenBasicSwitch;
+198:     return pertokenBasicSwitch;
+1379: uint64_t QuantBatchMatmulV3BasicTiling::GetTilingKey() const
+1380: {
+1381:     if (inputParams_.cDtype == ge::DT_BF16 && IsPertokenBasicSwitchCondition()) {
+1382:         uint64_t trans = (static_cast<uint64_t>(inputParams_.transA) << 1) | static_cast<uint64_t>(inputParams_.transB);
+1383:         bool isBasicTiling = true;
+1384:         uint64_t kernelTemplateType = (static_cast<uint64_t>(isBf16Opt_) << 1) | static_cast<uint64_t>(isBasicTiling);
+1385:         uint64_t optionAttrs = static_cast<uint64_t>(isAicAiv1_2) << 1;
+1386:         return GET_TPL_TILING_KEY(trans, kernelTemplateType, static_cast<uint64_t>(inputParams_.isPertoken),
+1387:                                   optionAttrs);
+1388:     }
+1389:     return QuantBatchMatmulV3Tiling::GetTilingKey(true);

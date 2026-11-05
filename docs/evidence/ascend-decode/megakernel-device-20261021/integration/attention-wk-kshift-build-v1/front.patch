@@ -1,0 +1,28 @@
+--- parent/tests/glm52/whole_layer/indexer_front_native.h
++++ candidate/tests/glm52/whole_layer/indexer_front_native.h
+@@ -3,6 +3,7 @@
+ 
+ #include "../mla_tail/mla_tail_native.h"
+ #include "indexer_front_contract.h"
++#include "indexer_wk_m32_native.h"
+ 
+ namespace indexer_front::device {
+ using namespace AscendC;
+@@ -400,9 +401,14 @@
+             args.scratch + c.query_acc, args.tiling,
+             kQueryTile, kQueryRank, kQueryColumns / kQueryTile);
+         pipe.Reset();
+-        Project<bfloat16_t, float>(pipe, c, args.hidden, args.key_weight,
+-            args.scratch + c.key_acc, args.tiling + kTilingStride,
+-            kKeyTile, kHidden, kKeyColumns / kKeyTile);
++        if (c.rows == 32) {
++            indexer_wk_m32::device::Project(pipe, c, args.hidden,
++                args.key_weight, args.scratch + c.key_acc);
++        } else {
++            Project<bfloat16_t, float>(pipe, c, args.hidden, args.key_weight,
++                args.scratch + c.key_acc, args.tiling + kTilingStride,
++                kKeyTile, kHidden, kKeyColumns / kKeyTile);
++        }
+     }
+     EndPhase(pipe);
+     if ASCEND_IS_AIV {

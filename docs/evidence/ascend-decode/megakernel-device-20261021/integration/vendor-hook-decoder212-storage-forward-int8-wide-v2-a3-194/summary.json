@@ -1,0 +1,43 @@
+{
+  "scope": "Two actual decoder layers; explicit local TP cuts; original FFN in both arms; no TP16 numerical reduction",
+  "script_sha256": "66237ea5b2683aca1691b5a3cf703bf2113c988730fb48720871132dcac1aa9e",
+  "arguments": {
+    "output": "/evidence/vendor-hook-decoder212-storage-forward-int8-wide-v2",
+    "runtime": "/workspace",
+    "extension_sha256": "acac5e7220b51bdd24e41352ffc52f88aac5f58dd9d262b0a43aad2ca9efd0fc",
+    "mode": "int8",
+    "timeout": 600,
+    "adapter": "/workspace/tilert/models/glm_5_2_ascend/attention_native.py",
+    "indexed_library": "/workspace/native/indexed/whole_layer_indexed_attention.so",
+    "shared_library": "/workspace/native/shared/whole_layer_full_attention.so",
+    "sfa_library": "/workspace/native/sfa/vendor_sfa_adapter.so",
+    "forward_widths": [
+      1,
+      2,
+      12,
+      32
+    ],
+    "forward_replays": 8,
+    "forward_sequence": 8192,
+    "world_size": 16
+  },
+  "exitcodes": [
+    -15,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    -15,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "success": false
+}

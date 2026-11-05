@@ -1,0 +1,169 @@
+{
+  "scope": "Original DecoderLayer.forward for layers 6 then 7; native attention versus original attention; both arms use the official FFN",
+  "script": {
+    "path": "/decoder/decoder_forward.py",
+    "sha256": "c802ae9371103bb75c1f8f5df39e3c9b2e49d77fd3a86ef23ad5d58781fcb207"
+  },
+  "decoder_forward": {
+    "path": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py",
+    "sha256": "96f4f755f62caa85869fb884209e7f8869882ddb6efbd40c930778b27bd3e39d"
+  },
+  "forward_context": {
+    "path": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/forward_context.py",
+    "sha256": "8dab5a4dee60e46c4e52821667321c9f05c793578af49cddbdb204cf9324c403"
+  },
+  "adapter": {
+    "path": "/workspace/tilert/models/glm_5_2_ascend/attention_native.py",
+    "sha256": "336eaff0de153d32439d4d2b0557522b313a24a7e5bef82b8dc11f1257511c01"
+  },
+  "sfa_adapter": {
+    "path": "/workspace/native/sfa/vendor_sfa_adapter.so",
+    "sha256": "bd8aff02f36dca1948b4eea1aa03805d6977b5ae8bf39573b51d73b68a61be3e",
+    "schema": "_C_ascend::npu_sparse_flash_attention(Tensor query, Tensor key, Tensor value, Tensor sparse_indices, float scale_value, *, Tensor? block_table=None, Tensor? actual_seq_lengths_query=None, Tensor? actual_seq_lengths_kv=None, Tensor? query_rope=None, Tensor? key_rope=None, int sparse_block_size=1, str layout_query=\"BSND\", str layout_kv=\"BSND\", int sparse_mode=3, int pre_tokens=9223372036854775807, int next_tokens=9223372036854775807, int attention_mode=2, bool return_softmax_lse=False) -> (Tensor attention_out, Tensor softmax_max, Tensor softmax_sum)",
+    "resolved_api_libraries": {
+      "aclnnSparseFlashAttentionGetWorkspaceSize": {
+        "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so",
+        "sha256": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a"
+      },
+      "aclnnSparseFlashAttention": {
+        "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so",
+        "sha256": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a"
+      }
+    }
+  },
+  "native_libraries": [
+    {
+      "path": "/workspace/native/indexed/whole_layer_indexed_attention.so",
+      "sha256": "e957650c7def45dff8b918b74c987a8ce44eb0b2cca816e7246cbbff8a52378e"
+    },
+    {
+      "path": "/workspace/native/shared/whole_layer_full_attention.so",
+      "sha256": "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c"
+    }
+  ],
+  "triton_initializer": {
+    "path": "/decoder/python/vllm_ascend/ops/triton/triton_utils.py",
+    "sha256": "cd918c79138a5f93294a7b25a47a8e5fcda2f6291e726bca94c0a76237881225"
+  },
+  "device_properties": {
+    "max_shared_mem": 1,
+    "num_aicore": 24,
+    "num_vectorcore": 48
+  },
+  "mode": "int8",
+  "widths": [
+    1
+  ],
+  "iterations": 1,
+  "tp_geometry": 16,
+  "tp_collectives_executed": 0,
+  "ar1_contract": "Independent BF16 post-attention reduction input supplied identically to both arms",
+  "ar2_contract": "Return the rank-local FFN partial; no numerical multi-rank sum is emulated",
+  "successor_input_contract": "Layer7 consumes layer6 local pre-AR2 output and its separately returned residual",
+  "topk_owners_before_cache_binding": [
+    {
+      "layer": 6,
+      "device": "npu:0",
+      "data_ptr": 20618013573120,
+      "storage_ptr": 20618013573120,
+      "shape": [
+        32,
+        2048
+      ]
+    },
+    {
+      "layer": 7,
+      "device": "npu:0",
+      "data_ptr": 20618013573120,
+      "storage_ptr": 20618013573120,
+      "shape": [
+        32,
+        2048
+      ]
+    }
+  ],
+  "topk_owners_after_cache_binding": [
+    {
+      "layer": 6,
+      "device": "npu:0",
+      "data_ptr": 20618013573120,
+      "storage_ptr": 20618013573120,
+      "shape": [
+        32,
+        2048
+      ]
+    },
+    {
+      "layer": 7,
+      "device": "npu:0",
+      "data_ptr": 20618013573120,
+      "storage_ptr": 20618013573120,
+      "shape": [
+        32,
+        2048
+      ]
+    }
+  ],
+  "cache_shapes": {
+    "layer6.main_cache": [
+      66,
+      128,
+      1,
+      512
+    ],
+    "layer6.rope_cache": [
+      66,
+      128,
+      1,
+      64
+    ],
+    "layer6.index_cache": [
+      66,
+      128,
+      1,
+      128
+    ],
+    "layer6.index_scale": [
+      66,
+      128,
+      1,
+      1
+    ],
+    "layer7.main_cache": [
+      66,
+      128,
+      1,
+      512
+    ],
+    "layer7.rope_cache": [
+      66,
+      128,
+      1,
+      64
+    ]
+  },
+  "cases": [
+    {
+      "rows": 1,
+      "iteration": 0,
+      "pass": false,
+      "initial_residual": "None",
+      "input": {
+        "shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "493d9a078cf41da5c058e0c550ccd5815907faca5eaa08180322951808d54e54",
+        "nonzero": 6144,
+        "finite": true
+      },
+      "lengths": [
+        8192
+      ],
+      "phase": "official_decoder"
+    }
+  ],
+  "pass": false,
+  "error": "Traceback (most recent call last):\n  File \"/decoder/decoder_forward.py\", line 324, in run_decoder_forward\n    original = call(originals, hidden, residual, plan, boundary, case, \"original\")\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/decoder_forward.py\", line 259, in call\n    hidden, residual = layer(positions, hidden, residual)\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py\", line 1778, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py\", line 1884, in _call_impl\n    return inner()\n           ^^^^^^^\n  File \"/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py\", line 1832, in inner\n    result = forward_call(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py\", line 1413, in forward\n    hidden_states = self.mlp(hidden_states)\n                    ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py\", line 1778, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py\", line 1884, in _call_impl\n    return inner()\n           ^^^^^^^\n  File \"/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py\", line 1832, in inner\n    result = forward_call(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py\", line 424, in forward\n    final_hidden_states = self.experts(\n                          ^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py\", line 1778, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py\", line 1789, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/python/vllm_ascend/ops/fused_moe/fused_moe.py\", line 193, in forward\n    result = self._forward_entry(\n             ^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/site-packages/torch/_ops.py\", line 1275, in __call__\n    return self._op(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/layers/fused_moe/runner/moe_runner.py\", line 165, in _moe_forward_shared\n    layer._forward_impl(\n  File \"/decoder/python/vllm_ascend/ops/fused_moe/fused_moe.py\", line 524, in _forward_impl\n    routed_out, milestones = self.routed_experts.forward_impl(\n                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/python/vllm_ascend/ops/fused_moe/routed_experts.py\", line 740, in forward_impl\n    fused_experts_results: FusedExpertsResult = self.quant_method.apply(\n                                                ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/python/vllm_ascend/quantization/method_adapters.py\", line 329, in apply\n    return self.quant_method.apply(\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/python/vllm_ascend/quantization/methods/w4a8/w4a8.py\", line 216, in apply\n    return moe_comm_method.fused_experts(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/python/vllm_ascend/ops/fused_moe/moe_comm_method.py\", line 175, in fused_experts\n    mlp_output, before_gmm2_evt = apply_moe_mlp(mlp_compute_input, quant_method)\n                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/python/vllm_ascend/ops/fused_moe/moe_mlp.py\", line 71, in apply_moe_mlp\n    hidden_states, act_out_scale = quant_method.apply_gmm1_act_quant(mlp_compute_input)\n                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/python/vllm_ascend/quantization/methods/w4a8/w4a8.py\", line 495, in apply_gmm1_act_quant\n    hidden_states, swiglu_out_scale = torch.ops._C_ascend.grouped_matmul_swiglu_quant_v2(\n                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/decoder_diagnostic.py\", line 209, in gmm1\n    return trace.gmm1(original_gmm1, *args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/decoder_diagnostic.py\", line 169, in gmm1\n    self.fence(\"gmm1_completion\", call)\n  File \"/decoder/decoder_diagnostic.py\", line 123, in fence\n    self.synchronize()\n  File \"/usr/local/lib/python3.11/site-packages/torch_npu/npu/utils.py\", line 72, in synchronize\n    return torch_npu._C._npu_synchronize()\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: npuSynchronizeDevice:../torch_npu/csrc/core/npu/NPUStream.cpp:714 NPU function error: AclrtSynchronizeDeviceWithTimeout, error code is 507015\n[ERROR] 2026-10-22-03:44:33 (PID:222, Device:0, RankID:-1) ERR00100 PTA call acl api failed\n[Error]: The aicore execution is abnormal. \n        Rectify the fault based on the error information in the ascend log.\nEZ9999: Internal error!\nEZ9999[PID: 222] 2026-10-22-03:44:33.191.012 (EZ9999):  An error occurs on the device(chipId:2, dieId:0), the serial number is 2, the error is fftsplus aicore error, core id is 19, error code = 0x800000, dump info: pc start: 0x12c1a69c1000, current: 0x12c1a69c3dc0, vec error info: 0, mte error info: 0x120312f0f5, ifu error info: 0x69cda79118d80, ccu error info: 0xed3934f01d127e89, cube error info: 0, biu error info: 0, aic error mask: 0x6500020bd00028c, para base: 0x12c100000080, aic cond: 0.\nThe extend info: errcode:(0x800000, 0, 0) errorStr: MTE accesses an invalid GM address or the cross-device memory access times out. fixp_error0 info: 0x312f0f5, fixp_error1 info: 0x12, fsmId:0, tslot:5, thread:0, ctxid:0, blk:6, sublk:0, subErrType:4.\nFor details, see the troubleshooting document on the Ascend official website. Search for the keyword \"AI Core Error\".[FUNC:PrintCoreInfo][FILE:device_error_core_proc.cc][LINE:1227]\nTraceBack (most recent call last):\n       An error occurred in the kernel task, retCode=0x26, [aicore exception].[FUNC:PreCheckTaskErr][FILE:davinci_kernel_task.cc][LINE:1030]\n       rtDeviceSynchronizeWithTimeout execution failed, reason=aicore exception[FUNC:FuncErrorReason][FILE:error_message_manage.cc][LINE:72]\n\n"
+}

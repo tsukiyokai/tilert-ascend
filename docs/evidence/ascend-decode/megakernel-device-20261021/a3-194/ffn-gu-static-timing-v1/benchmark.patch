@@ -1,0 +1,25 @@
+--- token-terminal-timing-v1/bench.py
++++ gu-static/bench.py
+@@ -36,9 +36,9 @@
+     def __init__(self, fused, bridge, body, candidate, kind, active):
+         self.libraries = [ctypes.CDLL(str(path.resolve())) for path in (fused, bridge, body)]
+         self.libraries.append(ctypes.CDLL(str(active.resolve())))
+-        self.base = self.libraries[-1].ffn_active_token_join_launch
++        self.base = self.libraries[-1].ffn_token_terminal_launch
+         self.libraries.append(ctypes.CDLL(str(candidate.resolve())))
+-        self.fused = self.libraries[-1].ffn_token_terminal_launch
++        self.fused = self.libraries[-1].ffn_gu_static_launch
+         self.kind = kind
+         self.extra_by_arena = {}
+         array = ctypes.POINTER(ctypes.c_void_p)
+@@ -226,8 +226,8 @@
+                           args.candidate_kind, args.active_library)
+     args.output.mkdir(parents=True, exist_ok=True)
+     report = {
+-        "scope": "Matched-address token-split terminal-completion FFN versus its active-token-join parent, TP excluded",
+-        "arm_names": {"fused": "token_terminal", "separate": "active_token_join_parent"},
++        "scope": "Matched-address GU constant-tiling FFN versus token-terminal FFN, TP excluded",
++        "arm_names": {"fused": "gu_static", "separate": "token_terminal_parent"},
+         "candidate_library": {"path": str(args.candidate_library), "sha256": digest(args.candidate_library)},
+         "scratch_matching": "All 33 tensors, including the INT32[264] active table, share exact addresses within each pair",
+         "owner_validation": "Each arena's owning Torch chain checks shapes/tiling identity/aliasing before CABI comparison",

@@ -7,10 +7,6 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 from pathlib import Path
 
-import torch
-
-if not hasattr(torch, "ops"):
-    raise RuntimeError("PyTorch is required but torch.ops is not available")
 try:
     __version__ = pkg_version("tilert")
 except PackageNotFoundError:
@@ -31,6 +27,7 @@ _BACKENDS = {
     "deepseek_v3_2": "libtilert_dsv32.so",
     "glm5": "libtilert_glm5.so",
     "glm5_2_rocm": "libtilert_glm52_rocm.so",
+    "glm5_2_ascend": "glm5_2_ascend",
 }
 _TORCH_FOR_LIB = {
     "libtilert_dsv32.so": ("2.11", False),
@@ -40,6 +37,8 @@ _TORCH_FOR_LIB = {
 
 
 def _check_torch(so_name: str) -> None:
+    import torch
+
     wanted = _TORCH_FOR_LIB.get(so_name)
     if wanted is None:
         return
@@ -68,6 +67,18 @@ def load_backend(model_type: str) -> None:
             raise RuntimeError(
                 f"TileRT backend '{_loaded_backend}' already loaded; cannot load '{so_name}' in the same process. Run {model_type} in a fresh process."
             )
+        return
+    import torch
+
+    if not hasattr(torch, "ops"):
+        raise RuntimeError("PyTorch is required but torch.ops is unavailable")
+    if model_type == "glm5_2_ascend":
+        import torch_npu  # noqa: F401
+
+        from .models.glm_5_2_ascend import DecodeEngine  # noqa: F401
+
+        _loaded_backend = so_name
+        logger.info("Loaded TileRT Ascend source backend")
         return
     _check_torch(so_name)
     pkg_dir = Path(__file__).parent

@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: shanshan <samsom0409@gmail.com>
+Date: Sun, 19 Oct 2026 01:30:00 +0800
+Subject: [PATCH 2/2] skip the chunk-span walk when one workspace split holds every row
+
+`UpdateWorkSpaceSplitConfig` finds the group slots a workspace chunk covers by
+walking the group list, reading two entries per slot and breaking when the
+cumulative row count passes mLimit. When `loopCount == 1` every cumulative
+count stays at or below mLimit by construction, so no break condition can
+fire, the walk always runs to the end of the table, and its result is fixed:
+the chunk starts at row zero, spans every group slot, is the last chunk, and
+leaves `rightMatrixExpertNextStartIndex` at the zero
+`InitWorkSpaceSplitConfig` gave it.
+
+Writing that result instead of deriving it removes `2 * groupListLen + 1`
+global-memory scalar reads from every core. For one TP16 shard of a 256-expert
+MoE layer that is 513 reads on each of the 24 cube and 48 vector cores.
+
+Measured on one Ascend910_93 die, A8W4 MSD, K=6144 N=256, 8 active experts of
+256 each holding one row, on top of the straight-line path for
+`loopCount == 1`. Both forms were built into one binary selected at run time,
+so the pair shares a process, a device context, one HBM allocation and one set
+of weight banks; six 192.75 MiB banks rotate with the active expert window so
+each batch of 32 calls touches 202.1 MB of distinct weight addresses against a
+192 MiB L2. The batch is captured into an ACL graph and replayed, because eager
+calls to this operator cost as much on the host as the kernel costs on the
+device; host cost during replay is 0.86 to 1.70 us per call. Three runs of 40
+rounds, arms replayed A,B,B,A per round:
+
+  walk          91.013   90.516   90.412 us per call
+  closed form   88.846   88.145   88.724
+  saved          2.118    2.414    1.611   (sd 0.227, 0.300, 0.313)
+
+0 positive against 40 negative in each run. Output is bit-identical: the two
+forms produce the same int8 codes and the same output scales.
+
+Other loop counts keep the walk, so prefill is unaffected. This reaches
+`gate_up` only; the `down` projection of the same layer calls the CANN built-in
+`npu_grouped_matmul` and does not run through this operator.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+--- a/csrc/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_pipeline.h
++++ b/csrc/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_pipeline.h
+@@ -100,7 +100,13 @@
+     // batch-one fast path: a single workspace split needs only pre -> mm -> post.
+     if (workspaceSplitConfig.loopCount == 1) {
+         preProcess.Process(workspaceSplitConfig, 0, pipe);
+-        UpdateWorkSpaceSplitConfig(workspaceSplitConfig, 0);
++        // Every cumulative row count stays at or below mLimit here, so no break
++        // condition in UpdateWorkSpaceSplitConfig's walk can fire and its answer
++        // is fixed. rightMatrixExpertNextStartIndex keeps the zero Init gave it.
++        workspaceSplitConfig.leftMatrixStartIndex = 0;
++        workspaceSplitConfig.rightMatrixExpertStartIndex = 0;
++        workspaceSplitConfig.rightMatrixExpertEndIndex = gmmSwigluQuantV2->groupListLen - 1;
++        workspaceSplitConfig.isLastLoop = true;
+         if ASCEND_IS_AIV {
+             pipe->Reset();
+         }
+-- 
+2.43.0
+

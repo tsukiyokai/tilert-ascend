@@ -1,0 +1,121 @@
+--- parent/body/source/routed_int4/routed_body_native.h
++++ candidate/body/source/routed_int4/routed_body_native.h
+@@ -11,6 +11,7 @@
+ #define ASCENDC_CUBE_ONLY
+ 
+ #include "routed_int4_kernel.h"
++#include "../../../source/overlap_contract.h"
+ #include "routed_int4_dispatch.h"
+ #include "routed_int4_trace.h"
+ #include "kernel_operator.h"
+@@ -495,6 +496,8 @@
+     }
+ }
+ 
++#include "../../../source/overlap_native.h"
++
+ }  // namespace
+ 
+ template <CubeFormat weight_format, bool from_dispatch>
+@@ -714,6 +717,7 @@
+         LoadTiling(down_cube, down_tiling);
+         Projection<weight_format> down_mm;
+         down_mm.Init(&down_cube, &pipe);
++        int64_t down_sequence = 0;
+         int64_t active = 0;
+         int64_t next = GetBlockIdx();
+         for (int64_t expert = 0; expert < experts; ++expert) {
+@@ -725,59 +729,22 @@
+             }
+             next += blocks;
+             const int64_t begin = starts.GetValue(expert);
+-            Project(down_mm, Nibbles(middle, 2 * begin * kIntermediate),
++            ProjectDownOverlap(down_mm,
++                    Nibbles(middle, 2 * begin * kIntermediate),
+                     Nibbles(down, expert * kHidden * kIntermediate),
+-                    wide + 2 * begin * kHidden,
+-                    down_scale + expert * kHidden, kHidden, kIntermediate,
+-                    counts.GetValue(expert));
+-        }
++                    wide + 2 * begin * kHidden, kHidden, kIntermediate,
++                    counts.GetValue(expert), down_sequence);
++        }
++        DrainDownCredits(down_sequence);
++        Publish();
++    }
++    if ASCEND_IS_AIV {
++        ConsumeDown(held, wide, down_bias, down_scale, middle_scale,
++                    route_output, experts, tokens, blocks);
+         Publish();
+     }
+     timing.Barrier(4);
+     timing.Begin(5);
+-    if ASCEND_IS_AIV {
+-        const int64_t begin = GetSubBlockIdx() * (kHidden / 2);
+-#ifdef ROUTED_ROW_BALANCED
+-        // Both AIVs in a group retain separate H/2 columns for each row.
+-        int64_t next = GetBlockIdx() / 2;
+-        for (int64_t expert = 0; expert < experts; ++expert) {
+-            const int64_t count = held.count.GetValue(expert);
+-            const int64_t route_begin = held.start.GetValue(expert);
+-            if (next >= route_begin + count) {
+-                continue;
+-            }
+-            StoreRoutes<true>(held, count, route_begin,
+-                wide + 2 * route_begin * kHidden,
+-                down_bias + expert * kHidden, down_scale + expert * kHidden,
+-                middle_scale + route_begin, route_output,
+-                begin, begin + kHidden / 2, tokens, next - route_begin, blocks);
+-            do {
+-                next += blocks;
+-            } while (next < route_begin + count);
+-        }
+-#else
+-        int64_t active = 0;
+-        int64_t next = GetBlockIdx() / 2;
+-        for (int64_t expert = 0; expert < experts; ++expert) {
+-            if (held.count.GetValue(expert) == 0) {
+-                continue;
+-            }
+-            if (active++ != next) {
+-                continue;
+-            }
+-            next += blocks;
+-            const int64_t route_begin = held.start.GetValue(expert);
+-            StoreRoutes(held, held.count.GetValue(expert),
+-                        held.start.GetValue(expert),
+-                        wide + 2 * route_begin * kHidden,
+-                        down_bias + expert * kHidden,
+-                        down_scale + expert * kHidden,
+-                        middle_scale + route_begin, route_output,
+-                        begin, begin + kHidden / 2, tokens);
+-        }
+-#endif
+-        Publish();
+-    }
+     timing.Barrier(5);
+     timing.Begin(6);
+     if ASCEND_IS_AIV {
+--- parent/body/source/routed_int4/routed_int4_tiling.cpp
++++ candidate/body/source/routed_int4/routed_int4_tiling.cpp
+@@ -9,6 +9,7 @@
+ #include <cstring>
+ 
+ #include "routed_int4_kernel.h"
++#include "../../../source/overlap_contract.h"
+ #include "lib/matmul/matmul_tiling.h"
+ 
+ extern "C" int routed_int4_build_tiling(int rows, int columns, int inner,
+@@ -47,6 +48,12 @@
+     if (status != 0) {
+         return static_cast<int>(status);
+     }
++    if (columns == ffn_down_overlap::kDownHidden
++            && inner == ffn_down_overlap::kDownInner
++            && !ffn_down_overlap::IsDownTiling(cube.baseM, cube.baseN,
++                cube.baseK, cube.singleCoreM, cube.singleCoreN, cube.singleCoreK)) {
++        return -2;
++    }
+     std::memcpy(buffer, &cube, sizeof(cube));
+     return 0;
+ }

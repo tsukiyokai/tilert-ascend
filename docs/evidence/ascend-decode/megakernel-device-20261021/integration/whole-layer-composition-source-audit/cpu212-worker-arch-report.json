@@ -1,0 +1,236 @@
+{
+  "scope": "actual constructors with CPU tensors and a real TP1 Gloo group",
+  "script_sha256": "a73992dc4acab2c5c6fa1d5b17067f0c2fccdddc2ad7731cbb1c168382798acd",
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "initialized_before": false,
+  "component": "worker",
+  "synthetic_model_config": {
+    "architectures": [
+      "GlmMoeDsaForCausalLM"
+    ],
+    "model_type": "glm_moe_dsa",
+    "torch_dtype": "bfloat16",
+    "hidden_size": 6144,
+    "intermediate_size": 18432,
+    "moe_intermediate_size": 2048,
+    "num_hidden_layers": 78,
+    "num_attention_heads": 64,
+    "num_key_value_heads": 64,
+    "n_routed_experts": 256,
+    "n_shared_experts": 1,
+    "num_experts_per_tok": 8,
+    "first_k_dense_replace": 3,
+    "rms_norm_eps": 1e-05,
+    "q_lora_rank": 2048,
+    "kv_lora_rank": 512,
+    "qk_nope_head_dim": 192,
+    "qk_rope_head_dim": 64,
+    "v_head_dim": 256,
+    "index_n_heads": 32,
+    "index_head_dim": 128,
+    "index_topk": 2048,
+    "use_index_cache": true,
+    "indexer_types": [
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full",
+      "full"
+    ],
+    "max_position_embeddings": 8192,
+    "vocab_size": 154880,
+    "rope_theta": 10000.0,
+    "rope_parameters": {
+      "rope_type": "default",
+      "rope_theta": 10000.0
+    }
+  },
+  "stages": [
+    {
+      "name": "platform_registration",
+      "success": true,
+      "class": "vllm_ascend.platform.NPUPlatform",
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/platform.py",
+      "sha256": "686eb5c4d7e744053def9fe51caf743e79e6a3cbeddebd3c47949d6f13e503cd"
+    },
+    {
+      "name": "actual_metadata_and_forward_context",
+      "success": true,
+      "main": {
+        "class": "vllm_ascend.attention.sfa_v1.AscendSFAMetadata",
+        "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/attention/sfa_v1.py",
+        "sha256": "b3e7bc578fdc00cddca3dd066af49c353a5abdc75571d7fa602340a4aece1e2b"
+      },
+      "index": {
+        "class": "vllm_ascend.attention.indexer.AscendSFAIndexerMetadata",
+        "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/attention/indexer.py",
+        "sha256": "47a47b06cf144bda4a87e80ef632144eeb86a4547e17d09f69f011ef565baefa"
+      },
+      "context": {
+        "class": "vllm.forward_context.ForwardContext",
+        "path": "/evidence/vllm-a982-py311-compatible/vllm/forward_context.py",
+        "sha256": "8dab5a4dee60e46c4e52821667321c9f05c793578af49cddbdb204cf9324c403"
+      },
+      "independent_cache_metadata": true,
+      "rows": 2
+    },
+    {
+      "name": "engine_configuration",
+      "success": true,
+      "config": {
+        "class": "vllm.config.vllm.VllmConfig",
+        "path": "/evidence/vllm-a982-py311-compatible/vllm/config/vllm.py",
+        "sha256": "91c03cb7b1e57589e335aa5022db92eb2fcfd2900f902d367e5815635a1489db"
+      },
+      "hf_config": {
+        "class": "transformers.models.glm_moe_dsa.configuration_glm_moe_dsa.GlmMoeDsaConfig",
+        "path": "/workspace/vendor-hook-deps/transformers519/transformers/models/glm_moe_dsa/configuration_glm_moe_dsa.py",
+        "sha256": "24cf543686badb3b41881d8a1ff556a5ee5d966efa2886ebbebdcaa378de75e1"
+      },
+      "tp_size": 1
+    },
+    {
+      "name": "real_tp1_groups",
+      "success": true,
+      "world_size": 1,
+      "backend": "gloo"
+    },
+    {
+      "name": "worker_registration",
+      "success": true
+    },
+    {
+      "name": "actual_attention_constructor",
+      "success": true,
+      "outer": {
+        "class": "vllm.model_executor.models.deepseek_v2.DeepseekV2MLAAttention",
+        "path": "/evidence/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py",
+        "sha256": "96f4f755f62caa85869fb884209e7f8869882ddb6efbd40c930778b27bd3e39d"
+      },
+      "wrapper": {
+        "class": "vllm_ascend.ops.mla.AscendMultiHeadLatentAttention",
+        "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/ops/mla.py",
+        "sha256": "e14080c6c0106f2734f5441254e285e7a39fd8980046febe5232b4c9dba75400"
+      },
+      "implementation": {
+        "class": "vllm_ascend.attention.sfa_v1.AscendSFAImpl",
+        "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/attention/sfa_v1.py",
+        "sha256": "b3e7bc578fdc00cddca3dd066af49c353a5abdc75571d7fa602340a4aece1e2b"
+      },
+      "indexer": {
+        "class": "vllm_ascend.ops.mla.IndexerWrapper",
+        "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/ops/mla.py",
+        "sha256": "e14080c6c0106f2734f5441254e285e7a39fd8980046febe5232b4c9dba75400"
+      },
+      "indexer_backend": {
+        "class": "vllm_ascend.attention.indexer.AscendSFAIndexerBackend",
+        "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/attention/indexer.py",
+        "sha256": "47a47b06cf144bda4a87e80ef632144eeb86a4547e17d09f69f011ef565baefa"
+      },
+      "tp_size": 1,
+      "heads": 64,
+      "preprocess": "PreprocessType.NATIVE",
+      "parameter_bytes": 206288896
+    },
+    {
+      "name": "vendor_profiling_forward",
+      "success": true,
+      "rows": 2,
+      "metadata": null,
+      "in_place_zero_output": true
+    },
+    {
+      "name": "sfa_weight_postprocessing",
+      "success": false,
+      "error": "Traceback (most recent call last):\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_cpu.py\", line 78, in stage\n    value, detail = action()\n                    ^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_cpu.py\", line 286, in <lambda>\n    impl.process_weights_after_loading(torch.bfloat16), {},\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/attention/sfa_v1.py\", line 948, in process_weights_after_loading\n    kv_b_proj_weight = torch_npu.npu_format_cast(self.kv_b_proj.weight.data, ACL_FORMAT_FRACTAL_ND).T\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/site-packages/torch/_ops.py\", line 1275, in __call__\n    return self._op(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\nNotImplementedError: Could not run 'npu::npu_format_cast' with arguments from the 'CPU' backend. This could be because the operator doesn't exist for this backend, or was omitted during the selective/custom build process (if using custom build). If you are a Facebook employee using PyTorch on mobile, please visit https://fburl.com/ptmfixes for possible resolutions. 'npu::npu_format_cast' is only available for these backends: [PrivateUse1, Meta, SparsePrivateUse1, BackendSelect, Python, FuncTorchDynamicLayerBackMode, Functionalize, Named, Conjugate, Negative, ZeroTensor, ADInplaceOrView, AutogradOther, AutogradCPU, AutogradCUDA, AutogradXLA, AutogradMPS, AutogradXPU, AutogradHPU, AutogradLazy, AutogradMTIA, AutogradMAIA, AutogradPrivateUse1, AutogradMeta, Tracer, AutocastCPU, AutocastMTIA, AutocastMAIA, AutocastXPU, AutocastMPS, AutocastCUDA, AutocastPrivateUse1, FuncTorchBatched, BatchedNestedTensor, FuncTorchVmapMode, Batched, VmapMode, FuncTorchGradWrapper, PythonTLSSnapshot, FuncTorchDynamicLayerFrontMode, PreDispatch, PythonDispatcher].\n\nPrivateUse1: registered at ../torch_npu/csrc/aten/CustomRegisterSchema.cpp:10596 [kernel]\nMeta: registered at /pytorch/aten/src/ATen/core/MetaFallbackKernel.cpp:23 [backend fallback]\nSparsePrivateUse1: registered at ../torch_npu/csrc/aten/VariableFallbackKernel.cpp:270 [backend fallback]\nBackendSelect: fallthrough registered at /pytorch/aten/src/ATen/core/BackendSelectFallbackKernel.cpp:3 [backend fallback]\nPython: registered at /pytorch/aten/src/ATen/core/PythonFallbackKernel.cpp:198 [backend fallback]\nFuncTorchDynamicLayerBackMode: registered at /pytorch/aten/src/ATen/functorch/DynamicLayer.cpp:479 [backend fallback]\nFunctionalize: registered at /pytorch/aten/src/ATen/FunctionalizeFallbackKernel.cpp:409 [backend fallback]\nNamed: registered at /pytorch/aten/src/ATen/core/NamedRegistrations.cpp:5 [backend fallback]\nConjugate: registered at /pytorch/aten/src/ATen/ConjugateFallback.cpp:17 [backend fallback]\nNegative: registered at /pytorch/aten/src/ATen/native/NegateFallback.cpp:18 [backend fallback]\nZeroTensor: registered at /pytorch/aten/src/ATen/ZeroTensorFallback.cpp:115 [backend fallback]\nADInplaceOrView: fallthrough registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:103 [backend fallback]\nAutogradOther: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:62 [backend fallback]\nAutogradCPU: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:66 [backend fallback]\nAutogradCUDA: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:74 [backend fallback]\nAutogradXLA: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:86 [backend fallback]\nAutogradMPS: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:94 [backend fallback]\nAutogradXPU: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:70 [backend fallback]\nAutogradHPU: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:107 [backend fallback]\nAutogradLazy: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:90 [backend fallback]\nAutogradMTIA: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:78 [backend fallback]\nAutogradMAIA: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:82 [backend fallback]\nAutogradPrivateUse1: registered at ../torch_npu/csrc/aten/VariableFallbackKernel.cpp:233 [backend fallback]\nAutogradMeta: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:98 [backend fallback]\nTracer: registered at /pytorch/torch/csrc/autograd/TraceTypeManual.cpp:296 [backend fallback]\nAutocastCPU: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:336 [backend fallback]\nAutocastMTIA: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:480 [backend fallback]\nAutocastMAIA: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:518 [backend fallback]\nAutocastXPU: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:556 [backend fallback]\nAutocastMPS: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:221 [backend fallback]\nAutocastCUDA: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:177 [backend fallback]\nAutocastPrivateUse1: fallthrough registered at ../torch_npu/csrc/aten/AutoCastOps.cpp:20 [backend fallback]\nFuncTorchBatched: registered at /pytorch/aten/src/ATen/functorch/LegacyBatchingRegistrations.cpp:729 [backend fallback]\nBatchedNestedTensor: registered at /pytorch/aten/src/ATen/functorch/LegacyBatchingRegistrations.cpp:756 [backend fallback]\nFuncTorchVmapMode: fallthrough registered at /pytorch/aten/src/ATen/functorch/VmapModeRegistrations.cpp:22 [backend fallback]\nBatched: registered at /pytorch/aten/src/ATen/LegacyBatchingRegistrations.cpp:1072 [backend fallback]\nVmapMode: fallthrough registered at /pytorch/aten/src/ATen/VmapModeRegistrations.cpp:32 [backend fallback]\nFuncTorchGradWrapper: registered at /pytorch/aten/src/ATen/functorch/TensorWrapper.cpp:210 [backend fallback]\nPythonTLSSnapshot: registered at /pytorch/aten/src/ATen/core/PythonFallbackKernel.cpp:206 [backend fallback]\nFuncTorchDynamicLayerFrontMode: registered at /pytorch/aten/src/ATen/functorch/DynamicLayer.cpp:475 [backend fallback]\nPreDispatch: registered at /pytorch/aten/src/ATen/core/PythonFallbackKernel.cpp:210 [backend fallback]\nPythonDispatcher: registered at /pytorch/aten/src/ATen/core/PythonFallbackKernel.cpp:202 [backend fallback]\n\n"
+    }
+  ],
+  "stopped_at": "sfa_weight_postprocessing",
+  "error": "Traceback (most recent call last):\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_cpu.py\", line 285, in main\n    stage(\"sfa_weight_postprocessing\", lambda: (\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_cpu.py\", line 78, in stage\n    value, detail = action()\n                    ^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_cpu.py\", line 286, in <lambda>\n    impl.process_weights_after_loading(torch.bfloat16), {},\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/attention/sfa_v1.py\", line 948, in process_weights_after_loading\n    kv_b_proj_weight = torch_npu.npu_format_cast(self.kv_b_proj.weight.data, ACL_FORMAT_FRACTAL_ND).T\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/site-packages/torch/_ops.py\", line 1275, in __call__\n    return self._op(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\nNotImplementedError: Could not run 'npu::npu_format_cast' with arguments from the 'CPU' backend. This could be because the operator doesn't exist for this backend, or was omitted during the selective/custom build process (if using custom build). If you are a Facebook employee using PyTorch on mobile, please visit https://fburl.com/ptmfixes for possible resolutions. 'npu::npu_format_cast' is only available for these backends: [PrivateUse1, Meta, SparsePrivateUse1, BackendSelect, Python, FuncTorchDynamicLayerBackMode, Functionalize, Named, Conjugate, Negative, ZeroTensor, ADInplaceOrView, AutogradOther, AutogradCPU, AutogradCUDA, AutogradXLA, AutogradMPS, AutogradXPU, AutogradHPU, AutogradLazy, AutogradMTIA, AutogradMAIA, AutogradPrivateUse1, AutogradMeta, Tracer, AutocastCPU, AutocastMTIA, AutocastMAIA, AutocastXPU, AutocastMPS, AutocastCUDA, AutocastPrivateUse1, FuncTorchBatched, BatchedNestedTensor, FuncTorchVmapMode, Batched, VmapMode, FuncTorchGradWrapper, PythonTLSSnapshot, FuncTorchDynamicLayerFrontMode, PreDispatch, PythonDispatcher].\n\nPrivateUse1: registered at ../torch_npu/csrc/aten/CustomRegisterSchema.cpp:10596 [kernel]\nMeta: registered at /pytorch/aten/src/ATen/core/MetaFallbackKernel.cpp:23 [backend fallback]\nSparsePrivateUse1: registered at ../torch_npu/csrc/aten/VariableFallbackKernel.cpp:270 [backend fallback]\nBackendSelect: fallthrough registered at /pytorch/aten/src/ATen/core/BackendSelectFallbackKernel.cpp:3 [backend fallback]\nPython: registered at /pytorch/aten/src/ATen/core/PythonFallbackKernel.cpp:198 [backend fallback]\nFuncTorchDynamicLayerBackMode: registered at /pytorch/aten/src/ATen/functorch/DynamicLayer.cpp:479 [backend fallback]\nFunctionalize: registered at /pytorch/aten/src/ATen/FunctionalizeFallbackKernel.cpp:409 [backend fallback]\nNamed: registered at /pytorch/aten/src/ATen/core/NamedRegistrations.cpp:5 [backend fallback]\nConjugate: registered at /pytorch/aten/src/ATen/ConjugateFallback.cpp:17 [backend fallback]\nNegative: registered at /pytorch/aten/src/ATen/native/NegateFallback.cpp:18 [backend fallback]\nZeroTensor: registered at /pytorch/aten/src/ATen/ZeroTensorFallback.cpp:115 [backend fallback]\nADInplaceOrView: fallthrough registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:103 [backend fallback]\nAutogradOther: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:62 [backend fallback]\nAutogradCPU: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:66 [backend fallback]\nAutogradCUDA: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:74 [backend fallback]\nAutogradXLA: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:86 [backend fallback]\nAutogradMPS: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:94 [backend fallback]\nAutogradXPU: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:70 [backend fallback]\nAutogradHPU: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:107 [backend fallback]\nAutogradLazy: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:90 [backend fallback]\nAutogradMTIA: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:78 [backend fallback]\nAutogradMAIA: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:82 [backend fallback]\nAutogradPrivateUse1: registered at ../torch_npu/csrc/aten/VariableFallbackKernel.cpp:233 [backend fallback]\nAutogradMeta: registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:98 [backend fallback]\nTracer: registered at /pytorch/torch/csrc/autograd/TraceTypeManual.cpp:296 [backend fallback]\nAutocastCPU: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:336 [backend fallback]\nAutocastMTIA: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:480 [backend fallback]\nAutocastMAIA: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:518 [backend fallback]\nAutocastXPU: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:556 [backend fallback]\nAutocastMPS: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:221 [backend fallback]\nAutocastCUDA: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:177 [backend fallback]\nAutocastPrivateUse1: fallthrough registered at ../torch_npu/csrc/aten/AutoCastOps.cpp:20 [backend fallback]\nFuncTorchBatched: registered at /pytorch/aten/src/ATen/functorch/LegacyBatchingRegistrations.cpp:729 [backend fallback]\nBatchedNestedTensor: registered at /pytorch/aten/src/ATen/functorch/LegacyBatchingRegistrations.cpp:756 [backend fallback]\nFuncTorchVmapMode: fallthrough registered at /pytorch/aten/src/ATen/functorch/VmapModeRegistrations.cpp:22 [backend fallback]\nBatched: registered at /pytorch/aten/src/ATen/LegacyBatchingRegistrations.cpp:1072 [backend fallback]\nVmapMode: fallthrough registered at /pytorch/aten/src/ATen/VmapModeRegistrations.cpp:32 [backend fallback]\nFuncTorchGradWrapper: registered at /pytorch/aten/src/ATen/functorch/TensorWrapper.cpp:210 [backend fallback]\nPythonTLSSnapshot: registered at /pytorch/aten/src/ATen/core/PythonFallbackKernel.cpp:206 [backend fallback]\nFuncTorchDynamicLayerFrontMode: registered at /pytorch/aten/src/ATen/functorch/DynamicLayer.cpp:475 [backend fallback]\nPreDispatch: registered at /pytorch/aten/src/ATen/core/PythonFallbackKernel.cpp:210 [backend fallback]\nPythonDispatcher: registered at /pytorch/aten/src/ATen/core/PythonFallbackKernel.cpp:202 [backend fallback]\n\n",
+  "initialized_after": false,
+  "maximum_rss_kib": 1968548,
+  "memory_snapshot": "00400000-fffff59fc000 ---p 00000000 00:00 0                              [rollup]\nRss:             1964484 kB\nPss:             1730742 kB\nPss_Anon:        1286088 kB\nPss_File:         444270 kB\nPss_Shmem:           384 kB\nShared_Clean:     258732 kB\nShared_Dirty:          0 kB\nPrivate_Clean:    419280 kB\nPrivate_Dirty:   1286472 kB\nReferenced:      1964484 kB\nAnonymous:       1286088 kB\nLazyFree:              0 kB\nAnonHugePages:    532480 kB\nShmemPmdMapped:        0 kB\nFilePmdMapped:         0 kB\nShared_Hugetlb:        0 kB\nPrivate_Hugetlb:       0 kB\nSwap:                  0 kB\nSwapPss:               0 kB\nLocked:                0 kB\n",
+  "cpu_stages_completed": [
+    "platform_registration",
+    "actual_metadata_and_forward_context",
+    "engine_configuration",
+    "real_tp1_groups",
+    "worker_registration",
+    "actual_attention_constructor",
+    "vendor_profiling_forward"
+  ]
+}

@@ -1,0 +1,451 @@
+--- parent/body/source/routed_int4/routed_body_native.h
++++ candidate/body/source/routed_int4/routed_body_native.h
+@@ -11,6 +11,7 @@
+ #define ASCENDC_CUBE_ONLY
+ 
+ #include "routed_int4_kernel.h"
++#include "../../../source/descriptor.h"
+ #include "routed_int4_dispatch.h"
+ #include "routed_int4_trace.h"
+ #include "kernel_operator.h"
+@@ -499,43 +500,27 @@
+ 
+ template <CubeFormat weight_format, bool from_dispatch>
+ __aicore__ inline void Forward(
+-    TPipe& pipe, __gm__ int8_t* rows, __gm__ int4b_t* gate_up,
+-    __gm__ float* gu_bias, __gm__ ScaleStorage* gu_scale, __gm__ int4b_t* down,
+-    __gm__ float* down_bias, __gm__ ScaleStorage* down_scale,
+-    __gm__ float* token_scale, __gm__ int32_t* group_count,
+-    __gm__ int32_t* group_start, __gm__ int32_t* source_row,
+-    __gm__ int32_t* source_slot, __gm__ float* row_weight,
+-    __gm__ int4b_t* stacked, __gm__ RoutedProduct* partial,
+-    __gm__ int4b_t* middle, __gm__ float* middle_scale,
+-    __gm__ RoutedProduct* wide, __gm__ bfloat16_t* route_output,
+-    __gm__ bfloat16_t* out, __gm__ uint8_t* gu_tiling,
+-    __gm__ uint8_t* down_tiling, GM_ADDR workspace,
+-    int64_t experts, int64_t tokens, int64_t blocks, DispatchInput dispatch_input,
+-    __gm__ int64_t* trace
+-#ifdef ROUTED_SHARED_PIPELINE
+-    , pipeline::Input shared_input
+-#endif
+-    )
++    TPipe& pipe, const ffn_descriptor::BodyArguments& arguments)
+ {
+     Timing timing;
+     timing.Begin(0);
+ #ifdef ROUTED_SHARED_PIPELINE
+     static_assert(from_dispatch, "the shared pipeline requires input preparation");
+-    pipeline::Stages shared(shared_input, tokens, blocks);
++    pipeline::Stages shared(arguments.shared, arguments.rows, arguments.blocks);
+     shared.StageInput(pipe);
+ #endif
+     if constexpr (from_dispatch) {
+ #ifdef ROUTED_INPUT_FRONT
+-        if (dispatch_input.bf16_rows != 0) {
+-            front::Prepare(pipe, dispatch_input, rows, token_scale, group_count,
+-                           group_start, source_row, source_slot, row_weight,
+-                           tokens, blocks, timing);
++        if (arguments.dispatch.bf16_rows != 0) {
++            front::Prepare(pipe, arguments.dispatch, ((__gm__ int8_t*)arguments.scratch[kRestoredRows]), ((__gm__ float*)arguments.scratch[kRestoredScale]), ((__gm__ int32_t*)arguments.scratch[kGroupCount]),
++                           ((__gm__ int32_t*)arguments.scratch[kGroupStart]), ((__gm__ int32_t*)arguments.scratch[kSourceRow]), ((__gm__ int32_t*)arguments.scratch[kSourceSlot]), ((__gm__ float*)arguments.scratch[kRowWeight]),
++                           arguments.rows, arguments.blocks, timing);
+         } else
+ #endif
+         {
+-            dispatch::Restore(pipe, dispatch_input, rows, token_scale, group_count,
+-                              group_start, source_row, source_slot, row_weight,
+-                              tokens, blocks, timing);
++            dispatch::Restore(pipe, arguments.dispatch, ((__gm__ int8_t*)arguments.scratch[kRestoredRows]), ((__gm__ float*)arguments.scratch[kRestoredScale]), ((__gm__ int32_t*)arguments.scratch[kGroupCount]),
++                              ((__gm__ int32_t*)arguments.scratch[kGroupStart]), ((__gm__ int32_t*)arguments.scratch[kSourceRow]), ((__gm__ int32_t*)arguments.scratch[kSourceSlot]), ((__gm__ float*)arguments.scratch[kRowWeight]),
++                              arguments.rows, arguments.blocks, timing);
+         }
+     }
+     timing.Begin(1);
+@@ -546,8 +531,8 @@
+ #endif
+     GlobalTensor<int32_t> counts, starts;
+     if ASCEND_IS_AIC {
+-        counts.SetGlobalBuffer(group_count, kMaxExperts);
+-        starts.SetGlobalBuffer(group_start, kMaxExperts);
++        counts.SetGlobalBuffer(((__gm__ int32_t*)arguments.scratch[kGroupCount]), kMaxExperts);
++        starts.SetGlobalBuffer(((__gm__ int32_t*)arguments.scratch[kGroupStart]), kMaxExperts);
+         // Replayed graphs update counts at the same GM address. Scalar
+         // loads must discard the preceding replay's data-cache lines.
+         DataCacheCleanAndInvalid<int32_t, CacheLine::ENTIRE_DATA_CACHE,
+@@ -557,23 +542,23 @@
+         held.Init(pipe);
+         GlobalTensor<int32_t> sources, slots;
+         GlobalTensor<float> weights, input_scales;
+-        counts.SetGlobalBuffer(group_count, kMaxExperts);
+-        starts.SetGlobalBuffer(group_start, kMaxExperts);
+-        sources.SetGlobalBuffer(source_row, kMaxRoutes);
+-        slots.SetGlobalBuffer(source_slot, kMaxRoutes);
+-        weights.SetGlobalBuffer(row_weight, kMaxRoutes);
+-        input_scales.SetGlobalBuffer(token_scale, tokens);
++        counts.SetGlobalBuffer(((__gm__ int32_t*)arguments.scratch[kGroupCount]), kMaxExperts);
++        starts.SetGlobalBuffer(((__gm__ int32_t*)arguments.scratch[kGroupStart]), kMaxExperts);
++        sources.SetGlobalBuffer(((__gm__ int32_t*)arguments.scratch[kSourceRow]), kMaxRoutes);
++        slots.SetGlobalBuffer(((__gm__ int32_t*)arguments.scratch[kSourceSlot]), kMaxRoutes);
++        weights.SetGlobalBuffer(((__gm__ float*)arguments.scratch[kRowWeight]), kMaxRoutes);
++        input_scales.SetGlobalBuffer(((__gm__ float*)arguments.scratch[kRestoredScale]), arguments.rows);
+         DataCopy(held.count, counts, kMaxExperts);
+         DataCopy(held.start, starts, kMaxExperts);
+         DataCopy(held.source, sources, kMaxRoutes);
+         DataCopy(held.slot, slots, kMaxRoutes);
+         DataCopy(held.weight, weights, kMaxRoutes);
+         DataCopyPad(held.input_scale, input_scales,
+-                    DataCopyExtParams{1, uint32_t(tokens * sizeof(float)),
++                    DataCopyExtParams{1, uint32_t(arguments.rows * sizeof(float)),
+                                       0, 0, 0},
+                     DataCopyPadExtParams<float>{false, 0, 0, 0});
+         Fence<HardEvent::MTE2_S>();
+-        for (int64_t route = 0; route < tokens * kTopK; ++route) {
++        for (int64_t route = 0; route < arguments.rows * kTopK; ++route) {
+             const int64_t original = held.source.GetValue(route) * kTopK
+                                      + held.slot.GetValue(route);
+             held.original_weight.SetValue(original, held.weight.GetValue(route));
+@@ -583,16 +568,16 @@
+     // Every core reaches every barrier, including empty expert owners.
+     if ASCEND_IS_AIV {
+ #ifdef ROUTED_ROW_BALANCED
+-        const int64_t workers = 2 * blocks;
++        const int64_t workers = 2 * arguments.blocks;
+         int64_t next = GetBlockIdx();
+-        for (int64_t expert = 0; expert < experts; ++expert) {
++        for (int64_t expert = 0; expert < ffn_bridge::kExperts; ++expert) {
+             const int64_t count = held.count.GetValue(expert);
+             const int64_t begin = held.start.GetValue(expert);
+             if (next >= begin + count) {
+                 continue;
+             }
+-            Split<true>(held, rows, Nibbles(stacked, GateStorageRow(begin) * kHidden),
+-                        count, begin, tokens, next - begin, workers);
++            Split<true>(held, ((__gm__ int8_t*)arguments.scratch[kRestoredRows]), Nibbles(((__gm__ int4b_t*)arguments.scratch[kStacked]), GateStorageRow(begin) * kHidden),
++                        count, begin, arguments.rows, next - begin, workers);
+             do {
+                 next += workers;
+             } while (next < begin + count);
+@@ -602,18 +587,18 @@
+         if (GetSubBlockIdx() == 0) {
+             int64_t active = 0;
+             int64_t next = GetBlockIdx() / 2;
+-            for (int64_t expert = 0; expert < experts; ++expert) {
++            for (int64_t expert = 0; expert < ffn_bridge::kExperts; ++expert) {
+                 if (held.count.GetValue(expert) == 0) {
+                     continue;
+                 }
+                 if (active++ != next) {
+                     continue;
+                 }
+-                next += blocks;
++                next += arguments.blocks;
+                 const int64_t begin = held.start.GetValue(expert);
+-                Split(held, rows, Nibbles(stacked, GateStorageRow(begin) * kHidden),
++                Split(held, ((__gm__ int8_t*)arguments.scratch[kRestoredRows]), Nibbles(((__gm__ int4b_t*)arguments.scratch[kStacked]), GateStorageRow(begin) * kHidden),
+                       held.count.GetValue(expert), held.start.GetValue(expert),
+-                      tokens);
++                      arguments.rows);
+             }
+             Publish();
+         }
+@@ -630,25 +615,25 @@
+         pipe.Reset();
+ #endif
+         TCubeTiling gate_cube;
+-        LoadTiling(gate_cube, gu_tiling);
++        LoadTiling(gate_cube, ((__gm__ uint8_t*)arguments.scratch[kGateTiling]));
+         GateProjection<weight_format> gate_mm;
+         gate_mm.Init(&gate_cube, &pipe);
+         int64_t active = 0;
+         int64_t next = GetBlockIdx();
+-        for (int64_t expert = 0; expert < experts; ++expert) {
++        for (int64_t expert = 0; expert < ffn_bridge::kExperts; ++expert) {
+             if (counts.GetValue(expert) == 0) {
+                 continue;
+             }
+             if (active++ != next) {
+                 continue;
+             }
+-            next += blocks;
++            next += arguments.blocks;
+             const int64_t begin = starts.GetValue(expert);
+             Project<kPadGateRows>(gate_mm,
+-                    Nibbles(stacked, GateStorageRow(begin) * kHidden),
+-                    Nibbles(gate_up, expert * kGateUp * kHidden),
+-                    partial + GateStorageRow(begin) * kGateUp,
+-                    gu_scale + expert * kGateUp, kGateUp, kHidden,
++                    Nibbles(((__gm__ int4b_t*)arguments.scratch[kStacked]), GateStorageRow(begin) * kHidden),
++                    Nibbles(((__gm__ int4b_t*)arguments.weights[0]), expert * kGateUp * kHidden),
++                    ((__gm__ RoutedProduct*)arguments.scratch[kGateProduct]) + GateStorageRow(begin) * kGateUp,
++                    ((__gm__ ScaleStorage*)arguments.weights[2]) + expert * kGateUp, kGateUp, kHidden,
+                     counts.GetValue(expert));
+         }
+         Publish();
+@@ -660,19 +645,19 @@
+ #endif
+     if ASCEND_IS_AIV {
+ #ifdef ROUTED_ROW_BALANCED
+-        const int64_t workers = 2 * blocks;
++        const int64_t workers = 2 * arguments.blocks;
+         int64_t next = GetBlockIdx();
+-        for (int64_t expert = 0; expert < experts; ++expert) {
++        for (int64_t expert = 0; expert < ffn_bridge::kExperts; ++expert) {
+             const int64_t count = held.count.GetValue(expert);
+             const int64_t begin = held.start.GetValue(expert);
+             if (next >= begin + count) {
+                 continue;
+             }
+             Activate<true>(held, count, begin,
+-                partial + GateStorageRow(begin) * kGateUp,
+-                gu_bias + expert * kGateUp, gu_scale + expert * kGateUp,
+-                Nibbles(middle, 2 * begin * kIntermediate),
+-                middle_scale + begin, next - begin, workers);
++                ((__gm__ RoutedProduct*)arguments.scratch[kGateProduct]) + GateStorageRow(begin) * kGateUp,
++                ((__gm__ float*)arguments.weights[1]) + expert * kGateUp, ((__gm__ ScaleStorage*)arguments.weights[2]) + expert * kGateUp,
++                Nibbles(((__gm__ int4b_t*)arguments.scratch[kMiddle]), 2 * begin * kIntermediate),
++                ((__gm__ float*)arguments.scratch[kMiddleScale]) + begin, next - begin, workers);
+             do {
+                 next += workers;
+             } while (next < begin + count);
+@@ -682,21 +667,21 @@
+         if (GetSubBlockIdx() == 0) {
+             int64_t active = 0;
+             int64_t next = GetBlockIdx() / 2;
+-            for (int64_t expert = 0; expert < experts; ++expert) {
++            for (int64_t expert = 0; expert < ffn_bridge::kExperts; ++expert) {
+                 if (held.count.GetValue(expert) == 0) {
+                     continue;
+                 }
+                 if (active++ != next) {
+                     continue;
+                 }
+-                next += blocks;
++                next += arguments.blocks;
+                 const int64_t begin = held.start.GetValue(expert);
+                 Activate(held, held.count.GetValue(expert),
+                          held.start.GetValue(expert),
+-                         partial + GateStorageRow(begin) * kGateUp,
+-                         gu_bias + expert * kGateUp, gu_scale + expert * kGateUp,
+-                         Nibbles(middle, 2 * begin * kIntermediate),
+-                         middle_scale + begin);
++                         ((__gm__ RoutedProduct*)arguments.scratch[kGateProduct]) + GateStorageRow(begin) * kGateUp,
++                         ((__gm__ float*)arguments.weights[1]) + expert * kGateUp, ((__gm__ ScaleStorage*)arguments.weights[2]) + expert * kGateUp,
++                         Nibbles(((__gm__ int4b_t*)arguments.scratch[kMiddle]), 2 * begin * kIntermediate),
++                         ((__gm__ float*)arguments.scratch[kMiddleScale]) + begin);
+             }
+             Publish();
+         }
+@@ -711,24 +696,24 @@
+         // Gate matmul has ended on every AIC before reusing L1 and events.
+         pipe.Reset();
+         TCubeTiling down_cube;
+-        LoadTiling(down_cube, down_tiling);
++        LoadTiling(down_cube, ((__gm__ uint8_t*)arguments.scratch[kDownTiling]));
+         Projection<weight_format> down_mm;
+         down_mm.Init(&down_cube, &pipe);
+         int64_t active = 0;
+         int64_t next = GetBlockIdx();
+-        for (int64_t expert = 0; expert < experts; ++expert) {
++        for (int64_t expert = 0; expert < ffn_bridge::kExperts; ++expert) {
+             if (counts.GetValue(expert) == 0) {
+                 continue;
+             }
+             if (active++ != next) {
+                 continue;
+             }
+-            next += blocks;
++            next += arguments.blocks;
+             const int64_t begin = starts.GetValue(expert);
+-            Project(down_mm, Nibbles(middle, 2 * begin * kIntermediate),
+-                    Nibbles(down, expert * kHidden * kIntermediate),
+-                    wide + 2 * begin * kHidden,
+-                    down_scale + expert * kHidden, kHidden, kIntermediate,
++            Project(down_mm, Nibbles(((__gm__ int4b_t*)arguments.scratch[kMiddle]), 2 * begin * kIntermediate),
++                    Nibbles(((__gm__ int4b_t*)arguments.weights[3]), expert * kHidden * kIntermediate),
++                    ((__gm__ RoutedProduct*)arguments.scratch[kDownProduct]) + 2 * begin * kHidden,
++                    ((__gm__ ScaleStorage*)arguments.weights[5]) + expert * kHidden, kHidden, kIntermediate,
+                     counts.GetValue(expert));
+         }
+         Publish();
+@@ -740,40 +725,40 @@
+ #ifdef ROUTED_ROW_BALANCED
+         // Both AIVs in a group retain separate H/2 columns for each row.
+         int64_t next = GetBlockIdx() / 2;
+-        for (int64_t expert = 0; expert < experts; ++expert) {
++        for (int64_t expert = 0; expert < ffn_bridge::kExperts; ++expert) {
+             const int64_t count = held.count.GetValue(expert);
+             const int64_t route_begin = held.start.GetValue(expert);
+             if (next >= route_begin + count) {
+                 continue;
+             }
+             StoreRoutes<true>(held, count, route_begin,
+-                wide + 2 * route_begin * kHidden,
+-                down_bias + expert * kHidden, down_scale + expert * kHidden,
+-                middle_scale + route_begin, route_output,
+-                begin, begin + kHidden / 2, tokens, next - route_begin, blocks);
++                ((__gm__ RoutedProduct*)arguments.scratch[kDownProduct]) + 2 * route_begin * kHidden,
++                ((__gm__ float*)arguments.weights[4]) + expert * kHidden, ((__gm__ ScaleStorage*)arguments.weights[5]) + expert * kHidden,
++                ((__gm__ float*)arguments.scratch[kMiddleScale]) + route_begin, ((__gm__ bfloat16_t*)arguments.scratch[kRouteOutput]),
++                begin, begin + kHidden / 2, arguments.rows, next - route_begin, arguments.blocks);
+             do {
+-                next += blocks;
++                next += arguments.blocks;
+             } while (next < route_begin + count);
+         }
+ #else
+         int64_t active = 0;
+         int64_t next = GetBlockIdx() / 2;
+-        for (int64_t expert = 0; expert < experts; ++expert) {
++        for (int64_t expert = 0; expert < ffn_bridge::kExperts; ++expert) {
+             if (held.count.GetValue(expert) == 0) {
+                 continue;
+             }
+             if (active++ != next) {
+                 continue;
+             }
+-            next += blocks;
++            next += arguments.blocks;
+             const int64_t route_begin = held.start.GetValue(expert);
+             StoreRoutes(held, held.count.GetValue(expert),
+                         held.start.GetValue(expert),
+-                        wide + 2 * route_begin * kHidden,
+-                        down_bias + expert * kHidden,
+-                        down_scale + expert * kHidden,
+-                        middle_scale + route_begin, route_output,
+-                        begin, begin + kHidden / 2, tokens);
++                        ((__gm__ RoutedProduct*)arguments.scratch[kDownProduct]) + 2 * route_begin * kHidden,
++                        ((__gm__ float*)arguments.weights[4]) + expert * kHidden,
++                        ((__gm__ ScaleStorage*)arguments.weights[5]) + expert * kHidden,
++                        ((__gm__ float*)arguments.scratch[kMiddleScale]) + route_begin, ((__gm__ bfloat16_t*)arguments.scratch[kRouteOutput]),
++                        begin, begin + kHidden / 2, arguments.rows);
+         }
+ #endif
+         Publish();
+@@ -781,10 +766,10 @@
+     timing.Barrier(5);
+     timing.Begin(6);
+     if ASCEND_IS_AIV {
+-        CombineTokens(held, route_output, out, tokens, blocks);
++        CombineTokens(held, ((__gm__ bfloat16_t*)arguments.scratch[kRouteOutput]), ((__gm__ bfloat16_t*)arguments.scratch[kOutput]), arguments.rows, arguments.blocks);
+     }
+     timing.FinishFinal(6);
+-    timing.Store(trace, tokens, blocks);
++    timing.Store(((__gm__ int64_t*)nullptr), arguments.rows, arguments.blocks);
+ }
+ 
+ }  // namespace routed_body
+--- parent/source/kernel.cpp
++++ candidate/source/kernel.cpp
+@@ -3,6 +3,7 @@
+ #endif
+ 
+ #include "contract.h"
++#include "descriptor.h"
+ #include "../bridge/source/ffn_bridge/body_native.h"
+ #include "../body/source/routed_int4/routed_body_native.h"
+ 
+@@ -10,19 +11,11 @@
+ using namespace AscendC;
+ using namespace routed_int4;
+ 
+-struct BodyAddresses {
+-    GM_ADDR values[ffn_composed::kBodyBuffers];
+-};
+-
+-struct WeightAddresses {
+-    GM_ADDR values[ffn_composed::kRoutedWeights];
+-};
+-
+ template <CubeFormat format>
+ __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+ void Kernel(uint64_t sync, GM_ADDR input, GM_ADDR residual, GM_ADDR gamma,
+-    GM_ADDR gate, GM_ADDR bias, WeightAddresses w, ffn_bridge::Addresses bridge,
+-    BodyAddresses body, pipeline::Input shared, int64_t rows, int64_t blocks,
++    GM_ADDR gate, GM_ADDR bias, ffn_bridge::Addresses bridge,
++    const ffn_descriptor::BodyArguments arguments,
+     float epsilon)
+ {
+     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+@@ -31,42 +24,20 @@
+     SetSysWorkspace(bridge.values[ffn_bridge::kSystem]);
+     TPipe pipe;
+     ffn_bridge::Forward(pipe, input, residual, gamma, gate, bias,
+-                        bridge, rows, blocks, epsilon);
++                        bridge, arguments.rows, arguments.blocks, epsilon);
+ 
+     // The bridge's final EndPhase has drained all CUBE work and reset UB.
+     // Only its GM outputs survive into the unchanged routed/shared body.
+-    SetSysWorkspace(body.values[kMatmulWorkspace]);
+-    DispatchInput dispatch;
+-    dispatch.bf16_rows = (uint64_t)bridge.values[ffn_bridge::kNormalized];
+-    dispatch.expert_ids = (uint64_t)bridge.values[ffn_bridge::kIds];
+-    dispatch.probabilities = (uint64_t)bridge.values[ffn_bridge::kProbabilities];
+-    routed_body::Forward<format, true>(pipe,
+-        (__gm__ int8_t*)body.values[kRestoredRows],
+-        (__gm__ int4b_t*)w.values[0], (__gm__ float*)w.values[1],
+-        (__gm__ ScaleStorage*)w.values[2], (__gm__ int4b_t*)w.values[3],
+-        (__gm__ float*)w.values[4], (__gm__ ScaleStorage*)w.values[5],
+-        (__gm__ float*)body.values[kRestoredScale],
+-        (__gm__ int32_t*)body.values[kGroupCount],
+-        (__gm__ int32_t*)body.values[kGroupStart],
+-        (__gm__ int32_t*)body.values[kSourceRow],
+-        (__gm__ int32_t*)body.values[kSourceSlot],
+-        (__gm__ float*)body.values[kRowWeight],
+-        (__gm__ int4b_t*)body.values[kStacked],
+-        (__gm__ int32_t*)body.values[kGateProduct],
+-        (__gm__ int4b_t*)body.values[kMiddle],
+-        (__gm__ float*)body.values[kMiddleScale],
+-        (__gm__ int32_t*)body.values[kDownProduct],
+-        (__gm__ bfloat16_t*)body.values[kRouteOutput],
+-        (__gm__ bfloat16_t*)body.values[kOutput],
+-        body.values[kGateTiling], body.values[kDownTiling],
+-        body.values[kMatmulWorkspace], ffn_bridge::kExperts, rows, blocks,
+-        dispatch, nullptr, shared);
++    SetSysWorkspace((GM_ADDR)arguments.scratch[kMatmulWorkspace]);
++    routed_body::Forward<format, true>(pipe, arguments);
+     // NoTrace::FinishFinal is empty. This is the required publication seam,
+     // after every body-local TBuf and matrix object has left scope.
+     ffn_bridge::device::EndPhase(pipe);
+-    ffn_bridge::device::Epilogue(pipe, body.values[kOutput],
+-        body.values[pipeline::kSharedOutput], bridge.values[ffn_bridge::kScaledRouted],
+-        bridge.values[ffn_bridge::kCombined], rows, blocks);
++    ffn_bridge::device::Epilogue(pipe,
++        (GM_ADDR)arguments.scratch[kOutput],
++        (GM_ADDR)arguments.scratch[pipeline::kSharedOutput],
++        bridge.values[ffn_bridge::kScaledRouted],
++        bridge.values[ffn_bridge::kCombined], arguments.rows, arguments.blocks);
+     ffn_bridge::device::EndPhase(pipe);
+ }
+ }  // namespace ffn_composed_device
+@@ -77,27 +48,19 @@
+     routed_int4::pipeline::Input shared, int64_t rows, int64_t blocks,
+     int64_t weight_layout, float epsilon)
+ {
+-    ffn_composed_device::WeightAddresses weights{};
+     ffn_bridge::Addresses bridge_addresses{};
+-    ffn_composed_device::BodyAddresses body_addresses{};
+-    for (int64_t i = 0; i < ffn_composed::kRoutedWeights; ++i) {
+-        weights.values[i] = (GM_ADDR)routed_weights[i];
+-    }
+     for (int64_t i = 0; i < ffn_composed::kBridgeBuffers; ++i) {
+         bridge_addresses.values[i] = (GM_ADDR)bridge[i];
+     }
+-    for (int64_t i = 0; i < ffn_composed::kBodyBuffers; ++i) {
+-        body_addresses.values[i] = (GM_ADDR)body[i];
+-    }
++    const auto arguments = ffn_descriptor::MakeBodyArguments(
++        routed_weights, bridge, body, shared, rows, blocks);
+     if (weight_layout == routed_int4::kWeightNZ) {
+         ffn_composed_device::Kernel<CubeFormat::NZ><<<blocks, nullptr, stream>>>(
+             sync, (GM_ADDR)input, (GM_ADDR)residual, (GM_ADDR)gamma, (GM_ADDR)gate,
+-            (GM_ADDR)bias, weights, bridge_addresses, body_addresses,
+-            shared, rows, blocks, epsilon);
++            (GM_ADDR)bias, bridge_addresses, arguments, epsilon);
+     } else {
+         ffn_composed_device::Kernel<CubeFormat::ND><<<blocks, nullptr, stream>>>(
+             sync, (GM_ADDR)input, (GM_ADDR)residual, (GM_ADDR)gamma, (GM_ADDR)gate,
+-            (GM_ADDR)bias, weights, bridge_addresses, body_addresses,
+-            shared, rows, blocks, epsilon);
++            (GM_ADDR)bias, bridge_addresses, arguments, epsilon);
+     }
+ }

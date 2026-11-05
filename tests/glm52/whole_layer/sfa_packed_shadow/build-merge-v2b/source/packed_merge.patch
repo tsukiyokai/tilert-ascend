@@ -1,0 +1,161 @@
+--- a/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_service_vector_mla.h
++++ b/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_service_vector_mla.h
+@@ -1021,22 +1021,14 @@
+     WaitFlag<AscendC::HardEvent::MTE2_MTE3>(0);
+ 
+     DataCopyExtParams dataCopyParams;
+-    dataCopyParams.blockCount = mte2Size - mte3Size;
+-    dataCopyParams.blockLen = sfaVecConstInfo.headDim * sizeof(KV_T);
+-    dataCopyParams.srcStride = sfaVecConstInfo.headDimRope * sizeof(KV_T) / BYTE_BLOCK;
++    dataCopyParams.blockCount = 1;
++    dataCopyParams.blockLen = (mte2Size - mte3Size) * PACKED_KV_WIDTH * sizeof(KV_T);
++    dataCopyParams.srcStride = 0;
+     dataCopyParams.dstStride = 0;
+ 
+-    DataCopyPad(kvMergeGm_[sfaVecRunInfo.loop % 4 * 512 * 576 + (s2GmStartOffset + mte3Size) * sfaVecConstInfo.headDim],
++    DataCopyPad(kvMergeGm_[sfaVecRunInfo.loop % 4 * 512 * PACKED_KV_WIDTH +
++                              (s2GmStartOffset + mte3Size) * PACKED_KV_WIDTH],
+                 kvMergUb_[mergeMte3Idx % 2 * 32 * PACKED_KV_WIDTH], dataCopyParams);
+-
+-    if constexpr (SFAT::hasRope) {
+-        dataCopyParams.blockLen = sfaVecConstInfo.headDimRope * sizeof(KV_T);
+-        dataCopyParams.srcStride = sfaVecConstInfo.headDim * sizeof(KV_T) / BYTE_BLOCK;
+-        DataCopyPad(kvMergeGm_[sfaVecRunInfo.loop % 4 * 512 * 576 + 512 * 512 +
+-                               (s2GmStartOffset + mte3Size) * sfaVecConstInfo.headDimRope],
+-                    kvMergUb_[mergeMte3Idx % 2 * 32 * PACKED_KV_WIDTH +
+-                                  sfaVecConstInfo.headDim], dataCopyParams);
+-    }
+ }
+ 
+ // b s1 k
+@@ -1100,27 +1092,19 @@
+         SetFlag<AscendC::HardEvent::MTE3_V>(0);
+         WaitFlag<AscendC::HardEvent::MTE3_V>(0);
+         WaitFlag<AscendC::HardEvent::MTE3_MTE2>(mergeMte3Idx & 1);
+-        Duplicate(kvMergUb_, static_cast<KV_T>(0.0), sfaVecConstInfo.headDim);
++        Duplicate(kvMergUb_, static_cast<KV_T>(0.0), PACKED_KV_WIDTH);
+         SetFlag<AscendC::HardEvent::V_MTE3>(0);
+         WaitFlag<AscendC::HardEvent::V_MTE3>(0);
+ 
+         DataCopyExtParams dataCopyParams;
+         dataCopyParams.blockCount = 1;
+-        dataCopyParams.blockLen = sfaVecConstInfo.headDim * sizeof(KV_T);
++        dataCopyParams.blockLen = PACKED_KV_WIDTH * sizeof(KV_T);
+         dataCopyParams.srcStride = 0;
+         dataCopyParams.dstStride = 0;
+         for (int64_t s2GmOffset = s2GmStartOffset + mte2Size; s2GmOffset < s2GmLimit; s2GmOffset++) {
+-            DataCopyPad(kvMergeGm_[sfaVecRunInfo.loop % MERGE_CACHE_GM_BUF_NUM * 512 * 576 +
+-                                   s2GmOffset * sfaVecConstInfo.headDim],
++            DataCopyPad(kvMergeGm_[sfaVecRunInfo.loop % MERGE_CACHE_GM_BUF_NUM * 512 * PACKED_KV_WIDTH +
++                                   s2GmOffset * PACKED_KV_WIDTH],
+                         kvMergUb_, dataCopyParams);
+-        }
+-        if constexpr (SFAT::hasRope) {
+-            dataCopyParams.blockLen = sfaVecConstInfo.headDimRope * sizeof(KV_T);
+-            for (int64_t s2GmOffset = s2GmStartOffset + mte2Size; s2GmOffset < s2GmLimit; s2GmOffset++) {
+-                DataCopyPad(kvMergeGm_[sfaVecRunInfo.loop % MERGE_CACHE_GM_BUF_NUM * 512 * 576 +
+-                                       512 * sfaVecConstInfo.headDim + s2GmOffset * sfaVecConstInfo.headDimRope],
+-                            kvMergUb_, dataCopyParams);
+-            }
+         }
+         SetFlag<AscendC::HardEvent::MTE3_MTE2>(mergeMte3Idx & 1);
+         mergeMte3Idx++;
+--- a/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_service_cube_mla.h
++++ b/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_service_cube_mla.h
+@@ -14,6 +14,10 @@
+  */
+ #ifndef SPARSE_FLASH_ATTENTION_SERVICE_CUBE_MLA_H
+ #define SPARSE_FLASH_ATTENTION_SERVICE_CUBE_MLA_H
++
++#ifndef SFA_PACKED_SHADOW_KV
++#error "This private SFA overlay requires packed BF16 [merge row, 576] workspace."
++#endif
+ 
+ #include "kernel_operator.h"
+ #include "kernel_operator_list_tensor_intf.h"
+@@ -151,6 +155,12 @@
+     static constexpr bool FLASH_DECODE = SFAT::flashDecode;
+     static constexpr SFA_LAYOUT LAYOUT_T = SFAT::layout;
+     static constexpr SFA_LAYOUT KV_LAYOUT_T = SFAT::kvLayout;
++
++    static_assert(PAGE_ATTENTION && TEMPLATE_MODE == V_TEMPLATE && SFAT::hasRope &&
++                  KV_LAYOUT_T == SFA_LAYOUT::PA_BSND &&
++                  IsSameType<KV_T, bfloat16_t>::value,
++                  "Packed merge requires paged BF16 V_TEMPLATE with RoPE.");
++    static constexpr uint32_t PACKED_MERGE_WIDTH = 576;
+ 
+     static constexpr uint32_t M_SPLIT_SIZE = 128;     // m方向切分
+     static constexpr uint32_t N_SPLIT_SIZE = 128;     // n方向切分
+@@ -839,21 +849,21 @@
+                     sfaCubeCopyParams.ndNum = 1;
+                     sfaCubeCopyParams.nValue = nL1Size; // 行数
+                     sfaCubeCopyParams.dValue = sfaCubeConstInfo.headDim >> 1;
+-                    sfaCubeCopyParams.srcDValue = sfaCubeConstInfo.headDim;
++                    sfaCubeCopyParams.srcDValue = PACKED_MERGE_WIDTH;
+                     sfaCubeCopyParams.dstNzC0Stride = nL1SizeAlign;
+                     sfaCubeCopyParams.dstNzNStride = 1;
+                     sfaCubeCopyParams.srcNdMatrixStride = 0;
+                     sfaCubeCopyParams.dstNzMatrixStride = 0;
+                     DataCopy(bL1Tensor,
+                              kvMergeGm_[sfaCubeRunInfo.loop % 4 * N_WORKSPACE_SIZE * kSize +
+-                                        nL1 * N_SPLIT_SIZE * sfaCubeConstInfo.headDim],
++                                        nL1 * N_SPLIT_SIZE * PACKED_MERGE_WIDTH],
+                              sfaCubeCopyParams);
+                     sfaCubeCopyParams.dValue = sfaCubeConstInfo.headDimRope >> 1;
+-                    sfaCubeCopyParams.srcDValue = sfaCubeConstInfo.headDimRope;
++                    sfaCubeCopyParams.srcDValue = PACKED_MERGE_WIDTH;
+                     DataCopy(bL1Tensor[nL1SizeAlign * (sfaCubeConstInfo.headDim >> 1)],
+                              kvMergeGm_[sfaCubeRunInfo.loop % 4 * N_WORKSPACE_SIZE * kSize +
+-                                        N_WORKSPACE_SIZE * sfaCubeConstInfo.headDim +
+-                                        nL1 * N_SPLIT_SIZE * sfaCubeConstInfo.headDimRope],
++                                        sfaCubeConstInfo.headDim +
++                                        nL1 * N_SPLIT_SIZE * PACKED_MERGE_WIDTH],
+                              sfaCubeCopyParams);
+                 } else {
+                     LocalTensor<Q_T> kTmpTensor = bL1Tensor[(sfaCubeConstInfo.headDimRope >> 1) * nL1SizeAlign];
+@@ -861,7 +871,7 @@
+                     sfaCubeCopyParams.ndNum = 1;
+                     sfaCubeCopyParams.nValue = nL1Size; // 行数
+                     sfaCubeCopyParams.dValue = sfaCubeConstInfo.headDim >> 1;
+-                    sfaCubeCopyParams.srcDValue = sfaCubeConstInfo.headDim;
++                    sfaCubeCopyParams.srcDValue = PACKED_MERGE_WIDTH;
+                     sfaCubeCopyParams.dstNzC0Stride = nL1SizeAlign;
+                     sfaCubeCopyParams.dstNzNStride = 1;
+                     sfaCubeCopyParams.srcNdMatrixStride = 0;
+@@ -869,15 +879,15 @@
+                     DataCopy(
+                         kTmpTensor,
+                         kvMergeGm_[sfaCubeRunInfo.loop % 4 * N_WORKSPACE_SIZE * kSize +
+-                                   (sfaCubeConstInfo.headDim >> 1) + nL1 * N_SPLIT_SIZE * sfaCubeConstInfo.headDim],
++                                   (sfaCubeConstInfo.headDim >> 1) + nL1 * N_SPLIT_SIZE * PACKED_MERGE_WIDTH],
+                         sfaCubeCopyParams);
+                     sfaCubeCopyParams.dValue = sfaCubeConstInfo.headDimRope >> 1;
+-                    sfaCubeCopyParams.srcDValue = sfaCubeConstInfo.headDimRope;
++                    sfaCubeCopyParams.srcDValue = PACKED_MERGE_WIDTH;
+                     DataCopy(
+                         bL1Tensor,
+                         kvMergeGm_[sfaCubeRunInfo.loop % 4 * N_WORKSPACE_SIZE * kSize +
+-                                   N_WORKSPACE_SIZE * sfaCubeConstInfo.headDim + (sfaCubeConstInfo.headDimRope >> 1) +
+-                                   nL1 * N_SPLIT_SIZE * sfaCubeConstInfo.headDimRope],
++                                   sfaCubeConstInfo.headDim + (sfaCubeConstInfo.headDimRope >> 1) +
++                                   nL1 * N_SPLIT_SIZE * PACKED_MERGE_WIDTH],
+                         sfaCubeCopyParams);
+                 }
+             } else {
+@@ -1137,14 +1147,14 @@
+                     sfaCubeCopyParams.ndNum = 1;
+                     sfaCubeCopyParams.nValue = kL0Size; // 行数
+                     sfaCubeCopyParams.dValue = N_SPLIT_SIZE;
+-                    sfaCubeCopyParams.srcDValue = sfaCubeConstInfo.headDim;
++                    sfaCubeCopyParams.srcDValue = PACKED_MERGE_WIDTH;
+                     sfaCubeCopyParams.dstNzC0Stride = kL0SizeAlign;
+                     sfaCubeCopyParams.dstNzNStride = 1;
+                     sfaCubeCopyParams.srcNdMatrixStride = 0;
+                     sfaCubeCopyParams.dstNzMatrixStride = 0;
+                     DataCopy(bL1Tensor[(kL1 - kOffset) * 128 * N_SPLIT_SIZE],
+                              kvMergeGm_[sfaCubeRunInfo.loop % 4 * N_WORKSPACE_SIZE * 576 +
+-                                        kL1 * 128 * sfaCubeConstInfo.headDim + nL1 * N_SPLIT_SIZE],
++                                        kL1 * 128 * PACKED_MERGE_WIDTH + nL1 * N_SPLIT_SIZE],
+                              sfaCubeCopyParams);
+                 } else {
+                     while (copyFinishRowCnt < kL0Size) {

@@ -1,0 +1,106 @@
+{
+  "scope": "One TP16 layer-3 rank-0 W4 bank on shared A3 die15; no HCCL or full model",
+  "precision_verified": false,
+  "performance_measured": false,
+  "allocator_limit_bytes": 1610612736,
+  "cases": {
+    "device-00": {
+      "report_path": "/workspace/offline/cann-weight-offload-20261017/device-00.json",
+      "report_sha256": "3d747b73c7bc32ea876d71bf2aafcf0588d2f7a9f0917040a082b657d1c56ce0",
+      "status": "error",
+      "device_execution": true,
+      "checks_passed": 4,
+      "command": [
+        "docker",
+        "exec",
+        "trt-asc",
+        "bash",
+        "-c",
+        "source /workspace/environment/activate.sh\ncd /workspace/offline/cann-weight-offload-20261017/source\nTORCH_DEVICE_BACKEND_AUTOLOAD=0 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 PYTHONPATH=\"$PWD:$PWD/tests/glm52:$PYTHONPATH\" timeout 180 python tests/glm52/check_cann_offload.py --checkpoint /workspace/models/GLM-5.2-w4a8c8 --layer 3 --rank 0 --device npu:15 --output /workspace/offline/cann-weight-offload-20261017/device-00.json\n"
+      ],
+      "free_mib_before": 3944,
+      "script_sha256": "bc14d79587b7ce7e10c3cf1f07d35b81fd96f7c906b3001e26f98ba93211b020",
+      "exit": {
+        "exit_code": 1,
+        "elapsed_seconds": 41.63633571192622
+      }
+    },
+    "device-01": {
+      "report_path": "/workspace/offline/cann-weight-offload-20261017/device-01.json",
+      "report_sha256": "36cf3fb7bd45e1a45c4b0dc9433c52aaf808142c385089d8c2e0ddfd49f5ad9f",
+      "status": "error",
+      "device_execution": true,
+      "checks_passed": 4,
+      "command": [
+        "docker",
+        "exec",
+        "trt-asc",
+        "bash",
+        "-c",
+        "source /workspace/environment/activate.sh\ncd /workspace/offline/cann-weight-offload-20261017/source\nPYTORCH_NPU_ALLOC_CONF=expandable_segments:True TORCH_DEVICE_BACKEND_AUTOLOAD=0 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 PYTHONPATH=\"$PWD:$PWD/tests/glm52:$PYTHONPATH\" timeout 180 python tests/glm52/check_cann_offload.py --checkpoint /workspace/models/GLM-5.2-w4a8c8 --layer 3 --rank 0 --device npu:15 --output /workspace/offline/cann-weight-offload-20261017/device-01.json\n"
+      ],
+      "free_mib_before": 3944,
+      "script_sha256": "bc14d79587b7ce7e10c3cf1f07d35b81fd96f7c906b3001e26f98ba93211b020",
+      "exit": {
+        "exit_code": 1,
+        "elapsed_seconds": 37.488165345042944
+      }
+    },
+    "device-02": {
+      "report_path": "/workspace/offline/cann-weight-offload-20261017/device-02.json",
+      "report_sha256": "ea28e218cec4b838170378f51ab68ecac2dd3361fdf890635473cef84fabcc4e",
+      "status": "error",
+      "device_execution": true,
+      "checks_passed": 4,
+      "command": [
+        "docker",
+        "exec",
+        "trt-asc",
+        "bash",
+        "-c",
+        "source /workspace/environment/activate.sh\ncd /workspace/offline/cann-weight-offload-20261017/source\nPYTORCH_NPU_ALLOC_CONF=expandable_segments:False TORCH_DEVICE_BACKEND_AUTOLOAD=0 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 PYTHONPATH=\"$PWD:$PWD/tests/glm52:$PYTHONPATH\" timeout 180 python tests/glm52/check_cann_offload.py --checkpoint /workspace/models/GLM-5.2-w4a8c8 --layer 3 --rank 0 --device npu:15 --output /workspace/offline/cann-weight-offload-20261017/device-02.json\n"
+      ],
+      "free_mib_before": 3944,
+      "script_sha256": "bc14d79587b7ce7e10c3cf1f07d35b81fd96f7c906b3001e26f98ba93211b020",
+      "exit": {
+        "exit_code": 1,
+        "elapsed_seconds": 41.74967333301902
+      }
+    },
+    "direct-00": {
+      "report_path": "/workspace/offline/cann-weight-offload-20261017/direct-00.json",
+      "report_sha256": "82c982ef39d2749d9bc956709afcf9ae21a3a0b258ced1b4f40a0466dbc899c8",
+      "status": "error",
+      "device_execution": true,
+      "checks_passed": 4,
+      "command": [
+        "docker",
+        "exec",
+        "trt-asc",
+        "bash",
+        "-c",
+        "source /workspace/environment/activate.sh\ncd /workspace/offline/cann-weight-offload-20261017/source\nPYTORCH_NPU_ALLOC_CONF=expandable_segments:True TORCH_DEVICE_BACKEND_AUTOLOAD=0 OMP_NUM_THREADS=2 MKL_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 PYTHONPATH=\"$PWD:$PWD/tests/glm52:$PYTHONPATH\" timeout 180 python tests/glm52/check_cann_offload_direct.py --checkpoint /workspace/models/GLM-5.2-w4a8c8 --layer 3 --rank 0 --device npu:15 --output /workspace/offline/cann-weight-offload-20261017/direct-00.json\n"
+      ],
+      "free_mib_before": 3944,
+      "script_sha256": "0d824e2562b20e36c1b529f2c7f2ad3fa9a90c61492fc7bfdc203b8c3783546e",
+      "exit": {
+        "exit_code": 1,
+        "elapsed_seconds": 36.38498728815466
+      },
+      "source_sha256": {
+        "/workspace/offline/cann-weight-offload-20261017/source/tests/glm52/check_cann_offload_direct.py": "0d824e2562b20e36c1b529f2c7f2ad3fa9a90c61492fc7bfdc203b8c3783546e",
+        "/workspace/offline/cann-weight-offload-20261017/source/tilert/models/glm_5_2_ascend/weights.py": "5056e25fb26d45e4321b8e6045d505d095802ce74cc2add449ed16bccfda3f33",
+        "/workspace/offline/cann-weight-offload-20261017/source/tilert/models/glm_5_2_ascend/ops/expert_bank.py": "1d8e860cb595e0a15af751737973f966c6933c965ba60e59a82da88d01faf805",
+        "/workspace/src/vllm-unified/vllm/model_executor/offloader/prefetch.py": "d835fa9292f52f283835f724951bae645a84d554c48f30ed639e3297e7eeb776",
+        "/workspace/src/vllm-unified/vllm/model_executor/offloader/prefetch_ops.py": "6ee9baa30bc718b10690fde620d8aa0391807d2d3011af0eff5b6cf61d0e45d4",
+        "/workspace/src/vllm-unified/vllm/model_executor/model_loader/utils.py": "e6e3477d926deb12fd1b50d4e6a7d649f97a5c2b6524cc2e4a604c80bb653f20",
+        "/workspace/src/vllm-ascend-unified/vllm_ascend/model_executor/offloader/base.py": "87b2412d85b7fa3ce80851ecdb937619bdce7f25e210c92955155b9412b71083",
+        "/workspace/src/vllm-ascend-unified/vllm_ascend/model_executor/offloader/prefetch.py": "b5a641d00c4e8cc9b825f35100394f831a30b24ac574d727249edb08723b9de7",
+        "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/model_runner_v1.py": "f0a3079900c9b2628437195ef21d0631c747aa1a49b663c1b27fddf379cbf8f5",
+        "/workspace/src/vllm-ascend-unified/vllm_ascend/quantization/methods/w4a8/w4a8.py": "d06549f45637300df3e4915823f4f71a913ce7059d1e3a4c475ab1f225e1a28a"
+      },
+      "error": "Traceback (most recent call last):\n  File \"/workspace/src/vllm-ascend-unified/vllm_ascend/worker/model_runner_v1.py\", line 6808, in _torch_cuda_wrapper\n    yield\n  File \"/workspace/offline/cann-weight-offload-20261017/source/tests/glm52/check_cann_offload_direct.py\", line 252, in device_check\n    wrapped = offloader.wrap_modules(iter([module]))\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/src/vllm-ascend-unified/vllm_ascend/model_executor/offloader/prefetch.py\", line 169, in wrap_modules\n    return super().wrap_modules(modules_generator)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/src/vllm-unified/vllm/model_executor/offloader/prefetch.py\", line 217, in wrap_modules\n    _ModuleOffloader(\n  File \"/workspace/src/vllm-ascend-unified/vllm_ascend/model_executor/offloader/prefetch.py\", line 204, in __init__\n    super().__init__(\n  File \"/workspace/src/vllm-unified/vllm/model_executor/offloader/prefetch.py\", line 444, in __init__\n    self._param_offloaders = {\n                             ^\n  File \"/workspace/src/vllm-unified/vllm/model_executor/offloader/prefetch.py\", line 445, in <dictcomp>\n    name: _BaseParamOffloader.create(mode, module=module, param_name=name)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/src/vllm-unified/vllm/model_executor/offloader/prefetch.py\", line 584, in create\n    return _CpuParamOffloader(**kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/src/vllm-unified/vllm/model_executor/offloader/prefetch.py\", line 648, in __init__\n    self._offload_to_cpu_internal()\n  File \"/workspace/src/vllm-unified/vllm/model_executor/offloader/prefetch.py\", line 669, in _offload_to_cpu_internal\n    self._cpu_storage.copy_(param.data)\nRuntimeError: The Inner error is reported as above. The process exits for this inner error, and the current working operator name is Identity.\nSince the operator is called asynchronously, the stacktrace may be inaccurate. If you want to get the accurate stacktrace, please set the environment variable ASCEND_LAUNCH_BLOCKING=1.\nNote: ASCEND_LAUNCH_BLOCKING=1 will force ops to run in synchronous mode, resulting in performance degradation. Please unset ASCEND_LAUNCH_BLOCKING in time after debugging.\n[ERROR] 2026-10-17-17:36:34 (PID:1030204, Device:15, RankID:-1) ERR00100 PTA call acl api failed.\n[PID: 1030204] 2026-10-17-17:36:34.366.479 Invalid_Argument(EH0012): aclrtAllocatorGetByStream failed. Parameter stream is invalid. Reason: The stream is not registered with any allocator.\nTraceBack (most recent call last):\n        ChooseCompileInfo Failed[FUNC:Classify][FILE:transdata_dsl.cc][LINE:704]\n        Autotiling func failed[FUNC:AutoTilingRun][FILE:auto_tiling_rt2.cc][LINE:109]\n        op[trans_TransData_1], call DoTiling failed[FUNC:TransDataDSLTiling][FILE:trans_data.cc][LINE:878]\n        op[trans_TransData_1], call DoTiling failed[FUNC:Tiling4TransData][FILE:trans_data.cc][LINE:977]\n        [Exec][Op]Execute op failed. op type = Identity, ge result = 4294967295[FUNC:ReportCallError][FILE:log_inner.cpp][LINE:138]\n\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/workspace/offline/cann-weight-offload-20261017/source/tests/glm52/check_cann_offload_direct.py\", line 342, in main\n    device_check(args, banks, inputs, report)\n  File \"/workspace/offline/cann-weight-offload-20261017/source/tests/glm52/check_cann_offload_direct.py\", line 233, in device_check\n    with (torch.inference_mode(), set_current_vllm_config(config),\n  File \"/usr/local/lib/python3.11/contextlib.py\", line 158, in __exit__\n    self.gen.throw(typ, value, traceback)\n  File \"/workspace/src/vllm-ascend-unified/vllm_ascend/worker/model_runner_v1.py\", line 6818, in _torch_cuda_wrapper\n    raise RuntimeError(f\"NPUModelRunner init failed, error is {e}\")\nRuntimeError: NPUModelRunner init failed, error is The Inner error is reported as above. The process exits for this inner error, and the current working operator name is Identity.\nSince the operator is called asynchronously, the stacktrace may be inaccurate. If you want to get the accurate stacktrace, please set the environment variable ASCEND_LAUNCH_BLOCKING=1.\nNote: ASCEND_LAUNCH_BLOCKING=1 will force ops to run in synchronous mode, resulting in performance degradation. Please unset ASCEND_LAUNCH_BLOCKING in time after debugging.\n[ERROR] 2026-10-17-17:36:34 (PID:1030204, Device:15, RankID:-1) ERR00100 PTA call acl api failed.\n[PID: 1030204] 2026-10-17-17:36:34.366.479 Invalid_Argument(EH0012): aclrtAllocatorGetByStream failed. Parameter stream is invalid. Reason: The stream is not registered with any allocator.\nTraceBack (most recent call last):\n        ChooseCompileInfo Failed[FUNC:Classify][FILE:transdata_dsl.cc][LINE:704]\n        Autotiling func failed[FUNC:AutoTilingRun][FILE:auto_tiling_rt2.cc][LINE:109]\n        op[trans_TransData_1], call DoTiling failed[FUNC:TransDataDSLTiling][FILE:trans_data.cc][LINE:878]\n        op[trans_TransData_1], call DoTiling failed[FUNC:Tiling4TransData][FILE:trans_data.cc][LINE:977]\n        [Exec][Op]Execute op failed. op type = Identity, ge result = 4294967295[FUNC:ReportCallError][FILE:log_inner.cpp][LINE:138]\n\n"
+    }
+  },
+  "observed_boundary": "The direct variant completes the baseline GMM calls and reaches production _CpuParamOffloader._offload_to_cpu_internal. CPU empty_strided.copy_(NZ INT32) fails in Identity/TransData with aclrtAllocatorGetByStream invalid stream."
+}

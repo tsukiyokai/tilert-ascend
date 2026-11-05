@@ -1,0 +1,399 @@
+{
+  "scope": "CPU analysis of the retained real outer-forward failure; no new device execution or cause attribution",
+  "raw_report": "vendor-hook-forward-c8-v9/outer-forward.json",
+  "failure_dump": {
+    "path": "/tmp/tilert-megakernel-validation-20261021/a3-162/vendor-hook-forward-c8-v9/outer-forward-int8-m12-r1.pt",
+    "sha256": "382b9aa6e8cb07e69ed98f35b6d3757f93aabc9a89f05e634e97589142ce986c",
+    "bytes": 33467014
+  },
+  "passing_cases": [
+    {
+      "rows": 1,
+      "iteration": 0
+    },
+    {
+      "rows": 1,
+      "iteration": 1
+    },
+    {
+      "rows": 1,
+      "iteration": 2
+    },
+    {
+      "rows": 1,
+      "iteration": 3
+    },
+    {
+      "rows": 1,
+      "iteration": 4
+    },
+    {
+      "rows": 1,
+      "iteration": 5
+    },
+    {
+      "rows": 1,
+      "iteration": 6
+    },
+    {
+      "rows": 1,
+      "iteration": 7
+    },
+    {
+      "rows": 2,
+      "iteration": 0
+    },
+    {
+      "rows": 2,
+      "iteration": 1
+    },
+    {
+      "rows": 2,
+      "iteration": 2
+    },
+    {
+      "rows": 2,
+      "iteration": 3
+    },
+    {
+      "rows": 2,
+      "iteration": 4
+    },
+    {
+      "rows": 2,
+      "iteration": 5
+    },
+    {
+      "rows": 2,
+      "iteration": 6
+    },
+    {
+      "rows": 2,
+      "iteration": 7
+    },
+    {
+      "rows": 12,
+      "iteration": 0
+    }
+  ],
+  "failure": {
+    "rows": 12,
+    "iteration": 1,
+    "sequence_length": 8191,
+    "positions": [
+      8179,
+      8180,
+      8181,
+      8182,
+      8183,
+      8184,
+      8185,
+      8186,
+      8187,
+      8188,
+      8189,
+      8190
+    ],
+    "differences": [
+      {
+        "coordinate": [
+          0,
+          4423
+        ],
+        "native": 0.0034637451171875,
+        "baseline": 0.00347900390625,
+        "native_bf16_bits": "0x3b63",
+        "baseline_bf16_bits": "0x3b64",
+        "abs_difference": 1.52587890625e-05
+      },
+      {
+        "coordinate": [
+          5,
+          2813
+        ],
+        "native": -0.0015716552734375,
+        "baseline": -0.00157928466796875,
+        "native_bf16_bits": "0xbace",
+        "baseline_bf16_bits": "0xbacf",
+        "abs_difference": 7.62939453125e-06
+      }
+    ]
+  },
+  "hidden": {
+    "shape": [
+      12,
+      6144
+    ],
+    "dtype": "torch.bfloat16",
+    "sha256": "81b9fbd97962b54dfd5d9b67f42618b9313e0126bfbea7691dd877ab67079882"
+  },
+  "output": {
+    "baseline": {
+      "shape": [
+        12,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "sha256": "5c26f11573f5f674241dc4c87cb69978dc9fb3c930492195fd92fb9fd64242eb",
+      "nonzero_elements": 73726,
+      "finite": true
+    },
+    "native": {
+      "shape": [
+        12,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "sha256": "281083bd950b5e0401434ca636e7d99082c307aacd36e25601f00ad40cb3f4b7",
+      "nonzero_elements": 73726,
+      "finite": true
+    }
+  },
+  "unchanged_boundaries": {
+    "topk": {
+      "shape": [
+        32,
+        2048
+      ],
+      "dtype": "torch.int32",
+      "sha256": "b19cc07b6a3e438cc70d771a6c257cbb27f0208891ca2082c451ed190f901243",
+      "raw_bytes_equal": true
+    },
+    "main_cache": {
+      "shape": [
+        66,
+        128,
+        1,
+        512
+      ],
+      "dtype": "torch.bfloat16",
+      "sha256": "b083fbbe6ed13bb50daccd65c3bcde6cc01d759fd8f417f1cad2d6882220e65f",
+      "raw_bytes_equal": true
+    },
+    "rope_cache": {
+      "shape": [
+        66,
+        128,
+        1,
+        64
+      ],
+      "dtype": "torch.bfloat16",
+      "sha256": "7ef125a948657cdd82cb51cba2c69deea9af342d0ad4027eaa13ce607b2b9e0f",
+      "raw_bytes_equal": true
+    },
+    "index_cache": {
+      "shape": [
+        66,
+        128,
+        1,
+        128
+      ],
+      "dtype": "torch.int8",
+      "sha256": "54f7a5b5064af7d8b77940df871fbf8af28fefd87e521e9d8cc93ce5c77a9416",
+      "raw_bytes_equal": true
+    },
+    "index_scale": {
+      "shape": [
+        66,
+        128,
+        1,
+        1
+      ],
+      "dtype": "torch.float16",
+      "sha256": "a02128cdd9570c66ecafd3c0e9c0bc3f077d2c2ffbe2948d0253ed158ef19726",
+      "raw_bytes_equal": true
+    }
+  },
+  "synthetic_parameters": [
+    {
+      "name": "fused_qkv_a_proj.weight",
+      "shape": [
+        2624,
+        6144
+      ],
+      "dtype": "torch.int8",
+      "bytes": 16121856
+    },
+    {
+      "name": "fused_qkv_a_proj.weight_scale",
+      "shape": [
+        2624,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "bytes": 5248
+    },
+    {
+      "name": "fused_qkv_a_proj.weight_offset",
+      "shape": [
+        2624,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "bytes": 5248
+    },
+    {
+      "name": "q_a_layernorm.weight",
+      "shape": [
+        2048
+      ],
+      "dtype": "torch.bfloat16",
+      "bytes": 4096
+    },
+    {
+      "name": "q_b_proj.weight",
+      "shape": [
+        1024,
+        2048
+      ],
+      "dtype": "torch.int8",
+      "bytes": 2097152
+    },
+    {
+      "name": "q_b_proj.weight_scale",
+      "shape": [
+        1024,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "bytes": 2048
+    },
+    {
+      "name": "q_b_proj.weight_offset",
+      "shape": [
+        1024,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "bytes": 2048
+    },
+    {
+      "name": "kv_a_layernorm.weight",
+      "shape": [
+        512
+      ],
+      "dtype": "torch.bfloat16",
+      "bytes": 1024
+    },
+    {
+      "name": "kv_b_proj.weight",
+      "shape": [
+        1792,
+        512
+      ],
+      "dtype": "torch.bfloat16",
+      "bytes": 1835008
+    },
+    {
+      "name": "o_proj.weight",
+      "shape": [
+        6144,
+        1024
+      ],
+      "dtype": "torch.int8",
+      "bytes": 6291456
+    },
+    {
+      "name": "o_proj.weight_scale",
+      "shape": [
+        6144,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "bytes": 12288
+    },
+    {
+      "name": "o_proj.weight_offset",
+      "shape": [
+        6144,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "bytes": 12288
+    },
+    {
+      "name": "indexer.wq_b.weight",
+      "shape": [
+        4096,
+        2048
+      ],
+      "dtype": "torch.int8",
+      "bytes": 8388608
+    },
+    {
+      "name": "indexer.wq_b.weight_scale",
+      "shape": [
+        4096,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "bytes": 8192
+    },
+    {
+      "name": "indexer.wq_b.weight_offset",
+      "shape": [
+        4096,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "bytes": 8192
+    },
+    {
+      "name": "indexer.wk_weights_proj.weight",
+      "shape": [
+        160,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "bytes": 1966080
+    },
+    {
+      "name": "indexer.k_norm.weight",
+      "shape": [
+        128
+      ],
+      "dtype": "torch.float32",
+      "bytes": 512
+    },
+    {
+      "name": "indexer.k_norm.bias",
+      "shape": [
+        128
+      ],
+      "dtype": "torch.float32",
+      "bytes": 512
+    }
+  ],
+  "source_files": [
+    {
+      "path": "/home/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/whole_layer/vendor_hook_device.py",
+      "sha256": "3975ac675651864d095d2ffcabd0324f5aa283372e9237458c45f9c2a732bbfe",
+      "bytes": 19632
+    },
+    {
+      "path": "/home/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/whole_layer/vendor_hook_forward.py",
+      "sha256": "376411d2c57501ac1661fb81b0d6f7c2ec571c9d83d2e8b65ddcbb0a68ba4b58",
+      "bytes": 12151
+    },
+    {
+      "path": "/home/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/whole_layer/vendor_hook_run.sh",
+      "sha256": "a18be18f28fbc2bab670052edb0f3ed80606f6e5f0f9aed6302e3e8a4ed7d495",
+      "bytes": 3044
+    },
+    {
+      "path": "/home/shanshan/repo/tile-ai/TileRT-Ascend/tilert/models/glm_5_2_ascend/attention_native.py",
+      "sha256": "336eaff0de153d32439d4d2b0557522b313a24a7e5bef82b8dc11f1257511c01",
+      "bytes": 22265
+    }
+  ],
+  "unobserved_intermediates": [
+    "main query",
+    "main query RoPE",
+    "SFA latent output",
+    "BF16 value-up output",
+    "O dynamic-quant INT8 codes",
+    "O per-token FP32 scales",
+    "O INT32 accumulators"
+  ],
+  "next_measurement": "Retain actual vendor-stage tensor references and decode existing native scratch, then compare the first unequal production boundary while requiring reproduction of the original final-output discrepancy."
+}

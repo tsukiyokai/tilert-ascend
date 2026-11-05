@@ -1,0 +1,9 @@
+# Expert-ready gate/up activation
+
+This candidate overlaps the routed GU projection with the original routed activation, starting from complete FFN library `c39acf92728c8a3f09ee0b66988bed4cf0e312a15285a68c02d2594969a348af`. Each AIC publishes one complete expert product to its two associated AIVs. The AIVs activate alternating rows through the original `Activate<true>` helper while CUBE processes later experts. With fewer active experts than AIC groups, the original globally balanced activation schedule remains selected.
+
+Mode2 ready flag 8 and free flag 9 retain at most four unconsumed expert publications. AIC publishes on `PIPE_FIX` after the original projection call; each AIV acknowledges on `PIPE_MTE3` after its packed codes and exact four-byte scales are stored. Both AIVs acknowledge a one-route expert, including the worker owning no row. The sequence spans all experts owned by that AIC, and all credits drain before join 2 and before another graph replay. Flags 0–7 remain available to Matmul and 11–14 to mixed `SyncAll`.
+
+All five body joins remain. Join 2 now also joins routed activation; shared Down still follows it. Join 3 still publishes shared Down before its AIV store, and join 4 still joins routed Down and shared output before token-owned combination. GU/Down tilings, original projection calls, mathematical helpers, shared key30013 arithmetic, output ownership and terminal local completion remain unchanged. The public interface retains 33 tensors, the 408-byte descriptor and 116480 bytes of resident UB, with no additional GM or UB allocation.
+
+Device acceptance requires the original DecoderLayer norm/MLP oracle at M1/2/12/32 with both original weight sets and immediate graph consumers. The inherited synthetic checker is retained as `parent-check.py`; its historical shared arithmetic does not define acceptance for this candidate. Paired same-address timing and route-distribution sensitivity remain required.

@@ -1,0 +1,414 @@
+{
+  "scope": "Shared-device profiled MTP two-call chain diagnostic",
+  "source_audit": {
+    "path": "/workspace/offline/cann-mtp-projection-chain-profile-20261018-01/analysis-01/timeline-adversarial-audit.json",
+    "bytes": 3063026,
+    "sha256": "263e145fa0a901acc3caf209b2a698cb5a8111ecdfd760d2116fbadb006d5997"
+  },
+  "auditor": {
+    "path": "/workspace/offline/cann-mtp-projection-chain-profile-20261018-01/timeline_adversarial_audit.py",
+    "bytes": 37842,
+    "sha256": "2a189779b1ae8d59d0056c1cdbad8b10f6a6704195b1477bf08b4586af388afd"
+  },
+  "capture_audit": {
+    "path": "/workspace/offline/cann-mtp-projection-chain-profile-20261018-01/capture-audit.json",
+    "bytes": 20745,
+    "sha256": "0d4315a9123114848b947cbe56451270e21f8fd01bdb083671f6217b1af75660"
+  },
+  "bindings": [
+    {
+      "path": "/workspace/offline/cann-mtp-projection-chain-profile-20261018-01/prepared.json",
+      "bytes": 46670,
+      "sha256": "001ecda1938ff1616b356bf4a1cb4b61b8a502af409221df2e94dc700284daf0"
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-chain-profile-20261018-01/source-manifest.json",
+      "bytes": 38127,
+      "sha256": "a681f4d2acb1aa54a439c8e859d109a6e3ad436fd550174d792dfa6b535b6ce9"
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-chain-profile-20261018-01/profile_chains.py",
+      "bytes": 19909,
+      "sha256": "1485515ab6f76c4b0e65988f85e160aa5ab9f1b116064f0ca4a3377fa9ca978c"
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-chain-profile-20261018-01/timeline_audit.py",
+      "bytes": 18643,
+      "sha256": "818c66a3178b0ac0f2ebc288147ab99cc2e40f0382d726a42bc97d045be0491d"
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-chain-profile-20261018-01/summarize_timeline.py",
+      "bytes": 8165,
+      "sha256": "97f2f7007bf6dd08f575a9d8eeee913d714f9b47159cc32f4b0f7f755e8237b6"
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-chain-profile-20261018-01/analysis-01/timeline-audit.json",
+      "bytes": 39990614,
+      "sha256": "c159760e2fcb8e86909fd2eda239c597e4274afad60b8a6797e8fde08e3ce80f"
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-chain-profile-20261018-01/analysis-01/timeline-findings.json",
+      "bytes": 53428,
+      "sha256": "ac3a1f0c7f00e2407df626902d90ef6de8b8ad4c3088f6968e8ccb163098c4b2"
+    },
+    {
+      "path": "/workspace/offline/cann-mtp-projection-chain-profile-20261018-01/source/tests/glm52/profile_native_session.py",
+      "bytes": 11844,
+      "sha256": "7c9a4e1b1e3ae6aed99a90fab9512b58a63e39af7af02c35cbec57d487a07e91"
+    }
+  ],
+  "source_files_verified": 328,
+  "windows": 128,
+  "collectives": 640,
+  "head_task_elapsed": {
+    "original": {
+      "samples": 64,
+      "unit": "us",
+      "p10": 134.556,
+      "p50": 144.683,
+      "p90": 3129.7563,
+      "max": 3510.24,
+      "metadata": [
+        "KERNEL_AICORE",
+        "MatMulV3",
+        "DT_BF16;DT_BF16",
+        "\"1,6144;9680,6144\"",
+        "FLOAT",
+        24
+      ]
+    },
+    "sharded": {
+      "samples": 64,
+      "unit": "us",
+      "p10": 137.689,
+      "p50": 148.2515,
+      "p90": 3222.1136000000015,
+      "max": 3858.64,
+      "metadata": [
+        "KERNEL_AICORE",
+        "MatMulV3",
+        "DT_BF16;DT_BF16",
+        "\"1,6144;9680,6144\"",
+        "FLOAT",
+        24
+      ]
+    }
+  },
+  "clock_envelope": {
+    "definition": "actual_epoch_ns = exported_ns + delta_ns",
+    "wall_only": "For each chain: wall_start-first_device <= delta_device <= wall_stop-last_device. token.item has returned before wall_stop.",
+    "host": "The record_function range is nested in the Python wall interval, so wall_start-marker_start <= delta_host <= wall_stop-marker_end.",
+    "api_constraint": "Replay API begin causally precedes its first device task: delta_device >= API_start-first_device+delta_host_lower.",
+    "intersection": "Take the intersection of four chain bounds for each rank and variant. A separate per-window result avoids imposing a common offset across windows.",
+    "assumptions": [
+      "The matched runtime API launches this model instance; the first model task cannot precede that API's begin.",
+      "Framework record_function and CANN host API timestamps use the recorded common host counter/monotonic basis and epoch conversion.",
+      "Each per-window device/host calibration offset is constant over that window; the tighter intersection additionally assumes the offset is constant over the four windows.",
+      "Python wall time does not make a discontinuous step inside the profiled window."
+    ],
+    "hardware_calibration_error_bound_measured": false,
+    "host_counter_residual_ns": {
+      "n": 32,
+      "min": -425,
+      "p50": -135.0,
+      "p90": -45.99999999999998,
+      "max": 10
+    },
+    "wall_only_offset_width_us": {
+      "n": 32,
+      "min": 2304.946,
+      "p50": 2467.5789999999997,
+      "p90": 2862.4387,
+      "max": 3236.863
+    },
+    "api_strengthened_offset_width_us": {
+      "n": 32,
+      "min": 111.363,
+      "p50": 135.8325,
+      "p90": 162.27420000000004,
+      "max": 169.252
+    },
+    "host_offset_width_us": {
+      "n": 32,
+      "min": 13.92,
+      "p50": 17.0005,
+      "p90": 23.6296,
+      "max": 26.151
+    },
+    "interpretation": "These are conditional empirical causal envelopes, not a general clock synchronization accuracy claim. Calibration records alone give no hard error bound."
+  },
+  "head_collectives": [
+    {
+      "variant": "original",
+      "round": 0,
+      "chain": 1,
+      "entry_spread_offset_interval_us": [
+        3240.45,
+        3522.606
+      ],
+      "entry_spread_using_only_same_window_bounds_us": [
+        3100.522,
+        4188.94
+      ],
+      "end_spread_offset_interval_us": [
+        0.0,
+        172.384
+      ],
+      "possible_latest_entry_ranks": [
+        11
+      ]
+    },
+    {
+      "variant": "original",
+      "round": 0,
+      "chain": 2,
+      "entry_spread_offset_interval_us": [
+        2964.488,
+        3267.378
+      ],
+      "entry_spread_using_only_same_window_bounds_us": [
+        2936.918,
+        3397.776
+      ],
+      "end_spread_offset_interval_us": [
+        0.0,
+        172.824
+      ],
+      "possible_latest_entry_ranks": [
+        1,
+        2,
+        12,
+        14
+      ]
+    },
+    {
+      "variant": "original",
+      "round": 1,
+      "chain": 1,
+      "entry_spread_offset_interval_us": [
+        3047.09,
+        3321.769
+      ],
+      "entry_spread_using_only_same_window_bounds_us": [
+        3009.918,
+        3555.885
+      ],
+      "end_spread_offset_interval_us": [
+        0.0,
+        172.624
+      ],
+      "possible_latest_entry_ranks": [
+        11
+      ]
+    },
+    {
+      "variant": "original",
+      "round": 1,
+      "chain": 2,
+      "entry_spread_offset_interval_us": [
+        2948.095,
+        3250.985
+      ],
+      "entry_spread_using_only_same_window_bounds_us": [
+        2930.718,
+        3281.714
+      ],
+      "end_spread_offset_interval_us": [
+        0.0,
+        171.304
+      ],
+      "possible_latest_entry_ranks": [
+        1,
+        2,
+        12,
+        14
+      ]
+    },
+    {
+      "variant": "sharded",
+      "round": 0,
+      "chain": 1,
+      "entry_spread_offset_interval_us": [
+        3563.092,
+        3813.868
+      ],
+      "entry_spread_using_only_same_window_bounds_us": [
+        3357.476,
+        4297.616
+      ],
+      "end_spread_offset_interval_us": [
+        0.0,
+        170.826
+      ],
+      "possible_latest_entry_ranks": [
+        2,
+        9
+      ]
+    },
+    {
+      "variant": "sharded",
+      "round": 0,
+      "chain": 2,
+      "entry_spread_offset_interval_us": [
+        3601.037,
+        3870.427
+      ],
+      "entry_spread_using_only_same_window_bounds_us": [
+        3526.198,
+        3988.882
+      ],
+      "end_spread_offset_interval_us": [
+        0.0,
+        170.726
+      ],
+      "possible_latest_entry_ranks": [
+        4
+      ]
+    },
+    {
+      "variant": "sharded",
+      "round": 1,
+      "chain": 1,
+      "entry_spread_offset_interval_us": [
+        3129.993,
+        3428.27
+      ],
+      "entry_spread_using_only_same_window_bounds_us": [
+        3092.527,
+        3500.871
+      ],
+      "end_spread_offset_interval_us": [
+        0.0,
+        170.966
+      ],
+      "possible_latest_entry_ranks": [
+        1
+      ]
+    },
+    {
+      "variant": "sharded",
+      "round": 1,
+      "chain": 2,
+      "entry_spread_offset_interval_us": [
+        3532.351,
+        3804.626
+      ],
+      "entry_spread_using_only_same_window_bounds_us": [
+        3516.846,
+        3848.929
+      ],
+      "end_spread_offset_interval_us": [
+        0.0,
+        171.666
+      ],
+      "possible_latest_entry_ranks": [
+        4
+      ]
+    }
+  ],
+  "collective_entry": {
+    "producer_to_master_entry_us": {
+      "n": 640,
+      "min": 0.5,
+      "p50": 0.6,
+      "p90": 0.6629000000000005,
+      "max": 0.9
+    },
+    "producer_to_main_wait_us": {
+      "n": 640,
+      "min": 0.06,
+      "p50": 0.06,
+      "p90": 0.08,
+      "max": 0.08
+    },
+    "master_notify_wait_fraction_of_operation": {
+      "n": 640,
+      "min": 0.9926004228329809,
+      "p50": 0.9999320627966317,
+      "p90": 0.9999659273965659,
+      "max": 0.9999727618404278
+    },
+    "meaning": "Master Notify_Record after the preceding local main-stream producer is a local graph entry proxy. Remote visibility and exact buffer-ready instants are not recorded."
+  },
+  "host_device_windows": {
+    "host_marker_to_replay_api_begin_us": {
+      "n": 128,
+      "min": 2153.24,
+      "p50": 2804.69,
+      "p90": 3642.037,
+      "max": 4813.9
+    },
+    "host_replay_api_duration_us": {
+      "n": 128,
+      "min": 29.58,
+      "p50": 48.875,
+      "p90": 272.984,
+      "max": 705.34
+    },
+    "recorded_api_begin_to_first_device_us": {
+      "n": 128,
+      "min": 15.418,
+      "p50": 40.762,
+      "p90": 265.3601,
+      "max": 716.831
+    },
+    "remaining_compute_and_comm_envelope_us": {
+      "n": 128,
+      "min": 29.3799999999992,
+      "p50": 32.32099999999991,
+      "p90": 35.266599999999926,
+      "max": 36.7599999999984
+    },
+    "meaning": "The host preparation before replay and device execution envelope are distinct intervals. API-to-device differences also contain clock offset and are not a pure queue-delay measurement."
+  },
+  "interval_containment": {
+    "operations_with_child_outside_operation": 625,
+    "child_outside_operation_count": 997,
+    "longest_child_outside_operation": {
+      "startNs": 1792285345480548125,
+      "endNs": 1792285345493548365,
+      "deviceId": 11,
+      "globalPid": 1885871,
+      "contextId": 4294967295,
+      "streamId": 100,
+      "taskId": 784,
+      "modelId": 4294967295,
+      "globalTaskId": 496,
+      "connectionId": -1,
+      "task_type": "NOTIFY_WAIT_SQE",
+      "duration_us": 13000.24,
+      "plane_id": 2,
+      "notify_id": 5782
+    },
+    "compute_comm_operation_intersection_us": {
+      "n": 128,
+      "min": 0.0,
+      "p50": 0.0,
+      "p90": 0.0,
+      "max": 0.0
+    },
+    "compute_nested_comm_intersection_us": {
+      "n": 128,
+      "min": 808.035,
+      "p50": 3023.46,
+      "p90": 5199.232,
+      "max": 6273.145
+    },
+    "meaning": "COMMUNICATION_OP envelopes and their child task sets are not nested intervals. Child waits can begin before the operation and extend across later operations. Clip and union before accounting; an occupied wait is not engine utilization."
+  },
+  "supported_conclusions": [
+    "There are substantial, offset-invariant device-task elapsed tails for selected MatMul instances; median task duration does not describe the TP critical rank.",
+    "All observed collective entry timestamps follow local main-stream production almost immediately, and several millisecond entry skews survive the empirical causal envelopes.",
+    "The early rank's operation can elapse substantially before a late rank completes its local producer. That elapsed interval can include partial collective progress and is not automatically idle time.",
+    "Many collective operation durations are represented almost entirely by an explicit master Notify_Wait. This establishes synchronization waiting at that stream, not which peer, link, or execution resource caused it."
+  ],
+  "not_established": [
+    "A measured hardware clock accuracy bound or the precise last rank when candidates overlap the causal clock intervals.",
+    "Pure communication transfer cost from max(end)-max(start), or pure host queue/stall time from CSV Wait Time.",
+    "Whether a long AI Core task is caused by inefficient arithmetic, memory stalls, device scheduling, another process, or profiling.",
+    "Which execution or scheduling change is causal, or a steady-state end-to-end performance gain from this short trace."
+  ],
+  "decision_boundary": "The evidence supports investigating execution-period tails and rank skew. It does not select host scheduling over operator execution, and the separately observed active co-load is a confounder rather than a task-level cause.",
+  "latency_acceptance": false,
+  "tpot_measured": false
+}

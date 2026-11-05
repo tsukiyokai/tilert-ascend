@@ -1,0 +1,20 @@
+--- LayerCase.separate
++++ tp_parent.separate
+@@ -1,4 +1,4 @@
+-def separate(self):
++def separate(self, attention_sum, output, reduce):
+     normalized, retained = self.input_norm(self.norm[0], self.norm[1])
+     self.norm[3].copy_(normalized)
+     self.norm[4].copy_(retained)
+@@ -17,8 +17,10 @@
+             None, self.main_metadata, self.index_metadata, self.caches,
+             self.scratch, self.tiling, self.partial, *self.scalars,
+             BLOCKS, self.sync)
++    reduce(self.partial, attention_sum, 'ar1')
+     self.ffn.native.forward_out(
+-        self.partial, self.norm[4], self.ffn.gamma, self.ffn.gate,
++        attention_sum, self.norm[4], self.ffn.gamma, self.ffn.gate,
+         self.ffn.bias, self.ffn.weights, self.ffn.shared,
+         self.bridge, self.body, self.ffn.epsilon, BLOCKS, 1, self.sync)
++    reduce(self.bridge[10], output, 'ar2')
+     self.parent_validated = True

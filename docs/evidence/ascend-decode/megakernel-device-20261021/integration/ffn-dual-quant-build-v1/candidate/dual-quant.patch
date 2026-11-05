@@ -1,0 +1,181 @@
+--- parent/bridge/source/ffn_bridge/body_native.h
++++ candidate/bridge/source/ffn_bridge/body_native.h
+@@ -1,10 +1,12 @@
+ #include "native.h"
++#include "../../../source/dual_quant_native.h"
+ 
+ namespace ffn_bridge {
+ struct Addresses { GM_ADDR values[kBuffers]; };
+ __aicore__ inline void Forward(AscendC::TPipe& pipe, GM_ADDR input,
+     GM_ADDR residual, GM_ADDR gamma, GM_ADDR gate, GM_ADDR bias,
+-    Addresses a, int64_t rows, int64_t blocks, float epsilon)
++    Addresses a, GM_ADDR routed_codes, GM_ADDR routed_scales,
++    int64_t rows, int64_t blocks, float epsilon)
+ {
+     using namespace AscendC;
+     whole_layer_norm::device::Forward(pipe,
+@@ -17,9 +19,11 @@
+     device::Gate(pipe, (__gm__ bfloat16_t*)a.values[kNormalized],
+         (__gm__ bfloat16_t*)gate, (__gm__ float*)a.values[kLogits],
+         a.values[kTiling], rows, blocks);
+-    device::Quantize(pipe, (__gm__ bfloat16_t*)a.values[kNormalized],
++    ffn_dual_quant::device::Quantize(pipe, (__gm__ bfloat16_t*)a.values[kNormalized],
+         (__gm__ int8_t*)a.values[kSharedCodes],
+-        (__gm__ float*)a.values[kSharedScales], rows);
++        (__gm__ float*)a.values[kSharedScales],
++        (__gm__ int8_t*)routed_codes,
++        (__gm__ float*)routed_scales, rows);
+     device::EndPhase(pipe);
+     device::TopK(pipe, a.values[kLogits], bias, a.values[kProbabilities],
+                  a.values[kIds], a.values[kSystem], rows);
+--- parent/body/source/routed_int4/routed_int4_front.h
++++ candidate/body/source/routed_int4/routed_int4_front.h
+@@ -19,7 +19,7 @@
+ 
+ // AIV0 owns all metadata; token%(2*blocks)
+ // owns each A8 row and its exact four-byte scale store.
+-template <class Timing>
++template <bool input_quantized = false, class Timing>
+ __aicore__ inline void Prepare(
+     TPipe& pipe, DispatchInput input, __gm__ int8_t* rows,
+     __gm__ float* scales, __gm__ int32_t* group_count,
+@@ -130,48 +130,50 @@
+             DataCopy(weight_gm, weight, kMaxRoutes);
+         }
+ 
+-        auto values = input_buf.Get<float>();
+-        auto work = work_buf.Get<float>();
+-        auto output = output_buf.Get<int8_t>();
+-        auto scale = scale_buf.Get<float>();
+-        auto bf16_input = input_narrow_buf.Get<bfloat16_t>();
+-        auto half_output = input_narrow_buf.Get<half>();
+-        GlobalTensor<bfloat16_t> hidden;
+-        GlobalTensor<int8_t> output_gm;
+-        GlobalTensor<float> scale_gm;
+-        hidden.SetGlobalBuffer((__gm__ bfloat16_t*)input.bf16_rows, tokens * kHidden);
+-        output_gm.SetGlobalBuffer(rows, tokens * kHidden);
+-        scale_gm.SetGlobalBuffer(scales, tokens);
+-        for (int64_t token = GetBlockIdx(); token < tokens; token += 2 * blocks) {
+-            DataCopy(bf16_input, hidden[token * kHidden], kHidden);
+-            Fence<HardEvent::MTE2_V>();
+-            Cast(values, bf16_input, RoundMode::CAST_NONE, kHidden);
+-            PipeBarrier<PIPE_V>();
+-            Abs(work, values, kHidden);
+-            PipeBarrier<PIPE_V>();
+-            ReduceMax(scale, work, work, kHidden);
+-            Fence<HardEvent::V_S>();
+-            const float quantum = scale.GetValue(0) / 127.0F;
+-            Fence<HardEvent::S_V>();
+-            Duplicate(scale, quantum, 8);
+-            Duplicate(work, quantum, kHidden);
+-            PipeBarrier<PIPE_V>();
+-            // CANN InitRouting uses Div(x, amax/127), including zero rows.
+-            Div(work, values, work, kHidden);
+-            PipeBarrier<PIPE_V>();
+-            auto integer = work.ReinterpretCast<int32_t>();
+-            Cast(integer, work, RoundMode::CAST_RINT, kHidden);
+-            PipeBarrier<PIPE_V>();
+-            SetDeqScale(half(1.0F));
+-            Cast(half_output, integer, RoundMode::CAST_ROUND, kHidden);
+-            PipeBarrier<PIPE_V>();
+-            Cast(output, half_output, RoundMode::CAST_TRUNC, kHidden);
+-            Fence<HardEvent::V_MTE3>();
+-            DataCopy(output_gm[token * kHidden], output, kHidden);
+-            DataCopyPad(scale_gm[token], scale,
+-                        DataCopyExtParams{1, sizeof(float), 0, 0, 0});
+-            Fence<HardEvent::MTE3_V>();
+-            Fence<HardEvent::MTE3_MTE2>();
++        if constexpr (!input_quantized) {
++            auto values = input_buf.Get<float>();
++            auto work = work_buf.Get<float>();
++            auto output = output_buf.Get<int8_t>();
++            auto scale = scale_buf.Get<float>();
++            auto bf16_input = input_narrow_buf.Get<bfloat16_t>();
++            auto half_output = input_narrow_buf.Get<half>();
++            GlobalTensor<bfloat16_t> hidden;
++            GlobalTensor<int8_t> output_gm;
++            GlobalTensor<float> scale_gm;
++            hidden.SetGlobalBuffer((__gm__ bfloat16_t*)input.bf16_rows, tokens * kHidden);
++            output_gm.SetGlobalBuffer(rows, tokens * kHidden);
++            scale_gm.SetGlobalBuffer(scales, tokens);
++            for (int64_t token = GetBlockIdx(); token < tokens; token += 2 * blocks) {
++                DataCopy(bf16_input, hidden[token * kHidden], kHidden);
++                Fence<HardEvent::MTE2_V>();
++                Cast(values, bf16_input, RoundMode::CAST_NONE, kHidden);
++                PipeBarrier<PIPE_V>();
++                Abs(work, values, kHidden);
++                PipeBarrier<PIPE_V>();
++                ReduceMax(scale, work, work, kHidden);
++                Fence<HardEvent::V_S>();
++                const float quantum = scale.GetValue(0) / 127.0F;
++                Fence<HardEvent::S_V>();
++                Duplicate(scale, quantum, 8);
++                Duplicate(work, quantum, kHidden);
++                PipeBarrier<PIPE_V>();
++                // CANN InitRouting uses Div(x, amax/127), including zero rows.
++                Div(work, values, work, kHidden);
++                PipeBarrier<PIPE_V>();
++                auto integer = work.ReinterpretCast<int32_t>();
++                Cast(integer, work, RoundMode::CAST_RINT, kHidden);
++                PipeBarrier<PIPE_V>();
++                SetDeqScale(half(1.0F));
++                Cast(half_output, integer, RoundMode::CAST_ROUND, kHidden);
++                PipeBarrier<PIPE_V>();
++                Cast(output, half_output, RoundMode::CAST_TRUNC, kHidden);
++                Fence<HardEvent::V_MTE3>();
++                DataCopy(output_gm[token * kHidden], output, kHidden);
++                DataCopyPad(scale_gm[token], scale,
++                            DataCopyExtParams{1, sizeof(float), 0, 0, 0});
++                Fence<HardEvent::MTE3_V>();
++                Fence<HardEvent::MTE3_MTE2>();
++            }
+         }
+     }
+     PipeBarrier<PIPE_ALL>();
+--- parent/body/source/routed_int4/routed_body_native.h
++++ candidate/body/source/routed_int4/routed_body_native.h
+@@ -514,11 +514,14 @@
+ 
+ }  // namespace
+ 
+-template <CubeFormat weight_format, bool from_dispatch>
++template <CubeFormat weight_format, bool from_dispatch,
++          bool input_quantized = false>
+ __aicore__ inline void Forward(
+     TPipe& pipe, const ffn_down_n512::BodyArguments& arguments,
+     __gm__ bfloat16_t* scaled_output, __gm__ bfloat16_t* combined_output)
+ {
++    static_assert(!input_quantized || from_dispatch,
++                  "prequantized input requires front preparation");
+     Timing timing;
+     timing.Begin(0);
+ #ifdef ROUTED_SHARED_PIPELINE
+@@ -529,7 +532,7 @@
+     if constexpr (from_dispatch) {
+ #ifdef ROUTED_INPUT_FRONT
+         if (arguments.dispatch.bf16_rows != 0) {
+-            front::Prepare(pipe, arguments.dispatch, ((__gm__ int8_t*)arguments.scratch[kRestoredRows]), ((__gm__ float*)arguments.scratch[kRestoredScale]), ((__gm__ int32_t*)arguments.scratch[kGroupCount]),
++            front::Prepare<input_quantized>(pipe, arguments.dispatch, ((__gm__ int8_t*)arguments.scratch[kRestoredRows]), ((__gm__ float*)arguments.scratch[kRestoredScale]), ((__gm__ int32_t*)arguments.scratch[kGroupCount]),
+                            ((__gm__ int32_t*)arguments.scratch[kGroupStart]), ((__gm__ int32_t*)arguments.scratch[kSourceRow]), ((__gm__ int32_t*)arguments.scratch[kSourceSlot]), ((__gm__ float*)arguments.scratch[kRowWeight]),
+                            arguments.rows, arguments.blocks, timing);
+         } else
+--- parent/source/kernel.cpp
++++ candidate/source/kernel.cpp
+@@ -24,12 +24,15 @@
+     SetSysWorkspace(bridge.values[ffn_bridge::kSystem]);
+     TPipe pipe;
+     ffn_bridge::Forward(pipe, input, residual, gamma, gate, bias,
+-                        bridge, arguments.rows, arguments.blocks, epsilon);
++                        bridge,
++                        (GM_ADDR)arguments.scratch[kRestoredRows],
++                        (GM_ADDR)arguments.scratch[kRestoredScale],
++                        arguments.rows, arguments.blocks, epsilon);
+ 
+     // The bridge's final EndPhase has drained all CUBE work and reset UB.
+     // Only its GM outputs survive into the unchanged routed/shared body.
+     SetSysWorkspace((GM_ADDR)arguments.scratch[kMatmulWorkspace]);
+-    routed_body::Forward<format, true>(pipe, arguments,
++    routed_body::Forward<format, true, true>(pipe, arguments,
+         (__gm__ bfloat16_t*)bridge.values[ffn_bridge::kScaledRouted],
+         (__gm__ bfloat16_t*)bridge.values[ffn_bridge::kCombined]);
+     // All output consumers follow this global task on the same stream.

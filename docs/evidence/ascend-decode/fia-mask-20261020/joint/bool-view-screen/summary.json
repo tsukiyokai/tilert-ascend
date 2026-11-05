@@ -1,0 +1,100 @@
+{
+  "scope": "One synthetic M8/C9344 uint8-bitmap bool-view paired graph micro-screen",
+  "status": "single_screen_completed",
+  "source_sha256": "e5e424c152a12c1697ab78bd18a740c3ff72ac57b715d3e664026a4ea9725c75",
+  "audit_source_sha256": "777126b6e26f17e9f4c10fee86fbffeaa38a3beeec4fce43bc9b96ae64bc67ab",
+  "raw_result_sha256": "c5d16ae0e7e2e0b06ff42dac62b0c2d33cee2dad5dbb847aeb646d0a955b33aa",
+  "input_sha256": "de64a6e9d8a3565751098836880efcdc1eaff23eedb1650176ef901585e914d9",
+  "original_input_sha256": "d8b00212e619c88383dcb79c487c050fa38b26a29467240e8ac66d7261f5d23a",
+  "baseline_source_sha256": "c807b5f1ec922c8c19404b8a25d76451a09267a68ee51006e9393b284211f731",
+  "only_device_function_change_ast_verified": "bitmap.view(torch.bool) before OR",
+  "bool_baseline_eager_all_states_bit_equal": true,
+  "self_eager_graph_all_states_bit_equal": true,
+  "attention_calls": {
+    "eager": 20,
+    "capture": 20,
+    "validation": 60,
+    "measured": 600
+  },
+  "summary": {
+    "sfa": {
+      "event_us_per_call_median": 95.38899958133698,
+      "wall_us_per_call_median": 109.56880000000001,
+      "host_graph_enqueue_us_median": 71.30099999999999
+    },
+    "joint": {
+      "event_us_per_call_median": 132.0169985294342,
+      "wall_us_per_call_median": 146.35719999999998,
+      "host_graph_enqueue_us_median": 70.8305
+    }
+  },
+  "paired_event_ratio_median": 1.384549033049921,
+  "paired_wall_ratio_median": 1.332669190517374,
+  "paired_event_delta_us_median": 36.729997396469116,
+  "paired_event_ratio_range": [
+    1.3697294133511884,
+    1.4218374502791513
+  ],
+  "order_parity_event_ratio_medians": {
+    "0": 1.3808855903923465,
+    "1": 1.3864328924014697
+  },
+  "actual_sfa_key": 1158,
+  "actual_fia_key": 105000000010122221,
+  "bitmap_view_alias": {
+    "same_device_ptr": "0x12c082828400",
+    "uint8_scatter_parameter_line": 73985,
+    "bool_or_parameter_line": 75183,
+    "shape": [
+      8,
+      9344
+    ],
+    "strides": [
+      9344,
+      1
+    ]
+  },
+  "mask_aicpu_dispatch_lines": 0,
+  "actual_mask_vector_kernels": {
+    "Cast": {
+      "line": 73727,
+      "name": "Cast_e87590d11ccda8b259ab6b1ea7212319_high_performance_210000000",
+      "text": "[INFO] RUNTIME(13598,python3):2026-10-20-00:33:33.053.297 [aix_stars.cc:682] 13695 StreamLaunchKernelV2: kernel info : device_id=0, stream_id=45, task_id=0, kernelAttrType=KERNEL_ATTR_TYPE_VECTOR(2), kernel_name=Cast_e87590d11ccda8b259ab6b1ea7212319_high_performance_210000000, arg_size=64, coreDim=32, taskRation=2, funcType=3, addr1=0x124000001074, addr2=0x0, mixType=0, kernelFlag=0x0, qos=0, partId=0, schemMode=0, infoAddr=(nil), atomicIndex=3471768656885579776, prefetchCnt1=0, prefetchCnt2=0, isNoNeedH2DCopy=0."
+    },
+    "OnesLike": {
+      "line": 73926,
+      "name": "OnesLike_209e1e3c807895591394a370155f4fc6_high_performance_210000000",
+      "text": "[INFO] RUNTIME(13598,python3):2026-10-20-00:33:33.055.853 [aix_stars.cc:682] 13695 StreamLaunchKernelV2: kernel info : device_id=0, stream_id=45, task_id=0, kernelAttrType=KERNEL_ATTR_TYPE_VECTOR(2), kernel_name=OnesLike_209e1e3c807895591394a370155f4fc6_high_performance_210000000, arg_size=64, coreDim=37, taskRation=2, funcType=3, addr1=0x124000002074, addr2=0x0, mixType=0, kernelFlag=0x0, qos=0, partId=0, schemMode=0, infoAddr=(nil), atomicIndex=3471768656885579776, prefetchCnt1=0, prefetchCnt2=0, isNoNeedH2DCopy=0."
+    },
+    "BroadcastTo": {
+      "line": 74556,
+      "name": "BroadcastTo_36442dc78302dfa30e7601dac30325b3_high_performance_232000000",
+      "text": "[INFO] RUNTIME(13598,python3):2026-10-20-00:33:33.064.484 [aix_stars.cc:682] 13695 StreamLaunchKernelV2: kernel info : device_id=0, stream_id=45, task_id=0, kernelAttrType=KERNEL_ATTR_TYPE_VECTOR(2), kernel_name=BroadcastTo_36442dc78302dfa30e7601dac30325b3_high_performance_232000000, arg_size=136, coreDim=8, taskRation=2, funcType=3, addr1=0x124000004d04, addr2=0x0, mixType=0, kernelFlag=0x0, qos=0, partId=0, schemMode=0, infoAddr=(nil), atomicIndex=3471768656885579776, prefetchCnt1=0, prefetchCnt2=0, isNoNeedH2DCopy=0."
+    },
+    "LinearIndex": {
+      "line": 74633,
+      "name": "LinearIndex_b3652dcd59e01dda770dd59c2aa36b23_high_performance_2",
+      "text": "[INFO] RUNTIME(13598,python3):2026-10-20-00:33:33.064.901 [aix_stars.cc:682] 13695 StreamLaunchKernelV2: kernel info : device_id=0, stream_id=45, task_id=0, kernelAttrType=KERNEL_ATTR_TYPE_VECTOR(2), kernel_name=LinearIndex_b3652dcd59e01dda770dd59c2aa36b23_high_performance_2, arg_size=208, coreDim=48, taskRation=2, funcType=3, addr1=0x12c0879205a8, addr2=0x0, mixType=0, kernelFlag=0x0, qos=0, partId=0, schemMode=0, infoAddr=(nil), atomicIndex=3471768656885579776, prefetchCnt1=0, prefetchCnt2=0, isNoNeedH2DCopy=0."
+    },
+    "ScatterElementsV2": {
+      "line": 74750,
+      "name": "ScatterElementsV2_e13d3e47fa14436e81c0bc36b58ec410_high_performance_410",
+      "text": "[INFO] RUNTIME(13598,python3):2026-10-20-00:33:33.066.493 [aix_stars.cc:682] 13695 StreamLaunchKernelV2: kernel info : device_id=0, stream_id=45, task_id=0, kernelAttrType=KERNEL_ATTR_TYPE_VECTOR(2), kernel_name=ScatterElementsV2_e13d3e47fa14436e81c0bc36b58ec410_high_performance_410, arg_size=448, coreDim=8, taskRation=0, funcType=5, addr1=0x12c087abf358, addr2=0x0, mixType=2, kernelFlag=0x0, qos=0, partId=0, schemMode=0, infoAddr=(nil), atomicIndex=3471768656885579776, prefetchCnt1=8, prefetchCnt2=0, isNoNeedH2DCopy=0."
+    },
+    "GreaterEqual": {
+      "line": 75138,
+      "name": "GreaterEqual_db689a08d53f9c09c59c06b9caeb956b_high_performance_299900007",
+      "text": "[INFO] RUNTIME(13598,python3):2026-10-20-00:33:33.071.244 [aix_stars.cc:682] 13695 StreamLaunchKernelV2: kernel info : device_id=0, stream_id=45, task_id=0, kernelAttrType=KERNEL_ATTR_TYPE_VECTOR(2), kernel_name=GreaterEqual_db689a08d53f9c09c59c06b9caeb956b_high_performance_299900007, arg_size=200, coreDim=32, taskRation=2, funcType=3, addr1=0x12400006aad8, addr2=0x0, mixType=0, kernelFlag=0x0, qos=0, partId=0, schemMode=0, infoAddr=(nil), atomicIndex=3471768656885579776, prefetchCnt1=2, prefetchCnt2=0, isNoNeedH2DCopy=0."
+    },
+    "LogicalOr": {
+      "line": 75505,
+      "name": "LogicalOr_91d2a3cdd75d915a368582ec5f440af1_high_performance_210000000",
+      "text": "[INFO] RUNTIME(13598,python3):2026-10-20-00:33:33.075.827 [aix_stars.cc:682] 13695 StreamLaunchKernelV2: kernel info : device_id=0, stream_id=45, task_id=0, kernelAttrType=KERNEL_ATTR_TYPE_VECTOR(2), kernel_name=LogicalOr_91d2a3cdd75d915a368582ec5f440af1_high_performance_210000000, arg_size=72, coreDim=37, taskRation=2, funcType=3, addr1=0x12400006c074, addr2=0x0, mixType=0, kernelFlag=0x0, qos=0, partId=0, schemMode=0, infoAddr=(nil), atomicIndex=3471768656885579776, prefetchCnt1=0, prefetchCnt2=0, isNoNeedH2DCopy=0."
+    }
+  },
+  "attribution_limit": "All mask branches have actual vector-kernel launch evidence and no mask AICPU dispatch. This screen has no per-task profile; remaining cost is not assigned to individual kernels.",
+  "peak_allocated_bytes": 92798976,
+  "peak_reserved_bytes": 184549376,
+  "model_tpot_measured": false,
+  "decoder_precision_verified": false
+}

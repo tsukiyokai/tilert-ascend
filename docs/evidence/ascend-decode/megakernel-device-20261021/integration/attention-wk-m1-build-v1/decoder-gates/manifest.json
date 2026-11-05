@@ -1,0 +1,97 @@
+{
+  "scope": "Original Decoder6/7 eager and official ACLGraphWrapper gates; only indexed library replaced; both arms retain original FFN",
+  "library_sha256": "8deff750464e23bb871302c8626b86d37b60c28a00991d550f95dfcfd47ecb6f",
+  "schema_identity_verified_by": "/tmp/tilert-megakernel-validation-20261021/attention-wk-m1-build-v1/manifest.json",
+  "commands": {
+    "eager": [
+      "bash",
+      "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-storage-forward-v2/device_storage_forward_run.sh",
+      "4",
+      "vendor-hook-decoder212-wk-m1-int8-eager-wide-v1",
+      "--mode",
+      "int8",
+      "--forward-widths",
+      "1",
+      "2",
+      "12",
+      "32",
+      "--forward-replays",
+      "8",
+      "--indexed-library",
+      "/evidence/attention-wk-m1-build-v1/whole_layer_indexed_attention.so"
+    ],
+    "graph": [
+      "bash",
+      "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-graph-v1/device_graph_run.sh",
+      "4",
+      "vendor-hook-decoder212-wk-m1-int8-graph-wide-v1",
+      "--mode",
+      "int8",
+      "--forward-widths",
+      "1",
+      "2",
+      "12",
+      "32",
+      "--forward-replays",
+      "8",
+      "--graph-residual-modes",
+      "none",
+      "provided",
+      "--indexed-library",
+      "/evidence/attention-wk-m1-build-v1/whole_layer_indexed_attention.so"
+    ]
+  },
+  "required_sha256": {
+    "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-storage-forward-v2/device_storage_forward_run.sh": "cab58bd918b581e89c9febe58218550eec6d286654ddd2a88e9b7508b2a9c0b7",
+    "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-storage-forward-v2/frozen-inputs.sha256": "bc660542583aee5acea59e0fc4e1d1988fb1dee254c26d4cef6028b41cd586aa",
+    "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-storage-forward-v2/manifest.json": "2459d29c8dd9d60b212dc4824ddce83fd3becba89c382f638aa2ae8de04e39a1",
+    "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-storage-forward-v2/device_forward_storage_async.py": "66237ea5b2683aca1691b5a3cf703bf2113c988730fb48720871132dcac1aa9e",
+    "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-storage-forward-v2/decoder_forward.py": "c802ae9371103bb75c1f8f5df39e3c9b2e49d77fd3a86ef23ad5d58781fcb207",
+    "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-storage-forward-v2/decoder_storage_forward.py": "148911466ccc7a7bc3b87e3f3870ad451a95fe3626e6823e1a7c0bb051a779c0",
+    "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-graph-v1/device_graph_run.sh": "a7c7de2814147e1e6283ff9634cba0044f65370a99b88b183c74400049d0dd95",
+    "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-graph-v1/frozen-inputs.sha256": "d97c7378816f3e70d64e60a61102db8e6ba785aae47da37b29115cb068bb054e",
+    "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-graph-v1/manifest.json": "f356e777aaf9d15ca8c1814d1e456152aa98d6f06d0f2586c2d90bb1d074f158",
+    "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-graph-v1/device_graph.py": "efdc1209c4cf38c9c5f94607770de5d4a3cd276ce1df1f210cd63cd3be3e9e3c",
+    "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-graph-v1/decoder_graph.py": "12bd361bdf9fd8b7890dadafaf701e260eb38124553b8e0a3d477039b2b07016",
+    "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-graph-v1/decoder_forward.py": "c802ae9371103bb75c1f8f5df39e3c9b2e49d77fd3a86ef23ad5d58781fcb207",
+    "/home/shanshan/tilert-megakernel-20261021/logs/attention-wk-m1-build-v1/manifest.json": "db2f5af406d2bfd728f2e6f4550b336e0b8a3d1aee9682fe06b2815f6298ece9",
+    "/home/shanshan/tilert-megakernel-20261021/logs/attention-wk-m1-build-v1/artifacts.sha256": "63a985fbddcc5180c49878ad8990bf87a4d6d5ac89c79794a4917d9a8cfcc314",
+    "/home/shanshan/tilert-megakernel-20261021/logs/attention-wk-m1-build-v1/whole_layer_indexed_attention.so": "8deff750464e23bb871302c8626b86d37b60c28a00991d550f95dfcfd47ecb6f",
+    "/home/shanshan/tilert-megakernel-20261021/wk-m1-decoder-gates-v1/decoder_gates.py": "0fba3c1c24893ae4da6d955c303aca23dce2af9da20e1064ca74a708e529e6b3"
+  },
+  "parent_commands": {
+    "eager": {
+      "parent_archive": "/home/shanshan/repo/tile-ai/TileRT-Ascend/docs/evidence/ascend-decode/megakernel-device-20261021/integration/vendor-hook-decoder212-wk-m12-int8-wide-v1-a3-194",
+      "parent_command_sha256": "40efaa250b8e4716c740dc26c613d6520b91c769f3548032306b15ed6a580c78",
+      "changed_argument_positions": [
+        3,
+        14
+      ],
+      "source_sha256": {
+        "device_storage_forward_run.sh": "cab58bd918b581e89c9febe58218550eec6d286654ddd2a88e9b7508b2a9c0b7",
+        "frozen-inputs.sha256": "bc660542583aee5acea59e0fc4e1d1988fb1dee254c26d4cef6028b41cd586aa",
+        "manifest.json": "2459d29c8dd9d60b212dc4824ddce83fd3becba89c382f638aa2ae8de04e39a1",
+        "device_forward_storage_async.py": "66237ea5b2683aca1691b5a3cf703bf2113c988730fb48720871132dcac1aa9e",
+        "decoder_forward.py": "c802ae9371103bb75c1f8f5df39e3c9b2e49d77fd3a86ef23ad5d58781fcb207",
+        "decoder_storage_forward.py": "148911466ccc7a7bc3b87e3f3870ad451a95fe3626e6823e1a7c0bb051a779c0"
+      }
+    },
+    "graph": {
+      "parent_archive": "/home/shanshan/repo/tile-ai/TileRT-Ascend/docs/evidence/ascend-decode/megakernel-device-20261021/integration/vendor-hook-decoder212-graph-int8-wide-v1-a3-194",
+      "parent_command_sha256": "99f7bdf533da2f8045237713964b3091fd77f41b826e7663a8bd6a4e684189af",
+      "changed_argument_positions": [
+        3,
+        17
+      ],
+      "source_sha256": {
+        "device_graph_run.sh": "a7c7de2814147e1e6283ff9634cba0044f65370a99b88b183c74400049d0dd95",
+        "frozen-inputs.sha256": "d97c7378816f3e70d64e60a61102db8e6ba785aae47da37b29115cb068bb054e",
+        "manifest.json": "f356e777aaf9d15ca8c1814d1e456152aa98d6f06d0f2586c2d90bb1d074f158",
+        "device_graph.py": "efdc1209c4cf38c9c5f94607770de5d4a3cd276ce1df1f210cd63cd3be3e9e3c",
+        "decoder_graph.py": "12bd361bdf9fd8b7890dadafaf701e260eb38124553b8e0a3d477039b2b07016",
+        "decoder_forward.py": "c802ae9371103bb75c1f8f5df39e3c9b2e49d77fd3a86ef23ad5d58781fcb207"
+      }
+    }
+  },
+  "device_execution": false
+}

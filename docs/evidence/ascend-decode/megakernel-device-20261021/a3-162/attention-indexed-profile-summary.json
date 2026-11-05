@@ -1,0 +1,151 @@
+{
+  "scope": "Synthetic indexed attention, eight independent weight banks, sixteen calls per graph, sequence 8192; before TP reduction",
+  "ordinary_library_sha256": "6588e1dcde9dd843c10479ce1276ae069d89a9e60c16bc296f20ba4afb7c1c34",
+  "profile_library_sha256": "e34088c8d12f6c00831d871886b59959cb59fdfe56a1a3954088db06386d1987",
+  "counter": {
+    "ticks_per_us": 50,
+    "source_path": "/home/shanshan/repo/cann/asc-devkit/docs/zh/api/SIMD-API/basic_api/tool_interface/system_resources_and_variables/GetSystemCycle_ISASI.md",
+    "source_sha256": "0bc0947cf89527aa6e506a58e44bdfddbc505a322903a99b9bc823969d1012ab",
+    "source_commit": "6a51d0b167dd8f5555456a0ebb783ef0427e366e",
+    "cross_core_clock_alignment_assumed": false
+  },
+  "intervals": "Each phase includes its original barriers; maxima can belong to different workers and must not be added. Samples retain the final call. Event-minus-local-window is not an isolated operator.",
+  "cases": [
+    {
+      "raw_report": "attention-indexed-profile-m12-bank8.json.gz",
+      "raw_uncompressed_sha256": "9c244902cac4121d3465ec9865490dd8e0882944dbbbc65683d7c75c253fee05",
+      "mode": "int8",
+      "rows": 12,
+      "blocks": 24,
+      "event_us_per_call": {
+        "ordinary": {
+          "samples": 30,
+          "p50": 294.6758270263672,
+          "p90": 294.7459411621094,
+          "std": 0.16105839225341131
+        },
+        "profile": {
+          "samples": 30,
+          "p50": 301.93554560343426,
+          "p90": 302.0040925343832,
+          "std": 0.05542467668245656
+        }
+      },
+      "median_paired_instrumentation_delta_us": 7.264773050944001,
+      "local_counter": {
+        "samples": 30,
+        "ticks_per_us": 50,
+        "max_per_worker_median_phase_us": {
+          "prolog": 42.379999999999995,
+          "indexer_front": 70.37,
+          "indexer": 54.84,
+          "sfa": 76.97,
+          "projection_tail": 56.55
+        },
+        "max_per_worker_median_local_window_us": 297.03
+      }
+    },
+    {
+      "raw_report": "attention-indexed-profile-m12-bank8.json.gz",
+      "raw_uncompressed_sha256": "9c244902cac4121d3465ec9865490dd8e0882944dbbbc65683d7c75c253fee05",
+      "mode": "bf16",
+      "rows": 12,
+      "blocks": 24,
+      "event_us_per_call": {
+        "ordinary": {
+          "samples": 30,
+          "p50": 283.2469781239828,
+          "p90": 283.3323510487874,
+          "std": 0.08264783812522065
+        },
+        "profile": {
+          "samples": 30,
+          "p50": 294.49718793233234,
+          "p90": 294.6879005432129,
+          "std": 0.15511539727384305
+        }
+      },
+      "median_paired_instrumentation_delta_us": 11.244583129882784,
+      "local_counter": {
+        "samples": 30,
+        "ticks_per_us": 50,
+        "max_per_worker_median_phase_us": {
+          "prolog": 42.61,
+          "indexer_front": 45.28,
+          "indexer": 70.57,
+          "sfa": 77.28999999999999,
+          "projection_tail": 56.129999999999995
+        },
+        "max_per_worker_median_local_window_us": 285.79999999999995
+      }
+    },
+    {
+      "raw_report": "attention-indexed-profile-m32-bank8.json.gz",
+      "raw_uncompressed_sha256": "910a05358926076e08b0f433cdbf20e09337591e04feb66402242f00a0d70ea6",
+      "mode": "int8",
+      "rows": 32,
+      "blocks": 24,
+      "event_us_per_call": {
+        "ordinary": {
+          "samples": 30,
+          "p50": 409.97454325358075,
+          "p90": 410.08408546447754,
+          "std": 0.14237516967515929
+        },
+        "profile": {
+          "samples": 30,
+          "p50": 418.10520490010583,
+          "p90": 418.19655736287433,
+          "std": 0.07867610999442826
+        }
+      },
+      "median_paired_instrumentation_delta_us": 8.07353655497235,
+      "local_counter": {
+        "samples": 30,
+        "ticks_per_us": 50,
+        "max_per_worker_median_phase_us": {
+          "prolog": 47.89,
+          "indexer_front": 109.2,
+          "indexer": 68.25,
+          "sfa": 131.59,
+          "projection_tail": 55.010000000000005
+        },
+        "max_per_worker_median_local_window_us": 409.65
+      }
+    },
+    {
+      "raw_report": "attention-indexed-profile-m32-bank8.json.gz",
+      "raw_uncompressed_sha256": "910a05358926076e08b0f433cdbf20e09337591e04feb66402242f00a0d70ea6",
+      "mode": "bf16",
+      "rows": 32,
+      "blocks": 24,
+      "event_us_per_call": {
+        "ordinary": {
+          "samples": 30,
+          "p50": 381.52850468953454,
+          "p90": 381.6564400990804,
+          "std": 0.10749822597574042
+        },
+        "profile": {
+          "samples": 30,
+          "p50": 386.87686920166016,
+          "p90": 387.05752054850257,
+          "std": 0.11556673613932364
+        }
+      },
+      "median_paired_instrumentation_delta_us": 5.347903569539426,
+      "local_counter": {
+        "samples": 30,
+        "ticks_per_us": 50,
+        "max_per_worker_median_phase_us": {
+          "prolog": 47.25,
+          "indexer_front": 69.57,
+          "indexer": 76.35,
+          "sfa": 134.16,
+          "projection_tail": 56.95
+        },
+        "max_per_worker_median_local_window_us": 380.46
+      }
+    }
+  ]
+}

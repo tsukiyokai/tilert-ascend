@@ -1,0 +1,57 @@
+{
+  "scope": "Host stdlib source/API audit; no Torch or device execution",
+  "passed": true,
+  "files": {
+    "tilert/models/glm_5_2_ascend/profiling.py": {
+      "sha256": "2b73ada759076a2f01c7edfffc88b720a9b80617c4ad31b636842dd111a99029",
+      "lines": 223,
+      "ast_valid": true,
+      "long_lines": [],
+      "trailing_whitespace": []
+    },
+    "tests/glm52/profile_native_session.py": {
+      "sha256": "83fec4b1a4b75fd3cb08c3a785d172c2b352bd47ad25b23f200a20ee245523e9",
+      "lines": 279,
+      "ast_valid": true,
+      "long_lines": [],
+      "trailing_whitespace": []
+    },
+    "tests/glm52/check_profiling.py": {
+      "sha256": "9d9e8e493fd9d59fae4821aa76a6a52db08a8eaab83c0c4a61d307fb7bbc5b37",
+      "lines": 389,
+      "ast_valid": true,
+      "long_lines": [],
+      "trailing_whitespace": []
+    }
+  },
+  "profiler_contract": {
+    "torch_npu": "2.12.0",
+    "git_commit": "fa0f83fe49d309dcbc31e264e9e6ed6e5dc49d2d",
+    "cann": "9.2.0",
+    "msprof_sha256": "fa65082c08d82eb094d2083966fcac46a7866e4e2f54d91e4f0bb5edab0e733b",
+    "level": 1,
+    "aic_metrics": "AiCoreNone",
+    "analyse": false,
+    "level_flags": [
+      "TASK_TIME",
+      "ACL_API",
+      "HCCL_TRACE",
+      "AICORE_METRICS"
+    ],
+    "profiler_mgr.h_sha256": "a10d913c3ac15a89e1bd2a8a61104bee4afffb3457b8163288b6ba383498c0d7",
+    "anchors": {
+      "csrc/profiler/profiler_mgr.h:15-17": "Level1 includes HCCL_TRACE",
+      "csrc/profiler/profiler_mgr.cpp:232-246": "current device only",
+      "csrc/profiler/npu_profiler.cpp:256-260": "thread-local CPU callback",
+      "profiler/profiler_interface.py:163-170": "stop synchronizes NPU",
+      "profiler/profiler.py:180-196": "deferred trace analysis"
+    }
+  },
+  "torch_npu_wheel_source_sha256": {
+    "profiler/profiler.py": "1a04902572383b74a401449e73929b2c4ce728d6c81bb59341876b03c7a82168",
+    "profiler/profiler_interface.py": "8183b6470d552c33907784252f4009050aa7066955371c460232bc60b8e0af65",
+    "profiler/experimental_config.py": "08e71971c0251a3cc2ba2705aa699def42922e7cb8ab2752325e9e5dd2f97579"
+  },
+  "cann_tool_evidence": "msprof SHA is from the cached CANN 9.2 installer; the runner records the installed binary SHA at execution",
+  "torch_imported": false
+}

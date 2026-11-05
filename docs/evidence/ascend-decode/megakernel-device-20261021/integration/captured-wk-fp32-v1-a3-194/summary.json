@@ -1,0 +1,25 @@
+{
+  "scope": "Stock BF16 and FP32 WK paths on one captured M32 input",
+  "completed": true,
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "host": "a3-194",
+  "physical_die": 4,
+  "shape": {
+    "M": 32,
+    "K": 6144,
+    "N": 160
+  },
+  "arms": 9,
+  "repetitions": 3,
+  "cases": 27,
+  "matmul_calls": 75,
+  "all_seven_bf16_controls_reproduce_210_groups": true,
+  "stock_full_and_split_fp32_match_all_5120_native_accumulators": true,
+  "stock_full_fp32_cast_differs_from_direct_bf16_elements": 4,
+  "stock_split_fp32_cast_matches_direct_bf16": true,
+  "repeatability_pass": true,
+  "interpretation": "Output dtype changes observed production result at N160. The actual dispatched kernel and accumulation route must be observed before attributing the difference to rounding alone.",
+  "script_sha256": "642d054c7e61579b8fbddd705a9e3ffdbafecb94a4df65ff95ae8955f07e0184",
+  "report_sha256": "4d2a8a337905a0febbab5b36e26de8d0f7120bb9febf284b514e5758731e4aff"
+}

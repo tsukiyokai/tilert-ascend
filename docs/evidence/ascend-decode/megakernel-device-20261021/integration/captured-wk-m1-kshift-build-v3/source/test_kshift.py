@@ -1,0 +1,50 @@
+"""Check M1 task ownership, valid-tail addresses, and K traversal."""
+
+import unittest
+
+from kshift_check import outer_order
+
+
+class GeometryTests(unittest.TestCase):
+    def test_each_valid_output_has_one_owner(self):
+        owners = {}
+        for core in range(10):
+            for row in range(1):
+                for lane in range(16):
+                    address = row * 160 + core * 16 + lane
+                    self.assertNotIn(address, owners)
+                    owners[address] = core
+        self.assertEqual(set(owners), set(range(160)))
+        self.assertTrue(set(owners).isdisjoint(range(160, 16 * 160)))
+
+    def test_every_operand_coordinate_is_valid(self):
+        for shifted in (False, True):
+            for core in range(10):
+                inner = [segment * 512 + step * 128 + lane
+                         for segment in outer_order(core, shifted)
+                         for step in range(4) for lane in range(128)]
+                self.assertEqual(sorted(inner), list(range(6144)))
+                for row in range(1):
+                    self.assertLess(row * 6144 + max(inner), 6144)
+                for column in range(core * 16, (core + 1) * 16):
+                    self.assertLess(column * 6144 + max(inner), 160 * 6144)
+
+    def test_recorded_witness_tasks_have_distinct_order(self):
+        self.assertEqual(outer_order(1, True), list(range(11, -1, -1)))
+        self.assertEqual(outer_order(0, True), list(range(12)))
+        self.assertEqual(outer_order(1, False), list(range(12)))
+
+    def test_gemv_a_vector_and_matrix_b_match_l0(self):
+        # M=1 selects GEMV on A3. A has no M16 gaps; B retains eight fractals.
+        a = {(k // 16) * 16 + k % 16: k for k in range(128)}
+        b = {(k // 16) * 256 + column * 16 + k % 16: (column, k)
+             for column in range(16) for k in range(128)}
+        self.assertEqual(set(a), set(range(128)))
+        self.assertEqual(set(b), set(range(16 * 128)))
+        loaded_a = set(range(256))
+        self.assertTrue(set(a).issubset(loaded_a))
+        self.assertTrue(set(a).isdisjoint(range(128, 256)))
+
+
+if __name__ == "__main__":
+    unittest.main()

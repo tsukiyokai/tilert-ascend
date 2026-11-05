@@ -1,0 +1,188 @@
+{
+  "title": "FP16 head-weight prescaling can reverse a strict C8 index score order",
+  "scope": "Operator-wire arithmetic witness only. This does not assert that a real checkpoint row produces these encoded inputs or that a device kernel has executed them.",
+  "execution": {
+    "python_stdlib_only": true,
+    "torch_imported": false,
+    "npu_initialized": false,
+    "npu_executed": false
+  },
+  "target_source": {
+    "repository": "https://github.com/vllm-project/vllm-ascend",
+    "commit": "f558b58c177916424ae9dcf9bb8e66c0b9031236",
+    "anchors": [
+      {
+        "path": "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/attention/indexer.py",
+        "lines": [
+          320,
+          322
+        ],
+        "file_sha256": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1",
+        "excerpt": "320:         kw, _ = self.wk_weights_proj(hidden_states)\n321:         k_li = kw[:, : self.head_dim]\n322:         indexer_weights = kw[:, self.head_dim :]"
+      },
+      {
+        "path": "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/attention/indexer.py",
+        "lines": [
+          438,
+          445
+        ],
+        "file_sha256": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1",
+        "excerpt": "438:         if hidden_states is k_hidden_states:\n439:             # The k path already ran wk_weights_proj on these hidden states\n440:             # (SFA hands both stages the same tensor); reuse its weights tail\n441:             # instead of duplicating the GEMM.\n442:             weights = indexer_weights\n443:         else:\n444:             kw, _ = self.wk_weights_proj(hidden_states)\n445:             weights = kw[:, self.head_dim :]"
+      },
+      {
+        "path": "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/attention/indexer.py",
+        "lines": [
+          497,
+          508
+        ],
+        "file_sha256": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1",
+        "excerpt": "497:         return DeviceOperator.indexer_select_post_process(\n498:             q_li,\n499:             q_li_scale,\n500:             q_li_shape_ori,\n501:             weights,\n502:             self.k_cache.kv_cache,\n503:             INDEXER_K_CACHE_SLOT,\n504:             INDEXER_SCALE_CACHE_SLOT,\n505:             indexer_metadata,\n506:             indexer_metadata.actual_seq_lengths_query,\n507:             indexer_metadata.actual_seq_lengths_key,\n508:             self.enable_sparse_li_c8,"
+      },
+      {
+        "path": "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/device/device_op.py",
+        "lines": [
+          482,
+          502
+        ],
+        "file_sha256": "0488cb2578df5075a73245a0d540ee8de93ea71972ae8b636cc7cdef83823b8e",
+        "excerpt": "482:         if enable_sparse_li_c8:\n483:             # ``kv_cache`` is the indexer's own cache tuple (k + scale).\n484:             assert len(kv_cache) == 2\n485:             assert q_li_scale is not None\n486:             assert q_li_shape_ori is not None\n487:             weights = weights.to(torch.float16)\n488:             topk_indices = torch_npu.npu_quant_lightning_indexer(\n489:                 query=q_li.view(q_li_shape_ori),\n490:                 key=kv_cache[indexer_cache_idx],\n491:                 weights=weights,\n492:                 query_dequant_scale=q_li_scale.view(q_li_shape_ori[:-1]),\n493:                 key_dequant_scale=kv_cache[indexer_scale_cache_idx].squeeze(2),  # B S N D -> B S D\n494:                 actual_seq_lengths_query=actual_seq_lengths_query,\n495:                 actual_seq_lengths_key=actual_seq_lengths_key,\n496:                 block_table=attn_metadata.block_table,\n497:                 query_quant_mode=0,\n498:                 key_quant_mode=0,\n499:                 layout_query=\"TND\",\n500:                 layout_key=\"PA_BSND\",\n501:                 sparse_count=2048,\n502:                 sparse_mode=3,"
+      }
+    ]
+  },
+  "inputs": {
+    "head_count": 32,
+    "query_and_key_dimension": 128,
+    "query_int8_sparse_entries": [
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        1,
+        1,
+        1
+      ]
+    ],
+    "keys_int8_sparse_entries": [
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        1,
+        1,
+        1
+      ]
+    ],
+    "unlisted_query_key_entries": 0,
+    "head_weights_bf16_nonzero": [
+      {
+        "value": 0.0002460479736328125,
+        "bf16_bits": "0x3981",
+        "fp32_bits": "0x39810000"
+      },
+      {
+        "value": 0.000244140625,
+        "bf16_bits": "0x3980",
+        "fp32_bits": "0x39800000"
+      }
+    ],
+    "head_weights_bf16_remaining_30": 0,
+    "query_scales_fp16_all_heads": {
+      "value": 1.0,
+      "fp16_bits": "0x3c00",
+      "fp32_bits": "0x3f800000"
+    },
+    "key_scales_fp16": [
+      {
+        "value": 1.0,
+        "fp16_bits": "0x3c00",
+        "fp32_bits": "0x3f800000"
+      },
+      {
+        "value": 1.00390625,
+        "fp16_bits": "0x3c04",
+        "fp32_bits": "0x3f808000"
+      }
+    ],
+    "int32_dot_products_active_heads_by_candidate": [
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        1
+      ]
+    ]
+  },
+  "formulas": {
+    "target_weight": "FP16(raw_BF16_head_weight)",
+    "removed_prescale_weight": "FP16(FP32(raw_BF16_head_weight / 64))",
+    "scores": "sum_h FP32(ReLU(FP32(FP32(dot_int32[h,k] * query_scale[h]) * key_scale[k])) * converted_head_weight[h]); all nonzero terms and sums in this witness are exactly representable in FP32"
+  },
+  "converted_weights": {
+    "target": [
+      {
+        "value": 0.0002460479736328125,
+        "fp16_bits": "0x0c08",
+        "fp32_bits": "0x39810000"
+      },
+      {
+        "value": 0.000244140625,
+        "fp16_bits": "0x0c00",
+        "fp32_bits": "0x39800000"
+      }
+    ],
+    "prescaled": [
+      {
+        "value": 3.814697265625e-06,
+        "fp16_bits": "0x0040",
+        "fp32_bits": "0x36800000"
+      },
+      {
+        "value": 3.814697265625e-06,
+        "fp16_bits": "0x0040",
+        "fp32_bits": "0x36800000"
+      }
+    ]
+  },
+  "scores": {
+    "target": [
+      {
+        "value": 0.0002460479736328125,
+        "fp32_bits": "0x39810000"
+      },
+      {
+        "value": 0.00024509429931640625,
+        "fp32_bits": "0x39808000"
+      }
+    ],
+    "prescaled": [
+      {
+        "value": 3.814697265625e-06,
+        "fp32_bits": "0x36800000"
+      },
+      {
+        "value": 3.829598426818848e-06,
+        "fp32_bits": "0x36808000"
+      }
+    ],
+    "target_strict_winner": 0,
+    "prescaled_strict_winner": 1,
+    "target_margin": {
+      "value": 9.5367431640625e-07,
+      "fp32_bits": "0x35800000"
+    },
+    "prescaled_margin": {
+      "value": 1.4901161193847656e-08,
+      "fp32_bits": "0x32800000"
+    },
+    "ties": false
+  },
+  "mechanism": "Both prescaled head weights round to the same FP16 subnormal 2^-18. The second key scale remains 257/256, so candidate 1 becomes strictly larger. A positive common scale is order-preserving in real arithmetic but not when inserted before FP16 rounding.",
+  "top2048_embedding": "Add 2047 copies of candidate 0 with key scale 2 and any remaining keys with zero INT8 entries. The 2047 added scores exceed both candidates in both paths; the final selected candidate changes at the strict top-2048 cutoff.",
+  "reproducer": "import struct\nf16 = lambda x: struct.unpack(\"<e\", struct.pack(\"<e\", x))[0]\nf32 = lambda x: struct.unpack(\"<f\", struct.pack(\"<f\", x))[0]\na, b, r = 2**-12 * 129/128, 2**-12, 257/256\ntarget = [f32(f16(a)), f32(f16(b) * r)]\nprescaled = [f32(f16(f32(a/64))), f32(f16(f32(b/64)) * r)]\nassert target[0] > target[1]\nassert prescaled[0] < prescaled[1]\nprint(target, prescaled)"
+}

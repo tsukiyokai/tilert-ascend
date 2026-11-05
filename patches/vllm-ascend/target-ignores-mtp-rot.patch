@@ -1,0 +1,22 @@
+Let the target loader ignore the MTP head's rotation weight.
+
+The checkpoint's index declares `rot.weight` and its description says
+`is_rot_used: True`, but `self.rot` is built only in `glm5next/mtp.py`, under
+`is_rot_weight_used`. The engine runs with `speculative_config=None` whenever
+a host drafter is used, so the MTP module is never constructed and the key has
+no owner: `AutoWeightsLoader` raises
+
+    ValueError: There is no module or parameter named 'rot' in
+    GlmMoeDsaForCausalLM
+
+Dropping the key from the index is not the fix -- the 8K capture binds to the
+SHA-256 of config.json, quant_model_description.json and the index, so editing
+it trades this error for `MTP requires a checkpoint-bound TP16 v3 capture`.
+The rotation belongs to a module the target does not have, so the target's
+loader should ignore it.
+
+--- a/vllm_ascend/models/glm5next/model.py
++++ b/vllm_ascend/models/glm5next/model.py
+@@
+-        loader = AutoWeightsLoader(self)
++        loader = AutoWeightsLoader(self, ignore_unexpected_prefixes=["rot."])

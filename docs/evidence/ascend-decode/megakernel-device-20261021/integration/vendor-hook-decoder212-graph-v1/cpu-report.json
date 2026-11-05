@@ -1,0 +1,70 @@
+{
+  "scope": "Frozen actual Torch212 imports, CPU contracts, CLI rejection and native schema co-load",
+  "script_sha256": "2fa50f9202fab16dba44421cce03de72b93f65fec1f68a15f598a2379a2c537c",
+  "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "torch_path": "/usr/local/lib/python3.11/site-packages/torch/__init__.py",
+  "torch_npu_path": "/usr/local/lib/python3.11/site-packages/torch_npu/__init__.py",
+  "cxx11_abi": true,
+  "npu_initialized_before": false,
+  "npu_initialized_after": false,
+  "mapped_davinci_devices": [],
+  "device_execution": false,
+  "decoder_manifest_sha256": "f356e777aaf9d15ca8c1814d1e456152aa98d6f06d0f2586c2d90bb1d074f158",
+  "decoder_files_verified": 784,
+  "runtime_files_verified": 7953,
+  "original_forward_sha256": "c802ae9371103bb75c1f8f5df39e3c9b2e49d77fd3a86ef23ad5d58781fcb207",
+  "graph_source_sha256": "12bd361bdf9fd8b7890dadafaf701e260eb38124553b8e0a3d477039b2b07016",
+  "contracts_run": 4,
+  "contract_log": "test_actual_lengths_and_independent_maps_change_at_fixed_geometry (frozen_decoder_graph_contract.DecoderGraphContracts.test_actual_lengths_and_independent_maps_change_at_fixed_geometry) ... ok\ntest_empty_replay_cannot_reuse_valid_observation (frozen_decoder_graph_contract.DecoderGraphContracts.test_empty_replay_cannot_reuse_valid_observation) ... ok\ntest_exact_boundary_gate_rejects_stale_cut_and_residual (frozen_decoder_graph_contract.DecoderGraphContracts.test_exact_boundary_gate_rejects_stale_cut_and_residual) ... ok\ntest_gate_keeps_signed_zero_and_ordered_topk (frozen_decoder_graph_contract.DecoderGraphContracts.test_gate_keeps_signed_zero_and_ordered_topk) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.081s\n\nOK\n",
+  "libraries": {
+    "/candidate/whole_layer_indexed_attention.so": "5f8868bf96efcfd5a53f17890ce8b619287d4463386a2f020c80546332edfabc",
+    "/workspace/native/shared/whole_layer_full_attention.so": "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c"
+  },
+  "schemas": [
+    "tilert::indexed_attention_out(Tensor hidden, Tensor token_x, Tensor token_scale, Tensor[] main_weights, Tensor[] front_weights, Tensor[] tail_weights, Tensor? bias, Tensor[] main_metadata, Tensor[] indexer_metadata, Tensor(a!)[] caches, Tensor(b!) scratch, Tensor tiling, Tensor(c!) output, float scale, float epsilon_cq, float epsilon_ckv, int blocks, int sync_base) -> Tensor(c!)",
+    "tilert::indexed_attention_prepare(Tensor token_x, int pages, int table_pages, int index_pages, int index_table_pages, bool quantized, int blocks=0) -> (Tensor, Tensor, Dict(str, int), int, int)",
+    "tilert::shared_full_attention_out(Tensor token_x, Tensor token_scale, Tensor weight_dq, Tensor weight_uq_qr, Tensor weight_uk, Tensor weight_dkv_kr, Tensor scale_dq, Tensor scale_uq_qr, Tensor scale_dkv_kr, Tensor gamma_cq, Tensor gamma_ckv, Tensor sin, Tensor cos, Tensor slots, Tensor(a!) kv_cache, Tensor(b!) rope_cache, Tensor topk, Tensor query_lengths, Tensor kv_lengths, Tensor page_table, Tensor value_weight, Tensor output_weight, Tensor output_scale, Tensor? bias, Tensor(c!) scratch, Tensor tiling, Tensor(d!) output, float scale, float epsilon_cq, float epsilon_ckv, int blocks, int sync_base) -> Tensor(d!)",
+    "tilert::shared_full_attention_prepare(Tensor token_x, int pages, int table_pages, int blocks=0) -> (Tensor, Tensor, int, int)"
+  ],
+  "cli_controls": [
+    {
+      "arguments": [
+        "--help"
+      ],
+      "exit_code": 0,
+      "stdout": "usage: device_graph.py [-h] --output OUTPUT --runtime RUNTIME\n                       --extension-sha256 EXTENSION_SHA256\n                       [--mode {int8,bf16}] [--timeout TIMEOUT] --adapter\n                       ADAPTER --indexed-library INDEXED_LIBRARY\n                       --shared-library SHARED_LIBRARY --sfa-library\n                       SFA_LIBRARY\n                       [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                       [--forward-replays FORWARD_REPLAYS]\n                       [--forward-sequence FORWARD_SEQUENCE]\n                       [--graph-residual-modes {none,provided} [{none,provided} ...]]\n\nCompare real decoder layers with explicit rank-local TP boundary inputs.\n\noptions:\n  -h, --help            show this help message and exit\n  --output OUTPUT\n  --runtime RUNTIME\n  --extension-sha256 EXTENSION_SHA256\n  --mode {int8,bf16}\n  --timeout TIMEOUT\n  --adapter ADAPTER\n  --indexed-library INDEXED_LIBRARY\n  --shared-library SHARED_LIBRARY\n  --sfa-library SFA_LIBRARY\n  --forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]\n  --forward-replays FORWARD_REPLAYS\n  --forward-sequence FORWARD_SEQUENCE\n  --graph-residual-modes {none,provided} [{none,provided} ...]\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "--forward-widths",
+        "3"
+      ],
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "usage: device_graph.py [-h] --output OUTPUT --runtime RUNTIME\n                       --extension-sha256 EXTENSION_SHA256\n                       [--mode {int8,bf16}] [--timeout TIMEOUT] --adapter\n                       ADAPTER --indexed-library INDEXED_LIBRARY\n                       --shared-library SHARED_LIBRARY --sfa-library\n                       SFA_LIBRARY\n                       [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                       [--forward-replays FORWARD_REPLAYS]\n                       [--forward-sequence FORWARD_SEQUENCE]\n                       [--graph-residual-modes {none,provided} [{none,provided} ...]]\ndevice_graph.py: error: Use widths 1/2/12/32, 1..32 replays and a sequence covering every width\n"
+    },
+    {
+      "arguments": [
+        "--forward-replays",
+        "0"
+      ],
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "usage: device_graph.py [-h] --output OUTPUT --runtime RUNTIME\n                       --extension-sha256 EXTENSION_SHA256\n                       [--mode {int8,bf16}] [--timeout TIMEOUT] --adapter\n                       ADAPTER --indexed-library INDEXED_LIBRARY\n                       --shared-library SHARED_LIBRARY --sfa-library\n                       SFA_LIBRARY\n                       [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                       [--forward-replays FORWARD_REPLAYS]\n                       [--forward-sequence FORWARD_SEQUENCE]\n                       [--graph-residual-modes {none,provided} [{none,provided} ...]]\ndevice_graph.py: error: Use widths 1/2/12/32, 1..32 replays and a sequence covering every width\n"
+    },
+    {
+      "arguments": [
+        "--graph-residual-modes",
+        "none",
+        "none"
+      ],
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "usage: device_graph.py [-h] --output OUTPUT --runtime RUNTIME\n                       --extension-sha256 EXTENSION_SHA256\n                       [--mode {int8,bf16}] [--timeout TIMEOUT] --adapter\n                       ADAPTER --indexed-library INDEXED_LIBRARY\n                       --shared-library SHARED_LIBRARY --sfa-library\n                       SFA_LIBRARY\n                       [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                       [--forward-replays FORWARD_REPLAYS]\n                       [--forward-sequence FORWARD_SEQUENCE]\n                       [--graph-residual-modes {none,provided} [{none,provided} ...]]\ndevice_graph.py: error: Each initial residual branch needs one distinct capture\n"
+    }
+  ],
+  "pass": true
+}

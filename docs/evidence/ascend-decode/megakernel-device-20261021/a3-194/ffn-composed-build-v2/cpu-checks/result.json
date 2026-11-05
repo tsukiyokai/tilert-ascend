@@ -1,0 +1,56 @@
+{
+  "scope": "CPU source seam and logical decoder checks; no device execution",
+  "python_tests": 4,
+  "geometry_cases": 64,
+  "npu_tasks": 0,
+  "results": [
+    {
+      "argv": [
+        "/tmp/tilert-megakernel-cpu/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "/home/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/whole_layer/ffn_composed",
+        "-p",
+        "test_prepare.py",
+        "-v"
+      ],
+      "cwd": "/home/shanshan/repo/tile-ai/TileRT-Ascend",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "test_bridge_statements_keep_three_boundaries (test_prepare.CompositionSeams.test_bridge_statements_keep_three_boundaries) ... ok\ntest_host_checks_are_retained_without_launch (test_prepare.CompositionSeams.test_host_checks_are_retained_without_launch) ... ok\ntest_manifest_freezes_both_parents_and_seams (test_prepare.CompositionSeams.test_manifest_freezes_both_parents_and_seams) ... ok\ntest_shared_decoder_excludes_padding_and_keeps_last_valid_row (test_prepare.CompositionSeams.test_shared_decoder_excludes_padding_and_keeps_last_valid_row) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.654s\n\nOK\n"
+    },
+    {
+      "argv": [
+        "g++",
+        "-std=c++17",
+        "-O2",
+        "-DROUTED_SHARED_PIPELINE=1",
+        "-DROUTED_INPUT_FRONT=1",
+        "/tmp/tilert-ffn-composed-cpu-v1/source/contract_test.cpp",
+        "-o",
+        "/tmp/tilert-ffn-composed-cpu-v1/contract_test"
+      ],
+      "cwd": "/home/shanshan/repo/tile-ai/TileRT-Ascend",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/tilert-ffn-composed-cpu-v1/contract_test"
+      ],
+      "cwd": "/home/shanshan/repo/tile-ai/TileRT-Ascend",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "sources": {
+    "check.py": "d5c1f9f3214a1461d0aff29e166ec781d894c6bd991369bbac27f80baed3c9bb",
+    "prepare.py": "6cc700c492ef1270b5d403233f692d472a49f3da60404189237bddb4fa8e46ff",
+    "test_prepare.py": "d222a12abd2dfdb617a24d1990910bd196efe7b14ed8435e4eb30545f9a82de9"
+  },
+  "frozen_cxx_source_sha256": "163a52590dcc8f626f09c8d40746cc2fcfdb7884651f988706cc35e9a50133d4"
+}

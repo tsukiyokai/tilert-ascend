@@ -1,0 +1,80 @@
+--- a/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_service_vector_mla.h
++++ b/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_service_vector_mla.h
+@@ -66,0 +67,2 @@
++    __aicore__ inline void StageMetadata(const RunInfo& info, int64_t topkBase,
++                                        int64_t begin, int64_t end);
+@@ -214,0 +217,6 @@
++
++    bool metadataReady_ = false;
++    int64_t metadataBegin_ = 0;
++    int64_t metadataEnd_ = 0;
++    LocalTensor<int32_t> metadataTopk_;
++    LocalTensor<int32_t> metadataPages_;
+@@ -845,0 +854,51 @@
++__aicore__ inline void SFAVectorService<SFAT>::StageMetadata(
++    const RunInfo& info, int64_t topkBase, int64_t begin, int64_t end)
++{
++    metadataReady_ = false;
++    if constexpr (PAGE_ATTENTION && TEMPLATE_MODE == V_TEMPLATE && !FLASH_DECODE &&
++                  SFAT::hasRope && LAYOUT_T == SFA_LAYOUT::TND &&
++                  KV_LAYOUT_T == SFA_LAYOUT::PA_BSND &&
++                  IsSameType<KV_T, bfloat16_t>::value &&
++                  IsSameType<OUT_T, bfloat16_t>::value) {
++        if (sfaVecConstInfo.batchSize != 1 || sfaVecConstInfo.headDim != 512 ||
++            sfaVecConstInfo.headDimRope != 64 || sfaVecConstInfo.kvHeadNum != 1 ||
++            sfaVecConstInfo.kvCacheBlockSize != 128 ||
++            sfaVecConstInfo.sparseBlockSize != 1 || sfaVecConstInfo.preLoadNum != 2 ||
++            sfaVecConstInfo.s2BaseSize == 0 || sfaVecConstInfo.s2BaseSize > 512 ||
++            sfaVecConstInfo.maxBlockNumPerBatch == 0 ||
++            sfaVecConstInfo.maxBlockNumPerBatch > 1024 || end <= begin ||
++            info.curActualSeqLenOri >
++                static_cast<uint64_t>(sfaVecConstInfo.maxBlockNumPerBatch) * 128) {
++            return;
++        }
++        metadataBegin_ = static_cast<int64_t>(info.s2Idx) *
++                             sfaVecConstInfo.s2BaseSize + begin;
++        // MergeKv may read the second member of a final odd pair.
++        metadataEnd_ = metadataBegin_ + CeilDiv(end - begin, 2L) * 2;
++        if (metadataEnd_ > sfaVecConstInfo.sparseBlockCount) {
++            metadataEnd_ = sfaVecConstInfo.sparseBlockCount;
++        }
++        const int64_t count = metadataEnd_ - metadataBegin_;
++        if (metadataBegin_ < 0 || count <= 0 || count > 256) {
++            return;
++        }
++        // Original users occupy bytes [0,2048); these slices never alias them.
++        metadataTopk_ = v0ValidSizeBuff.Get<int32_t>()[512];
++        metadataPages_ = v0ValidSizeBuff.Get<int32_t>()[1024];
++        DataCopyExtParams copy{};
++        copy.blockCount = 1;
++        copy.blockLen = static_cast<uint32_t>(count * sizeof(int32_t));
++        DataCopyPadExtParams<int32_t> padding{};
++        DataCopyPad(metadataTopk_, topkGm_[topkBase + metadataBegin_], copy, padding);
++        copy.blockLen = sfaVecConstInfo.maxBlockNumPerBatch * sizeof(int32_t);
++        DataCopyPad(metadataPages_,
++                    blkTableGm_[info.bIdx * sfaVecConstInfo.maxBlockNumPerBatch],
++                    copy, padding);
++        // MTE2_S(0) belongs to Vec1; metadata uses a separately paired event.
++        SetFlag<AscendC::HardEvent::MTE2_S>(1);
++        WaitFlag<AscendC::HardEvent::MTE2_S>(1);
++        metadataReady_ = true;
++    }
++}
++
++template <typename SFAT>
+@@ -855 +914,5 @@
+-    realS2Idx = topkGm_.GetValue(topkGmBaseOffset + topkGmIdx) * static_cast<int64_t>(sfaVecConstInfo.sparseBlockSize) +
++    const int32_t selected = metadataReady_ && topkGmIdx >= metadataBegin_ &&
++                                     topkGmIdx < metadataEnd_
++        ? metadataTopk_.GetValue(topkGmIdx - metadataBegin_)
++        : topkGm_.GetValue(topkGmBaseOffset + topkGmIdx);
++    realS2Idx = selected * static_cast<int64_t>(sfaVecConstInfo.sparseBlockSize) +
+@@ -871 +934,5 @@
+-        realKeyGmOffset = blkTableGm_.GetValue(sfaVecRunInfo.bIdx * sfaVecConstInfo.maxBlockNumPerBatch + blkTableIdx) *
++        const int32_t page = metadataReady_ &&
++                                     blkTableIdx < sfaVecConstInfo.maxBlockNumPerBatch
++            ? metadataPages_.GetValue(blkTableIdx)
++            : blkTableGm_.GetValue(sfaVecRunInfo.bIdx * sfaVecConstInfo.maxBlockNumPerBatch + blkTableIdx);
++        realKeyGmOffset = page *
+@@ -1057,0 +1125 @@
++    StageMetadata(sfaVecRunInfo, topkGmBaseOffset, s2GmStartOffset, s2GmLimit);

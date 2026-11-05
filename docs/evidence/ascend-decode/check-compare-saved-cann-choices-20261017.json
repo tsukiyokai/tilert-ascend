@@ -1,0 +1,397 @@
+{
+  "created_at": "2026-10-16T20:39:46.731876+00:00",
+  "scope": "Synthetic host-validator fixtures with real CPU tensors; not HF/NPU precision or model execution",
+  "torch": "2.12.0+cpu",
+  "torch_npu": "2.12.0",
+  "npu_initialized_before": false,
+  "npu_initialized_after": false,
+  "source_sha256": {
+    "check_compare_saved_cann.py": "9a86190a5d602b3a9ccfcd54e1289bd7d2e8ace1200dbb051a6b4719348f230c",
+    "compare_saved_cann.py": "3f58f77d3dd23440bd51fb3ef18247d590c9ad83c55ea1c181b6d68de5c9e486",
+    "run_cann_model.py": "921b297d8b24e08e01d9367ad6fe8385a36f9a3d9fa11eef21293625ef7e662c",
+    "run_native_decode.py": "bc40b579824eb6def8fa9fc7fb2acd045774088f1e841e514279aa6818870adc"
+  },
+  "checks": [
+    {
+      "name": "actual_cli_complete_tp16_8k",
+      "passed": true,
+      "checks_total": 9380,
+      "stdout": "{\"status\": \"pass\", \"checks_total\": 9380, \"checks_failed\": 0, \"completed_rank_steps\": 16, \"layerwise_logits_parity\": true, \"precision_verified\": false}\n",
+      "stderr": ""
+    },
+    {
+      "name": "missing_rank15",
+      "passed": true,
+      "failures": [
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "FileNotFoundError: [Errno 2] No such file or directory: '/workspace/offline/cann-selection-integration-20261017/tmp81kaa80y/missing_rank15/native/rank-15.json'"
+        }
+      ]
+    },
+    {
+      "name": "rank_report_hash",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.report_hash",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.report_hash"
+        }
+      ]
+    },
+    {
+      "name": "rank15_trace_hash",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.step-08192.pt.hash",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.step-08192.pt.hash"
+        }
+      ]
+    },
+    {
+      "name": "hf_trace_hash",
+      "passed": true,
+      "failures": [
+        {
+          "name": "hf.step-08192.pt.hash",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: hf.step-08192.pt.hash"
+        }
+      ]
+    },
+    {
+      "name": "checkpoint",
+      "passed": true,
+      "failures": [
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: HF reference TP layout or checkpoint mismatch"
+        }
+      ]
+    },
+    {
+      "name": "teacher",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.0.teacher_tokens_and_positions",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.0.teacher_tokens_and_positions"
+        }
+      ]
+    },
+    {
+      "name": "initial_position",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.0.teacher_tokens_and_positions",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.0.teacher_tokens_and_positions"
+        }
+      ]
+    },
+    {
+      "name": "prefix_hash",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.prefix_hash",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.prefix_hash"
+        }
+      ]
+    },
+    {
+      "name": "prompt_hash",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.0.original_prompt_identity",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.0.original_prompt_identity"
+        }
+      ]
+    },
+    {
+      "name": "prompt_length",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.0.original_prompt_identity",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.0.original_prompt_identity"
+        }
+      ]
+    },
+    {
+      "name": "last_prompt_token",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.0.original_prompt_identity",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.0.original_prompt_identity"
+        }
+      ]
+    },
+    {
+      "name": "capture_generation",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.capture_agreement",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.capture_agreement"
+        }
+      ]
+    },
+    {
+      "name": "reset_not_completed",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.reset_completed",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.reset_completed"
+        }
+      ]
+    },
+    {
+      "name": "missing_reset_hidden",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.reset.0.complete",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.reset.0.complete"
+        }
+      ]
+    },
+    {
+      "name": "reset_not_exact",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.reset.0.exact",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.reset.0.exact"
+        }
+      ]
+    },
+    {
+      "name": "reset_failed",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.device_checks_passed",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.device_checks_passed"
+        }
+      ]
+    },
+    {
+      "name": "hf_reset_failed",
+      "passed": true,
+      "failures": [
+        {
+          "name": "hf.reset_passed",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: hf.reset_passed"
+        }
+      ]
+    },
+    {
+      "name": "final_only",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.0.step.8192.complete_hidden_states",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.0.step.8192.complete_hidden_states"
+        }
+      ]
+    },
+    {
+      "name": "missing_layer_logits",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.0.step.8192.complete_layer_logits",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.0.step.8192.complete_layer_logits"
+        }
+      ]
+    },
+    {
+      "name": "rank15_layer3_numeric_difference",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.step.8192.hidden_states.3",
+          "passed": false,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 98.99999503596733,
+          "cosine": 0.9999998807907104,
+          "max_abs": 99.0
+        }
+      ]
+    },
+    {
+      "name": "old_hf_failure_recompared",
+      "passed": true
+    },
+    {
+      "name": "original_files_unchanged",
+      "passed": true
+    },
+    {
+      "name": "actual_choices_complete_tp16",
+      "passed": true
+    },
+    {
+      "name": "choices.reject.missing_indices",
+      "passed": true
+    },
+    {
+      "name": "choices.reject.missing_dense_route",
+      "passed": true
+    },
+    {
+      "name": "choices.reject.float_indices",
+      "passed": true
+    },
+    {
+      "name": "choices.reject.wrong_actual_route",
+      "passed": true
+    },
+    {
+      "name": "choices.reject.missing_choice_sources",
+      "passed": true
+    },
+    {
+      "name": "choices.reject.partial_choice_sources",
+      "passed": true
+    },
+    {
+      "name": "choices.reject.duplicate_choice_source_suffix",
+      "passed": true
+    },
+    {
+      "name": "choices.padding_and_set_order",
+      "passed": true
+    },
+    {
+      "name": "choices.future_index_rejected",
+      "passed": true
+    },
+    {
+      "name": "choices.reset_preserves_raw_order",
+      "passed": true
+    },
+    {
+      "name": "choices.same_invalid_selection_rejected.indices.[0, 0, 1]",
+      "passed": true
+    },
+    {
+      "name": "choices.same_invalid_selection_rejected.indices.[0, 1]",
+      "passed": true
+    },
+    {
+      "name": "choices.same_invalid_selection_rejected.routes.[0, 0, 2, 3, 4, 5, 6, 7]",
+      "passed": true
+    },
+    {
+      "name": "choices.same_invalid_selection_rejected.routes.[256, 257, 258, 259, 260, 261, 262, 263]",
+      "passed": true
+    },
+    {
+      "name": "no_npu_initialization",
+      "passed": true
+    }
+  ],
+  "passed": true
+}

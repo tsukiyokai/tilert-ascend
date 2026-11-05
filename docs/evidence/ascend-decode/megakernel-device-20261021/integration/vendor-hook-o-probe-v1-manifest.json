@@ -1,0 +1,40 @@
+{
+  "scope": "Captured-O descriptor discriminator; frozen before device execution",
+  "image": "sha256:9afbed90a0f92e228cc1ba13adf3cee2e89e34f1dd4cad1ed8eb5ce8c091b4af",
+  "host": "a3-194",
+  "device_runner": "root only",
+  "sources": {
+    "vendor_hook_o_probe.py": {
+      "path": "/home/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/whole_layer/vendor_hook_o_probe.py",
+      "sha256": "a87b3a77b1dbeb9a9ec1037e39e3900539a9e3d0cf00cadcc4e7aab2efa6ceb6"
+    },
+    "vendor_hook_o_probe.sh": {
+      "path": "/home/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/whole_layer/vendor_hook_o_probe.sh",
+      "sha256": "df18ea85e6fb112af93471d4e9dcda16a6555b242883bb6bd3c20f9d051b3449"
+    }
+  },
+  "capture": {
+    "path": "/tmp/tilert-megakernel-validation-20261021/a3-194/vendor-hook-forward-diagnostic-v10/outer-forward-diagnostic.pt",
+    "sha256": "a07c2505cc9ac44bcd48125ec107c135c85e925b3ebf2c494f17c1a6f7ddb60d"
+  },
+  "cpu_witness": "vendor-hook-o-cpu-witness-v1.json",
+  "checks": {
+    "actual_captured_cpu_reference": true,
+    "python_compile": true,
+    "bash_syntax": true
+  },
+  "device_status": "not run at freeze",
+  "arms": [
+    "original BF16 channel descriptor",
+    "exact widened FP32 descriptor"
+  ],
+  "unchanged": [
+    "actual INT8 codes",
+    "logical INT8 weight recreated as NZ per official postload",
+    "FP32 token scale",
+    "bias=None",
+    "offset omitted",
+    "BF16 output"
+  ],
+  "runtime_comparison": "Same Python source and captured tensors may be run under TorchNPU 2.12 main and the fixed TorchNPU 2.10 runtime image; versions are recorded, not inferred."
+}

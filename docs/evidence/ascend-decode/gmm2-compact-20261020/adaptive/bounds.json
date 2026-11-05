@@ -1,0 +1,116 @@
+{
+  "scope": "Read-only CPU source audit of enabled-domain and two UB branches; no NPU execution or numerical/performance claim.",
+  "source_identity": "All five local audit sources match the independently read hashes of the actual adaptive-release-build source on a3-194.",
+  "sources": {
+    "grouped_matmul.cpp": {
+      "server_path": "/workspace/experiments/gmm2-compact-20261020/adaptive-release-build/source/ops_transformer/ascendc/grouped_matmul/op_kernel/grouped_matmul.cpp",
+      "sha256": "31ebb1b1d8c12b1f0a953b4edc9eca9f9e0ea012f8e1afcd27d6ada7af704734"
+    },
+    "grouped_matmul_active_groups_a8w4.h": {
+      "server_path": "/workspace/experiments/gmm2-compact-20261020/adaptive-release-build/source/ops_transformer/ascendc/grouped_matmul/op_kernel/grouped_matmul_active_groups_a8w4.h",
+      "sha256": "0242bcba23c137f23981038e21cdabb8826c29eccc1b5d9bbd9acb7c94bcc815"
+    },
+    "grouped_matmul_antiquant_a8w4_msd.h": {
+      "server_path": "/workspace/experiments/gmm2-compact-20261020/adaptive-release-build/source/ops_transformer/ascendc/grouped_matmul/op_kernel/grouped_matmul_antiquant_a8w4_msd.h",
+      "sha256": "769406fa8db06a02f1a31f4828fbf64e1c96b4ba89091149ea33649a50c53ff1"
+    },
+    "grouped_matmul_utils.h": {
+      "server_path": "/workspace/experiments/gmm2-compact-20261020/adaptive-release-build/source/ops_transformer/ascendc/grouped_matmul/op_kernel/grouped_matmul_utils.h",
+      "sha256": "d8ced2414384ac9ef9f7836a5f2a20c311b802ab7f1485c9a4eaa8b77ac3aeca"
+    },
+    "grouped_matmul_tiling_key.h": {
+      "server_path": "/workspace/experiments/gmm2-compact-20261020/adaptive-release-build/source/ops_transformer/ascendc/grouped_matmul/op_kernel/grouped_matmul_tiling_key.h",
+      "sha256": "f0f0c981b98bf96e06a92019b68903dc5a95be280fa875be6db8c9648d50e5a7"
+    }
+  },
+  "guard": {
+    "runtime_anchor": "grouped_matmul_active_groups_a8w4.h:18-23",
+    "required": {
+      "groupNum": 256,
+      "k": 128,
+      "n": 6144,
+      "m": "1..256",
+      "coreNum": 24,
+      "parallNum": 4,
+      "quantGroupNum": 1,
+      "withOffset": 0,
+      "isA8W4MSDPreNZ": 0,
+      "isSingleTensor": 1
+    },
+    "bf16_anchor": "grouped_matmul_utils.h:110-118 and grouped_matmul_active_groups_a8w4.h:18",
+    "bf16_contract": "GMM_ANTI_QUANT_A8W4_MSD_OUT_BF16 is defined only for ORIG_DTYPE_X INT8, ORIG_DTYPE_WEIGHT INT4 and ORIG_DTYPE_Y BF16; otherwise helper.enabled remains false.",
+    "count_anchor": "grouped_matmul_tiling_key.h:50-60,158-161",
+    "count_contract": "Every registered A8W4 MSD API-dequant instantiation selects GROUP_LIST_TYPE_COUNT. COUNT is a template-registration invariant, not an explicit field test in helper.Init.",
+    "count_non_evidence": "input-param.json has default group_list_type=0; those descriptor defaults do not establish the actual runtime group-list mode. Use the template whitelist and bound runtime key.",
+    "format_anchor": "tests/glm52/build_gmm2.sh:18-19,72-76,113-120; grouped_matmul.cpp:52-57",
+    "format_contract": "Builder replaces only pinned INT8 x NZ INT4 -> BF16 variant a0be48d01b162435398ed52e1b6182d4, preserves other variants by symlink, and compares compiled descriptor fields against the original. FORMAT_WEIGHT selects CubeFormat::NZ for this artifact.",
+    "negative_boundaries": "K !=128, N !=6144, E !=256, M=0 or M>256, nonzero offset, preNZ, grouped weight scale, other core/parall count or multi-tensor input all disable the helper; FP16 disables it at preprocessing.",
+    "conclusion": "No cross-shape use of hardcoded retile fields in this pinned B114 artifact. The helper alone is not a portable COUNT validator for a different registration set."
+  },
+  "ub": {
+    "allocation_anchor": "grouped_matmul_antiquant_a8w4_msd.h:235-262",
+    "loop_anchor": "grouped_matmul_antiquant_a8w4_msd.h:393-408,483-551",
+    "available_bytes": 196352,
+    "buffer_num": 1,
+    "ubCalSize_elements": 8192,
+    "vBaseM": 32,
+    "tmp_bytes_enabled": 131072,
+    "wide": {
+      "baseM": 32,
+      "baseN": 1024,
+      "vecBaseM_max": 8,
+      "computeSize_max": 8192,
+      "queues_bytes": [
+        4096,
+        128,
+        32768,
+        16384
+      ],
+      "tmp_start_bytes": 53376,
+      "declared_end_and_max_access_bytes": 184448,
+      "physical_margin_bytes": 11904
+    },
+    "enabled_fallback_max_count_above_16": {
+      "baseM": 64,
+      "baseN": 512,
+      "vecBaseM_max": 16,
+      "computeSize_max": 8192,
+      "queues_bytes": [
+        2048,
+        128,
+        32768,
+        16384
+      ],
+      "tmp_start_bytes": 51328,
+      "declared_end_and_max_access_bytes": 182400,
+      "physical_margin_bytes": 13952
+    },
+    "used_tmp_views_relative_bytes": {
+      "buffer1": [
+        0,
+        65536
+      ],
+      "buffer2": [
+        65536,
+        98304
+      ],
+      "buffer3": [
+        98304,
+        131072
+      ],
+      "buffer4": [
+        0,
+        32768
+      ],
+      "buffer7_workspace": [
+        0,
+        65536
+      ]
+    },
+    "unused_view": "buffer6 is still constructed with relative view [98304,163840), beyond the 131072-byte allocation, but withOffset=0 never reads or writes it. This change bounds all accessed views, not every constructed view.",
+    "layout_invariant": "tmpBuff is the last InitBuffer call. Its larger extent keeps its base and all earlier queue/view addresses unchanged; no later local allocation is displaced. Publisher/pre storage is reset before the mid-stage allocations. Matmul shareUbSize is zero.",
+    "indices_invariant": "All scratch indexing depends on ubCalSize and computeSize, not ubRestBytes; raising only InitBuffer length does not change arithmetic or indices. Both active tilings have computeSize <=8192.",
+    "disabled_fallback": "When helper.enabled is false, allocation remains exactly tiling->ubRestBytes and original indexing/barrier path remains; this patch does not claim to repair the inherited declared-bound behavior outside its enabled domain.",
+    "conclusion": "Wide and enabled COUNT>16 fallback fit physical UB and their used tmp views fit the new declared length; no adjacent allocation or index changes were found."
+  }
+}

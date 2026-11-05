@@ -1,0 +1,392 @@
+{
+  "status": "complete",
+  "scope": "CPU layer4 joint incoming-hidden/shared-indices intervention",
+  "precision_verified": false,
+  "performance_measured": false,
+  "layer": 4,
+  "position": 8192,
+  "token": 6500,
+  "changed_inputs": [
+    "merged hidden before input_layernorm",
+    "preceding full-indexer choices for same position"
+  ],
+  "unchanged": [
+    "raw checkpoint",
+    "full-P layer4 prefix",
+    "HF arithmetic/source",
+    "numeric gates"
+  ],
+  "control_matches_frozen_hf_exact": {
+    "merged": true,
+    "logits_m77": true,
+    "indices": true,
+    "routes": true,
+    "latent": true,
+    "rope": true
+  },
+  "comparisons": {
+    "control": [
+      {
+        "name": "control.post_attention",
+        "passed": true,
+        "exact": false,
+        "shape": [
+          1,
+          6144
+        ],
+        "expected_shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "expected_dtype": "torch.bfloat16",
+        "nrmse": 0.009169349919382418,
+        "cosine": 0.9999595880508423,
+        "max_abs": 0.00048828125,
+        "unequal": 4884
+      },
+      {
+        "name": "control.ffn",
+        "passed": false,
+        "exact": false,
+        "shape": [
+          1,
+          6144
+        ],
+        "expected_shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "expected_dtype": "torch.bfloat16",
+        "nrmse": 0.022059358597015626,
+        "cosine": 0.9997580051422119,
+        "max_abs": 9.1552734375e-05,
+        "unequal": 5628
+      },
+      {
+        "name": "control.merged",
+        "passed": true,
+        "exact": false,
+        "shape": [
+          1,
+          6144
+        ],
+        "expected_shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "expected_dtype": "torch.bfloat16",
+        "nrmse": 0.009429963756152114,
+        "cosine": 0.9999570846557617,
+        "max_abs": 0.00048828125,
+        "unequal": 4932
+      },
+      {
+        "name": "control.logits_m77",
+        "passed": false,
+        "exact": false,
+        "shape": [
+          1,
+          154880
+        ],
+        "expected_shape": [
+          1,
+          154880
+        ],
+        "dtype": "torch.bfloat16",
+        "expected_dtype": "torch.bfloat16",
+        "nrmse": 0.009596358669417257,
+        "cosine": 0.9999440312385559,
+        "max_abs": 0.140625,
+        "unequal": 125701
+      },
+      {
+        "name": "control.logits_m1",
+        "passed": false,
+        "exact": false,
+        "shape": [
+          1,
+          154880
+        ],
+        "expected_shape": [
+          1,
+          154880
+        ],
+        "dtype": "torch.bfloat16",
+        "expected_dtype": "torch.bfloat16",
+        "nrmse": 0.009596358669417257,
+        "cosine": 0.9999440312385559,
+        "max_abs": 0.140625,
+        "unequal": 125701
+      }
+    ],
+    "intervention": [
+      {
+        "name": "intervention.post_attention",
+        "passed": true,
+        "exact": false,
+        "shape": [
+          1,
+          6144
+        ],
+        "expected_shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "expected_dtype": "torch.bfloat16",
+        "nrmse": 0.0021033109048625193,
+        "cosine": 0.9999993443489075,
+        "max_abs": 0.0001220703125,
+        "unequal": 1910
+      },
+      {
+        "name": "intervention.ffn",
+        "passed": false,
+        "exact": false,
+        "shape": [
+          1,
+          6144
+        ],
+        "expected_shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "expected_dtype": "torch.bfloat16",
+        "nrmse": 0.013293216501219233,
+        "cosine": 0.9999130368232727,
+        "max_abs": 4.863739013671875e-05,
+        "unequal": 5326
+      },
+      {
+        "name": "intervention.merged",
+        "passed": true,
+        "exact": false,
+        "shape": [
+          1,
+          6144
+        ],
+        "expected_shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "expected_dtype": "torch.bfloat16",
+        "nrmse": 0.00305025012650287,
+        "cosine": 0.9999969601631165,
+        "max_abs": 0.000244140625,
+        "unequal": 2839
+      },
+      {
+        "name": "intervention.logits_m77",
+        "passed": true,
+        "exact": false,
+        "shape": [
+          1,
+          154880
+        ],
+        "expected_shape": [
+          1,
+          154880
+        ],
+        "dtype": "torch.bfloat16",
+        "expected_dtype": "torch.bfloat16",
+        "nrmse": 0.003888306970194427,
+        "cosine": 0.9999823570251465,
+        "max_abs": 0.03125,
+        "unequal": 89610
+      },
+      {
+        "name": "intervention.logits_m1",
+        "passed": true,
+        "exact": false,
+        "shape": [
+          1,
+          154880
+        ],
+        "expected_shape": [
+          1,
+          154880
+        ],
+        "dtype": "torch.bfloat16",
+        "expected_dtype": "torch.bfloat16",
+        "nrmse": 0.003888306970194427,
+        "cosine": 0.9999823570251465,
+        "max_abs": 0.03125,
+        "unequal": 89610
+      }
+    ]
+  },
+  "head_checks": [
+    {
+      "name": "same_actual_hidden.head_m1",
+      "passed": true,
+      "exact": false,
+      "shape": [
+        1,
+        154880
+      ],
+      "expected_shape": [
+        1,
+        154880
+      ],
+      "dtype": "torch.bfloat16",
+      "expected_dtype": "torch.bfloat16",
+      "nrmse": 6.62775612587314e-05,
+      "cosine": 0.9999901056289673,
+      "max_abs": 0.015625,
+      "unequal": 79
+    },
+    {
+      "name": "control.head_m1_vs_m77",
+      "passed": true,
+      "exact": false,
+      "shape": [
+        1,
+        154880
+      ],
+      "expected_shape": [
+        1,
+        154880
+      ],
+      "dtype": "torch.bfloat16",
+      "expected_dtype": "torch.bfloat16",
+      "nrmse": 0.0,
+      "cosine": 0.99998939037323,
+      "max_abs": 0.0,
+      "unequal": 0
+    },
+    {
+      "name": "intervention.head_m1_vs_m77",
+      "passed": true,
+      "exact": false,
+      "shape": [
+        1,
+        154880
+      ],
+      "expected_shape": [
+        1,
+        154880
+      ],
+      "dtype": "torch.bfloat16",
+      "expected_dtype": "torch.bfloat16",
+      "nrmse": 0.0,
+      "cosine": 0.9999896287918091,
+      "max_abs": 0.0,
+      "unequal": 0
+    }
+  ],
+  "hf_routes": {
+    "control": [
+      144,
+      76,
+      77,
+      132,
+      221,
+      174,
+      122,
+      72
+    ],
+    "intervention": [
+      144,
+      76,
+      77,
+      132,
+      221,
+      174,
+      122,
+      72
+    ]
+  },
+  "cann_routes_observed": false,
+  "checkpoint_sha256": {
+    "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+    "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+    "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+  },
+  "prompt_sha256": "fe53282d0b732f6a1cbd9b6587903127f73ba645f2303a246656286704142afa",
+  "artifact_sha256": {
+    "/workspace/offline/cann-streamed-five-20261017/device-01/rank-0-first-layer4.pt": "4ef6e4b4160f43769e3160f5dae8c36806125428bedc5198f2097c1cf489e236",
+    "/workspace/offline/cann-streamed-five-20261017/device-01/rank-0.json": "72c927db8ae89b0129d4c334a1f2847307ae7854aea551828cb4216c66b3b6e3",
+    "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/main-prefix/rank-0.pt": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+    "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/manifest.json": "b01cceb2d2e30564807ce9efc441ad535999b56b73d0c333e93bb18694ccda74",
+    "/workspace/offline/cann-div-reference-20261017/hf-8k/manifest.json": "cadc87d38bf213686e97294144b16832b65e4b68636832049ee138220837417e",
+    "/workspace/offline/cann-div-reference-20261017/hf-8k/step-08192.pt": "d02cb32ac12fefa2f93259daa82b1addb24117537231d5ad039783555775393e"
+  },
+  "source_sha256": {
+    "/workspace/offline/cann-div-reference-20261017/source/tests/glm52/run_hf_reference.py": "a2c261470f9baf1c141746035da8950f61c1f81ac99af3bf86a3c31936d4fa01",
+    "/workspace/offline/cann-div-reference-20261017/source/tests/glm52/run_native_decode.py": "bc40b579824eb6def8fa9fc7fb2acd045774088f1e841e514279aa6818870adc",
+    "/workspace/offline/cann-div-reference-20261017/source/tests/glm52/prefix_io.py": "b0f1a76b565d6d97b3ef1e64b7810d1efe7c22470e2b1c46bd64911341559c90",
+    "/workspace/offline/cann-div-reference-20261017/source/tilert/models/glm_5_2_ascend/reference.py": "1074977dc263e7e45290280aa423c5e1072b8a63bdbebc11225e6f83ed3ab827",
+    "/workspace/offline/cann-div-reference-20261017/source/tilert/models/glm_5_2_ascend/reference_weights.py": "1ae887983d3edf6a9006df7c8b849691b34775c50e8bf8738a1300220348d533",
+    "/workspace/offline/cann-div-reference-20261017/source/tilert/models/glm_5_2_ascend/ops/indexer.py": "b8536fd5f41fe1f194ef4f3f34d30d4090c3b943c69d69a0445666d41396172a",
+    "/workspace/offline/cann-div-reference-20261017/source/tilert/models/glm_5_2_ascend/reference_prolog.py": "20d184e9a17b139ed2cd2f82c9d929c0a6f0fa84778991d6e818f7f1f2e0b864",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/transformers/models/glm_moe_dsa/modeling_glm_moe_dsa.py": "adb8317a21716b01273046e46c807f14f0dbaf035af59b60d52bd6bc3007cf72",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/transformers/models/glm_moe_dsa/configuration_glm_moe_dsa.py": "5a81164be746307431ad998f789b6b0bca20eb4c14a726552eb3730268413997",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/transformers/cache_utils.py": "ee7902fbd031ed332b5e26d07756a33f09b5c90a435b8363b9330876dc33ce0e",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/transformers/utils/output_capturing.py": "28921dca36f8892e6f50c8b92ebfff3e9aff945f32a88c275e41b1dc0f1b65c1",
+    "/workspace/offline/cann-streamed-five-20261017/layer4-boundary-counterfactual-00/replay.py": "25fa16a69a4d95eeb95098a7c4f6b9c4a42d524a99e8d2628c9cc35cf4b726ff"
+  },
+  "output": {
+    "path": "/workspace/offline/cann-streamed-five-20261017/layer4-boundary-counterfactual-00/result.pt",
+    "sha256": "2b7150c748d08629bedb2e9e1caef021f41cf28296062af5d78d94e18d9ca2a7"
+  },
+  "command": {
+    "command": [
+      "docker",
+      "exec",
+      "--workdir",
+      "/workspace/offline/cann-streamed-five-20261017/layer4-boundary-counterfactual-00",
+      "trt-asc",
+      "bash",
+      "-lc",
+      "source /opt/trt-asc/activate.sh && env TORCH_DEVICE_BACKEND_AUTOLOAD=0 OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 MKL_NUM_THREADS=2 /opt/trt-asc/venv/bin/python replay.py"
+    ],
+    "started_at": "2026-10-17T19:04:01.507928+08:00",
+    "source_sha256": "25fa16a69a4d95eeb95098a7c4f6b9c4a42d524a99e8d2628c9cc35cf4b726ff",
+    "scope": "CPU only; two local decoder cases, fixed M1, original M77 diagnostic head"
+  },
+  "torch_version": "2.12.0+cpu",
+  "torch_threads": 2,
+  "mkldnn_enabled": true,
+  "npu_initialized_before": false,
+  "npu_initialized_after": false,
+  "seconds": 19.165797419846058,
+  "root_artifact_audit": {
+    "source_files": 12,
+    "input_files": 6,
+    "control_exact_fields": [
+      "merged",
+      "logits_m77",
+      "indices",
+      "routes",
+      "latent",
+      "rope"
+    ],
+    "recomputed": {
+      "control": {
+        "logits_max_abs": 0.140625,
+        "greedy_matches_device": true,
+        "m1_m77_exact": true
+      },
+      "intervention": {
+        "logits_max_abs": 0.03125,
+        "greedy_matches_device": true,
+        "m1_m77_exact": true
+      }
+    },
+    "npu_initialized": false
+  },
+  "raw_report": {
+    "path": "/workspace/offline/cann-streamed-five-20261017/layer4-boundary-counterfactual-00/result.json",
+    "sha256": "bc69095616933021853208b8768e79c599e1a6fbe7d91ad76755db46323162e0"
+  },
+  "exit": {
+    "exit_code": 0,
+    "seconds": 27.84770497214049,
+    "finished_at": "2026-10-17T19:04:29.355870+08:00"
+  }
+}

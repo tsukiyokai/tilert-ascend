@@ -1,0 +1,20 @@
+--- a/vllm_ascend/ops/fused_moe/routed_experts.py
++++ b/vllm_ascend/ops/fused_moe/routed_experts.py
+@@ -696,6 +696,7 @@
+         hidden_states: torch.Tensor,
+         router_logits: torch.Tensor,
+         input_ids: torch.Tensor | None = None,
++        fused_experts=None,
+     ):
+         forward_context = get_forward_context()
+         # When static kernels are enabled, the forward pass runs twice
+@@ -737,7 +738,8 @@
+         self.ascend_pertoken_scale = pertoken_scale
+         self.ascend_mc2_mask = mc2_mask
+         try:
+-            fused_experts_results: FusedExpertsResult = self.quant_method.apply(
++            apply_experts = self.quant_method.apply if fused_experts is None else fused_experts
++            fused_experts_results: FusedExpertsResult = apply_experts(
+                 layer=self,
+                 x=hidden_states,
+                 topk_weights=topk_weights,

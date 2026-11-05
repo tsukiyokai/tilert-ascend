@@ -1,0 +1,288 @@
+{
+  "scope": "Pinned AscendGateLinear torch.mm BF16 x BF16 to FP32 entry",
+  "source_commit": "8237ee6d690d1399bc6eb48ef5977ac2bd470f3f",
+  "source_call": "torch.mm(x, self.weight.t(), out_dtype=torch.float32)",
+  "script_sha256": "0bf8e940836905d37e396e04bea1440485e0472e0c68cdb6b4b738b8e7105276",
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "dispatch": {
+    "schema": "aten::mm.dtype(Tensor self, Tensor mat2, ScalarType out_dtype) -> Tensor",
+    "privateuse1_kernel": true,
+    "dispatch_table": "CUDA: registered at /pytorch/build/aten/src/ATen/RegisterCUDA_0.cpp:16218 [kernel]\nPrivateUse1: registered at ../torch_npu/csrc/aten/RegisterNPU.cpp:34420 [kernel]\nMeta: registered at /usr/local/lib/python3.11/site-packages/torch/_meta_registrations.py:53 [kernel]\nSparsePrivateUse1: registered at ../torch_npu/csrc/aten/VariableFallbackKernel.cpp:270 [backend fallback]\nBackendSelect: fallthrough registered at /pytorch/aten/src/ATen/core/BackendSelectFallbackKernel.cpp:3 [backend fallback]\nPython: registered at /pytorch/aten/src/ATen/core/PythonFallbackKernel.cpp:198 [backend fallback]\nFuncTorchDynamicLayerBackMode: registered at /pytorch/aten/src/ATen/functorch/DynamicLayer.cpp:479 [backend fallback]\nFunctionalize: registered at /pytorch/aten/src/ATen/FunctionalizeFallbackKernel.cpp:409 [backend fallback]\nNamed: registered at /pytorch/aten/src/ATen/core/NamedRegistrations.cpp:5 [backend fallback]\nConjugate: registered at /pytorch/aten/src/ATen/ConjugateFallback.cpp:17 [backend fallback]\nNegative: registered at /pytorch/aten/src/ATen/native/NegateFallback.cpp:18 [backend fallback]\nZeroTensor: registered at /pytorch/aten/src/ATen/ZeroTensorFallback.cpp:115 [backend fallback]\nADInplaceOrView: fallthrough registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:103 [backend fallback]\nAutogradOther: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradCPU: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradCUDA: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradHIP: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradXLA: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradMPS: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradIPU: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradXPU: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradHPU: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradVE: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradLazy: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradMTIA: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradMAIA: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradPrivateUse1: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradPrivateUse2: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradPrivateUse3: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradMeta: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradNestedTensor: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nTracer: registered at /pytorch/torch/csrc/autograd/generated/TraceType_3.cpp:15355 [kernel]\nAutocastCPU: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:336 [backend fallback]\nAutocastMTIA: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:480 [backend fallback]\nAutocastMAIA: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:518 [backend fallback]\nAutocastXPU: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:556 [backend fallback]\nAutocastMPS: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:221 [backend fallback]\nAutocastCUDA: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:177 [backend fallback]\nAutocastPrivateUse1: fallthrough registered at ../torch_npu/csrc/aten/AutoCastOps.cpp:20 [backend fallback]\nFuncTorchBatched: registered at /pytorch/aten/src/ATen/functorch/LegacyBatchingRegistrations.cpp:729 [backend fallback]\nBatchedNestedTensor: registered at /pytorch/aten/src/ATen/functorch/LegacyBatchingRegistrations.cpp:756 [backend fallback]\nFuncTorchVmapMode: fallthrough registered at /pytorch/aten/src/ATen/functorch/VmapModeRegistrations.cpp:22 [backend fallback]\nBatched: registered at /pytorch/aten/src/ATen/LegacyBatchingRegistrations.cpp:1072 [backend fallback]\nVmapMode: fallthrough registered at /pytorch/aten/src/ATen/VmapModeRegistrations.cpp:32 [backend fallback]\nFuncTorchGradWrapper: registered at /pytorch/aten/src/ATen/functorch/TensorWrapper.cpp:210 [backend fallback]\nPythonTLSSnapshot: registered at /pytorch/aten/src/ATen/core/PythonFallbackKernel.cpp:206 [backend fallback]\nFuncTorchDynamicLayerFrontMode: registered at /pytorch/aten/src/ATen/functorch/DynamicLayer.cpp:475 [backend fallback]\nPreDispatch: registered at /pytorch/aten/src/ATen/core/PythonFallbackKernel.cpp:210 [backend fallback]\nPythonDispatcher: registered at /pytorch/aten/src/ATen/core/PythonFallbackKernel.cpp:202 [backend fallback]\n"
+  },
+  "cases": [
+    {
+      "rows": 1,
+      "layout": "nd",
+      "weight": {
+        "shape": [
+          256,
+          6144
+        ],
+        "stride": [
+          6144,
+          1
+        ],
+        "dtype": "torch.bfloat16",
+        "format": 2,
+        "storage_offset": 0
+      },
+      "operand": {
+        "shape": [
+          6144,
+          256
+        ],
+        "stride": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "format": 2,
+        "storage_offset": 0
+      },
+      "pass": true,
+      "output": {
+        "shape": [
+          1,
+          256
+        ],
+        "stride": [
+          256,
+          1
+        ],
+        "dtype": "torch.float32",
+        "format": 2,
+        "storage_offset": 0
+      },
+      "finite": true
+    },
+    {
+      "rows": 1,
+      "layout": "nz",
+      "weight": {
+        "shape": [
+          256,
+          6144
+        ],
+        "stride": [
+          6144,
+          1
+        ],
+        "dtype": "torch.bfloat16",
+        "format": 29,
+        "storage_offset": 0
+      },
+      "operand": {
+        "shape": [
+          6144,
+          256
+        ],
+        "stride": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "format": 29,
+        "storage_offset": 0
+      },
+      "pass": true,
+      "output": {
+        "shape": [
+          1,
+          256
+        ],
+        "stride": [
+          256,
+          1
+        ],
+        "dtype": "torch.float32",
+        "format": 2,
+        "storage_offset": 0
+      },
+      "finite": true
+    },
+    {
+      "rows": 12,
+      "layout": "nd",
+      "weight": {
+        "shape": [
+          256,
+          6144
+        ],
+        "stride": [
+          6144,
+          1
+        ],
+        "dtype": "torch.bfloat16",
+        "format": 2,
+        "storage_offset": 0
+      },
+      "operand": {
+        "shape": [
+          6144,
+          256
+        ],
+        "stride": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "format": 2,
+        "storage_offset": 0
+      },
+      "pass": true,
+      "output": {
+        "shape": [
+          12,
+          256
+        ],
+        "stride": [
+          256,
+          1
+        ],
+        "dtype": "torch.float32",
+        "format": 2,
+        "storage_offset": 0
+      },
+      "finite": true
+    },
+    {
+      "rows": 12,
+      "layout": "nz",
+      "weight": {
+        "shape": [
+          256,
+          6144
+        ],
+        "stride": [
+          6144,
+          1
+        ],
+        "dtype": "torch.bfloat16",
+        "format": 29,
+        "storage_offset": 0
+      },
+      "operand": {
+        "shape": [
+          6144,
+          256
+        ],
+        "stride": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "format": 29,
+        "storage_offset": 0
+      },
+      "pass": true,
+      "output": {
+        "shape": [
+          12,
+          256
+        ],
+        "stride": [
+          256,
+          1
+        ],
+        "dtype": "torch.float32",
+        "format": 2,
+        "storage_offset": 0
+      },
+      "finite": true
+    },
+    {
+      "rows": 32,
+      "layout": "nd",
+      "weight": {
+        "shape": [
+          256,
+          6144
+        ],
+        "stride": [
+          6144,
+          1
+        ],
+        "dtype": "torch.bfloat16",
+        "format": 2,
+        "storage_offset": 0
+      },
+      "operand": {
+        "shape": [
+          6144,
+          256
+        ],
+        "stride": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "format": 2,
+        "storage_offset": 0
+      },
+      "pass": true,
+      "output": {
+        "shape": [
+          32,
+          256
+        ],
+        "stride": [
+          256,
+          1
+        ],
+        "dtype": "torch.float32",
+        "format": 2,
+        "storage_offset": 0
+      },
+      "finite": true
+    },
+    {
+      "rows": 32,
+      "layout": "nz",
+      "weight": {
+        "shape": [
+          256,
+          6144
+        ],
+        "stride": [
+          6144,
+          1
+        ],
+        "dtype": "torch.bfloat16",
+        "format": 29,
+        "storage_offset": 0
+      },
+      "operand": {
+        "shape": [
+          6144,
+          256
+        ],
+        "stride": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "format": 29,
+        "storage_offset": 0
+      },
+      "pass": true,
+      "output": {
+        "shape": [
+          32,
+          256
+        ],
+        "stride": [
+          256,
+          1
+        ],
+        "dtype": "torch.float32",
+        "format": 2,
+        "storage_offset": 0
+      },
+      "finite": true
+    }
+  ],
+  "npu_initialized_before_probe": false,
+  "npu_initialized": true,
+  "pass": true
+}

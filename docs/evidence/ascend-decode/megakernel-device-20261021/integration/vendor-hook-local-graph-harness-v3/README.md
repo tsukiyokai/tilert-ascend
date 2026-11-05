@@ -1,0 +1,9 @@
+# Local layer-chain ACL graph
+
+The official `ACLGraphWrapper` device gate passed M=1/2/12/32 with eight changing inputs per width: four captures, 32 explicit replays and 3,488 raw-byte comparisons. See the [device audit](../vendor-hook-local-graph-wide-v1-a3-194/summary.json). Each width produced eight distinct output and retained-residual hashes, with changing hidden states, main/indexer slots and actual lengths. Replay did not re-enter the Python runnable.
+
+The graph contains two local-layer launches, the layer6-to-layer7 persistent top-k copy, and two preallocated immediate consumers. The oracle runs the frozen eager component parents with the same weights, input owners and restored caches. Both TP reductions remain identities; this is a component-chain graph, not an original `DecoderLayer.forward` or TP16 result.
+
+Every parent validator executes before capture. Strong references retain all inputs, workspaces, packets, cached outputs and consumer targets. Floating outputs are poisoned with NaN; ordinary integer outputs use different values in the two arms. The full active-expert table is filled with one, then its count is set to zero, so a missing write of its defined zero tail is detectable. Cache and top-k storage signatures must remain unchanged. Graphs are reset before their owners are released.
+
+The actual runnable capture stream is recorded separately from the outer `graph_capture` stream and caller stream. An explicit replay is required before checking values returned during capture. [The CPU report](cpu/report.json) records 16 contracts, four CLI checks, 816 overlay hashes, 7,953 runtime hashes and four loaded libraries in the actual Torch/TorchNPU 2.12 environment; no NPU was mapped or initialized. [The archive record](archive.json) and [manifest](manifest.json) identify the immutable inputs.

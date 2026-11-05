@@ -120,8 +120,13 @@ _BACKENDS = {"mooncake": MooncakeTransport, "nixl": NixlTransport}
 
 def make_transport(name: str | None) -> Transport:
     key = (name or "mooncake").lower()
+    if key == "hixl":
+        from tilert.pd_vllm.hixl_transport import HixlTransport
+
+        return HixlTransport()
     if key not in _BACKENDS:
-        raise ValueError(f"unknown transport {name!r}; choices: {sorted(_BACKENDS)}")
+        choices = sorted((*_BACKENDS, "hixl"))
+        raise ValueError(f"unknown transport {name!r}; choices: {choices}")
     return _BACKENDS[key]()
 
 

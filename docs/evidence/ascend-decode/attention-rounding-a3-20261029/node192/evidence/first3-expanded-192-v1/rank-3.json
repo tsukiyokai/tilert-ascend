@@ -1,0 +1,1935 @@
+{
+  "status": "fail",
+  "rank": 3,
+  "scope": "Layer-major frozen teacher replay",
+  "precision_verified": false,
+  "performance_measured": false,
+  "layers": 3,
+  "steps": 1,
+  "capacity": 9344,
+  "query_width": 1,
+  "position": 8193,
+  "teacher_tokens": [
+    6500
+  ],
+  "expected_tokens": [
+    382
+  ],
+  "predicted_tokens": [],
+  "greedy_correct": 0,
+  "greedy_total": 0,
+  "full_model_executed": false,
+  "attention_kernel": "sfa",
+  "fp32_head": true,
+  "model_tp_reduction": "float32",
+  "checkpoint_sha256": {
+    "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+    "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+    "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+  },
+  "inputs": {
+    "prompt_length": 8192,
+    "prompt_sha256": "fe53282d0b732f6a1cbd9b6587903127f73ba645f2303a246656286704142afa",
+    "last_prompt_token": 9249,
+    "initial_position": 8192,
+    "first_token_id": 6500,
+    "request_id": "ba210bea41854af3",
+    "generation": 1,
+    "prefix_file": "/assets/checkpoint-owned/prefix8k-v3/case-00/main-prefix/rank-3.pt",
+    "prefix_sha256": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+    "capture_manifest_sha256": "b01cceb2d2e30564807ce9efc441ad535999b56b73d0c333e93bb18694ccda74"
+  },
+  "teacher_source": {
+    "path": "/work/receipts/teacher-32.json",
+    "sha256": "82d011962a288b30b777fc4964d5c96c6b9784cb13b97f509322f603b263b655",
+    "baseline_request_id": "cmpl-9aa86ab6d6f99327",
+    "prompt_path": "/work/receipts/prompt-8192.json",
+    "prompt_file_sha256": "d70449c0bb76f23c8641a4ea1037a3586dcd87e22e395d0961b2e0a11712ba0c",
+    "prompt_identity": {
+      "prompt_length": 8192,
+      "prompt_sha256": "fe53282d0b732f6a1cbd9b6587903127f73ba645f2303a246656286704142afa",
+      "last_prompt_token": 9249
+    },
+    "teacher_tokens": [
+      6500,
+      382,
+      262,
+      576,
+      2524,
+      5496,
+      64623,
+      264,
+      3210,
+      1140,
+      13,
+      19262,
+      7168,
+      24187,
+      279,
+      198,
+      262,
+      1681,
+      6337,
+      323,
+      64019,
+      11288,
+      13,
+      6944,
+      20757,
+      5258,
+      323,
+      3796,
+      198,
+      262,
+      1105,
+      13
+    ],
+    "expected_next_tokens": [
+      382,
+      262,
+      576,
+      2524,
+      5496,
+      64623,
+      264,
+      3210,
+      1140,
+      13,
+      19262,
+      7168,
+      24187,
+      279,
+      198,
+      262,
+      1681,
+      6337,
+      323,
+      64019,
+      11288,
+      13,
+      6944,
+      20757,
+      5258,
+      323,
+      3796,
+      198,
+      262,
+      1105,
+      13,
+      9897
+    ],
+    "scope": "One fixed baseline trajectory for teacher forcing; repeated greedy outputs vary"
+  },
+  "base_load_coverage": {
+    "raw_names": [
+      "lm_head.weight",
+      "model.embed_tokens.weight",
+      "model.norm.weight"
+    ],
+    "loaded": [
+      "lm_head.weight",
+      "model.embed_tokens.weight",
+      "model.norm.weight"
+    ],
+    "synthesized_zero_norm_bias": [
+      "model.norm.bias"
+    ],
+    "expected": [
+      "lm_head.weight",
+      "model.embed_tokens.weight",
+      "model.norm.bias",
+      "model.norm.weight"
+    ]
+  },
+  "source_sha256": {
+    "/assets/vllm-ascend-unified/vllm_ascend/ascend_forward_context.py": "848112214c9f56371b4bf43a59d39fadbed0e0e864581e300a3a89778d4083cb",
+    "/assets/vllm-ascend-unified/vllm_ascend/attention/indexer.py": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1",
+    "/assets/vllm-ascend-unified/vllm_ascend/attention/sfa_v1.py": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+    "/assets/vllm-ascend-unified/vllm_ascend/models/deepseek_mtp.py": "4ed40eae69848d1fac7c901a1c73b0532a71473a045af1aa79508f9c74be0a2b",
+    "/assets/vllm-ascend-unified/vllm_ascend/worker/model_runner_v1.py": "f0a3079900c9b2628437195ef21d0631c747aa1a49b663c1b27fddf379cbf8f5",
+    "/assets/vllm-ascend-unified/vllm_ascend/worker/worker.py": "1859b05db9bdbb9fd69a86e08bb67a1de2c964ed4b7ab75abc88492c9b910abc",
+    "/assets/vllm-unified/vllm/model_executor/models/deepseek_v2.py": "5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408",
+    "/work/runtime-sfa-token/vllm_ascend/device/device_op.py": "b7062ab6757b52a1ce95844dd2c190b7154e5dbb11cc1b31545a13c1628abbb8",
+    "/work/source-layer0-v1/tilert/models/glm_5_2_ascend/cann_head.py": "b8392261a07cc3e9803e479f3e2b4c5edb5c5cd7f80698291db0bb0a8cb44922",
+    "/work/source-layer0-v1/tilert/models/glm_5_2_ascend/cann_model.py": "0c59db724306ec82db21f2655879874193f69dd1425872180511a6e4d434994d",
+    "/work/receipts/first3-device-v1/run.py": "dd7cb66e130e87a0d1708bc03c4c8028d5109decd4602fee29a4fe971ec5e936",
+    "/work/source-layer0-v1/tests/glm52/run_cann_streamed.py": "f1651a2ce08a93f26a79645a74f121c534d17b2d5c84d458683087811f9d8f0b",
+    "/work/source-layer0-v1/tilert/models/glm_5_2_ascend/weights.py": "95938bd6f7bda02fcf705c1f0dd08efc6b48d9af35f53296cfd39b6abe165588",
+    "/assets/vllm-ascend-unified/vllm_ascend/ops/rotary_embedding.py": "d8b2e4e654ef7b524e6382eee474fb4634e05e3697c1a22eab2f4b646535ba74",
+    "/assets/vllm-ascend-unified/vllm_ascend/ops/layernorm.py": "d2fda42ad99935725c98b9505a8d2e94696d9cdb2906e5cb2f1e37bf21fb27bc",
+    "/assets/vllm-ascend-unified/vllm_ascend/eplb/adaptor/vllm_adaptor.py": "881ed7e562d59fb60f08c39a01593a37a3cea2a06316a137955711d44c0e1b94",
+    "/assets/vllm-ascend-unified/vllm_ascend/quantization/methods/kv_cache/kv_c8.py": "1e85e37adbf497f934642ec80823cef566010806f3a930b53a1ef914e561b78f",
+    "/assets/vllm-unified/vllm/model_executor/model_loader/utils.py": "e6e3477d926deb12fd1b50d4e6a7d649f97a5c2b6524cc2e4a604c80bb653f20",
+    "/work/source-layer0-v1/tests/glm52/run_cann_layer_major.py": "93b0e6ca6d269a21b29d5587b7b5f55e558d066f5ff6ead02aed976b7c348f45"
+  },
+  "artifact_sha256": {
+    "/evidence/first3-expanded-192-v1/rank-3/layer-00.pt": "f49ba350b921eab7bf0452d5c8bef9b0b243a997b61e51f047a3f0f53e0052c0",
+    "/evidence/first3-expanded-192-v1/rank-3/layer-01.pt": "335559a9cda274469ba34d22b75c3954f528ec619306fde1988767a1d41cdd5f",
+    "/evidence/first3-expanded-192-v1/rank-3/layer-02.pt": "7aab2ff05bd30c14b7e45a7412fa446cdd255491e77edbf0d76de007eff5406d"
+  },
+  "baseline_sha256": {
+    "/work/inputs/layer0-baseline-v3/rank-3.json": "8faae81702ce4be4eba3f364a2de51a23e9fe3b75904ba0e2d1d078ab6839393",
+    "/work/inputs/layer0-baseline-v3/rank-3/step-08192.pt": "0683dade3c8971e4dae59affc1c52dc8640034f984b752adda93078121e4187e"
+  },
+  "layers_report": [
+    {
+      "layer": 0,
+      "coverage": {
+        "raw_names": [
+          "model.layers.0.input_layernorm.weight",
+          "model.layers.0.mlp.down_proj.weight",
+          "model.layers.0.mlp.down_proj.weight_offset",
+          "model.layers.0.mlp.down_proj.weight_scale",
+          "model.layers.0.mlp.gate_proj.weight",
+          "model.layers.0.mlp.gate_proj.weight_offset",
+          "model.layers.0.mlp.gate_proj.weight_scale",
+          "model.layers.0.mlp.up_proj.weight",
+          "model.layers.0.mlp.up_proj.weight_offset",
+          "model.layers.0.mlp.up_proj.weight_scale",
+          "model.layers.0.post_attention_layernorm.weight",
+          "model.layers.0.self_attn.indexer.k_norm.bias",
+          "model.layers.0.self_attn.indexer.k_norm.weight",
+          "model.layers.0.self_attn.indexer.weights_proj.weight",
+          "model.layers.0.self_attn.indexer.wk.weight",
+          "model.layers.0.self_attn.indexer.wq_b.weight",
+          "model.layers.0.self_attn.indexer.wq_b.weight_offset",
+          "model.layers.0.self_attn.indexer.wq_b.weight_scale",
+          "model.layers.0.self_attn.kv_a_layernorm.weight",
+          "model.layers.0.self_attn.kv_a_proj_with_mqa.weight",
+          "model.layers.0.self_attn.kv_a_proj_with_mqa.weight_offset",
+          "model.layers.0.self_attn.kv_a_proj_with_mqa.weight_scale",
+          "model.layers.0.self_attn.kv_b_proj.weight",
+          "model.layers.0.self_attn.o_proj.weight",
+          "model.layers.0.self_attn.o_proj.weight_offset",
+          "model.layers.0.self_attn.o_proj.weight_scale",
+          "model.layers.0.self_attn.q_a_layernorm.weight",
+          "model.layers.0.self_attn.q_a_proj.weight",
+          "model.layers.0.self_attn.q_a_proj.weight_offset",
+          "model.layers.0.self_attn.q_a_proj.weight_scale",
+          "model.layers.0.self_attn.q_b_proj.weight",
+          "model.layers.0.self_attn.q_b_proj.weight_offset",
+          "model.layers.0.self_attn.q_b_proj.weight_scale"
+        ],
+        "loaded": [
+          "model.layers.0.input_layernorm.weight",
+          "model.layers.0.mlp.down_proj.weight",
+          "model.layers.0.mlp.down_proj.weight_offset",
+          "model.layers.0.mlp.down_proj.weight_scale",
+          "model.layers.0.mlp.gate_up_proj.weight",
+          "model.layers.0.mlp.gate_up_proj.weight_offset",
+          "model.layers.0.mlp.gate_up_proj.weight_scale",
+          "model.layers.0.post_attention_layernorm.weight",
+          "model.layers.0.self_attn.fused_qkv_a_proj.weight",
+          "model.layers.0.self_attn.fused_qkv_a_proj.weight_offset",
+          "model.layers.0.self_attn.fused_qkv_a_proj.weight_scale",
+          "model.layers.0.self_attn.indexer.k_norm.bias",
+          "model.layers.0.self_attn.indexer.k_norm.weight",
+          "model.layers.0.self_attn.indexer.wk_weights_proj.weight",
+          "model.layers.0.self_attn.indexer.wq_b.weight",
+          "model.layers.0.self_attn.indexer.wq_b.weight_offset",
+          "model.layers.0.self_attn.indexer.wq_b.weight_scale",
+          "model.layers.0.self_attn.kv_a_layernorm.weight",
+          "model.layers.0.self_attn.kv_b_proj.weight",
+          "model.layers.0.self_attn.o_proj.weight",
+          "model.layers.0.self_attn.o_proj.weight_offset",
+          "model.layers.0.self_attn.o_proj.weight_scale",
+          "model.layers.0.self_attn.q_a_layernorm.weight",
+          "model.layers.0.self_attn.q_b_proj.weight",
+          "model.layers.0.self_attn.q_b_proj.weight_offset",
+          "model.layers.0.self_attn.q_b_proj.weight_scale"
+        ],
+        "synthesized_zero_norm_bias": [
+          "model.layers.0.input_layernorm.bias",
+          "model.layers.0.post_attention_layernorm.bias",
+          "model.layers.0.self_attn.kv_a_layernorm.bias",
+          "model.layers.0.self_attn.q_a_layernorm.bias"
+        ],
+        "expected": [
+          "model.layers.0.input_layernorm.bias",
+          "model.layers.0.input_layernorm.weight",
+          "model.layers.0.mlp.down_proj.weight",
+          "model.layers.0.mlp.down_proj.weight_offset",
+          "model.layers.0.mlp.down_proj.weight_scale",
+          "model.layers.0.mlp.gate_up_proj.weight",
+          "model.layers.0.mlp.gate_up_proj.weight_offset",
+          "model.layers.0.mlp.gate_up_proj.weight_scale",
+          "model.layers.0.post_attention_layernorm.bias",
+          "model.layers.0.post_attention_layernorm.weight",
+          "model.layers.0.self_attn.fused_qkv_a_proj.weight",
+          "model.layers.0.self_attn.fused_qkv_a_proj.weight_offset",
+          "model.layers.0.self_attn.fused_qkv_a_proj.weight_scale",
+          "model.layers.0.self_attn.indexer.k_norm.bias",
+          "model.layers.0.self_attn.indexer.k_norm.weight",
+          "model.layers.0.self_attn.indexer.wk_weights_proj.weight",
+          "model.layers.0.self_attn.indexer.wq_b.weight",
+          "model.layers.0.self_attn.indexer.wq_b.weight_offset",
+          "model.layers.0.self_attn.indexer.wq_b.weight_scale",
+          "model.layers.0.self_attn.kv_a_layernorm.bias",
+          "model.layers.0.self_attn.kv_a_layernorm.weight",
+          "model.layers.0.self_attn.kv_b_proj.weight",
+          "model.layers.0.self_attn.o_proj.weight",
+          "model.layers.0.self_attn.o_proj.weight_offset",
+          "model.layers.0.self_attn.o_proj.weight_scale",
+          "model.layers.0.self_attn.q_a_layernorm.bias",
+          "model.layers.0.self_attn.q_a_layernorm.weight",
+          "model.layers.0.self_attn.q_b_proj.weight",
+          "model.layers.0.self_attn.q_b_proj.weight_offset",
+          "model.layers.0.self_attn.q_b_proj.weight_scale"
+        ],
+        "rope_tables": {
+          "max_position_embeddings": 1048576,
+          "base": 8000000,
+          "tables": {
+            "cos_sin_cache": {
+              "original_rows": 1048576,
+              "retained_rows": 8320,
+              "prefix_exact": true
+            },
+            "_rope_derived_cos_cache": {
+              "original_rows": 1048576,
+              "retained_rows": 8320,
+              "prefix_exact": true
+            },
+            "_rope_derived_sin_cache": {
+              "original_rows": 1048576,
+              "retained_rows": 8320,
+              "prefix_exact": true
+            }
+          }
+        },
+        "cache_specs": {
+          "model.layers.0.self_attn.indexer.k_cache": "AscendSFAIndexerCacheSpec(block_size=128, dcp_sharded=True, block_stride_alignment=None, max_tp_shards=None, num_kv_heads=1, head_size=128, dtype=torch.bfloat16, head_size_v=0, kv_quant_mode=<KVQuantMode.NONE: 0>, page_size_padded=None, num_head_slots=None, state_content_bytes=None, tokens_per_state=1, sliding_window=None, attention_chunk_size=None, non_causal=False, cache_dtype_str='auto', alignment=None, model_version=None, cache_role=<SparseCacheRole.SPARSE: 'sparse'>, is_index_group_leader=False, storage_block_size=None, non_causal_multi_token_decode=False, scale_dim=0, scale_dtype=torch.int8, cache_sparse_li_c8=False, cache_sparse_li_c4=False, sfa_dcp_replicated_indexer_size=1)",
+          "model.layers.0.self_attn.attn": "AscendMLAAttentionSpec(block_size=128, dcp_sharded=True, block_stride_alignment=None, max_tp_shards=None, num_kv_heads=1, head_size=576, dtype=torch.bfloat16, head_size_v=0, kv_quant_mode=<KVQuantMode.NONE: 0>, page_size_padded=None, num_head_slots=None, state_content_bytes=None, tokens_per_state=1, sliding_window=None, attention_chunk_size=None, non_causal=False, cache_dtype_str='auto', alignment=None, model_version=None, cache_role=<SparseCacheRole.SPARSE: 'sparse'>, is_index_group_leader=False, storage_block_size=None, non_causal_multi_token_decode=False, num_heads=1, scale_dim=0, scale_dtype=torch.int8, cache_sparse_sfa_c8=False, cache_sparse_sfa_turboquant=False, store_on_host=False, indexes_kv_by_block_stride=False)"
+        }
+      },
+      "checks": [
+        {
+          "name": "before.prefix.0.latent",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "before.prefix.0.rope",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "before.prefix.0.index_keys",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "fp32_tp_reductions",
+          "passed": true
+        },
+        {
+          "name": "token0.causal_indices",
+          "passed": true
+        },
+        {
+          "name": "after.prefix.0.latent",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "after.prefix.0.rope",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "after.prefix.0.index_keys",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "teacher_row_shapes",
+          "passed": true
+        },
+        {
+          "name": "boundary_fields",
+          "passed": true
+        },
+        {
+          "name": "owners_released",
+          "passed": true,
+          "alive": []
+        },
+        {
+          "name": "input_merged.finite",
+          "passed": true
+        },
+        {
+          "name": "hidden.finite",
+          "passed": true
+        },
+        {
+          "name": "residual.finite",
+          "passed": true
+        },
+        {
+          "name": "merged.finite",
+          "passed": true
+        },
+        {
+          "name": "token0.input_merged",
+          "passed": true,
+          "exact": true,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0,
+          "cosine": 1.0000011920928955,
+          "max_abs": 0.0
+        },
+        {
+          "name": "token0.merged",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.003563400535349273,
+          "cosine": 0.9999954700469971,
+          "max_abs": 0.000244140625
+        },
+        {
+          "name": "token0.index_keys",
+          "passed": true,
+          "exact": true,
+          "shape": [
+            128
+          ],
+          "expected_shape": [
+            128
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0,
+          "cosine": 1.0000001192092896,
+          "max_abs": 0.0
+        },
+        {
+          "name": "token0.latent",
+          "passed": true,
+          "exact": true,
+          "shape": [
+            512
+          ],
+          "expected_shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0,
+          "cosine": 1.0000001192092896,
+          "max_abs": 0.0
+        },
+        {
+          "name": "token0.rope",
+          "passed": true,
+          "exact": true,
+          "shape": [
+            64
+          ],
+          "expected_shape": [
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0,
+          "cosine": 0.9999999403953552,
+          "max_abs": 0.0
+        },
+        {
+          "name": "token0.indices",
+          "passed": true,
+          "exact": true,
+          "shape": [
+            2048
+          ],
+          "expected_shape": [
+            2048
+          ],
+          "dtype": "torch.int32",
+          "expected_dtype": "torch.int32",
+          "nrmse": 0.0,
+          "cosine": 0.9999998807907104,
+          "max_abs": 0.0
+        }
+      ],
+      "baseline_diagnostics": [
+        {
+          "name": "token0.input_merged",
+          "passed": true,
+          "exact": true,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0,
+          "cosine": 1.0000011920928955,
+          "max_abs": 0.0
+        },
+        {
+          "name": "token0.merged",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.003563400535349273,
+          "cosine": 0.9999954700469971,
+          "max_abs": 0.000244140625
+        },
+        {
+          "name": "token0.index_keys",
+          "passed": true,
+          "exact": true,
+          "shape": [
+            128
+          ],
+          "expected_shape": [
+            128
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0,
+          "cosine": 1.0000001192092896,
+          "max_abs": 0.0
+        },
+        {
+          "name": "token0.latent",
+          "passed": true,
+          "exact": true,
+          "shape": [
+            512
+          ],
+          "expected_shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0,
+          "cosine": 1.0000001192092896,
+          "max_abs": 0.0
+        },
+        {
+          "name": "token0.rope",
+          "passed": true,
+          "exact": true,
+          "shape": [
+            64
+          ],
+          "expected_shape": [
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0,
+          "cosine": 0.9999999403953552,
+          "max_abs": 0.0
+        },
+        {
+          "name": "token0.indices",
+          "passed": true,
+          "exact": true,
+          "shape": [
+            2048
+          ],
+          "expected_shape": [
+            2048
+          ],
+          "dtype": "torch.int32",
+          "expected_dtype": "torch.int32",
+          "nrmse": 0.0,
+          "cosine": 0.9999998807907104,
+          "max_abs": 0.0
+        }
+      ],
+      "peak_allocated": 942171136,
+      "allocated_after_release": 249303552
+    },
+    {
+      "layer": 1,
+      "coverage": {
+        "raw_names": [
+          "model.layers.1.input_layernorm.weight",
+          "model.layers.1.mlp.down_proj.weight",
+          "model.layers.1.mlp.down_proj.weight_offset",
+          "model.layers.1.mlp.down_proj.weight_scale",
+          "model.layers.1.mlp.gate_proj.weight",
+          "model.layers.1.mlp.gate_proj.weight_offset",
+          "model.layers.1.mlp.gate_proj.weight_scale",
+          "model.layers.1.mlp.up_proj.weight",
+          "model.layers.1.mlp.up_proj.weight_offset",
+          "model.layers.1.mlp.up_proj.weight_scale",
+          "model.layers.1.post_attention_layernorm.weight",
+          "model.layers.1.self_attn.indexer.k_norm.bias",
+          "model.layers.1.self_attn.indexer.k_norm.weight",
+          "model.layers.1.self_attn.indexer.weights_proj.weight",
+          "model.layers.1.self_attn.indexer.wk.weight",
+          "model.layers.1.self_attn.indexer.wq_b.weight",
+          "model.layers.1.self_attn.indexer.wq_b.weight_offset",
+          "model.layers.1.self_attn.indexer.wq_b.weight_scale",
+          "model.layers.1.self_attn.kv_a_layernorm.weight",
+          "model.layers.1.self_attn.kv_a_proj_with_mqa.weight",
+          "model.layers.1.self_attn.kv_a_proj_with_mqa.weight_offset",
+          "model.layers.1.self_attn.kv_a_proj_with_mqa.weight_scale",
+          "model.layers.1.self_attn.kv_b_proj.weight",
+          "model.layers.1.self_attn.o_proj.weight",
+          "model.layers.1.self_attn.o_proj.weight_offset",
+          "model.layers.1.self_attn.o_proj.weight_scale",
+          "model.layers.1.self_attn.q_a_layernorm.weight",
+          "model.layers.1.self_attn.q_a_proj.weight",
+          "model.layers.1.self_attn.q_a_proj.weight_offset",
+          "model.layers.1.self_attn.q_a_proj.weight_scale",
+          "model.layers.1.self_attn.q_b_proj.weight",
+          "model.layers.1.self_attn.q_b_proj.weight_offset",
+          "model.layers.1.self_attn.q_b_proj.weight_scale"
+        ],
+        "loaded": [
+          "model.layers.1.input_layernorm.weight",
+          "model.layers.1.mlp.down_proj.weight",
+          "model.layers.1.mlp.down_proj.weight_offset",
+          "model.layers.1.mlp.down_proj.weight_scale",
+          "model.layers.1.mlp.gate_up_proj.weight",
+          "model.layers.1.mlp.gate_up_proj.weight_offset",
+          "model.layers.1.mlp.gate_up_proj.weight_scale",
+          "model.layers.1.post_attention_layernorm.weight",
+          "model.layers.1.self_attn.fused_qkv_a_proj.weight",
+          "model.layers.1.self_attn.fused_qkv_a_proj.weight_offset",
+          "model.layers.1.self_attn.fused_qkv_a_proj.weight_scale",
+          "model.layers.1.self_attn.indexer.k_norm.bias",
+          "model.layers.1.self_attn.indexer.k_norm.weight",
+          "model.layers.1.self_attn.indexer.wk_weights_proj.weight",
+          "model.layers.1.self_attn.indexer.wq_b.weight",
+          "model.layers.1.self_attn.indexer.wq_b.weight_offset",
+          "model.layers.1.self_attn.indexer.wq_b.weight_scale",
+          "model.layers.1.self_attn.kv_a_layernorm.weight",
+          "model.layers.1.self_attn.kv_b_proj.weight",
+          "model.layers.1.self_attn.o_proj.weight",
+          "model.layers.1.self_attn.o_proj.weight_offset",
+          "model.layers.1.self_attn.o_proj.weight_scale",
+          "model.layers.1.self_attn.q_a_layernorm.weight",
+          "model.layers.1.self_attn.q_b_proj.weight",
+          "model.layers.1.self_attn.q_b_proj.weight_offset",
+          "model.layers.1.self_attn.q_b_proj.weight_scale"
+        ],
+        "synthesized_zero_norm_bias": [
+          "model.layers.1.input_layernorm.bias",
+          "model.layers.1.post_attention_layernorm.bias",
+          "model.layers.1.self_attn.kv_a_layernorm.bias",
+          "model.layers.1.self_attn.q_a_layernorm.bias"
+        ],
+        "expected": [
+          "model.layers.1.input_layernorm.bias",
+          "model.layers.1.input_layernorm.weight",
+          "model.layers.1.mlp.down_proj.weight",
+          "model.layers.1.mlp.down_proj.weight_offset",
+          "model.layers.1.mlp.down_proj.weight_scale",
+          "model.layers.1.mlp.gate_up_proj.weight",
+          "model.layers.1.mlp.gate_up_proj.weight_offset",
+          "model.layers.1.mlp.gate_up_proj.weight_scale",
+          "model.layers.1.post_attention_layernorm.bias",
+          "model.layers.1.post_attention_layernorm.weight",
+          "model.layers.1.self_attn.fused_qkv_a_proj.weight",
+          "model.layers.1.self_attn.fused_qkv_a_proj.weight_offset",
+          "model.layers.1.self_attn.fused_qkv_a_proj.weight_scale",
+          "model.layers.1.self_attn.indexer.k_norm.bias",
+          "model.layers.1.self_attn.indexer.k_norm.weight",
+          "model.layers.1.self_attn.indexer.wk_weights_proj.weight",
+          "model.layers.1.self_attn.indexer.wq_b.weight",
+          "model.layers.1.self_attn.indexer.wq_b.weight_offset",
+          "model.layers.1.self_attn.indexer.wq_b.weight_scale",
+          "model.layers.1.self_attn.kv_a_layernorm.bias",
+          "model.layers.1.self_attn.kv_a_layernorm.weight",
+          "model.layers.1.self_attn.kv_b_proj.weight",
+          "model.layers.1.self_attn.o_proj.weight",
+          "model.layers.1.self_attn.o_proj.weight_offset",
+          "model.layers.1.self_attn.o_proj.weight_scale",
+          "model.layers.1.self_attn.q_a_layernorm.bias",
+          "model.layers.1.self_attn.q_a_layernorm.weight",
+          "model.layers.1.self_attn.q_b_proj.weight",
+          "model.layers.1.self_attn.q_b_proj.weight_offset",
+          "model.layers.1.self_attn.q_b_proj.weight_scale"
+        ],
+        "rope_tables": {
+          "max_position_embeddings": 1048576,
+          "base": 8000000,
+          "tables": {
+            "cos_sin_cache": {
+              "original_rows": 8320,
+              "retained_rows": 8320,
+              "prefix_exact": true
+            },
+            "_rope_derived_cos_cache": {
+              "original_rows": 8320,
+              "retained_rows": 8320,
+              "prefix_exact": true
+            },
+            "_rope_derived_sin_cache": {
+              "original_rows": 8320,
+              "retained_rows": 8320,
+              "prefix_exact": true
+            }
+          }
+        },
+        "cache_specs": {
+          "model.layers.1.self_attn.indexer.k_cache": "AscendSFAIndexerCacheSpec(block_size=128, dcp_sharded=True, block_stride_alignment=None, max_tp_shards=None, num_kv_heads=1, head_size=128, dtype=torch.bfloat16, head_size_v=0, kv_quant_mode=<KVQuantMode.NONE: 0>, page_size_padded=None, num_head_slots=None, state_content_bytes=None, tokens_per_state=1, sliding_window=None, attention_chunk_size=None, non_causal=False, cache_dtype_str='auto', alignment=None, model_version=None, cache_role=<SparseCacheRole.SPARSE: 'sparse'>, is_index_group_leader=False, storage_block_size=None, non_causal_multi_token_decode=False, scale_dim=0, scale_dtype=torch.int8, cache_sparse_li_c8=False, cache_sparse_li_c4=False, sfa_dcp_replicated_indexer_size=1)",
+          "model.layers.1.self_attn.attn": "AscendMLAAttentionSpec(block_size=128, dcp_sharded=True, block_stride_alignment=None, max_tp_shards=None, num_kv_heads=1, head_size=576, dtype=torch.bfloat16, head_size_v=0, kv_quant_mode=<KVQuantMode.NONE: 0>, page_size_padded=None, num_head_slots=None, state_content_bytes=None, tokens_per_state=1, sliding_window=None, attention_chunk_size=None, non_causal=False, cache_dtype_str='auto', alignment=None, model_version=None, cache_role=<SparseCacheRole.SPARSE: 'sparse'>, is_index_group_leader=False, storage_block_size=None, non_causal_multi_token_decode=False, num_heads=1, scale_dim=0, scale_dtype=torch.int8, cache_sparse_sfa_c8=False, cache_sparse_sfa_turboquant=False, store_on_host=False, indexes_kv_by_block_stride=False)"
+        }
+      },
+      "checks": [
+        {
+          "name": "before.prefix.0.latent",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "before.prefix.0.rope",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "before.prefix.0.index_keys",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "fp32_tp_reductions",
+          "passed": true
+        },
+        {
+          "name": "token0.causal_indices",
+          "passed": true
+        },
+        {
+          "name": "after.prefix.0.latent",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "after.prefix.0.rope",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "after.prefix.0.index_keys",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "teacher_row_shapes",
+          "passed": true
+        },
+        {
+          "name": "boundary_fields",
+          "passed": true
+        },
+        {
+          "name": "owners_released",
+          "passed": true,
+          "alive": []
+        },
+        {
+          "name": "input_merged.finite",
+          "passed": true
+        },
+        {
+          "name": "hidden.finite",
+          "passed": true
+        },
+        {
+          "name": "residual.finite",
+          "passed": true
+        },
+        {
+          "name": "merged.finite",
+          "passed": true
+        },
+        {
+          "name": "token0.input_merged",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.003563400535349273,
+          "cosine": 0.9999954700469971,
+          "max_abs": 0.000244140625
+        },
+        {
+          "name": "token0.merged",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.005958180944803824,
+          "cosine": 0.9999834895133972,
+          "max_abs": 0.000244140625
+        },
+        {
+          "name": "token0.index_keys",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            128
+          ],
+          "expected_shape": [
+            128
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0019596121495654237,
+          "cosine": 0.9999979734420776,
+          "max_abs": 0.03125
+        },
+        {
+          "name": "token0.latent",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            512
+          ],
+          "expected_shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0024614045241995093,
+          "cosine": 0.9999970197677612,
+          "max_abs": 0.0078125
+        },
+        {
+          "name": "token0.rope",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            64
+          ],
+          "expected_shape": [
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0009154888716430341,
+          "cosine": 0.9999995231628418,
+          "max_abs": 0.0078125
+        },
+        {
+          "name": "token0.indices",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            2048
+          ],
+          "expected_shape": [
+            2048
+          ],
+          "dtype": "torch.int32",
+          "expected_dtype": "torch.int32",
+          "nrmse": 0.564260317954286,
+          "cosine": 0.8407560586929321,
+          "max_abs": 7455.0
+        }
+      ],
+      "baseline_diagnostics": [
+        {
+          "name": "token0.input_merged",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.003563400535349273,
+          "cosine": 0.9999954700469971,
+          "max_abs": 0.000244140625
+        },
+        {
+          "name": "token0.merged",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.005958180944803824,
+          "cosine": 0.9999834895133972,
+          "max_abs": 0.000244140625
+        },
+        {
+          "name": "token0.index_keys",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            128
+          ],
+          "expected_shape": [
+            128
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0019596121495654237,
+          "cosine": 0.9999979734420776,
+          "max_abs": 0.03125
+        },
+        {
+          "name": "token0.latent",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            512
+          ],
+          "expected_shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0024614045241995093,
+          "cosine": 0.9999970197677612,
+          "max_abs": 0.0078125
+        },
+        {
+          "name": "token0.rope",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            64
+          ],
+          "expected_shape": [
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0009154888716430341,
+          "cosine": 0.9999995231628418,
+          "max_abs": 0.0078125
+        },
+        {
+          "name": "token0.indices",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            2048
+          ],
+          "expected_shape": [
+            2048
+          ],
+          "dtype": "torch.int32",
+          "expected_dtype": "torch.int32",
+          "nrmse": 0.564260317954286,
+          "cosine": 0.8407560586929321,
+          "max_abs": 7455.0
+        }
+      ],
+      "peak_allocated": 491151872,
+      "allocated_after_release": 249303552
+    },
+    {
+      "layer": 2,
+      "coverage": {
+        "raw_names": [
+          "model.layers.2.input_layernorm.weight",
+          "model.layers.2.mlp.down_proj.weight",
+          "model.layers.2.mlp.down_proj.weight_offset",
+          "model.layers.2.mlp.down_proj.weight_scale",
+          "model.layers.2.mlp.gate_proj.weight",
+          "model.layers.2.mlp.gate_proj.weight_offset",
+          "model.layers.2.mlp.gate_proj.weight_scale",
+          "model.layers.2.mlp.up_proj.weight",
+          "model.layers.2.mlp.up_proj.weight_offset",
+          "model.layers.2.mlp.up_proj.weight_scale",
+          "model.layers.2.post_attention_layernorm.weight",
+          "model.layers.2.self_attn.indexer.k_norm.bias",
+          "model.layers.2.self_attn.indexer.k_norm.weight",
+          "model.layers.2.self_attn.indexer.weights_proj.weight",
+          "model.layers.2.self_attn.indexer.wk.weight",
+          "model.layers.2.self_attn.indexer.wq_b.weight",
+          "model.layers.2.self_attn.indexer.wq_b.weight_offset",
+          "model.layers.2.self_attn.indexer.wq_b.weight_scale",
+          "model.layers.2.self_attn.kv_a_layernorm.weight",
+          "model.layers.2.self_attn.kv_a_proj_with_mqa.weight",
+          "model.layers.2.self_attn.kv_a_proj_with_mqa.weight_offset",
+          "model.layers.2.self_attn.kv_a_proj_with_mqa.weight_scale",
+          "model.layers.2.self_attn.kv_b_proj.weight",
+          "model.layers.2.self_attn.o_proj.weight",
+          "model.layers.2.self_attn.o_proj.weight_offset",
+          "model.layers.2.self_attn.o_proj.weight_scale",
+          "model.layers.2.self_attn.q_a_layernorm.weight",
+          "model.layers.2.self_attn.q_a_proj.weight",
+          "model.layers.2.self_attn.q_a_proj.weight_offset",
+          "model.layers.2.self_attn.q_a_proj.weight_scale",
+          "model.layers.2.self_attn.q_b_proj.weight",
+          "model.layers.2.self_attn.q_b_proj.weight_offset",
+          "model.layers.2.self_attn.q_b_proj.weight_scale"
+        ],
+        "loaded": [
+          "model.layers.2.input_layernorm.weight",
+          "model.layers.2.mlp.down_proj.weight",
+          "model.layers.2.mlp.down_proj.weight_offset",
+          "model.layers.2.mlp.down_proj.weight_scale",
+          "model.layers.2.mlp.gate_up_proj.weight",
+          "model.layers.2.mlp.gate_up_proj.weight_offset",
+          "model.layers.2.mlp.gate_up_proj.weight_scale",
+          "model.layers.2.post_attention_layernorm.weight",
+          "model.layers.2.self_attn.fused_qkv_a_proj.weight",
+          "model.layers.2.self_attn.fused_qkv_a_proj.weight_offset",
+          "model.layers.2.self_attn.fused_qkv_a_proj.weight_scale",
+          "model.layers.2.self_attn.indexer.k_norm.bias",
+          "model.layers.2.self_attn.indexer.k_norm.weight",
+          "model.layers.2.self_attn.indexer.wk_weights_proj.weight",
+          "model.layers.2.self_attn.indexer.wq_b.weight",
+          "model.layers.2.self_attn.indexer.wq_b.weight_offset",
+          "model.layers.2.self_attn.indexer.wq_b.weight_scale",
+          "model.layers.2.self_attn.kv_a_layernorm.weight",
+          "model.layers.2.self_attn.kv_b_proj.weight",
+          "model.layers.2.self_attn.o_proj.weight",
+          "model.layers.2.self_attn.o_proj.weight_offset",
+          "model.layers.2.self_attn.o_proj.weight_scale",
+          "model.layers.2.self_attn.q_a_layernorm.weight",
+          "model.layers.2.self_attn.q_b_proj.weight",
+          "model.layers.2.self_attn.q_b_proj.weight_offset",
+          "model.layers.2.self_attn.q_b_proj.weight_scale"
+        ],
+        "synthesized_zero_norm_bias": [
+          "model.layers.2.input_layernorm.bias",
+          "model.layers.2.post_attention_layernorm.bias",
+          "model.layers.2.self_attn.kv_a_layernorm.bias",
+          "model.layers.2.self_attn.q_a_layernorm.bias"
+        ],
+        "expected": [
+          "model.layers.2.input_layernorm.bias",
+          "model.layers.2.input_layernorm.weight",
+          "model.layers.2.mlp.down_proj.weight",
+          "model.layers.2.mlp.down_proj.weight_offset",
+          "model.layers.2.mlp.down_proj.weight_scale",
+          "model.layers.2.mlp.gate_up_proj.weight",
+          "model.layers.2.mlp.gate_up_proj.weight_offset",
+          "model.layers.2.mlp.gate_up_proj.weight_scale",
+          "model.layers.2.post_attention_layernorm.bias",
+          "model.layers.2.post_attention_layernorm.weight",
+          "model.layers.2.self_attn.fused_qkv_a_proj.weight",
+          "model.layers.2.self_attn.fused_qkv_a_proj.weight_offset",
+          "model.layers.2.self_attn.fused_qkv_a_proj.weight_scale",
+          "model.layers.2.self_attn.indexer.k_norm.bias",
+          "model.layers.2.self_attn.indexer.k_norm.weight",
+          "model.layers.2.self_attn.indexer.wk_weights_proj.weight",
+          "model.layers.2.self_attn.indexer.wq_b.weight",
+          "model.layers.2.self_attn.indexer.wq_b.weight_offset",
+          "model.layers.2.self_attn.indexer.wq_b.weight_scale",
+          "model.layers.2.self_attn.kv_a_layernorm.bias",
+          "model.layers.2.self_attn.kv_a_layernorm.weight",
+          "model.layers.2.self_attn.kv_b_proj.weight",
+          "model.layers.2.self_attn.o_proj.weight",
+          "model.layers.2.self_attn.o_proj.weight_offset",
+          "model.layers.2.self_attn.o_proj.weight_scale",
+          "model.layers.2.self_attn.q_a_layernorm.bias",
+          "model.layers.2.self_attn.q_a_layernorm.weight",
+          "model.layers.2.self_attn.q_b_proj.weight",
+          "model.layers.2.self_attn.q_b_proj.weight_offset",
+          "model.layers.2.self_attn.q_b_proj.weight_scale"
+        ],
+        "rope_tables": {
+          "max_position_embeddings": 1048576,
+          "base": 8000000,
+          "tables": {
+            "cos_sin_cache": {
+              "original_rows": 8320,
+              "retained_rows": 8320,
+              "prefix_exact": true
+            },
+            "_rope_derived_cos_cache": {
+              "original_rows": 8320,
+              "retained_rows": 8320,
+              "prefix_exact": true
+            },
+            "_rope_derived_sin_cache": {
+              "original_rows": 8320,
+              "retained_rows": 8320,
+              "prefix_exact": true
+            }
+          }
+        },
+        "cache_specs": {
+          "model.layers.2.self_attn.indexer.k_cache": "AscendSFAIndexerCacheSpec(block_size=128, dcp_sharded=True, block_stride_alignment=None, max_tp_shards=None, num_kv_heads=1, head_size=128, dtype=torch.bfloat16, head_size_v=0, kv_quant_mode=<KVQuantMode.NONE: 0>, page_size_padded=None, num_head_slots=None, state_content_bytes=None, tokens_per_state=1, sliding_window=None, attention_chunk_size=None, non_causal=False, cache_dtype_str='auto', alignment=None, model_version=None, cache_role=<SparseCacheRole.SPARSE: 'sparse'>, is_index_group_leader=False, storage_block_size=None, non_causal_multi_token_decode=False, scale_dim=0, scale_dtype=torch.int8, cache_sparse_li_c8=False, cache_sparse_li_c4=False, sfa_dcp_replicated_indexer_size=1)",
+          "model.layers.2.self_attn.attn": "AscendMLAAttentionSpec(block_size=128, dcp_sharded=True, block_stride_alignment=None, max_tp_shards=None, num_kv_heads=1, head_size=576, dtype=torch.bfloat16, head_size_v=0, kv_quant_mode=<KVQuantMode.NONE: 0>, page_size_padded=None, num_head_slots=None, state_content_bytes=None, tokens_per_state=1, sliding_window=None, attention_chunk_size=None, non_causal=False, cache_dtype_str='auto', alignment=None, model_version=None, cache_role=<SparseCacheRole.SPARSE: 'sparse'>, is_index_group_leader=False, storage_block_size=None, non_causal_multi_token_decode=False, num_heads=1, scale_dim=0, scale_dtype=torch.int8, cache_sparse_sfa_c8=False, cache_sparse_sfa_turboquant=False, store_on_host=False, indexes_kv_by_block_stride=False)"
+        }
+      },
+      "checks": [
+        {
+          "name": "before.prefix.0.latent",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "before.prefix.0.rope",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "before.prefix.0.index_keys",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "fp32_tp_reductions",
+          "passed": true
+        },
+        {
+          "name": "token0.causal_indices",
+          "passed": true
+        },
+        {
+          "name": "after.prefix.0.latent",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "after.prefix.0.rope",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "after.prefix.0.index_keys",
+          "passed": true,
+          "exact": true
+        },
+        {
+          "name": "teacher_row_shapes",
+          "passed": true
+        },
+        {
+          "name": "boundary_fields",
+          "passed": true
+        },
+        {
+          "name": "owners_released",
+          "passed": true,
+          "alive": []
+        },
+        {
+          "name": "input_merged.finite",
+          "passed": true
+        },
+        {
+          "name": "hidden.finite",
+          "passed": true
+        },
+        {
+          "name": "residual.finite",
+          "passed": true
+        },
+        {
+          "name": "merged.finite",
+          "passed": true
+        },
+        {
+          "name": "token0.input_merged",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.005958180944803824,
+          "cosine": 0.9999834895133972,
+          "max_abs": 0.000244140625
+        },
+        {
+          "name": "token0.merged",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.007709359137160925,
+          "cosine": 0.999971866607666,
+          "max_abs": 0.00042724609375
+        },
+        {
+          "name": "token0.index_keys",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            128
+          ],
+          "expected_shape": [
+            128
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0010259592754242495,
+          "cosine": 0.9999995231628418,
+          "max_abs": 0.0078125
+        },
+        {
+          "name": "token0.latent",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            512
+          ],
+          "expected_shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0032961574414113234,
+          "cosine": 0.9999946355819702,
+          "max_abs": 0.015625
+        },
+        {
+          "name": "token0.rope",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            64
+          ],
+          "expected_shape": [
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0014247050701337203,
+          "cosine": 0.9999991059303284,
+          "max_abs": 0.0078125
+        },
+        {
+          "name": "token0.indices",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            2048
+          ],
+          "expected_shape": [
+            2048
+          ],
+          "dtype": "torch.int32",
+          "expected_dtype": "torch.int32",
+          "nrmse": 0.42524928879263796,
+          "cosine": 0.9095609188079834,
+          "max_abs": 7756.0
+        }
+      ],
+      "baseline_diagnostics": [
+        {
+          "name": "token0.input_merged",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.005958180944803824,
+          "cosine": 0.9999834895133972,
+          "max_abs": 0.000244140625
+        },
+        {
+          "name": "token0.merged",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.007709359137160925,
+          "cosine": 0.999971866607666,
+          "max_abs": 0.00042724609375
+        },
+        {
+          "name": "token0.index_keys",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            128
+          ],
+          "expected_shape": [
+            128
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0010259592754242495,
+          "cosine": 0.9999995231628418,
+          "max_abs": 0.0078125
+        },
+        {
+          "name": "token0.latent",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            512
+          ],
+          "expected_shape": [
+            512
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0032961574414113234,
+          "cosine": 0.9999946355819702,
+          "max_abs": 0.015625
+        },
+        {
+          "name": "token0.rope",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            64
+          ],
+          "expected_shape": [
+            64
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0014247050701337203,
+          "cosine": 0.9999991059303284,
+          "max_abs": 0.0078125
+        },
+        {
+          "name": "token0.indices",
+          "passed": false,
+          "exact": true,
+          "shape": [
+            2048
+          ],
+          "expected_shape": [
+            2048
+          ],
+          "dtype": "torch.int32",
+          "expected_dtype": "torch.int32",
+          "nrmse": 0.42524928879263796,
+          "cosine": 0.9095609188079834,
+          "max_abs": 7756.0
+        }
+      ],
+      "peak_allocated": 491151872,
+      "allocated_after_release": 249303552
+    }
+  ],
+  "torch_quota_bytes": 2147483648,
+  "checks": [
+    {
+      "name": "layer0.before.prefix.0.latent",
+      "passed": true,
+      "exact": true
+    },
+    {
+      "name": "layer0.before.prefix.0.rope",
+      "passed": true,
+      "exact": true
+    },
+    {
+      "name": "layer0.before.prefix.0.index_keys",
+      "passed": true,
+      "exact": true
+    },
+    {
+      "name": "layer0.fp32_tp_reductions",
+      "passed": true
+    },
+    {
+      "name": "layer0.token0.causal_indices",
+      "passed": true
+    },
+    {
+      "name": "layer0.after.prefix.0.latent",
+      "passed": true,
+      "exact": true
+    },
+    {
+      "name": "layer0.after.prefix.0.rope",
+      "passed": true,
+      "exact": true
+    },
+    {
+      "name": "layer0.after.prefix.0.index_keys",
+      "passed": true,
+      "exact": true
+    },
+    {
+      "name": "layer0.teacher_row_shapes",
+      "passed": true
+    },
+    {
+      "name": "layer0.boundary_fields",
+      "passed": true
+    },
+    {
+      "name": "layer0.owners_released",
+      "passed": true,
+      "alive": []
+    },
+    {
+      "name": "layer0.input_merged.finite",
+      "passed": true
+    },
+    {
+      "name": "layer0.hidden.finite",
+      "passed": true
+    },
+    {
+      "name": "layer0.residual.finite",
+      "passed": true
+    },
+    {
+      "name": "layer0.merged.finite",
+      "passed": true
+    },
+    {
+      "name": "layer0.token0.input_merged",
+      "passed": true,
+      "exact": true,
+      "shape": [
+        1,
+        6144
+      ],
+      "expected_shape": [
+        1,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "expected_dtype": "torch.bfloat16",
+      "nrmse": 0.0,
+      "cosine": 1.0000011920928955,
+      "max_abs": 0.0
+    },
+    {
+      "name": "layer0.token0.merged",
+      "passed": false,
+      "exact": true,
+      "shape": [
+        1,
+        6144
+      ],
+      "expected_shape": [
+        1,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "expected_dtype": "torch.bfloat16",
+      "nrmse": 0.003563400535349273,
+      "cosine": 0.9999954700469971,
+      "max_abs": 0.000244140625
+    },
+    {
+      "name": "layer0.token0.index_keys",
+      "passed": true,
+      "exact": true,
+      "shape": [
+        128
+      ],
+      "expected_shape": [
+        128
+      ],
+      "dtype": "torch.bfloat16",
+      "expected_dtype": "torch.bfloat16",
+      "nrmse": 0.0,
+      "cosine": 1.0000001192092896,
+      "max_abs": 0.0
+    },
+    {
+      "name": "layer0.token0.latent",
+      "passed": true,
+      "exact": true,
+      "shape": [
+        512
+      ],
+      "expected_shape": [
+        512
+      ],
+      "dtype": "torch.bfloat16",
+      "expected_dtype": "torch.bfloat16",
+      "nrmse": 0.0,
+      "cosine": 1.0000001192092896,
+      "max_abs": 0.0
+    },
+    {
+      "name": "layer0.token0.rope",
+      "passed": true,
+      "exact": true,
+      "shape": [
+        64
+      ],
+      "expected_shape": [
+        64
+      ],
+      "dtype": "torch.bfloat16",
+      "expected_dtype": "torch.bfloat16",
+      "nrmse": 0.0,
+      "cosine": 0.9999999403953552,
+      "max_abs": 0.0
+    },
+    {
+      "name": "layer0.token0.indices",
+      "passed": true,
+      "exact": true,
+      "shape": [
+        2048
+      ],
+      "expected_shape": [
+        2048
+      ],
+      "dtype": "torch.int32",
+      "expected_dtype": "torch.int32",
+      "nrmse": 0.0,
+      "cosine": 0.9999998807907104,
+      "max_abs": 0.0
+    },
+    {
+      "name": "layer1.before.prefix.0.latent",
+      "passed": true,
+      "exact": true
+    },
+    {
+      "name": "layer1.before.prefix.0.rope",
+      "passed": true,
+      "exact": true
+    },
+    {
+      "name": "layer1.before.prefix.0.index_keys",
+      "passed": true,
+      "exact": true
+    },
+    {
+      "name": "layer1.fp32_tp_reductions",
+      "passed": true
+    },
+    {
+      "name": "layer1.token0.causal_indices",
+      "passed": true
+    },
+    {
+      "name": "layer1.after.prefix.0.latent",
+      "passed": true,
+      "exact": true
+    },
+    {
+      "name": "layer1.after.prefix.0.rope",
+      "passed": true,
+      "exact": true
+    },
+    {
+      "name": "layer1.after.prefix.0.index_keys",
+      "passed": true,
+      "exact": true
+    },
+    {
+      "name": "layer1.teacher_row_shapes",
+      "passed": true
+    },
+    {
+      "name": "layer1.boundary_fields",
+      "passed": true
+    },
+    {
+      "name": "layer1.owners_released",
+      "passed": true,
+      "alive": []
+    },
+    {
+      "name": "layer1.input_merged.finite",
+      "passed": true
+    },
+    {
+      "name": "layer1.hidden.finite",
+      "passed": true
+    },
+    {
+      "name": "layer1.residual.finite",
+      "passed": true
+    },
+    {
+      "name": "layer1.merged.finite",
+      "passed": true
+    },
+    {
+      "name": "layer1.token0.input_merged",
+      "passed": false,
+      "exact": true,
+      "shape": [
+        1,
+        6144
+      ],
+      "expected_shape": [
+        1,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "expected_dtype": "torch.bfloat16",
+      "nrmse": 0.003563400535349273,
+      "cosine": 0.9999954700469971,
+      "max_abs": 0.000244140625
+    },
+    {
+      "name": "layer1.token0.merged",
+      "passed": false,
+      "exact": true,
+      "shape": [
+        1,
+        6144
+      ],
+      "expected_shape": [
+        1,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "expected_dtype": "torch.bfloat16",
+      "nrmse": 0.005958180944803824,
+      "cosine": 0.9999834895133972,
+      "max_abs": 0.000244140625
+    },
+    {
+      "name": "layer1.token0.index_keys",
+      "passed": false,
+      "exact": true,
+      "shape": [
+        128
+      ],
+      "expected_shape": [
+        128
+      ],
+      "dtype": "torch.bfloat16",
+      "expected_dtype": "torch.bfloat16",
+      "nrmse": 0.0019596121495654237,
+      "cosine": 0.9999979734420776,
+      "max_abs": 0.03125
+    },
+    {
+      "name": "layer1.token0.latent",
+      "passed": false,
+      "exact": true,
+      "shape": [
+        512
+      ],
+      "expected_shape": [
+        512
+      ],
+      "dtype": "torch.bfloat16",
+      "expected_dtype": "torch.bfloat16",
+      "nrmse": 0.0024614045241995093,
+      "cosine": 0.9999970197677612,
+      "max_abs": 0.0078125
+    },
+    {
+      "name": "layer1.token0.rope",
+      "passed": false,
+      "exact": true,
+      "shape": [
+        64
+      ],
+      "expected_shape": [
+        64
+      ],
+      "dtype": "torch.bfloat16",
+      "expected_dtype": "torch.bfloat16",
+      "nrmse": 0.0009154888716430341,
+      "cosine": 0.9999995231628418,
+      "max_abs": 0.0078125
+    },
+    {
+      "name": "layer1.token0.indices",
+      "passed": false,
+      "exact": true,
+      "shape": [
+        2048
+      ],
+      "expected_shape": [
+        2048
+      ],
+      "dtype": "torch.int32",
+      "expected_dtype": "torch.int32",
+      "nrmse": 0.564260317954286,
+      "cosine": 0.8407560586929321,
+      "max_abs": 7455.0
+    },
+    {
+      "name": "layer2.before.prefix.0.latent",
+      "passed": true,
+      "exact": true
+    },
+    {
+      "name": "layer2.before.prefix.0.rope",
+      "passed": true,
+      "exact": true
+    },
+    {
+      "name": "layer2.before.prefix.0.index_keys",
+      "passed": true,
+      "exact": true
+    },
+    {
+      "name": "layer2.fp32_tp_reductions",
+      "passed": true
+    },
+    {
+      "name": "layer2.token0.causal_indices",
+      "passed": true
+    },
+    {
+      "name": "layer2.after.prefix.0.latent",
+      "passed": true,
+      "exact": true
+    },
+    {
+      "name": "layer2.after.prefix.0.rope",
+      "passed": true,
+      "exact": true
+    },
+    {
+      "name": "layer2.after.prefix.0.index_keys",
+      "passed": true,
+      "exact": true
+    },
+    {
+      "name": "layer2.teacher_row_shapes",
+      "passed": true
+    },
+    {
+      "name": "layer2.boundary_fields",
+      "passed": true
+    },
+    {
+      "name": "layer2.owners_released",
+      "passed": true,
+      "alive": []
+    },
+    {
+      "name": "layer2.input_merged.finite",
+      "passed": true
+    },
+    {
+      "name": "layer2.hidden.finite",
+      "passed": true
+    },
+    {
+      "name": "layer2.residual.finite",
+      "passed": true
+    },
+    {
+      "name": "layer2.merged.finite",
+      "passed": true
+    },
+    {
+      "name": "layer2.token0.input_merged",
+      "passed": false,
+      "exact": true,
+      "shape": [
+        1,
+        6144
+      ],
+      "expected_shape": [
+        1,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "expected_dtype": "torch.bfloat16",
+      "nrmse": 0.005958180944803824,
+      "cosine": 0.9999834895133972,
+      "max_abs": 0.000244140625
+    },
+    {
+      "name": "layer2.token0.merged",
+      "passed": false,
+      "exact": true,
+      "shape": [
+        1,
+        6144
+      ],
+      "expected_shape": [
+        1,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "expected_dtype": "torch.bfloat16",
+      "nrmse": 0.007709359137160925,
+      "cosine": 0.999971866607666,
+      "max_abs": 0.00042724609375
+    },
+    {
+      "name": "layer2.token0.index_keys",
+      "passed": false,
+      "exact": true,
+      "shape": [
+        128
+      ],
+      "expected_shape": [
+        128
+      ],
+      "dtype": "torch.bfloat16",
+      "expected_dtype": "torch.bfloat16",
+      "nrmse": 0.0010259592754242495,
+      "cosine": 0.9999995231628418,
+      "max_abs": 0.0078125
+    },
+    {
+      "name": "layer2.token0.latent",
+      "passed": false,
+      "exact": true,
+      "shape": [
+        512
+      ],
+      "expected_shape": [
+        512
+      ],
+      "dtype": "torch.bfloat16",
+      "expected_dtype": "torch.bfloat16",
+      "nrmse": 0.0032961574414113234,
+      "cosine": 0.9999946355819702,
+      "max_abs": 0.015625
+    },
+    {
+      "name": "layer2.token0.rope",
+      "passed": false,
+      "exact": true,
+      "shape": [
+        64
+      ],
+      "expected_shape": [
+        64
+      ],
+      "dtype": "torch.bfloat16",
+      "expected_dtype": "torch.bfloat16",
+      "nrmse": 0.0014247050701337203,
+      "cosine": 0.9999991059303284,
+      "max_abs": 0.0078125
+    },
+    {
+      "name": "layer2.token0.indices",
+      "passed": false,
+      "exact": true,
+      "shape": [
+        2048
+      ],
+      "expected_shape": [
+        2048
+      ],
+      "dtype": "torch.int32",
+      "expected_dtype": "torch.int32",
+      "nrmse": 0.42524928879263796,
+      "cosine": 0.9095609188079834,
+      "max_abs": 7756.0
+    },
+    {
+      "name": "rank_predictions_agree",
+      "passed": true
+    }
+  ],
+  "command": [
+    "/work/receipts/first3-device-v1/run.py",
+    "--source",
+    "/work/source-layer0-v1",
+    "--checkpoint",
+    "/models/glm52",
+    "--capture-case",
+    "/assets/checkpoint-owned/prefix8k-v3/case-00",
+    "--teacher-json",
+    "/work/receipts/teacher-32.json",
+    "--prompt-json",
+    "/work/receipts/prompt-8192.json",
+    "--output",
+    "/evidence/first3-expanded-192-v1",
+    "--layers",
+    "3",
+    "--steps",
+    "1",
+    "--query-width",
+    "1",
+    "--baseline",
+    "/work/inputs/layer0-baseline-v3",
+    "--fp32-head",
+    "--expanded-value"
+  ],
+  "packages": {
+    "torch": "2.12.0",
+    "torch-npu": "2.12.0",
+    "vllm": "0.25.1+empty",
+    "vllm-ascend": "0.0.0"
+  },
+  "environment": {
+    "ASCEND_CUSTOM_OPP_PATH": "/assets/vendor-hook-runtime212-int8/vendor-hook-deps/python/fla_npu/opp:/assets/vendor-hook-runtime212-int8/vendor-hook-deps/python/fla_npu/opp/vendors/fla_npu_transformer:/opt/kernel-overlay/vendors/custom_transformer:/work/runtime-sfa-token/vllm_ascend/_cann_ops_custom/vendors/custom_transformer",
+    "HCCL_OP_EXPANSION_MODE": "AIV",
+    "HCCL_DETERMINISTIC": "true",
+    "HCCL_BUFFSIZE": null,
+    "ASCEND_LAUNCH_BLOCKING": null,
+    "TASK_QUEUE_ENABLE": null
+  }
+}

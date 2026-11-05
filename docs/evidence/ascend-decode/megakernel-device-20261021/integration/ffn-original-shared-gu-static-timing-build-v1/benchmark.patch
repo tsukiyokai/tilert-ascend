@@ -1,0 +1,81 @@
+--- active-token-join-timing-v1/bench.py
++++ original-shared-gu-static/bench.py
+@@ -36,9 +36,9 @@
+     def __init__(self, fused, bridge, body, candidate, kind, active):
+         self.libraries = [ctypes.CDLL(str(path.resolve())) for path in (fused, bridge, body)]
+         self.libraries.append(ctypes.CDLL(str(active.resolve())))
+-        self.base = self.libraries[-1].ffn_active_descriptor_launch
++        self.base = self.libraries[-1].ffn_original_shared_terminal_launch
+         self.libraries.append(ctypes.CDLL(str(candidate.resolve())))
+-        self.fused = self.libraries[-1].ffn_active_token_join_launch
++        self.fused = self.libraries[-1].ffn_original_shared_gu_static_launch
+         self.kind = kind
+         self.extra_by_arena = {}
+         array = ctypes.POINTER(ctypes.c_void_p)
+@@ -120,17 +120,17 @@
+     def owning_torch(self, owner):
+         b, r, sync = self.arena
+         torch, bank = self.torch, self.bank
+-        if owner == "fused":
+-            torch.ops.tilert_ffn_composed.forward_out(self.hidden, self.residual,
+-                bank["gamma"], bank["gate"], bank["bias"], bank["routed"], bank["shared"],
+-                b, r, 1e-5, self.blocks, self.layout, sync)
+-        else:
+-            torch.ops.tilert_ffn_bridge.forward_out(self.hidden, self.residual,
+-                bank["gamma"], bank["gate"], bank["bias"], b, 1e-5, self.blocks, sync)
+-            torch.ops.tilert_pipeline_body.routed_shared_from_bf16(
+-                b[0], *bank["routed"], b[5], b[4], [b[6], b[7].reshape(-1), *bank["shared"]],
+-                r, sync, 256, self.blocks, self.layout)
+-            torch.ops.tilert_ffn_bridge.finalize_out(r[9], r[19], b, self.blocks, sync)
++        torch.ops.tilert_ffn_original_shared_terminal.forward_out(
++            self.hidden, self.residual, bank["gamma"], bank["gate"], bank["bias"],
++            bank["routed"], bank["shared"], b, [*r, self.extra],
++            1e-5, self.blocks, self.layout, sync)
++
++
++def prepare_arena(torch, launchers, hidden, blocks):
++    bridge, body, sync = torch.ops.tilert_ffn_original_shared_terminal.prepare(
++        hidden, blocks, 1)
++    launchers.extra_by_arena[bridge[8].data_ptr()] = body[20]
++    return bridge, body[:20], sync
+ 
+ 
+ def load_module(name, path):
+@@ -226,11 +226,11 @@
+                           args.candidate_kind, args.active_library)
+     args.output.mkdir(parents=True, exist_ok=True)
+     report = {
+-        "scope": "Matched-address active-token-join FFN versus active-descriptor FFN, TP excluded",
+-        "arm_names": {"fused": "active_token_join", "separate": "active_descriptor"},
++        "scope": "Matched-address static-GU FFN with original shared quantization versus its token-terminal parent, TP excluded",
++        "arm_names": {"fused": "original_shared_gu_static", "separate": "original_shared_terminal_parent"},
+         "candidate_library": {"path": str(args.candidate_library), "sha256": digest(args.candidate_library)},
+         "scratch_matching": "All 33 tensors, including the INT32[264] active table, share exact addresses within each pair",
+-        "owner_validation": "Each arena's owning Torch chain checks shapes/tiling identity/aliasing before CABI comparison",
++        "owner_validation": "Original-shared Torch validator checks all 33 tensors in both independently allocated arenas before CABI comparison",
+         "utc": datetime.now(timezone.utc).isoformat(),
+         "hostname": socket.gethostname(), "command": sys.argv,
+         "arguments": {key: str(value) if isinstance(value, Path) else value
+@@ -247,7 +247,7 @@
+         "input_copy_and_clone_scope": "outside timing graphs and event windows",
+         "fresh_write_gate": "Before each checked CABI replay and timed arm warmup: logical floating outputs become NaN, bounded integer metadata becomes zero, other integer outputs become one; padding/tilings/system/inputs stay unchanged",
+         "sequence_inputs": "Independent calls reuse the same input; outputs do not feed the next call",
+-        "numerical_reference": "Owning frozen Torch native chain, checked separately against production before this timing experiment",
++        "numerical_reference": "Original-shared complete FFN Torch entry, independently compared with the original DecoderLayer norm/MLP",
+         "arenas": [], "pass": False,
+     }
+ 
+@@ -375,10 +375,9 @@
+ 
+     try:
+         with torch.inference_mode():
+-            cb, cr, cs = torch.ops.tilert_ffn_composed.prepare(hidden, args.blocks, 1)
+-            sb, ss = torch.ops.tilert_ffn_bridge.prepare(hidden, args.blocks)
+-            sr, rs = torch.ops.tilert_pipeline_body.routed_shared_prepare(sb[6], 256, args.blocks, 1)
+-            if cs != ss or cs != rs:
++            cb, cr, cs = prepare_arena(torch, launchers, hidden, args.blocks)
++            sb, sr, ss = prepare_arena(torch, launchers, hidden, args.blocks)
++            if cs != ss:
+                 raise RuntimeError("Owner arenas have different device sync bases")
+             arenas = {"fused": (cb, cr, cs), "separate": (sb, sr, ss)}
+             for slot in (8,):

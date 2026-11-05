@@ -1,0 +1,36 @@
+{
+  "scope": "CPU algebra and source contract audit plus exactly one authorized M8 joint-M API call; no joint-M timing or M32 NPU call.",
+  "actual_api_call": {
+    "path": "device-result.json",
+    "sha256": "7801b2c2416fdb4c49921793f552f07ee142122594468c6f2d478238b855aa6c"
+  },
+  "upstream_primary_contract": {
+    "api": "https://www.hiascend.com/document/detail/en/Pytorch/2610/apiref/customapi/docs/en/custom_APIs/torch_npu/torch_npu-npu_fused_infer_attention_score_v2.md",
+    "facts": "Mode0 full bool mask [B,1,Q_S,KV_S], BSND with D512/R64 and N4 are documented. Nonquantized BF16 is not the full-quantized QS<=16 case.",
+    "local_checker": "/home/shanshan/repo/cann/ops-transformer/attention/fused_infer_attention_score/op_host/checkers/rope_checker.cpp:499-521",
+    "boundary": "Upstream host C++ is not claimed identical to the installed host binary. The successful installed M8 call establishes this exact route; M32 remains untested."
+  },
+  "installed_device_source": {
+    "root": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc/fused_infer_attention_score/op_kernel/arch22",
+    "fia_kernel_nonquant_mla.h": "19e1e9a15220b6df0c514b5de5b7d9a4f3338946274883982cb1aea868247b15",
+    "fia_block_vec_nonquant_mla.h": "14737c7bca3cad6d8500d777fbc61997dbbb2d3cfa70e80e308fa09995d9c037",
+    "fia_block_cube_nonquant_mla.h": "5b6e2459788367a0e122dc7edb5d31797abf3a8c1972e1b9d46cf6bed0868a2c",
+    "mask_anchors": "kernel:218,554,842-845; vector:281-283,445-470",
+    "reuse_anchors": "cube:630-660 loads K/RoPE before the mL1 loop at672; cube:906-914 loads V before the mL1 loop at925.",
+    "reuse_boundary": "This establishes reuse inside one mSplit/tile. Query/head tiles, mSplit and separate QK/PV passes can reread KV; it does not establish one HBM read of the full cache."
+  },
+  "production_cache": {
+    "source": "/home/shanshan/repo/tile-ai/TileRT-Ascend/tilert/models/glm_5_2_ascend/cann_model.py",
+    "sha256": "3ab4769bf5e255543583528d1533ea3ba399fcb5e55d10f8477b15303c0b557b",
+    "anchors": "305-308 torch.empty storage;432-435 copies only prefix;611-619 truncate/reset only change position.",
+    "required_change_not_made": "Zero-initialize latent/RoPE or full storage once at cache creation, then preserve finite writes. Do not clear the tail per layer or per round."
+  },
+  "representation_contract": {
+    "shape": "BSND Q[1,M,4,512], Qrope[1,M,4,64], K/V[1,C,1,512], Krope[1,C,1,64], bool mask[1,1,M,C].",
+    "unique_full_topk": "Current scope is batch1 at8K with2048 legal unique IDs per query; no short-prefix compaction.",
+    "layout": "Original Q[M,4,512] is contiguous BSND via view. A direct BNSD view[1,4,M,512] is incorrect; BNSD needs transpose/contiguous.",
+    "graph": "Fixed-capacity graph uses a full device-generated mask and initialized finite KV; no host-dependent dynamic S2 slice.",
+    "cost_boundary": "Include bitmap initialization/scatter and layouts in any future measurement. At capacity9344, both QK and PV work counts are4.5625x selected2048; this is not a time or HBM prediction."
+  },
+  "decoder_boundary": "No width gate is changed, no HF threshold is relaxed, and no old width8 failure cause is established."
+}

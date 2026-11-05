@@ -1,0 +1,400 @@
+{
+  "scope": "One synthetic M8/C9344 complete-path graph attribution profile",
+  "source_sha256": "71c8f44ee8ffd3623a3d536cc651b6126709836eb9b2055c79614b5420a314ee",
+  "original_input_sha256": "d8b00212e619c88383dcb79c487c050fa38b26a29467240e8ac66d7261f5d23a",
+  "device": 0,
+  "npu_launched": true,
+  "quota_bytes": 268435456,
+  "quota_scope": "Torch allocator, excluding runtime/context allocations",
+  "attention_calls_attempted": {
+    "eager": 20,
+    "capture": 20,
+    "validation": 60,
+    "profiled": 20
+  },
+  "shape": {
+    "M": 8,
+    "capacity": 9344,
+    "heads": 4,
+    "topk": 2048,
+    "latent_dim": 512,
+    "rope_dim": 64
+  },
+  "profile_scope": "Each pre-existing ten-call graph replays exactly once in one CPU/NPU profiler window; no recapture in the window. Joint contains cast, ones/fill, scatter, causal comparison, mask OR, and FIA. Static columns and prepared thresholds are reused. No repeated timing screen.",
+  "screen_source_sha256": "0a0bc242f829daf03abaa2b2d00741d8bf8c68cbb1beacd20fba437664a673c5",
+  "profiler_analysis": "CPU offline analysis after device process exits",
+  "model_tpot_measured": false,
+  "decoder_precision_verified": false,
+  "B_newly_masked_selection_counts": [
+    0,
+    1,
+    0,
+    1,
+    0,
+    1,
+    1,
+    1
+  ],
+  "input_sha256": "de64a6e9d8a3565751098836880efcdc1eaff23eedb1650176ef901585e914d9",
+  "custom_opp_path": "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer:/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib:/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer",
+  "schemas": {
+    "sfa": "_C_ascend::npu_sparse_flash_attention(Tensor query, Tensor key, Tensor value, Tensor sparse_indices, float scale_value, *, Tensor? block_table=None, Tensor? actual_seq_lengths_query=None, Tensor? actual_seq_lengths_kv=None, Tensor? query_rope=None, Tensor? key_rope=None, int sparse_block_size=1, str layout_query=\"BSND\", str layout_kv=\"BSND\", int sparse_mode=3, int pre_tokens=9223372036854775807, int next_tokens=9223372036854775807, int attention_mode=2, bool return_softmax_lse=False) -> (Tensor attention_out, Tensor softmax_max, Tensor softmax_sum)",
+    "fia": "npu::npu_fused_infer_attention_score_v2(Tensor query, Tensor key, Tensor value, *, Tensor? query_rope=None, Tensor? key_rope=None, Tensor? pse_shift=None, Tensor? atten_mask=None, SymInt[]? actual_seq_qlen=None, SymInt[]? actual_seq_kvlen=None, Tensor? block_table=None, Tensor? dequant_scale_query=None, Tensor? dequant_scale_key=None, Tensor? dequant_offset_key=None, Tensor? dequant_scale_value=None, Tensor? dequant_offset_value=None, Tensor? dequant_scale_key_rope=None, Tensor? quant_scale_out=None, Tensor? quant_offset_out=None, Tensor? quant_scale_p=None, Tensor? learnable_sink=None, int num_query_heads=1, int num_key_value_heads=0, float softmax_scale=1., int pre_tokens=2147483647, int next_tokens=2147483647, str input_layout=\"BSH\", int sparse_mode=0, int block_size=0, int query_quant_mode=0, int key_quant_mode=0, int value_quant_mode=0, int inner_precise=0, bool return_softmax_lse=False, int? query_dtype=None, int? key_dtype=None, int? value_dtype=None, int? query_rope_dtype=None, int? key_rope_dtype=None, int? key_shared_prefix_dtype=None, int? value_shared_prefix_dtype=None, int? dequant_scale_query_dtype=None, int? dequant_scale_key_dtype=None, int? dequant_scale_value_dtype=None, int? dequant_scale_key_rope_dtype=None, int? out_dtype=None) -> (Tensor, Tensor)"
+  },
+  "last_started": "profile_joint",
+  "graph_state_checks": [
+    {
+      "state": "A",
+      "arm": "sfa",
+      "bit_equal": true,
+      "finite": true,
+      "max_abs": 0.0,
+      "nrmse": 0.0
+    },
+    {
+      "state": "A",
+      "arm": "joint",
+      "bit_equal": true,
+      "finite": true,
+      "max_abs": 0.0,
+      "nrmse": 0.0
+    },
+    {
+      "state": "B",
+      "arm": "sfa",
+      "bit_equal": true,
+      "finite": true,
+      "max_abs": 0.0,
+      "nrmse": 0.0
+    },
+    {
+      "state": "B",
+      "arm": "joint",
+      "bit_equal": true,
+      "finite": true,
+      "max_abs": 0.0,
+      "nrmse": 0.0
+    },
+    {
+      "state": "reset",
+      "arm": "sfa",
+      "bit_equal": true,
+      "finite": true,
+      "max_abs": 0.0,
+      "nrmse": 0.0
+    },
+    {
+      "state": "reset",
+      "arm": "joint",
+      "bit_equal": true,
+      "finite": true,
+      "max_abs": 0.0,
+      "nrmse": 0.0
+    }
+  ],
+  "cross_path_diagnostics": {
+    "A": {
+      "bit_equal": false,
+      "finite": true,
+      "max_abs": 0.001953125,
+      "nrmse": 0.00209185914097061
+    },
+    "B": {
+      "bit_equal": false,
+      "finite": true,
+      "max_abs": 0.001953125,
+      "nrmse": 0.002146904021387629
+    },
+    "reset": {
+      "bit_equal": false,
+      "finite": true,
+      "max_abs": 0.001953125,
+      "nrmse": 0.00209185914097061
+    }
+  },
+  "profile_replay_order": [
+    "sfa",
+    "joint"
+  ],
+  "trace_files": [
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/FRAMEWORK/torch.op_range",
+      "bytes": 164
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/device_0/data/stars_soc.data.0.slice_0",
+      "bytes": 13824
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/device_0/data/stars_soc.data.0.slice_0.done",
+      "bytes": 39
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/device_0/dev_start.log.0",
+      "bytes": 62
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/device_0/dev_start.log.0.done",
+      "bytes": 12
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/device_0/end_info.0",
+      "bytes": 178
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/device_0/end_info.0.done",
+      "bytes": 13
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/device_0/host_start.log.0",
+      "bytes": 87
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/device_0/host_start.log.0.done",
+      "bytes": 12
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/device_0/info.json.0",
+      "bytes": 1016
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/device_0/info.json.0.done",
+      "bytes": 14
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/device_0/sample.json",
+      "bytes": 3063
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/device_0/sample.json.done",
+      "bytes": 14
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/device_0/start_info.0",
+      "bytes": 178
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/device_0/start_info.0.done",
+      "bytes": 13
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/aging.additional.msproftx.slice_0",
+      "bytes": 512
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/aging.additional.msproftx.slice_0.done",
+      "bytes": 37
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/aging.api_event.data.slice_0",
+      "bytes": 360
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/aging.api_event.data.slice_0.done",
+      "bytes": 37
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/aging.compact.task_track.slice_0",
+      "bytes": 384
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/aging.compact.task_track.slice_0.done",
+      "bytes": 37
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.additional.capture_op_info.slice_0",
+      "bytes": 12800
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.additional.capture_op_info.slice_0.done",
+      "bytes": 39
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.additional.hash_dic.slice_0",
+      "bytes": 2247
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.additional.hash_dic.slice_0.done",
+      "bytes": 38
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.additional.hash_dic.slice_1",
+      "bytes": 2247
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.additional.hash_dic.slice_1.done",
+      "bytes": 38
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.additional.type_info_dic.slice_0",
+      "bytes": 17
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.additional.type_info_dic.slice_0.done",
+      "bytes": 36
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.additional.type_info_dic.slice_1",
+      "bytes": 6819
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.additional.type_info_dic.slice_1.done",
+      "bytes": 38
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.additional.type_info_dic.slice_2",
+      "bytes": 35
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.additional.type_info_dic.slice_2.done",
+      "bytes": 36
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.additional.type_info_dic.slice_3",
+      "bytes": 351
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.additional.type_info_dic.slice_3.done",
+      "bytes": 37
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.additional.type_info_dic.slice_4",
+      "bytes": 143
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.additional.type_info_dic.slice_4.done",
+      "bytes": 37
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.additional.type_info_dic.slice_5",
+      "bytes": 13593
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.additional.type_info_dic.slice_5.done",
+      "bytes": 39
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.compact.capture_stream_info.slice_0",
+      "bytes": 128
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.compact.capture_stream_info.slice_0.done",
+      "bytes": 37
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.compact.capture_stream_info_v2.slice_0",
+      "bytes": 128
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.compact.capture_stream_info_v2.slice_0.done",
+      "bytes": 37
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.compact.expand_stream_spec.slice_0",
+      "bytes": 64
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.compact.expand_stream_spec.slice_0.done",
+      "bytes": 36
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.compact.stream_sq_info.slice_0",
+      "bytes": 2432
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.compact.stream_sq_info.slice_0.done",
+      "bytes": 38
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.compact.task_track.slice_0",
+      "bytes": 5248
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.compact.task_track.slice_0.done",
+      "bytes": 38
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.compact.task_track_v2.slice_0",
+      "bytes": 5248
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.compact.task_track_v2.slice_0.done",
+      "bytes": 38
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.variable.capture_op_info.slice_0",
+      "bytes": 11440
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/data/unaging.variable.capture_op_info.slice_0.done",
+      "bytes": 39
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/end_info",
+      "bytes": 178
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/end_info.done",
+      "bytes": 13
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/host_start.log",
+      "bytes": 84
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/host_start.log.done",
+      "bytes": 12
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/info.json",
+      "bytes": 671
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/info.json.done",
+      "bytes": 13
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/sample.json",
+      "bytes": 3054
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/sample.json.done",
+      "bytes": 14
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/start_info",
+      "bytes": 178
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/PROF_000001_20261020002548988_00011891LQNJMBBD/host/start_info.done",
+      "bytes": 13
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/profiler_info.json",
+      "bytes": 1355
+    },
+    {
+      "path": "trace/sfa-joint_11891_20261020002548977_ascend_pt/profiler_metadata.json",
+      "bytes": 297
+    }
+  ],
+  "status": "single_attribution_profile_completed",
+  "outputs_sha256": "679c22ec4cdc4cb0d21a307ee0b170b48cb476925ee3993dfc6b45c7dd291107",
+  "loaded_libraries": {
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_cv.so": "06074c70f58f5af0702c6326dcf98289584eef65f3996690229587119c488521",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_math.so": "93972cb9266eb1e0ff1d29b767c1e13e1f6023b80c07ffaf77bc75e557b8b045",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_nn.so": "336946436f1e8d71670137a9b43fc6b9ca87fbb3f52b5a2c65663e8b589936c8",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_oam.so": "c4bd82763ebb67dfb517575047480b24e8e6c134b6ee840a3f3bff2a443371f3",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_ras.so": "4ef4862b1c4f20037b84ed3afdde3c907b18bd459852a09ceacf6de1a22ffc86",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_transformer.so": "3eebcd29e93860ea2aafaf9dfe269e98a28dc90c7cc325914e479be43bd247cf",
+    "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/liboptiling.so": "0d603b1fe5375b069d870747cb6ef3da588db9e6c7e4d86bdd7b507aba0b7ac3",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib/libcust_opapi.so": "f81c882edadb261acdce7f85bf4aa7c7cc7e4a94571a665ffc8a41cb150238a6",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/libcust_opmaster_rt2.0.so": "d06d3f127e2c179ed5f4d3dc366b39f829e0c5e3ec39df63ccb1993befcd3f39",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_impl/ai_core/tbe/op_tiling/liboptiling.so": "d06d3f127e2c179ed5f4d3dc366b39f829e0c5e3ec39df63ccb1993befcd3f39",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_api/lib/libcust_opapi.so": "cab8daebbbe285814636dc1839de18dc83028b69ceb28a74fcf51e2184cf0163",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/libcust_opmaster_rt2.0.so": "ded74980ff29c3985de70e67e2ed5ae791a0914aa1b4b427d3a6d96d2aeba69d"
+  },
+  "peak_allocated_bytes": 92798976,
+  "peak_reserved_bytes": 165675008
+}

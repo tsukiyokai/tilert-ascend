@@ -1,0 +1,142 @@
+Original lines 403-451
+  403     def _maybe_apply_routed_scale_to_output(
+  404         self,
+  405         shared_output: torch.Tensor | None,
+  406         fused_output: torch.Tensor,
+  407     ) -> tuple[torch.Tensor | None, torch.Tensor]:
+  408         """Apply routed_scaling_factor to the output with FP16 overflow
+  409         protection.
+  410 
+  411         Scale the fused expert output by routed_scaling_factor. For FP16,
+  412         avoid overflow by dividing shared_output by the scale instead
+  413         (the decoder layer compensates with matching divisions).
+  414         """
+  415         if self.routed_scaling_factor != 1.0:
+  416             if fused_output.dtype != torch.float16 or shared_output is None:
+  417                 fused_output *= self.routed_scaling_factor
+  418             elif shared_output is not None:
+  419                 shared_output *= 1.0 / self.routed_scaling_factor
+  420         return shared_output, fused_output
+  421 
+  422     @property
+  423     def _fused_output_is_reduced(self) -> bool:
+  424         return (
+  425             self._quant_method.moe_kernel is not None
+  426             and self._quant_method.moe_kernel.output_is_reduced()
+  427         )
+  428 
+  429     def _maybe_reduce_shared_expert_output(
+  430         self,
+  431         shared_output: torch.Tensor | None,
+  432         fused_output_is_reduced: bool | None = None,
+  433     ) -> torch.Tensor | None:
+  434         """All-reduce shared expert output when the combine kernel already
+  435         reduced fused output.
+  436 
+  437         * If the combine kernel does the reduction for fused_output, reduce
+  438           shared_output separately. O.w, reduce fused_output+shared_output later.
+  439         * If we have SP (TP=N, DP=M, EP), there is a separate AG step handled
+  440           in the model.
+  441         """
+  442         if fused_output_is_reduced is None:
+  443             fused_output_is_reduced = self._fused_output_is_reduced
+  444 
+  445         if (
+  446             shared_output is not None
+  447             and not self.moe_config.is_sequence_parallel
+  448             and fused_output_is_reduced
+  449         ):
+  450             shared_output = tensor_model_parallel_all_reduce(shared_output)
+  451         return shared_output
+
+Original lines 483-515
+  483     def _maybe_reduce_final_output(
+  484         self,
+  485         states: torch.Tensor,
+  486         trunc_size: int | None,
+  487         output_is_reduced: bool | None = None,
+  488     ) -> torch.Tensor:
+  489         """All-reduce the combined output if needed.
+  490 
+  491         This is the "late" all-reduce path. When neither fused nor shared
+  492         output was individually reduced, the combined sum is all-reduced
+  493         here. Skipped when sequence-parallel is active (SP handles its
+  494         own reduction) or when the early path already reduced both outputs.
+  495         """
+  496         # skip_final_all_reduce must not coexist with a pre-reduced fused
+  497         # output. This should be enforced by MoE config initialization.
+  498         if self.moe_config.skip_final_all_reduce:
+  499             assert not self._fused_output_is_reduced, (
+  500                 "skip_final_all_reduce requires an un-reduced fused output"
+  501             )
+  502 
+  503         # We don't need to reduce the final output if:
+  504         # - We are not running with TP or DP
+  505         # - The MK already reduced the fused output itself.
+  506         if output_is_reduced is None:
+  507             output_is_reduced = self._fused_output_is_reduced
+  508 
+  509         if (
+  510             not self.moe_config.is_sequence_parallel
+  511             and not self.moe_config.skip_final_all_reduce
+  512             and (self.moe_config.tp_size > 1 or self.moe_config.ep_size > 1)
+  513             and not output_is_reduced
+  514         ):
+  515             states = tensor_model_parallel_all_reduce(states)
+
+Original lines 744-797
+  744             if self._quant_method.has_unpadded_output
+  745             else 0,
+  746         )
+  747 
+  748         #
+  749         # Note: there are two all-reduce points below. They are mutually
+  750         # exclusive, controlled by _fused_output_is_reduced
+  751         #  - When True: the combine kernel already reduced fused_output,
+  752         #    so we reduce shared_output here to match, then skip the
+  753         #    all-reduce in _maybe_reduce_final_output.
+  754         #  - When False: neither output is reduced yet, so we combine
+  755         #    them first and all-reduce the sum in _maybe_reduce_final_output.
+  756 
+  757         # Extract outputs from result
+  758         shared_output, fused_output = _unpack(result)
+  759         fused_output = cast(torch.Tensor, fused_output)
+  760 
+  761         if og_hidden_dim_pre_xform is not None:
+  762             fused_output = fused_output[..., :og_hidden_dim_pre_xform]
+  763 
+  764         fused_output_is_reduced = self._fused_output_is_reduced
+  765 
+  766         # Latent routed output has to be reduced before output transform,
+  767         # because the transform may include non-linear normalization.
+  768         fused_output, fused_output_is_reduced = (
+  769             self._maybe_reduce_routed_output_before_transform(
+  770                 fused_output,
+  771                 fused_output_is_reduced,
+  772             )
+  773         )
+  774 
+  775         # If routed output is already reduced, reduce shared to match.
+  776         # See note above re: the two all-reduce points.
+  777         shared_output = self._maybe_reduce_shared_expert_output(
+  778             shared_output, fused_output_is_reduced
+  779         )
+  780 
+  781         shared_output, fused_output = self._maybe_apply_routed_scale_to_output(
+  782             shared_output, fused_output
+  783         )
+  784 
+  785         # Apply output transform (e.g. latent -> full dim)
+  786         fused_output = self.apply_routed_output_transform(fused_output)
+  787 
+  788         if shared_output is not None:
+  789             result = shared_output + fused_output
+  790         else:
+  791             result = fused_output
+  792 
+  793         result = self._maybe_reduce_final_output(
+  794             result, og_hidden_dim_post_xform, fused_output_is_reduced
+  795         )
+  796 
+  797         return self._maybe_add_zero_expert_output(result)
+

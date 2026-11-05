@@ -1,0 +1,44 @@
+{
+  "scope": "Official ACLGraphWrapper for two consecutive local MoE layers: one MIX launch per layer plus persistent top-k copy and observation consumers",
+  "host": "a3-194",
+  "physical_die": 4,
+  "mode": "int8",
+  "rows": [
+    12
+  ],
+  "blocks": 24,
+  "cases": 2,
+  "raw_byte_checks": 218,
+  "pass": true,
+  "weight_source": "Synthetic parameters in original Decoder6/7 classes with official postprocessing",
+  "norm_reference": "Original input norm and npu_dynamic_quant",
+  "reference_libraries": [
+    "8deff750464e23bb871302c8626b86d37b60c28a00991d550f95dfcfd47ecb6f",
+    "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c",
+    "381febf94f918cc7393019b6f99ec8dc38e9a5cc9e63b2d49d5fe483158e3ff2"
+  ],
+  "candidate_library_sha256": "609c973e92b61637f7768ccefb0fbd84b2e13fcfb066b241a41cd5d8376fdd0f",
+  "defined_boundaries_per_case": 109,
+  "changing_inputs_and_outputs": {
+    "12": {
+      "output_hashes": 2,
+      "retained_hashes": 2,
+      "hidden_hashes": 2,
+      "main_slots_hashes": 2,
+      "index_slots_hashes": 2,
+      "live_length_sets": 2
+    }
+  },
+  "tp_contract": "Both TP reductions are identity; actual local attention output feeds FFN",
+  "next_layer_input": "Previous layer combined output and retained residual, same GPU owners",
+  "topk_transfer": "Explicit copy to the original persistent top-k owner before layer7",
+  "graph_capture": true,
+  "actual_captures": 1,
+  "explicit_replays": 2,
+  "python_calls_per_capture": 1,
+  "python_calls_per_replay": 0,
+  "timing": false,
+  "tp16_collectives": 0,
+  "checkpoint_loaded": false,
+  "report_sha256": "4a1b043245370d494874caaa5daec213ac32db931f0b0cbbc973bcd252812598"
+}

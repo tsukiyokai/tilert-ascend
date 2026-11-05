@@ -1,0 +1,974 @@
+{
+  "scope": "Frozen layer4 routed composition; all16 ranks, two 8K continuation steps, first/reset",
+  "server": "a3-gs:trt-asc",
+  "precision_verified": false,
+  "performance_measured": false,
+  "source": {
+    "base_commit": "6e53febe9ce34900f44ff7202b0350a394710872",
+    "overlays": {
+      "tests/glm52/run_cann_model.py": "1ffc552916803e6d707e0b05d88353d70ad99a3f461c4392b4dc1cd57bfb5f74"
+    }
+  },
+  "launch": {
+    "pid": 773420,
+    "command": "source /workspace/environment/activate.sh\ncd /workspace/offline/cann-routed-stage-20261017/source\nASCEND_CUSTOM_OPP_PATH=/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer HCCL_DETERMINISTIC=true HCCL_BUFFSIZE=200 HCCL_OP_EXPANSION_MODE=AIV HCCL_NPU_SOCKET_PORT_RANGE=auto HCCL_HOST_SOCKET_PORT_RANGE=auto OMP_NUM_THREADS=1 TASK_QUEUE_ENABLE=1 TORCH_DEVICE_BACKEND_AUTOLOAD=0 PYTHONPATH=\"$PWD:${PYTHONPATH:-}\" timeout 600 python -m torch.distributed.run --standalone --nproc-per-node=16 tests/glm52/run_cann_model.py --checkpoint /workspace/models/GLM-5.2-w4a8c8 --capture-case /workspace/offline/prefix8k-allocation-20261017/capture/case-00 --reference /workspace/offline/cann-layer4-default-20261017/hf-8k --steps 2 --capacity 9344 --gpu-memory-utilization 0.4 --layer-trace --trace-mlp-layer 4 --output /workspace/offline/cann-routed-stage-20261017/continuation8k",
+    "free_hbm_mb": {
+      "0": 62386,
+      "1": 62629,
+      "2": 62389,
+      "3": 62631,
+      "4": 62378,
+      "5": 62642,
+      "6": 62390,
+      "7": 62625,
+      "8": 62389,
+      "9": 62628,
+      "10": 62384,
+      "11": 62628,
+      "12": 62383,
+      "13": 62641,
+      "14": 62377,
+      "15": 62622
+    },
+    "collector_ast_sha256": "79818aee812bc9839d29849709168a1d2ed93d9cc51a44d611656d04513fcbac",
+    "collector_fixture_sha256": "661be4ca532cc3834402baf444e09358468d1cbbdd4698a729e520c279802159",
+    "started_at": "2026-10-17T06:57:43.166160+00:00"
+  },
+  "exit": {
+    "exit_code": 1,
+    "finished_at": "2026-10-17T06:59:49.364735+00:00"
+  },
+  "checkpoint_sha256": {
+    "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+    "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+    "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+  },
+  "inputs": {
+    "prompt_length": 8192,
+    "prompt_sha256": "fe53282d0b732f6a1cbd9b6587903127f73ba645f2303a246656286704142afa",
+    "last_prompt_token": 9249,
+    "initial_position": 8192,
+    "first_token_id": 6500,
+    "request_id": "ba210bea41854af3",
+    "generation": 1,
+    "prefix_file": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/main-prefix/rank-0.pt",
+    "prefix_sha256": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+    "capture_manifest_sha256": "b01cceb2d2e30564807ce9efc441ad535999b56b73d0c333e93bb18694ccda74"
+  },
+  "teacher_tokens": [
+    6500,
+    382
+  ],
+  "predicted_tokens_all_ranks": [
+    382,
+    262
+  ],
+  "collector_ast": {
+    "algorithm": "CPython 3.11 ast.dump(include_attributes=False)",
+    "sha256": "8e8eafef8aeb189c02340bf7497cc31ff024615e89f8400481be764414f9aa69",
+    "launch_algorithm": "CPython 3.14 ast.dump default, empty fields omitted"
+  },
+  "metadata": {
+    "passed": true,
+    "coverage": {
+      "ranks": 16,
+      "phases": [
+        "first",
+        "reset"
+      ],
+      "positions": [
+        8192,
+        8193
+      ],
+      "snapshots": 64,
+      "checks_per_snapshot": 17,
+      "checks_total": 1088,
+      "failed_checks": 0
+    },
+    "contracts": {
+      "counts": "int64[256] scatter-add of one per distinct topk ID",
+      "inverse": "abs(expanded_row_idx) = argsort(argsort(topk_ids))",
+      "probabilities": "FP32 bits and BF16-cast bits retain original slots",
+      "restore": "finalize shape equals MLP input; DP1/PCP1 finalize returns hidden_states without another reduction",
+      "combine": "token_combine finalize equals routed combine bitwise",
+      "limitations": "No CPU numerical reconstruction of GMM or weighted reduction; no explanation of floating differences."
+    }
+  },
+  "repeatability": {
+    "first_differing_stage": [
+      {
+        "rank": 0,
+        "step": 0,
+        "exact_fields": [
+          "input",
+          "probs_fp32",
+          "topk_ids",
+          "dispatch_a8",
+          "dispatch_scale",
+          "group_counts",
+          "gmm2_group_counts",
+          "expanded_row_idx",
+          "finalize_probs_fp32",
+          "shared"
+        ],
+        "fused_differences": [
+          {
+            "name": "fused_a8",
+            "passed": false,
+            "exact": true,
+            "shape": [
+              8,
+              128
+            ],
+            "expected_shape": [
+              8,
+              128
+            ],
+            "dtype": "torch.int8",
+            "expected_dtype": "torch.int8",
+            "nrmse": 0.3699543899309726,
+            "cosine": 0.9290733933448792,
+            "max_abs": 122.0,
+            "different_elements": 117,
+            "first_mismatch": {
+              "index": [
+                7,
+                0
+              ],
+              "actual": 0.0,
+              "expected": 3.0
+            }
+          },
+          {
+            "name": "fused_scale",
+            "passed": false,
+            "exact": true,
+            "shape": [
+              8
+            ],
+            "expected_shape": [
+              8
+            ],
+            "dtype": "torch.float32",
+            "expected_dtype": "torch.float32",
+            "nrmse": 0.882102075762403,
+            "cosine": 0.7614015340805054,
+            "max_abs": 0.0005187710048630834,
+            "different_elements": 1,
+            "first_mismatch": {
+              "index": [
+                7
+              ],
+              "actual": 0.0005422380054369569,
+              "expected": 2.346702058275696e-05
+            }
+          }
+        ]
+      },
+      {
+        "rank": 12,
+        "step": 0,
+        "exact_fields": [
+          "input",
+          "probs_fp32",
+          "topk_ids",
+          "dispatch_a8",
+          "dispatch_scale",
+          "group_counts",
+          "gmm2_group_counts",
+          "expanded_row_idx",
+          "finalize_probs_fp32",
+          "shared"
+        ],
+        "fused_differences": [
+          {
+            "name": "fused_a8",
+            "passed": false,
+            "exact": true,
+            "shape": [
+              8,
+              128
+            ],
+            "expected_shape": [
+              8,
+              128
+            ],
+            "dtype": "torch.int8",
+            "expected_dtype": "torch.int8",
+            "nrmse": 0.678040380147719,
+            "cosine": 0.8331214785575867,
+            "max_abs": 122.0,
+            "different_elements": 239,
+            "first_mismatch": {
+              "index": [
+                4,
+                0
+              ],
+              "actual": 6.0,
+              "expected": 0.0
+            }
+          },
+          {
+            "name": "fused_scale",
+            "passed": false,
+            "exact": true,
+            "shape": [
+              8
+            ],
+            "expected_shape": [
+              8
+            ],
+            "dtype": "torch.float32",
+            "expected_dtype": "torch.float32",
+            "nrmse": 0.950242200794867,
+            "cosine": 0.5111185908317566,
+            "max_abs": 0.0006267582066357136,
+            "different_elements": 2,
+            "first_mismatch": {
+              "index": [
+                4
+              ],
+              "actual": 3.1582825613440946e-05,
+              "expected": 0.0006206349353305995
+            }
+          }
+        ]
+      },
+      {
+        "rank": 15,
+        "step": 0,
+        "exact_fields": [
+          "input",
+          "probs_fp32",
+          "topk_ids",
+          "dispatch_a8",
+          "dispatch_scale",
+          "group_counts",
+          "gmm2_group_counts",
+          "expanded_row_idx",
+          "finalize_probs_fp32",
+          "shared"
+        ],
+        "fused_differences": [
+          {
+            "name": "fused_a8",
+            "passed": false,
+            "exact": true,
+            "shape": [
+              8,
+              128
+            ],
+            "expected_shape": [
+              8,
+              128
+            ],
+            "dtype": "torch.int8",
+            "expected_dtype": "torch.int8",
+            "nrmse": 0.713999997454031,
+            "cosine": 0.701055645942688,
+            "max_abs": 124.0,
+            "different_elements": 466,
+            "first_mismatch": {
+              "index": [
+                2,
+                0
+              ],
+              "actual": 2.0,
+              "expected": 22.0
+            }
+          },
+          {
+            "name": "fused_scale",
+            "passed": false,
+            "exact": true,
+            "shape": [
+              8
+            ],
+            "expected_shape": [
+              8
+            ],
+            "dtype": "torch.float32",
+            "expected_dtype": "torch.float32",
+            "nrmse": 1.7519185496921705,
+            "cosine": 0.5591503977775574,
+            "max_abs": 0.0006613704608753324,
+            "different_elements": 4,
+            "first_mismatch": {
+              "index": [
+                2
+              ],
+              "actual": 0.000589969044085592,
+              "expected": 5.880906974198297e-05
+            }
+          }
+        ]
+      }
+    ],
+    "step_8193_all_local_fields_exact": true,
+    "first_hidden_difference_by_step": [
+      {
+        "name": "hidden_states.5",
+        "passed": false,
+        "exact": true,
+        "shape": [
+          1,
+          6144
+        ],
+        "expected_shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "expected_dtype": "torch.bfloat16",
+        "nrmse": 0.00230234311510474,
+        "cosine": 0.9999986886978149,
+        "max_abs": 0.0001220703125,
+        "different_elements": 2257,
+        "first_mismatch": {
+          "index": [
+            0,
+            5
+          ],
+          "actual": -3.0517578125e-05,
+          "expected": -5.340576171875e-05
+        }
+      },
+      {
+        "name": "hidden_states.6",
+        "passed": false,
+        "exact": true,
+        "shape": [
+          1,
+          6144
+        ],
+        "expected_shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "expected_dtype": "torch.bfloat16",
+        "nrmse": 0.003914281090473853,
+        "cosine": 0.9999937415122986,
+        "max_abs": 0.0001220703125,
+        "different_elements": 3468,
+        "first_mismatch": {
+          "index": [
+            0,
+            0
+          ],
+          "actual": 0.0023345947265625,
+          "expected": 0.002349853515625
+        }
+      }
+    ]
+  },
+  "composition": {
+    "finalize_lifetime": {
+      "exact_count": 64,
+      "total": 64,
+      "differences": []
+    },
+    "gmm2_to_r": {
+      "formula": "BF16(sum_j FP32(down[abs(rowmap[j])]) * FP32(BF16(probs[j])))",
+      "exact_count": 64,
+      "total": 64,
+      "differences": []
+    },
+    "post_tp_reconstruction": {
+      "formula": "BF16(sum_rank FP32(BF16(S+BF16(2.5R))))",
+      "checks": [
+        {
+          "phase": "first",
+          "step": 0,
+          "all_ranks_exact": true
+        },
+        {
+          "phase": "first",
+          "step": 1,
+          "all_ranks_exact": true
+        },
+        {
+          "phase": "reset",
+          "step": 0,
+          "all_ranks_exact": true
+        },
+        {
+          "phase": "reset",
+          "step": 1,
+          "all_ranks_exact": true
+        }
+      ]
+    }
+  },
+  "independent_cpu_reference": {
+    "formula": {
+      "gmm1": "CANN MSD FP16 high/low partials, FP32 result",
+      "activation": "FP32 silu(gate)*up; scale=amax/127; A8=RINT(FP16(activation*FP32(1/scale)))",
+      "gmm2": "Same MSD using captured A8/scale, BF16 output"
+    },
+    "summary": {
+      "expert_phase_rows": 48,
+      "fused_a8_and_scale_exact_rows": 37,
+      "gmm2_from_actual_fused_exact_rows": 48,
+      "anomalies": [
+        {
+          "rank": 0,
+          "row": 6,
+          "expert": 174,
+          "phases": {
+            "first": {
+              "codes_unequal": 114,
+              "scale_ratio": 17.87647247314453
+            },
+            "reset": {
+              "codes_unequal": 114,
+              "scale_ratio": 17.87647247314453
+            }
+          }
+        },
+        {
+          "rank": 0,
+          "row": 7,
+          "expert": 221,
+          "phases": {
+            "reset": {
+              "codes_unequal": 117,
+              "scale_ratio": 23.10638427734375
+            }
+          }
+        },
+        {
+          "rank": 12,
+          "row": 4,
+          "expert": 132,
+          "phases": {
+            "first": {
+              "codes_unequal": 122,
+              "scale_ratio": 19.651025772094727
+            }
+          }
+        },
+        {
+          "rank": 12,
+          "row": 5,
+          "expert": 144,
+          "phases": {
+            "first": {
+              "codes_unequal": 117,
+              "scale_ratio": 24.728666305541992
+            }
+          }
+        },
+        {
+          "rank": 15,
+          "row": 2,
+          "expert": 77,
+          "phases": {
+            "reset": {
+              "codes_unequal": 117,
+              "scale_ratio": 10.031939506530762
+            }
+          }
+        },
+        {
+          "rank": 15,
+          "row": 4,
+          "expert": 132,
+          "phases": {
+            "reset": {
+              "codes_unequal": 116,
+              "scale_ratio": 18.92528533935547
+            }
+          }
+        },
+        {
+          "rank": 15,
+          "row": 5,
+          "expert": 144,
+          "phases": {
+            "first": {
+              "codes_unequal": 119,
+              "scale_ratio": 27.228595733642578
+            },
+            "reset": {
+              "codes_unequal": 119,
+              "scale_ratio": 27.228595733642578
+            }
+          }
+        },
+        {
+          "rank": 15,
+          "row": 6,
+          "expert": 174,
+          "phases": {
+            "reset": {
+              "codes_unequal": 119,
+              "scale_ratio": 36.804168701171875
+            }
+          }
+        },
+        {
+          "rank": 15,
+          "row": 7,
+          "expert": 221,
+          "phases": {
+            "reset": {
+              "codes_unequal": 114,
+              "scale_ratio": 27.02896499633789
+            }
+          }
+        }
+      ],
+      "boundary": "GMM2 reconstructed independently from each captured fused input; no device gate/up/activation intermediates were captured, so GMM1 versus SwiGLU versus quantizer remains unresolved. Exact unaffected rows support this formula only for these inputs."
+    },
+    "cpu_threads": 1,
+    "elapsed_seconds": 1.6276325453072786,
+    "npu_initialized": false,
+    "source_sha256": {
+      "/workspace/offline/cann-routed-stage-20261017/reconstruct_routed.py": "6d39a470b4fdf1248ae16c0444a0c54ead06a404894aec8dec5e86f564e4f70f",
+      "/workspace/offline/cann-routed-stage-20261017/source/tilert/models/glm_5_2_ascend/reference_weights.py": "dfc4de627cb83eebb48058334edf3c1c95a0f44a554d7083c70599041fba34df",
+      "/workspace/offline/cann-routed-stage-20261017/source/tilert/models/glm_5_2_ascend/cann_model.py": "26ac7b799349271b553d6d9a3c72abaf66e8cc90456193403001b54f325765e4",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/ascend_forward_context.py": "848112214c9f56371b4bf43a59d39fadbed0e0e864581e300a3a89778d4083cb",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/indexer.py": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/sfa_v1.py": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/models/deepseek_mtp.py": "4ed40eae69848d1fac7c901a1c73b0532a71473a045af1aa79508f9c74be0a2b",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/model_runner_v1.py": "f0a3079900c9b2628437195ef21d0631c747aa1a49b663c1b27fddf379cbf8f5",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/worker.py": "1859b05db9bdbb9fd69a86e08bb67a1de2c964ed4b7ab75abc88492c9b910abc",
+      "/workspace/src/vllm-unified/vllm/model_executor/models/deepseek_v2.py": "5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408",
+      "/workspace/offline/cann-routed-stage-20261017/source/tilert/models/glm_5_2_ascend/cann_choices.py": "d4d465725eafd61cea0fe5e71072d53b28094eb30c079290a0c4d1a2244c60e2",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/routed_experts.py": "f9db74836ae210a541432b923118696c7a15be9a10d5776834e1d3b64ce11d77",
+      "/workspace/offline/cann-routed-stage-20261017/source/tests/glm52/run_cann_model.py": "1ffc552916803e6d707e0b05d88353d70ad99a3f461c4392b4dc1cd57bfb5f74",
+      "/workspace/offline/cann-routed-stage-20261017/source/tilert/models/glm_5_2_ascend/cann_trace.py": "4e51c1c0c6278b412f230c3167a536cf004f80faf551c1b72b88ecc158869776"
+    }
+  },
+  "artifacts": {
+    "/workspace/offline/cann-routed-stage-20261017/exit.json": {
+      "sha256": "7f144c422a4c0f920767491d9a9775083276c5ebfd826aa9abba6e34ce0655b5",
+      "bytes": 74
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/summary.json": {
+      "sha256": "41910f36b82eb5d7feeafe813f0d85009b27f5eab0efac0628bc227ce8803115",
+      "bytes": 5693
+    },
+    "/workspace/offline/cann-local-moe-20261017/capture_mlp_routed.py": {
+      "sha256": "8f1ac2af5efa020f3682bbee4da2ac28c34c252f00dd012353ea087c1a7bfe02",
+      "bytes": 3568
+    },
+    "/workspace/offline/cann-routed-stage-20261017/source/tests/glm52/run_cann_model.py": {
+      "sha256": "1ffc552916803e6d707e0b05d88353d70ad99a3f461c4392b4dc1cd57bfb5f74",
+      "bytes": 27269
+    },
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/token_dispatcher.py": {
+      "sha256": "1dcfd8181cb2d34c584d8336c3379dbeefba75c0bf664f924063701b93295cbb",
+      "bytes": 31387
+    },
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/moe_comm_method.py": {
+      "sha256": "5be213bfe265f8c6240fb111bbb2a0b1edfdf7920e3d5966a159651e13b3b494",
+      "bytes": 28204
+    },
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/moe_mlp.py": {
+      "sha256": "7882f9d0847e0303c78f2b216cfc50da9d3d062d6bd6f0cd22c94d1c7e78af0e",
+      "bytes": 5860
+    },
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/quantization/methods/w4a8/w4a8.py": {
+      "sha256": "d06549f45637300df3e4915823f4f71a913ce7059d1e3a4c475ab1f225e1a28a",
+      "bytes": 31736
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-0.json": {
+      "sha256": "4f0f925bfdc8ca8b29e9aa54ee484dd7d35434be30eb5f4959c91c8ecb14bec6",
+      "bytes": 958682
+    },
+    "/workspace/offline/cann-routed-stage-20261017/source/tilert/models/glm_5_2_ascend/cann_model.py": {
+      "sha256": "26ac7b799349271b553d6d9a3c72abaf66e8cc90456193403001b54f325765e4",
+      "bytes": 15926
+    },
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/ascend_forward_context.py": {
+      "sha256": "848112214c9f56371b4bf43a59d39fadbed0e0e864581e300a3a89778d4083cb",
+      "bytes": 18843
+    },
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/indexer.py": {
+      "sha256": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1",
+      "bytes": 47973
+    },
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/sfa_v1.py": {
+      "sha256": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+      "bytes": 96707
+    },
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/models/deepseek_mtp.py": {
+      "sha256": "4ed40eae69848d1fac7c901a1c73b0532a71473a045af1aa79508f9c74be0a2b",
+      "bytes": 3872
+    },
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/model_runner_v1.py": {
+      "sha256": "f0a3079900c9b2628437195ef21d0631c747aa1a49b663c1b27fddf379cbf8f5",
+      "bytes": 333400
+    },
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/worker.py": {
+      "sha256": "1859b05db9bdbb9fd69a86e08bb67a1de2c964ed4b7ab75abc88492c9b910abc",
+      "bytes": 63950
+    },
+    "/workspace/src/vllm-unified/vllm/model_executor/models/deepseek_v2.py": {
+      "sha256": "5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408",
+      "bytes": 78827
+    },
+    "/workspace/offline/cann-routed-stage-20261017/source/tilert/models/glm_5_2_ascend/cann_choices.py": {
+      "sha256": "d4d465725eafd61cea0fe5e71072d53b28094eb30c079290a0c4d1a2244c60e2",
+      "bytes": 6778
+    },
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/routed_experts.py": {
+      "sha256": "f9db74836ae210a541432b923118696c7a15be9a10d5776834e1d3b64ce11d77",
+      "bytes": 36119
+    },
+    "/workspace/offline/cann-routed-stage-20261017/source/tilert/models/glm_5_2_ascend/cann_trace.py": {
+      "sha256": "4e51c1c0c6278b412f230c3167a536cf004f80faf551c1b72b88ecc158869776",
+      "bytes": 4011
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-0/step-08192.pt": {
+      "sha256": "11ffcdbe90174b3c2942de93ac44ee2f04d4f123974cf022d572b5eca1820f28",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-0/step-08193.pt": {
+      "sha256": "f3300df0f253843469463c31411f638ae83f3088d955eaea455aebf029c61483",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-0/reset-step-08192.pt": {
+      "sha256": "26745f46b170ad74ed50a6d49c28a7477211b0e3f22b907006d9866e229b9658",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-0/reset-step-08193.pt": {
+      "sha256": "8c0bd9977f828cf8e675cbf788fa47b420e33cca833cbd74ea396ca6a5dfeaa1",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-1.json": {
+      "sha256": "fcd17f7125b63f9f1663ba11889d417af806a80a0fb5db371da494dfc51a6458",
+      "bytes": 958682
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-1/step-08192.pt": {
+      "sha256": "52d40bbfa08eb1e42e71269639fe16523d8ebf75224ae342c79eed19819a50ca",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-1/step-08193.pt": {
+      "sha256": "e0c7c4d6adfc533c17aeeaf18924470cb10e0b6d58d0303c0b87282e126db0be",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-1/reset-step-08192.pt": {
+      "sha256": "d85e3b01afdcff0c66f644f0d273f222e96b58d229aa87967b4cd5078e8f6027",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-1/reset-step-08193.pt": {
+      "sha256": "db34d48b90d252871f62f3aad47a90577d8dffac22f4a510867dced92b866923",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-2.json": {
+      "sha256": "d3e727e4b7c6982a597737d6f080d680e49ede8b1d9fc0946e31e6956a7c096e",
+      "bytes": 958682
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-2/step-08192.pt": {
+      "sha256": "010f6c82e3a2136a0ba9ed73304e33374abe4c9e5e0a71d475450fecba45f75a",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-2/step-08193.pt": {
+      "sha256": "2eb93197a64c38fb1391c9362caa3322871cbe462e1277da57ccae349af0e7af",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-2/reset-step-08192.pt": {
+      "sha256": "fc6b71ffc9ae2f24b9c48decfc9f5425f0fb7d3d3b7b9762077b446e2fb29e91",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-2/reset-step-08193.pt": {
+      "sha256": "0a400f79e630afd600577e9ed96301ea658b54b04a9249cab9aabe2c671cb9c7",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-3.json": {
+      "sha256": "511277c981ea73628114fcfad2d788a8edb606e7f7d30e51cf17fa1879ac0a48",
+      "bytes": 958682
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-3/step-08192.pt": {
+      "sha256": "0fdfbd09bf7efa2df843b40fb698afcaafd657bf60d452b584e3f0c500b4bd3d",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-3/step-08193.pt": {
+      "sha256": "3b1ae14998c1cbf3d9fb5116cd3e7c688d0837960fd4696c5a040975579d93e3",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-3/reset-step-08192.pt": {
+      "sha256": "a2cca950691ff1c94151a710c9ea170ea7e9f88738f79ec0a4402072eb82dedc",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-3/reset-step-08193.pt": {
+      "sha256": "8c8aff0f16ea212fe6cce9bbbfa3a95bf0cfb807f742ea14325430476bec94d6",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-4.json": {
+      "sha256": "d7d2af41374be29a44ac39b7abf37d18c6fc7929cc2f450be2b0d0d2c62139b4",
+      "bytes": 958682
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-4/step-08192.pt": {
+      "sha256": "8c7c8558969a12342c0868982e7bf09a543b814d46569029e09fa26a7937486a",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-4/step-08193.pt": {
+      "sha256": "c22070e4c7bdd219a42d1fd87d74bf2d524794c3bc921a888408c184fce90672",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-4/reset-step-08192.pt": {
+      "sha256": "f6f397a249c056abb8c198dc45557ad3a0aaa1b81164ca179c0892d781d0d118",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-4/reset-step-08193.pt": {
+      "sha256": "57cbc1b03c301052f230a8deab00a3945c79216366d8e89320180f0a35b7ffd8",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-5.json": {
+      "sha256": "ec9c49ad6b229c7942f93ff3b91e2bca8c28c5f5bd33e600966979dc3359436c",
+      "bytes": 958682
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-5/step-08192.pt": {
+      "sha256": "0ff3b970eb79ac21a17b824dcf1033eb0d3968d5f9893037dcced98208a26686",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-5/step-08193.pt": {
+      "sha256": "66836856773e1723c3d2b63a7e302b48c7c353ec502cb4904a920625a8b53054",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-5/reset-step-08192.pt": {
+      "sha256": "cbb6990d7d45413dbd8c7ad35fec1e72986060451fe6a3c38fa924ee0834af82",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-5/reset-step-08193.pt": {
+      "sha256": "56a71b2afae8d32000959f78841b3366f4e85308ce5842ddbfc1699a9f047197",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-6.json": {
+      "sha256": "bd07295b5f285678aaf03d6f606cdcef863051de0f29dc6640077cef792c8c07",
+      "bytes": 958682
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-6/step-08192.pt": {
+      "sha256": "dcab8e6d15f6d7d6a344d7bc4bc0ec9329b4c99e2df2f2d6cddb5f3d0e9e25ba",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-6/step-08193.pt": {
+      "sha256": "c4ab4602030e70263f2ecf874eba4d0b6f1d8cb4ea0f08eb09cb92a06c3546a9",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-6/reset-step-08192.pt": {
+      "sha256": "dd771aedaaa9736facfad3fc658fb2476b9a21a205ecb355dc28e7a8f7c4ecea",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-6/reset-step-08193.pt": {
+      "sha256": "f70ae8116332d5094ce9d455d3af2ab2fd641229578021484cf90582c3fb29d2",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-7.json": {
+      "sha256": "602a1123e7cb84c9a4ff560591467d826fba77a16177ff94710cb5aa3d9c0155",
+      "bytes": 958682
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-7/step-08192.pt": {
+      "sha256": "d03b468237f089fe8980cb97c89f31f6bf6d3756e6419b23f7750f432082c7d5",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-7/step-08193.pt": {
+      "sha256": "567c4c6a8c20769ac124e6e845e2f7d58188778d9fe913fcb4f8685b4c17ffe8",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-7/reset-step-08192.pt": {
+      "sha256": "1a058d8f83a5d5a1de4d6f3afa130e64524a0216f3c4cad7a9462f2b72b39f7f",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-7/reset-step-08193.pt": {
+      "sha256": "8dd97bb207716b2beff7af810b378733cf11761e90453648c271752689509605",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-8.json": {
+      "sha256": "b2ce6544049ddaea849720e7c786f5225d304b1138b2ea1e325697dd9ddfc071",
+      "bytes": 958682
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-8/step-08192.pt": {
+      "sha256": "4299efe5a3d440b6991bcd45c4226606373627d2afd1fd609e0ca7bcd40b4f8c",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-8/step-08193.pt": {
+      "sha256": "eb55fb06f4306389aec210921bba4de682ef17347ff3c4840492145bf0a7e89d",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-8/reset-step-08192.pt": {
+      "sha256": "8bfb06611511ddb205ae86178172711ce157606e0eaa3f8b303ea4d6dcfeb2bc",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-8/reset-step-08193.pt": {
+      "sha256": "20fe5b400d732c762836f4bbc3dcc8917381bbde962d99d1c15dc63e6f53ac55",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-9.json": {
+      "sha256": "5b5ef6f0d6dbace7c4d1a170521619aa1afd45d9f20dc2e1f4f7892cda04c330",
+      "bytes": 958682
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-9/step-08192.pt": {
+      "sha256": "5b4463a233b15a783356db0304e1b998b08c4d752d8b1a99b667c309ec3266c2",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-9/step-08193.pt": {
+      "sha256": "8bfe98d9f44ce4b0dd6b743397d8662b0b15f674b6b2486bbba12841801773ff",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-9/reset-step-08192.pt": {
+      "sha256": "a9471032bea072f728a017dab5976e980877d1b475f738ff2c93d545fb68ec31",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-9/reset-step-08193.pt": {
+      "sha256": "ee4dabbe208ee79c48104b00d5f7645fa52687cb27a23b2745e127d06dd1062b",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-10.json": {
+      "sha256": "66449aade7e1549db48deb85add8b60e0aca8342af8dbabc337c93858ea5c5bc",
+      "bytes": 958685
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-10/step-08192.pt": {
+      "sha256": "c5ce2d3cf3212e8f58cd6bfdff45d4ad22f3b0095b162b58db7b40ee766cdd9e",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-10/step-08193.pt": {
+      "sha256": "fd387c67777f55daf95e3c346ffecb60b11ec0fe2923bb6298420c348d1ec838",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-10/reset-step-08192.pt": {
+      "sha256": "99a91e60f34bca870dce8941572a3f96a4c2acfa8a3f1dfe5af8bd27ac6488cd",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-10/reset-step-08193.pt": {
+      "sha256": "c72cf3784501850649ba1e4c6fdc794a04755e702c0244dde73f5001276d293b",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-11.json": {
+      "sha256": "6e10ab3d19f35595675a5fc985fbc4b0458cd2610d72fc856f5da1d6a241bb00",
+      "bytes": 958685
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-11/step-08192.pt": {
+      "sha256": "d6957333c2125280f7903d34446c8e5d20c102aa0027d81d41c0e5833dbf981b",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-11/step-08193.pt": {
+      "sha256": "6f4dcf17c6ca97d50fa17c8058c342d14ebf46c2a183ae7dd2ef7918be454ab8",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-11/reset-step-08192.pt": {
+      "sha256": "825f6cd9f53323e58a0b14fe4a80a07039f639881ecc7cb241aeeb62c606f1f9",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-11/reset-step-08193.pt": {
+      "sha256": "bce25c7b71bfbdc9d6d2dbaf42f685ff602c003df1178cda93f8e57e7ace270f",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-12.json": {
+      "sha256": "415eae28a626b779401f0f039bd5d641731daa72fe36a5f7ae3ee99f95d15233",
+      "bytes": 958685
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-12/step-08192.pt": {
+      "sha256": "de5e92185b95a03c6c8c22d32e2c01552d57f4cf0269141d927acd1deadd1e21",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-12/step-08193.pt": {
+      "sha256": "ea4cfdeb52ebddd60cc1bff9e81cdc3cdbb6b69c0748068e4c76daa3d3f2eedd",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-12/reset-step-08192.pt": {
+      "sha256": "121547d2323dc63a98b694673c5f0251fc2494e13b49e42bb0faea047792f1aa",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-12/reset-step-08193.pt": {
+      "sha256": "1c555e94cf8f4b362270b08de6121b612d4f41b1bce40a428e49bbb7b88cc6b8",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-13.json": {
+      "sha256": "8086241d101f043b72e561b5063a0c9abb5d7238f65624b846579d51f2a915f2",
+      "bytes": 958685
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-13/step-08192.pt": {
+      "sha256": "e5d5c501690dddf48f9d6d6c341f28b2d18e90038557ee94104cf2d16f61b659",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-13/step-08193.pt": {
+      "sha256": "9a7b62057c1c662ea4b8b927759704bd9e4207ad17b200527b0f3dd459abdeba",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-13/reset-step-08192.pt": {
+      "sha256": "ce0dcaac180c01d0babc4a480a90bcb611fd050b7dabc1eeebbe897a34e29f65",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-13/reset-step-08193.pt": {
+      "sha256": "b95ea7fa42f24c83d03506eb3d2e9c03ca180f915145e2be1652565f77628dd6",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-14.json": {
+      "sha256": "34c085827919e9b153bc21e14584cf164807eeba99a9f0b841849c520c103dd7",
+      "bytes": 958685
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-14/step-08192.pt": {
+      "sha256": "046fb78a6854e77604ea020234b08c7122dc1a9564470afe52b00d059243c9f1",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-14/step-08193.pt": {
+      "sha256": "3df4908ab6d2966c8fb9f52b02855c7905ece4f4db4458951ba367155b355f2b",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-14/reset-step-08192.pt": {
+      "sha256": "dc1025a516825984692d3404f2ae594e5caa50e8eb7125f4880478092e366586",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-14/reset-step-08193.pt": {
+      "sha256": "c607b7e76b71384c2b3c3e21e805a431eb413051463854109dd57e39678beea7",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-15.json": {
+      "sha256": "829ffbf35ae33ca70219d3c40d6379dfb5d1fdcf0aadeec7f3ddd56402afef07",
+      "bytes": 958685
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-15/step-08192.pt": {
+      "sha256": "5fe6910c687b831187a0d8e1d403cd32529b39eb3519b8f4b1da704e9f59a2f0",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-15/step-08193.pt": {
+      "sha256": "713029b79210a107bc75df2e09d44bf83c7043ef2692b69f1565fe41319ef41d",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-15/reset-step-08192.pt": {
+      "sha256": "c8296ac43dfb4d2b880a2afc83115f51e94169429016071dce37d053cb6aacf6",
+      "bytes": 26547323
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-15/reset-step-08193.pt": {
+      "sha256": "b417c0538136784dcb20c491b22bd4ca994d22dad93881ca12d81450b93dd6d9",
+      "bytes": 26547323
+    },
+    "/workspace/models/GLM-5.2-w4a8c8/config.json": {
+      "sha256": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+      "bytes": 3699
+    },
+    "/workspace/models/GLM-5.2-w4a8c8/quant_model_description.json": {
+      "sha256": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+      "bytes": 17224106
+    },
+    "/workspace/models/GLM-5.2-w4a8c8/quant_model_weights.safetensors.index.json": {
+      "sha256": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82",
+      "bytes": 25714395
+    },
+    "/workspace/offline/cann-routed-stage-20261017/routed-stage-analysis.json": {
+      "sha256": "36913ad5350480280b0cfd4efb3528aae08a19c0c44ff2c1d1fa7884523767d6",
+      "bytes": 122396
+    },
+    "/workspace/offline/cann-routed-stage-20261017/routed-metadata-analysis.json": {
+      "sha256": "719fda587c69e63093133d9cb0542e283eef97b8fbe94f973bfec78f2f11957c",
+      "bytes": 45173
+    },
+    "/workspace/offline/cann-routed-stage-20261017/routed-reference-analysis.json": {
+      "sha256": "bcb7da27a844129e1d1d03c73370208fa967b4327ee4a5fcb76b081fbbd2399d",
+      "bytes": 107498
+    },
+    "/workspace/offline/cann-routed-stage-20261017/launch.json": {
+      "sha256": "126237d29bbc5c2b071502cae541382cabcb94afc63014718ffb843c89c48501",
+      "bytes": 1476
+    },
+    "/workspace/offline/cann-routed-stage-20261017/source.json": {
+      "sha256": "25f028f49e09fdcb03900947a5d327965172481171254bb3dccb34b730e1698f",
+      "bytes": 189
+    }
+  }
+}

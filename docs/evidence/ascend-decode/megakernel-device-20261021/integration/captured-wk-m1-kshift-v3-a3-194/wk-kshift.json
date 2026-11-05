@@ -1,0 +1,2037 @@
+{
+  "scope": "Captured M1 N160 K6144 only; natural/shifted BF16 Mmad with 48 updates of one FP32 L0C tile",
+  "script": {
+    "path": "/probe/kshift_check.py",
+    "sha256": "0bec490083d74c526c6b55b456b5a26b693b776168cdf7e48f7efc9d8aa69564"
+  },
+  "helper": {
+    "path": "/probe/contract.py",
+    "sha256": "5d7ee7a53c76c4512553642c21edc96fc4ee98986cab12f4652df6573fa015db"
+  },
+  "capture": {
+    "path": "/capture/decoder-graph-index-diagnostic.pt",
+    "sha256": "a95e0c289c7e8b4f0808f185aecffc8739e602d6a72896894baf79c640e54c41"
+  },
+  "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+  "capture_report": {
+    "path": "/capture/decoder-graph-index-diagnostic.json",
+    "sha256": "6b10c24c9754b8084699905dcbfd12c2b3abcf6a56f55d0d1488c65187e50a87"
+  },
+  "cpu_only": false,
+  "cases": [
+    {
+      "arm": "natural",
+      "repeat": 0,
+      "fifteen_guard_rows_unchanged": true,
+      "accumulators": {
+        "shape": [
+          1,
+          160
+        ],
+        "dtype": "torch.float32",
+        "sha256": "46e8f27063c715cca284dd6a7fc871ffb97ec7d82ec0e947d48c31042c3ffeb4"
+      },
+      "projection": {
+        "shape": [
+          1,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "23048dee9852740c88b21ae9737c92f5f573db91ac0b2ad09dbd1b0fddc93543"
+      },
+      "captured_native_accumulators": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "captured_native_projection": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "captured_vendor_projection": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 160,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              25
+            ],
+            "actual": {
+              "value": -0.333984375,
+              "bits": "0xbeab"
+            },
+            "expected": {
+              "value": -0.3359375,
+              "bits": "0xbeac"
+            }
+          }
+        ]
+      },
+      "direct_bf16_vs_fp32_cast": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            25
+          ],
+          "accumulator": {
+            "value": -0.33496055006980896,
+            "bits": "0xbeab7ff3"
+          },
+          "projection": {
+            "value": -0.333984375,
+            "bits": "0xbeab"
+          }
+        }
+      ]
+    },
+    {
+      "arm": "shifted",
+      "repeat": 0,
+      "fifteen_guard_rows_unchanged": true,
+      "accumulators": {
+        "shape": [
+          1,
+          160
+        ],
+        "dtype": "torch.float32",
+        "sha256": "d80de96b8df018527ba7cd10b95ac80fe5f1fd89c3dc7e1accf9bee8a4447126"
+      },
+      "projection": {
+        "shape": [
+          1,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "959a98b9e1f4fb24a8c4817c616c420b82481881d257cbd146a31af177b94bb0"
+      },
+      "captured_native_accumulators": {
+        "bitwise_equal": false,
+        "different_elements": 139,
+        "different_bytes": 142,
+        "elements": 160,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              16
+            ],
+            "actual": {
+              "value": -1.842766284942627,
+              "bits": "0xbfebdfc4"
+            },
+            "expected": {
+              "value": -1.8427668809890747,
+              "bits": "0xbfebdfc9"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              17
+            ],
+            "actual": {
+              "value": -0.17542769014835358,
+              "bits": "0xbe33a351"
+            },
+            "expected": {
+              "value": -0.1754274070262909,
+              "bits": "0xbe33a33e"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              18
+            ],
+            "actual": {
+              "value": -0.4023992121219635,
+              "bits": "0xbece0745"
+            },
+            "expected": {
+              "value": -0.4023990333080292,
+              "bits": "0xbece073f"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              19
+            ],
+            "actual": {
+              "value": -1.6313772201538086,
+              "bits": "0xbfd0d0f8"
+            },
+            "expected": {
+              "value": -1.6313773393630981,
+              "bits": "0xbfd0d0f9"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              20
+            ],
+            "actual": {
+              "value": 1.2457185983657837,
+              "bits": "0x3f9f73b5"
+            },
+            "expected": {
+              "value": 1.245718002319336,
+              "bits": "0x3f9f73b0"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              21
+            ],
+            "actual": {
+              "value": 1.0213669538497925,
+              "bits": "0x3f82bc27"
+            },
+            "expected": {
+              "value": 1.0213671922683716,
+              "bits": "0x3f82bc29"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              22
+            ],
+            "actual": {
+              "value": -0.26095667481422424,
+              "bits": "0xbe859c1d"
+            },
+            "expected": {
+              "value": -0.2609565258026123,
+              "bits": "0xbe859c18"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              23
+            ],
+            "actual": {
+              "value": -0.5941183567047119,
+              "bits": "0xbf181824"
+            },
+            "expected": {
+              "value": -0.5941179990768433,
+              "bits": "0xbf18181e"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              24
+            ],
+            "actual": {
+              "value": -0.5910352468490601,
+              "bits": "0xbf174e16"
+            },
+            "expected": {
+              "value": -0.591035008430481,
+              "bits": "0xbf174e12"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              25
+            ],
+            "actual": {
+              "value": -0.3349609375,
+              "bits": "0xbeab8000"
+            },
+            "expected": {
+              "value": -0.33496055006980896,
+              "bits": "0xbeab7ff3"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              26
+            ],
+            "actual": {
+              "value": -0.8304089307785034,
+              "bits": "0xbf5495ae"
+            },
+            "expected": {
+              "value": -0.8304091095924377,
+              "bits": "0xbf5495b1"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              27
+            ],
+            "actual": {
+              "value": -0.26935768127441406,
+              "bits": "0xbe89e940"
+            },
+            "expected": {
+              "value": -0.2693578004837036,
+              "bits": "0xbe89e944"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              28
+            ],
+            "actual": {
+              "value": -0.4473693072795868,
+              "bits": "0xbee50d97"
+            },
+            "expected": {
+              "value": -0.44736921787261963,
+              "bits": "0xbee50d94"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.6778932809829712,
+              "bits": "0x3f2d8a6a"
+            },
+            "expected": {
+              "value": 0.677893877029419,
+              "bits": "0x3f2d8a74"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              30
+            ],
+            "actual": {
+              "value": -0.8207640647888184,
+              "bits": "0xbf521d98"
+            },
+            "expected": {
+              "value": -0.820764422416687,
+              "bits": "0xbf521d9e"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              31
+            ],
+            "actual": {
+              "value": 0.6012799739837646,
+              "bits": "0x3f19ed7c"
+            },
+            "expected": {
+              "value": 0.6012803316116333,
+              "bits": "0x3f19ed82"
+            }
+          }
+        ]
+      },
+      "captured_native_projection": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 160,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              25
+            ],
+            "actual": {
+              "value": -0.3359375,
+              "bits": "0xbeac"
+            },
+            "expected": {
+              "value": -0.333984375,
+              "bits": "0xbeab"
+            }
+          }
+        ]
+      },
+      "captured_vendor_projection": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "direct_bf16_vs_fp32_cast": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 160,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              25
+            ],
+            "actual": {
+              "value": -0.3359375,
+              "bits": "0xbeac"
+            },
+            "expected": {
+              "value": -0.333984375,
+              "bits": "0xbeab"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            25
+          ],
+          "accumulator": {
+            "value": -0.3349609375,
+            "bits": "0xbeab8000"
+          },
+          "projection": {
+            "value": -0.3359375,
+            "bits": "0xbeac"
+          }
+        }
+      ]
+    },
+    {
+      "arm": "shifted",
+      "repeat": 1,
+      "fifteen_guard_rows_unchanged": true,
+      "accumulators": {
+        "shape": [
+          1,
+          160
+        ],
+        "dtype": "torch.float32",
+        "sha256": "d80de96b8df018527ba7cd10b95ac80fe5f1fd89c3dc7e1accf9bee8a4447126"
+      },
+      "projection": {
+        "shape": [
+          1,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "959a98b9e1f4fb24a8c4817c616c420b82481881d257cbd146a31af177b94bb0"
+      },
+      "captured_native_accumulators": {
+        "bitwise_equal": false,
+        "different_elements": 139,
+        "different_bytes": 142,
+        "elements": 160,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              16
+            ],
+            "actual": {
+              "value": -1.842766284942627,
+              "bits": "0xbfebdfc4"
+            },
+            "expected": {
+              "value": -1.8427668809890747,
+              "bits": "0xbfebdfc9"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              17
+            ],
+            "actual": {
+              "value": -0.17542769014835358,
+              "bits": "0xbe33a351"
+            },
+            "expected": {
+              "value": -0.1754274070262909,
+              "bits": "0xbe33a33e"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              18
+            ],
+            "actual": {
+              "value": -0.4023992121219635,
+              "bits": "0xbece0745"
+            },
+            "expected": {
+              "value": -0.4023990333080292,
+              "bits": "0xbece073f"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              19
+            ],
+            "actual": {
+              "value": -1.6313772201538086,
+              "bits": "0xbfd0d0f8"
+            },
+            "expected": {
+              "value": -1.6313773393630981,
+              "bits": "0xbfd0d0f9"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              20
+            ],
+            "actual": {
+              "value": 1.2457185983657837,
+              "bits": "0x3f9f73b5"
+            },
+            "expected": {
+              "value": 1.245718002319336,
+              "bits": "0x3f9f73b0"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              21
+            ],
+            "actual": {
+              "value": 1.0213669538497925,
+              "bits": "0x3f82bc27"
+            },
+            "expected": {
+              "value": 1.0213671922683716,
+              "bits": "0x3f82bc29"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              22
+            ],
+            "actual": {
+              "value": -0.26095667481422424,
+              "bits": "0xbe859c1d"
+            },
+            "expected": {
+              "value": -0.2609565258026123,
+              "bits": "0xbe859c18"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              23
+            ],
+            "actual": {
+              "value": -0.5941183567047119,
+              "bits": "0xbf181824"
+            },
+            "expected": {
+              "value": -0.5941179990768433,
+              "bits": "0xbf18181e"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              24
+            ],
+            "actual": {
+              "value": -0.5910352468490601,
+              "bits": "0xbf174e16"
+            },
+            "expected": {
+              "value": -0.591035008430481,
+              "bits": "0xbf174e12"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              25
+            ],
+            "actual": {
+              "value": -0.3349609375,
+              "bits": "0xbeab8000"
+            },
+            "expected": {
+              "value": -0.33496055006980896,
+              "bits": "0xbeab7ff3"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              26
+            ],
+            "actual": {
+              "value": -0.8304089307785034,
+              "bits": "0xbf5495ae"
+            },
+            "expected": {
+              "value": -0.8304091095924377,
+              "bits": "0xbf5495b1"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              27
+            ],
+            "actual": {
+              "value": -0.26935768127441406,
+              "bits": "0xbe89e940"
+            },
+            "expected": {
+              "value": -0.2693578004837036,
+              "bits": "0xbe89e944"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              28
+            ],
+            "actual": {
+              "value": -0.4473693072795868,
+              "bits": "0xbee50d97"
+            },
+            "expected": {
+              "value": -0.44736921787261963,
+              "bits": "0xbee50d94"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.6778932809829712,
+              "bits": "0x3f2d8a6a"
+            },
+            "expected": {
+              "value": 0.677893877029419,
+              "bits": "0x3f2d8a74"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              30
+            ],
+            "actual": {
+              "value": -0.8207640647888184,
+              "bits": "0xbf521d98"
+            },
+            "expected": {
+              "value": -0.820764422416687,
+              "bits": "0xbf521d9e"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              31
+            ],
+            "actual": {
+              "value": 0.6012799739837646,
+              "bits": "0x3f19ed7c"
+            },
+            "expected": {
+              "value": 0.6012803316116333,
+              "bits": "0x3f19ed82"
+            }
+          }
+        ]
+      },
+      "captured_native_projection": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 160,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              25
+            ],
+            "actual": {
+              "value": -0.3359375,
+              "bits": "0xbeac"
+            },
+            "expected": {
+              "value": -0.333984375,
+              "bits": "0xbeab"
+            }
+          }
+        ]
+      },
+      "captured_vendor_projection": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "direct_bf16_vs_fp32_cast": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 160,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              25
+            ],
+            "actual": {
+              "value": -0.3359375,
+              "bits": "0xbeac"
+            },
+            "expected": {
+              "value": -0.333984375,
+              "bits": "0xbeab"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            25
+          ],
+          "accumulator": {
+            "value": -0.3349609375,
+            "bits": "0xbeab8000"
+          },
+          "projection": {
+            "value": -0.3359375,
+            "bits": "0xbeac"
+          }
+        }
+      ],
+      "repeatability_accumulators": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "repeatability_projection": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "natural",
+      "repeat": 1,
+      "fifteen_guard_rows_unchanged": true,
+      "accumulators": {
+        "shape": [
+          1,
+          160
+        ],
+        "dtype": "torch.float32",
+        "sha256": "46e8f27063c715cca284dd6a7fc871ffb97ec7d82ec0e947d48c31042c3ffeb4"
+      },
+      "projection": {
+        "shape": [
+          1,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "23048dee9852740c88b21ae9737c92f5f573db91ac0b2ad09dbd1b0fddc93543"
+      },
+      "captured_native_accumulators": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "captured_native_projection": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "captured_vendor_projection": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 160,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              25
+            ],
+            "actual": {
+              "value": -0.333984375,
+              "bits": "0xbeab"
+            },
+            "expected": {
+              "value": -0.3359375,
+              "bits": "0xbeac"
+            }
+          }
+        ]
+      },
+      "direct_bf16_vs_fp32_cast": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            25
+          ],
+          "accumulator": {
+            "value": -0.33496055006980896,
+            "bits": "0xbeab7ff3"
+          },
+          "projection": {
+            "value": -0.333984375,
+            "bits": "0xbeab"
+          }
+        }
+      ],
+      "repeatability_accumulators": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "repeatability_projection": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "natural",
+      "repeat": 2,
+      "fifteen_guard_rows_unchanged": true,
+      "accumulators": {
+        "shape": [
+          1,
+          160
+        ],
+        "dtype": "torch.float32",
+        "sha256": "46e8f27063c715cca284dd6a7fc871ffb97ec7d82ec0e947d48c31042c3ffeb4"
+      },
+      "projection": {
+        "shape": [
+          1,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "23048dee9852740c88b21ae9737c92f5f573db91ac0b2ad09dbd1b0fddc93543"
+      },
+      "captured_native_accumulators": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "captured_native_projection": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "captured_vendor_projection": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 160,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              25
+            ],
+            "actual": {
+              "value": -0.333984375,
+              "bits": "0xbeab"
+            },
+            "expected": {
+              "value": -0.3359375,
+              "bits": "0xbeac"
+            }
+          }
+        ]
+      },
+      "direct_bf16_vs_fp32_cast": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            25
+          ],
+          "accumulator": {
+            "value": -0.33496055006980896,
+            "bits": "0xbeab7ff3"
+          },
+          "projection": {
+            "value": -0.333984375,
+            "bits": "0xbeab"
+          }
+        }
+      ],
+      "repeatability_accumulators": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "repeatability_projection": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      }
+    },
+    {
+      "arm": "shifted",
+      "repeat": 2,
+      "fifteen_guard_rows_unchanged": true,
+      "accumulators": {
+        "shape": [
+          1,
+          160
+        ],
+        "dtype": "torch.float32",
+        "sha256": "d80de96b8df018527ba7cd10b95ac80fe5f1fd89c3dc7e1accf9bee8a4447126"
+      },
+      "projection": {
+        "shape": [
+          1,
+          160
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "959a98b9e1f4fb24a8c4817c616c420b82481881d257cbd146a31af177b94bb0"
+      },
+      "captured_native_accumulators": {
+        "bitwise_equal": false,
+        "different_elements": 139,
+        "different_bytes": 142,
+        "elements": 160,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              16
+            ],
+            "actual": {
+              "value": -1.842766284942627,
+              "bits": "0xbfebdfc4"
+            },
+            "expected": {
+              "value": -1.8427668809890747,
+              "bits": "0xbfebdfc9"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              17
+            ],
+            "actual": {
+              "value": -0.17542769014835358,
+              "bits": "0xbe33a351"
+            },
+            "expected": {
+              "value": -0.1754274070262909,
+              "bits": "0xbe33a33e"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              18
+            ],
+            "actual": {
+              "value": -0.4023992121219635,
+              "bits": "0xbece0745"
+            },
+            "expected": {
+              "value": -0.4023990333080292,
+              "bits": "0xbece073f"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              19
+            ],
+            "actual": {
+              "value": -1.6313772201538086,
+              "bits": "0xbfd0d0f8"
+            },
+            "expected": {
+              "value": -1.6313773393630981,
+              "bits": "0xbfd0d0f9"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              20
+            ],
+            "actual": {
+              "value": 1.2457185983657837,
+              "bits": "0x3f9f73b5"
+            },
+            "expected": {
+              "value": 1.245718002319336,
+              "bits": "0x3f9f73b0"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              21
+            ],
+            "actual": {
+              "value": 1.0213669538497925,
+              "bits": "0x3f82bc27"
+            },
+            "expected": {
+              "value": 1.0213671922683716,
+              "bits": "0x3f82bc29"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              22
+            ],
+            "actual": {
+              "value": -0.26095667481422424,
+              "bits": "0xbe859c1d"
+            },
+            "expected": {
+              "value": -0.2609565258026123,
+              "bits": "0xbe859c18"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              23
+            ],
+            "actual": {
+              "value": -0.5941183567047119,
+              "bits": "0xbf181824"
+            },
+            "expected": {
+              "value": -0.5941179990768433,
+              "bits": "0xbf18181e"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              24
+            ],
+            "actual": {
+              "value": -0.5910352468490601,
+              "bits": "0xbf174e16"
+            },
+            "expected": {
+              "value": -0.591035008430481,
+              "bits": "0xbf174e12"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              25
+            ],
+            "actual": {
+              "value": -0.3349609375,
+              "bits": "0xbeab8000"
+            },
+            "expected": {
+              "value": -0.33496055006980896,
+              "bits": "0xbeab7ff3"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              26
+            ],
+            "actual": {
+              "value": -0.8304089307785034,
+              "bits": "0xbf5495ae"
+            },
+            "expected": {
+              "value": -0.8304091095924377,
+              "bits": "0xbf5495b1"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              27
+            ],
+            "actual": {
+              "value": -0.26935768127441406,
+              "bits": "0xbe89e940"
+            },
+            "expected": {
+              "value": -0.2693578004837036,
+              "bits": "0xbe89e944"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              28
+            ],
+            "actual": {
+              "value": -0.4473693072795868,
+              "bits": "0xbee50d97"
+            },
+            "expected": {
+              "value": -0.44736921787261963,
+              "bits": "0xbee50d94"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              29
+            ],
+            "actual": {
+              "value": 0.6778932809829712,
+              "bits": "0x3f2d8a6a"
+            },
+            "expected": {
+              "value": 0.677893877029419,
+              "bits": "0x3f2d8a74"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              30
+            ],
+            "actual": {
+              "value": -0.8207640647888184,
+              "bits": "0xbf521d98"
+            },
+            "expected": {
+              "value": -0.820764422416687,
+              "bits": "0xbf521d9e"
+            }
+          },
+          {
+            "coordinate": [
+              0,
+              31
+            ],
+            "actual": {
+              "value": 0.6012799739837646,
+              "bits": "0x3f19ed7c"
+            },
+            "expected": {
+              "value": 0.6012803316116333,
+              "bits": "0x3f19ed82"
+            }
+          }
+        ]
+      },
+      "captured_native_projection": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 160,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              25
+            ],
+            "actual": {
+              "value": -0.3359375,
+              "bits": "0xbeac"
+            },
+            "expected": {
+              "value": -0.333984375,
+              "bits": "0xbeab"
+            }
+          }
+        ]
+      },
+      "captured_vendor_projection": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "direct_bf16_vs_fp32_cast": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "cpu_fp64_rounding": {
+        "bitwise_equal": false,
+        "different_elements": 1,
+        "different_bytes": 1,
+        "elements": 160,
+        "first_differences": [
+          {
+            "coordinate": [
+              0,
+              25
+            ],
+            "actual": {
+              "value": -0.3359375,
+              "bits": "0xbeac"
+            },
+            "expected": {
+              "value": -0.333984375,
+              "bits": "0xbeab"
+            }
+          }
+        ]
+      },
+      "witnesses": [
+        {
+          "coordinate": [
+            0,
+            25
+          ],
+          "accumulator": {
+            "value": -0.3349609375,
+            "bits": "0xbeab8000"
+          },
+          "projection": {
+            "value": -0.3359375,
+            "bits": "0xbeac"
+          }
+        }
+      ],
+      "repeatability_accumulators": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      },
+      "repeatability_projection": {
+        "bitwise_equal": true,
+        "different_elements": 0,
+        "different_bytes": 0,
+        "elements": 160,
+        "first_differences": []
+      }
+    }
+  ],
+  "completed": true,
+  "pass": true,
+  "geometry": {
+    "blocks": 10,
+    "M": 1,
+    "N": 160,
+    "K": 6144,
+    "single_core_M": 1,
+    "single_core_N": 16,
+    "mmad_K": 128,
+    "K_segment": 512,
+    "K_segments": 12
+  },
+  "orders": {
+    "0": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "1": [
+      11,
+      10,
+      9,
+      8,
+      7,
+      6,
+      5,
+      4,
+      3,
+      2,
+      1,
+      0
+    ],
+    "2": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      0,
+      1
+    ],
+    "3": [
+      1,
+      0,
+      11,
+      10,
+      9,
+      8,
+      7,
+      6,
+      5,
+      4,
+      3,
+      2
+    ],
+    "4": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      0,
+      1,
+      2,
+      3
+    ],
+    "5": [
+      3,
+      2,
+      1,
+      0,
+      11,
+      10,
+      9,
+      8,
+      7,
+      6,
+      5,
+      4
+    ],
+    "6": [
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "7": [
+      5,
+      4,
+      3,
+      2,
+      1,
+      0,
+      11,
+      10,
+      9,
+      8,
+      7,
+      6
+    ],
+    "8": [
+      8,
+      9,
+      10,
+      11,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "9": [
+      7,
+      6,
+      5,
+      4,
+      3,
+      2,
+      1,
+      0,
+      11,
+      10,
+      9,
+      8
+    ]
+  },
+  "torch": "2.12.0+cu130",
+  "witnesses": [
+    {
+      "coordinate": [
+        0,
+        25
+      ],
+      "vendor": {
+        "value": -0.3359375,
+        "bits": "0xbeac"
+      },
+      "native": {
+        "value": -0.333984375,
+        "bits": "0xbeab"
+      },
+      "native_accumulator": {
+        "value": -0.33496055006980896,
+        "bits": "0xbeab7ff3"
+      },
+      "cpu_fp64_dot": -0.3349605367548065,
+      "cpu_fp64_cast_fp32": {
+        "value": -0.33496055006980896,
+        "bits": "0xbeab7ff3"
+      },
+      "cpu_fp64_cast_bfloat16": {
+        "value": -0.333984375,
+        "bits": "0xbeab"
+      },
+      "bf16_midpoint": -0.3349609375,
+      "native_accumulator_minus_fp64": -1.331500243395567e-08,
+      "native_accumulator_minus_midpoint": 3.8743019104003906e-07,
+      "fp64_minus_midpoint": 4.0074519347399473e-07
+    }
+  ],
+  "witness_mapping": [
+    {
+      "coordinate": [
+        0,
+        25
+      ],
+      "core": 1,
+      "M_tile": 0,
+      "N_tile": 1,
+      "K512_order": [
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2,
+        1,
+        0
+      ]
+    }
+  ],
+  "production_reproduction": {
+    "bitwise_equal": true,
+    "different_elements": 0,
+    "different_bytes": 0,
+    "elements": 160,
+    "first_differences": []
+  },
+  "library": {
+    "path": "/probe/build/wk_kshift.so",
+    "sha256": "8493189945cd922ac2cff9a7653bccd1b5ad03bcf7574ea1278ef91fd44594a8"
+  },
+  "torch_npu": "2.12.0",
+  "torch_npu_extension": {
+    "path": "/usr/local/lib/python3.11/site-packages/torch_npu/_C.cpython-311-aarch64-linux-gnu.so",
+    "sha256": "b41c0f7a6fbd21993b2a4fccf3777a1ce35d4b38f8fd78d357154f25d5516783"
+  },
+  "device": "Ascend910_9392",
+  "device_properties": "_NPUDeviceProperties(name='Ascend910_9392', total_memory=62740MB, cube_core_num=24, vector_core_num=48, uuid=00cc0800-d001-0000-0000-bcd20648923c, L2_cache_size=192MB)",
+  "input_descriptors": {
+    "hidden": {
+      "shape": [
+        1,
+        6144
+      ],
+      "stride": [
+        6144,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "format": 2,
+      "data_ptr": 20618009378816,
+      "storage_ptr": 20618009378816,
+      "storage_offset": 0
+    },
+    "weight": {
+      "shape": [
+        160,
+        6144
+      ],
+      "stride": [
+        6144,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "format": 2,
+      "data_ptr": 20618011475968,
+      "storage_ptr": 20618011475968,
+      "storage_offset": 0
+    },
+    "original_weight": {
+      "shape": [
+        160,
+        6144
+      ],
+      "stride": [
+        6144,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "format": 2,
+      "data_ptr": 20618011475968,
+      "storage_ptr": 20618011475968,
+      "storage_offset": 0
+    },
+    "original_right_operand": {
+      "shape": [
+        6144,
+        160
+      ],
+      "stride": [
+        1,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "format": 2,
+      "data_ptr": 20618011475968,
+      "storage_ptr": 20618011475968,
+      "storage_offset": 0
+    }
+  },
+  "raw_calls": [
+    {
+      "dump": {
+        "path": "/evidence/wk-kshift-raw-natural-r0.pt",
+        "sha256": "ba2bba7eb31223deaf41a6252beeb782a86da90b028c6dfab575d5d4b8d58e83"
+      },
+      "outputs": {
+        "accumulators": {
+          "tensor": {
+            "shape": [
+              16,
+              160
+            ],
+            "dtype": "torch.float32",
+            "sha256": "75d41833f6efb213038394620836eb9b6b5f045c496d9f14abb41388e30b2eff"
+          },
+          "nonfinite_active_coordinates": [],
+          "finite_elements_per_row": [
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160
+          ],
+          "guard_different_bytes": 0
+        },
+        "projection": {
+          "tensor": {
+            "shape": [
+              16,
+              160
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "f5e3a83ed33a67bf7ffd0e00b3abc5f774d5f88d12b7bbcbe9b3be18946e088d"
+          },
+          "nonfinite_active_coordinates": [],
+          "finite_elements_per_row": [
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160
+          ],
+          "guard_different_bytes": 0
+        }
+      },
+      "arm": "natural",
+      "repeat": 0
+    },
+    {
+      "dump": {
+        "path": "/evidence/wk-kshift-raw-shifted-r0.pt",
+        "sha256": "5ac8973e2d73934454998d2aca4937f93ee18259fe96ade7d857412391ca92ad"
+      },
+      "outputs": {
+        "accumulators": {
+          "tensor": {
+            "shape": [
+              16,
+              160
+            ],
+            "dtype": "torch.float32",
+            "sha256": "21f00af2b44d8cdb60c6bfb3b38513f0167356ad3ff784281bd2e19493990de6"
+          },
+          "nonfinite_active_coordinates": [],
+          "finite_elements_per_row": [
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160
+          ],
+          "guard_different_bytes": 0
+        },
+        "projection": {
+          "tensor": {
+            "shape": [
+              16,
+              160
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "f426d5ac52934955c2d49a3d35b9ab648c601f8571e555361d16570c3bdd607a"
+          },
+          "nonfinite_active_coordinates": [],
+          "finite_elements_per_row": [
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160
+          ],
+          "guard_different_bytes": 0
+        }
+      },
+      "arm": "shifted",
+      "repeat": 0
+    },
+    {
+      "dump": {
+        "path": "/evidence/wk-kshift-raw-shifted-r1.pt",
+        "sha256": "6a86dd56990c90581e9662c0a5da41c1f86fb74c3a0d7dda16302686b4d00b5e"
+      },
+      "outputs": {
+        "accumulators": {
+          "tensor": {
+            "shape": [
+              16,
+              160
+            ],
+            "dtype": "torch.float32",
+            "sha256": "21f00af2b44d8cdb60c6bfb3b38513f0167356ad3ff784281bd2e19493990de6"
+          },
+          "nonfinite_active_coordinates": [],
+          "finite_elements_per_row": [
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160
+          ],
+          "guard_different_bytes": 0
+        },
+        "projection": {
+          "tensor": {
+            "shape": [
+              16,
+              160
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "f426d5ac52934955c2d49a3d35b9ab648c601f8571e555361d16570c3bdd607a"
+          },
+          "nonfinite_active_coordinates": [],
+          "finite_elements_per_row": [
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160
+          ],
+          "guard_different_bytes": 0
+        }
+      },
+      "arm": "shifted",
+      "repeat": 1
+    },
+    {
+      "dump": {
+        "path": "/evidence/wk-kshift-raw-natural-r1.pt",
+        "sha256": "c8ab12a010ecad8923a2e97316b20c21ca338712cc2ca89cb0677a3b65d5d26b"
+      },
+      "outputs": {
+        "accumulators": {
+          "tensor": {
+            "shape": [
+              16,
+              160
+            ],
+            "dtype": "torch.float32",
+            "sha256": "75d41833f6efb213038394620836eb9b6b5f045c496d9f14abb41388e30b2eff"
+          },
+          "nonfinite_active_coordinates": [],
+          "finite_elements_per_row": [
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160
+          ],
+          "guard_different_bytes": 0
+        },
+        "projection": {
+          "tensor": {
+            "shape": [
+              16,
+              160
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "f5e3a83ed33a67bf7ffd0e00b3abc5f774d5f88d12b7bbcbe9b3be18946e088d"
+          },
+          "nonfinite_active_coordinates": [],
+          "finite_elements_per_row": [
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160
+          ],
+          "guard_different_bytes": 0
+        }
+      },
+      "arm": "natural",
+      "repeat": 1
+    },
+    {
+      "dump": {
+        "path": "/evidence/wk-kshift-raw-natural-r2.pt",
+        "sha256": "8818ee556fe11c761053cbec60a7f13ad2e89a44e752ec29b5e9f586553ebde5"
+      },
+      "outputs": {
+        "accumulators": {
+          "tensor": {
+            "shape": [
+              16,
+              160
+            ],
+            "dtype": "torch.float32",
+            "sha256": "75d41833f6efb213038394620836eb9b6b5f045c496d9f14abb41388e30b2eff"
+          },
+          "nonfinite_active_coordinates": [],
+          "finite_elements_per_row": [
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160
+          ],
+          "guard_different_bytes": 0
+        },
+        "projection": {
+          "tensor": {
+            "shape": [
+              16,
+              160
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "f5e3a83ed33a67bf7ffd0e00b3abc5f774d5f88d12b7bbcbe9b3be18946e088d"
+          },
+          "nonfinite_active_coordinates": [],
+          "finite_elements_per_row": [
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160
+          ],
+          "guard_different_bytes": 0
+        }
+      },
+      "arm": "natural",
+      "repeat": 2
+    },
+    {
+      "dump": {
+        "path": "/evidence/wk-kshift-raw-shifted-r2.pt",
+        "sha256": "fdad18dd8189c0fc076c120da68cd0073c1261426866a011ebe8cb873654f148"
+      },
+      "outputs": {
+        "accumulators": {
+          "tensor": {
+            "shape": [
+              16,
+              160
+            ],
+            "dtype": "torch.float32",
+            "sha256": "21f00af2b44d8cdb60c6bfb3b38513f0167356ad3ff784281bd2e19493990de6"
+          },
+          "nonfinite_active_coordinates": [],
+          "finite_elements_per_row": [
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160
+          ],
+          "guard_different_bytes": 0
+        },
+        "projection": {
+          "tensor": {
+            "shape": [
+              16,
+              160
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "f426d5ac52934955c2d49a3d35b9ab648c601f8571e555361d16570c3bdd607a"
+          },
+          "nonfinite_active_coordinates": [],
+          "finite_elements_per_row": [
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160,
+            160
+          ],
+          "guard_different_bytes": 0
+        }
+      },
+      "arm": "shifted",
+      "repeat": 2
+    }
+  ]
+}

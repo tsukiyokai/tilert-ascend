@@ -1,0 +1,29 @@
+--- parent/body/source/routed_int4/routed_int4_tiling.cpp
++++ candidate/body/source/routed_int4/routed_int4_tiling.cpp
+@@ -10,6 +10,7 @@
+ 
+ #include "routed_int4_kernel.h"
+ #include "../../../source/down_tiling_contract.h"
++#include "../../../source/down_plan.h"
+ #include "lib/matmul/matmul_tiling.h"
+ 
+ extern "C" int routed_int4_build_tiling(int rows, int columns, int inner,
+@@ -60,8 +61,16 @@
+     if (status != 0) {
+         return static_cast<int>(status);
+     }
+-    if (is_down && !ffn_down_n1024::IsExpectedDownTiling(cube)) {
+-        return -3;
++    if (is_down) {
++        if (!ffn_down_n1024::IsParentDownTiling(cube)) {
++            return -3;
++        }
++        const auto& plan = weight_layout == routed_int4::kWeightNZ
++            ? ffn_down_n1024_plan_nz : ffn_down_n1024_plan_nd;
++        ffn_down_n1024::ApplyDownPlan(cube, plan);
++        if (!ffn_down_n1024::IsExpectedDownTiling(cube)) {
++            return -4;
++        }
+     }
+     std::memcpy(buffer, &cube, sizeof(cube));
+     return 0;

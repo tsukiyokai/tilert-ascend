@@ -1,0 +1,1387 @@
+{
+  "scope": "Prolog query-norm export, caches and SFA",
+  "provenance": {
+    "utc": "2026-10-21T11:39:18.714160+00:00",
+    "host": "8d7663b5fa05",
+    "platform": "Linux-5.10.0-182.0.0.95.r2220_157.hce2.aarch64-aarch64-with-glibc2.34",
+    "torch": "2.12.0+cu130",
+    "torch_npu": "2.12.0",
+    "versions": {
+      "CANN": "9.2.0",
+      "RUNTIME": "9.2.0",
+      "DRIVER": "unavailable: 'utf-8' codec can't decode byte 0x9d in position 3: invalid start byte"
+    },
+    "device_properties": "_NPUDeviceProperties(name='Ascend910_9392', total_memory=62740MB, cube_core_num=24, vector_core_num=48, uuid=00cc0800-d001-0000-0000-60109ef917a8, L2_cache_size=192MB)",
+    "library": "/workspace/tests/glm52/whole_layer/attention_export_build/whole_layer_export_attention.so",
+    "library_sha256": "6d53e360860ddbc8b1a8873d6419c030fed71a1b57ac2aaf7bd72613e15586a9",
+    "build_manifest": {
+      "vendor_root": "/workspace/attention_vendor",
+      "vendor_revision": null,
+      "vendor_headers": {
+        "attention/mla_prolog/op_kernel/arch22/kernel_mla_prolog_split_n_arch22.h": "e1c6d8eb3ea58a884c65c1923c0a2d9d18741393f272b83bf683f35e0be3be25",
+        "attention/mla_prolog/op_kernel/arch22/mla_prolog_comm_arch22.h": "e977456ed248a643161d6e7f740909f6d02ec10c819cdb3111b7f2ad0d88d86b",
+        "attention/mla_prolog/op_kernel/arch22/mla_prolog_vector_comm_arch22.h": "73e17afa4f5b646c1e52eee8af489a8a180e2346ca62dde191e3cdd297b275a7",
+        "attention/mla_prolog/op_kernel/arch22/rms_norm.h": "b10727462d8062ddac6c78510a326ce9e93a861fbe3c616485fdd22feba0bc08",
+        "attention/mla_prolog/op_kernel/arch22/service_dequant_arch22.h": "2b0d6968bb386882de9c1cba234e9ed08a3af304843f6434a602d3d4bf707842",
+        "attention/mla_prolog/op_kernel/arch22/service_dynamic_quant_qn_mul_qr_arch22.h": "49f25e80eaa3052cbf87bfd0a3cf525d3b6ae1e397cea53191c43a49fd6d549c",
+        "attention/mla_prolog/op_kernel/arch22/service_gather_sin_cos_arch22.h": "5eb087353157c486ac86fc039e993efe99882778ba1d145ca31229bd0e413691",
+        "attention/mla_prolog/op_kernel/arch22/service_matmul_arch22.h": "ea0e6a3488d5a0297375793d8b21bdd41d60d5f6798265ab665e46b835351d68",
+        "attention/mla_prolog/op_kernel/arch22/service_rms_norm_arch22.h": "e01ee9747c3224f7b9d6d49fe412c64efb0a250cbdd5e4cc4df1a985ea7d5a38",
+        "attention/mla_prolog/op_kernel/arch22/service_rope_arch22.h": "83ecac3419098c4ec99dc6a78db204dde69e95acc310a34f7d41ffd33b4bc318",
+        "attention/mla_prolog/op_kernel/arch22/service_rotary_position_embedding_arch22.h": "6f86884143acdd17f7d51800bb378d7ac31e699fb1f3ee0fd3ae45e3247df842",
+        "attention/mla_prolog/op_kernel/arch22/service_scatter_cache_arch22.h": "3d3e59ec7177c6381c75e9f9b025c9a5401dcdb14d52b35a1f6c16d2165ee547",
+        "attention/mla_prolog/op_kernel/mla_prolog_template_tiling_key.h": "1743f02661fd53cc088836dc0efc22214724fab1ea1aaafae0f3f531c38df6ab",
+        "attention/mla_prolog/op_kernel/mla_prolog_tiling_data.h": "13ef25288c1407af60baaaed0a0aa227dc4c4d73f7712ec0194fb905084ca7b0",
+        "attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_common.h": "d3f5204b5602ca3aa677812103162d504b2d220415f683df6e7767d140bad632",
+        "attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_kernel_mla.h": "f6c6b092ccfe09e65e9fa371b29de153d800918290ef2a08f799f0ac53f2bacd",
+        "attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_service_cube_mla.h": "63db752f6168d38029392d331c60891efe40975e3e175136d1e00e647aa74aaf",
+        "attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_service_vector_mla.h": "681ff5278aa25abaa2741fbbd9528aedba19394548f9d98be069f71046b341bd",
+        "attention/sparse_flash_attention/op_kernel/sparse_flash_attention_template_tiling_key.h": "5be6686a5f2beca1c2ea54451cb92c3107ee644e648547ab6c0563f7bc35c376"
+      },
+      "sources_and_artifacts": {
+        "/workspace/tests/glm52/whole_layer/attention_binding.cpp": "141abf9d9e80b15e3a12430c7e3711c6d448c629242c4a9b1bf9bb8382a21de8",
+        "/workspace/tests/glm52/whole_layer/attention_build.sh": "456c10e8b139d4c3008bc72675d4dfcf25603b68aad9071a2fb883b5d806fdb4",
+        "/workspace/tests/glm52/whole_layer/attention_check.py": "94be7f24a6a548263eacbd9c88e69a8172faf9dad3e80ddfcfa074bb9745af77",
+        "/workspace/tests/glm52/whole_layer/attention_contract.h": "3e27dd9ec5b7d19f864e2830a28eee044e463d4943c000302cce802117c4d0e7",
+        "/workspace/tests/glm52/whole_layer/attention_contract_test.cpp": "5fb17522f7cafd22cc620f278cce2744d3461e57ae496b6f0da24b6a320d9650",
+        "/workspace/tests/glm52/whole_layer/attention_export_binding.cpp": "7d1a14da9e2c71892cfd0f246d1f2d5b7c7530d610ef567fceb05554e506f64b",
+        "/workspace/tests/glm52/whole_layer/attention_export_build.sh": "1578c499681067becb98e3328108bb9645468190883b1587e3c548170467753f",
+        "/workspace/tests/glm52/whole_layer/attention_export_contract.h": "8600d123fd1c12758e1062665dd521378c133fb68ba5072a1e00a05e0f84c459",
+        "/workspace/tests/glm52/whole_layer/attention_export_kernel.cpp": "77fef50f704310835e9fa244efb29c4eeb5d915df57367a83bce523d2caec464",
+        "/workspace/tests/glm52/whole_layer/attention_full_binding.cpp": "657136933f8a9283dcc7663fbf901300d9121b90d73eadc882e335815f3189d5",
+        "/workspace/tests/glm52/whole_layer/attention_full_build.sh": "4d857cb9c1fb756bbcce4065e22d4541d5464aded3b581ed98d9cbe62cbc30ea",
+        "/workspace/tests/glm52/whole_layer/attention_full_check.py": "41d909ff3bd2803aa86634b70f7894373311161b299156435775c01028b6d707",
+        "/workspace/tests/glm52/whole_layer/attention_full_contract.h": "b71aaf5ca3edac589f645070a3ad5f20ff7be3a151a5abadd23cb547770bd893",
+        "/workspace/tests/glm52/whole_layer/attention_full_kernel.cpp": "a3ce48d4e7f8e9a7f769c4874d6d24386aa3ddaa4f5234622b0712b3024beb24",
+        "/workspace/tests/glm52/whole_layer/attention_full_native.h": "90e6d754d13ff4d7d15dc04f47f36f9d37deaf5428e32486ea5094744405601f",
+        "/workspace/tests/glm52/whole_layer/attention_host.h": "15e79702c5bb0b1ec2e3db41cd1bc489810c05b9183e58be7428c0b2b9fc126e",
+        "/workspace/tests/glm52/whole_layer/attention_kernel.cpp": "1eba2192e85ab91ff93961f18e43c73bc27154819cd93b534181506bfdeefa32",
+        "/workspace/tests/glm52/whole_layer/attention_native.h": "a7d92853f15174736899ae8aa4407f46b7fe2875fda7db81b525311fb2acc0b7",
+        "/workspace/tests/glm52/whole_layer/attention_norm_binding.cpp": "10035bf2e849a44828bc508a02045e762dbfef9f81bcc168c5d1b5a36930b6c7",
+        "/workspace/tests/glm52/whole_layer/attention_norm_build.sh": "23f9d110a961f86ca04ea157a04421c2ac5c25ed623621eed9edf444232ba5b2",
+        "/workspace/tests/glm52/whole_layer/attention_norm_check.py": "af363c02460d0c8069d1483f15bc17d93591f9df662fca0f91ac3aeffdec21a1",
+        "/workspace/tests/glm52/whole_layer/attention_norm_contract.h": "49c7cc28b06c752eba561d0813dcc35bc8ad2d5e40db6073e1a67a3466b6da82",
+        "/workspace/tests/glm52/whole_layer/attention_norm_contract.md": "ed36a4e817bc48ddffedc6a0b51852f9d2a2269a52594d2bf4df807fb8022644",
+        "/workspace/tests/glm52/whole_layer/attention_norm_kernel.cpp": "a3ace10b563170254e2d04cd8891719ed919cdd682aca70b30a4adac84409c33",
+        "/workspace/tests/glm52/whole_layer/attention_norm_native.h": "8f62f0af92d633c0fa8063c0181b83a4d585def4adc814efae324a3cb91a668f",
+        "/workspace/tests/glm52/whole_layer/attention_provenance.py": "f160352bc59bcc00c2270551122e8627aede8459da74a21644d6220c376e3c7c",
+        "/workspace/tests/glm52/whole_layer/attention_sfa_tiling.h": "8c24b9c2ac6625a2e46afad0997b91785e1e78174c41c1abbf96808129b259bf",
+        "/workspace/tests/glm52/mla_tail/mla_tail.h": "ca13e082d775154ea9357c2b12968da0a234b180f2ce6621675602414a8c7e9e",
+        "/workspace/tests/glm52/mla_tail/mla_tail_native.h": "b7ad1b066ffda77cf6f43bf44ec632a3e23819723452107a0d654e72ce31d6f3",
+        "/workspace/tests/glm52/mla_tail/mla_tail_tiling.cpp": "3bffe7fe39cb268da01a88625c335ad3940efc71da6fd86760c5d6ba31938ff2",
+        "/workspace/tests/glm52/whole_layer/attention_export_build/attention_export_binding.o": "f1df552529700a1e9e8282093ff519ae37809524386832695f4cadee5d31a58c",
+        "/workspace/tests/glm52/whole_layer/attention_export_build/attention_export_kernel.o": "916b70e99deb258b60d0ec21c2297a9a4a0bc6e37d4276921c68c02d9c136e5f",
+        "/workspace/tests/glm52/whole_layer/attention_export_build/whole_layer_export_attention.so": "6d53e360860ddbc8b1a8873d6419c030fed71a1b57ac2aaf7bd72613e15586a9"
+      },
+      "norm_vendor_headers": {},
+      "cann_root": "/opt/ascend/cann-9.2.0",
+      "cann_versions": {
+        "opp/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+        "opp/built-in/op_impl/ai_core/tbe/kernel/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nops_version=9.2.0\nadk_version=9.2.0\n",
+        "share/info/dvpp/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+        "share/info/mstx/version.info": "[PACKAGE]\nName=mindstudio-TX\nVersion=26.2.0\n",
+        "share/info/dflow-executor/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_hcomm_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/oam_tools/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=9.0\"\nrequired_package_bisheng-compiler_version=\">=9.0\"\nrequired_package_ops-cv_version=\">=9.0\"\nrequired_package_ops-math_version=\">=9.0\"\nrequired_package_ops-legacy_version=\">=9.0\"\nrequired_package_metadef_version=\">=9.0\"\nrequired_package_hcomm_version=\">=9.0\"\nrequired_package_hccl_version=\">=9.0\"\nrequired_package_ge-executor_version=\">=9.0\"\nrequired_package_ge-compiler_version=\">=9.0\"\nrequired_package_tbe-tik_version=\">=9.0\"\nrequired_package_asc-devkit_version=\">=9.0\"\nrequired_package_graph-autofusion_version=\">=9.0\"\nrequired_package_opbase_version=\">=9.0\"\nrequired_package_ops-nn_version=\">=9.0\"\nrequired_package_ops-transformer_version=\">=9.0\"\ntimestamp=20260917_111743075\n",
+        "share/info/graph_autofusion/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_asc-devkit_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/pto_isa/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_opbase_version=\"9.2\"\nrequired_package_asc-devkit_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_asc-tools_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/pypto/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_driver_version=\">=25.5.0\"\ntimestamp=20260917_111743075\n",
+        "share/info/mindstudio-sanitizer/version.info": "[PACKAGE]\nName=mindstudio-sanitizer\nVersion=26.2.0",
+        "share/info/ops_transformer/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_hcomm_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_ge-compiler_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_ops-nn_version=\">=8.5\"\nrequired_package_hccl_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+        "share/info/runtime/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\n",
+        "share/info/platform_profiler/version.info": "[PACKAGE]\nName=platform-profiler\nVersion=1.0.0",
+        "share/info/mindstudio-opprof/version.info": "[PACKAGE]\nName=mindstudio-opprof\nVersion=26.2.0",
+        "share/info/ops_cv/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_ops-legacy_version=\">=8.5\"\nrequired_package_ops-math_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+        "share/info/mindstudio-debugger/version.info": "[PACKAGE]\nName=mindstudio-debugger\nVersion=26.2.0\n",
+        "share/info/ncs/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nrequired_package_acl-extend_version=\"9.2\"\nrequired_package_aoe_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_opbase_version=\"9.2\"\nrequired_package_runtime_version=\"9.2\"\nrequired_package_tbe-tik_version=\"9.2\"\n",
+        "share/info/bisheng-compiler/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\n",
+        "share/info/asc-devkit/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_tbe-tik_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/ops_math/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_ops-legacy_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+        "share/info/ops_nn/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_ops_legacy_version=\">=8.5\"\nrequired_package_ops_math_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+        "share/info/mspti/version.info": "[PACKAGE]\nName=mindstudio-profiler-tools-interface\nVersion=26.2.0",
+        "share/info/opbase/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+        "share/info/ge-compiler/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_hcomm_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/mindstudio-operator-tools/version.info": "[PACKAGE]\nName=mindstudio-operator-tools\nVersion=26.2.0",
+        "share/info/simulator/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\n",
+        "share/info/ge-executor/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_hcomm_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/pyACL/version.info": "Version=9.2.0\n",
+        "share/info/ms_fmk_transplt/version.info": "[PACKAGE]\nName=mindstudio-transplt\nVersion=26.2.0",
+        "share/info/ops_ras/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_ops_legacy_version=\">=8.5\"\nrequired_package_ops_math_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+        "share/info/ops_legacy/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nops_version=9.2.0\nadk_version=9.2.0\n",
+        "share/info/hixl/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_hcomm_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+        "share/info/acl_extend/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/ascendnpu-ir/version.info": "Version=1.2.0\n",
+        "share/info/asc-tools/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_asc-devkit_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/aoe/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nrequired_package_acl-extend_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_ncs_version=\"9.2\"\nrequired_package_opbase_version=\"9.2\"\nrequired_package_runtime_version=\"9.2\"\nrequired_package_tbe-tik_version=\"9.2\"\n",
+        "share/info/operator_cmp/version.info": "[PACKAGE]\nName=mindstudio-accucmp\nVersion=26.2.0",
+        "share/info/msmemscope/version.info": "[PACKAGE]\nName=mindstudio-memscope\nVersion=26.2.0\n",
+        "share/info/metadef/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/msboost/version.info": "[PACKAGE]\nName=mindstudio-boost\nVersion=26.2.0\n",
+        "share/info/msprof/version.info": "[PACKAGE]\nName=mindstudio-profiler\nVersion=26.2.0",
+        "share/info/hccl/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_hcomm_version=\">=8.5\"\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\ntimestamp=20260917_111743075\nhost_only=false\n",
+        "share/info/test-ops/version.info": "Version=9.2.0\n",
+        "share/info/msserviceprofiler/version.info": "[PACKAGE]\nName=mindstudio-serviceprofiler\nVersion=26.2.0",
+        "share/info/pto_as/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_opbase_version=\"9.2\"\nrequired_package_asc-devkit_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_asc-tools_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+        "share/info/hcomm/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\ntimestamp=20260917_111743075\nhost_only=true\n",
+        "share/info/tbe-tik/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nrequired_opp_abi_version=tbe-tik\nrequired_package_ge-compiler_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_runtime_version=\"9.2\"\n",
+        "compiler/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_tbe-tik_version=\"9.2\"\ntimestamp=20260917_111743075\n"
+      }
+    },
+    "harness_sha256": "94be7f24a6a548263eacbd9c88e69a8172faf9dad3e80ddfcfa074bb9745af77",
+    "fixture": "synthetic-seed-20261021",
+    "fixture_sha256": null
+  },
+  "harness_sha256": "3ca148005c934de14cb79e73b8a89cc84f319a0a83821cbe29d2aeae02171b3a",
+  "capture": true,
+  "queued_producer": true,
+  "cases": [
+    {
+      "rows": 1,
+      "blocks": 24,
+      "checks": [
+        {
+          "replay": 0,
+          "pass": true,
+          "boundaries": {
+            "query": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2048
+            },
+            "query_rope": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 256
+            },
+            "query_norm": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2048
+            },
+            "query_norm_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 1
+            },
+            "attention": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2048
+            },
+            "kv_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4456448
+            },
+            "rope_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 557056
+            }
+          }
+        },
+        {
+          "replay": 1,
+          "pass": true,
+          "boundaries": {
+            "query": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2048
+            },
+            "query_rope": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 256
+            },
+            "query_norm": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2048
+            },
+            "query_norm_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 1
+            },
+            "attention": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2048
+            },
+            "kv_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4456448
+            },
+            "rope_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 557056
+            }
+          }
+        },
+        {
+          "replay": 2,
+          "pass": true,
+          "boundaries": {
+            "query": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2048
+            },
+            "query_rope": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 256
+            },
+            "query_norm": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2048
+            },
+            "query_norm_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 1
+            },
+            "attention": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2048
+            },
+            "kv_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4456448
+            },
+            "rope_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 557056
+            }
+          }
+        },
+        {
+          "replay": 3,
+          "pass": true,
+          "boundaries": {
+            "query": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2048
+            },
+            "query_rope": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 256
+            },
+            "query_norm": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2048
+            },
+            "query_norm_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 1
+            },
+            "attention": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2048
+            },
+            "kv_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4456448
+            },
+            "rope_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 557056
+            }
+          }
+        }
+      ],
+      "scratch_bytes": 60658176,
+      "pass": true
+    },
+    {
+      "rows": 2,
+      "blocks": 24,
+      "checks": [
+        {
+          "replay": 0,
+          "pass": true,
+          "boundaries": {
+            "query": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4096
+            },
+            "query_rope": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 512
+            },
+            "query_norm": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4096
+            },
+            "query_norm_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2
+            },
+            "attention": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4096
+            },
+            "kv_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4456448
+            },
+            "rope_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 557056
+            }
+          }
+        },
+        {
+          "replay": 1,
+          "pass": true,
+          "boundaries": {
+            "query": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4096
+            },
+            "query_rope": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 512
+            },
+            "query_norm": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4096
+            },
+            "query_norm_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2
+            },
+            "attention": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4096
+            },
+            "kv_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4456448
+            },
+            "rope_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 557056
+            }
+          }
+        },
+        {
+          "replay": 2,
+          "pass": true,
+          "boundaries": {
+            "query": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4096
+            },
+            "query_rope": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 512
+            },
+            "query_norm": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4096
+            },
+            "query_norm_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2
+            },
+            "attention": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4096
+            },
+            "kv_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4456448
+            },
+            "rope_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 557056
+            }
+          }
+        },
+        {
+          "replay": 3,
+          "pass": true,
+          "boundaries": {
+            "query": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4096
+            },
+            "query_rope": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 512
+            },
+            "query_norm": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4096
+            },
+            "query_norm_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2
+            },
+            "attention": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4096
+            },
+            "kv_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4456448
+            },
+            "rope_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 557056
+            }
+          }
+        }
+      ],
+      "scratch_bytes": 60662784,
+      "pass": true
+    },
+    {
+      "rows": 12,
+      "blocks": 24,
+      "checks": [
+        {
+          "replay": 0,
+          "pass": true,
+          "boundaries": {
+            "query": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 24576
+            },
+            "query_rope": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 3072
+            },
+            "query_norm": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 24576
+            },
+            "query_norm_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 12
+            },
+            "attention": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 24576
+            },
+            "kv_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4456448
+            },
+            "rope_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 557056
+            }
+          }
+        },
+        {
+          "replay": 1,
+          "pass": true,
+          "boundaries": {
+            "query": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 24576
+            },
+            "query_rope": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 3072
+            },
+            "query_norm": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 24576
+            },
+            "query_norm_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 12
+            },
+            "attention": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 24576
+            },
+            "kv_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4456448
+            },
+            "rope_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 557056
+            }
+          }
+        },
+        {
+          "replay": 2,
+          "pass": true,
+          "boundaries": {
+            "query": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 24576
+            },
+            "query_rope": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 3072
+            },
+            "query_norm": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 24576
+            },
+            "query_norm_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 12
+            },
+            "attention": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 24576
+            },
+            "kv_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4456448
+            },
+            "rope_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 557056
+            }
+          }
+        },
+        {
+          "replay": 3,
+          "pass": true,
+          "boundaries": {
+            "query": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 24576
+            },
+            "query_rope": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 3072
+            },
+            "query_norm": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 24576
+            },
+            "query_norm_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 12
+            },
+            "attention": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 24576
+            },
+            "kv_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4456448
+            },
+            "rope_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 557056
+            }
+          }
+        }
+      ],
+      "scratch_bytes": 68573184,
+      "pass": true
+    },
+    {
+      "rows": 32,
+      "blocks": 24,
+      "checks": [
+        {
+          "replay": 0,
+          "pass": true,
+          "boundaries": {
+            "query": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 65536
+            },
+            "query_rope": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 8192
+            },
+            "query_norm": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 65536
+            },
+            "query_norm_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 32
+            },
+            "attention": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 65536
+            },
+            "kv_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4456448
+            },
+            "rope_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 557056
+            }
+          }
+        },
+        {
+          "replay": 1,
+          "pass": true,
+          "boundaries": {
+            "query": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 65536
+            },
+            "query_rope": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 8192
+            },
+            "query_norm": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 65536
+            },
+            "query_norm_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 32
+            },
+            "attention": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 65536
+            },
+            "kv_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4456448
+            },
+            "rope_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 557056
+            }
+          }
+        },
+        {
+          "replay": 2,
+          "pass": true,
+          "boundaries": {
+            "query": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 65536
+            },
+            "query_rope": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 8192
+            },
+            "query_norm": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 65536
+            },
+            "query_norm_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 32
+            },
+            "attention": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 65536
+            },
+            "kv_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4456448
+            },
+            "rope_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 557056
+            }
+          }
+        },
+        {
+          "replay": 3,
+          "pass": true,
+          "boundaries": {
+            "query": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 65536
+            },
+            "query_rope": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 8192
+            },
+            "query_norm": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 65536
+            },
+            "query_norm_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 32
+            },
+            "attention": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 65536
+            },
+            "kv_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 4456448
+            },
+            "rope_cache": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 557056
+            }
+          }
+        }
+      ],
+      "scratch_bytes": 88326144,
+      "pass": true
+    }
+  ],
+  "pass": true
+}

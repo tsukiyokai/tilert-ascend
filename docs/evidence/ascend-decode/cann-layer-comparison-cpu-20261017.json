@@ -1,0 +1,38 @@
+{
+  "scope": "CPU comparison gate on the actual HF trace, not CANN model execution",
+  "passed": true,
+  "npu_initialized": false,
+  "checks": [
+    {
+      "name": "identical_real_hf_trace",
+      "passed": true,
+      "tensor_checks": 475
+    },
+    {
+      "name": "hidden_states_mutation_rejected",
+      "passed": true,
+      "failed_checks": [
+        "hidden_states.hidden_states.20"
+      ]
+    },
+    {
+      "name": "hidden_states_missing_row_rejected",
+      "passed": true
+    },
+    {
+      "name": "layer_logits_mutation_rejected",
+      "passed": true,
+      "failed_checks": [
+        "layer_logits.layer_logits.20"
+      ]
+    },
+    {
+      "name": "layer_logits_missing_row_rejected",
+      "passed": true
+    }
+  ],
+  "input_trace_sha256": "83da30b9ac99a86093e9d52f644dc96e1da56ce74840c246e16dcecff3f4c79a",
+  "source_sha256": {
+    "/workspace/src/TileRT-Ascend/tests/glm52/run_cann_model.py": "c0bc3f5e8e08e066cde7af7cca88b6c299a33a85ce005755296ec2963a0c3f8d"
+  }
+}

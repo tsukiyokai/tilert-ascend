@@ -1,0 +1,67 @@
+{
+  "rank": 0,
+  "stages": [
+    {
+      "name": "platform_registration",
+      "success": true,
+      "class": "vllm_ascend.platform.NPUPlatform",
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/platform.py",
+      "sha256": "686eb5c4d7e744053def9fe51caf743e79e6a3cbeddebd3c47949d6f13e503cd"
+    },
+    {
+      "name": "real_groups",
+      "success": true,
+      "tp_world_size": 16,
+      "tp_rank": 0,
+      "cpu_rank_sum": 120,
+      "expected_rank_sum": 120,
+      "coordinator": {
+        "class": "vllm.distributed.parallel_state.GroupCoordinator",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982/vllm/distributed/parallel_state.py",
+        "sha256": "0e47cff9a89717183bdce6403f0454961848247f51306a0f1dfbe3d6e1b93336"
+      },
+      "device_communicator": null,
+      "registration": "actual coordinators assigned to version-scoped parallel_state fields",
+      "singleton_fields": [
+        "_DCP",
+        "_PCP",
+        "_PP",
+        "_DP",
+        "_EP"
+      ]
+    },
+    {
+      "name": "npu_bind",
+      "success": true,
+      "device_count": 1,
+      "logical_device": 0,
+      "device_name": "Ascend910_9392"
+    },
+    {
+      "name": "engine_config_tp16",
+      "success": true,
+      "tp": 16,
+      "pp": 1,
+      "dp": 1,
+      "synthetic_checkpoint": true,
+      "indexer_mode": "int8"
+    },
+    {
+      "name": "real_worker_registration",
+      "success": false,
+      "error": "Traceback (most recent call last):\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 257, in stage\n    value, detail = action()\n                    ^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 144, in <lambda>\n    (adapt_patch(), register_ascend_customop(config)), {},\n     ^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/utils.py\", line 687, in adapt_patch\n    from vllm_ascend.patch import worker  # noqa: F401\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/patch/worker/__init__.py\", line 48, in <module>\n    import vllm_ascend.patch.worker.patch_kimi_k25  # noqa\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/patch/worker/patch_kimi_k25.py\", line 21, in <module>\n    from vllm.model_executor.models.kimi_k25_vit import (\n  File \"/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/models/kimi_k25_vit.py\", line 18, in <module>\n    from transformers import Kimi_K25VisionConfig\nImportError: cannot import name 'Kimi_K25VisionConfig' from 'transformers' (/usr/local/python3.12.13/lib/python3.12/site-packages/transformers/__init__.py)\n"
+    }
+  ],
+  "scope": "real Gloo groups, rank-0 local attention shard",
+  "torch": "2.10.0+cpu",
+  "torch_npu": "2.10.0.post2",
+  "npu_initialized_before": false,
+  "error": "Traceback (most recent call last):\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 289, in worker\n    else run_rank_zero(torch, args, stage))\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 143, in run_rank_zero\n    stage(\"real_worker_registration\", lambda: (\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 257, in stage\n    value, detail = action()\n                    ^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 144, in <lambda>\n    (adapt_patch(), register_ascend_customop(config)), {},\n     ^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/utils.py\", line 687, in adapt_patch\n    from vllm_ascend.patch import worker  # noqa: F401\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/patch/worker/__init__.py\", line 48, in <module>\n    import vllm_ascend.patch.worker.patch_kimi_k25  # noqa\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/patch/worker/patch_kimi_k25.py\", line 21, in <module>\n    from vllm.model_executor.models.kimi_k25_vit import (\n  File \"/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/models/kimi_k25_vit.py\", line 18, in <module>\n    from transformers import Kimi_K25VisionConfig\nImportError: cannot import name 'Kimi_K25VisionConfig' from 'transformers' (/usr/local/python3.12.13/lib/python3.12/site-packages/transformers/__init__.py)\n",
+  "rank_zero_status": {
+    "success": false,
+    "error": "Traceback (most recent call last):\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 289, in worker\n    else run_rank_zero(torch, args, stage))\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 143, in run_rank_zero\n    stage(\"real_worker_registration\", lambda: (\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 257, in stage\n    value, detail = action()\n                    ^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 144, in <lambda>\n    (adapt_patch(), register_ascend_customop(config)), {},\n     ^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/utils.py\", line 687, in adapt_patch\n    from vllm_ascend.patch import worker  # noqa: F401\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/patch/worker/__init__.py\", line 48, in <module>\n    import vllm_ascend.patch.worker.patch_kimi_k25  # noqa\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/patch/worker/patch_kimi_k25.py\", line 21, in <module>\n    from vllm.model_executor.models.kimi_k25_vit import (\n  File \"/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/models/kimi_k25_vit.py\", line 18, in <module>\n    from transformers import Kimi_K25VisionConfig\nImportError: cannot import name 'Kimi_K25VisionConfig' from 'transformers' (/usr/local/python3.12.13/lib/python3.12/site-packages/transformers/__init__.py)\n"
+  },
+  "npu_initialized_after": true,
+  "maximum_rss_kib": 2239740,
+  "memory_snapshot": "4e070000000-ffffd3197000 ---p 00000000 00:00 0                           [rollup]\nRss:             2195312 kB\nPss:             1769668 kB\nPss_Anon:        1512324 kB\nPss_File:         257220 kB\nPss_Shmem:           124 kB\nShared_Clean:     454060 kB\nShared_Dirty:          0 kB\nPrivate_Clean:    228804 kB\nPrivate_Dirty:   1512448 kB\nReferenced:      2193804 kB\nAnonymous:       1512324 kB\nLazyFree:              0 kB\nAnonHugePages:    567296 kB\nShmemPmdMapped:        0 kB\nFilePmdMapped:         0 kB\nShared_Hugetlb:        0 kB\nPrivate_Hugetlb:       0 kB\nSwap:                  0 kB\nSwapPss:               0 kB\nLocked:                0 kB\n"
+}

@@ -1,0 +1,110 @@
+{
+  "scope": "Actual official module imports; no constructor or device execution",
+  "image": "sha256:7448df539bcb40397063c4b7e83a6a1590ba20bcc16639c0aa83f1c60f1a0449",
+  "vllm_commit": "a98247ab4db686ee03c66d5feb3c761e52a2f8ab",
+  "ascend_commit": "8237ee6d690d1399bc6eb48ef5977ac2bd470f3f",
+  "script_sha256": "ebffe6f7253990cca39061006ce2d0d48d97a241e4b8a5e6eeb0e1fe4d848eb2",
+  "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+  "torch": "2.12.0+cu130",
+  "torch_path": "/usr/local/lib/python3.11/site-packages/torch/__init__.py",
+  "torch_npu": "2.12.0",
+  "torch_npu_path": "/usr/local/lib/python3.11/site-packages/torch_npu/__init__.py",
+  "initialized_before": false,
+  "pythonpath": [
+    "/evidence",
+    "/usr/local/lib/python3.11/site-packages/cv2",
+    "/workspace/vendor-hook-deps/transformers519",
+    "/workspace/vendor-hook-deps/python",
+    "/workspace/vendor-hook-pinned/vllm-a982",
+    "/workspace/vendor-hook-pinned/ascend-python-build",
+    "/workspace/vendor-hook-pinned/vendor-metadata",
+    "/opt/ascend/cann-9.2.0/python/site-packages",
+    "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe",
+    "/opt/mooncake-py311",
+    "/usr/local/Ascend/cann-9.1.0/python/site-packages",
+    "/usr/local/Ascend/cann-9.1.0/opp/built-in/op_impl/ai_core/tbe",
+    "/usr/local/lib/python3.11/site-packages",
+    "/tmp",
+    "/usr/local/lib/python311.zip",
+    "/usr/local/lib/python3.11",
+    "/usr/local/lib/python3.11/lib-dynload",
+    "__editable__.omni_cache-0.1.0.finder.__path_hook__",
+    "__editable__.omni_infer-0.5.0.finder.__path_hook__",
+    "__editable__.omni_models-0.1.0.finder.__path_hook__",
+    "__editable__.pangu_fusioncomm_weight_loader-0.3.0.finder.__path_hook__",
+    "__editable__.vllm-0.25.1+empty.finder.__path_hook__",
+    "/usr/local/lib/python3.11/site-packages/setuptools/_vendor"
+  ],
+  "packages": {
+    "transformers": "5.19.0",
+    "triton": "3.5.0",
+    "triton-ascend": "3.2.2",
+    "numpy": "2.2.6",
+    "vllm": "0.25.1+empty",
+    "vllm-ascend": "0.0.0"
+  },
+  "source_compile": [
+    {
+      "path": "/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/model_loader/sharded_state_loader.py",
+      "sha256": "bcc6600f4c7c8018f229409567216d0ff1985307c2e36618a6b73b0c24b61a70",
+      "success": false,
+      "error": "Traceback (most recent call last):\n  File \"/evidence/cpu_import.py\", line 61, in <module>\n    compile(path.read_bytes(), str(path), \"exec\")\n  File \"/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/model_loader/sharded_state_loader.py\", line 214\n    f\"'{\n    ^\nSyntaxError: unterminated string literal (detected at line 214)\n"
+    },
+    {
+      "path": "/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/models/deepseek_v2.py",
+      "sha256": "96f4f755f62caa85869fb884209e7f8869882ddb6efbd40c930778b27bd3e39d",
+      "success": true
+    }
+  ],
+  "imports": [
+    {
+      "module": "vllm.config",
+      "path": "/workspace/vendor-hook-pinned/vllm-a982/vllm/config/__init__.py",
+      "sha256": "c62c0494361a2a9de9e5060849f295bb00f2065bf2c83faae4d59c4aa9ba5549",
+      "success": true
+    },
+    {
+      "module": "vllm.forward_context",
+      "path": "/workspace/vendor-hook-pinned/vllm-a982/vllm/forward_context.py",
+      "sha256": "8dab5a4dee60e46c4e52821667321c9f05c793578af49cddbdb204cf9324c403",
+      "success": true
+    },
+    {
+      "module": "vllm_ascend.platform",
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/platform.py",
+      "sha256": "686eb5c4d7e744053def9fe51caf743e79e6a3cbeddebd3c47949d6f13e503cd",
+      "success": true
+    },
+    {
+      "module": "vllm_ascend.attention.sfa_v1",
+      "success": false,
+      "error": "Traceback (most recent call last):\n  File \"/evidence/cpu_import.py\", line 80, in <module>\n    module = importlib.import_module(name)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/importlib/__init__.py\", line 126, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1204, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1176, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1147, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 690, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 940, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 241, in _call_with_frames_removed\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/attention/sfa_v1.py\", line 22, in <module>\n    from vllm.v1.worker.utils import select_common_block_size\n  File \"/workspace/vendor-hook-pinned/vllm-a982/vllm/v1/worker/utils.py\", line 16, in <module>\n    from vllm.model_executor.layers.mamba.mamba_mixer2 import share_replayssm_ring_trackers\n  File \"/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/layers/mamba/mamba_mixer2.py\", line 55, in <module>\n    from vllm.model_executor.model_loader.weight_utils import (\n  File \"/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/model_loader/__init__.py\", line 20, in <module>\n    from vllm.model_executor.model_loader.sharded_state_loader import ShardedStateLoader\n  File \"/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/model_loader/sharded_state_loader.py\", line 214\n    f\"'{\n    ^\nSyntaxError: unterminated string literal (detected at line 214)\n"
+    },
+    {
+      "module": "vllm.model_executor.models.deepseek_v2",
+      "path": "/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/models/deepseek_v2.py",
+      "sha256": "96f4f755f62caa85869fb884209e7f8869882ddb6efbd40c930778b27bd3e39d",
+      "success": true
+    },
+    {
+      "module": "vllm_ascend.ops.fused_moe.gate_linear",
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/ops/fused_moe/gate_linear.py",
+      "sha256": "c9887a63095f51e196935c08050c29bbaefd15ae54f253b85fd9d9acb9b1bf12",
+      "success": true
+    },
+    {
+      "module": "vllm.model_executor.layers.fused_moe.runner.moe_runner",
+      "path": "/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/layers/fused_moe/runner/moe_runner.py",
+      "sha256": "20b69fe514bebd6723a1378f89a564c8fec4144c30244101f629c3f32c188183",
+      "success": true
+    },
+    {
+      "module": "vllm_ascend.compilation.acl_graph",
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/compilation/acl_graph.py",
+      "sha256": "8e1c269e331d005f1361acc5cec24402bff7ae39b75e952ea890da7812804955",
+      "success": true
+    }
+  ],
+  "initialized_after": false,
+  "success": false
+}

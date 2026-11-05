@@ -1,0 +1,127 @@
+--- local/kernel.cpp
++++ tp/kernel.cpp
+@@ -3,12 +3,13 @@
+ #endif
+ 
+ #include "contract.h"
+-#include "../attention/source/tests/glm52/whole_layer/attention_indexed_native.h"
+-#include "../attention/source/tests/glm52/whole_layer/attention_full_native.h"
+-#include "../ffn/bridge/source/ffn_bridge/body_native.h"
+-#include "../ffn/body/source/routed_int4/routed_body_native.h"
++#include "../communication/communication_device.h"
++#include "../local/attention/source/tests/glm52/whole_layer/attention_indexed_native.h"
++#include "../local/attention/source/tests/glm52/whole_layer/attention_full_native.h"
++#include "../local/ffn/bridge/source/ffn_bridge/body_native.h"
++#include "../local/ffn/body/source/routed_int4/routed_body_native.h"
+ 
+-namespace layer_local_chain {
++namespace layer_tp_chain {
+ using namespace AscendC;
+ 
+ __aicore__ inline whole_layer_indexed::DeviceArgs IndexedArguments(
+@@ -39,9 +40,25 @@
+     return result;
+ }
+ 
++__aicore__ inline void ReducePhase(TPipe& pipe,
++    const Communication& communication, uint64_t partial,
++    uint64_t output, int64_t rows, int64_t blocks)
++{
++    whole_layer::CommunicationBuffers buffers;
++    if ASCEND_IS_AIV {
++        buffers.Init(pipe);
++    }
++    whole_layer::AllReduceBf16(buffers,
++        (__gm__ uint8_t*)communication.window,
++        (__gm__ bfloat16_t*)partial, (__gm__ bfloat16_t*)output,
++        rows, communication.capacity, communication.rank,
++        communication.ranks, GetBlockIdx(), 2 * blocks);
++}
++
+ template <bool indexed>
+ __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+-void Kernel(uint64_t sync, Config config, Addresses addresses)
++void Kernel(uint64_t sync, Config config, Addresses addresses,
++            Communication communication)
+ {
+     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+     InitSocState();
+@@ -82,14 +99,17 @@
+             attention.scratch, attention.tiling, attention.output);
+     }
+ 
+-    // The attention callable publishes its GM outputs and resets the pipe.
++    ReducePhase(pipe, communication, addresses.attention.output,
++                communication.attention_sum, rows, blocks);
++    whole_layer_attention::EndPhase(pipe);
++
+     // The norm residual must remain separate from the attention partial.
+     ffn_bridge::Addresses bridge{};
+     for (int i = 0; i < ffn_bridge::kBuffers; ++i) {
+         bridge.values[i] = (GM_ADDR)addresses.bridge[i];
+     }
+     SetSysWorkspace(bridge.values[ffn_bridge::kSystem]);
+-    ffn_bridge::Forward(pipe, attention.output, (GM_ADDR)norm.retained,
++    ffn_bridge::Forward(pipe, (GM_ADDR)communication.attention_sum, (GM_ADDR)norm.retained,
+         (GM_ADDR)addresses.post_gamma, (GM_ADDR)addresses.gate,
+         (GM_ADDR)addresses.correction_bias, bridge, rows, blocks,
+         config.ffn_epsilon);
+@@ -98,36 +118,42 @@
+     routed_body::Forward<CubeFormat::NZ, true>(pipe, addresses.body,
+         (__gm__ bfloat16_t*)bridge.values[ffn_bridge::kScaledRouted],
+         (__gm__ bfloat16_t*)bridge.values[ffn_bridge::kCombined]);
+-    // The next consumer is a separate task on the same stream.
++    // FFN now has an in-kernel consumer: publish every producer and
++    // reset the pipe before allocating the communication buffers.
++    whole_layer_attention::EndPhase(pipe);
++    ReducePhase(pipe, communication, addresses.bridge[ffn_bridge::kCombined],
++                communication.output, rows, blocks);
+     PipeBarrier<PIPE_ALL>();
+     DataSyncBarrier<MemDsbT::DDR>();
+ }
+ 
+-}  // namespace layer_local_chain
++}  // namespace layer_tp_chain
+ 
+-extern "C" int layer_local_indexed_launch(void* stream, uint64_t sync,
+-    const layer_local_chain::Config* config,
+-    const layer_local_chain::Addresses* addresses)
++extern "C" int layer_tp_indexed_launch(void* stream, uint64_t sync,
++    const layer_tp_chain::Config* config,
++    const layer_tp_chain::Addresses* addresses,
++    const layer_tp_chain::Communication* communication)
+ {
+-    if (config == nullptr || addresses == nullptr ||
+-        !layer_local_chain::Valid(*config, *addresses)) {
++    if (config == nullptr || addresses == nullptr || communication == nullptr ||
++        !layer_tp_chain::Valid(*config, *addresses, *communication)) {
+         return -1;
+     }
+-    layer_local_chain::Kernel<true><<<addresses->body.blocks, nullptr, stream>>>(
+-        sync, *config, *addresses);
++    layer_tp_chain::Kernel<true><<<addresses->body.blocks, nullptr, stream>>>(
++        sync, *config, *addresses, *communication);
+     return 0;
+ }
+ 
+-extern "C" int layer_local_shared_launch(void* stream, uint64_t sync,
+-    const layer_local_chain::Config* config,
+-    const layer_local_chain::Addresses* addresses)
++extern "C" int layer_tp_shared_launch(void* stream, uint64_t sync,
++    const layer_tp_chain::Config* config,
++    const layer_tp_chain::Addresses* addresses,
++    const layer_tp_chain::Communication* communication)
+ {
+-    if (config == nullptr || addresses == nullptr ||
++    if (config == nullptr || addresses == nullptr || communication == nullptr ||
+         addresses->shared_topk == 0 ||
+-        !layer_local_chain::Valid(*config, *addresses)) {
++        !layer_tp_chain::Valid(*config, *addresses, *communication)) {
+         return -1;
+     }
+-    layer_local_chain::Kernel<false><<<addresses->body.blocks, nullptr, stream>>>(
+-        sync, *config, *addresses);
++    layer_tp_chain::Kernel<false><<<addresses->body.blocks, nullptr, stream>>>(
++        sync, *config, *addresses, *communication);
+     return 0;
+ }

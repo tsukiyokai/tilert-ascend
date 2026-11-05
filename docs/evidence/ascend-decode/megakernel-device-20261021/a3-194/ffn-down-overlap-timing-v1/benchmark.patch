@@ -1,0 +1,78 @@
+--- timing-v3/bench.py
++++ down-overlap/bench.py
+@@ -33,13 +33,17 @@
+ 
+ 
+ class Launchers:
+-    def __init__(self, fused, bridge, body):
++    def __init__(self, fused, bridge, body, candidate):
+         self.libraries = [ctypes.CDLL(str(path.resolve())) for path in (fused, bridge, body)]
+-        self.fused = self.libraries[0].ffn_composed_launch
++        self.base = self.libraries[0].ffn_composed_launch
++        self.libraries.append(ctypes.CDLL(str(candidate.resolve())))
++        self.fused = self.libraries[-1].ffn_down_overlap_launch
+         array = ctypes.POINTER(ctypes.c_void_p)
+         self.fused.argtypes = ([ctypes.c_void_p, ctypes.c_uint64]
+             + [ctypes.c_void_p] * 5 + [array] * 3
+             + [SharedInput, ctypes.c_int64, ctypes.c_int64, ctypes.c_int64, ctypes.c_float])
++        self.base.argtypes = list(self.fused.argtypes)
++        self.base.restype = None
+         self.bridge = self.libraries[1].ffn_bridge_launch
+         self.bridge.argtypes = ([ctypes.c_void_p, ctypes.c_uint64]
+             + [ctypes.c_void_p] * 5 + [array, ctypes.c_int64, ctypes.c_int64, ctypes.c_float])
+@@ -94,13 +98,8 @@
+ 
+     def separate(self):
+         stream = self.torch.npu.current_stream().npu_stream
+-        self.launchers.bridge(stream, self.sync, *self.input_arguments(), self.bridge_ptrs,
+-                              self.rows, self.blocks, 1e-5)
+-        self.launchers.body(self.blocks, stream, self.sync, *self.body_arguments,
+-                            256, self.rows, self.layout, self.dispatch, self.shared)
+-        b, r, _ = self.arena
+-        self.launchers.finalize(stream, self.sync, r[9].data_ptr(), r[19].data_ptr(),
+-                               self.bridge_ptrs, self.rows, self.blocks)
++        self.launchers.base(stream, self.sync, *self.input_arguments(), self.weight_ptrs,
++            self.bridge_ptrs, self.body_ptrs, self.shared, self.rows, self.blocks, self.layout, 1e-5)
+ 
+     def owning_torch(self, owner):
+         b, r, sync = self.arena
+@@ -162,6 +161,7 @@
+     for name in ("library", "bridge-library", "body-library", "checker",
+                  "bridge-helper", "body-helper", "output"):
+         parser.add_argument("--" + name, type=Path, required=True)
++    parser.add_argument("--candidate-library", type=Path, required=True)
+     parser.add_argument("--device", default="npu:0")
+     parser.add_argument("--rows", type=int, default=12)
+     parser.add_argument("--blocks", type=int, choices=(16, 24), default=24)
+@@ -202,12 +202,19 @@
+         else:
+             sys.modules["check"] = previous
+     libraries = (args.library, args.bridge_library, args.body_library)
+-    for path in libraries:
++    for path in (*libraries, args.candidate_library):
+         torch.ops.load_library(str(path.resolve()))
+-    launchers = Launchers(*libraries)
++    launchers = Launchers(*libraries, args.candidate_library)
++    for operation in ("prepare", "forward_out"):
++        baseline = str(getattr(torch.ops.tilert_ffn_composed, operation).default._schema)
++        candidate = str(getattr(torch.ops.tilert_ffn_down_overlap, operation).default._schema)
++        if candidate != baseline.replace("ffn_composed", "ffn_down_overlap"):
++            raise RuntimeError(f"Down-overlap schema changed: {operation}")
+     args.output.mkdir(parents=True, exist_ok=True)
+     report = {
+-        "scope": "Frozen C ABI graph replay: one FFN launch versus bridge+body+epilogue, TP excluded",
++        "scope": "Matched-address down-overlap FFN versus accepted one-launch FFN, TP excluded",
++        "arm_names": {"fused": "down_overlap", "separate": "base_one_launch"},
++        "extra_storage": "None; both C ABIs use the same 32 tensors",
+         "scratch_matching": "All 32 tensors including system workspaces and immutable tilings share exact addresses within each pair",
+         "owner_validation": "Each arena's owning Torch chain checks shapes/tiling identity/aliasing before CABI comparison",
+         "utc": datetime.now(timezone.utc).isoformat(),
+@@ -215,7 +222,7 @@
+         "arguments": {key: str(value) if isinstance(value, Path) else value
+                       for key, value in vars(args).items()},
+         "torch": torch.__version__, "torch_npu": torch_npu.__version__,
+-        "libraries": {str(path): digest(path) for path in libraries},
++        "libraries": {str(path): digest(path) for path in (*libraries, args.candidate_library)},
+         "sources": {str(path): digest(path) for path in (Path(__file__), args.checker,
+             args.bridge_helper, args.bridge_helper.with_name("fixtures.py"),
+             args.bridge_helper.with_name("gate_probe.py"), args.body_helper,
