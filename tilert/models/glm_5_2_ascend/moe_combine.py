@@ -501,6 +501,7 @@ def _install_moe_superkernel_fusion(restorers, model=None):
 
         orig_td_dispatch = TokenDispatcherWithMC2.token_dispatch
         orig_td_combine = TokenDispatcherWithMC2.token_combine
+        _route2_meta = {}
 
         def _zero_comm_dispatch(self, token_dispatch_input):
             hs = token_dispatch_input.hidden_states
@@ -538,20 +539,17 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                     quant_mode=1,
                 )
             )
-            metadata = MoEAllGatherCombineMetadata(
-                topk_weights=topk_weights,
-                expanded_row_idx=expanded_row_idx,
-                restore_shape=hs.shape,
-            )
-            metadata.mask = mask
-            metadata.ep_rank = ep_rank
-            metadata.num_tokens = num_tokens
+            _route2_meta[id(self)] = (mask, ep_rank, num_tokens)
             return MoETokenDispatchOutput(
                 hidden_states=sorted_hs,
                 dynamic_scale=dynamic_scale,
                 group_list=expert_tokens.to(torch.int64),
                 group_list_type=1,
-                combine_metadata=metadata,
+                combine_metadata=MoEAllGatherCombineMetadata(
+                    topk_weights=topk_weights,
+                    expanded_row_idx=expanded_row_idx,
+                    restore_shape=hs.shape,
+                ),
             )
 
         def _zero_comm_combine(self, hidden_states, combine_metadata, bias=None):
@@ -559,51 +557,52 @@ def _install_moe_superkernel_fusion(restorers, model=None):
             if hook is not None:
                 self._pre_combine_hook = None
                 hook()
-            if isinstance(combine_metadata, MoEAllGatherCombineMetadata):
-                if (
-                    getattr(combine_metadata, "mask", None) is not None
-                    and combine_metadata.restore_shape[0] <= 32
-                ):
-                    if hidden_states.shape[0] == 0:
-                        slot_experts = torch.zeros(
-                            (combine_metadata.mask.numel(), hidden_states.shape[1]),
-                            dtype=hidden_states.dtype,
-                            device=hidden_states.device,
-                        )
-                    else:
-                        clamped_idx = combine_metadata.expanded_row_idx.clamp(min=0).long()
-                        slot_experts = (
-                            hidden_states[clamped_idx]
-                            * combine_metadata.mask.view(-1, 1).to(hidden_states.dtype)
-                        )
-                    num_tokens = combine_metadata.restore_shape[0]
-                    top_k = combine_metadata.mask.shape[1]
-                    ep_rank = combine_metadata.ep_rank
-                    tokens_per_rank = max(1, num_tokens // 8)
-                    home_slots = tokens_per_rank * top_k
-                    home_expert_outputs = torch.empty(
-                        (home_slots, hidden_states.shape[1]),
+            route2_meta = _route2_meta.pop(id(self), None)
+            if (
+                route2_meta is not None
+                and isinstance(combine_metadata, MoEAllGatherCombineMetadata)
+                and combine_metadata.restore_shape[0] <= 32
+            ):
+                mask, ep_rank, num_tokens = route2_meta
+                top_k = mask.shape[1]
+                tokens_per_rank = max(1, num_tokens // 8)
+                home_slots = tokens_per_rank * top_k
+                if hidden_states.shape[0] == 0:
+                    slot_experts = torch.zeros(
+                        (mask.numel(), hidden_states.shape[1]),
                         dtype=hidden_states.dtype,
                         device=hidden_states.device,
                     )
-                    dist.reduce_scatter_tensor(
-                        home_expert_outputs,
-                        slot_experts,
-                        group=self.moe_config.tp_group.device_group,
+                else:
+                    clamped_idx = combine_metadata.expanded_row_idx.clamp(min=0).long()
+                    slot_experts = (
+                        hidden_states[clamped_idx]
+                        * mask.view(-1, 1).to(hidden_states.dtype)
                     )
-                    home_idx = torch.arange(
-                        home_slots,
-                        dtype=torch.int32,
-                        device=hidden_states.device,
-                    )
-                    home_probs = combine_metadata.topk_weights[
-                        tokens_per_rank * ep_rank : tokens_per_rank * (ep_rank + 1)
-                    ].to(torch.float32)
-                    return torch_npu.npu_moe_token_unpermute(
-                        home_expert_outputs.to(torch.bfloat16),
-                        home_idx,
-                        home_probs,
-                    )
+                home_expert_outputs = torch.empty(
+                    (home_slots, hidden_states.shape[1]),
+                    dtype=hidden_states.dtype,
+                    device=hidden_states.device,
+                )
+                dist.reduce_scatter_tensor(
+                    home_expert_outputs,
+                    slot_experts,
+                    group=self.moe_config.tp_group.device_group,
+                )
+                home_idx = torch.arange(
+                    home_slots,
+                    dtype=torch.int32,
+                    device=hidden_states.device,
+                )
+                home_probs = combine_metadata.topk_weights[
+                    tokens_per_rank * ep_rank : tokens_per_rank * (ep_rank + 1)
+                ].to(torch.float32)
+                return torch_npu.npu_moe_token_unpermute(
+                    home_expert_outputs.to(torch.bfloat16),
+                    home_idx,
+                    home_probs,
+                )
+            if isinstance(combine_metadata, MoEAllGatherCombineMetadata):
                 return torch_npu.npu_moe_token_unpermute(
                     permuted_tokens=hidden_states.to(torch.float32),
                     sorted_indices=combine_metadata.expanded_row_idx,
