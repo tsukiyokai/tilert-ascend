@@ -164,7 +164,7 @@ at::Tensor OneSidedAllReduceScaleAdd(const at::Tensor& partial,
         float f;
         int32_t i;
     } scale_bits = {static_cast<float>(scale)};
-    const int stage = (routed_numel == numel) ? 13 : 15;
+    const int stage = (routed_numel == numel) ? 16 : 15;
     const int32_t* act_ptr =
         (numel == 196608) ? state.active_shmem_ptr : nullptr;
     tp_push_demo(kDefaultBlocks, stream, state.ffts,
@@ -407,7 +407,7 @@ OneSidedAllReduceRmsNormQuant(const at::Tensor& partial, at::Tensor& out,
     int stage = 10;
     int32_t* routed_ptr = state.errors;
     if (routed.has_value() && routed->defined()) {
-        stage = (routed->numel() == numel) ? 13 : 15;
+        stage = (routed->numel() == numel) ? 16 : 15;
         routed_ptr = reinterpret_cast<int32_t*>(routed->data_ptr());
     }
     const int32_t* act_ptr =

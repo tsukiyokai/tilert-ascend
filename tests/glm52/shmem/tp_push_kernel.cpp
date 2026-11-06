@@ -790,7 +790,7 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
     __gm__ bfloat16_t* gamma = nullptr,
     __gm__ bfloat16_t* beta = nullptr, __gm__ bfloat16_t* norm_out = nullptr,
     __gm__ int8_t* quant_out = nullptr, __gm__ float* scale_out = nullptr,
-    float eps = 1e-5f)
+    float eps = 1e-5f, int stage = 10)
 {
     const bool fast_8x48 = (pe_size == 8 && cores == 48);
     const int64_t workers = fast_8x48 ? 6 : (cores / pe_size);
@@ -827,11 +827,14 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
     }
 
     __gm__ bfloat16_t* local_rs_win = (__gm__ bfloat16_t*)layout.data;
-    __gm__ bfloat16_t* local_ag_win = local_rs_win + layout.elements;
+    __gm__ bfloat16_t* local_rs_win_routed = local_rs_win + layout.elements;
+    __gm__ bfloat16_t* local_ag_win = (stage == 16) ? (local_rs_win + layout.elements * 2) : (local_rs_win + layout.elements);
     __gm__ bfloat16_t* remote_rs_win =
         (peer != my_pe) ? (__gm__ bfloat16_t*)aclshmem_ptr((__gm__ void*)local_rs_win, peer) : nullptr;
-    __gm__ bfloat16_t* remote_ag_win =
+    __gm__ bfloat16_t* remote_rs_win_routed =
         (peer != my_pe) ? (remote_rs_win + layout.elements) : nullptr;
+    __gm__ bfloat16_t* remote_ag_win =
+        (peer != my_pe) ? ((stage == 16) ? (remote_rs_win + layout.elements * 2) : (remote_rs_win + layout.elements)) : nullptr;
 
     __gm__ int32_t* pool_base = (__gm__ int32_t*)aclshmemi_get_team_sync_pool(1);
     __gm__ int32_t* flag_rs = pool_base + worker * pe_size * SIGNAL_SLOT_INT32;
@@ -842,7 +845,11 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
         const int64_t src_off = one_hop ? peer_w_off : (peer * slice_elems + peer_w_off);
         src.SetGlobalBuffer(partial + src_off, peer_w_elems);
         DataCopy(stage_buf, src, peer_w_elems);
-        if (one_hop && routed_slice != nullptr && my_pe == 0) {
+        if (stage == 16 && routed_slice != nullptr) {
+            GlobalTensor<bfloat16_t> r_src;
+            r_src.SetGlobalBuffer(routed_slice + src_off, peer_w_elems);
+            DataCopy(stage_buf[4096], r_src, peer_w_elems);
+        } else if (one_hop && routed_slice != nullptr && my_pe == 0) {
             GlobalTensor<bfloat16_t> r_src;
             r_src.SetGlobalBuffer(routed_slice + peer_w_off, peer_w_elems);
             DataCopy(stage_buf[4096], r_src, peer_w_elems);
@@ -853,7 +860,11 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
         GlobalTensor<bfloat16_t> dst;
         dst.SetGlobalBuffer(remote_rs_win + my_pe * slice_elems + peer_w_off, peer_w_elems);
         DataCopy(dst, stage_buf, peer_w_elems);
-        if (one_hop && routed_slice != nullptr && my_pe == 0) {
+        if (stage == 16 && routed_slice != nullptr) {
+            GlobalTensor<bfloat16_t> r_dst;
+            r_dst.SetGlobalBuffer(remote_rs_win_routed + my_pe * slice_elems + peer_w_off, peer_w_elems);
+            DataCopy(r_dst, stage_buf[4096], peer_w_elems);
+        } else if (one_hop && routed_slice != nullptr && my_pe == 0) {
             GlobalTensor<bfloat16_t> r_dst;
             r_dst.SetGlobalBuffer(remote_ag_win + peer_w_off, peer_w_elems);
             DataCopy(r_dst, stage_buf[4096], peer_w_elems);
@@ -879,7 +890,11 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
             GlobalTensor<bfloat16_t> my_src;
             my_src.SetGlobalBuffer(partial + my_global_off, w_elems);
             DataCopy(stage_buf, my_src, w_elems);
-            if (!remote_routed && (routed_slice != nullptr || routed_full != nullptr)) {
+            if (stage == 16 && routed_slice != nullptr) {
+                GlobalTensor<bfloat16_t> r_src;
+                r_src.SetGlobalBuffer(routed_slice + my_global_off, w_elems);
+                DataCopy(stage_buf[4096], r_src, w_elems);
+            } else if (!remote_routed && (routed_slice != nullptr || routed_full != nullptr)) {
                 GlobalTensor<bfloat16_t> r_src;
                 r_src.SetGlobalBuffer((routed_slice != nullptr) ? (routed_slice + w_off) : (routed_full + my_global_off),
                                       w_elems);
@@ -887,7 +902,7 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
             }
             SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
             WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
-            if (!remote_routed && (routed_slice != nullptr || routed_full != nullptr)) {
+            if (stage != 16 && !remote_routed && (routed_slice != nullptr || routed_full != nullptr)) {
                 Cast(stage_second, stage_buf[4096], AscendC::RoundMode::CAST_NONE, w_elems);
                 if (scale != 1.0f) {
                     PipeBarrier<PIPE_V>();
@@ -943,7 +958,7 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
                         DataCopy(incoming, source, c);
                         SetFlag<AscendC::HardEvent::MTE2_V>(events[next]);
                     }
-                } else if (!preload_local && (routed_slice != nullptr || routed_full != nullptr)) {
+                } else if (!preload_local && stage != 16 && (routed_slice != nullptr || routed_full != nullptr)) {
                     WaitFlag<AscendC::HardEvent::V_MTE2>(events[next]);
                     source.SetGlobalBuffer((routed_slice != nullptr)
                                                ? (routed_slice + w_off + offset)
@@ -976,7 +991,87 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
             }
             const int64_t r_slot = pe_size % 2;
             const LocalTensor<bfloat16_t>& r_buf = (r_slot == 0) ? first : second;
-            if (preload_local) {
+            if (stage == 16 && routed_slice != nullptr) {
+                WaitFlag<AscendC::HardEvent::V_MTE2>(events[0]);
+                WaitFlag<AscendC::HardEvent::V_MTE2>(events[1]);
+                Cast(first, acc, AscendC::RoundMode::CAST_RINT, c);
+                PipeBarrier<PIPE_V>();
+                Cast(stage_second, first, AscendC::RoundMode::CAST_NONE, c);
+                PipeBarrier<PIPE_V>();
+
+                SetFlag<AscendC::HardEvent::V_MTE2>(events[0]);
+                SetFlag<AscendC::HardEvent::V_MTE2>(events[1]);
+
+                if (!(preload_local && my_pe == 0)) {
+                    WaitFlag<AscendC::HardEvent::V_MTE2>(events[0]);
+                    GlobalTensor<bfloat16_t> r_source;
+                    r_source.SetGlobalBuffer((my_pe == 0) ? (routed_slice + my_global_off + offset)
+                                                          : (local_rs_win_routed + w_off + offset),
+                                             c);
+                    DataCopy(first, r_source, c);
+                    SetFlag<AscendC::HardEvent::MTE2_V>(events[0]);
+                }
+
+                for (int64_t pe = 0; pe < pe_size; ++pe) {
+                    const int64_t current = pe % 2;
+                    const int64_t next = (pe + 1) % 2;
+                    const LocalTensor<bfloat16_t>& ready = (current == 0) ? first : second;
+                    const LocalTensor<bfloat16_t>& incoming = (next == 0) ? first : second;
+
+                    if (pe + 1 < pe_size) {
+                        if (!(preload_local && (pe + 1) == my_pe)) {
+                            WaitFlag<AscendC::HardEvent::V_MTE2>(events[next]);
+                            GlobalTensor<bfloat16_t> r_source;
+                            r_source.SetGlobalBuffer(((pe + 1) == my_pe)
+                                                         ? (routed_slice + my_global_off + offset)
+                                                         : (local_rs_win_routed + (pe + 1) * slice_elems + w_off + offset),
+                                                     c);
+                            DataCopy(incoming, r_source, c);
+                            SetFlag<AscendC::HardEvent::MTE2_V>(events[next]);
+                        }
+                    }
+                    if (preload_local && pe == my_pe) {
+                        if (pe == 0) {
+                            Cast(acc, stage_buf[4096], AscendC::RoundMode::CAST_NONE, c);
+                        } else {
+                            Cast(term, stage_buf[4096], AscendC::RoundMode::CAST_NONE, c);
+                            PipeBarrier<PIPE_V>();
+                            Add(acc, acc, term, c);
+                        }
+                    } else {
+                        WaitFlag<AscendC::HardEvent::MTE2_V>(events[current]);
+                        if (pe == 0) {
+                            Cast(acc, ready, AscendC::RoundMode::CAST_NONE, c);
+                            SetFlag<AscendC::HardEvent::V_MTE2>(events[current]);
+                        } else {
+                            Cast(term, ready, AscendC::RoundMode::CAST_NONE, c);
+                            SetFlag<AscendC::HardEvent::V_MTE2>(events[current]);
+                            PipeBarrier<PIPE_V>();
+                            Add(acc, acc, term, c);
+                        }
+                    }
+                    PipeBarrier<PIPE_V>();
+                }
+                WaitFlag<AscendC::HardEvent::V_MTE2>(events[0]);
+                WaitFlag<AscendC::HardEvent::V_MTE2>(events[1]);
+
+                Cast(first, acc, AscendC::RoundMode::CAST_RINT, c);
+                PipeBarrier<PIPE_V>();
+                Cast(acc, first, AscendC::RoundMode::CAST_NONE, c);
+                PipeBarrier<PIPE_V>();
+                if (scale != 1.0f) {
+                    Muls(acc, acc, scale, c);
+                    PipeBarrier<PIPE_V>();
+                    Cast(second, acc, AscendC::RoundMode::CAST_RINT, c);
+                    PipeBarrier<PIPE_V>();
+                    Cast(term, second, AscendC::RoundMode::CAST_NONE, c);
+                } else {
+                    Cast(term, first, AscendC::RoundMode::CAST_NONE, c);
+                }
+                PipeBarrier<PIPE_V>();
+                Add(acc, stage_second, term, c);
+                PipeBarrier<PIPE_V>();
+            } else if (preload_local) {
                 WaitFlag<AscendC::HardEvent::V_MTE2>(events[0]);
                 WaitFlag<AscendC::HardEvent::V_MTE2>(events[1]);
                 if (remote_routed) {
@@ -1243,7 +1338,7 @@ ACLSHMEM_DEVICE void tp_push_once(__gm__ float* partial, __gm__ float* out, __gm
     // the pair prices the element type and nothing else. The reduction's
     // staging tensor is the addend's buffer rather than the push's, so the
     // narrowed slot never shares UB with a store that may still be in flight.
-    if (stage == 10 || stage == 13 || stage == 15) {
+    if (stage == 10 || stage == 13 || stage == 15 || stage == 16) {
         const int64_t workers = (cores >= pe_size) ? (cores / pe_size) : 1;
         if (cores >= pe_size &&
             layout.elements % (pe_size * workers * 16) == 0 &&
@@ -1257,12 +1352,13 @@ ACLSHMEM_DEVICE void tp_push_once(__gm__ float* partial, __gm__ float* out, __gm
                 }
             }
             __gm__ bfloat16_t* routed_full = (stage == 13) ? (__gm__ bfloat16_t*)errors : nullptr;
-            __gm__ bfloat16_t* routed_slice = (stage == 15) ? (__gm__ bfloat16_t*)errors : nullptr;
+            __gm__ bfloat16_t* routed_slice = (stage == 15 || stage == 16) ? (__gm__ bfloat16_t*)errors : nullptr;
             TpPushRsAgBf16(layout, (__gm__ bfloat16_t*)partial, (__gm__ bfloat16_t*)out,
                            core, cores, my_pe, pe_size,
                            stage_tensor.ReinterpretCast<bfloat16_t>(), stage_second, acc, term,
                            term_second.ReinterpretCast<bfloat16_t>(),
-                           routed_full, routed_slice, scale, active_elements);
+                           routed_full, routed_slice, scale, active_elements,
+                           nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 1e-5f, stage);
             return;
         }
         __gm__ bfloat16_t* routed_slice = (stage == 15) ? (__gm__ bfloat16_t*)errors : nullptr;
@@ -1370,12 +1466,12 @@ extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__ void tp_push_kern
     LocalTensor<float> term = addend.Get<float>();
     __ubuf__ float* stage_ub = (__ubuf__ float*)stage_tensor.GetPhyAddr();
 
-    const int actual_rounds = (stage == 13 || stage == 14 || stage == 15) ? 1 : rounds;
+    const int actual_rounds = (stage == 13 || stage == 14 || stage == 15 || stage == 16) ? 1 : rounds;
     union {
         int32_t i;
         float f;
     } scale_bits = {rounds};
-    const float scale = (stage == 13 || stage == 15) ? scale_bits.f : 1.0f;
+    const float scale = (stage == 13 || stage == 15 || stage == 16) ? scale_bits.f : 1.0f;
 
     for (int round = 0; round < actual_rounds; ++round) {
         tp_push_once(partial, out, window, rows, hidden, static_cast<int64_t>(round_base) + round, stage, stage_ub,
@@ -1427,7 +1523,7 @@ extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__ void tp_push_rmsn
         int32_t i;
         float f;
     } sb = {scale_bits};
-    const float scale = (stage == 13 || stage == 15) ? sb.f : 1.0f;
+    const float scale = (stage == 13 || stage == 15 || stage == 16) ? sb.f : 1.0f;
 
     const int64_t core = GetBlockIdx();
     const int64_t cores = GetBlockNum();
@@ -1445,13 +1541,13 @@ extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__ void tp_push_rmsn
         }
     }
     __gm__ bfloat16_t* routed_full = (stage == 13) ? (__gm__ bfloat16_t*)routed : nullptr;
-    __gm__ bfloat16_t* routed_slice = (stage == 15) ? (__gm__ bfloat16_t*)routed : nullptr;
+    __gm__ bfloat16_t* routed_slice = (stage == 15 || stage == 16) ? (__gm__ bfloat16_t*)routed : nullptr;
     TpPushRsAgBf16(layout, (__gm__ bfloat16_t*)partial, (__gm__ bfloat16_t*)out,
                    core, cores, my_pe, pe_size,
                    stage_tensor.ReinterpretCast<bfloat16_t>(), stage_second, acc, term,
                    term_second.ReinterpretCast<bfloat16_t>(),
                    routed_full, routed_slice, scale, active_elements,
-                   residual, res_out, gamma, beta, norm_out, quant_out, scale_out, eps);
+                   residual, res_out, gamma, beta, norm_out, quant_out, scale_out, eps, stage);
 }
 
 void tp_push_rmsnorm_quant(uint32_t block_dim, void* stream, uint64_t fftsAddr, float* partial, float* out,

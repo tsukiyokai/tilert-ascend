@@ -553,14 +553,11 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                 self._pre_combine_hook = None
                 hook()
             if isinstance(combine_metadata, MoEAllGatherCombineMetadata):
-                unpermuted = torch_npu.npu_moe_token_unpermute(
+                return torch_npu.npu_moe_token_unpermute(
                     permuted_tokens=hidden_states,
                     sorted_indices=combine_metadata.expanded_row_idx,
                     probs=combine_metadata.topk_weights.to(hidden_states.dtype),
                 )
-                if hasattr(torch.ops.tilert, "onesided_all_reduce"):
-                    return torch.ops.tilert.onesided_all_reduce(unpermuted)
-                return tensor_model_parallel_all_reduce(unpermuted)
             return orig_td_combine(self, hidden_states, combine_metadata, bias=bias)
 
         TokenDispatcherWithMC2.token_dispatch = _zero_comm_dispatch
