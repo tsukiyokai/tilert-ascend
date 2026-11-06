@@ -884,7 +884,7 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
         const LocalTensor<bfloat16_t> second = narrow[chunk];
         const int64_t my_global_off = one_hop ? w_off : (my_pe * slice_elems + w_off);
         const bool preload_local = (w_elems > 0) && (w_elems <= (STAGE_UB_BYTES / static_cast<int64_t>(sizeof(float))));
-        const bool remote_routed = (one_hop && routed_slice != nullptr && my_pe != 0);
+        const bool remote_routed = (stage != 16 && one_hop && routed_slice != nullptr && my_pe != 0);
 
         if (preload_local) {
             GlobalTensor<bfloat16_t> my_src;
