@@ -556,7 +556,7 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                 return torch_npu.npu_moe_token_unpermute(
                     permuted_tokens=hidden_states,
                     sorted_indices=combine_metadata.expanded_row_idx,
-                    probs=combine_metadata.topk_weights.to(hidden_states.dtype),
+                    probs=combine_metadata.topk_weights.to(torch.float32),
                 )
             return orig_td_combine(self, hidden_states, combine_metadata, bias=bias)
 
