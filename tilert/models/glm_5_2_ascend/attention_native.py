@@ -534,7 +534,11 @@ def install(attention_layer, pool):
             self._update_indexcache_topk_indices(selected)
         if self.o_proj.reduce_results:
             reduce = getattr(get_tp_group(), "_tilert_onesided_reduce", None)
-            if reduce is not None:
+            if (
+                reduce is not None
+                and not isinstance(reduce, bool)
+                and hasattr(reduce, "target_out")
+            ):
                 reduce.target_out = output
             partial = tensor_model_parallel_all_reduce(partial)
         if partial.data_ptr() != output.data_ptr():

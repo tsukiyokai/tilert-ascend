@@ -97,8 +97,13 @@ class OneSidedReduce:
         """Return the TP sum of `value`."""
         import torch
 
-        out = self.target_out
-        self.target_out = None
+        out = (
+            getattr(self, "target_out", None)
+            if hasattr(self, "target_out")
+            else None
+        )
+        if hasattr(self, "target_out"):
+            self.target_out = None
         if (
             out is not None
             and self.has_bf16_out_op

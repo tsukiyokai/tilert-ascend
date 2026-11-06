@@ -596,8 +596,17 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                 and value.numel() == 196608
                 and value.is_contiguous()
             ):
-                out = reduce_obj.target_out
-                reduce_obj.target_out = None
+                out = (
+                    getattr(reduce_obj, "target_out", None)
+                    if reduce_obj is not None and not isinstance(reduce_obj, bool)
+                    else None
+                )
+                if (
+                    reduce_obj is not None
+                    and not isinstance(reduce_obj, bool)
+                    and hasattr(reduce_obj, "target_out")
+                ):
+                    reduce_obj.target_out = None
                 if (
                     out is not None
                     and out.dtype == value.dtype
@@ -635,41 +644,17 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                 combined = torch.add(
                     shared_output, fused_output, alpha=float(scale)
                 )
-                if reduce_obj is not None and hasattr(reduce_obj, "sum"):
-                    return reduce_obj.sum(combined)
+                reduce_obj_inner = getattr(get_tp_group(), "_tilert_onesided_reduce", None)
+                if (
+                    reduce_obj_inner is not None
+                    and not isinstance(reduce_obj_inner, bool)
+                    and hasattr(reduce_obj_inner, "sum")
+                ):
+                    return reduce_obj_inner.sum(combined)
                 return torch.ops.tilert.onesided_all_reduce(combined)
             return orig_scale_add_pkt(shared_output, fused_output, scale)
 
         _defer_scale_add.default = _defer_scale_add
-
-        def _zero_comm_scale_add(shared_output, fused_output, scale):
-            if (
-                zero_comm_moe
-                and fused_output is not None
-                and hasattr(torch.ops.tilert, "onesided_all_reduce")
-            ):
-                combined = torch.add(
-                    shared_output, fused_output, alpha=float(scale)
-                )
-                if reduce_obj is not None and hasattr(reduce_obj, "sum"):
-                    return reduce_obj.sum(combined)
-                return torch.ops.tilert.onesided_all_reduce(combined)
-            return orig_scale_add_pkt(shared_output, fused_output, scale)
-
-        _zero_comm_scale_add.default = _zero_comm_scale_add
-        if zero_comm_moe:
-            setattr(
-                torch.ops.tilert,
-                "onesided_all_reduce_scale_add",
-                _zero_comm_scale_add,
-            )
-            restorers.append(
-                lambda: setattr(
-                    torch.ops.tilert,
-                    "onesided_all_reduce_scale_add",
-                    orig_scale_add_pkt,
-                )
-            )
 
         fused_norm_produced = 0
         fused_dq_consumed = 0
@@ -771,7 +756,7 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                 setattr(
                     torch.ops.tilert,
                     "onesided_all_reduce_scale_add",
-                    _zero_comm_scale_add if zero_comm_moe else orig_scale_add_pkt,
+                    orig_scale_add_pkt,
                 )
                 setattr(
                     torch.ops._C_ascend,
@@ -870,7 +855,11 @@ def _install_sfa_superkernel_fusion(restorers, model=None):
     def _finalize_o_proj(self, attn_output, output, gather_full_o_proj):
         if inplace_o_proj:
             reduce = getattr(get_tp_group(), "_tilert_onesided_reduce", None)
-            if reduce is not None:
+            if (
+                reduce is not None
+                and not isinstance(reduce, bool)
+                and hasattr(reduce, "target_out")
+            ):
                 reduce.target_out = output
                 try:
                     res = self.o_proj(attn_output)[0]
