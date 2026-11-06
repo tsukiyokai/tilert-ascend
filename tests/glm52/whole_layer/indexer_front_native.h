@@ -594,8 +594,9 @@ __aicore__ inline void QuantizeBatch(
         return;
     }
     const int64_t total = count * kDim;
+    auto i16 = held.work.ReinterpretCast<int16_t>();
     auto temp_half = held.other.ReinterpretCast<half>();
-    auto integers = held.work.ReinterpretCast<int32_t>();
+    auto brcb = held.pairs;
     for (int64_t r = 0; r < count; ++r) {
         DataCopy(held.narrow, src[(begin + r) * kDim], kDim);
         Fence<HardEvent::MTE2_V>();
@@ -613,21 +614,21 @@ __aicore__ inline void QuantizeBatch(
         Duplicate(held.temp, 127.0F, 64);
         PipeBarrier<PIPE_V>();
         Div(held.temp, held.temp, held.scalar, 64);
-        Fence<HardEvent::V_S>();
-        const float amax = held.scalar.GetValue(0);
-        const float scale_factor = held.temp.GetValue(0);
-        const half scale_val = static_cast<half>(amax * (1.0F / 127.0F));
-        Fence<HardEvent::S_V>();
-        Muls(held.value, held.value, scale_factor, kDim);
+        Muls(held.beta, held.scalar, 1.0F / 127.0F, 64);
         PipeBarrier<PIPE_V>();
-        Cast(integers, held.value, RoundMode::CAST_RINT, kDim);
+        Brcb(brcb, held.temp, 8, BrcbRepeatParams{1, 8});
+        Cast(held.halves[128], held.beta, RoundMode::CAST_RINT, 64);
         PipeBarrier<PIPE_V>();
-        SetDeqScale(static_cast<half>(1.0F));
+        Mul(held.value, held.value, brcb, 64, 1, BinaryRepeatParams{1, 1, 0, 16, 16, 1});
+        Mul(held.value[64], held.value[64], brcb, 64, 1, BinaryRepeatParams{1, 1, 0, 16, 16, 1});
         PipeBarrier<PIPE_V>();
-        Cast(temp_half, integers, RoundMode::CAST_ROUND, kDim);
+        Cast(i16, held.value, RoundMode::CAST_RINT, kDim);
+        PipeBarrier<PIPE_V>();
+        Cast(temp_half, i16, RoundMode::CAST_ROUND, kDim);
         PipeBarrier<PIPE_V>();
         Cast(held.codes[r * kDim], temp_half, RoundMode::CAST_TRUNC, kDim);
-        held.halves.SetValue(r, scale_val);
+        Fence<HardEvent::V_S>();
+        held.halves.SetValue(r, held.halves.GetValue(128));
     }
     Fence<HardEvent::V_MTE3>();
     Fence<HardEvent::S_MTE3>();
