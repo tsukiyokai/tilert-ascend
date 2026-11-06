@@ -152,7 +152,8 @@ class _WorkspacePool:
     def reserve_capture(self, rows):
         """Allocate before capture; the first consumer binds its stream."""
         key = (rows.device, rows.shape[0], self.from_dispatch, self.weight_layout)
-        self.capture_reserves[key] = self._prepare(rows)
+        if key not in self.capture_reserves:
+            self.capture_reserves[key] = self._prepare(rows)
 
     def get(self, rows):
         import torch

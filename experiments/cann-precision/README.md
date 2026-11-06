@@ -4,7 +4,7 @@
 
 默认严格模式先校验原 HF manifest、实际 trace 字节哈希、checkpoint 指纹、captured prompt 与各 rank 的冻结前缀身份。M1 复用 CannTrace/CannChoices；M32 复用 experiments/graph-evidence 的 PersistentTrace，不绕过原 CannTrace 的 width 限制。每行直接调用原 compare_step 默认比较，绝不传 diagnostics；独立核对返回 token IDs、真实 logits argmax 与 HF argmax。任何 HF、M1/M32、prefix 或精确 reset 差异均使 precision=false，入口非零退出；诊断完成不等于通过。
 
-`--capture-only` 可在 CPU HF 尚未完成时先采集相同的真实 M1×32/M32/reset 工件；该模式必须省略 `--reference`，不读取 HF 文件、不执行 HF 比较。checkpoint/teacher/prefix 准入、返回 ID 对自身 logits argmax、M1/M32 一致性、精确 reset、prefix/stamps 与各 rank 状态检查仍执行。完成采集只会得到 `captured_unverified` 或 `captured_with_failures`，并记录 `capture_complete`、`capture_checks_passed`；即使所有检查成功，`case_precision_passed`、`precision_verified`、`formal_precision_gate_passed` 也始终 false。退出0只表示未经独立HF验证的采集完成，执行检查失败则退出非零。原始逐行/宽帧、输入/源库身份及其 SHA 全部保留，后续可据相同 HF、teacher 与 prefix 身份离线严格比较，不需重跑 CANN；未实现离线比较时不得自行升级状态。
+`--capture-only` 可在 CPU HF 尚未完成时先采集相同的真实 M1×32/M32/reset 工件；该模式必须省略 `--reference`，不读取 HF 文件、不执行 HF 比较。checkpoint/teacher/prefix 准入、返回 ID 对自身 logits argmax、M1/M32 一致性、精确 reset、prefix/stamps 与各 rank 状态检查仍执行。完成采集只会得到 `captured_unverified` 或 `captured_with_failures`，并记录 `capture_complete`、`capture_checks_passed`；即使所有检查成功，`case_precision_passed`、`precision_verified`、`formal_precision_gate_passed` 也始终 false。退出0只表示未经独立HF验证的采集完成，执行检查失败则退出非零。原始逐行/宽帧、输入/源库身份及其 SHA 全部保留，后续可据相同 HF、teacher 与 prefix 身份离线严格比较，不需重跑 CANN。
 
 ## 输入与运行命令
 
@@ -60,4 +60,19 @@ python experiments/cann-precision/check.py -v
 
 CPU 检查使用真实 Torch Tensor 和既有实际 `CannModel.verify` 的 CPU 算术夹具，覆盖完整字段正例、数值/选择/缺层失败、错误返回 ID、typed identity、精确 reset、32 行观测包装与独立标量对照、缺 stamp 和 teacher 身份拒绝；另检查无 HF 永远不能签发精度通过，以及默认 CLI 仍要求 reference。比较视图仅将每行恰好一个 index scale 规范为 HF 的 `[1]` 形状；实际 CANN 的平面 scale 和旧 CPU 夹具的 `[M,1]` raw 都原样保存，值与 dtype 不变。它不允许多 scalar 广播，不改变阈值。
 
-`summary.json.case_precision_passed` 只表示这一例 eager 对照；`precision_verified` 与 `formal_precision_gate_passed` 始终为 false。后续八例、实际编译图/SK 与线上接受/缓存状态仍需各自证据。当前设备路径尚未由本入口执行，不把 CPU 夹具当生产数值通过。
+## 已保存采集的严格 HF 比较
+
+CPU HF 完整生成与精确 reset 成功后，使用 `compare.py` 比较同一已完成采集。启动器在等待原 torchrun 退出后保存 `--capture-exit` JSON，记录 `schema="cann-capture-exit-v1"`、实际整数 `returncode=0`、实际 `summary_sha256`，以及与 rank 报告相同的 `command` 和 `source_commit`。比较器核对这份退出收据与原采集的关联；任意其他运行的0退出文件不能替代它。原采集目录只读，比较结果写入新目录：
+
+```bash
+python experiments/cann-precision/compare.py \
+  --capture "$CAPTURE_ONLY_OUTPUT" --capture-exit "$CAPTURE_EXIT_RECEIPT" \
+  --checkpoint "$CHECKPOINT" --capture-case "$CAPTURE_CASE" \
+  --teacher "$TEACHER_JSON" --reference "$HF_OUTPUT" \
+  --output "$SAVED_COMPARISON_OUTPUT"
+python experiments/cann-precision/check_saved.py -v
+```
+
+比较器重新核对 summary → 16份实际 rank 报告 → 每 rank 36份原始工件的 SHA、原运行与比较源码、teacher、各 rank 独立 prefix、三阶段位点/预测，以及两个 epoch 的全部234个 INT64 stamps。核对原 eager/SFA/FP32 head/FP32 TP sum 契约，保留实际包、库、设备与选择函数源码身份。先硬验79 hidden、78层完整 FP32 logits、选择与新 KV，再调用原 strict_row，重算 HF、M1/M32 与逐位 reset 比较。保留原 prefix 精确检查的完整清单；宽帧没有保存运行时 input/position slots，不能把 epoch stamps 宣称为这些槽的离线重读。失败采集、部分 HF、缺层或截断词表均不能升级状态。六项 CPU 正反例检查通过，实际已保存设备采集的比较另验。
+
+`summary.json.case_precision_passed` 只表示这一例 eager 对照；`precision_verified` 与 `formal_precision_gate_passed` 始终为 false。后续八例、实际编译图/SK 与线上接受/缓存状态仍需各自证据。

@@ -47,7 +47,12 @@ extern "C" int indexer_front_build_tiling(int capacity, void* buffer)
     }
     if (status == 0) {
         status = Projection(kHadamardRows, kDim, kDim, DataType::DT_BF16,
-            DataType::DT_FLOAT, static_cast<uint8_t*>(buffer) + 2 * kTilingStride);
+            DataType::DT_BF16, static_cast<uint8_t*>(buffer) + 2 * kTilingStride);
+    }
+    if (status == 0) {
+        status = Projection(2 * kHadamardRows, kDim, kDim, DataType::DT_BF16,
+            DataType::DT_BF16,
+            static_cast<uint8_t*>(buffer) + 2 * kTilingStride + 256);
     }
     return status;
 }

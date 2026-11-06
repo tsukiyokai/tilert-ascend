@@ -119,7 +119,10 @@ class TreeLibrary:
 
     def __init__(self, path, expected_sha256):
         path = Path(path)
-        if hashlib.sha256(path.read_bytes()).hexdigest() != expected_sha256:
+        actual_sha256 = hashlib.sha256(path.read_bytes()).hexdigest()
+        allowed = ({expected_sha256} if isinstance(expected_sha256, str)
+                   else set(expected_sha256 or ()))
+        if allowed and actual_sha256 not in allowed:
             raise RuntimeError("The TP layer library differs from its build record")
         self.handle = ctypes.CDLL(str(path.resolve()))
         signatures = {
@@ -142,6 +145,14 @@ class TreeLibrary:
             function = getattr(self.handle, "layer_tp_tree_" + name)
             function.argtypes = arguments
             function.restype = result
+        self.has_chain = hasattr(self.handle, "layer_tp_tree_submit_chain")
+        if self.has_chain:
+            submit_chain = self.handle.layer_tp_tree_submit_chain
+            submit_chain.argtypes = [
+                ctypes.c_int, ctypes.c_uint64, ctypes.c_void_p,
+                ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t,
+            ]
+            submit_chain.restype = ctypes.c_int
         sizes = tuple(self.handle.layer_tp_tree_record_bytes(index) for index in range(3))
         if sizes != (664, 928, 48):
             raise RuntimeError(f"The TP layer record ABI changed: {sizes}")
@@ -218,3 +229,76 @@ class PreparedLayer:
             local.device, local.sync, local.config, len(local.config),
             local.addresses, len(local.addresses), local.indexed,
             self.window.handle, *self.output_pointers))
+
+
+class PreparedChain:
+    """Pack a sequence of PreparedLayer steps into one persistent chain launch."""
+
+    def __init__(self, steps, steps_device, copy_stream=None):
+        import struct
+        import torch
+
+        if not steps:
+            raise ValueError("PreparedChain requires at least one PreparedLayer")
+        first = steps[0]
+        window = first.window
+        device = first.local.device
+        raw_steps = []
+        for step in steps:
+            local = step.local
+            if step.window is not window or local.device != device:
+                raise ValueError("All chain steps must share one device and window")
+            raw_steps.append(
+                struct.pack("<QQ", local.sync, int(local.indexed))
+                + local.config.raw
+                + local.addresses.raw
+                + struct.pack(
+                    "<QQQQqii",
+                    window.address,
+                    window.bytes,
+                    *step.output_pointers,
+                    window.capacity,
+                    window.rank,
+                    window.ranks,
+                )
+            )
+        payload = b"".join(raw_steps)
+        if len(payload) != len(steps) * 1656:
+            raise RuntimeError("ChainStep byte length mismatch")
+        if (steps_device.device.type != "npu"
+                or steps_device.device.index != device
+                or steps_device.numel() < len(payload)
+                or steps_device.data_ptr() % 64 != 0):
+            raise ValueError("Chain device buffer must be 64B-aligned NPU uint8")
+        host_tensor = torch.frombuffer(bytearray(payload), dtype=torch.uint8)
+        if copy_stream is not None:
+            with torch.npu.stream(copy_stream):
+                steps_device[:len(payload)].copy_(host_tensor)
+            copy_stream.synchronize()
+        else:
+            steps_device[:len(payload)].copy_(host_tensor)
+        self.device = device
+        self.window = window
+        self.count = len(steps)
+        self.steps_host = ctypes.create_string_buffer(payload, len(payload))
+        self.steps_bytes = len(payload)
+        self.steps_device = steps_device
+        self.steps_device_ptr = int(steps_device.data_ptr())
+        self.steps = tuple(steps)
+
+    def launch(self):
+        if self.window.handle == 0:
+            raise RuntimeError("The layer communication window was released")
+        if int(self.steps_device.data_ptr()) != self.steps_device_ptr:
+            raise RuntimeError("The chain device descriptor buffer moved")
+        for step in self.steps:
+            local = step.local
+            if pointers(local.owners) != local.owner_pointers:
+                raise RuntimeError("A retained local-layer tensor changed its data address")
+            if pointers(step.outputs) != step.output_pointers:
+                raise RuntimeError("A retained reduction output changed its data address")
+        library = self.window.library
+        library.check(library.handle.layer_tp_tree_submit_chain(
+            self.device, self.window.handle,
+            self.steps_host, self.steps_bytes,
+            self.steps_device_ptr, self.count))

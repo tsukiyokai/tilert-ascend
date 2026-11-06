@@ -10,6 +10,8 @@ using mla_tail::device::Fence;
 using mla_tail::device::LoadTiling;
 using mla_tail::device::Publish;
 
+constexpr int64_t kStageRows = 8;
+
 struct Buffers {
     TBuf<TPosition::VECCALC> input_buf, sum_buf, term_buf, scale_buf;
     TBuf<TPosition::VECCALC> value_buf, work_buf, maximum_buf, half_buf, code_buf;
@@ -20,7 +22,7 @@ struct Buffers {
 
     __aicore__ inline void Init(TPipe& pipe)
     {
-        pipe.InitBuffer(input_buf, kInnerTile);
+        pipe.InitBuffer(input_buf, kStageRows * kInnerTile);
         pipe.InitBuffer(sum_buf, kGateColumns * 4);
         pipe.InitBuffer(term_buf, kGateColumns * 4);
         pipe.InitBuffer(scale_buf, (kGateColumns + kScaleStride) * 4);
@@ -47,22 +49,37 @@ __aicore__ inline void StageInput(Buffers& held, __gm__ int8_t* input,
     GlobalTensor<int8_t> source, destination;
     source.SetGlobalBuffer(input, rows * kHidden);
     destination.SetGlobalBuffer(staged, capacity * kHidden);
-    for (int64_t task = GetBlockIdx(); task < kInnerParts * capacity;
+    const int64_t batches = capacity / kStageRows;
+    for (int64_t task = GetBlockIdx(); task < kInnerParts * batches;
          task += vectors) {
-        const int64_t part = task / capacity;
-        const int64_t row = task % capacity;
-        if (row < rows) {
-            DataCopy(held.input, source[row * kHidden + part * kInnerTile],
-                     kInnerTile);
-            Fence<HardEvent::MTE2_MTE3>();
-        } else {
+        const int64_t part = task / batches;
+        const int64_t begin = (task % batches) * kStageRows;
+        const int64_t valid = rows <= begin
+            ? 0 : (rows - begin < kStageRows ? rows - begin : kStageRows);
+        if (valid < kStageRows) {
             Duplicate(held.input.ReinterpretCast<int16_t>(), int16_t(0),
-                      kInnerTile / 2);
+                      kStageRows * kInnerTile / 2);
+            if (valid > 0) {
+                Fence<HardEvent::V_MTE2>();
+            }
+        }
+        if (valid > 0) {
+            DataCopyParams copy{
+                static_cast<uint16_t>(valid),
+                static_cast<uint16_t>(kInnerTile / 32),
+                static_cast<uint16_t>((kHidden - kInnerTile) / 32),
+                0,
+            };
+            DataCopy(held.input, source[begin * kHidden + part * kInnerTile], copy);
+            Fence<HardEvent::MTE2_MTE3>();
+        }
+        if (valid < kStageRows) {
             Fence<HardEvent::V_MTE3>();
         }
-        DataCopy(destination[task * kInnerTile], held.input, kInnerTile);
+        DataCopy(destination[(part * capacity + begin) * kInnerTile],
+                 held.input, kStageRows * kInnerTile);
+        Fence<HardEvent::MTE3_MTE2>();
         Fence<HardEvent::MTE3_V>();
-        Fence<HardEvent::V_MTE2>();
     }
 }
 

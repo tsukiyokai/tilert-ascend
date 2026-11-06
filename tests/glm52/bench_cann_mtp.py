@@ -222,6 +222,9 @@ def arguments():
     parser.add_argument("--native-attention", action="store_true",
                         help="Fuse Prolog, optional indexer, SFA and output"
                              " projection in AscendC")
+    parser.add_argument("--whole-layer", type=Path, default=None,
+                        help="Directory of whole-layer / persistent chain"
+                             " AscendC libraries")
     parser.add_argument("--onesided-reduce",
                         help="Config-store endpoint, e.g."
                              " tcp://127.0.0.1:9421, replacing the TP sum"
@@ -557,9 +560,10 @@ def run(args, report):
         CoordinatedBackend, RankExecutor, TorchControlChannel,
     )
     rank = report["rank"]
-    if (int(os.environ["WORLD_SIZE"]) != 16
+    world_size = int(os.environ["WORLD_SIZE"])
+    if (world_size not in (8, 16)
             or int(os.environ["LOCAL_RANK"]) != rank):
-        raise ValueError("Launch one local sixteen-rank torchrun group")
+        raise ValueError("Launch one local 8-rank or 16-rank torchrun group")
     if any(os.environ.get(name) for name in (
         "PROFILER_SAMPLECONFIG", "PROFILING_MODE",
     )):
@@ -567,10 +571,14 @@ def run(args, report):
     torch.set_num_threads(1)
     if args.profile_rounds:
         torch.npu.matmul.allow_hf32 = False
-    checkpoint = checkpoint_fingerprint(args.checkpoint)
+    fp_dir = ((args.checkpoint / "optional").resolve().parent
+              if args.layers and (args.checkpoint / "optional").is_symlink()
+              else args.checkpoint)
+    checkpoint = checkpoint_fingerprint(fp_dir)
     main, mtp, parent, first, inputs = load_inputs(args, rank, checkpoint)
     if inputs["initial_position"] != PREFIX_LENGTH:
         raise ValueError("Use the captured full-P 8K prefix")
+    expert_parallel = args.expert_parallel or world_size == 8
     target = CannModel(args.checkpoint, f"npu:{rank}", rank,
                        capacity=args.capacity,
                        gpu_memory_utilization=args.gpu_memory_utilization,
@@ -579,12 +587,13 @@ def run(args, report):
                        attention_kernel=args.attention_kernel,
                        fp32_head=args.fp32_head,
                        index_topk=args.index_topk,
-                       expert_parallel=args.expert_parallel,
+                       expert_parallel=expert_parallel,
                        onesided_reduce=args.onesided_reduce,
                        routed_kernel=args.routed_kernel,
                        routed_shared_kernel=args.routed_shared_kernel,
                        mla_tail=args.mla_tail,
                        native_attention=args.native_attention,
+                       whole_layer=getattr(args, "whole_layer", None),
                        aiv_collectives=not args.ai_cpu_collectives,
                        rope_graph=args.rope_graph,
                        gather_fia_max_width=args.gather_fia_max_width,
@@ -811,7 +820,7 @@ def run(args, report):
             errors.append(f"{type(error).__name__}: {error}")
         path = args.output / f"rank-{rank}.json"
         atomic_json(path, report)
-        receipts = [None] * 16
+        receipts = [None] * world_size
         distributed.all_gather_object(receipts, {
             "rank": rank, "report_sha256": digest(path), "errors": errors,
             "histories": histories, "source": report["source_sha256"],
@@ -824,7 +833,7 @@ def run(args, report):
             "histories", "source", "checkpoint", "packages", "prompt",
             "capture", "parent")) for item in receipts)
         passed = (
-            same and [item["rank"] for item in receipts] == list(range(16))
+            same and [item["rank"] for item in receipts] == list(range(world_size))
             and not any(item["errors"] for item in receipts)
         )
         if rank == 0:
@@ -832,6 +841,8 @@ def run(args, report):
             values = [item["tpot_ms"] for item in measured]
             summary = {
                 "status": "measured" if passed else "fail",
+                "world_size": world_size,
+                "expert_parallel": expert_parallel,
                 "all_rank_state_agreement": same,
                 "precision_verified": False, "formal_1024_token_run": False,
                 "tpot_ms": {"median": statistics.median(values),
@@ -869,6 +880,13 @@ def run(args, report):
                 "routed_shared_kernel": args.routed_shared_kernel,
                 "mla_tail": args.mla_tail,
                 "native_attention": args.native_attention,
+                "whole_layer": (str(args.whole_layer)
+                                if getattr(args, "whole_layer", None)
+                                else None),
+                "whole_layer_coverage": (
+                    target._whole_layer.coverage()
+                    if getattr(target, "_whole_layer", None) is not None
+                    else None),
                 "ranks": [{key: item[key] for key in
                            ("rank", "report_sha256", "errors")}
                           for item in receipts],
@@ -891,11 +909,13 @@ def run(args, report):
 def main():
     args = arguments()
     args.output.mkdir(parents=True, exist_ok=True)
+    world_size = int(os.environ.get("WORLD_SIZE", "16"))
     report = {
         "status": "error", "rank": int(os.environ.get("RANK", "0")),
         "created_at": datetime.now(timezone.utc).isoformat(),
         "command": [sys.executable, *sys.argv], "hostname": platform.node(),
-        "source_commit": args.source_commit, "world_size": 16,
+        "source_commit": args.source_commit, "world_size": world_size,
+        "expert_parallel": args.expert_parallel or world_size == 8,
         "width": args.width, "max_tokens": args.max_tokens,
         "capacity": args.capacity, "warmup": args.warmup,
         "measured_requests": args.requests - int(args.profile_last),

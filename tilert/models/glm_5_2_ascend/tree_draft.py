@@ -125,7 +125,7 @@ class TreeDrafter:
     attention mask and a position-id vector are built from.
     """
 
-    def __init__(self, prompt, longest=32, budget=32, floor=1, branches=4):
+    def __init__(self, prompt, longest=32, budget=32, floor=1, branches=6):
         if budget < 1 or branches < 1 or floor < 1:
             raise ValueError("Budget, branches and floor must be positive")
         self.automaton = SuffixAutomaton()
@@ -172,7 +172,7 @@ class TreeDrafter:
         automaton = self.automaton
         counts = automaton.occurrences()
         state = automaton.last
-        while state > SuffixAutomaton.ROOT:
+        while state >= SuffixAutomaton.ROOT:
             total = sum(counts[target]
                         for target in automaton.transitions[state].values())
             if total >= self.floor:
@@ -190,7 +190,7 @@ class TreeDrafter:
         """
         automaton = self.automaton
         counts = automaton.occurrences()
-        while state is not None and state > SuffixAutomaton.ROOT:
+        while state is not None and state >= SuffixAutomaton.ROOT:
             edges = automaton.transitions[state]
             total = sum(counts[target] for target in edges.values())
             if total >= self.floor:

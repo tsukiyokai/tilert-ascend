@@ -194,6 +194,7 @@ __aicore__ inline void QLIVector<QLIT>::InitBuffers(TPipe *pipe)
                            (blockId_ % 2) * (s1BaseSize_ / 2) * 2 * paramNum_; // 每个AIV的地址偏移，S1方向
     DataCopyPad(vec1ParamGm[wsInfoOffset], tmpBuff.template ReinterpretCast<int64_t>(),
                 {1, static_cast<uint16_t>((s1BaseSize_ / 2) * 2 * paramNum_ * sizeof(int64_t)), 0, 0});
+    SetWaitFlag<HardEvent::MTE3_V>(HardEvent::MTE3_V);
     outQueue_.FreeTensor(tmpBuff);
 }
 
@@ -453,9 +454,7 @@ __aicore__ inline void QLIVector<QLIT>::ProcessVec1(const QLICommon::RunInfo &in
                                        (ldS1Offset + innerS1Idx) * 2 * paramNum_;
 
                 LocalTensor<int64_t> tmpiBuff = paramBuf_.Get<int64_t>()[innerS1Idx * LD_PARAM_NUM];
-                if (!info.isAllLoopEnd && innerS1Idx == 0) {
-                    SetWaitFlag<HardEvent::MTE3_S>(HardEvent::MTE3_S);
-                }
+                SetWaitFlag<HardEvent::MTE3_S>(HardEvent::MTE3_S);
                 tmpiBuff.SetValue(0, static_cast<int64_t>(1));
                 tmpiBuff.SetValue(1, static_cast<int64_t>(cuRealAcSeq));
                 tmpiBuff.SetValue(2, static_cast<int64_t>(blockS2StartIdx_));
@@ -475,9 +474,7 @@ __aicore__ inline void QLIVector<QLIT>::ProcessVec1(const QLICommon::RunInfo &in
                 SetWaitFlag<HardEvent::V_MTE3>(HardEvent::V_MTE3);
                 QLIServiceVec::CopyOut(vec1ResGm[wsOffset], dstTopk,
                                        BASE_TOPK_VALUE_IDX_SIZE);
-                if (!info.isAllLoopEnd) {
-                    SetWaitFlag<HardEvent::MTE3_V>(HardEvent::MTE3_V);
-                }
+                SetWaitFlag<HardEvent::MTE3_V>(HardEvent::MTE3_V);
             }
         } else if (cuRealAcSeq <= 0) {
             CleanInvalidOutput(info.indiceOutOffset + cuS1Idx * constInfo_.sparseCount);
@@ -530,7 +527,10 @@ __aicore__ inline void QLIVector<QLIT>::ProcessLD(int32_t ldCubeId, uint32_t ldI
     int64_t outOffset = 0;
 
     uint64_t paramGmCoreOffset = tmpCubeId * s1BaseSize_ * 2 * paramNum_;
-    needFd = vec1ParamGm.GetValue(paramGmCoreOffset + ldInnerS1Idx * 2 * paramNum_ + paramNum_);
+    uint64_t initParamOffset = paramGmCoreOffset + ldInnerS1Idx * 2 * paramNum_ + paramNum_;
+    AscendC::DataCacheCleanAndInvalid<int64_t, AscendC::CacheLine::SINGLE_CACHE_LINE,
+                                      AscendC::DcciDst::CACHELINE_OUT>(vec1ParamGm[initParamOffset]);
+    needFd = vec1ParamGm.GetValue(initParamOffset);
     if (needFd != 1) {
         return;
     }
@@ -558,25 +558,27 @@ __aicore__ inline void QLIVector<QLIT>::ProcessLD(int32_t ldCubeId, uint32_t ldI
         // 获取下一个核规约信息
         tmpCubeId++;
         wsInfoOffset = tmpCubeId * s1BaseSize_ * 2 * paramNum_ + innerS1Idx * 2 * paramNum_;
+        AscendC::DataCacheCleanAndInvalid<int64_t, AscendC::CacheLine::SINGLE_CACHE_LINE,
+                                          AscendC::DcciDst::CACHELINE_OUT>(vec1ParamGm[wsInfoOffset]);
+        AscendC::DataCacheCleanAndInvalid<int64_t, AscendC::CacheLine::SINGLE_CACHE_LINE,
+                                          AscendC::DcciDst::CACHELINE_OUT>(vec1ParamGm[wsInfoOffset + 8]);
         needFd = vec1ParamGm.GetValue(wsInfoOffset);
         isS2End = vec1ParamGm.GetValue(wsInfoOffset + 4);
         outOffset = vec1ParamGm.GetValue(wsInfoOffset + 8);
 
         bool resInTmp = false;
-        const bool isSingleBlk5 =
-            (curCubeId == static_cast<int32_t>((blockId_ / s1BaseSize_) * 5)) && (curCubeId < 20);
-        const uint32_t midMrgLimit = (isSingleBlk5 && ((curCubeId & 1) == 1)) ? 3U : mrgListNum_;
         while (needFd == 1) {
             // 搬入头规约数据
             wsOffset = tmpCubeId * s1BaseSize_ * 2 * BASE_TOPK_VALUE_IDX_SIZE + // 2个AIV共同地址偏移
                        innerS1Idx * 2 * BASE_TOPK_VALUE_IDX_SIZE;
+            SetWaitFlag<HardEvent::S_MTE2>(HardEvent::S_MTE2);
             DataCopyPad(curValueIdxUb[valueOffset], vec1ResGm[wsOffset],
                         {1, static_cast<uint16_t>(BASE_TOPK_VALUE_IDX_SIZE * sizeof(int32_t)), 0, 0}, {true, 0, 0, 0});
             valueOffset += BASE_TOPK_VALUE_IDX_SIZE;
             acc_list_num++;
 
             // 每满4个list，聚合  前2K为mrg结果
-            if (acc_list_num == midMrgLimit && (!isSingleBlk5 || isS2End == 0)) {
+            if (acc_list_num == mrgListNum_) {
                 // MrgSort 四条2048的队列，Mrg成一条
                 AscendC::MrgSort4Info params;
                 params.elementLengths[0] = BASE_TOPK;
@@ -584,28 +586,14 @@ __aicore__ inline void QLIVector<QLIT>::ProcessLD(int32_t ldCubeId, uint32_t ldI
                 params.elementLengths[2] = BASE_TOPK;
                 params.elementLengths[3] = BASE_TOPK;
                 params.ifExhaustedSuspension = true;
-                params.validBit = (midMrgLimit == 3U) ? 0b0111 : 0b1111;
+                params.validBit = 0b1111;
                 params.repeatTimes = 1;
 
                 AscendC::MrgSortSrcList<float> srcList;
-                if (isSingleBlk5 && isS2End == 0) {
-                    if (midMrgLimit == 3U) {
-                        srcList.src1 = curValueIdxUb[0];
-                        srcList.src2 = curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
-                        srcList.src3 = curValueIdxUb[BASE_TOPK_VALUE_IDX_SIZE];
-                        srcList.src4 = curValueIdxUb[3 * BASE_TOPK_VALUE_IDX_SIZE];
-                    } else {
-                        srcList.src1 = curValueIdxUb[BASE_TOPK_VALUE_IDX_SIZE];
-                        srcList.src2 = curValueIdxUb[0];
-                        srcList.src3 = curValueIdxUb[3 * BASE_TOPK_VALUE_IDX_SIZE];
-                        srcList.src4 = curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
-                    }
-                } else {
-                    srcList.src1 = curValueIdxUb[0];
-                    srcList.src2 = curValueIdxUb[BASE_TOPK_VALUE_IDX_SIZE];
-                    srcList.src3 = curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
-                    srcList.src4 = curValueIdxUb[3 * BASE_TOPK_VALUE_IDX_SIZE];
-                }
+                srcList.src1 = curValueIdxUb[0];
+                srcList.src2 = curValueIdxUb[BASE_TOPK_VALUE_IDX_SIZE];
+                srcList.src3 = curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
+                srcList.src4 = curValueIdxUb[3 * BASE_TOPK_VALUE_IDX_SIZE];
                 SetWaitFlag<HardEvent::MTE2_V>(HardEvent::MTE2_V);
                 MrgSort(tmpUb, srcList, params);
                 PipeBarrier<PIPE_V>();
@@ -627,6 +615,8 @@ __aicore__ inline void QLIVector<QLIT>::ProcessLD(int32_t ldCubeId, uint32_t ldI
 
             tmpCubeId++;
             wsInfoOffset = tmpCubeId * s1BaseSize_ * 2 * paramNum_ + innerS1Idx * 2 * paramNum_;
+            AscendC::DataCacheCleanAndInvalid<int64_t, AscendC::CacheLine::SINGLE_CACHE_LINE,
+                                              AscendC::DcciDst::CACHELINE_OUT>(vec1ParamGm[wsInfoOffset]);
             needFd = vec1ParamGm.GetValue(wsInfoOffset);
             isS2End = vec1ParamGm.GetValue(wsInfoOffset + 4);
         }
@@ -648,13 +638,8 @@ __aicore__ inline void QLIVector<QLIT>::ProcessLD(int32_t ldCubeId, uint32_t ldI
 
             AscendC::MrgSortSrcList<float> srcList;
             srcList.src1 = curValueIdxUb[0];
-            if (isSingleBlk5 && ((curCubeId & 1) == 1) && acc_list_num == 3) {
-                srcList.src2 = curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
-                srcList.src3 = curValueIdxUb[BASE_TOPK_VALUE_IDX_SIZE];
-            } else {
-                srcList.src2 = curValueIdxUb[BASE_TOPK_VALUE_IDX_SIZE];
-                srcList.src3 = curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
-            }
+            srcList.src2 = curValueIdxUb[BASE_TOPK_VALUE_IDX_SIZE];
+            srcList.src3 = curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
             srcList.src4 = curValueIdxUb[3 * BASE_TOPK_VALUE_IDX_SIZE];
             SetWaitFlag<HardEvent::MTE2_V>(HardEvent::MTE2_V);
             MrgSort(tmpUb, srcList, params);

@@ -122,7 +122,7 @@ __aicore__ void mla_tail_profile_fused(
 
     timing.Begin(4);
     if ASCEND_IS_AIV {
-        device::DequantizeOutput(held, accumulators, output_scale, scales,
+        device::DequantizeOutputRows(pipe, accumulators, output_scale, scales,
             bias, bias_kind, output, rows, capacity, GetBlockIdx(), 2 * blocks);
         device::Publish();
     }

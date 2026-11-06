@@ -16,8 +16,8 @@ class TorchControlChannel:
         import torch
         import torch.distributed as distributed
 
-        if distributed.get_world_size(group) != TP_SIZE:
-            raise ValueError("Ascend request control requires TP16")
+        if distributed.get_world_size(group) not in (8, TP_SIZE):
+            raise ValueError("Ascend request control requires TP8 or TP16")
         if group is None:
             group = distributed.new_group(
                 backend="gloo", timeout=timedelta(hours=24),

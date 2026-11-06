@@ -16,7 +16,10 @@ import ctypes
 import os
 
 LIBRARY_DIR = os.environ.get(
-    "TILERT_SHMEM_LIB_DIR", "/workspace/src/shmem-build/shmem/build/lib",
+    "TILERT_SHMEM_LIB_DIR",
+    "/assets/shmem-lib/lib"
+    if os.path.isdir("/assets/shmem-lib/lib")
+    else "/workspace/src/shmem-build/shmem/build/lib",
 )
 HEAP_BYTES = 1024 * 1024 * 1024
 
@@ -52,10 +55,13 @@ def _load():
     for name in DEPENDENCIES:
         ctypes.CDLL(f"{LIBRARY_DIR}/{name}", mode=ctypes.RTLD_GLOBAL)
     torch.ops.load_library(f"{LIBRARY_DIR}/aclshmem_torch.so")
+    bf16_lib = f"{LIBRARY_DIR}/tilert_shmem_bf16.so"
+    if os.path.exists(bf16_lib):
+        torch.ops.load_library(bf16_lib)
 
 
 class OneSidedReduce:
-    """Own the symmetric domain for one rank and reduce FP32 tensors in it."""
+    """Own the symmetric domain for one rank and reduce FP32 or BF16 tensors."""
 
     def __init__(self, rank, device, world_size, endpoint):
         import torch
@@ -72,12 +78,38 @@ class OneSidedReduce:
         status = self.manager.attr_init(rank, world_size, HEAP_BYTES, endpoint)
         if status != 0:
             raise RuntimeError(f"aclshmem init returned {status}")
-        self.reducer = torch.classes.ShmemOps.AllReduce()
+        self.has_bf16_op = hasattr(
+            getattr(torch.ops, "tilert", None), "onesided_all_reduce"
+        )
+        self.has_bf16_out_op = hasattr(
+            getattr(torch.ops, "tilert", None), "onesided_all_reduce_out"
+        )
+        self.target_out = None
+        if self.has_bf16_op:
+            self.reducer = None
+            probe = torch.zeros((1, 6144), dtype=torch.bfloat16, device=device)
+            _ = torch.ops.tilert.onesided_all_reduce(probe)
+            torch.npu.synchronize()
+        else:
+            self.reducer = torch.classes.ShmemOps.AllReduce()
 
     def sum(self, value):
-        """Return the TP sum of `value`, which the caller keeps in FP32."""
+        """Return the TP sum of `value`."""
         import torch
 
+        out = self.target_out
+        self.target_out = None
+        if (
+            out is not None
+            and self.has_bf16_out_op
+            and value.dtype in (torch.bfloat16, torch.float32)
+            and out.dtype == value.dtype
+            and out.numel() == value.numel()
+            and out.is_contiguous()
+        ):
+            return torch.ops.tilert.onesided_all_reduce_out(value, out)
+        if self.has_bf16_op and value.dtype in (torch.bfloat16, torch.float32):
+            return torch.ops.tilert.onesided_all_reduce(value)
         out = torch.empty_like(value)
         self.reducer.compute(out, value)
         return out
@@ -92,18 +124,23 @@ def install(engine, endpoint):
     """Point the engine's TP sum at a one-sided reduction.
 
     The engine already funnels every TP reduction through one override to
-    force FP32, so this replaces that override's body and inherits the
-    bfloat16 round trip.
+    force FP32, so this replaces that override's body and uses the direct
+    bfloat16 rank-ordered FP32 reduction when `tilert_shmem_bf16.so` is loaded.
     """
     import torch
 
-    reduce = OneSidedReduce(engine.rank, engine.device, 16, endpoint)
+    world_size = getattr(engine, "tp_size", 16)
+    reduce = OneSidedReduce(engine.rank, engine.device, world_size, endpoint)
 
     def one_sided(value):
+        if reduce.has_bf16_op and value.dtype == torch.bfloat16:
+            return reduce.sum(value)
         if value.dtype == torch.bfloat16:
             return reduce.sum(value.float()).bfloat16()
         return reduce.sum(value)
 
     engine._tp_sum_group._all_reduce_out_place = one_sided
+    engine._tp_sum_group._tilert_onesided = bool(reduce.has_bf16_op)
+    engine._tp_sum_group._tilert_onesided_reduce = reduce
     engine.tp_reduction = "one_sided_float32"
     return reduce

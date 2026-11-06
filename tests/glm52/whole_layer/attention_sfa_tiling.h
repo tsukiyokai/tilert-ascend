@@ -18,7 +18,6 @@ struct SparseFlashAttentionBaseParamsMla {
     int64_t sparseBlockSize;
     uint32_t sparseBlockCount, isActualLenDimsNull, isActualLenDimsKVNull;
     uint32_t keyStride0;
-    uint32_t ropeHeadDim = 64;
 };
 
 struct SparseFlashAttentionSplitKVParamsMla {

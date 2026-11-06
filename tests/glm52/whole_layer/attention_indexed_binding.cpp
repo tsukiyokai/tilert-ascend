@@ -77,8 +77,16 @@ Prepare(const at::Tensor& token_x, int64_t pages, int64_t table_pages,
     TORCH_CHECK(indexer_front_build_tiling(c.front.capacity, bytes) == 0,
                 "indexer front tiling failed");
     TORCH_CHECK(mla_tail_build_tiling(c.front.capacity,
-                bytes + indexer_front::kTilingBytes) == 0,
+                bytes + indexer_front::kTilingBytes, main_attention::kHeads) == 0,
                 "MLA tail tiling failed");
+    if (c.front.capacity == 32) {
+        auto* bytes16 = bytes + indexed::kTilingBytes;
+        TORCH_CHECK(indexer_front_build_tiling(16, bytes16) == 0,
+                    "indexer front M=16 tiling failed");
+        TORCH_CHECK(mla_tail_build_tiling(16,
+                    bytes16 + indexer_front::kTilingBytes, main_attention::kHeads) == 0,
+                    "MLA tail M=16 tiling failed");
+    }
     tiling.copy_(cpu);
     return {scratch, tiling, Describe(c), blocks,
             static_cast<int64_t>(launch.sync_base)};
@@ -141,8 +149,10 @@ at::Tensor Execute(
     host::CheckShape(front_weights[3], at::kFloat, {128}, "indexer_gamma");
     host::CheckShape(front_weights[4], at::kFloat, {128}, "indexer_beta");
     host::CheckShape(front_weights[5], at::kBFloat16, {128, 128}, "hadamard");
-    host::CheckShape(tail_weights[0], at::kBFloat16, {16, 512, 64}, "value_weight");
-    host::CheckShape(tail_weights[1], at::kChar, {24, 1024, 256}, "output_weight");
+    host::CheckShape(tail_weights[0], at::kBFloat16,
+                     {mla_tail::kValueTiles, 512, mla_tail::kValueTile}, "value_weight");
+    host::CheckShape(tail_weights[1], at::kChar,
+                     {mla_tail::kOutputTiles, mla_tail::kProjectionInput, 256}, "output_weight");
     host::CheckShape(tail_weights[2], at::kFloat, {6144}, "output_scale");
     host::CheckShape(indexer_metadata[0], at::kBFloat16, {rows, 64}, "indexer_sin");
     host::CheckShape(indexer_metadata[1], at::kBFloat16, {rows, 64}, "indexer_cos");
@@ -225,7 +235,7 @@ at::Tensor Execute(
     addresses.tiling = tiling.data_ptr();
     addresses.output = output.data_ptr();
     whole_layer_indexed_attention_launch(
-        c10_npu::getCurrentNPUStream().stream(), static_cast<uint64_t>(sync_base),
+        c10_npu::getCurrentNPUStream().stream(true), static_cast<uint64_t>(sync_base),
         c, addresses, bias_kind);
     return output;
 }

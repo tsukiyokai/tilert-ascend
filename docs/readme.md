@@ -6,7 +6,9 @@ TileRT-Ascend 是 Ascend 上的专用低时延 decode 后端。它接收成熟�
 
 单请求下，计算可能很短，发起、搬运、同步和交接仍需付出完整成本。项目从 token 的关键路径出发，让静态权重提前到位，让结果在可用时交给后继，让通信与计算按数据依赖推进。每接管一段执行，都检查完整请求收益与维护成本，再决定是否扩大到相邻算子、层或设备。
 
-[开始验证](#%E5%BC%80%E5%A7%8B%E9%AA%8C%E8%AF%81) · [实施计划](plan.md) · [工程教训](lesson.md) · [实验记录](probe.md)
+[开始验证](#%E5%BC%80%E5%A7%8B%E9%AA%8C%E8%AF%81) · [实施计划](plan.md) · [工程教训](lesson.md) · [实验记录](probe.md) · [沿途下蛋](eggs.md)
+
+当前 TP8+EP8 Megakernel 子任务、候选验收状态与源码、产物管理入口见 [当前计划](plan.md#当前验收)及[实验登记](experiments.json)。
 
 ## 谁可以采用
 
@@ -20,7 +22,7 @@ TileRT-Ascend 是 Ascend 上的专用低时延 decode 后端。它接收成熟�
 
 当前整模型路径使用 [CannModel][cann-model]，复用 vLLM-Ascend 的模型、量化和 CANN 算子。[CANN P/D 入口][cann-pd] 将它接到 TP 命令循环与 HTTP；[Ascend connector][connector] 和 HIXL 交接历史状态缓存（KV cache）。框架内适配与独立 decode 池计划沿用同一执行核心，按接入需求验证各自的生命周期。
 
-其他团队应能复现完整请求，再替换一个执行片段。首个采用案例检验接入成本、输出质量、请求完成时间与每卡吞吐；后续采用案例决定哪些接口值得通用化。通用机制成果沿途回流全部 GitCode `cann/*` 仓库、vLLM-Ascend、TileLang-Ascend 与 TileRT。任务与验收顺序见 [plan](plan.md)，正交探索档案与时间账本见 [probe](probe.md)。
+其他团队应能复现完整请求，再替换一个执行片段。首个采用案例检验接入成本、输出质量、请求完成时间与每卡吞吐；后续采用案例决定哪些接口值得通用化。通用机制成果沿途回流全部 GitCode `cann/*` 仓库、vLLM-Ascend、TileLang-Ascend 与 TileRT。任务与验收顺序见 [plan](plan.md)，正交探索档案与时间账本见 [probe](probe.md)，上游回流与独立成果台账见 [eggs](eggs.md)。
 
 ## 已验证到哪里
 

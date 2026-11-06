@@ -149,6 +149,8 @@ void UploadTiling(const at::Tensor& destination, int64_t columns,
     TORCH_CHECK(routed_int4_build_tiling(kMaxStackedRows, columns, inner,
                                         columns, host.data(), weight_layout) == 0,
                 "routed_int4_build_tiling failed");
+    TORCH_CHECK(aclrtSynchronizeStream(c10_npu::getCurrentNPUStream().stream(true))
+                == ACL_SUCCESS, "tiling stream sync failed");
     TORCH_CHECK(aclrtMemcpy(destination.data_ptr(), kTilingBytes, host.data(),
                             kTilingBytes, ACL_MEMCPY_HOST_TO_DEVICE)
                 == ACL_SUCCESS, "tiling upload failed");
@@ -219,6 +221,8 @@ std::tuple<std::vector<at::Tensor>, int64_t> Prepare(
     std::array<uint8_t, 2 * shared_w8::kTilingStride> shared_tiling{};
     TORCH_CHECK(routed_shared_build_tiling(capacity, shared_tiling.data()) == 0,
                 "shared projection tiling failed");
+    TORCH_CHECK(aclrtSynchronizeStream(c10_npu::getCurrentNPUStream().stream(true))
+                == ACL_SUCCESS, "shared tiling stream sync failed");
     TORCH_CHECK(aclrtMemcpy(scratch[pipeline::kSharedTiling].data_ptr(),
                 shared_tiling.size(), shared_tiling.data(), shared_tiling.size(),
                 ACL_MEMCPY_HOST_TO_DEVICE) == ACL_SUCCESS,
@@ -430,7 +434,7 @@ at::Tensor Execute(
     routed_int4_launch(
         static_cast<uint32_t>(blocks),
         // Submit queued Torch producers before this direct runtime launch.
-        c10_npu::getCurrentNPUStream().stream(),
+        c10_npu::getCurrentNPUStream().stream(true),
         static_cast<uint64_t>(sync_base), rows.data_ptr(), gate_up.data_ptr(),
         gu_bias.data_ptr<float>(), reinterpret_cast<ScaleStorage*>(gu_scale.data_ptr()),
         down.data_ptr(), down_bias.data_ptr<float>(),

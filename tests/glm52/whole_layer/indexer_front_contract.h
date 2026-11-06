@@ -48,8 +48,8 @@ constexpr Config MakeConfig(int64_t rows, int64_t blocks, bool quantized,
     c.key_rope = Align(c.query_rope + rows * kQueryColumns * 2);
     c.norm_stats = Align(c.key_rope + rows * kDim * 2);
     c.query_hadamard = Align(c.norm_stats + rows * 2 * 4);
-    c.key_hadamard = Align(c.query_hadamard + rows * kQueryColumns * 4);
-    c.system = Align(c.key_hadamard + c.capacity * kDim * 4);
+    c.key_hadamard = Align(c.query_hadamard + rows * kQueryColumns * 2);
+    c.system = Align(c.key_hadamard + c.capacity * kDim * 2);
     c.bytes = c.system + kSystemBytes;
     return c;
 }

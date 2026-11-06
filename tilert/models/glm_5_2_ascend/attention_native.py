@@ -26,14 +26,21 @@ SHARED_LIBRARY = Path(os.environ.get(
 ))
 
 
-def library_paths():
-    return INDEXED_LIBRARY, SHARED_LIBRARY
+def library_paths(tp_size=None):
+    if tp_size is None:
+        tp_size = int(os.environ.get("TILERT_TP_SIZE", "8"))
+    suffix = f"_tp{tp_size}" if tp_size != 16 else ""
+    default_indexed = _ROOT / f"attention_indexed_build-scale-order/whole_layer_indexed_attention{suffix}.so"
+    default_shared = _ROOT / f"attention_full_build-dequant/whole_layer_full_attention{suffix}.so"
+    indexed = Path(os.environ.get("TILERT_INDEXED_ATTENTION_LIBRARY", default_indexed))
+    shared = Path(os.environ.get("TILERT_SHARED_ATTENTION_LIBRARY", default_shared))
+    return indexed, shared
 
 
-def load():
+def load(tp_size=None):
     import torch
 
-    for path in library_paths():
+    for path in library_paths(tp_size):
         torch.ops.load_library(str(path))
 
 
@@ -87,8 +94,12 @@ def _validate_impl(impl):
     )
 
     parallel = impl.vllm_config.parallel_config
+    tp_size = parallel.tensor_parallel_size
+    if tp_size not in (8, 16):
+        raise ValueError("Native attention requires TP8 or TP16")
+    local_heads = 64 // tp_size
     expected = {
-        "tp_size": 16, "local_num_heads": 4, "q_lora_rank": 2048,
+        "tp_size": tp_size, "local_num_heads": local_heads, "q_lora_rank": 2048,
         "kv_lora_rank": 512, "qk_nope_head_dim": 192,
         "qk_rope_head_dim": 64, "v_head_dim": 256,
     }
@@ -106,15 +117,15 @@ def _validate_impl(impl):
             or impl.vllm_config.kv_transfer_config is not None
             or getattr(impl.vllm_config, "lora_config", None) is not None
             or getattr(impl.vllm_config.model_config, "enable_sleep_mode", False)):
-        raise ValueError("Native attention requires fixed TP16 BF16-cache Prolog V3 without CP/SP or weight reload")
+        raise ValueError(f"Native attention requires fixed TP{tp_size} BF16-cache Prolog V3 without CP/SP or weight reload")
     projection = impl.o_proj
     scheme = getattr(projection.quant_method, "quant_method", None)
     if (type(scheme) is not AscendW8A8DynamicLinearMethod
             or scheme.act_quant_type != torch.int8
-            or projection.tp_size != 16 or not projection.input_is_parallel
+            or projection.tp_size != tp_size or not projection.input_is_parallel
             or getattr(projection, "bias", None) is not None
             or impl.g_proj is not None):
-        raise ValueError("Native attention requires an ungated TP16 W8A8_DYNAMIC output projection")
+        raise ValueError(f"Native attention requires an ungated TP{tp_size} W8A8_DYNAMIC output projection")
     if impl.indexer is None:
         if not impl.skip_topk or impl.topk_indices_buffer is None:
             raise ValueError("Shared attention requires persistent index-cache selections")
@@ -145,14 +156,15 @@ def _pack_weights(impl, mode):
     import torch
     import torch_npu
 
+    heads = impl.local_num_heads
     main = [impl.weight_dq.detach(), impl.weight_uq_qr.detach(),
             _nd(impl.W_UK_T), impl.weight_dkv_kr.detach(),
             _nd(impl.dequant_scale_w_dq),
             _nd(impl.dequant_scale_w_uq_qr),
             _nd(impl.dequant_scale_w_dkv_kr),
             _nd(impl.q_a_layernorm.weight), _nd(impl.kv_a_layernorm.weight)]
-    shapes = ((HIDDEN, 2048), (2048, 1024), (4, 192, 512),
-              (HIDDEN, 576), (1, 2048), (1, 1024), (1, 576),
+    shapes = ((HIDDEN, 2048), (2048, heads * 256), (heads, 192, 512),
+              (HIDDEN, 576), (1, 2048), (1, heads * 256), (1, 576),
               (2048,), (512,))
     types = (torch.int8, torch.int8, torch.bfloat16, torch.int8,
              torch.float32, torch.float32, torch.float32,
@@ -266,14 +278,28 @@ def geometry_for(mode, caches, main, index=None):
 class WorkspacePool:
     """Own exact-M workspaces and live slot casts across sequential layers."""
 
-    def __init__(self, blocks=0):
+    def __init__(self, blocks=24):
         self.blocks = blocks
         self.layers = {}
+        self.weights = {}
         self.entries = {}
+        self.layouts = {}
         self.capture_reserves = {}
         self.slot_entries = {}
         self.slot_reserves = {}
         self.captured_slot_sources = set()
+
+    def _bound_geometries(self):
+        geometries = []
+        for layer, mode in self.layers.values():
+            caches = _cache_tensors(layer, mode)
+            pages = caches[0].shape[0]
+            geometry = (Geometry(mode, pages, pages) if mode == "shared"
+                        else Geometry(mode, pages, pages,
+                                      caches[2].shape[0], caches[2].shape[0]))
+            if geometry not in geometries:
+                geometries.append(geometry)
+        return geometries
 
     def _prepare(self, reference, geometry):
         import torch
@@ -296,6 +322,7 @@ class WorkspacePool:
                     geometry.mode == "int8", self.blocks,
                 )
             )
+            self.layouts[(rows, geometry)] = offsets
             topk = scratch.narrow(0, offsets["topk"], rows * 2048 * 4)
             topk = topk.view(torch.int32).view(rows, 1, 2048)
         partial = torch.empty(rows, HIDDEN, dtype=torch.bfloat16,
@@ -304,13 +331,20 @@ class WorkspacePool:
 
     def reserve_capture(self, reference):
         """Resolve bound geometry under the capture's current forward context."""
-        from vllm.forward_context import get_forward_context
+        from vllm.forward_context import (
+            get_forward_context,
+            is_forward_context_available,
+        )
 
         rows = reference.shape[0]
         if not 1 <= rows <= MAX_TOKENS:
             raise ValueError("Native attention requires 1..32 rows")
-        metadata = get_forward_context().attn_metadata
         self.captured_slot_sources.clear()
+        if not is_forward_context_available():
+            for geometry in self._bound_geometries():
+                self.reserve(reference, geometry, ())
+            return
+        metadata = get_forward_context().attn_metadata
         for name, (layer, mode) in self.layers.items():
             main = _metadata_values(metadata[name], rows)
             if main is None:
@@ -343,9 +377,12 @@ class WorkspacePool:
             if source.dtype != torch.int64 and signature not in self.slot_reserves:
                 self.slot_reserves[signature] = torch.empty_like(source, dtype=torch.int64)
 
-    def get(self, reference, geometry):
+    def get(self, reference, geometry=None):
         import torch
 
+        if geometry is None:
+            return [self.get(reference, item)
+                    for item in self._bound_geometries()]
         stream = torch.npu.current_stream(reference.device).npu_stream
         key = (reference.device, stream, reference.shape[0], geometry)
         if key not in self.entries:
@@ -433,7 +470,7 @@ def install(attention_layer, pool):
     """Bind loaded backbone attention; retain MTP and unsupported call paths."""
     import torch
     import torch_npu
-    from vllm.distributed import tensor_model_parallel_all_reduce
+    from vllm.distributed import get_tp_group, tensor_model_parallel_all_reduce
 
     impl = attention_layer.impl
     if impl._is_mtp_layer:
@@ -449,6 +486,7 @@ def install(attention_layer, pool):
     if name in pool.layers:
         raise ValueError(f"Native attention is already installed for {name}")
     pool.layers[name] = (attention_layer, mode)
+    pool.weights[name] = (main_weights, front_weights, tail_weights)
     original = impl.forward
 
     def forward(self, layer_name, hidden_states, kv_cache, attn_metadata,
@@ -495,8 +533,12 @@ def install(attention_layer, pool):
         if mode != "shared" and self.use_index_cache:
             self._update_indexcache_topk_indices(selected)
         if self.o_proj.reduce_results:
+            reduce = getattr(get_tp_group(), "_tilert_onesided_reduce", None)
+            if reduce is not None:
+                reduce.target_out = output
             partial = tensor_model_parallel_all_reduce(partial)
-        output.copy_(partial)
+        if partial.data_ptr() != output.data_ptr():
+            output.copy_(partial)
         return output
 
     impl.forward = MethodType(forward, impl)
@@ -504,5 +546,6 @@ def install(attention_layer, pool):
     def restore():
         impl.forward = original
         pool.layers.pop(name, None)
+        pool.weights.pop(name, None)
 
     return restore

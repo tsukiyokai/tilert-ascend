@@ -21,6 +21,7 @@ __aicore__ inline void Fence()
 
 __aicore__ inline void Publish()
 {
+    PipeBarrier<PIPE_ALL>();
     DataSyncBarrier<MemDsbT::DDR>();
 }
 
@@ -33,7 +34,9 @@ __aicore__ inline void LoadTiling(TCubeTiling& cube, __gm__ uint8_t* source)
     }
 }
 
+template <int64_t kHeads = mla_tail::kHeads>
 struct VectorWorkspace {
+    static constexpr int64_t kProjectionInput = kHeads * kValue;
     TBuf<TPosition::VECCALC> bf16_buffer;
     TBuf<TPosition::VECCALC> half_buffer;
     TBuf<TPosition::VECCALC> code_buffer;
@@ -76,7 +79,10 @@ struct VectorWorkspace {
     }
 };
 
-__aicore__ inline void StageHeads(VectorWorkspace& held,
+constexpr int64_t kStageRows = 8;
+
+template <int64_t kHeads = mla_tail::kHeads>
+__aicore__ inline void StageHeads(VectorWorkspace<kHeads>& held,
                                  __gm__ bfloat16_t* latent,
                                  __gm__ bfloat16_t* heads,
                                  int64_t rows, int64_t capacity,
@@ -86,21 +92,31 @@ __aicore__ inline void StageHeads(VectorWorkspace& held,
     GlobalTensor<bfloat16_t> destination;
     source.SetGlobalBuffer(latent, rows * kHeads * kLatent);
     destination.SetGlobalBuffer(heads, capacity * kHeads * kLatent);
-    for (int64_t task = vector_index; task < capacity * kHeads;
+    const int64_t stage_rows = rows <= 6 ? 1 : ((rows + 5) / 6);
+    const int64_t batches = (rows + stage_rows - 1) / stage_rows;
+    auto stage = held.value.template ReinterpretCast<bfloat16_t>();
+    for (int64_t task = vector_index; task < kHeads * batches;
          task += vectors) {
-        const int64_t head = task / capacity;
-        const int64_t row = task % capacity;
-        if (row < rows) {
-            DataCopy(held.bf16, source[(row * kHeads + head) * kLatent],
-                     kLatent);
-            Fence<HardEvent::MTE2_MTE3>();
-        } else {
-            Duplicate(held.bf16, static_cast<bfloat16_t>(0), kLatent);
-            Fence<HardEvent::V_MTE3>();
+        const int64_t head = task / batches;
+        const int64_t begin = (task % batches) * stage_rows;
+        const int64_t valid = rows <= begin
+            ? 0 : (rows - begin < stage_rows ? rows - begin : stage_rows);
+        if (valid <= 0) {
+            continue;
         }
-        DataCopy(destination[task * kLatent], held.bf16, kLatent);
-        Fence<HardEvent::MTE3_V>();
-        Fence<HardEvent::V_MTE2>();
+        DataCopyParams copy{
+            static_cast<uint16_t>(valid),
+            static_cast<uint16_t>(kLatent * sizeof(bfloat16_t) / 32),
+            static_cast<uint16_t>((kHeads - 1) * kLatent * sizeof(bfloat16_t) / 32),
+            0,
+        };
+        DataCopy(stage, source[(begin * kHeads + head) * kLatent], copy);
+        Fence<HardEvent::MTE2_MTE3>();
+        DataCopy(destination[(head * capacity + begin) * kLatent], stage,
+                 valid * kLatent);
+        if (task + vectors < kHeads * batches) {
+            Fence<HardEvent::MTE3_MTE2>();
+        }
     }
 }
 
@@ -113,13 +129,20 @@ using OutputB = MatmulType<TPosition::GM, CubeFormat::ND, int8_t, false>;
 using OutputC = MatmulType<TPosition::GM, CubeFormat::ND, int32_t>;
 using OutputBias = MatmulType<TPosition::GM, CubeFormat::ND, int32_t>;
 
+template <int64_t kHeads = mla_tail::kHeads>
 __aicore__ inline void ProjectValues(TPipe& pipe,
-                                    __gm__ bfloat16_t* heads,
+                                    __gm__ bfloat16_t* latent,
                                     __gm__ bfloat16_t* weights,
                                     __gm__ float* values,
                                     __gm__ uint8_t* tiling,
-                                    int64_t capacity, int64_t blocks)
+                                    int64_t capacity, int64_t blocks,
+                                    int64_t rows = 0)
 {
+    if (GetBlockIdx() >= kValueTiles) {
+        return;
+    }
+    constexpr int64_t kProjectionInput = kHeads * kValue;
+    constexpr int64_t kValueTile = kProjectionInput / kValueTiles;
     TCubeTiling cube;
     LoadTiling(cube, tiling);
     Matmul<ValueA, ValueB, ValueC, ValueBias> mm;
@@ -129,13 +152,15 @@ __aicore__ inline void ProjectValues(TPipe& pipe,
     GlobalTensor<float> c;
     for (int64_t tile = GetBlockIdx(); tile < kValueTiles; tile += blocks) {
         const int64_t head = tile / (kValue / kValueTile);
-        a.SetGlobalBuffer(heads + head * capacity * kLatent,
-                          capacity * kLatent);
+        a.SetGlobalBuffer(latent + head * kLatent,
+                          capacity * kHeads * kLatent);
         b.SetGlobalBuffer(weights + tile * kLatent * kValueTile,
                           kLatent * kValueTile);
-        c.SetGlobalBuffer(values + tile * capacity * kValueTile,
-                          capacity * kValueTile);
-        mm.SetOrgShape(capacity, kValueTile, kLatent);
+        c.SetGlobalBuffer(values + tile * kValueTile,
+                          capacity * kProjectionInput);
+        mm.SetOrgShape(capacity, kValueTile, kHeads * kLatent, kLatent,
+                       kProjectionInput);
+        mm.SetSingleShape(capacity, kValueTile, kLatent);
         mm.SetTensorA(a);
         mm.SetTensorB(b, false);
         mm.IterateAll(c);
@@ -143,25 +168,28 @@ __aicore__ inline void ProjectValues(TPipe& pipe,
     }
 }
 
-__aicore__ inline void QuantizeValues(VectorWorkspace& held,
+template <int64_t kHeads = mla_tail::kHeads>
+__aicore__ inline void QuantizeValues(VectorWorkspace<kHeads>& held,
                                      __gm__ float* values,
                                      __gm__ int8_t* quantized,
                                      __gm__ float* token_scales,
                                      int64_t capacity, int64_t vector_index,
-                                     int64_t vectors)
+                                     int64_t vectors, int64_t rows = 0)
 {
+    const int64_t active_rows = rows > 0 ? rows : capacity;
+    if (vector_index >= active_rows) {
+        return;
+    }
+    constexpr int64_t kProjectionInput = kHeads * kValue;
     GlobalTensor<float> source;
     GlobalTensor<int8_t> destination;
     GlobalTensor<float> scales;
     source.SetGlobalBuffer(values, capacity * kProjectionInput);
     destination.SetGlobalBuffer(quantized, capacity * kProjectionInput);
     scales.SetGlobalBuffer(token_scales, capacity * kScaleStride);
-    for (int64_t row = vector_index; row < capacity; row += vectors) {
-        for (int64_t tile = 0; tile < kValueTiles; ++tile) {
-            DataCopy(held.value[tile * kValueTile],
-                     source[(tile * capacity + row) * kValueTile],
-                     kValueTile);
-        }
+    SetDeqScale(static_cast<half>(1.0F));
+    for (int64_t row = vector_index; row < active_rows; row += vectors) {
+        DataCopy(held.value, source[row * kProjectionInput], kProjectionInput);
         Fence<HardEvent::MTE2_V>();
         // The original value-up BMM returns BF16 before npu_dynamic_quant.
         Cast(held.bf16, held.value, RoundMode::CAST_RINT, kProjectionInput);
@@ -176,13 +204,13 @@ __aicore__ inline void QuantizeValues(VectorWorkspace& held,
         const float maximum = held.scalar.GetValue(0);
         // npu_dynamic_quant uses vector division. Scalar IEEE division can
         // choose different codes at half-integer thresholds on this device.
-        Duplicate(held.work, maximum == 0.0F ? 1.0F : maximum,
-                  kProjectionInput);
-        Duplicate(held.other, 127.0F, kProjectionInput);
+        Duplicate(held.work, maximum == 0.0F ? 1.0F : maximum, 64);
+        Duplicate(held.other, 127.0F, 64);
         PipeBarrier<PIPE_V>();
-        Div(held.other, held.other, held.work, kProjectionInput);
+        Div(held.other, held.other, held.work, 64);
         PipeBarrier<PIPE_V>();
-        Mul(held.value, held.value, held.other, kProjectionInput);
+        Mul(held.value, held.value, held.other, 64, kProjectionInput / 64,
+            BinaryRepeatParams{1, 1, 0, 8, 8, 0});
         Muls(held.scalar, held.scalar, 1.0F / 127.0F, kScaleStride);
         PipeBarrier<PIPE_V>();
         Mins(held.value, held.value, 127.0F, kProjectionInput);
@@ -191,12 +219,8 @@ __aicore__ inline void QuantizeValues(VectorWorkspace& held,
         PipeBarrier<PIPE_V>();
         // Match dynamic_quant's FP32 -> INT32 -> FP16 -> INT8 cast chain.
         // Rounding to an integer first avoids an FP16 double-rounding edge.
-        auto integers = held.work.ReinterpretCast<int32_t>();
+        auto integers = held.work.template ReinterpretCast<int32_t>();
         Cast(integers, held.value, RoundMode::CAST_RINT, kProjectionInput);
-        PipeBarrier<PIPE_V>();
-        // INT32 -> FP16 CAST_ROUND consumes the AIV DEQSCALE register.
-        // Initialize it as dynamic_quant does; a previous kernel may change it.
-        SetDeqScale(static_cast<half>(1.0F));
         PipeBarrier<PIPE_V>();
         Cast(held.fp16, integers, RoundMode::CAST_ROUND, kProjectionInput);
         PipeBarrier<PIPE_V>();
@@ -205,18 +229,24 @@ __aicore__ inline void QuantizeValues(VectorWorkspace& held,
         DataCopy(destination[row * kProjectionInput], held.codes,
                  kProjectionInput);
         DataCopy(scales[row * kScaleStride], held.scalar, kScaleStride);
-        Fence<HardEvent::MTE3_V>();
-        Fence<HardEvent::V_MTE2>();
+        if (row + vectors < active_rows) {
+            Fence<HardEvent::MTE3_V>();
+            Fence<HardEvent::V_MTE2>();
+        }
     }
 }
 
+template <int64_t kHeads = mla_tail::kHeads>
 __aicore__ inline void ProjectOutput(TPipe& pipe,
                                     __gm__ int8_t* quantized,
                                     __gm__ int8_t* weights,
                                     __gm__ int32_t* accumulators,
                                     __gm__ uint8_t* tiling,
-                                    int64_t capacity, int64_t blocks)
+                                    int64_t capacity, int64_t blocks,
+                                    int64_t rows = 0)
 {
+    const int64_t active_rows = rows > 0 ? rows : capacity;
+    constexpr int64_t kProjectionInput = kHeads * kValue;
     TCubeTiling cube;
     LoadTiling(cube, tiling);
     Matmul<OutputA, OutputB, OutputC, OutputBias> mm;
@@ -231,6 +261,7 @@ __aicore__ inline void ProjectOutput(TPipe& pipe,
         c.SetGlobalBuffer(accumulators + tile * capacity * kOutputTile,
                           capacity * kOutputTile);
         mm.SetOrgShape(capacity, kOutputTile, kProjectionInput);
+        mm.SetSingleShape(capacity, kOutputTile, kProjectionInput);
         mm.SetTensorA(a);
         mm.SetTensorB(b, false);
         mm.IterateAll(c);
@@ -238,8 +269,9 @@ __aicore__ inline void ProjectOutput(TPipe& pipe,
     }
 }
 
+template <int64_t kHeads = mla_tail::kHeads>
 __aicore__ inline void DequantizeOutput(
-    VectorWorkspace& held, __gm__ int32_t* accumulators,
+    VectorWorkspace<kHeads>& held, __gm__ int32_t* accumulators,
     __gm__ float* weight_scales, __gm__ float* token_scales,
     __gm__ uint8_t* bias, int bias_kind, __gm__ bfloat16_t* output,
     int64_t rows, int64_t capacity, int64_t vector_index, int64_t vectors)
@@ -297,7 +329,7 @@ __aicore__ inline void DequantizeOutput(
     }
 }
 
-constexpr int64_t kDequantRows = 8;
+constexpr int64_t kDequantRows = 16;
 
 struct OutputWorkspace {
     TBuf<TPosition::VECCALC> accumulator_buffer, value_buffer, output_buffer;
@@ -325,24 +357,19 @@ struct OutputWorkspace {
 
 enum class ScaleOrder { ChannelThenToken, CombinedScales };
 
-template <ScaleOrder order = ScaleOrder::ChannelThenToken>
-__aicore__ inline void DequantizeOutputRows(
-    TPipe& pipe, __gm__ int32_t* accumulators, __gm__ float* weight_scales,
+template <ScaleOrder order = ScaleOrder::CombinedScales>
+__aicore__ inline void FinishOutputRows(
+    OutputWorkspace& held, LocalTensor<float>& combined,
+    __gm__ int32_t* accumulators, __gm__ float* weight_scales,
     __gm__ float* token_scales, __gm__ uint8_t* bias, int bias_kind,
     __gm__ bfloat16_t* output, int64_t rows, int64_t capacity,
     int64_t vector_index, int64_t vectors)
 {
-    const int64_t batches = (rows + kDequantRows - 1) / kDequantRows;
+    const int64_t batch_rows = rows <= 1 ? 1
+        : (rows <= 2 * kDequantRows ? ((rows + 1) >> 1) : kDequantRows);
+    const int64_t batches = (rows + batch_rows - 1) / batch_rows;
     if (vector_index >= batches * kOutputTiles) {
         return;
-    }
-    OutputWorkspace held;
-    held.Init(pipe);
-    TBuf<TPosition::VECCALC> combined_buffer;
-    LocalTensor<float> combined;
-    if constexpr (order == ScaleOrder::CombinedScales) {
-        pipe.InitBuffer(combined_buffer, kOutputTile * sizeof(float));
-        combined = combined_buffer.Get<float>();
     }
     GlobalTensor<int32_t> source, integer_bias;
     GlobalTensor<float> weight_scale, token_scale, floating_bias;
@@ -357,11 +384,15 @@ __aicore__ inline void DequantizeOutputRows(
     for (int64_t task = vector_index; task < batches * kOutputTiles;
          task += vectors) {
         const int64_t tile = task % kOutputTiles;
-        const int64_t begin = (task / kOutputTiles) * kDequantRows;
-        const int64_t count = rows - begin < kDequantRows
-            ? rows - begin : kDequantRows;
+        const int64_t begin = (task / kOutputTiles) * batch_rows;
+        const int64_t count = rows <= begin ? 0
+            : (rows - begin < batch_rows ? rows - begin : batch_rows);
+        if (count <= 0) {
+            continue;
+        }
+        const int64_t total = count * kOutputTile;
         DataCopy(held.accumulators, source[(tile * capacity + begin) * kOutputTile],
-                  count * kOutputTile);
+                  total);
         DataCopy(held.weights, weight_scale[tile * kOutputTile], kOutputTile);
         DataCopy(held.scales, token_scale[begin * kScaleStride],
                   count * kScaleStride);
@@ -374,38 +405,45 @@ __aicore__ inline void DequantizeOutputRows(
         Fence<HardEvent::MTE2_V>();
         Fence<HardEvent::MTE2_S>();
 
-        for (int64_t row = 0; row < count; ++row) {
-            const int64_t offset = row * kOutputTile;
-            if (bias_kind == 1) {
-                Add(held.accumulators[offset], held.accumulators[offset],
-                    held.bias, kOutputTile);
-                PipeBarrier<PIPE_V>();
-            }
-            Cast(held.values[offset], held.accumulators[offset],
-                   RoundMode::CAST_RINT, kOutputTile);
-            PipeBarrier<PIPE_V>();
-            const float scale = held.scales.GetValue(row * kScaleStride);
-            if constexpr (order == ScaleOrder::CombinedScales) {
-                Muls(combined, held.weights, scale, kOutputTile);
-                PipeBarrier<PIPE_V>();
-                Mul(held.values[offset], held.values[offset], combined,
-                    kOutputTile);
-            } else {
-                Mul(held.values[offset], held.values[offset], held.weights,
-                    kOutputTile);
-                PipeBarrier<PIPE_V>();
-                Muls(held.values[offset], held.values[offset], scale,
-                     kOutputTile);
+        if (bias_kind == 1) {
+            for (int64_t row = 0; row < count; ++row) {
+                Add(held.accumulators[row * kOutputTile],
+                    held.accumulators[row * kOutputTile], held.bias, kOutputTile);
             }
             PipeBarrier<PIPE_V>();
-            if (bias_kind == 2) {
-                Add(held.values[offset], held.values[offset],
-                    held.bias.ReinterpretCast<float>(), kOutputTile);
-                PipeBarrier<PIPE_V>();
-            }
-            Cast(held.output[offset], held.values[offset],
-                   RoundMode::CAST_RINT, kOutputTile);
         }
+        Cast(held.values, held.accumulators, RoundMode::CAST_RINT, total);
+        PipeBarrier<PIPE_V>();
+        if constexpr (order == ScaleOrder::CombinedScales) {
+            for (int64_t row = 0; row < count; ++row) {
+                Muls(combined[row * kOutputTile], held.weights,
+                     held.scales.GetValue(row * kScaleStride), kOutputTile);
+            }
+            PipeBarrier<PIPE_V>();
+            Mul(held.values, held.values, combined, total);
+            PipeBarrier<PIPE_V>();
+        } else {
+            for (int64_t row = 0; row < count; ++row) {
+                Mul(held.values[row * kOutputTile],
+                    held.values[row * kOutputTile], held.weights, kOutputTile);
+            }
+            PipeBarrier<PIPE_V>();
+            for (int64_t row = 0; row < count; ++row) {
+                Muls(held.values[row * kOutputTile],
+                     held.values[row * kOutputTile],
+                     held.scales.GetValue(row * kScaleStride), kOutputTile);
+            }
+            PipeBarrier<PIPE_V>();
+        }
+        if (bias_kind == 2) {
+            for (int64_t row = 0; row < count; ++row) {
+                Add(held.values[row * kOutputTile],
+                    held.values[row * kOutputTile],
+                    held.bias.ReinterpretCast<float>(), kOutputTile);
+            }
+            PipeBarrier<PIPE_V>();
+        }
+        Cast(held.output, held.values, RoundMode::CAST_RINT, total);
         Fence<HardEvent::V_MTE3>();
         DataCopyParams copy;
         copy.blockCount = static_cast<uint16_t>(count);
@@ -414,65 +452,89 @@ __aicore__ inline void DequantizeOutputRows(
         copy.dstStride = (kHidden - kOutputTile) * sizeof(bfloat16_t) / 32;
         DataCopy(destination[begin * kHidden + tile * kOutputTile],
                   held.output, copy);
-        // Protect the UB source of the previous output DMA before another
-        // task's input DMA and vector work reuse this arena.
-        Fence<HardEvent::MTE3_MTE2>();
+        if (task + vectors < batches * kOutputTiles) {
+            Fence<HardEvent::MTE3_MTE2>();
+        }
     }
 }
 
+template <ScaleOrder order = ScaleOrder::CombinedScales>
+__aicore__ inline void DequantizeOutputRows(
+    TPipe& pipe, __gm__ int32_t* accumulators, __gm__ float* weight_scales,
+    __gm__ float* token_scales, __gm__ uint8_t* bias, int bias_kind,
+    __gm__ bfloat16_t* output, int64_t rows, int64_t capacity,
+    int64_t vector_index, int64_t vectors)
+{
+    OutputWorkspace held;
+    TBuf<TPosition::VECCALC> combined_buffer;
+    LocalTensor<float> combined;
+    held.Init(pipe);
+    if constexpr (order == ScaleOrder::CombinedScales) {
+        pipe.InitBuffer(combined_buffer,
+                        kDequantRows * kOutputTile * sizeof(float));
+        combined = combined_buffer.Get<float>();
+    }
+    FinishOutputRows<order>(held, combined, accumulators, weight_scales,
+                            token_scales, bias, bias_kind, output, rows,
+                            capacity, vector_index, vectors);
+}
 
+
+template <int64_t kHeads = mla_tail::kHeads>
 __aicore__ inline void Forward(
     TPipe& pipe, __gm__ bfloat16_t* latent,
     __gm__ bfloat16_t* value_weight, __gm__ int8_t* output_weight,
     __gm__ float* output_scale, __gm__ uint8_t* bias, int bias_kind,
     __gm__ uint8_t* scratch, __gm__ uint8_t* tiling,
     __gm__ bfloat16_t* output, int64_t rows, int64_t capacity,
-    int64_t blocks, const WorkspaceLayout& layout)
+    int64_t blocks, const WorkspaceLayout& layout, bool publish_end = true)
 {
     SetSysWorkspace(scratch + layout.system);
     const uint64_t values_offset = layout.values;
     const uint64_t quantized_offset = layout.quantized;
     const uint64_t scales_offset = layout.token_scales;
     const uint64_t accumulators_offset = layout.accumulators;
-    auto* heads = reinterpret_cast<__gm__ bfloat16_t*>(scratch);
     auto* values = reinterpret_cast<__gm__ float*>(scratch + values_offset);
     auto* quantized = reinterpret_cast<__gm__ int8_t*>(scratch + quantized_offset);
     auto* scales = reinterpret_cast<__gm__ float*>(scratch + scales_offset);
     auto* accumulators =
         reinterpret_cast<__gm__ int32_t*>(scratch + accumulators_offset);
-    VectorWorkspace held;
+    VectorWorkspace<kHeads> held;
+    if ASCEND_IS_AIC {
+        ProjectValues<kHeads>(pipe, latent, value_weight, values, tiling, capacity, blocks, rows);
+        Publish();
+    }
     if ASCEND_IS_AIV {
         held.Init(pipe);
-        StageHeads(held, latent, heads, rows, capacity, GetBlockIdx(), 2 * blocks);
-        Publish();
     }
     // Every AIC and AIV participates, including cores with no tile in a phase.
     // Batch scheduling and the physical-core launch limit ensure residency.
     SyncAll<false>();
     if ASCEND_IS_AIC {
-        ProjectValues(pipe, heads, value_weight, values, tiling, capacity, blocks);
-        Publish();
+        pipe.Reset();
     }
-    SyncAll<false>();
     if ASCEND_IS_AIV {
-        QuantizeValues(held, values, quantized, scales, capacity,
-                       GetBlockIdx(), 2 * blocks);
+        QuantizeValues<kHeads>(held, values, quantized, scales, capacity,
+                               GetBlockIdx(), 2 * blocks, rows);
         Publish();
     }
     SyncAll<false>();
     if ASCEND_IS_AIC {
-        // Value matmul and its object have ended before reclaiming L1/events.
-        pipe.Reset();
-        ProjectOutput(pipe, quantized, output_weight, accumulators,
-                      tiling + kCubeTilingBytes, capacity, blocks);
+        ProjectOutput<kHeads>(pipe, quantized, output_weight, accumulators,
+                              tiling + kCubeTilingBytes, capacity, blocks, rows);
         Publish();
+    }
+    if ASCEND_IS_AIV {
+        pipe.Reset();
     }
     SyncAll<false>();
     if ASCEND_IS_AIV {
-        DequantizeOutputRows(pipe, accumulators, output_scale, scales, bias,
-                            bias_kind, output, rows, capacity, GetBlockIdx(),
-                            2 * blocks);
-        Publish();
+        DequantizeOutputRows<ScaleOrder::CombinedScales>(
+            pipe, accumulators, output_scale, scales, bias, bias_kind, output,
+            rows, capacity, GetBlockIdx(), 2 * blocks);
+        if (publish_end) {
+            Publish();
+        }
     }
 }
 

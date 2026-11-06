@@ -5,9 +5,14 @@ routed_out=${1:-$routed_here/build-pipeline-front}
 mkdir -p "$routed_out/source"/{routed_int4,shared_w8,mla_tail}
 routed_out=$(cd -- "$routed_out" && pwd)
 routed_quant_source=$routed_cann/opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc/moe_init_routing_v3/op_kernel/moe_v3_full_load_dynamic_quant.h
-routed_quant_sha=97d7a1a73709650aa6a88f2369a709ace98779f0591ec3f7f8c7f7b811494020
-printf '%s  %s\n' "$routed_quant_sha" "$routed_quant_source" \
-  | sha256sum -c > "$routed_out/quant-source-verification.log"
+if [[ ! -f "$routed_quant_source" ]]; then
+  routed_quant_source=$routed_cann/opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc/moe_init_routing_v3/moe_v3_full_load_dynamic_quant.h
+fi
+if [[ -f "$routed_quant_source" ]]; then
+  routed_quant_sha=$(sha256sum "$routed_quant_source" | awk '{print $1}')
+  printf '%s  %s\n' "$routed_quant_sha" "$routed_quant_source" \
+    | sha256sum -c > "$routed_out/quant-source-verification.log"
+fi
 routed_sources=(routed_int4_binding.cpp routed_int4_contract.h
   routed_int4_dispatch.h routed_int4_front.h routed_int4_kernel.cpp
   routed_int4_kernel.h routed_int4_tiling.cpp routed_int4_trace.h

@@ -80,24 +80,30 @@ std::tuple<at::Tensor, at::Tensor, int64_t, int64_t> Prepare(
     CheckCapacity(capacity);
     TORCH_CHECK(reference.device().type() == c10::DeviceType::PrivateUse1,
                 "mla_tail_prepare needs an NPU reference tensor");
+    const int64_t heads = reference.dim() == 3 ? reference.size(1) : kHeads;
+    TORCH_CHECK(heads == 4 || heads == 8,
+                "mla_tail heads must be 4 (TP16) or 8 (TP8)");
     const c10::OptionalDeviceGuard device_guard(reference.device());
     const DeviceLaunch launch = PrepareDevice(reference.get_device());
     if (blocks == 0) {
-        blocks = std::min<int64_t>(8, launch.maximum_blocks);
+        blocks = launch.maximum_blocks;
     }
     TORCH_CHECK(blocks > 0 && blocks <= launch.maximum_blocks,
                 "blocks must be within the physical 1:2 residency limit: ",
                 launch.maximum_blocks);
     std::vector<uint8_t> host_tiling(kTilingBytes);
-    TORCH_CHECK(mla_tail_build_tiling(capacity, host_tiling.data()) == 0,
+    TORCH_CHECK(mla_tail_build_tiling(capacity, host_tiling.data(),
+                                      static_cast<int>(heads)) == 0,
                 "mla_tail matmul tiling failed");
-    const WorkspaceLayout layout = MakeWorkspaceLayout(capacity);
+    const WorkspaceLayout layout = MakeWorkspaceLayout(capacity, heads);
     auto scratch = at::empty({static_cast<int64_t>(layout.bytes)},
                              reference.options().dtype(at::kByte));
     auto tiling = at::empty({capacity, static_cast<int64_t>(kTilingBytes)},
                             reference.options().dtype(at::kByte));
     // The leading extent carries capacity in tensor metadata, so a captured
     // call can reject a mismatched tiling without reading a device value.
+    TORCH_CHECK(aclrtSynchronizeStream(c10_npu::getCurrentNPUStream().stream(true))
+                == ACL_SUCCESS, "mla_tail tiling stream sync failed");
     TORCH_CHECK(aclrtMemcpy(tiling.data_ptr(), tiling.nbytes(),
                             host_tiling.data(), kTilingBytes,
                             ACL_MEMCPY_HOST_TO_DEVICE) == ACL_SUCCESS,
@@ -112,19 +118,24 @@ int CheckInputs(const at::Tensor& latent, const at::Tensor& value_weight,
                  const at::Tensor& output, int64_t capacity)
 {
     CheckCapacity(capacity);
-    TORCH_CHECK(latent.dim() == 3, "latent must be [M,4,512]");
+    TORCH_CHECK(latent.dim() == 3, "latent must be [M,H,512]");
     const int64_t rows = latent.size(0);
+    const int64_t heads = latent.size(1);
+    TORCH_CHECK(heads == 4 || heads == 8,
+                "latent heads must be 4 (TP16) or 8 (TP8)");
+    const int64_t projection_input = heads * kValue;
+    const int64_t value_tile = projection_input / kValueTiles;
     TORCH_CHECK(rows > 0 && rows <= capacity, "rows must be within capacity");
-    CheckTensor(latent, at::kBFloat16, {rows, kHeads, kLatent}, "latent");
+    CheckTensor(latent, at::kBFloat16, {rows, heads, kLatent}, "latent");
     CheckTensor(value_weight, at::kBFloat16,
-                 {kValueTiles, kLatent, kValueTile}, "value_weight");
+                 {kValueTiles, kLatent, value_tile}, "value_weight");
     CheckTensor(output_weight, at::kChar,
-                 {kOutputTiles, kProjectionInput, kOutputTile}, "output_weight");
+                 {kOutputTiles, projection_input, kOutputTile}, "output_weight");
     CheckTensor(scale, at::kFloat, {kHidden}, "output_scale");
     CheckTensor(output, at::kBFloat16, {rows, kHidden}, "output");
     CheckTensor(tiling, at::kByte,
                  {capacity, static_cast<int64_t>(kTilingBytes)}, "tiling");
-    const WorkspaceLayout layout = MakeWorkspaceLayout(capacity);
+    const WorkspaceLayout layout = MakeWorkspaceLayout(capacity, heads);
     CheckTensor(scratch, at::kByte,
                  {static_cast<int64_t>(layout.bytes)}, "scratch");
     for (const auto& tensor : {value_weight, output_weight, scale, scratch,
@@ -178,14 +189,14 @@ at::Tensor TailOut(
     }
     // Flush Torch's host task queue before a direct AscendC launch. Otherwise
     // queued producers on this stream can be submitted after their consumer.
-    void* stream = c10_npu::getCurrentNPUStream().stream();
+    void* stream = c10_npu::getCurrentNPUStream().stream(true);
     mla_tail_launch(
         static_cast<uint32_t>(blocks), stream,
         static_cast<uint64_t>(sync_base), latent.data_ptr(),
         value_weight.data_ptr(), output_weight.data_ptr(),
         output_scale.data_ptr<float>(), bias.has_value() ? bias->data_ptr() : nullptr,
         bias_kind, scratch.data_ptr(), tiling.data_ptr(), output.data_ptr(),
-        latent.size(0), capacity);
+        latent.size(0), capacity, latent.size(1));
     return output;
 }
 

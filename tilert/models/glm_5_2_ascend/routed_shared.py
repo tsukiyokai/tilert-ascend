@@ -187,7 +187,6 @@ def install(runner, routed_weights, pool):
         AllGatherCommImpl,
         FusedExpertsResult,
     )
-    from vllm_ascend.ops.fused_moe.moe_mlp import maybe_record_event
 
     _validate_runner(runner)
     shared_weights = _shared_weights(runner.ascend_shared_experts)
@@ -214,16 +213,14 @@ def install(runner, routed_weights, pool):
             if (not isinstance(_EXTRA_CTX.moe_comm_method, AllGatherCommImpl)
                     or layer.ascend_pertoken_scale is not None):
                 raise ValueError("Routed/shared requires unquantized AllGather input")
-            start = maybe_record_event()
             routed, shared_output, counts = run_body(
                 x, topk_weights, topk_ids, shared_input, routed_weights,
                 shared_weights, pool,
             )
-            end = maybe_record_event()
             return FusedExpertsResult(
-                routed_out=routed, before_dispatch_evt=start,
-                before_gmm2_evt=end, before_combine_evt=end,
-                shared_activation_overlap_start_evt=end,
+                routed_out=routed, before_dispatch_evt=None,
+                before_gmm2_evt=None, before_combine_evt=None,
+                shared_activation_overlap_start_evt=None,
                 group_list_type=1, expert_tokens=counts,
             )
 

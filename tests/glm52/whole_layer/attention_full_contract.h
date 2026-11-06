@@ -20,7 +20,7 @@ inline FullConfig MakeFullConfig(const Config& attention)
     FullConfig config{};
     config.attention = attention;
     config.capacity = attention.rows <= 16 ? 16 : 32;
-    config.tail = mla_tail::MakeWorkspaceLayout(config.capacity);
+    config.tail = mla_tail::MakeWorkspaceLayout(config.capacity, kHeads);
     // SFA's latent survives the attention arena and becomes the tail's input.
     config.arena_offset = Align(attention.rows * kHeads * kLatent * 2ULL);
     config.bytes = config.arena_offset +

@@ -5,14 +5,18 @@
 
 namespace mla_tail {
 
+#ifndef ATTENTION_HEADS
 constexpr int64_t kHeads = 4;
+#else
+constexpr int64_t kHeads = ATTENTION_HEADS;
+#endif
 constexpr int64_t kLatent = 512;
 constexpr int64_t kValue = 256;
 constexpr int64_t kProjectionInput = kHeads * kValue;
 constexpr int64_t kHidden = 6144;
-constexpr int64_t kValueTile = 64;
+constexpr int64_t kValueTiles = 16;
+constexpr int64_t kValueTile = kProjectionInput / kValueTiles;
 constexpr int64_t kOutputTile = 256;
-constexpr int64_t kValueTiles = kProjectionInput / kValueTile;
 constexpr int64_t kOutputTiles = kHidden / kOutputTile;
 constexpr int64_t kScaleStride = 8;
 constexpr int64_t kMaximumRows = 32;
@@ -37,13 +41,15 @@ constexpr uint64_t Align(uint64_t value)
 }
 
 // Rows are padded to complete cube tiles. Every producer writes the padding.
-constexpr WorkspaceLayout MakeWorkspaceLayout(int64_t capacity)
+constexpr WorkspaceLayout MakeWorkspaceLayout(int64_t capacity,
+                                              int64_t heads = kHeads)
 {
+    const int64_t projection_input = heads * kValue;
     WorkspaceLayout layout{};
     layout.heads = 0;
-    layout.values = Align(capacity * kHeads * kLatent * 2);
-    layout.quantized = Align(layout.values + capacity * kProjectionInput * 4);
-    layout.token_scales = Align(layout.quantized + capacity * kProjectionInput);
+    layout.values = Align(capacity * heads * kLatent * 2);
+    layout.quantized = Align(layout.values + capacity * projection_input * 4);
+    layout.token_scales = Align(layout.quantized + capacity * projection_input);
     layout.accumulators = Align(layout.token_scales + capacity * kScaleStride * 4);
     layout.system = Align(layout.accumulators + capacity * kHidden * 4);
     layout.bytes = layout.system + kSystemWorkspaceBytes;
@@ -52,12 +58,14 @@ constexpr WorkspaceLayout MakeWorkspaceLayout(int64_t capacity)
 
 }  // namespace mla_tail
 
-extern "C" int mla_tail_build_tiling(int capacity, void* buffer);
+extern "C" int mla_tail_build_tiling(int capacity, void* buffer,
+                                     int heads = mla_tail::kHeads);
 
 void mla_tail_launch(uint32_t blocks, void* stream, uint64_t sync_base,
                      void* latent, void* value_weight, void* output_weight,
                      float* output_scale, void* bias, int bias_kind,
                      void* scratch, void* tiling, void* output,
-                     int64_t rows, int64_t capacity);
+                     int64_t rows, int64_t capacity,
+                     int64_t heads = mla_tail::kHeads);
 
 #endif

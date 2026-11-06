@@ -728,7 +728,7 @@ __aicore__ void routed_int4_fused(
         timing.Begin(3);
     }
 #ifdef ROUTED_SHARED_PIPELINE
-    if (step == chunks) {
+    if (chunks == 1 || step == chunks) {
         shared.Down(pipe);
     }
 #endif

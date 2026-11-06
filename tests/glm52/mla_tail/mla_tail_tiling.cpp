@@ -33,21 +33,23 @@ int BuildProjection(int rows, int columns, int inner,
 
 }  // namespace
 
-extern "C" int mla_tail_build_tiling(int capacity, void* buffer)
+extern "C" int mla_tail_build_tiling(int capacity, void* buffer, int heads)
 {
-    if (capacity != 16 && capacity != 32) {
+    if ((capacity != 16 && capacity != 32) || (heads != 4 && heads != 8)) {
         return -1;
     }
+    const int projection_input = heads * static_cast<int>(mla_tail::kValue);
+    const int value_tile = projection_input / static_cast<int>(mla_tail::kValueTiles);
     std::memset(buffer, 0, mla_tail::kTilingBytes);
     int status = BuildProjection(
-        capacity, mla_tail::kValueTile, mla_tail::kLatent,
+        capacity, value_tile, mla_tail::kLatent,
         matmul_tiling::DataType::DT_BF16,
         matmul_tiling::DataType::DT_FLOAT, buffer);
     if (status != 0) {
         return status;
     }
     return BuildProjection(
-        capacity, mla_tail::kOutputTile, mla_tail::kProjectionInput,
+        capacity, mla_tail::kOutputTile, projection_input,
         matmul_tiling::DataType::DT_INT8,
         matmul_tiling::DataType::DT_INT32,
         static_cast<uint8_t*>(buffer) + mla_tail::kCubeTilingBytes);

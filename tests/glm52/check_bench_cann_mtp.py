@@ -235,6 +235,7 @@ class BenchmarkChecks(unittest.TestCase):
                     loop.tree_mask = target.install_mask
                     loop.start(first, None)
                     measured = bench.MeasuredRank.__new__(bench.MeasuredRank)
+                    measured.round_capture = None
                     measured.target, measured.draft = target, None
                     measured._mtp = loop
                     measured.current = {"rounds": []}
@@ -393,6 +394,272 @@ class BenchmarkChecks(unittest.TestCase):
                 sys.executable, str(Path(__file__).with_name("paired.py")),
                 str(root), "control", "candidate"], text=True)
             self.assertIn("paired mean delta +2.000 ms a round", result)
+
+
+class BoundedIntegrationChecks(unittest.TestCase):
+    def world(self, directory, limit, prewarm=False):
+        from contextlib import ExitStack, contextmanager
+        from types import ModuleType
+
+        from bounded_round_profile import RoundCapture
+        from check_mtp_tp import (
+            FanoutChannel,
+            ScalarTarget,
+            Token,
+            consume,
+            predict,
+        )
+
+        from tilert.models.glm_5_2_ascend.tp_runtime import (
+            CoordinatedBackend,
+            RankExecutor,
+        )
+        from tilert.pd_vllm.ascend_cache import FullRankPrefix
+
+        class Target(ScalarTarget):
+            device = "cpu"
+
+            def __init__(self):
+                super().__init__(9344)
+                self.model = SimpleNamespace(compute_logits=lambda value: value)
+
+            def _metadata(self, tokens):
+                return tokens
+
+            def verify(self, tokens, full_logits=False):
+                result = super().verify(self._metadata(tokens), full_logits)
+                return self.model.compute_logits(result)
+
+            def predict(self, parent):
+                return SimpleNamespace(
+                    token_ids=[Token(predict(parent.digest, parent.length))],
+                )
+
+        class Parent:
+            def __init__(self, digest, length):
+                self.digest, self.length = digest, length
+
+            def clone(self):
+                return self
+
+        prompt = tuple((index * 7) % 251 + 1 for index in range(8192))
+        rows, state = [], 0
+        for token in prompt:
+            state = consume(state, token)
+            rows.append((token, state))
+        prefix = FullRankPrefix(rows, {}, Parent(state, 8192), 8192)
+        first = predict(state, 8192)
+        args = SimpleNamespace(
+            lookup=True, automaton=False, tree=False,
+            width=2, warmup=1, requests=2, max_tokens=5,
+            rounds_per_command=1, profile_last=True, profile_rounds=limit,
+            target_graph=False, draft_graph=False, conditioned_graph=False,
+            output=Path(directory),
+        )
+        engines = [bench.MeasuredRank(Target(), None, None, prompt)
+                   for _ in range(16)]
+        executors = [RankExecutor(engine, rank, lambda request, rank: prefix)
+                     for rank, engine in enumerate(engines)]
+        for rank, engine in enumerate(engines):
+            engine.round_capture = RoundCapture(directory, rank, limit, engine.target)
+            engine.profile_request_total = args.warmup + args.requests
+        channel = FanoutChannel(executors[1:])
+        backend = CoordinatedBackend(executors[0], channel)
+        events = []
+        helper = ModuleType("profile_native_session")
+
+        @contextmanager
+        def make_profiler(path, rank):
+            events.append(("start", rank, len(engines[rank].requests)))
+            try:
+                yield
+            finally:
+                events.append(("stop", rank))
+
+        @contextmanager
+        def npu_range(name):
+            yield
+
+        helper.make_profiler, helper.npu_range = make_profiler, npu_range
+        torch = ModuleType("torch")
+        distributed = ModuleType("torch.distributed")
+        distributed.barrier = lambda **kwargs: None
+        torch.distributed = distributed
+        torch.npu = SimpleNamespace(synchronize=lambda device: None)
+
+        def legacy_forbidden(**kwargs):
+            raise AssertionError("Nested rank0 legacy profiler or premature parse")
+
+        npu = SimpleNamespace(profiler=SimpleNamespace(
+            profile=legacy_forbidden,
+            profiler=SimpleNamespace(analyse=legacy_forbidden),
+        ))
+        stack = ExitStack()
+        stack.enter_context(patch.dict(sys.modules, {
+            "torch": torch, "torch.distributed": distributed,
+            "torch_npu": npu, "profile_native_session": helper,
+        }))
+        self.addCleanup(stack.close)
+        if prewarm:
+            for engine in engines:
+                engine.inject(prefix)
+                engine.start_mtp(first, args.max_tokens, args.width, ())
+                engine.advance_mtp()
+                engine.finish_mtp(engine.position)
+                engine.reset()
+                engine.requests.pop()
+                self.assertFalse(engine.round_capture.started)
+                self.assertFalse(engine.round_capture.closed)
+        return backend, engines, executors, first, prompt, args, events
+
+    def run_world(self, directory, limit, prewarm=False):
+        backend, engines, executors, first, prompt, args, events = self.world(
+            directory, limit, prewarm,
+        )
+        records = bench.drive(backend, first, args)
+        reports = []
+        oracle = serial_oracle(prompt, args.max_tokens, 9344)[0]
+        for rank, (engine, executor) in enumerate(zip(engines, executors)):
+            report = {
+                "rank": rank, "closed": executor.closed,
+                "final_positions": [engine.position, engine.draft_position],
+                "rank_requests": engine.requests, "command_serial": executor.serial,
+                "bounded_capture": engine.round_capture.receipt(),
+            }
+            if rank == 0:
+                report["requests"] = records
+            histories = bench.validate_local(report, args)
+            self.assertTrue(all(item["tokens"] == oracle for item in histories))
+            reports.append(report)
+        self.assertEqual([event for event in events if event[0] == "start"],
+                         [("start", rank, 3) for rank in range(1, 16)] + [("start", 0, 3)])
+        self.assertEqual(sum(event[0] == "stop" for event in events), 16)
+        self.assertEqual(len(bench.timing_requests(records)), 1)
+        return args, reports
+
+    def test_real_driver_and_measured_ranks_profile_only_last_request(self):
+        with tempfile.TemporaryDirectory() as directory:
+            args, reports = self.run_world(directory, limit=1, prewarm=True)
+        self.assertTrue(all(report["bounded_capture"]["completed"] == 1
+                            for report in reports))
+        self.assertEqual(args.profile_rounds, 1)
+
+    def test_fewer_than_five_rounds_close_at_finish_and_empty_capture_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            args, reports = self.run_world(directory, limit=5)
+        for report in reports:
+            capture = report["bounded_capture"]
+            self.assertEqual(capture["completed"], len(report["rank_requests"][-1]["rounds"]))
+            self.assertLess(capture["completed"], 5)
+            self.assertTrue(capture["closed"])
+        damaged = deepcopy(reports[1])
+        damaged["bounded_capture"].update(completed=0, ranges=[])
+        with self.assertRaisesRegex(ValueError, "Bounded rank profile"):
+            bench.validate_local(damaged, args)
+
+    def test_bounded_cli_requires_last_request_and_preserves_legacy_default(self):
+        required = ["bench", "--checkpoint", "checkpoint", "--capture-case", "prefix",
+                    "--output", "out", "--source-commit", "test"]
+        with patch.object(sys, "argv", required):
+            self.assertEqual(bench.arguments().profile_rounds, 0)
+        with (patch.object(sys, "argv", required + ["--profile-rounds", "5"]),
+              redirect_stderr(io.StringIO()), self.assertRaises(SystemExit)):
+            bench.arguments()
+        with patch.object(sys, "argv", required + ["--profile-last", "--profile-rounds", "5"]):
+            self.assertEqual(bench.arguments().profile_rounds, 5)
+
+    def test_run_failure_after_profile_start_still_closes_capture_and_shuts_down(self):
+        from contextlib import ExitStack, nullcontext
+        from types import ModuleType
+
+        import bounded_round_profile
+        from check_mtp_tp import FanoutChannel
+
+        from tilert.models.glm_5_2_ascend import cann_model, tp_runtime
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _backend, engines, executors, first, prompt, _, _ = self.world(root, 1)
+            target = engines[0].target
+            prefix = executors[0].prefix_loader(None, 0)
+            prefix.parent_hidden.to = lambda device: prefix.parent_hidden
+            target.tp_reduction, target.graph = "float32", None
+            shutdowns = []
+            target.shutdown = lambda: shutdowns.append(True)
+            case = root / "case"
+            case.mkdir()
+            (case / "manifest.json").write_text(json.dumps({"prompt_token_ids": prompt}))
+            command = ["bench", "--checkpoint", directory, "--capture-case", str(case),
+                       "--output", directory, "--source-commit", "cpu-fixture",
+                       "--lookup", "--width", "2", "--max-tokens", "5", "--warmup", "1",
+                       "--requests", "2", "--profile-last", "--profile-rounds", "1"]
+            with patch.object(sys, "argv", command):
+                args = bench.arguments()
+            torch = sys.modules["torch"]
+            torch.set_num_threads = lambda count: None
+            torch.inference_mode = nullcontext
+            torch.npu.matmul = SimpleNamespace(allow_hf32=True)
+            vllm = ModuleType("vllm.distributed")
+            vllm.get_world_group = lambda: SimpleNamespace(cpu_group=object())
+            counter = ModuleType("vllm.compilation.counter")
+            counter.compilation_counter = object()
+            # Only rank0 runs this teardown fixture; full fanout is covered above.
+            channel = FanoutChannel([])
+            channel.group = object()
+            failure = RuntimeError("failure immediately after bounded start")
+            original_start = bench.MeasuredRank.start_mtp
+            original_capture = bounded_round_profile.RoundCapture
+            captures = []
+
+            def make_capture(*values):
+                result = original_capture(*values)
+                captures.append(result)
+                return result
+
+            def start_then_fail(engine, *values):
+                result = original_start(engine, *values)
+                if engine.round_capture.active:
+                    raise failure
+                return result
+
+            import os
+
+            with ExitStack() as stack:
+                stack.enter_context(patch.dict(sys.modules, {
+                    "vllm.distributed": vllm, "vllm.compilation.counter": counter,
+                }))
+                stack.enter_context(patch.dict(os.environ, {
+                    "RANK": "0", "WORLD_SIZE": "16", "LOCAL_RANK": "0",
+                    "PROFILER_SAMPLECONFIG": "", "PROFILING_MODE": "",
+                }))
+                stack.enter_context(patch.object(cann_model, "CannModel", return_value=target))
+                stack.enter_context(patch.object(tp_runtime, "TorchControlChannel", return_value=channel))
+                stack.enter_context(patch.object(bench, "checkpoint_fingerprint", return_value={}))
+                stack.enter_context(patch.object(bench, "load_inputs", return_value=(
+                    prefix.main, prefix.mtp, prefix.parent_hidden, first,
+                    {"initial_position": 8192},
+                )))
+                stack.enter_context(patch.object(bench, "source_hashes", return_value={}))
+                stack.enter_context(patch.object(bench, "version", return_value="cpu-fixture"))
+                stack.enter_context(patch.object(bounded_round_profile, "RoundCapture", make_capture))
+                stack.enter_context(patch.object(bench.MeasuredRank, "start_mtp", start_then_fail))
+                with self.assertRaises(RuntimeError) as caught:
+                    bench.run(args, {"rank": 0})
+            self.assertIs(caught.exception, failure)
+            self.assertEqual(shutdowns, [True])
+            self.assertEqual(len(captures), 1)
+            self.assertEqual((captures[0].started, captures[0].closed,
+                              captures[0].active, captures[0].completed), (True, True, False, 0))
+            self.assertIn("failure immediately after bounded start", captures[0].receipt()["error"])
+            self.assertEqual(torch.npu.matmul.allow_hf32, False)
+
+    def test_capture_limit_must_match_registered_round_count(self):
+        with tempfile.TemporaryDirectory() as directory:
+            args, reports = self.run_world(directory, limit=5)
+        damaged = deepcopy(reports[1])
+        damaged["bounded_capture"]["limit"] = 999
+        with self.assertRaisesRegex(ValueError, "Bounded rank profile"):
+            bench.validate_local(damaged, args)
 
 
 if __name__ == "__main__":

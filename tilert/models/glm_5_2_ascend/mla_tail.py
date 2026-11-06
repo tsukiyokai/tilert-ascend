@@ -23,25 +23,29 @@ LIBRARY_DIR = Path(os.environ.get(
 
 
 def pack_value_weights(weight):
-    """ND BF16 [4,512,256] to 16 independent [512,64] CUBE tiles."""
+    """ND BF16 [H,512,256] to 16 independent [512,256*H//16] CUBE tiles."""
     import torch
 
-    if (weight.shape != (HEADS, LATENT, VALUE)
+    if (weight.dim() != 3 or weight.shape[0] not in (4, 8)
+            or weight.shape[1:] != (LATENT, VALUE)
             or weight.dtype != torch.bfloat16):
-        raise ValueError("MLA value weights require BF16 [4,512,256]")
-    return weight.reshape(HEADS, LATENT, 4, 64).permute(
+        raise ValueError("MLA value weights require BF16 [4|8,512,256]")
+    heads = weight.shape[0]
+    tile = (heads * VALUE) // 16
+    return weight.reshape(heads, LATENT, VALUE // tile, tile).permute(
         0, 2, 1, 3,
-    ).contiguous().reshape(16, LATENT, 64)
+    ).contiguous().reshape(16, LATENT, tile)
 
 
 def pack_output_weights(weight):
-    """ND INT8 [1024,6144] to 24 independent [1024,256] CUBE tiles."""
+    """ND INT8 [256*H,6144] to 24 independent [256*H,256] CUBE tiles."""
     import torch
 
-    if (weight.shape != (HEADS * VALUE, HIDDEN)
+    if (weight.dim() != 2 or weight.shape[0] not in (4 * VALUE, 8 * VALUE)
+            or weight.shape[1] != HIDDEN
             or weight.dtype != torch.int8):
-        raise ValueError("MLA output weights require INT8 [1024,6144]")
-    return weight.reshape(HEADS * VALUE, 24, 256).permute(
+        raise ValueError("MLA output weights require INT8 [1024|2048,6144]")
+    return weight.reshape(weight.shape[0], 24, 256).permute(
         1, 0, 2,
     ).contiguous()
 
@@ -61,23 +65,30 @@ class WorkspacePool:
             raise ValueError("MLA tail requires 1..32 token rows")
         return 16 if rows <= 16 else 32
 
+    @staticmethod
+    def _heads(reference):
+        return reference.shape[1] if reference.dim() == 3 else HEADS
+
     def reserve_capture(self, reference):
         import torch
 
         capacity = self._capacity(reference)
-        self.capture_reserves[(reference.device, capacity)] = (
-            torch.ops.tilert.mla_tail_prepare(reference, capacity, self.blocks)
-        )
+        key = (reference.device, capacity, self._heads(reference))
+        if key not in self.capture_reserves:
+            self.capture_reserves[key] = (
+                torch.ops.tilert.mla_tail_prepare(reference, capacity, self.blocks)
+            )
 
     def get(self, reference):
         import torch
 
         capacity = self._capacity(reference)
+        heads = self._heads(reference)
         stream = torch.npu.current_stream(reference.device)
-        key = (reference.device, stream.npu_stream, capacity)
+        key = (reference.device, stream.npu_stream, capacity, heads)
         if key not in self.entries:
             if torch.npu.is_current_stream_capturing():
-                reserve_key = (reference.device, capacity)
+                reserve_key = (reference.device, capacity, heads)
                 if reserve_key not in self.capture_reserves:
                     raise RuntimeError(
                         "Reserve MLA tail workspace before NPU graph capture"
@@ -90,14 +101,14 @@ class WorkspacePool:
         return capacity, self.entries[key]
 
 
-def load():
+def load(tp_size=None):
     import torch
 
     torch.ops.load_library(str(LIBRARY_DIR / "mla_tail_torch.so"))
 
 
 def install(impl, pool):
-    """Bind an ungated TP16 W8A8_DYNAMIC output projection to the tail."""
+    """Bind an ungated TP8/TP16 W8A8_DYNAMIC output projection to the tail."""
     import torch
     import torch_npu
     from vllm.distributed import tensor_model_parallel_all_reduce
@@ -114,11 +125,12 @@ def install(impl, pool):
     scheme = projection.quant_method.quant_method
     if (not isinstance(scheme, AscendW8A8DynamicLinearMethod)
             or scheme.act_quant_type != torch.int8
-            or projection.tp_size != 16
+            or projection.tp_size not in (8, 16)
             or not projection.input_is_parallel
             or getattr(projection, "bias", None) is not None
             or getattr(impl, "g_proj", None) is not None):
-        raise ValueError("MLA tail requires ungated TP16 W8A8_DYNAMIC")
+        raise ValueError("MLA tail requires ungated TP8/TP16 W8A8_DYNAMIC")
+    heads = 64 // projection.tp_size
     value_weight = pack_value_weights(
         torch_npu.npu_format_cast(impl.W_UV.detach(), 2),
     )
@@ -141,18 +153,15 @@ def install(impl, pool):
                 or not 1 <= latent.shape[0] <= MAX_TOKENS):
             return original(latent, gate_hidden_states, output,
                             gather_full_o_proj, input_is_latent)
-        latent = latent.reshape(-1, HEADS, LATENT).contiguous()
+        latent = latent.reshape(-1, heads, LATENT).contiguous()
         capacity, prepared = pool.get(latent)
         scratch, tiling, blocks, sync_base = prepared
-        # The collective must consume a separate rank-local output.
-        partial = torch.empty_like(output)
         torch.ops.tilert.mla_tail_out(
             latent, value_weight, output_weight, output_scale, None,
-            scratch, tiling, partial, capacity, blocks, sync_base,
+            scratch, tiling, output, capacity, blocks, sync_base,
         )
         if projection.reduce_results:
-            partial = tensor_model_parallel_all_reduce(partial)
-        output.copy_(partial)
+            output.copy_(tensor_model_parallel_all_reduce(output))
         return output
 
     impl._project_attention_output = MethodType(project, impl)

@@ -161,8 +161,11 @@ class MtpRoundExecutor:
         from .tree_mask import branch_depths
         from .tree_resolve import accepted_path
 
+        mark = self.phases.mark if self.phases is not None else None
         tokens, parents = (propose_tree(plan.width - 1) if plan.width > 1
                            else ([], []))
+        if mark:
+            mark("propose")
         nodes = [plan.pending_token, *tokens]
         lineage = [-1, *(parent + 1 for parent in parents)]
         nodes += [plan.pending_token] * (plan.width - len(nodes))
@@ -171,8 +174,12 @@ class MtpRoundExecutor:
             self.tree_mask(lineage, plan.main_start, self.target.device)
         verified = self.target.verify(nodes, full_logits=False,
                                       depths=branch_depths(lineage))
+        if mark:
+            mark("verify")
         proposals = tuple(nodes)
         predictions, = self.target.host_tokens(verified.token_ids)
+        if mark:
+            mark("host_tokens")
         # The accepted path through a tree is itself a chain, so reordering the
         # verified rows along it lets `resolve` do the committing: its linear
         # match, the EOS check, the output budget and the cache commit all
@@ -196,6 +203,8 @@ class MtpRoundExecutor:
         self.target.compact(plan.main_start, path)
         self.target.truncate(commit.main.retained)
         self.drafter.commit(commit.accepted_tokens)
+        if mark:
+            mark("resolve")
         return ExecutedRound(proposals, predictions, commit, tuple(lineage))
 
     def _advance_drafted(self, plan):
@@ -216,8 +225,6 @@ class MtpRoundExecutor:
             proposal = self.drafter.propose(plan.width - 1)
             if mark:
                 mark("propose")
-            if 0 < len(proposal) < plan.width - 1:
-                proposal = (proposal * (plan.width // len(proposal) + 1))[:plan.width - 1]
             candidates = [plan.pending_token, *proposal[:plan.width - 1]]
             candidates += [plan.pending_token] * (plan.width - len(candidates))
             verified = self.target.verify(candidates, full_logits=False)

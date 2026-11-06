@@ -26,6 +26,12 @@ if [[ ${ATTENTION_INDEXED:-0} == 1 ]]; then
     library=whole_layer_indexed_attention
 fi
 variant_defines=()
+if [[ ${ATTENTION_HEADS:-} != "" ]]; then
+    variant_defines+=(-DATTENTION_HEADS=${ATTENTION_HEADS})
+    if [[ ${ATTENTION_HEADS} != 4 ]]; then
+        library="${library}_tp${ATTENTION_HEADS_TP:-8}"
+    fi
+fi
 if [[ ${ATTENTION_INDEXED_PROFILE:-0} == 1 ]]; then
     if [[ ${ATTENTION_INDEXED:-0} != 1 ]]; then
         echo 'ATTENTION_INDEXED_PROFILE requires ATTENTION_INDEXED=1.' >&2
@@ -118,7 +124,13 @@ mkdir -p "$out"
 "$device_compiler" "${flags[@]}" "${variant_defines[@]}" "${includes[@]}" \
     -c "$here/${stem}_kernel.cpp" -o "$out/${stem}_kernel.o"
 if [[ ${ATTENTION_KERNEL_ONLY:-0} != 1 ]]; then
-    package_info=$($python_bin - <<'PY'
+    if [[ -d /usr/local/lib/python3.11/site-packages/torch && \
+          -d /usr/local/lib/python3.11/site-packages/torch_npu ]]; then
+        torch_root=/usr/local/lib/python3.11/site-packages/torch
+        npu_root=/usr/local/lib/python3.11/site-packages/torch_npu
+        cxx11_abi=1
+    else
+        package_info=$($python_bin - <<'PY'
 import importlib.util
 from pathlib import Path
 import torch
@@ -131,25 +143,38 @@ print(Path(spec.origin).resolve().parent)
 print(int(torch._C._GLIBCXX_USE_CXX11_ABI))
 PY
 )
-    mapfile -t packages <<< "$package_info"
-    torch_root=${packages[0]}
-    npu_root=${packages[1]}
-    "$compiler_host" -std=c++17 -O2 -fPIC \
-        "${variant_defines[@]}" \
-        "-D_GLIBCXX_USE_CXX11_ABI=${packages[2]}" \
-        "${includes[@]}" -I "$torch_root/include" \
-        -I "$torch_root/include/torch/csrc/api/include" \
-        -I "$npu_root/include" -c "$here/${stem}_binding.cpp" \
-        -o "$out/${stem}_binding.o"
+        mapfile -t packages <<< "$package_info"
+        torch_root=${packages[0]}
+        npu_root=${packages[1]}
+        cxx11_abi=${packages[2]}
+    fi
+    if [[ ${FAST_BUILD:-0} != 1 || ! -f "$out/${stem}_binding.o" || \
+          "$here/${stem}_binding.cpp" -nt "$out/${stem}_binding.o" || \
+          "$here/attention_host.h" -nt "$out/${stem}_binding.o" || \
+          "$here/attention_indexed_contract.h" -nt "$out/${stem}_binding.o" ]]; then
+        "$compiler_host" -std=c++17 -O2 -fPIC \
+            "${variant_defines[@]}" \
+            "-D_GLIBCXX_USE_CXX11_ABI=${cxx11_abi}" \
+            "${includes[@]}" -I "$torch_root/include" \
+            -I "$torch_root/include/torch/csrc/api/include" \
+            -I "$npu_root/include" -c "$here/${stem}_binding.cpp" \
+            -o "$out/${stem}_binding.o"
+    fi
     extra_objects=()
     if [[ ${ATTENTION_FULL:-0} == 1 || ${ATTENTION_INDEXED:-0} == 1 ]]; then
-        "$compiler_host" -std=c++17 -O2 -fPIC "${includes[@]}" \
-            -c "$here/../mla_tail/mla_tail_tiling.cpp" -o "$out/mla_tail_tiling.o"
+        if [[ ${FAST_BUILD:-0} != 1 || ! -f "$out/mla_tail_tiling.o" || \
+              "$here/../mla_tail/mla_tail_tiling.cpp" -nt "$out/mla_tail_tiling.o" ]]; then
+            "$compiler_host" -std=c++17 -O2 -fPIC "${includes[@]}" \
+                -c "$here/../mla_tail/mla_tail_tiling.cpp" -o "$out/mla_tail_tiling.o"
+        fi
         extra_objects+=("$out/mla_tail_tiling.o")
     fi
     if [[ ${ATTENTION_INDEXED:-0} == 1 ]]; then
-        "$compiler_host" -std=c++17 -O2 -fPIC "${includes[@]}" \
-            -c "$here/indexer_front_tiling.cpp" -o "$out/indexer_front_tiling.o"
+        if [[ ${FAST_BUILD:-0} != 1 || ! -f "$out/indexer_front_tiling.o" || \
+              "$here/indexer_front_tiling.cpp" -nt "$out/indexer_front_tiling.o" ]]; then
+            "$compiler_host" -std=c++17 -O2 -fPIC "${includes[@]}" \
+                -c "$here/indexer_front_tiling.cpp" -o "$out/indexer_front_tiling.o"
+        fi
         extra_objects+=("$out/indexer_front_tiling.o")
     fi
     "$compiler_host" -shared "$out/${stem}_kernel.o" "$out/${stem}_binding.o" \
@@ -160,21 +185,23 @@ PY
         -lregister -lprofapi -ltiling_api -lplatform \
         -ltorch -ltorch_cpu -lc10 -ltorch_npu
 fi
-provenance_args=(--vendor "$vendor_root" --cann "$cann_root" --output "$out/provenance.json")
-if [[ ${ATTENTION_NORM:-0} == 1 ]]; then
-    provenance_args+=(--norm-vendor "$norm_vendor")
+if [[ ${FAST_BUILD:-0} != 1 ]]; then
+    provenance_args=(--vendor "$vendor_root" --cann "$cann_root" --output "$out/provenance.json")
+    if [[ ${ATTENTION_NORM:-0} == 1 ]]; then
+        provenance_args+=(--norm-vendor "$norm_vendor")
+    fi
+    if [[ ${ATTENTION_INDEXED:-0} == 1 ]]; then
+        provenance_args+=(--with-indexer)
+    fi
+    if [[ ${ATTENTION_INDEXED_PROFILE:-0} == 1 ]]; then
+        provenance_args+=(--indexed-profile)
+    fi
+    if [[ ${ATTENTION_INDEXED_PARALLEL:-0} == 1 ]]; then
+        provenance_args+=(--indexed-parallel)
+    fi
+    if [[ ${ATTENTION_INDEXED_SHADOW:-0} == 1 ]]; then
+        provenance_args+=(--sfa-overlay "$shadow_overlay")
+    fi
+    "$python_bin" "$here/attention_provenance.py" "${provenance_args[@]}"
 fi
-if [[ ${ATTENTION_INDEXED:-0} == 1 ]]; then
-    provenance_args+=(--with-indexer)
-fi
-if [[ ${ATTENTION_INDEXED_PROFILE:-0} == 1 ]]; then
-    provenance_args+=(--indexed-profile)
-fi
-if [[ ${ATTENTION_INDEXED_PARALLEL:-0} == 1 ]]; then
-    provenance_args+=(--indexed-parallel)
-fi
-if [[ ${ATTENTION_INDEXED_SHADOW:-0} == 1 ]]; then
-    provenance_args+=(--sfa-overlay "$shadow_overlay")
-fi
-"$python_bin" "$here/attention_provenance.py" "${provenance_args[@]}"
 echo "built attention artifacts in $out"

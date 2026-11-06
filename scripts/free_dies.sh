@@ -19,13 +19,14 @@
 # holds its memory indefinitely, and the next arm's "Free memory on device"
 # then reads like somebody else's machine.
 set -uo pipefail
-password=${A3_PASSWORD:-Hw123456}
+credentials=${TRT_SSH_CREDENTIALS:-${XDG_CONFIG_HOME:-$HOME/.config}/kbenv/passwords}
 options=(-o StrictHostKeyChecking=no -o ConnectTimeout=8
          -o PreferredAuthentications=password -o PubkeyAuthentication=no)
 
 for host in "$@"; do
+    password=${A3_PASSWORD:-$(awk -F '\t' -v host="$host" '$1 == host {print $2; exit}' "$credentials")}
     printf '%-15s ' "$host"
-    timeout 90 sshpass -p "$password" ssh "${options[@]}" "root@$host" '
+    SSHPASS="$password" timeout 90 sshpass -e ssh "${options[@]}" "root@$host" '
       for card in $(seq 0 7); do
           rate=$(npu-smi info -t usages -i $card 2>/dev/null |
                  awk -F: "/HBM Usage Rate/ {gsub(/ /,\"\",\$2); print \$2; exit}")

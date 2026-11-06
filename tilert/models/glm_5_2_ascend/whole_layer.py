@@ -21,6 +21,7 @@ from .routed_shared import _shared_weights
 from .whole_layer_abi import (
     LocalRecords,
     MetadataLibrary,
+    PreparedChain,
     PreparedLayer,
     TreeLibrary,
     Window,
@@ -32,17 +33,31 @@ BLOCKS = 24
 WIDTHS = (1, 2, 12, 32)
 FFN_NAMESPACE = "tilert_ffn_original_shared_gu_static"
 LIBRARY_HASHES = {
-    "indexed": "8deff7507f538da70fba91bab8e4979f38e6f5848d8cd442b392b82159f908f6",
-    "shared": "",
+    "indexed": "8deff750464e23bb871302c8626b86d37b60c28a00991d550f95dfcfd47ecb6f",
+    "shared": "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c",
     "ffn": "381febf94f918cc7393019b6f99ec8dc38e9a5cc9e63b2d49d5fe483158e3ff2",
     "metadata": "609c973e92b61637f7768ccefb0fbd84b2e13fcfb066b241a41cd5d8376fdd0f",
-    "tree": "7ec3e8fdd6155d99d98a9b69d2d4b02dc43c9417695f7632ad6559f42ecb96b3",
+    "tree": {
+        "7ec3e8fdd6155d99d98a9b69d2d4b02dc43c9417695f7632ad6559f42ecb96b3",
+        "4671998072ae15e8efe69cecf5a3cd88757a431b72ff713dae4d596ca3d9191e",
+    },
 }
 SOURCE_HASHES = {
-    "decoder": "96f4f755f62caa85869fb884209e7f8869882ddb6efbd40c930778b27bd3e39d",
-    "runner": "d4dfab36e66bd0a2ab9d78b9a867335adfc8cf0c418c93b34f5ccef63df00e27",
-    "lookup": "20b69fe514bebd6723a1378f89a564c8fec4144c30244101f629c3f32c188183",
-    "scale": "efdcc610c05a44952c2548e0d8b0cd48ca7704c3e2cf8247f8f08f5e765b830b",
+    "decoder": {
+        "96f4f755f62caa85869fb884209e7f8869882ddb6efbd40c930778b27bd3e39d",
+        "5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408",
+    },
+    "runner": {
+        "d4dfab36e66bd0a2ab9d78b9a867335adfc8cf0c418c93b34f5ccef63df00e27",
+    },
+    "lookup": {
+        "20b69fe514bebd6723a1378f89a564c8fec4144c30244101f629c3f32c188183",
+        "8c3860e0149dcbe2e338393d14f4972c267c93082112d87144593e7a30a9c8f5",
+    },
+    "scale": {
+        "efdcc610c05a44952c2548e0d8b0cd48ca7704c3e2cf8247f8f08f5e765b830b",
+        "d06549f45637300df3e4915823f4f71a913ce7059d1e3a4c475ab1f225e1a28a",
+    },
 }
 
 
@@ -70,7 +85,8 @@ class Libraries:
 
     def verify(self):
         for name, expected in LIBRARY_HASHES.items():
-            if _digest(getattr(self, name)) != expected:
+            allowed = {expected} if isinstance(expected, str) else set(expected)
+            if _digest(getattr(self, name)) not in allowed:
                 raise ValueError(f"The frozen whole-layer {name} library changed")
 
     def paths(self):
@@ -78,7 +94,9 @@ class Libraries:
 
 
 def _source(value, name):
-    if _digest(inspect.getfile(value)) != SOURCE_HASHES[name]:
+    expected = SOURCE_HASHES[name]
+    allowed = {expected} if isinstance(expected, str) else set(expected)
+    if _digest(inspect.getfile(value)) not in allowed:
         raise RuntimeError(f"The supported {name} source changed")
 
 
@@ -346,9 +364,10 @@ class _Arena:
             values[:2] = [attention._nd(value) for value in values[:2]]
             source = values[2]
             if source.dtype == torch.int32:
-                self.slot_buffers.setdefault(
-                    tensor_identity(source), torch.empty_like(
-                        source, dtype=torch.int64))
+                key = tensor_identity(source)
+                buf = self.owner.manager.slot_buffers.setdefault(
+                    key, torch.empty_like(source, dtype=torch.int64))
+                self.slot_buffers.setdefault(key, buf)
 
     def bind(self, hidden, residual, metadata, window):
         import torch
@@ -367,10 +386,15 @@ class _Arena:
                 if key not in self.slot_buffers:
                     if torch.npu.is_current_stream_capturing():
                         raise RuntimeError("The capture changed its reserved slot source")
-                    self.slot_buffers[key] = torch.empty_like(source,
-                                                              dtype=torch.int64)
+                    self.slot_buffers[key] = (
+                        self.owner.manager.slot_buffers.setdefault(
+                            key, torch.empty_like(source, dtype=torch.int64))
+                    )
                 values[2] = self.slot_buffers[key]
-                values[2].copy_(source)
+                if key not in self.owner.manager.slot_refreshed:
+                    values[2].copy_(source)
+                    if self.owner.manager.chain_active:
+                        self.owner.manager.slot_refreshed.add(key)
             fields.append(values)
         main, index = fields
         norm = [hidden, residual, weights.input_gamma, *self.norm_outputs]
@@ -391,9 +415,16 @@ class _Arena:
         key = tuple(tensor_identity(value) for group in groups
                     for value in group if value is not None)
         if key not in self.bindings:
+            shared_topk = (
+                self.selected if weights.mode == "shared"
+                else (weights.topk[:self.rows].view(self.rows, 1, 2048)
+                      if weights.impl.use_index_cache
+                      and self.owner.manager.tree.has_chain
+                      else None)
+            )
             local = LocalRecords(
                 self.owner.manager.metadata_library, *groups,
-                self.selected if weights.mode == "shared" else None,
+                shared_topk,
                 dimensions, weights.scalars, self.sync,
                 weights.mode != "shared")
             self.bindings[key] = PreparedLayer(
@@ -465,11 +496,18 @@ class _Layer:
             else:
                 self.entries[key] = _Arena(self, hidden_states, metadata)
         arena = self.entries[key]
+        if self.manager.chain_enabled and self.name == self.manager.layer_order[0]:
+            self.manager.begin_chain()
         prepared = arena.bind(hidden_states, residual, metadata, window)
         _lookup_runner(self.weights.runner)
-        prepared.launch()
-        if self.weights.mode != "shared" and self.weights.impl.use_index_cache:
-            self.weights.impl._update_indexcache_topk_indices(arena.selected)
+        if self.manager.chain_enabled:
+            self.manager.record_step(self.name, prepared, rows, capturing)
+        else:
+            prepared.launch()
+            if (self.weights.mode != "shared"
+                    and self.weights.impl.use_index_cache
+                    and not self.manager.tree.has_chain):
+                self.weights.impl._update_indexcache_topk_indices(arena.selected)
         self.counters["submitted"] += 1
         self.counters[f"submitted_m{rows}"] += 1
         if capturing:
@@ -489,7 +527,7 @@ class WholeLayerManager:
     """
 
     def __init__(self, config, libraries, *, device, rank, ranks, endpoint,
-                 target_width=12, heap_bytes=1 << 30):
+                 target_width=12, heap_bytes=1 << 30, chain_mode=True):
         import torch
         import torch_npu
         from vllm.distributed import get_tp_group
@@ -531,6 +569,28 @@ class WholeLayerManager:
         self.closed = False
         self.initialized = False
         self.endpoint, self.heap_bytes = endpoint, heap_bytes
+        self.chain_mode = bool(
+            chain_mode
+            and os.environ.get("TILERT_WHOLE_LAYER_CHAIN", "1") == "1"
+        )
+        self.chain_enabled = False
+        self.chain_active = False
+        self.layer_order = ()
+        self.pending_steps = []
+        self.slot_buffers = {}
+        self.slot_refreshed = set()
+        self.chain_reserves = {}
+        self.chains = {}
+        self.copy_stream = None
+
+    def _allocate_chain_buffer(self):
+        import torch
+
+        chain_bytes = len(self.layer_order) * 1656
+        raw = torch.empty(chain_bytes + 64, dtype=torch.uint8,
+                          device=self.device)
+        offset = (-int(raw.data_ptr())) % 64
+        return raw[offset:offset + chain_bytes]
 
     def install_model(self, model):
         """Install every MoE Decoder in a loaded backbone, then initialize SHMEM."""
@@ -563,9 +623,48 @@ class WholeLayerManager:
             self.layers[item.name] = item
             item.layer.forward = MethodType(item.forward, item.layer)
         self.dense = [layer.layer_idx for layer in values if layer not in expected]
+        self.layer_order = tuple(names)
+        indices = [item.layer.layer_idx for item in prepared]
+        contiguous = indices == list(range(indices[0], indices[0] + len(indices)))
+        self.chain_enabled = bool(self.chain_mode and self.tree.has_chain
+                                  and contiguous)
+        if self.chain_enabled:
+            self.copy_stream = torch.npu.Stream(device=self.device)
         # Eager and graph streams have separate symmetric storage and epochs.
         self.window(torch.npu.current_stream(self.device), False)
         return self
+
+    def begin_chain(self):
+        self.chain_active = True
+        self.slot_refreshed.clear()
+        self.pending_steps = []
+
+    def record_step(self, name, prepared, rows, capturing):
+        expected_index = len(self.pending_steps)
+        if (not self.chain_active
+                or expected_index >= len(self.layer_order)
+                or self.layer_order[expected_index] != name):
+            self.chain_active = False
+            self.pending_steps.clear()
+            raise RuntimeError("Chain execution encountered an unexpected layer order")
+        self.pending_steps.append(prepared)
+        if len(self.pending_steps) == len(self.layer_order):
+            steps = tuple(self.pending_steps)
+            self.pending_steps.clear()
+            self.chain_active = False
+            self.slot_refreshed.clear()
+            chain_key = ("capture" if capturing else "eager", rows, *steps)
+            if chain_key not in self.chains:
+                if capturing:
+                    if rows not in self.chain_reserves:
+                        raise RuntimeError("Capture has no reserved chain descriptor buffer")
+                    steps_device = self.chain_reserves.pop(rows)
+                    self.chains[chain_key] = PreparedChain(
+                        steps, steps_device, self.copy_stream)
+                else:
+                    steps_device = self._allocate_chain_buffer()
+                    self.chains[chain_key] = PreparedChain(steps, steps_device)
+            self.chains[chain_key].launch()
 
     def window(self, stream, capturing):
         key = stream.npu_stream
@@ -596,6 +695,8 @@ class WholeLayerManager:
             self.window(self.capture_stream, False)
         for layer in self.layers.values():
             layer.reserve(reference)
+        if self.chain_enabled and rows not in self.chain_reserves:
+            self.chain_reserves[rows] = self._allocate_chain_buffer()
         self.capture_width = rows
         self.capture_seen = set()
 
@@ -627,8 +728,13 @@ class WholeLayerManager:
                 for tensor in arena.tensors():
                     value = tensor.untyped_storage()
                     storage[(tensor.device, value.data_ptr())] = value.nbytes()
+        for tensor in (*self.chain_reserves.values(),
+                       *(chain.steps_device for chain in self.chains.values())):
+            value = tensor.untyped_storage()
+            storage[(tensor.device, value.data_ptr())] = value.nbytes()
         return {"installed": tuple(self.layers), "dense_layers": self.dense,
                 "target_width": self.target_width,
+                "chain_enabled": self.chain_enabled,
                 "layers": {name: dict(layer.counters)
                            for name, layer in self.layers.items()},
                 "captures": list(self.capture_history),
@@ -647,6 +753,12 @@ class WholeLayerManager:
             torch.distributed.barrier(group=self.group.cpu_group)
         for layer in self.layers.values():
             layer.restore()
+        self.chains.clear()
+        self.chain_reserves.clear()
+        self.slot_buffers.clear()
+        self.slot_refreshed.clear()
+        self.pending_steps.clear()
+        self.copy_stream = None
         for window in reversed(tuple(self.windows.values())):
             window.close()
         self.windows.clear()

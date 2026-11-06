@@ -296,6 +296,7 @@ class CannModel:
         self._restore_routed_shared = []
         self._restore_mla_tail = []
         self._restore_native_attention = []
+        self._attention_trace = None
         _choose_collective_engine(aiv_collectives)
         self.rope_graph = rope_graph
         self._rope_graphs = {}
@@ -411,6 +412,9 @@ class CannModel:
         if self.whole_layer_path is not None:
             self._install_whole_layer()
         self._prepare_fused_workspaces(self.graph_width)
+        from .attention_trace import install
+
+        self._attention_trace = install(self)
 
     def _install_whole_layer(self):
         from vllm.config import set_current_vllm_config
@@ -560,6 +564,9 @@ class CannModel:
         self._rope_graphs.clear()
         if self.graph is not None:
             self.graph.close()
+        if self._attention_trace is not None:
+            self._attention_trace.close()
+            self._attention_trace = None
         if self._whole_layer is not None:
             self._whole_layer.close_after_graphs()
             self._whole_layer = None
@@ -840,6 +847,9 @@ class CannModel:
                 for name, destination in target.items():
                     destination[:length].copy_(source[name])
         self.position = length
+
+        if self._attention_trace is not None:
+            self._attention_trace.request += 1
 
     def _metadata(self, width=1, *, graphed=False, depths=None,
                   host_values=None):
@@ -1141,6 +1151,10 @@ class CannModel:
                 else:
                     logits = self.model.compute_logits(hidden)
                     token_ids = logits.argmax(dim=-1)
+                if self._attention_trace is not None:
+                    self._attention_trace.dump(
+                        self.position, width, getattr(self, "_active_rows", width),
+                        self.input_ids)
                 self.position += width
                 return CannStep(
                     logits if full_logits else None, hidden, token_ids,
@@ -1170,6 +1184,10 @@ class CannModel:
                 else:
                     logits = self.model.compute_logits(hidden)
                     token_ids = logits.argmax(dim=-1)
+            if self._attention_trace is not None:
+                self._attention_trace.dump(
+                    self.position, width, getattr(self, "_active_rows", width),
+                    self.input_ids)
             self.position += width
             return CannStep(
                 logits if full_logits else None, hidden, token_ids,

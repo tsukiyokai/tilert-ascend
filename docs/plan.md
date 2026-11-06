@@ -4,6 +4,33 @@ TileRT-Ascend 是构建在 Ascend 上的专用低时延 decode 框架：它从�
 
 ## 当前验收
 
+当前子任务是 A3 单机 TP8+EP8、`case-00`、8K 前缀、1024 输出、冻结 `LookupDrafter(shortest=2,width=32)` 的 Megakernel 数值轨迹修复。验收要求三次预热和三次测量全部复现 223 轮、输出 SHA `4fb8be2df58a4ea7f75ac1193749df945950129dfade1691b02c6c6c6b21443b`，且八个 rank 的接受与状态历史一致。[实验登记](experiments.json)保存候选状态与收据位置。
+
+`w112-sfa-restored-v7` 是历史轨迹基准，记录 TPOT 中位数 8.808 ms。新流程的 `w115-discrete-control` 使用只读 Git 快照、独立缓存，六次均复现黄金轨迹，三次测量 TPOT 中位数 8.846 ms，已登记为当前轨迹对照。`v3x9` 六次均为 373 轮，已拒绝。`v3x10` 的十个单 die 分桶、140 项逐位检查通过，整模六次为 197/223/223/276/223/223 轮，输出存在跳变且未匹配黄金 SHA，已拒绝。离散对照已复现，下一步在相同真实输入上定位首个 attention 边界差异。`v3x12` 改用快照内完整 QLI/SFA 补丁构建，七个头文件哈希一致，真实权重前端与七种动态行数共 112 项逐位检查通过；正式六次均为 223 轮、输出 SHA 均为 `3877d3aa…`，仍在 token 443 首差，已拒绝；本次未复现跨请求输出跳变。真实观测已锁定 position 8631 的第 30 层：输入逐位相同，输出仅第 6、30 行不同；此前 30 层的输入输出均逐位相同。正在比较该层的 QLI 实参与中间状态。数值轨迹通过后再进行配对性能验收。
+
+## 项目与产物管理
+
+|内容|位置|管理方式|
+|---|---|---|
+|可编辑源码|`tilert/`、`tests/`、`patches/`、`scripts/`、`experiments/`|Git 提交与独立源码快照|
+|目标、计划、实验状态|`docs/goal.txt`、本文、`docs/experiments.json`、`docs/probe.md`|随源码版本保存|
+|源码快照|`refs/snapshots/<版本>`、`.artifacts/snapshots/<版本>/`|临时 index 建树，保存源码包与工作区差异，不改当前暂存区|
+|当前实验收据与二进制|`.artifacts/runs/<实验>/`|独立复制，逐文件 SHA256，记录验收结果与源码身份|
+|历史产物|`docs/evidence/`、`evidence/`、`reports/`、既有构建目录|保留原件；当前实验归档后按 manifest 读取|
+|登录凭据|仓库外的 `~/.config/kbenv/passwords`|权限 0600；启动脚本按主机读取|
+
+在新工作区执行 `python scripts/project.py init` 安装仓库提交钩子。钩子拒绝把构建目录、版本化动态库、权重、日志和原始运行收据新增或改写进源码提交。历史已跟踪产物保持原样。
+
+用 `python scripts/project.py inventory` 更新本地目录清单。用 `python scripts/project.py snapshot <版本>` 建立不可覆盖的 WIP 源码快照。用 `python scripts/project.py register <实验> --evidence <收据目录> --audit <验收JSON> --source-ref <快照ref> --binary <动态库>` 归档实验，多个动态库重复传入 `--binary`。用 `python scripts/project.py verify <manifest.json>` 复核归档字节与快照 ref。历史记录缺少完整源码身份时显式使用 `--legacy`，登记为历史基准或失败候选。
+
+源码快照排除原始收据和构建目录。用 `git worktree add --detach <新目录> refs/snapshots/<版本>` 在独立目录恢复源码，原工作区继续保留历史文件。重复登记同一份实验数据会验证既有归档；同名但字节不同的实验必须改用新版本名。
+
+组件通过、整模轨迹通过和可发布版本分别登记。`summary.json` 的 `measured` 只说明测量及内部一致性检查完成，黄金轨迹须由 `scripts/check_whole_layer_exp.py` 独立核对。失败候选保留源码和收据，不进入性能结论。
+
+`scripts/run_whole_layer_exp.sh <主机> <版本> <实验> <fast|formal|diagnostic>` 从源码快照启动，容器只读挂载源码，构建、编译缓存和收据均按版本或实验独占目录。`source_commit` 使用真实 Git commit。设置 `NATIVE_ATTENTION=0` 运行离散对照；`diagnostic` 仅生成 448 token、一次预热、一次测量请求，不用于性能验收。原生构建从版本独占的 vendor 副本读取头文件，应用快照内 QLI/SFA 补丁，保存依赖源码包与构建日志。正式运行后自动保存库、编译产物与独立验收结果，归档到 `.artifacts/runs/<实验>/`。同名结果不会被覆盖。已存在的版本名复用经哈希校验的冻结快照；源码有改动时先选择新版本名。实际启动脚本随收据保存，依赖源码包、两份构建 provenance 和构建日志一并归档。 `TRACE_ATTENTION=1` 在诊断运行中保存 rank0、position 8631 的真实 attention 边界与 layer0 状态；图内只复制 NPU 缓冲，TP 延迟融合完成后记录输出，回放后导出。该观测不进入性能结论。
+
+## 2026-10-29 阶段记录
+
 A3 单 die 已通过 [token staging 对照](evidence/ascend-decode/token-staging-a3-20261028/README.md)，width32 配对节省 p50 为 2.13–2.24 ms/整数夹具轮；[SFA 元数据预搬运](evidence/ascend-decode/sfa-metadata-a3-20261028/README.md)数值通过却使配对时延退化，保留原实现。规约所有权与数据交换原型、Carver 资源修正均已留档；组件结果继续接到真实权重、TP16 和在线门禁。
 
 整模数值基线与独立组件计时分别推进。[修正包TP16复验](evidence/ascend-decode/fixed-hf-launch-20261029/README.md#9392完整复验)已取得576个PT，16rank状态与reset_exact通过，HF及M1/M32仍失败。[第一层边界](evidence/ascend-decode/layer0-boundaries-a3-20261029/README.md)已把首差收窄到SFA及上游。[BF16 score与先展开Value组合](evidence/ascend-decode/attention-rounding-a3-20261029/README.md)的真实TP16 h1误差从0.003595降至0.001961；前三层h3改善未达预注册30%目标。[完整常驻模型](evidence/ascend-decode/resident-attention-a3-20261029/README.md)现已完成两臂各首帧与精确reset，16rank全字段一致；组合把首个hidden越界h7推迟到h8、首个专家选择分歧从layer6推迟到14，最终logits NRMSE为0.0771525→0.0608584，仍未过精度门禁。[prefix Value缓存](evidence/ascend-decode/prefix-values-a3-20261029/README.md)已在单die验证一次准备、decode仅投影当前行的接线；[三臂计时](evidence/ascend-decode/prefix-value-timing-a3-20261029/README.md)中缓存墙钟p50为906.016µs，慢于展开的783.941µs及原生的263.544µs，未达预测，结束此实现的性能接入。[layer68索引顺序干预](evidence/ascend-decode/layer68-boundaries-a3-20261029/README.md)已使选定row13在16rank的M1/M32 h69及logits逐位一致；[完整SFA计时](evidence/ascend-decode/sfa-order-timing-a3-20261029/README.md)显示排序未获得双钟净收益，停止此实现的性能接入。数值侧继续闭合完整HF、其他行、八个冻结8K输入与在线双时钟；性能侧转向改变数据流、通信所有权或执行包络的对照，先验收完整组件成本，再接真实整轮。既有规约和graph原型保留。

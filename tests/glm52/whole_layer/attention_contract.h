@@ -7,7 +7,11 @@ namespace whole_layer_attention {
 
 constexpr uint32_t kHidden = 6144;
 constexpr uint32_t kQueryRank = 2048;
+#ifndef ATTENTION_HEADS
 constexpr uint32_t kHeads = 4;
+#else
+constexpr uint32_t kHeads = ATTENTION_HEADS;
+#endif
 constexpr uint32_t kNope = 192;
 constexpr uint32_t kRope = 64;
 constexpr uint32_t kLatent = 512;
@@ -63,7 +67,7 @@ inline Config MakeConfig(uint32_t rows, uint32_t pages, uint32_t table_pages,
     config.rope_offset = Align(rows * kHeads * kLatent * 2ULL);
     config.work_offset = Align(config.rope_offset + rows * kHeads * kRope * 2ULL);
     // Vendor host reserves BF16-sized query-norm storage even for W8 output.
-    config.prolog_bytes = Align(rows * 20224ULL);
+    config.prolog_bytes = Align(rows * (14592ULL + 1408ULL * kHeads));
     // V-template: double-buffered QK/P/PV, four merged-KV tiles and valid IDs.
     config.sfa_bytes = Align(blocks * (12ULL * config.mm_elements +
         8ULL * config.bmm_elements + 512ULL * 576 * 4 * 2 + 2ULL * 128 * 4 * 4));

@@ -73,6 +73,16 @@ __aicore__ inline void Forward(AscendC::TPipe& pipe, const Config& c,
     GM_ADDR memory = a.scratch;
     PhaseTrace trace;
     trace.Mark(0);
+    AscendC::GlobalTensor<int32_t> query_lengths;
+    query_lengths.SetGlobalBuffer((__gm__ int32_t*)a.main_metadata[3], 1);
+    AscendC::DataCacheCleanAndInvalid<int32_t,
+        AscendC::CacheLine::SINGLE_CACHE_LINE,
+        AscendC::DcciDst::CACHELINE_OUT>(query_lengths);
+    const int32_t q_len = query_lengths.GetValue(0);
+    whole_layer_attention::Config c_attn = c.attention;
+    const indexer_front::Config& c_front = c.front;
+    const whole_layer_indexer::Config& c_indexer = c.indexer;
+
     const whole_layer_attention::DeviceArgs attention{
         a.token_x, a.token_scale, a.main_weights[0], a.main_weights[1],
         a.main_weights[2], a.main_weights[3], a.main_weights[4],
@@ -81,7 +91,7 @@ __aicore__ inline void Forward(AscendC::TPipe& pipe, const Config& c,
         a.main_metadata[2], a.caches[0], a.caches[1], memory + c.topk,
         a.main_metadata[3], a.main_metadata[4], a.main_metadata[5],
         memory + c.attention_offset, memory + c.latent};
-    whole_layer_attention::PrologPhase(pipe, c.attention, attention,
+    whole_layer_attention::PrologPhase(pipe, c_attn, attention,
         memory + c.query_norm, memory + c.query_norm_scale);
     trace.Mark(1);
 
@@ -91,12 +101,15 @@ __aicore__ inline void Forward(AscendC::TPipe& pipe, const Config& c,
         a.front_weights[3], a.front_weights[4], a.indexer_metadata[1],
         a.indexer_metadata[0], a.front_weights[5], memory + c.front_offset,
         a.tiling, memory + c.query, memory + c.key, memory + c.weights,
-        memory + c.query_scale, memory + c.key_scale};
+        memory + c.query_scale, memory + c.key_scale,
+        a.indexer_metadata[2], a.caches[2], a.caches[3],
+        static_cast<int64_t>(c_indexer.pages) * whole_layer_indexer::kPage,
+        c.attention.rows, q_len};
 #ifdef SFA_PACKED_SHADOW_KV
-    indexer_front::device::Forward(pipe, c.front, front,
+    indexer_front::device::Forward(pipe, c_front, front,
         ShadowRows{a.caches[0], a.caches[1], a.main_metadata[2], a.caches[4]});
 #else
-    indexer_front::device::Forward(pipe, c.front, front);
+    indexer_front::device::Forward(pipe, c_front, front);
 #endif
     trace.Mark(2);
 
@@ -105,21 +118,28 @@ __aicore__ inline void Forward(AscendC::TPipe& pipe, const Config& c,
         memory + c.query_scale, memory + c.key_scale, a.indexer_metadata[2],
         a.caches[2], a.caches[3], a.indexer_metadata[3], a.indexer_metadata[4],
         a.indexer_metadata[5], memory + c.indexer_offset, memory + c.topk};
-    whole_layer_indexer::Forward(pipe, c.indexer, indexer);
+    whole_layer_indexer::Forward(pipe, c_indexer, indexer,
+                                 c_front.quantized != 0);
     trace.Mark(3);
+    const uint32_t sfa_rows =
+        (q_len > 0 && q_len <= static_cast<int32_t>(c.attention.rows))
+            ? static_cast<uint32_t>(q_len)
+            : c.attention.rows;
+    c_attn.rows = sfa_rows;
 #ifdef SFA_PACKED_SHADOW_KV
-    whole_layer_attention::SfaPhase(pipe, c.attention, attention, a.caches[4]);
+    whole_layer_attention::SfaPhase(pipe, c_attn, attention, a.caches[4]);
 #else
-    whole_layer_attention::SfaPhase(pipe, c.attention, attention);
+    whole_layer_attention::SfaPhase(pipe, c_attn, attention);
 #endif
     trace.Mark(4);
 
-    mla_tail::device::Forward(pipe, (__gm__ bfloat16_t*)(memory + c.latent),
+    mla_tail::device::Forward<whole_layer_attention::kHeads>(
+        pipe, (__gm__ bfloat16_t*)(memory + c.latent),
         (__gm__ bfloat16_t*)a.tail_weights[0], (__gm__ int8_t*)a.tail_weights[1],
         (__gm__ float*)a.tail_weights[2], a.bias, bias_kind,
         memory + c.tail_offset, a.tiling + indexer_front::kTilingBytes,
-        (__gm__ bfloat16_t*)a.output, c.attention.rows, c.front.capacity,
-        c.attention.blocks, c.tail);
+        (__gm__ bfloat16_t*)a.output, sfa_rows, c.front.capacity,
+        c.attention.blocks, c.tail, false);
     whole_layer_attention::EndPhase(pipe);
     trace.Mark(5);
     trace.Store(c, memory);

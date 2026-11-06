@@ -22,14 +22,15 @@ class Region:
     size: int
 
 
-def workspace_layout(capacity):
+def workspace_layout(capacity, heads=HEADS):
     """Return disjoint byte ranges, including every padded cube row."""
-    if capacity not in (16, 32):
-        raise ValueError("capacity must be 16 or 32")
+    if capacity not in (16, 32) or heads not in (4, 8):
+        raise ValueError("capacity must be 16|32 and heads must be 4|8")
+    projection_input = heads * VALUE
     sizes = (
-        ("heads", capacity * HEADS * LATENT * 2),
-        ("values", capacity * PROJECTION_INPUT * 4),
-        ("quantized", capacity * PROJECTION_INPUT),
+        ("heads", capacity * heads * LATENT * 2),
+        ("values", capacity * projection_input * 4),
+        ("quantized", capacity * projection_input),
         ("token_scales", capacity * 8 * 4),
         ("accumulators", capacity * HIDDEN * 4),
         ("system", SYSTEM_WORKSPACE_BYTES),
@@ -74,16 +75,22 @@ def quantize_rows(values):
 
 
 def pack_weights(value_weight, output_weight):
-    """Pack logical ND W_UV[4,512,256] and o_proj[1024,6144]."""
-    if value_weight.shape != (HEADS, LATENT, VALUE):
-        raise ValueError("value_weight must be [4,512,256]")
-    if output_weight.shape != (PROJECTION_INPUT, HIDDEN):
-        raise ValueError("output_weight must be [1024,6144]")
-    value_tiles = value_weight.reshape(HEADS, LATENT, 4, VALUE_TILE)
+    """Pack logical ND W_UV[H,512,256] and o_proj[256*H,6144]."""
+    if (value_weight.ndim != 3 or value_weight.shape[0] not in (4, 8)
+            or value_weight.shape[1:] != (LATENT, VALUE)):
+        raise ValueError("value_weight must be [4|8,512,256]")
+    heads = value_weight.shape[0]
+    projection_input = heads * VALUE
+    value_tile = projection_input // 16
+    if output_weight.shape != (projection_input, HIDDEN):
+        raise ValueError(f"output_weight must be [{projection_input},6144]")
+    value_tiles = value_weight.reshape(
+        heads, LATENT, VALUE // value_tile, value_tile,
+    )
     value_tiles = value_tiles.transpose(0, 2, 1, 3).copy()
-    output_tiles = output_weight.reshape(PROJECTION_INPUT, 24, OUTPUT_TILE)
+    output_tiles = output_weight.reshape(projection_input, 24, OUTPUT_TILE)
     output_tiles = output_tiles.transpose(1, 0, 2).copy()
-    return value_tiles.reshape(16, LATENT, VALUE_TILE), output_tiles
+    return value_tiles.reshape(16, LATENT, value_tile), output_tiles
 
 
 def dequantize(accumulator, weight_scale, token_scale, bias=None):
@@ -99,8 +106,9 @@ def dequantize(accumulator, weight_scale, token_scale, bias=None):
 
 def reference(latent, value_weight, output_weight, weight_scale, bias=None):
     """The original two projections with the intervening BF16/A8 boundary."""
+    projection_input = latent.shape[1] * VALUE
     expanded = np.einsum("mhd,hdv->mhv", latent, value_weight, optimize=True)
-    expanded = bf16_round(expanded).reshape(latent.shape[0], PROJECTION_INPUT)
+    expanded = bf16_round(expanded).reshape(latent.shape[0], projection_input)
     quantized, token_scale = quantize_rows(expanded)
     accumulator = quantized.astype(np.int32) @ output_weight.astype(np.int32)
     return dequantize(accumulator, weight_scale, token_scale, bias)
@@ -113,13 +121,15 @@ def tiled_reference(latent, value_tiles, output_tiles, weight_scale,
         raise ValueError("invalid row capacity")
     if blocks <= 0:
         raise ValueError("blocks must be positive")
-    rows = latent.shape[0]
-    heads = np.zeros((HEADS, capacity, LATENT), dtype=np.float32)
+    rows, head_count, _ = latent.shape
+    value_tile = (head_count * VALUE) // 16
+    tiles_per_head = VALUE // value_tile
+    heads = np.zeros((head_count, capacity, LATENT), dtype=np.float32)
     heads[:, :rows] = latent.transpose(1, 0, 2)
-    values = np.full((16, capacity, VALUE_TILE), np.nan, dtype=np.float32)
+    values = np.full((16, capacity, value_tile), np.nan, dtype=np.float32)
     for core in range(blocks):
         for tile in range(core, 16, blocks):
-            values[tile] = heads[tile // 4] @ value_tiles[tile]
+            values[tile] = heads[tile // tiles_per_head] @ value_tiles[tile]
     expanded = bf16_round(values.transpose(1, 0, 2))
     quantized, token_scale = quantize_rows(expanded.reshape(capacity, -1))
     accumulator = np.empty((24, capacity, OUTPUT_TILE), dtype=np.int32)

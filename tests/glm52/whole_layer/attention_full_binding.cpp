@@ -17,22 +17,26 @@ std::tuple<at::Tensor, at::Tensor, int64_t, int64_t> PrepareFull(
     CheckShape(token_x, at::kChar, {token_x.size(0), kHidden}, "token_x");
     const auto launch = PrepareDevice(token_x.get_device());
     if (blocks == 0) {
-        blocks = std::min<int64_t>(8, launch.maximum_blocks);
+        blocks = launch.maximum_blocks;
     }
     TORCH_CHECK(blocks > 0 && blocks <= launch.maximum_blocks,
                 "blocks exceed physical mixed 1:2 residency");
     const auto config = MakeFullConfig(MakeConfig(token_x.size(0), pages,
         table_pages, blocks, 1.0F, 1e-5F, 1e-5F));
-    std::vector<uint8_t> host_tiling(mla_tail::kTilingBytes);
-    TORCH_CHECK(mla_tail_build_tiling(config.capacity, host_tiling.data()) == 0,
-                "tail matmul tiling failed");
     auto scratch = at::empty({static_cast<int64_t>(config.bytes)},
                              token_x.options().dtype(at::kByte));
     auto tiling = at::empty({config.capacity, static_cast<int64_t>(mla_tail::kTilingBytes)},
                             token_x.options().dtype(at::kByte));
-    TORCH_CHECK(aclrtMemcpy(tiling.data_ptr(), tiling.nbytes(), host_tiling.data(),
-                host_tiling.size(), ACL_MEMCPY_HOST_TO_DEVICE) == ACL_SUCCESS,
-                "tail tiling upload failed");
+    auto cpu = at::zeros(tiling.sizes(), at::TensorOptions().dtype(at::kByte));
+    auto* bytes = cpu.data_ptr<uint8_t>();
+    TORCH_CHECK(mla_tail_build_tiling(config.capacity, bytes, kHeads) == 0,
+                "tail matmul tiling failed");
+    if (config.capacity == 32) {
+        TORCH_CHECK(mla_tail_build_tiling(
+                        16, bytes + mla_tail::kTilingBytes, kHeads) == 0,
+                    "tail M=16 matmul tiling failed");
+    }
+    tiling.copy_(cpu);
     return {scratch, tiling, blocks, static_cast<int64_t>(launch.sync_base)};
 }
 
@@ -61,8 +65,8 @@ at::Tensor FullOut(
         rope_cache, topk, query_lengths, kv_lengths, page_table,
         scratch, output, scale, epsilon_cq, epsilon_ckv, blocks, false);
     const FullConfig config = MakeFullConfig(attention);
-    CheckShape(value_weight, at::kBFloat16, {16, 512, 64}, "value_weight");
-    CheckShape(output_weight, at::kChar, {24, 1024, 256}, "output_weight");
+    CheckShape(value_weight, at::kBFloat16, {mla_tail::kValueTiles, 512, mla_tail::kValueTile}, "value_weight");
+    CheckShape(output_weight, at::kChar, {mla_tail::kOutputTiles, mla_tail::kProjectionInput, 256}, "output_weight");
     CheckShape(output_scale, at::kFloat, {6144}, "output_scale");
     CheckShape(output, at::kBFloat16, {attention.rows, 6144}, "output");
     CheckShape(scratch, at::kByte, {static_cast<int64_t>(config.bytes)}, "scratch");
@@ -102,7 +106,7 @@ at::Tensor FullOut(
             at::assert_no_overlap(written[index], written[previous]);
         }
     }
-    whole_layer_full_attention_launch(c10_npu::getCurrentNPUStream().stream(),
+    whole_layer_full_attention_launch(c10_npu::getCurrentNPUStream().stream(true),
         static_cast<uint64_t>(sync_base), config, token_x.data_ptr(),
         token_scale.data_ptr(), weight_dq.data_ptr(), weight_uq_qr.data_ptr(),
         weight_uk.data_ptr(), weight_dkv_kr.data_ptr(), scale_dq.data_ptr(),

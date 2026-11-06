@@ -32,6 +32,9 @@ class CannGraph:
 
         self.device = engine.device
         self._prepare_fused_workspaces = engine._prepare_fused_workspaces
+        self._validate_fused_capture = getattr(
+            engine, "_validate_fused_capture", lambda _width: None,
+        )
         self.config = engine.config
         self.model = engine.model
         self.width = width
@@ -136,6 +139,7 @@ class CannGraph:
             caller_stream.wait_stream(self.capture_stream)
         finally:
             monitor.set_cudagraph_capturing_enabled(enabled)
+        self._validate_fused_capture(self.width)
         entry = self.wrapper.concrete_aclgraph_entries[self.descriptor]
         if entry.aclgraph is None:
             raise RuntimeError("The wrapper did not create an ACL graph")

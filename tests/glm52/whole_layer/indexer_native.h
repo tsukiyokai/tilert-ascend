@@ -124,14 +124,27 @@ __aicore__ inline LITilingData Bf16Tiling(const Config& config)
 // differs from the mixed-core barrier and its scratch remains live until the
 // final mixed barrier completes.
 __aicore__ inline void Forward(AscendC::TPipe& pipe, const Config& config,
-                               const DeviceArgs& args)
+                               const DeviceArgs& args,
+                               bool cache_written = false)
 {
-    if (config.quantized) {
-        WriteCache<int8_t, true>(pipe, config, args);
-    } else {
-        WriteCache<bfloat16_t, false>(pipe, config, args);
+    if (!cache_written) {
+        if (config.quantized) {
+            WriteCache<int8_t, true>(pipe, config, args);
+        } else {
+            WriteCache<bfloat16_t, false>(pipe, config, args);
+        }
+        EndPhase(pipe);
     }
-    EndPhase(pipe);
+    AscendC::GlobalTensor<int32_t> query_lengths;
+    AscendC::GlobalTensor<int32_t> key_lengths;
+    query_lengths.SetGlobalBuffer((__gm__ int32_t*)args.query_lengths, 1);
+    key_lengths.SetGlobalBuffer((__gm__ int32_t*)args.key_lengths, 1);
+    AscendC::DataCacheCleanAndInvalid<int32_t,
+        AscendC::CacheLine::SINGLE_CACHE_LINE,
+        AscendC::DcciDst::CACHELINE_OUT>(query_lengths);
+    AscendC::DataCacheCleanAndInvalid<int32_t,
+        AscendC::CacheLine::SINGLE_CACHE_LINE,
+        AscendC::DcciDst::CACHELINE_OUT>(key_lengths);
     if (config.quantized) {
         const auto tiling = QuantTiling(config);
         using Type = QLICommon::QLIType<int8_t, int8_t, int32_t, true,

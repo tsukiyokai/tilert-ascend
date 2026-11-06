@@ -31,6 +31,7 @@ def parse_arguments():
                         help="Use seed-830 channel scales with varied exponents")
     parser.add_argument("--widths", type=int, nargs="+",
                         default=[1, 2, 4, 6, 8, 12, 16, 24, 32])
+    parser.add_argument("--heads", type=int, default=4, choices=(4, 8))
     parser.add_argument("--blocks", type=int, nargs="+", default=[0])
     parser.add_argument("--replays", type=int, default=8)
     parser.add_argument("--iterations", type=int, default=100)
@@ -62,15 +63,16 @@ def load_inputs(torch, args):
         if missing:
             raise ValueError(f"fixture is missing {sorted(missing)}")
         return fixture
+    heads = args.heads
     generator = torch.Generator().manual_seed(829)
     return {
-        "latent": torch.randn(32, 4, 512, generator=generator).to(torch.bfloat16),
+        "latent": torch.randn(32, heads, 512, generator=generator).to(torch.bfloat16),
         "value_weight": (
-            torch.randn(4, 512, 256, generator=generator) / 32
+            torch.randn(heads, 512, 256, generator=generator) / 32
         ).to(torch.bfloat16),
-        "output_weight": torch.randint(-127, 128, (1024, 6144),
+        "output_weight": torch.randint(-127, 128, (heads * 256, 6144),
                                         generator=generator, dtype=torch.int8),
-        "output_scale": torch.full((6144,), 1 / 1024, dtype=torch.float32),
+        "output_scale": torch.full((6144,), 1 / (heads * 256), dtype=torch.float32),
     }
 
 
@@ -115,17 +117,19 @@ def provenance(torch, torch_npu, args):
 
 
 def validate_inputs(torch, fixture, maximum_width):
-    expected = {
-        "value_weight": ((4, 512, 256), torch.bfloat16),
-        "output_weight": ((1024, 6144), torch.int8),
-        "output_scale": ((6144,), None),
-    }
     latent = fixture["latent"]
     if (not torch.is_tensor(latent) or latent.dim() != 3
-            or tuple(latent.shape[1:]) != (4, 512)
+            or latent.shape[1] not in (4, 8)
+            or latent.shape[2] != 512
             or latent.shape[0] < maximum_width
             or latent.dtype != torch.bfloat16):
-        raise ValueError("latent must be BF16 [M,4,512] with enough rows")
+        raise ValueError("latent must be BF16 [M,4|8,512] with enough rows")
+    heads = int(latent.shape[1])
+    expected = {
+        "value_weight": ((heads, 512, 256), torch.bfloat16),
+        "output_weight": ((heads * 256, 6144), torch.int8),
+        "output_scale": ((6144,), None),
+    }
     for name, (shape, dtype) in expected.items():
         tensor = fixture[name]
         if (not torch.is_tensor(tensor) or tuple(tensor.shape) != shape
@@ -199,7 +203,10 @@ def inspect_intermediates(torch, torch_npu, scratch, capacity, latent,
                           value_weight):
     from contract import workspace_layout
 
-    regions = {region.name: region for region in workspace_layout(capacity)}
+    heads = int(latent.shape[1])
+    projection_input = heads * 256
+    value_tile = projection_input // 16
+    regions = {region.name: region for region in workspace_layout(capacity, heads)}
     # Read only user scratch, excluding the Matmul system workspace.
     raw = scratch[:regions["system"].offset].cpu()
 
@@ -208,15 +215,15 @@ def inspect_intermediates(torch, torch_npu, scratch, capacity, latent,
         return raw[part.offset:part.offset + part.size].view(dtype)
 
     rows = latent.shape[0]
-    values = region("values", torch.float32).reshape(16, capacity, 64)
-    values = values.permute(1, 0, 2).reshape(capacity, 1024)
+    values = region("values", torch.float32).reshape(16, capacity, value_tile)
+    values = values.permute(1, 0, 2).reshape(capacity, projection_input)
     values = values[:rows].to(torch.bfloat16)
-    codes = region("quantized", torch.int8).reshape(capacity, 1024)[:rows]
+    codes = region("quantized", torch.int8).reshape(capacity, projection_input)[:rows]
     scales = region("token_scales", torch.float32).reshape(capacity, 8)[:rows, 0]
     expected_values = torch_npu.npu_transpose_batchmatmul(
         latent, value_weight, perm_x1=(1, 0, 2), perm_x2=(0, 1, 2),
         perm_y=(1, 0, 2),
-    ).reshape(rows, 1024)
+    ).reshape(rows, projection_input)
     expected_codes, expected_scales = torch_npu.npu_dynamic_quant(expected_values)
     expected_codes_cpu = expected_codes.cpu()
     return {
@@ -237,6 +244,7 @@ def run_case(torch, torch_npu, args, source, weights, width, requested_blocks):
      vendor_scale, bias) = weights
     capacity = 16 if width <= 16 else 32
     latent = source[:width].clone()
+    projection_input = int(latent.shape[1]) * 256
     output = torch.empty((width, 6144), dtype=torch.bfloat16, device=args.device)
     scratch, tiling, blocks, sync_base = torch.ops.tilert.mla_tail_prepare(
         latent, capacity, requested_blocks,
@@ -254,7 +262,7 @@ def run_case(torch, torch_npu, args, source, weights, width, requested_blocks):
         expanded = torch_npu.npu_transpose_batchmatmul(
             vendor_latent, value_weight, perm_x1=(1, 0, 2), perm_x2=(0, 1, 2),
             perm_y=(1, 0, 2),
-        ).reshape(width, 1024)
+        ).reshape(width, projection_input)
         codes, token_scale = torch_npu.npu_dynamic_quant(expanded)
         return torch_npu.npu_quant_matmul(
             codes, output_weight, vendor_scale, pertoken_scale=token_scale,
@@ -345,16 +353,23 @@ def main():
     fixture = load_inputs(torch, args)
     validate_inputs(torch, fixture, max(args.widths))
     source = fixture["latent"].to(device=args.device, dtype=torch.bfloat16)
+    heads = int(source.shape[1])
+    projection_input = heads * 256
+    value_tile = projection_input // 16
     value_weight = fixture["value_weight"].to(
         device=args.device, dtype=torch.bfloat16,
     ).contiguous()
     logical_output = fixture["output_weight"].to(
         device=args.device, dtype=torch.int8,
     ).contiguous()
-    value_tiles = value_weight.reshape(4, 512, 4, 64)
-    value_tiles = value_tiles.permute(0, 2, 1, 3).contiguous().reshape(16, 512, 64)
+    value_tiles = value_weight.reshape(heads, 512, 256 // value_tile, value_tile)
+    value_tiles = value_tiles.permute(0, 2, 1, 3).contiguous().reshape(
+        16, 512, value_tile,
+    )
     value_tiles = torch_npu.npu_format_cast(value_tiles, 2)
-    output_tiles = logical_output.reshape(1024, 24, 256).permute(1, 0, 2).contiguous()
+    output_tiles = logical_output.reshape(
+        projection_input, 24, 256,
+    ).permute(1, 0, 2).contiguous()
     output_tiles = torch_npu.npu_format_cast(output_tiles, 2)
     output_weight = torch_npu.npu_format_cast(logical_output, 29)
     scale = fixture["output_scale"]

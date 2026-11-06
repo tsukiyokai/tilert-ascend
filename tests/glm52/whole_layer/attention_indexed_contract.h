@@ -42,7 +42,7 @@ inline Config MakeConfig(const whole_layer_attention::Config& attention,
                                        query_scale_bf16);
     c.indexer = whole_layer_indexer::MakeConfig(rows, index_pages,
         index_table_pages, attention.blocks, quantized);
-    c.tail = mla_tail::MakeWorkspaceLayout(c.front.capacity);
+    c.tail = mla_tail::MakeWorkspaceLayout(c.front.capacity, whole_layer_attention::kHeads);
     const uint64_t encoded_bytes = quantized ? 1 : 2;
     c.query_norm_scale = Align(rows * 2048);
     c.query = Align(c.query_norm_scale + rows * 4);
@@ -52,7 +52,7 @@ inline Config MakeConfig(const whole_layer_attention::Config& attention,
     c.key_scale = Align(c.query_scale + rows * 32 * 2);
     c.topk = Align(c.key_scale + rows * 2);
     c.latent = Align(c.topk + rows * 2048 * 4);
-    c.attention_offset = Align(c.latent + rows * 4 * 512 * 2);
+    c.attention_offset = Align(c.latent + rows * whole_layer_attention::kHeads * 512 * 2);
     c.front_offset = Align(c.attention_offset + attention.bytes);
     c.indexer_offset = Align(c.front_offset + c.front.bytes);
     c.tail_offset = Align(c.indexer_offset + c.indexer.bytes);

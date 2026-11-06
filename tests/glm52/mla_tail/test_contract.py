@@ -60,11 +60,13 @@ class GeometryTests(unittest.TestCase):
 #include <iostream>
 #include "mla_tail.h"
 int main() {
-    for (int rows : {16, 32}) {
-        auto l = mla_tail::MakeWorkspaceLayout(rows);
-        std::cout << l.heads << ' ' << l.values << ' ' << l.quantized << ' '
-                  << l.token_scales << ' ' << l.accumulators << ' '
-                  << l.system << ' ' << l.bytes << '\n';
+    for (int heads : {4, 8}) {
+        for (int rows : {16, 32}) {
+            auto l = mla_tail::MakeWorkspaceLayout(rows, heads);
+            std::cout << l.heads << ' ' << l.values << ' ' << l.quantized << ' '
+                      << l.token_scales << ' ' << l.accumulators << ' '
+                      << l.system << ' ' << l.bytes << '\n';
+        }
     }
 }
 '''
@@ -80,11 +82,12 @@ int main() {
                 [str(path / "layout")], text=True,
             ).splitlines()
         expected = []
-        for rows in (16, 32):
-            regions = workspace_layout(rows)
-            values = [region.offset for region in regions]
-            values.append(regions[-1].offset + regions[-1].size)
-            expected.append(values)
+        for heads in (4, 8):
+            for rows in (16, 32):
+                regions = workspace_layout(rows, heads)
+                values = [region.offset for region in regions]
+                values.append(regions[-1].offset + regions[-1].size)
+                expected.append(values)
         self.assertEqual([list(map(int, line.split())) for line in lines],
                          expected)
 
@@ -121,28 +124,36 @@ class ArithmeticTests(unittest.TestCase):
         np.testing.assert_array_equal(floating, [[3.25, 0.75]])
 
     def test_tile_pack_preserves_every_weight_coordinate(self):
-        uv = np.arange(4 * 512 * 256, dtype=np.int32).reshape(4, 512, 256)
-        wo = np.arange(1024 * 6144, dtype=np.int32).reshape(1024, 6144)
-        value_tiles, output_tiles = pack_weights(uv, wo)
-        restored_uv = value_tiles.reshape(4, 4, 512, 64)
-        restored_uv = restored_uv.transpose(0, 2, 1, 3).reshape(4, 512, 256)
-        restored_wo = output_tiles.transpose(1, 0, 2).reshape(1024, 6144)
-        np.testing.assert_array_equal(restored_uv, uv)
-        np.testing.assert_array_equal(restored_wo, wo)
+        for heads, tile in ((4, 64), (8, 128)):
+            uv = np.arange(heads * 512 * 256, dtype=np.int32).reshape(
+                heads, 512, 256,
+            )
+            wo = np.arange(heads * 256 * 6144, dtype=np.int32).reshape(
+                heads * 256, 6144,
+            )
+            value_tiles, output_tiles = pack_weights(uv, wo)
+            restored_uv = value_tiles.reshape(heads, 256 // tile, 512, tile)
+            restored_uv = restored_uv.transpose(0, 2, 1, 3).reshape(
+                heads, 512, 256,
+            )
+            restored_wo = output_tiles.transpose(1, 0, 2).reshape(
+                heads * 256, 6144,
+            )
+            np.testing.assert_array_equal(restored_uv, uv)
+            np.testing.assert_array_equal(restored_wo, wo)
 
-    def test_full_tp16_chain_matches_with_padding_and_idle_cores(self):
-        # Exact powers of two avoid CPU BLAS summation-order differences;
-        # the test exercises all output columns and the real TP16 geometry.
+    def test_full_tp8_and_tp16_chains_match_with_padding_and_idle_cores(self):
         rng = np.random.default_rng(829)
-        latent = rng.integers(-2, 3, (2, 4, 512)).astype(np.float32) / 8
-        uv = rng.integers(-1, 2, (4, 512, 256)).astype(np.float32) / 16
-        wo = rng.integers(-8, 8, (1024, 6144), dtype=np.int8)
-        scale = rng.integers(1, 5, 6144).astype(np.float32) / 32
-        value_tiles, output_tiles = pack_weights(uv, wo)
-        expected = reference(latent, uv, wo, scale)
-        actual = tiled_reference(latent, value_tiles, output_tiles, scale,
-                                  capacity=16, blocks=20)
-        np.testing.assert_array_equal(actual, expected)
+        for heads in (4, 8):
+            latent = rng.integers(-2, 3, (2, heads, 512)).astype(np.float32) / 8
+            uv = rng.integers(-1, 2, (heads, 512, 256)).astype(np.float32) / 16
+            wo = rng.integers(-8, 8, (heads * 256, 6144), dtype=np.int8)
+            scale = rng.integers(1, 5, 6144).astype(np.float32) / 32
+            value_tiles, output_tiles = pack_weights(uv, wo)
+            expected = reference(latent, uv, wo, scale)
+            actual = tiled_reference(latent, value_tiles, output_tiles, scale,
+                                      capacity=16, blocks=20)
+            np.testing.assert_array_equal(actual, expected)
 
 
 if __name__ == "__main__":
