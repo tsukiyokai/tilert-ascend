@@ -56,15 +56,15 @@ else
 fi
 rscp "${BASH_SOURCE[0]}" "root@$HOST:$RUN/launcher-$EXP.sh"
 remote_status=0
-rssh bash -s -- "$ASSETS" "$TAG" "$EXP" "$MODE" "$SOURCE_COMMIT" "$SKIP_BUILD" "$NATIVE_ATTENTION" "$BUILD_ONLY" "$TRACE_ATTENTION" "$TRACE_POSITION" "$TRACE_LAYER" "$TRACE_REQUEST" "$MAX_TOKENS_OVERRIDE" "$WARMUP_OVERRIDE" "$REQUESTS_OVERRIDE" "$TRT_OVERLAP_SHARED" <<'REMOTE' || remote_status=$?
+rssh bash -s -- "$ASSETS" "$TAG" "$EXP" "$MODE" "$SOURCE_COMMIT" "$SKIP_BUILD" "$NATIVE_ATTENTION" "$BUILD_ONLY" "$TRACE_ATTENTION" "$TRACE_POSITION" "$TRACE_LAYER" "$TRACE_REQUEST" "${MAX_TOKENS_OVERRIDE:-0}" "${WARMUP_OVERRIDE:--1}" "${REQUESTS_OVERRIDE:-0}" "$TRT_OVERLAP_SHARED" <<'REMOTE' || remote_status=$?
 set -euo pipefail
 assets=$1 tag=$2 experiment=$3 mode=$4 revision=$5 skip_build=$6 native=$7 build_only=$8
 trace=$9 trace_position=${10}
 trace_layer=${11}
 trace_request=${12}
-max_tokens_override=${13:-}
-warmup_override=${14:-}
-requests_override=${15:-}
+max_tokens_override=${13:-0}
+warmup_override=${14:--1}
+requests_override=${15:-0}
 overlap_shared=${16:-0}
 run=$assets/runs/$tag
 image_tag=$(docker images --format '{{.Repository}}:{{.Tag}}' | awk '/ai-infra-infer-1\.2\.1-arm-openeuler-py311-a3-cann9\.1\.0-pta_v2\.12\.0-ai-infra-op_1\.7\.0/ {print; exit}')
@@ -146,9 +146,9 @@ fi
 if [ "$mode" = diagnostic ]; then
   trace_env+=(-e SHMEM_LOG_LEVEL=DEBUG -e SHMEM_LOG_TO_STDOUT=1)
 fi
-if [ -n "$max_tokens_override" ]; then trace_env+=(-e "TILERT_MAX_TOKENS=$max_tokens_override"); fi
-if [ -n "$warmup_override" ]; then trace_env+=(-e "TILERT_WARMUP=$warmup_override"); fi
-if [ -n "$requests_override" ]; then trace_env+=(-e "TILERT_REQUESTS=$requests_override"); fi
+if [ "$max_tokens_override" -gt 0 ]; then trace_env+=(-e "TILERT_MAX_TOKENS=$max_tokens_override"); fi
+if [ "$warmup_override" -ge 0 ]; then trace_env+=(-e "TILERT_WARMUP=$warmup_override"); fi
+if [ "$requests_override" -gt 0 ]; then trace_env+=(-e "TILERT_REQUESTS=$requests_override"); fi
 job=$(printf '%s' "$experiment" | cksum | awk '{print $1}')
 master_port=$((20000 + job % 10000))
 onesided_port=$((10000 + job % 8000))
