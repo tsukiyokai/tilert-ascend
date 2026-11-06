@@ -489,6 +489,7 @@ def _install_moe_superkernel_fusion(restorers, model=None):
         )
     )
     if zero_comm_moe:
+        import torch._library.simple_registry as sreg
         import torch_npu
         from vllm.distributed.parallel_state import get_ep_group
         from vllm_ascend.ops.fused_moe.token_dispatcher import (
@@ -498,6 +499,74 @@ def _install_moe_superkernel_fusion(restorers, model=None):
             MoETokenDispatchOutput,
             MoEAllGatherCombineMetadata,
         )
+
+        entry_shared = sreg.singleton.find("vllm::moe_forward_shared")
+        if entry_shared is not None and len(entry_shared.fake_impl.kernels) > 0:
+            orig_fake_shared = entry_shared.fake_impl.kernels[-1].func
+
+            def _zero_comm_moe_forward_shared_fake(
+                hidden_states: torch.Tensor,
+                router_logits: torch.Tensor,
+                shared_experts_input: torch.Tensor | None,
+                input_ids: torch.Tensor | None,
+                layer_name,
+                hidden_dim_unpadded: int,
+            ) -> tuple[torch.Tensor, torch.Tensor]:
+                shared_out, _ = orig_fake_shared(
+                    hidden_states,
+                    router_logits,
+                    shared_experts_input,
+                    input_ids,
+                    layer_name,
+                    hidden_dim_unpadded,
+                )
+                if hidden_dim_unpadded > 0:
+                    fused_out = hidden_states.new_empty(
+                        (*hidden_states.shape[:-1], hidden_dim_unpadded),
+                        dtype=torch.float32,
+                    )
+                else:
+                    fused_out = hidden_states.new_empty(
+                        hidden_states.shape,
+                        dtype=torch.float32,
+                    )
+                return shared_out, fused_out
+
+            entry_shared.fake_impl.kernels[-1].func = _zero_comm_moe_forward_shared_fake
+            restorers.append(
+                lambda k=entry_shared.fake_impl.kernels[-1], o=orig_fake_shared: setattr(
+                    k, "func", o
+                )
+            )
+
+        entry_fwd = sreg.singleton.find("vllm::moe_forward")
+        if entry_fwd is not None and len(entry_fwd.fake_impl.kernels) > 0:
+            orig_fake_fwd = entry_fwd.fake_impl.kernels[-1].func
+
+            def _zero_comm_moe_forward_fake(
+                hidden_states: torch.Tensor,
+                router_logits: torch.Tensor,
+                shared_experts_input: torch.Tensor | None,
+                input_ids: torch.Tensor | None,
+                layer_name,
+                hidden_dim_unpadded: int,
+            ) -> torch.Tensor:
+                if hidden_dim_unpadded > 0:
+                    return hidden_states.new_empty(
+                        (*hidden_states.shape[:-1], hidden_dim_unpadded),
+                        dtype=torch.float32,
+                    )
+                return hidden_states.new_empty(
+                    hidden_states.shape,
+                    dtype=torch.float32,
+                )
+
+            entry_fwd.fake_impl.kernels[-1].func = _zero_comm_moe_forward_fake
+            restorers.append(
+                lambda k=entry_fwd.fake_impl.kernels[-1], o=orig_fake_fwd: setattr(
+                    k, "func", o
+                )
+            )
 
         orig_td_dispatch = TokenDispatcherWithMC2.token_dispatch
         orig_td_combine = TokenDispatcherWithMC2.token_combine
@@ -561,7 +630,7 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                     permuted_tokens=hidden_states.to(torch.float32),
                     sorted_indices=combine_metadata.expanded_row_idx,
                     probs=combine_metadata.topk_weights.to(torch.float32),
-                ).to(hidden_states.dtype)
+                )
             return orig_td_combine(self, hidden_states, combine_metadata, bias=bias)
 
         TokenDispatcherWithMC2.token_dispatch = _zero_comm_dispatch
