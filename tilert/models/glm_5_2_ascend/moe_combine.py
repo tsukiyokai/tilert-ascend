@@ -55,7 +55,7 @@ def _install_moe_superkernel_fusion(restorers, model=None):
         orig_select_moe = afc.select_moe_comm_method
 
         def _forced_select_moe(num_tokens, vllm_config, *args, **kwargs):
-            force_ag = os.environ.get("TRT_MOE_ALLGATHER", "1") == "1"
+            force_ag = os.environ.get("TRT_MOE_ALLGATHER", "0") == "1"
             if force_ag and getattr(vllm_config.parallel_config, "enable_expert_parallel", False):
                 return MoECommType.ALLGATHER
             return orig_select_moe(num_tokens, vllm_config, *args, **kwargs)
