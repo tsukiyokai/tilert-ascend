@@ -564,11 +564,18 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                     getattr(combine_metadata, "mask", None) is not None
                     and combine_metadata.restore_shape[0] <= 32
                 ):
-                    clamped_idx = combine_metadata.expanded_row_idx.clamp(min=0).long()
-                    slot_experts = (
-                        hidden_states[clamped_idx]
-                        * combine_metadata.mask.view(-1, 1).to(hidden_states.dtype)
-                    )
+                    if hidden_states.shape[0] == 0:
+                        slot_experts = torch.zeros(
+                            (combine_metadata.mask.numel(), hidden_states.shape[1]),
+                            dtype=hidden_states.dtype,
+                            device=hidden_states.device,
+                        )
+                    else:
+                        clamped_idx = combine_metadata.expanded_row_idx.clamp(min=0).long()
+                        slot_experts = (
+                            hidden_states[clamped_idx]
+                            * combine_metadata.mask.view(-1, 1).to(hidden_states.dtype)
+                        )
                     num_tokens = combine_metadata.restore_shape[0]
                     top_k = combine_metadata.mask.shape[1]
                     ep_rank = combine_metadata.ep_rank
