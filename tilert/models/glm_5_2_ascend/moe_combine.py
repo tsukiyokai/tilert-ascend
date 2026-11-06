@@ -489,7 +489,6 @@ def _install_moe_superkernel_fusion(restorers, model=None):
         )
     )
     if zero_comm_moe:
-        import torch._library.simple_registry as sreg
         import torch_npu
         from vllm.distributed.parallel_state import get_ep_group
         from vllm_ascend.ops.fused_moe.token_dispatcher import (
@@ -500,80 +499,12 @@ def _install_moe_superkernel_fusion(restorers, model=None):
             MoEAllGatherCombineMetadata,
         )
 
-        entry_shared = sreg.singleton.find("vllm::moe_forward_shared")
-        if entry_shared is not None and len(entry_shared.fake_impl.kernels) > 0:
-            orig_fake_shared = entry_shared.fake_impl.kernels[-1].func
-
-            def _zero_comm_moe_forward_shared_fake(
-                hidden_states: torch.Tensor,
-                router_logits: torch.Tensor,
-                shared_experts_input: torch.Tensor | None,
-                input_ids: torch.Tensor | None,
-                layer_name,
-                hidden_dim_unpadded: int,
-            ) -> tuple[torch.Tensor, torch.Tensor]:
-                shared_out, _ = orig_fake_shared(
-                    hidden_states,
-                    router_logits,
-                    shared_experts_input,
-                    input_ids,
-                    layer_name,
-                    hidden_dim_unpadded,
-                )
-                if hidden_dim_unpadded > 0:
-                    fused_out = hidden_states.new_empty(
-                        (*hidden_states.shape[:-1], hidden_dim_unpadded),
-                        dtype=torch.float32,
-                    )
-                else:
-                    fused_out = hidden_states.new_empty(
-                        hidden_states.shape,
-                        dtype=torch.float32,
-                    )
-                return shared_out, fused_out
-
-            entry_shared.fake_impl.kernels[-1].func = _zero_comm_moe_forward_shared_fake
-            restorers.append(
-                lambda k=entry_shared.fake_impl.kernels[-1], o=orig_fake_shared: setattr(
-                    k, "func", o
-                )
-            )
-
-        entry_fwd = sreg.singleton.find("vllm::moe_forward")
-        if entry_fwd is not None and len(entry_fwd.fake_impl.kernels) > 0:
-            orig_fake_fwd = entry_fwd.fake_impl.kernels[-1].func
-
-            def _zero_comm_moe_forward_fake(
-                hidden_states: torch.Tensor,
-                router_logits: torch.Tensor,
-                shared_experts_input: torch.Tensor | None,
-                input_ids: torch.Tensor | None,
-                layer_name,
-                hidden_dim_unpadded: int,
-            ) -> torch.Tensor:
-                if hidden_dim_unpadded > 0:
-                    return hidden_states.new_empty(
-                        (*hidden_states.shape[:-1], hidden_dim_unpadded),
-                        dtype=torch.float32,
-                    )
-                return hidden_states.new_empty(
-                    hidden_states.shape,
-                    dtype=torch.float32,
-                )
-
-            entry_fwd.fake_impl.kernels[-1].func = _zero_comm_moe_forward_fake
-            restorers.append(
-                lambda k=entry_fwd.fake_impl.kernels[-1], o=orig_fake_fwd: setattr(
-                    k, "func", o
-                )
-            )
-
         orig_td_dispatch = TokenDispatcherWithMC2.token_dispatch
         orig_td_combine = TokenDispatcherWithMC2.token_combine
 
         def _zero_comm_dispatch(self, token_dispatch_input):
             hs = token_dispatch_input.hidden_states
-            if hs.shape[0] > 32:
+            if hs.shape[0] != 32:
                 return orig_td_dispatch(self, token_dispatch_input)
 
             topk_ids = token_dispatch_input.topk_ids
@@ -591,9 +522,6 @@ def _install_moe_superkernel_fusion(restorers, model=None):
             first_expert_idx = ep_rank * num_local_experts
             last_expert_idx = first_expert_idx + num_local_experts
             global_num_experts = 256
-
-            mask = (topk_ids >= first_expert_idx) & (topk_ids < last_expert_idx)
-            local_topk_weights = topk_weights * mask
 
             sorted_hs, expanded_row_idx, expert_tokens, dynamic_scale = (
                 torch_npu.npu_moe_init_routing_v2(
@@ -614,7 +542,7 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                 group_list=expert_tokens.to(torch.int64),
                 group_list_type=1,
                 combine_metadata=MoEAllGatherCombineMetadata(
-                    topk_weights=local_topk_weights,
+                    topk_weights=topk_weights,
                     expanded_row_idx=expanded_row_idx,
                     restore_shape=hs.shape,
                 ),
@@ -625,12 +553,69 @@ def _install_moe_superkernel_fusion(restorers, model=None):
             if hook is not None:
                 self._pre_combine_hook = None
                 hook()
-            if isinstance(combine_metadata, MoEAllGatherCombineMetadata):
-                return torch_npu.npu_moe_token_unpermute(
-                    permuted_tokens=hidden_states.to(torch.float32),
-                    sorted_indices=combine_metadata.expanded_row_idx,
-                    probs=combine_metadata.topk_weights.to(torch.float32),
+            if (
+                isinstance(combine_metadata, MoEAllGatherCombineMetadata)
+                and combine_metadata.restore_shape[0] == 32
+            ):
+                num_tokens = combine_metadata.restore_shape[0]
+                top_k = combine_metadata.topk_weights.shape[1]
+                ep_rank = getattr(self, "ep_rank_id", None)
+                if ep_rank is None or ep_rank < 0:
+                    ep_rank = (
+                        dist.get_rank()
+                        if dist.is_initialized()
+                        else int(os.environ.get("RANK", 0))
+                    )
+                tokens_per_rank = num_tokens // 8
+                home_slots = tokens_per_rank * top_k
+                mask = (combine_metadata.expanded_row_idx >= 0).view(num_tokens, top_k)
+                if hidden_states.shape[0] == 0:
+                    slot_experts = torch.zeros(
+                        (num_tokens * top_k, 6144),
+                        dtype=hidden_states.dtype,
+                        device=hidden_states.device,
+                    )
+                else:
+                    clamped_idx = combine_metadata.expanded_row_idx.clamp(min=0).long()
+                    slot_experts = (
+                        hidden_states[clamped_idx]
+                        * mask.view(-1, 1).to(hidden_states.dtype)
+                    )
+                tp_group = get_tp_group().device_group
+                home_expert_outputs = torch.empty(
+                    (home_slots, 6144),
+                    dtype=hidden_states.dtype,
+                    device=hidden_states.device,
                 )
+                dist.reduce_scatter_tensor(
+                    home_expert_outputs,
+                    slot_experts,
+                    group=tp_group,
+                )
+                home_idx = torch.arange(
+                    home_slots,
+                    dtype=torch.int32,
+                    device=hidden_states.device,
+                )
+                home_probs = combine_metadata.topk_weights[
+                    tokens_per_rank * ep_rank : tokens_per_rank * (ep_rank + 1)
+                ].to(torch.float32)
+                home_unpermuted = torch_npu.npu_moe_token_unpermute(
+                    home_expert_outputs,
+                    home_idx,
+                    home_probs,
+                )
+                gathered_all = torch.empty(
+                    (num_tokens, 6144),
+                    dtype=hidden_states.dtype,
+                    device=hidden_states.device,
+                )
+                dist.all_gather_into_tensor(
+                    gathered_all,
+                    home_unpermuted.to(hidden_states.dtype),
+                    group=tp_group,
+                )
+                return gathered_all
             return orig_td_combine(self, hidden_states, combine_metadata, bias=bias)
 
         TokenDispatcherWithMC2.token_dispatch = _zero_comm_dispatch
