@@ -523,6 +523,9 @@ def _install_moe_superkernel_fusion(restorers, model=None):
             last_expert_idx = first_expert_idx + num_local_experts
             global_num_experts = 256
 
+            mask = (topk_ids >= first_expert_idx) & (topk_ids < last_expert_idx)
+            local_topk_weights = topk_weights * mask
+
             sorted_hs, expanded_row_idx, expert_tokens, dynamic_scale = (
                 torch_npu.npu_moe_init_routing_v2(
                     hs,
@@ -542,7 +545,7 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                 group_list=expert_tokens.to(torch.int64),
                 group_list_type=1,
                 combine_metadata=MoEAllGatherCombineMetadata(
-                    topk_weights=topk_weights,
+                    topk_weights=local_topk_weights,
                     expanded_row_idx=expanded_row_idx,
                     restore_shape=hs.shape,
                 ),
@@ -553,69 +556,12 @@ def _install_moe_superkernel_fusion(restorers, model=None):
             if hook is not None:
                 self._pre_combine_hook = None
                 hook()
-            if (
-                isinstance(combine_metadata, MoEAllGatherCombineMetadata)
-                and combine_metadata.restore_shape[0] == 32
-            ):
-                num_tokens = combine_metadata.restore_shape[0]
-                top_k = combine_metadata.topk_weights.shape[1]
-                ep_rank = getattr(self, "ep_rank_id", None)
-                if ep_rank is None or ep_rank < 0:
-                    ep_rank = (
-                        dist.get_rank()
-                        if dist.is_initialized()
-                        else int(os.environ.get("RANK", 0))
-                    )
-                tokens_per_rank = num_tokens // 8
-                home_slots = tokens_per_rank * top_k
-                mask = (combine_metadata.expanded_row_idx >= 0).view(num_tokens, top_k)
-                if hidden_states.shape[0] == 0:
-                    slot_experts = torch.zeros(
-                        (num_tokens * top_k, 6144),
-                        dtype=hidden_states.dtype,
-                        device=hidden_states.device,
-                    )
-                else:
-                    clamped_idx = combine_metadata.expanded_row_idx.clamp(min=0).long()
-                    slot_experts = (
-                        hidden_states[clamped_idx]
-                        * mask.view(-1, 1).to(hidden_states.dtype)
-                    )
-                tp_group = get_tp_group().device_group
-                home_expert_outputs = torch.empty(
-                    (home_slots, 6144),
-                    dtype=hidden_states.dtype,
-                    device=hidden_states.device,
-                )
-                dist.reduce_scatter_tensor(
-                    home_expert_outputs,
-                    slot_experts,
-                    group=tp_group,
-                )
-                home_idx = torch.arange(
-                    home_slots,
-                    dtype=torch.int32,
-                    device=hidden_states.device,
-                )
-                home_probs = combine_metadata.topk_weights[
-                    tokens_per_rank * ep_rank : tokens_per_rank * (ep_rank + 1)
-                ].to(torch.float32)
-                home_unpermuted = torch_npu.npu_moe_token_unpermute(
-                    home_expert_outputs,
-                    home_idx,
-                    home_probs,
-                )
-                gathered_all = torch.empty(
-                    (num_tokens, 6144),
-                    dtype=hidden_states.dtype,
-                    device=hidden_states.device,
-                )
-                dist.all_gather_into_tensor(
-                    gathered_all,
-                    home_unpermuted.to(hidden_states.dtype),
-                    group=tp_group,
-                )
-                return gathered_all
+            if isinstance(combine_metadata, MoEAllGatherCombineMetadata):
+                return torch_npu.npu_moe_token_unpermute(
+                    permuted_tokens=hidden_states.to(torch.float32),
+                    sorted_indices=combine_metadata.expanded_row_idx,
+                    probs=combine_metadata.topk_weights.to(torch.float32),
+                ).to(hidden_states.dtype)
             return orig_td_combine(self, hidden_states, combine_metadata, bias=bias)
 
         TokenDispatcherWithMC2.token_dispatch = _zero_comm_dispatch
