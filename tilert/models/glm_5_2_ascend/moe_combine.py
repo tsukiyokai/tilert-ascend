@@ -69,7 +69,7 @@ def _install_moe_superkernel_fusion(restorers, model=None):
     pre_gather_scale = os.environ.get("TRT_PRE_GATHER_SCALE", "0") == "1"
     slice_router = os.environ.get("TRT_SLICE_ROUTER", "1") == "1"
     shared_after_routed = os.environ.get("TRT_SHARED_AFTER_ROUTED", "0") == "1"
-    zero_comm_moe = os.environ.get("TRT_ZERO_COMM_MOE", "1") == "1"
+    zero_comm_moe = os.environ.get("TRT_ZERO_COMM_MOE", "0") == "1"
     fuse_ar_norm = (
         os.environ.get("TRT_FUSE_AR_NORM", "1") == "1"
         and hasattr(
