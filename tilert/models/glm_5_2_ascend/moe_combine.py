@@ -553,11 +553,14 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                 self._pre_combine_hook = None
                 hook()
             if isinstance(combine_metadata, MoEAllGatherCombineMetadata):
-                return torch_npu.npu_moe_token_unpermute(
+                unpermuted = torch_npu.npu_moe_token_unpermute(
                     permuted_tokens=hidden_states,
                     sorted_indices=combine_metadata.expanded_row_idx,
                     probs=combine_metadata.topk_weights.to(hidden_states.dtype),
                 )
+                if hasattr(torch.ops.tilert, "onesided_all_reduce"):
+                    return torch.ops.tilert.onesided_all_reduce(unpermuted)
+                return tensor_model_parallel_all_reduce(unpermuted)
             return orig_td_combine(self, hidden_states, combine_metadata, bias=bias)
 
         TokenDispatcherWithMC2.token_dispatch = _zero_comm_dispatch
@@ -625,11 +628,7 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                 and shared_output.numel() == 196608
                 and shared_output.is_contiguous()
             ):
-                if zero_comm_moe and fused_output is not None:
-                    combined = torch.add(
-                        shared_output, fused_output, alpha=float(scale)
-                    )
-                    return _defer_ar(combined, out=None, routed=None, scale=1.0)
+
                 return _defer_ar(
                     shared_output,
                     out=None,
@@ -640,18 +639,6 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                     ),
                     scale=float(scale),
                 )
-            if zero_comm_moe and fused_output is not None:
-                combined = torch.add(
-                    shared_output, fused_output, alpha=float(scale)
-                )
-                reduce_obj_inner = getattr(get_tp_group(), "_tilert_onesided_reduce", None)
-                if (
-                    reduce_obj_inner is not None
-                    and not isinstance(reduce_obj_inner, bool)
-                    and hasattr(reduce_obj_inner, "sum")
-                ):
-                    return reduce_obj_inner.sum(combined)
-                return torch.ops.tilert.onesided_all_reduce(combined)
             return orig_scale_add_pkt(shared_output, fused_output, scale)
 
         _defer_scale_add.default = _defer_scale_add
