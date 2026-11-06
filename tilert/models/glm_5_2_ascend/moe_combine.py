@@ -69,6 +69,7 @@ def _install_moe_superkernel_fusion(restorers, model=None):
     pre_gather_scale = os.environ.get("TRT_PRE_GATHER_SCALE", "0") == "1"
     slice_router = os.environ.get("TRT_SLICE_ROUTER", "1") == "1"
     shared_after_routed = os.environ.get("TRT_SHARED_AFTER_ROUTED", "0") == "1"
+    zero_comm_moe = os.environ.get("TRT_ZERO_COMM_MOE", "1") == "1"
     fuse_ar_norm = (
         os.environ.get("TRT_FUSE_AR_NORM", "1") == "1"
         and hasattr(
@@ -98,6 +99,24 @@ def _install_moe_superkernel_fusion(restorers, model=None):
         quant_type=None,
     ):
         self.replace_allreduce = replace_allreduce
+        if (
+            zero_comm_moe
+            and not self.replace_allreduce
+            and self.tp_size > 1
+            and hidden_states.shape[0] <= 32
+        ):
+            self.num_tokens, _ = hidden_states.shape
+            from vllm_ascend.ops.fused_moe.dataclass.prepare_finalize import (
+                MoEPrepareOutput,
+            )
+
+            return MoEPrepareOutput(
+                hidden_states=hidden_states,
+                router_logits=router_logits,
+                mc2_mask=None,
+                padded_hidden_states_shape=hidden_states.shape,
+                pertoken_scale=None,
+            )
         if (
             not self.replace_allreduce
             and self.tp_size > 1
@@ -151,6 +170,13 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                 reduce_results,
                 padded_hidden_states_shape,
             )
+            return hidden_states
+        if (
+            zero_comm_moe
+            and not self.replace_allreduce
+            and self.tp_size > 1
+            and self.num_tokens <= 32
+        ):
             return hidden_states
         if not self.replace_allreduce:
             if self.tp_size > 1:
@@ -214,6 +240,7 @@ def _install_moe_superkernel_fusion(restorers, model=None):
             router_hidden = shared_hidden
             if (
                 slice_router
+                and not (zero_comm_moe and hidden_states.shape[0] <= 32)
                 and isinstance(pf, PrepareAndFinalizeWithMC2)
                 and pf.tp_size > 1
                 and not getattr(pf, "replace_allreduce", False)
@@ -457,6 +484,94 @@ def _install_moe_superkernel_fusion(restorers, model=None):
             orig_reduce_final,
         )
     )
+    if zero_comm_moe:
+        import torch_npu
+        from vllm.distributed.parallel_state import get_ep_group
+        from vllm_ascend.ops.fused_moe.token_dispatcher import (
+            TokenDispatcherWithMC2,
+        )
+        from vllm_ascend.ops.fused_moe.dataclass.token_dispatcher import (
+            MoETokenDispatchOutput,
+            MoEAllGatherCombineMetadata,
+        )
+
+        orig_td_dispatch = TokenDispatcherWithMC2.token_dispatch
+        orig_td_combine = TokenDispatcherWithMC2.token_combine
+
+        def _zero_comm_dispatch(self, token_dispatch_input):
+            hs = token_dispatch_input.hidden_states
+            if hs.shape[0] > 32:
+                return orig_td_dispatch(self, token_dispatch_input)
+
+            topk_ids = token_dispatch_input.topk_ids
+            topk_weights = token_dispatch_input.topk_weights
+            num_tokens = hs.shape[0]
+            top_k = topk_ids.shape[1]
+            num_local_experts = 32
+            ep_rank = getattr(self, "ep_rank_id", None)
+            if ep_rank is None or ep_rank < 0:
+                ep_rank = (
+                    dist.get_rank()
+                    if dist.is_initialized()
+                    else int(os.environ.get("RANK", 0))
+                )
+            first_expert_idx = ep_rank * num_local_experts
+            last_expert_idx = first_expert_idx + num_local_experts
+            global_num_experts = 256
+
+            mask = (topk_ids >= first_expert_idx) & (topk_ids < last_expert_idx)
+            local_topk_weights = topk_weights * mask
+
+            sorted_hs, expanded_row_idx, expert_tokens, dynamic_scale = (
+                torch_npu.npu_moe_init_routing_v2(
+                    hs,
+                    topk_ids,
+                    scale=None,
+                    active_num=num_tokens * top_k,
+                    expert_num=global_num_experts,
+                    expert_tokens_num_type=1,
+                    expert_tokens_num_flag=True,
+                    active_expert_range=[first_expert_idx, last_expert_idx],
+                    quant_mode=1,
+                )
+            )
+            return MoETokenDispatchOutput(
+                hidden_states=sorted_hs,
+                dynamic_scale=dynamic_scale,
+                group_list=expert_tokens.to(torch.int64),
+                group_list_type=1,
+                combine_metadata=MoEAllGatherCombineMetadata(
+                    topk_weights=local_topk_weights,
+                    expanded_row_idx=expanded_row_idx,
+                    restore_shape=hs.shape,
+                ),
+            )
+
+        def _zero_comm_combine(self, hidden_states, combine_metadata, bias=None):
+            hook = getattr(self, "_pre_combine_hook", None)
+            if hook is not None:
+                self._pre_combine_hook = None
+                hook()
+            if isinstance(combine_metadata, MoEAllGatherCombineMetadata):
+                return torch_npu.npu_moe_token_unpermute(
+                    permuted_tokens=hidden_states,
+                    sorted_indices=combine_metadata.expanded_row_idx,
+                    probs=combine_metadata.topk_weights.to(hidden_states.dtype),
+                )
+            return orig_td_combine(self, hidden_states, combine_metadata, bias=bias)
+
+        TokenDispatcherWithMC2.token_dispatch = _zero_comm_dispatch
+        TokenDispatcherWithMC2.token_combine = _zero_comm_combine
+        restorers.append(
+            lambda: setattr(
+                TokenDispatcherWithMC2, "token_dispatch", orig_td_dispatch
+            )
+        )
+        restorers.append(
+            lambda: setattr(
+                TokenDispatcherWithMC2, "token_combine", orig_td_combine
+            )
+        )
     if fuse_ar_norm:
         import torch_npu
         import vllm_ascend.vllm_ascend_C  # noqa: F401
@@ -501,6 +616,11 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                 and shared_output.numel() == 196608
                 and shared_output.is_contiguous()
             ):
+                if zero_comm_moe and fused_output is not None:
+                    combined = torch.add(
+                        shared_output, fused_output, alpha=float(scale)
+                    )
+                    return _defer_ar(combined, out=None, routed=None, scale=1.0)
                 return _defer_ar(
                     shared_output,
                     out=None,
@@ -511,9 +631,45 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                     ),
                     scale=float(scale),
                 )
+            if zero_comm_moe and fused_output is not None:
+                combined = torch.add(
+                    shared_output, fused_output, alpha=float(scale)
+                )
+                if reduce_obj is not None and hasattr(reduce_obj, "sum"):
+                    return reduce_obj.sum(combined)
+                return torch.ops.tilert.onesided_all_reduce(combined)
             return orig_scale_add_pkt(shared_output, fused_output, scale)
 
         _defer_scale_add.default = _defer_scale_add
+
+        def _zero_comm_scale_add(shared_output, fused_output, scale):
+            if (
+                zero_comm_moe
+                and fused_output is not None
+                and hasattr(torch.ops.tilert, "onesided_all_reduce")
+            ):
+                combined = torch.add(
+                    shared_output, fused_output, alpha=float(scale)
+                )
+                if reduce_obj is not None and hasattr(reduce_obj, "sum"):
+                    return reduce_obj.sum(combined)
+                return torch.ops.tilert.onesided_all_reduce(combined)
+            return orig_scale_add_pkt(shared_output, fused_output, scale)
+
+        _zero_comm_scale_add.default = _zero_comm_scale_add
+        if zero_comm_moe:
+            setattr(
+                torch.ops.tilert,
+                "onesided_all_reduce_scale_add",
+                _zero_comm_scale_add,
+            )
+            restorers.append(
+                lambda: setattr(
+                    torch.ops.tilert,
+                    "onesided_all_reduce_scale_add",
+                    orig_scale_add_pkt,
+                )
+            )
 
         fused_norm_produced = 0
         fused_dq_consumed = 0
@@ -615,7 +771,7 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                 setattr(
                     torch.ops.tilert,
                     "onesided_all_reduce_scale_add",
-                    orig_scale_add_pkt,
+                    _zero_comm_scale_add if zero_comm_moe else orig_scale_add_pkt,
                 )
                 setattr(
                     torch.ops._C_ascend,
