@@ -18,6 +18,8 @@ REQUESTS_OVERRIDE=${TILERT_REQUESTS:-}
 TRT_OVERLAP_SHARED=${TRT_OVERLAP_SHARED:-0}
 TRT_FUSED_MC2=${TRT_FUSED_MC2:-0}
 TRT_ZERO_COMM_MOE=${TRT_ZERO_COMM_MOE:-1}
+PROFILE_LAST=${PROFILE_LAST:-0}
+PROFILE_ROUNDS=${PROFILE_ROUNDS:-1}
 REPO_ROOT=${TILERT_PROJECT_ROOT:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)}
 ASSETS=/mnt/sfs_turbo_new/trt-sync-tmp
 RUN=$ASSETS/runs/$TAG
@@ -58,7 +60,7 @@ else
 fi
 rscp "${BASH_SOURCE[0]}" "root@$HOST:$RUN/launcher-$EXP.sh"
 remote_status=0
-rssh bash -s -- "$ASSETS" "$TAG" "$EXP" "$MODE" "$SOURCE_COMMIT" "$SKIP_BUILD" "$NATIVE_ATTENTION" "$BUILD_ONLY" "$TRACE_ATTENTION" "$TRACE_POSITION" "$TRACE_LAYER" "$TRACE_REQUEST" "${MAX_TOKENS_OVERRIDE:-0}" "${WARMUP_OVERRIDE:--1}" "${REQUESTS_OVERRIDE:-0}" "$TRT_OVERLAP_SHARED" "$TRT_FUSED_MC2" "$TRT_ZERO_COMM_MOE" <<'REMOTE' || remote_status=$?
+rssh bash -s -- "$ASSETS" "$TAG" "$EXP" "$MODE" "$SOURCE_COMMIT" "$SKIP_BUILD" "$NATIVE_ATTENTION" "$BUILD_ONLY" "$TRACE_ATTENTION" "$TRACE_POSITION" "$TRACE_LAYER" "$TRACE_REQUEST" "${MAX_TOKENS_OVERRIDE:-0}" "${WARMUP_OVERRIDE:--1}" "${REQUESTS_OVERRIDE:-0}" "$TRT_OVERLAP_SHARED" "$TRT_FUSED_MC2" "$TRT_ZERO_COMM_MOE" "$PROFILE_LAST" "$PROFILE_ROUNDS" <<'REMOTE' || remote_status=$?
 set -euo pipefail
 assets=$1 tag=$2 experiment=$3 mode=$4 revision=$5 skip_build=$6 native=$7 build_only=$8
 trace=$9 trace_position=${10}
@@ -70,6 +72,8 @@ requests_override=${15:-0}
 overlap_shared=${16:-0}
 fused_mc2=${17:-0}
 zero_comm_moe=${18:-1}
+profile_last=${19:-0}
+profile_rounds=${20:-1}
 run=$assets/runs/$tag
 image_tag=$(docker images --format '{{.Repository}}:{{.Tag}}' | awk '/ai-infra-infer-1\.2\.1-arm-openeuler-py311-a3-cann9\.1\.0-pta_v2\.12\.0-ai-infra-op_1\.7\.0/ {print; exit}')
 image=$(docker image inspect --format '{{.Id}}' "$image_tag")
@@ -140,6 +144,7 @@ sha256sum "$assets"/shmem-lib/lib/*.so > "$metadata/shmem.sha256"
 printf '%s\n' "$image" > "$metadata/image.txt"
 arguments=()
 if [ "$native" = 1 ]; then arguments+=(--native-attention); fi
+if [ "$profile_last" = 1 ]; then arguments+=(--profile-last --profile-rounds "$profile_rounds"); fi
 trace_env=()
 if [ "$trace" = 1 ]; then
   trace_env=(-e "TILERT_ATTENTION_TRACE=/evidence/$experiment/attention.pt"
