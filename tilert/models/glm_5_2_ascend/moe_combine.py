@@ -48,6 +48,22 @@ def _install_moe_superkernel_fusion(restorers, model=None):
     orig_scale = AscendMoERunner._maybe_apply_routed_scale_to_output
     orig_reduce_shared = AscendMoERunner._maybe_reduce_shared_expert_output
     orig_reduce_final = AscendMoERunner._maybe_reduce_final_output
+    try:
+        import vllm_ascend.ascend_forward_context as afc
+        from vllm_ascend.ops.fused_moe.moe_comm_method import MoECommType
+
+        orig_select_moe = afc.select_moe_comm_method
+
+        def _forced_select_moe(num_tokens, vllm_config, *args, **kwargs):
+            force_ag = os.environ.get("TRT_MOE_ALLGATHER", "1") == "1"
+            if force_ag and getattr(vllm_config.parallel_config, "enable_expert_parallel", False):
+                return MoECommType.ALLGATHER
+            return orig_select_moe(num_tokens, vllm_config, *args, **kwargs)
+
+        afc.select_moe_comm_method = _forced_select_moe
+        restorers.append(lambda: setattr(afc, "select_moe_comm_method", orig_select_moe))
+    except Exception:
+        pass
     from vllm.compilation import monitor
     from vllm.distributed import get_tp_group, tensor_model_parallel_all_reduce
     pre_gather_scale = os.environ.get("TRT_PRE_GATHER_SCALE", "0") == "1"
@@ -319,11 +335,18 @@ def _install_moe_superkernel_fusion(restorers, model=None):
             pf._pending_finalize = None
             if pending is not None:
                 routed_slice, reduce_results, padded_shape = pending
+                split_factor = max(
+                    1,
+                    getattr(pf, "tp_size", 1),
+                    getattr(self.moe_config, "ep_size", 1),
+                )
                 if (
                     _can_fuse_onesided_scale_add(self, shared_out, routed_slice)
                     and not pf.replace_allreduce
-                    and shared_out.numel()
-                    == routed_slice.numel() * max(1, pf.tp_size)
+                    and (
+                        shared_out.numel() == routed_slice.numel()
+                        or shared_out.numel() == routed_slice.numel() * split_factor
+                    )
                 ):
                     return shared_out, routed_slice
                 if (
@@ -481,7 +504,11 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                 return _defer_ar(
                     shared_output,
                     out=None,
-                    routed=fused_output,
+                    routed=(
+                        fused_output.contiguous()
+                        if fused_output is not None
+                        else None
+                    ),
                     scale=float(scale),
                 )
             return orig_scale_add_pkt(shared_output, fused_output, scale)
