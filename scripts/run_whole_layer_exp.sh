@@ -15,6 +15,7 @@ TRACE_REQUEST=${TILERT_ATTENTION_TRACE_REQUEST:-0}
 MAX_TOKENS_OVERRIDE=${TILERT_MAX_TOKENS:-}
 WARMUP_OVERRIDE=${TILERT_WARMUP:-}
 REQUESTS_OVERRIDE=${TILERT_REQUESTS:-}
+TRT_OVERLAP_SHARED=${TRT_OVERLAP_SHARED:-0}
 REPO_ROOT=${TILERT_PROJECT_ROOT:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)}
 ASSETS=/mnt/sfs_turbo_new/trt-sync-tmp
 RUN=$ASSETS/runs/$TAG
@@ -55,7 +56,7 @@ else
 fi
 rscp "${BASH_SOURCE[0]}" "root@$HOST:$RUN/launcher-$EXP.sh"
 remote_status=0
-rssh bash -s -- "$ASSETS" "$TAG" "$EXP" "$MODE" "$SOURCE_COMMIT" "$SKIP_BUILD" "$NATIVE_ATTENTION" "$BUILD_ONLY" "$TRACE_ATTENTION" "$TRACE_POSITION" "$TRACE_LAYER" "$TRACE_REQUEST" "$MAX_TOKENS_OVERRIDE" "$WARMUP_OVERRIDE" "$REQUESTS_OVERRIDE" <<'REMOTE' || remote_status=$?
+rssh bash -s -- "$ASSETS" "$TAG" "$EXP" "$MODE" "$SOURCE_COMMIT" "$SKIP_BUILD" "$NATIVE_ATTENTION" "$BUILD_ONLY" "$TRACE_ATTENTION" "$TRACE_POSITION" "$TRACE_LAYER" "$TRACE_REQUEST" "$MAX_TOKENS_OVERRIDE" "$WARMUP_OVERRIDE" "$REQUESTS_OVERRIDE" "$TRT_OVERLAP_SHARED" <<'REMOTE' || remote_status=$?
 set -euo pipefail
 assets=$1 tag=$2 experiment=$3 mode=$4 revision=$5 skip_build=$6 native=$7 build_only=$8
 trace=$9 trace_position=${10}
@@ -64,6 +65,7 @@ trace_request=${12}
 max_tokens_override=${13:-}
 warmup_override=${14:-}
 requests_override=${15:-}
+overlap_shared=${16:-0}
 run=$assets/runs/$tag
 image_tag=$(docker images --format '{{.Repository}}:{{.Tag}}' | awk '/ai-infra-infer-1\.2\.1-arm-openeuler-py311-a3-cann9\.1\.0-pta_v2\.12\.0-ai-infra-op_1\.7\.0/ {print; exit}')
 image=$(docker image inspect --format '{{.Id}}' "$image_tag")
@@ -163,6 +165,7 @@ docker run --rm --name "trt-$experiment" --privileged --network=host --ipc=host 
   -e "HCCL_PORT_RANGE=$hccl_first-$((hccl_first+150))" \
   "${trace_env[@]}" \
   -e TRT_FUSE_AR_NORM=1 \
+  -e "TRT_OVERLAP_SHARED=$overlap_shared" \
   -e TILERT_INDEXED_ATTENTION_LIBRARY=/artifacts/build/indexed/whole_layer_indexed_attention_tp8.so \
   -e TILERT_SHARED_ATTENTION_LIBRARY=/artifacts/build/full/whole_layer_full_attention_tp8.so \
   -v /usr/local/Ascend/driver:/usr/local/Ascend/driver \
