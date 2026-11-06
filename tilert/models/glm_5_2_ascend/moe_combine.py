@@ -392,7 +392,10 @@ def _install_moe_superkernel_fusion(restorers, model=None):
             shared_output is not None
             and isinstance(shared_output, torch.Tensor)
             and shared_output.dtype == torch.bfloat16
-            and (fused_output is None or fused_output.dtype == torch.bfloat16)
+            and (
+                fused_output is None
+                or fused_output.dtype in (torch.bfloat16, torch.float32)
+            )
             and self.moe_config.ep_size > 1
             and not self.moe_config.is_sequence_parallel
             and getattr(get_tp_group(), "_tilert_onesided", False)
@@ -554,7 +557,7 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                 hook()
             if isinstance(combine_metadata, MoEAllGatherCombineMetadata):
                 return torch_npu.npu_moe_token_unpermute(
-                    permuted_tokens=hidden_states,
+                    permuted_tokens=hidden_states.to(torch.float32),
                     sorted_indices=combine_metadata.expanded_row_idx,
                     probs=combine_metadata.topk_weights.to(torch.float32),
                 )
