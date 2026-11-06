@@ -581,17 +581,6 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                         hidden_states[clamped_idx]
                         * mask.view(-1, 1).to(hidden_states.dtype)
                     )
-                _probe_cnt = getattr(self, "_probe_cnt", 0)
-                if _probe_cnt < 2 and ep_rank == 0:
-                    self._probe_cnt = _probe_cnt + 1
-                    print(
-                        f"[ROUTE2_PROBE] hs_shape={hidden_states.shape}, "
-                        f"expanded_min={combine_metadata.expanded_row_idx.min().item()}, "
-                        f"expanded_max={combine_metadata.expanded_row_idx.max().item()}, "
-                        f"valid_slots={mask.sum().item()}, "
-                        f"slot_norm={slot_experts.float().norm().item():.4f}, "
-                        f"topk_weights_shape={combine_metadata.topk_weights.shape}"
-                    )
                 tp_group = get_tp_group().device_group
                 home_expert_outputs = torch.empty(
                     (home_slots, 6144),
@@ -626,29 +615,6 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                     home_unpermuted.to(hidden_states.dtype),
                     group=tp_group,
                 )
-                if _probe_cnt <= 2:
-                    local_r1 = torch_npu.npu_moe_token_unpermute(
-                        hidden_states.to(torch.float32),
-                        combine_metadata.expanded_row_idx,
-                        (combine_metadata.topk_weights * mask).to(torch.float32),
-                    )
-                    r1_all = local_r1.clone()
-                    dist.all_reduce(r1_all, group=tp_group)
-                    diff_r1_r2 = (
-                        (r1_all.float() - gathered_all.float()).abs().max().item()
-                    )
-                    rel_diff = diff_r1_r2 / (
-                        r1_all.float().abs().max().item() + 1e-9
-                    )
-                    if ep_rank == 0:
-                        print(
-                            f"[ROUTE2_DIAG] diff_vs_R1={diff_r1_r2:.6e}, "
-                            f"rel_diff={rel_diff:.6e}, "
-                            f"r1_max={r1_all.abs().max().item():.4f}, "
-                            f"r2_max={gathered_all.abs().max().item():.4f}, "
-                            f"r1_sample={r1_all[0, :3].tolist()}, "
-                            f"r2_sample={gathered_all[0, :3].tolist()}"
-                        )
                 return gathered_all
             return orig_td_combine(self, hidden_states, combine_metadata, bias=bias)
 
