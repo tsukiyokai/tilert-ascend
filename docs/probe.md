@@ -1,5 +1,9 @@
 # 实验记录
 
+## 2026-11-06：Layer 1/30 边界 1-ULP 与 Key INT8 向量量化微架构归因
+
+在 7.150.11.149（Ascend910_9392 卡 8-15 独占）实机对比 test-w152-v33-tr8905-l1-disc 与 test-w152-v33-tr8905-l1-nat。78 层逐层对比确证：Layer 0 全量 32 行输入输出 100% 位级零分歧；Layer 1 输入 100% 位级零分歧，输出仅 row 1 产生 1-ULP 差异（max_abs: 3.05175e-5，其余 31 行全为 0）。进一步比对 test-w142-v30-tr8565 与 test-w119-discrete-key8565，锁定 Layer 30 index_cache 在 (66, 117, 0) 的 128 维中仅 dim 53 出现 40 vs 41 单点偏差（scale 0.02226257 逐位相同）。根因收敛至 QuantizeBatch 采用标量 Muls 与 int32_t 中转，相较 tp_push_kernel 中的标准 Brcb 向量 Mul 与 int16_t CAST_RINT 产生舍入边界位移。修复后可消除该累加级联分歧。
+
 ## 2026-11-05：Megakernel 轨迹修复与实验版本登记
 
 目标为 TP8+EP8、冻结 case-00、width=32、1024 输出，三次预热和三次测量全部复现 223 轮及黄金输出 SHA `4fb8be2df58a4ea7f75ac1193749df945950129dfade1691b02c6c6c6b21443b`。当前候选均未通过，版本状态见 [实验登记](experiments.json)。

@@ -69,7 +69,9 @@ def main():
                                cache_rows(y, right[metadata], length))
                     for x, y in zip(left[field], right[field])]
             for field, metadata in (("main_cache", "main_metadata"),
-                                    ("index_cache", "index_metadata"))}
+                                    ("index_cache", "index_metadata"))
+            if (left.get(field) and right.get(field) and
+                left.get(metadata) and right.get(metadata))}
         if "topk" in a and "topk" in b:
             report["topk_sets"] = []
             for row in range(rows):
