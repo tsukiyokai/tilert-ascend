@@ -1,5 +1,3 @@
-"""Batch-one paged index caches and causal CANN selection on A3."""
-
 from __future__ import annotations
 
 import hashlib
@@ -34,7 +32,6 @@ CANN_ARCH22_SOURCE_SHA256 = {
 
 
 def cann_arch22_scoring_contract(source_directory=None):
-    """Describe captured CANN source and optionally verify identical files."""
     contract = {
         "implementation": "CANN-9.2.0-QuantLightningIndexer-arch22",
         "source_sha256": dict(CANN_ARCH22_SOURCE_SHA256),
@@ -72,7 +69,6 @@ def cann_arch22_scoring_contract(source_directory=None):
 
 
 def cann_arch22_input_domain(query_scale, key_scale, weights):
-    """Return accepted=False for unverified FP16 scalar inputs or products."""
     if len(query_scale) != INDEX_HEADS or len(weights) != INDEX_HEADS:
         raise ValueError("C8 query scales and weights need 32 entries")
     regions = {
@@ -105,7 +101,6 @@ def cann_arch22_input_domain(query_scale, key_scale, weights):
 
 
 def cache_append_range(length, count, capacity):
-    """Return the cache slice for one supported query chunk."""
     if type(count) is not int or count not in VERIFY_ROWS:
         raise ValueError("query row count must be 1, 2, or 4")
     if not 0 <= length <= capacity or length + count > capacity:
@@ -114,18 +109,12 @@ def cache_append_range(length, count, capacity):
 
 
 def validate_truncate(length, valid_length):
-    """Reject cache growth and noninteger rollback positions."""
     if type(valid_length) is not int or not 0 <= valid_length <= length:
         raise ValueError("valid_length must be an integer in [0, length]")
 
 
 @dataclass(frozen=True)
 class VerifyLayout:
-    """One TND request whose query rows are the final cached positions.
-
-    CANN receives query lengths [M] and PA key lengths [P + M]. With
-    sparse_mode=3, query row i can read keys strictly below P + i + 1.
-    """
 
     query_rows: int
     cache_length: int
@@ -155,7 +144,6 @@ class VerifyLayout:
         return self.query_rows, 1, TOP_K
 
     def validate_indices(self, rows, allow_partial=False):
-        """Require unique causal indices followed by exactly -1 padding."""
         if len(rows) != self.query_rows:
             raise ValueError("indices must contain one row per query")
         for row, bound, count in zip(
@@ -194,7 +182,6 @@ def hadamard128() -> torch.Tensor:
 
 
 def int8_index_scores(query, keys, query_scale, key_scale, weights):
-    """Ideal dequantized score, without CANN's intermediate FP16 rounding."""
     import torch
 
     products = query.to(torch.int32) @ keys.to(torch.int32).T
@@ -204,14 +191,6 @@ def int8_index_scores(query, keys, query_scale, key_scale, weights):
 
 
 def cann_arch22_index_scores(query, keys, query_scale, key_scale, weights):
-    """CPU source oracle for INT8 QLI with FP16 wire scales and weights.
-
-    The captured arch22 kernel rounds weight*q_scale and ReLU(QK/1024)
-    to FP16 before its FP32 head reduction, then multiplies key_scale.
-    This matches its source golden; device accumulation and exceptional
-    FP16 values require the strict same-input device comparison. Accepting
-    a result requires cann_arch22_input_domain(...)["accepted"] to be True.
-    """
     import torch
 
     tensors = (query, keys, query_scale, key_scale, weights)
@@ -235,14 +214,6 @@ def cann_arch22_index_scores(query, keys, query_scale, key_scale, weights):
 
 
 class NativeIndexer:
-    """Own a replicated 128-dimensional index cache for one request.
-
-    Inputs to encode/select have already received indexer RoPE. The caller
-    passes the raw BF16 head-weight projection, matching vLLM-Ascend's
-    conversion to the selector dtype before scoring.
-    INT8 cache rows use BF16 Hadamard rotation and one FP16 scale. BF16 cache
-    rows use their original basis. Shared layers reuse the returned indices.
-    """
 
     def __init__(self, capacity=9216, key_dtype=None, device="npu:0"):
         import torch
@@ -275,7 +246,6 @@ class NativeIndexer:
         self.key_length = torch.zeros(1, dtype=torch.int32, device=device)
 
     def encode(self, rows):
-        """Encode post-RoPE BF16 rows in the cache's storage format."""
         import torch
         import torch_npu
 
@@ -288,7 +258,6 @@ class NativeIndexer:
         return values, scale.to(torch.float16)
 
     def inject(self, keys, scales=None):
-        """Install encoded prefix rows with shape [length,128]."""
         import torch
 
         if keys.ndim != 2 or keys.shape[1] != INDEX_DIM:
@@ -308,11 +277,9 @@ class NativeIndexer:
         self.key_length.fill_(length)
 
     def append(self, key):
-        """Append one post-RoPE BF16 key, retaining the M=1 interface."""
         self.append_many(key.reshape(1, INDEX_DIM))
 
     def append_many(self, keys):
-        """Append M=1/2/4 post-RoPE BF16 keys with shape [M,128]."""
         import torch
 
         if keys.ndim != 2 or keys.shape[1] != INDEX_DIM:
@@ -330,7 +297,6 @@ class NativeIndexer:
         self.key_length.fill_(self.length)
 
     def truncate(self, valid_length):
-        """Invalidate a suffix without clearing its underlying storage."""
         validate_truncate(self.length, valid_length)
         self.key_length.fill_(valid_length)
         self.length = valid_length
@@ -339,7 +305,6 @@ class NativeIndexer:
         self.truncate(0)
 
     def select(self, query, weights):
-        """Select top-2048 positions for post-RoPE [32,128] query heads."""
         if query.shape != (INDEX_HEADS, INDEX_DIM):
             raise ValueError("index query must have shape [32,128]")
         if weights.shape != (INDEX_HEADS,):
@@ -348,11 +313,6 @@ class NativeIndexer:
         return indices[0, :min(self.length, TOP_K)]
 
     def select_many(self, query, weights):
-        """Select [M,2048] causal indices for the last M cached positions.
-
-        Query is BF16 [M,32,128], weights are [M,32], and M is 1/2/4.
-        CANN returns valid indices first and fills unused slots with -1.
-        """
         import torch
         import torch_npu
 

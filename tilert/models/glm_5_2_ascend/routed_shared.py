@@ -1,10 +1,3 @@
-"""Interleave TP16 routed INT4 and shared W8A8 bodies on one AIC/AIV launch.
-
-The routed callback hook preserves vendor input preparation, top-k, finalize
-and context lifetimes. The owning MoE runner retains routed scaling, addition
-and TP reduction. Each stream owns its scratch, shared across sequential layers.
-"""
-
 import inspect
 import os
 from pathlib import Path
@@ -32,35 +25,32 @@ ACTIVE_LIBRARY_DIR = Path(os.environ.get(
 
 
 def candidate_built():
-    """Whether the active-list variant is there to be compared against."""
     return (ACTIVE_LIBRARY_DIR / "routed_int4_torch.so").exists()
 
 
 def library_paths():
-    """The accepted library, and the candidate once it has been built.
-
-    The candidate is a comparison, not a dependency: an arm must neither fail
-    to start without it nor name a namespace it never loaded.
-    """
     return ([LIBRARY_DIR / "routed_int4_torch.so"]
             + ([ACTIVE_LIBRARY_DIR / "routed_int4_torch.so"]
                if candidate_built() else []))
 
 
 def pack_shared_weights(gate_up, down):
-    """Pack independent K/N tiles without changing signed INT8 codes."""
     import torch
 
-    if (gate_up.shape != (HIDDEN, 256) or down.shape != (128, HIDDEN)
-            or gate_up.dtype != torch.int8 or down.dtype != torch.int8):
-        raise ValueError("Shared weights require INT8 [6144,256] and [128,6144]")
-    gate = gate_up.reshape(6, 1024, 4, 64).permute(0, 2, 1, 3)
-    output = down.reshape(128, 24, 256).permute(1, 0, 2)
-    return gate.contiguous().reshape(24, 1024, 64), output.contiguous()
+    if gate_up.dtype != torch.int8 or down.dtype != torch.int8:
+        raise ValueError("Shared weights require INT8")
+    if gate_up.shape == (HIDDEN, 256) and down.shape == (128, HIDDEN):
+        gate = gate_up.reshape(6, 1024, 4, 64).permute(0, 2, 1, 3)
+        output = down.reshape(128, 24, 256).permute(1, 0, 2)
+        return gate.contiguous().reshape(24, 1024, 64), output.contiguous()
+    if gate_up.shape == (HIDDEN, 512) and down.shape == (256, HIDDEN):
+        gate = gate_up.reshape(6, 1024, 4, 128).permute(0, 2, 1, 3)
+        output = down.reshape(256, 24, 256).permute(1, 0, 2)
+        return gate.contiguous().reshape(24, 1024, 128), output.contiguous()
+    raise ValueError("Shared weights require INT8 [6144,256]/[128,6144] or [6144,512]/[256,6144]")
 
 
 class WorkspacePool(_WorkspacePool):
-    """Reserve routed and shared buffers together before graph capture."""
 
     def __init__(self, blocks=24, input_front=True):
         super().__init__(EXPERTS_PER_RANK, blocks, weight_layout=1,
@@ -91,7 +81,6 @@ def load():
 
 
 def _validate_runner(runner):
-    """Require the rank-local TP contract used by the device comparison."""
     config = runner.moe_config
     shared = runner.ascend_shared_experts
     routed = runner.routed_experts
@@ -113,7 +102,7 @@ def _validate_runner(runner):
         )
     if "fused_experts" not in inspect.signature(routed.forward_impl).parameters:
         raise RuntimeError(
-            "Apply patches/vllm-ascend/routed-shared-hook.patch before "
+            "Apply scripts/patches/vllm-ascend/routed-shared-hook.patch before "
             "enabling the routed/shared body"
         )
 
@@ -130,9 +119,9 @@ def _shared_weights(shared):
         scheme = projection.quant_method.quant_method
         if (not isinstance(scheme, AscendW8A8DynamicLinearMethod)
                 or scheme.act_quant_type != torch.int8
-                or projection.tp_size != 16
+                or projection.tp_size not in (8, 16)
                 or getattr(projection, "bias", None) is not None):
-            raise ValueError("Shared projections require unbiased TP16 W8A8_DYNAMIC")
+            raise ValueError("Shared projections require unbiased TP8/TP16 W8A8_DYNAMIC")
         if projection.weight_scale.dtype not in (torch.float32, torch.bfloat16):
             raise ValueError("Shared projection scales require FP32 or BF16")
     packed_gate, packed_down = pack_shared_weights(
@@ -141,16 +130,16 @@ def _shared_weights(shared):
     )
     gate_scale = gate.weight_scale_fp32.detach().contiguous()
     down_scale = down.weight_scale.detach().float().contiguous()
-    if (gate_scale.shape != (256,) or gate_scale.dtype != torch.float32
+    expected_gate_cols = 4096 // gate.tp_size
+    if (gate_scale.shape != (expected_gate_cols,) or gate_scale.dtype != torch.float32
             or down_scale.shape != (HIDDEN,)):
-        raise ValueError("Shared projection scales require 256 and 6144 channels")
+        raise ValueError(f"Shared projection scales require {expected_gate_cols} and 6144 channels")
     return (torch_npu.npu_format_cast(packed_gate, 2), gate_scale,
             torch_npu.npu_format_cast(packed_down, 2), down_scale)
 
 
 def run_body(x, topk_weights, topk_ids, shared_input, routed_weights,
              shared_weights, pool):
-    """Return workspace-owned outputs and counts for this stream's next consumer."""
     import torch
     import torch_npu
 
@@ -180,7 +169,6 @@ def run_body(x, topk_weights, topk_ids, shared_input, routed_weights,
 
 
 def install(runner, routed_weights, pool):
-    """Replace an owning runner's local body, retaining its outer finalize."""
     import torch
     from vllm_ascend.ascend_forward_context import _EXTRA_CTX
     from vllm_ascend.ops.fused_moe.moe_comm_method import (

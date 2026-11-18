@@ -1,19 +1,13 @@
-"""Install one native launch per supported GLM Decoder MoE layer.
-
-Installation follows weight postprocessing and KV-cache binding. Capture must
-be preceded by ``reserve_capture`` and followed by ``validate_capture``. The
-model owns weights, caches and shared TopK; this module retains their owners and
-owns the packed copies, exact-width scratch and SHMEM windows. Close the model's
-graphs before calling ``close_after_graphs`` on every TP rank.
-"""
-
 from collections import Counter
+import ctypes
 from dataclasses import dataclass
+import gc
 import hashlib
 import inspect
 import json
 import os
 from pathlib import Path
+import struct
 from types import MethodType
 
 from . import attention_native as attention
@@ -30,16 +24,53 @@ from .whole_layer_abi import (
 
 HIDDEN = 6144
 BLOCKS = 24
-WIDTHS = (1, 2, 12, 32)
+WIDTHS = (1, 2, 4, 6, 8, 12, 16, 24, 32)
 FFN_NAMESPACE = "tilert_ffn_original_shared_gu_static"
 LIBRARY_HASHES = {
-    "indexed": "8deff750464e23bb871302c8626b86d37b60c28a00991d550f95dfcfd47ecb6f",
-    "shared": "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c",
-    "ffn": "381febf94f918cc7393019b6f99ec8dc38e9a5cc9e63b2d49d5fe483158e3ff2",
-    "metadata": "609c973e92b61637f7768ccefb0fbd84b2e13fcfb066b241a41cd5d8376fdd0f",
+    "indexed": {
+        "fea3c0c6c8d1c1daa97dddc1c954ca1f61ffc1a8f579aeccb11a078bb211f403",
+        "8deff750464e23bb871302c8626b86d37b60c28a00991d550f95dfcfd47ecb6f",
+        "aa10bf55d65f34a9aa6d1627703794303dc7b1ce1e3119856ce6a6abf3b9d6f9",
+    },
+    "shared": {
+        "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c",
+        "0e985f72fda85389bcc6c11915cef5255a71475633089a82bea8639fd59e1d5d",
+    },
+    "ffn": {
+        "8c031c70c2ccef93a7425ef06ff457923e139889903caaeea21cdbe4ed21cf42",
+        "eb565d83aceb23dc00be837042dfb009d0cbc58c9dff531dfec3df34bfb969ac",
+        "358034c6b45ad37a270944b0918ceb91084d25e4ed1621a1745a3edbf7400ed9",
+        "381febf94f918cc7393019b6f99ec8dc38e9a5cc9e63b2d49d5fe483158e3ff2",
+        "9a22fae0d4c2aedde083b2d413d6706e33ce5b941508b7d7b7a86814acd611f4",
+        "168f1c812bfc9a0a3774d6436004a7d416e18aa17efb18f63e631d6005af9a54",
+        "74838084ddcc204cbb01e62d2d612716dc23e3f5e0a6b33232470674e155a199",
+        "8ec2d71bc522efbf287bf70cb24bccc6e0c4b1c1556a0335d5529232c4676b0f",
+    },
+    "metadata": {
+        "421775a060c02bbb112d94f17601522d10606d8b506476d900bb03e438e6d5c3",
+        "cb5aaf655bab06b7b5e2304acb5a053030de121df4ba8f8735354bd6e0e52708",
+        "3349e9978c38a9f34b77895325edda331d165d4be2aaaad09edf2f87f097370f",
+        "c8f5cf5a4b54eaffe7d21fafd796e3431a4dc0de16ede4e624d1cd39cfc7cf5e",
+        "609c973e92b61637f7768ccefb0fbd84b2e13fcfb066b241a41cd5d8376fdd0f",
+        "d9083176f84ca43205b0ec46206d5ee4a3f37c94557baa96cd4e8df76f5c2e66",
+        "b8eadb136b308801921430fc1760f2c45a4f4c6ba5b93de54a846bcbb26bfea0",
+        "c573611d5cf22c7e9446b5c356c19560bb7be9a0b1910d7588ffed3616069673",
+    },
     "tree": {
+        "bd380142f6c125c44b9ab5f79e3934241e16d38f5ae206e08333c56b926af6cc",
+        "8db9ecf2bef487b90b8611c164b760494d4a9d25d1e6aa9afd9ace20ccb966cd",
+        "f0d69486c76a9d5d1b4e7e5407066209ee51818e3a02540c24dbd64dbe720715",
+        "ae3c46867c9923cf1646a6e77af4804a64d3f145c7359494a0f9cc01826c73c9",
+        "3fed5d1704e880be62f5f3f96de285eae27c47cb9b8bc770454d1b22d8c9b434",
+        "bf7f17c12eeda21169c933a90d091c5b1d55d25ebb748ae1fa14d6d8f1395d10",
+        "15f2d17d9cd6cf9eb14c3abf4d9cde1d63773515e35b29ddf37716cedc60aea1",
+        "11fa8bfb0ea274fd5473e2687960c487dfa298c492c639799abeed0af1c88ba7",
+        "af13b91eb626ab9ece7582153b09caacdf7001898fc9341a781eeee44ef5cc9f",
         "7ec3e8fdd6155d99d98a9b69d2d4b02dc43c9417695f7632ad6559f42ecb96b3",
         "4671998072ae15e8efe69cecf5a3cd88757a431b72ff713dae4d596ca3d9191e",
+        "06aef9dd18c662c04679cb976e636ff8804c5feacf7d1331862cacda74d718fa",
+        "4905da958f67a17a02096d638616b63092c9dc0bfb6449987fa267152c43c447",
+        "21ebf23d459e0819ba09b761f9ab066a65ea6cc68902085abfef2f34c852c0bf",
     },
 }
 SOURCE_HASHES = {
@@ -57,6 +88,7 @@ SOURCE_HASHES = {
     "scale": {
         "efdcc610c05a44952c2548e0d8b0cd48ca7704c3e2cf8247f8f08f5e765b830b",
         "d06549f45637300df3e4915823f4f71a913ce7059d1e3a4c475ab1f225e1a28a",
+        "47444be0a5017d012401685d89134200f39c5e706f7941797fa7ecfccf1bba0d",
     },
 }
 
@@ -75,7 +107,6 @@ class Libraries:
 
     @classmethod
     def from_json(cls, path):
-        """Read five library paths, relative to the JSON file when necessary."""
         path = Path(path).resolve()
         values = json.loads(path.read_text())
         if set(values) != set(LIBRARY_HASHES):
@@ -83,8 +114,24 @@ class Libraries:
         return cls(**{name: (path.parent / value).resolve()
                       for name, value in values.items()})
 
+    def tree_manifest(self):
+        manifest_path = self.tree.with_suffix(".manifest.json")
+        if manifest_path.is_file():
+            return json.loads(manifest_path.read_text())
+        return None
+
     def verify(self):
+        from .ops.build_megakernel import ROOT as mk_root, source_digest
+
         for name, expected in LIBRARY_HASHES.items():
+            if name == "tree":
+                manifest = self.tree_manifest()
+                if manifest is not None:
+                    if _digest(self.tree) != manifest.get("sha256"):
+                        raise ValueError("The built whole-layer tree library changed")
+                    if mk_root.is_dir() and manifest.get("source_sha256") != source_digest():
+                        raise ValueError("The built whole-layer tree source changed")
+                    continue
             allowed = {expected} if isinstance(expected, str) else set(expected)
             if _digest(getattr(self, name)) not in allowed:
                 raise ValueError(f"The frozen whole-layer {name} library changed")
@@ -101,19 +148,17 @@ def _source(value, name):
 
 
 def tensor_identity(value):
-    """Describe an owner without reading its device contents."""
     return (value.device, value.data_ptr(), tuple(value.shape),
             tuple(value.stride()), value.storage_offset(), value.dtype)
 
 
-def unpack_scale(packed, columns):
-    """Decode the original zero-extended FP32 bits in each INT64 carrier."""
+def unpack_scale(packed, columns, experts=256):
     import torch
 
     if packed.dtype != torch.int64 or tuple(packed.shape) not in (
-            (256, columns), (256, 1, columns)):
-        raise ValueError("Routed scales require INT64 [256,C] carriers")
-    words = packed.detach().cpu().contiguous().reshape(256, columns)
+            (experts, columns), (experts, 1, columns)):
+        raise ValueError(f"Routed scales require INT64 [{experts},C] carriers")
+    words = packed.detach().cpu().contiguous().reshape(experts, columns)
     if not bool(((words >= 0) & (words <= 0xffffffff)).all()):
         raise ValueError("Routed scale carriers must zero-extend FP32 bits")
     values = words.to(torch.int32).view(torch.float32)
@@ -152,23 +197,28 @@ def _validate_layer(layer, config):
     _source(type(runner), "runner")
     _source(moe_runner, "lookup")
     moe = runner.moe_config
-    if (moe.tp_size != 16 or moe.ep_size != 1 or moe.dp_size != 1
+    is_tp16 = (moe.tp_size == 16 and moe.ep_size == 1
+               and moe.intermediate_size_per_partition == 128
+               and moe.num_local_experts == 256)
+    is_tp8_ep8 = (moe.tp_size == 1 and moe.ep_size == 8
+                  and moe.intermediate_size_per_partition == 2048
+                  and moe.num_local_experts == 32)
+    if ((not is_tp16 and not is_tp8_ep8) or moe.dp_size != 1
             or moe.pcp_size != 1 or moe.is_sequence_parallel
             or config.parallel_config.enable_eplb
             or runner.routed_input_transform is not None
             or runner.routed_output_transform is not None
             or runner._should_reduce_routed_before_combine()
             or isinstance(runner.router, ZeroExpertRouter)):
-        raise ValueError("Require untransformed TP16/EP1/DP1/PCP1 MoE")
+        raise ValueError("Require untransformed TP16/EP1 or TP8+EP8 MoE")
     if (moe.hidden_dim != HIDDEN or moe.hidden_dim_unpadded != HIDDEN
-            or moe.intermediate_size_per_partition != 128
-            or moe.intermediate_size_per_partition_unpadded != 128
-            or moe.num_experts != 256 or moe.num_local_experts != 256
+            or moe.intermediate_size_per_partition_unpadded != moe.intermediate_size_per_partition
+            or moe.num_experts != 256
             or moe.experts_per_token != 8 or moe.in_dtype != torch.bfloat16
             or moe.has_bias or moe.is_lora_enabled or moe.has_hash_routing
             or moe.skip_final_all_reduce or runner.routed_scaling_factor != 2.5
             or runner.enable_dbo or runner.shared_expert_gate is not None):
-        raise ValueError("Require BF16 H6144/I128/E256/K8 MoE with scale 2.5")
+        raise ValueError("Require BF16 H6144/E256/K8 MoE with scale 2.5")
     expected = {
         "hidden_size": HIDDEN, "n_routed_experts": 256,
         "num_experts_per_tok": 8, "n_group": 1, "topk_group": 1,
@@ -189,6 +239,8 @@ def _validate_layer(layer, config):
             is not None):
         raise ValueError("Require the original ungated A8_INT_FUSED shared expert")
     for norm in (layer.input_layernorm, layer.post_attention_layernorm):
+        if norm.bias is not None and not getattr(norm, "bias_loaded", True):
+            norm.bias = None
         if norm.bias is not None:
             raise ValueError("Whole-layer RMSNorm must be unbiased")
         _require(norm.weight, torch.bfloat16, (HIDDEN,), "RMSNorm gamma")
@@ -212,6 +264,10 @@ def _runtime_ready(runner):
     from vllm_ascend.ascend_forward_context import _EXTRA_CTX
     from vllm_ascend.ops.fused_moe.moe_comm_method import MoECommType
 
+    if runner.moe_config.ep_size == 8:
+        return _EXTRA_CTX.moe_comm_type in (
+            MoECommType.ALLGATHER, MoECommType.MC2, MoECommType.ALLTOALL
+        )
     return (_EXTRA_CTX.moe_comm_type == MoECommType.ALLGATHER
             and not runner._fused_output_is_reduced)
 
@@ -233,6 +289,8 @@ class _Weights:
         self.device = self.caches[0].device
         for value in self.caches:
             _require(value, value.dtype, value.shape, "KV cache", self.device)
+        if getattr(layer.self_attn.mla_attn, "topk_indices_buffer", None) is None:
+            layer.self_attn.mla_attn.topk_indices_buffer = self.impl.topk_indices_buffer
         topk = layer.self_attn.mla_attn.topk_indices_buffer
         if (topk is None or self.impl.topk_indices_buffer is not topk
                 or topk.ndim != 2 or topk.shape[0] < max(WIDTHS)
@@ -242,19 +300,23 @@ class _Weights:
         self.topk = topk
         routed = self.runner.routed_experts
         _source(type(routed.quant_method.quant_method), "scale")
-        scales = [attention._nd(unpack_scale(getattr(routed, name), columns)
+        moe = self.runner.moe_config
+        local_experts = moe.num_local_experts
+        inter = moe.intermediate_size_per_partition
+        gu_cols = 2 * inter
+        scales = [attention._nd(unpack_scale(getattr(routed, name), columns, local_experts)
                                 .to(self.device))
-                  for name, columns in (("w13_weight_scale", 256),
+                  for name, columns in (("w13_weight_scale", gu_cols),
                                         ("w2_weight_scale", HIDDEN))]
         self.routed = [routed.w13_weight, routed.w13_scale_bias, scales[0],
                        routed.w2_weight, routed.w2_scale_bias, scales[1]]
-        for index, shape in ((0, (256, HIDDEN, 32)),
-                             (3, (256, 128, 768))):
+        for index, shape in ((0, (local_experts, HIDDEN, gu_cols // 8)),
+                             (3, (local_experts, inter, HIDDEN // 8))):
             _require(self.routed[index], torch.int32, shape,
                      "Routed INT4 carrier", self.device, physical=29)
-        for index, columns in ((1, 256), (2, 256), (4, HIDDEN), (5, HIDDEN)):
+        for index, columns in ((1, gu_cols), (2, gu_cols), (4, HIDDEN), (5, HIDDEN)):
             value = self.routed[index]
-            _require(value, torch.float32, (256, columns),
+            _require(value, torch.float32, (local_experts, columns),
                      "Routed scale/correction", self.device)
         self.shared = list(_shared_weights(self.runner.ascend_shared_experts))
         self.input_gamma = attention._nd(layer.input_layernorm.weight)
@@ -306,7 +368,6 @@ class _Weights:
 
 
 class _Arena:
-    """One layer, exact M, metadata geometry and stream; no replay allocation."""
 
     def __init__(self, owner, reference, metadata):
         import torch
@@ -318,38 +379,52 @@ class _Arena:
                                                *metadata)
 
         def empty(shape, dtype):
-            return attention._nd(torch.empty(shape, dtype=dtype,
+            return attention._nd(torch.zeros(shape, dtype=dtype,
                                              device=reference.device))
 
-        self.norm_outputs = [empty((self.rows, HIDDEN), torch.bfloat16),
-                             empty((self.rows, HIDDEN), torch.bfloat16),
-                             empty((self.rows,), torch.float32),
-                             empty((self.rows, HIDDEN), torch.int8),
-                             empty((self.rows, 1), torch.float32)]
         geometry = self.geometry
+        pool_key = (self.rows, weights.mode, geometry, owner.layer.layer_idx % 2)
+        arena_pool = getattr(owner.manager, "arena_pool", None)
+        if arena_pool is None:
+            arena_pool = owner.manager.arena_pool = {}
+        if pool_key not in arena_pool:
+            norm_outputs = [empty((self.rows, HIDDEN), torch.bfloat16),
+                            empty((self.rows, HIDDEN), torch.bfloat16),
+                            empty((self.rows,), torch.float32),
+                            empty((self.rows, HIDDEN), torch.int8),
+                            empty((self.rows, 1), torch.float32)]
+            if weights.mode == "shared":
+                scratch, tiling, blocks, sync_a = (
+                    torch.ops.tilert.shared_full_attention_prepare(
+                        norm_outputs[3], geometry.pages,
+                        geometry.table_pages, BLOCKS))
+                offsets = None
+            else:
+                scratch, tiling, offsets, blocks, sync_a = (
+                    torch.ops.tilert.indexed_attention_prepare(
+                        norm_outputs[3], geometry.pages, geometry.table_pages,
+                        geometry.index_pages, geometry.index_table_pages,
+                        weights.mode == "int8", BLOCKS))
+            partial = empty((self.rows, HIDDEN), torch.bfloat16)
+            bridge, body, sync = owner.manager.ffn.prepare(partial, BLOCKS, 1)
+            if (blocks != BLOCKS or not sync or sync_a != sync
+                    or len(bridge) != 12 or len(body) != 21):
+                raise RuntimeError("Native parent workspaces disagree on geometry or sync")
+            attention_sum = empty((self.rows, HIDDEN), torch.bfloat16)
+            output = empty((self.rows, HIDDEN), torch.bfloat16)
+            arena_pool[pool_key] = (
+                norm_outputs, scratch, tiling, offsets, sync_a,
+                partial, bridge, body, attention_sum, output,
+            )
+        (self.norm_outputs, self.scratch, self.tiling, offsets, self.sync,
+         self.partial, self.bridge, self.body, self.attention_sum,
+         self.output) = arena_pool[pool_key]
         if weights.mode == "shared":
-            self.scratch, self.tiling, blocks, self.sync = (
-                torch.ops.tilert.shared_full_attention_prepare(
-                    self.norm_outputs[3], geometry.pages,
-                    geometry.table_pages, BLOCKS))
             self.selected = weights.topk[:self.rows].view(self.rows, 1, 2048)
         else:
-            self.scratch, self.tiling, offsets, blocks, self.sync = (
-                torch.ops.tilert.indexed_attention_prepare(
-                    self.norm_outputs[3], geometry.pages, geometry.table_pages,
-                    geometry.index_pages, geometry.index_table_pages,
-                    weights.mode == "int8", BLOCKS))
             self.selected = self.scratch.narrow(
                 0, offsets["topk"], self.rows * 2048 * 4
             ).view(torch.int32).view(self.rows, 1, 2048)
-        self.partial = empty((self.rows, HIDDEN), torch.bfloat16)
-        self.bridge, self.body, sync = owner.manager.ffn.prepare(
-            self.partial, BLOCKS, 1)
-        if (blocks != BLOCKS or not sync or self.sync != sync
-                or len(self.bridge) != 12 or len(self.body) != 21):
-            raise RuntimeError("Native parent workspaces disagree on geometry or sync")
-        self.attention_sum = empty((self.rows, HIDDEN), torch.bfloat16)
-        self.output = empty((self.rows, HIDDEN), torch.bfloat16)
         self.bindings = {}
         self.slot_buffers = {}
         self.reserve_metadata(metadata)
@@ -360,7 +435,6 @@ class _Arena:
         for values in metadata:
             if values is None:
                 continue
-            # Format 0 -> ND can retag the shared RoPE storage descriptor.
             values[:2] = [attention._nd(value) for value in values[:2]]
             source = values[2]
             if source.dtype == torch.int32:
@@ -435,6 +509,376 @@ class _Arena:
         return (*self.norm_outputs, self.scratch, self.tiling, self.partial,
                 *self.bridge, *self.body, self.attention_sum, self.output,
                 *self.slot_buffers.values())
+
+
+def _pack_dense_mlp_weights(layer):
+    import torch
+    import torch_npu
+
+    gate = layer.mlp.gate_up_proj
+    down = layer.mlp.down_proj
+    w_gu = torch_npu.npu_format_cast(gate.weight.detach(), 2)
+    w_dn = torch_npu.npu_format_cast(down.weight.detach(), 2)
+    if w_gu.shape != (6144, 3072) or w_gu.dtype != torch.int8:
+        raise ValueError(f"Dense gate_up shape/dtype mismatch: {w_gu.shape} {w_gu.dtype}")
+    if w_dn.shape != (1536, 6144) or w_dn.dtype != torch.int8:
+        raise ValueError(f"Dense down shape/dtype mismatch: {w_dn.shape} {w_dn.dtype}")
+    p_gu = (
+        w_gu.reshape(6, 1024, 24, 128)
+        .permute(2, 0, 1, 3)
+        .contiguous()
+        .view(24, 6, 2, 512, 4, 32)
+        .permute(0, 1, 2, 4, 3, 5)
+        .contiguous()
+    )
+    p_gu = torch_npu.npu_format_cast(p_gu, 2)
+    p_dn = (
+        w_dn.reshape(6, 256, 24, 256)
+        .permute(2, 0, 1, 3)
+        .contiguous()
+        .view(24, 6, 2, 128, 8, 32)
+        .permute(0, 1, 2, 4, 3, 5)
+        .contiguous()
+    )
+    p_dn = torch_npu.npu_format_cast(p_dn, 2)
+    s_gu = gate.weight_scale.detach().float().contiguous()
+    s_dn = down.weight_scale.detach().float().contiguous()
+    if s_gu.shape != (3072,) or s_dn.shape != (6144,):
+        raise ValueError(f"Dense scale shapes mismatch: {s_gu.shape} {s_dn.shape}")
+    return (p_gu, s_gu, p_dn, s_dn)
+
+
+def _apply_attention_nz(weights, f0_nz, tail_nz):
+    if f0_nz and weights.front:
+        f0 = weights.front[0]
+        f0.copy_(f0.view(16, 2048, 8, 32).permute(0, 2, 1, 3).contiguous().view_as(f0))
+    if tail_nz:
+        t0 = weights.tail[0]
+        t0.copy_(t0.view(16, 512, 8, 16).permute(0, 2, 1, 3).contiguous().view_as(t0))
+        t1 = weights.tail[1]
+        t1.copy_(t1.view(24, 2048, 8, 32).permute(0, 2, 1, 3).contiguous().view_as(t1))
+
+
+def _apply_r4_moe_transforms(layers_list, device, flags, orig_gates):
+    import torch
+
+    flag_set = set(flags)
+    f0_nz = "-DK11040_F0_NZ=1" in flag_set
+    tail_nz = "-DK11040_TAIL_NZ=1" in flag_set
+    shared_nz = "-DK11150_SHARED_W8_NZ=1" in flag_set
+    gate_contig = "-DK11088_GATE_CONTIG=1" in flag_set
+    down_contig = "-DK11220_DOWN_CONTIG_256=1" in flag_set
+    preload_gate = "-DK112726_BRIDGE_PRELOAD_GATE=1" in flag_set
+
+    with torch.npu.device(device), torch.inference_mode():
+        seen_attn = set()
+        seen_shared = set()
+        seen_post = set()
+        for item in layers_list:
+            w = item.weights
+            if f0_nz and w.front:
+                p = int(w.front[0].data_ptr())
+                if p not in seen_attn:
+                    seen_attn.add(p)
+                    f0 = w.front[0]
+                    f0.copy_(f0.view(16, 2048, 8, 32).permute(0, 2, 1, 3).contiguous().view_as(f0))
+            if tail_nz:
+                p0, p1 = int(w.tail[0].data_ptr()), int(w.tail[1].data_ptr())
+                if p0 not in seen_attn:
+                    seen_attn.add(p0)
+                    t0 = w.tail[0]
+                    t0.copy_(t0.view(16, 512, 8, 16).permute(0, 2, 1, 3).contiguous().view_as(t0))
+                if p1 not in seen_attn:
+                    seen_attn.add(p1)
+                    t1 = w.tail[1]
+                    t1.copy_(t1.view(24, 2048, 8, 32).permute(0, 2, 1, 3).contiguous().view_as(t1))
+            if shared_nz and w.shared:
+                pg = int(w.shared[0].data_ptr())
+                if pg not in seen_shared:
+                    seen_shared.add(pg)
+                    g = w.shared[0]
+                    g.copy_(
+                        g.view(24, 2, 512, 4, 32)
+                        .permute(0, 1, 3, 2, 4)
+                        .contiguous()
+                        .view_as(g)
+                    )
+                pd = int(w.shared[2].data_ptr())
+                if pd not in seen_shared:
+                    seen_shared.add(pd)
+                    d = w.shared[2]
+                    d.copy_(
+                        d.view(24, 2, 128, 8, 32)
+                        .permute(0, 1, 3, 2, 4)
+                        .contiguous()
+                        .view_as(d)
+                    )
+            if preload_gate and w.post:
+                pp = int(w.post[1].data_ptr())
+                if pp not in seen_post:
+                    seen_post.add(pp)
+                    orig_gates[item.name] = w.post[1].detach().cpu().clone()
+                    gw = w.post[1]
+                    gw.copy_(
+                        gw.reshape(HIDDEN, 16, 16)
+                        .permute(1, 0, 2)
+                        .contiguous()
+                        .view(HIDDEN, 256)
+                    )
+        if gate_contig:
+            acl = ctypes.CDLL("libascendcl.so")
+            tmp = torch.empty((32 * 12582912,), dtype=torch.uint8, device=device)
+            seen_g = set()
+            for item in layers_list:
+                if not item.weights.routed:
+                    continue
+                r0 = item.weights.routed[0]
+                p0 = int(r0.data_ptr())
+                if p0 in seen_g:
+                    continue
+                seen_g.add(p0)
+                nbytes = r0.numel() * r0.element_size()
+                cnt = nbytes // 12582912
+                sub = tmp[:nbytes]
+                torch.npu.synchronize()
+                rc = acl.aclrtMemcpy(
+                    ctypes.c_void_p(int(sub.data_ptr())),
+                    nbytes,
+                    ctypes.c_void_p(p0),
+                    nbytes,
+                    3,
+                )
+                if rc != 0:
+                    raise RuntimeError("aclrtMemcpy failed packing routed gate")
+                sub.copy_(
+                    sub.view(cnt, 16, 4, 4, 49152)
+                    .permute(0, 1, 3, 2, 4)
+                    .contiguous()
+                    .view(-1)
+                )
+                torch.npu.synchronize()
+                rc = acl.aclrtMemcpy(
+                    ctypes.c_void_p(p0),
+                    nbytes,
+                    ctypes.c_void_p(int(sub.data_ptr())),
+                    nbytes,
+                    3,
+                )
+                if rc != 0:
+                    raise RuntimeError("aclrtMemcpy failed writing routed gate")
+            del tmp
+        if down_contig:
+            acl = ctypes.CDLL("libascendcl.so")
+            tmp = torch.empty((32 * 6291456,), dtype=torch.uint8, device=device)
+            seen_d = set()
+            for item in layers_list:
+                if not item.weights.routed:
+                    continue
+                r3 = item.weights.routed[3]
+                p3 = int(r3.data_ptr())
+                if p3 in seen_d:
+                    continue
+                seen_d.add(p3)
+                nbytes = r3.numel() * r3.element_size()
+                cnt = nbytes // 6291456
+                sub = tmp[:nbytes]
+                torch.npu.synchronize()
+                rc = acl.aclrtMemcpy(
+                    ctypes.c_void_p(int(sub.data_ptr())),
+                    nbytes,
+                    ctypes.c_void_p(p3),
+                    nbytes,
+                    3,
+                )
+                if rc != 0:
+                    raise RuntimeError("aclrtMemcpy failed packing routed down")
+                sub.copy_(
+                    sub.view(cnt, 24, 4, 2, 32768)
+                    .permute(0, 1, 3, 2, 4)
+                    .contiguous()
+                    .view(-1)
+                )
+                torch.npu.synchronize()
+                rc = acl.aclrtMemcpy(
+                    ctypes.c_void_p(p3),
+                    nbytes,
+                    ctypes.c_void_p(int(sub.data_ptr())),
+                    nbytes,
+                    3,
+                )
+                if rc != 0:
+                    raise RuntimeError("aclrtMemcpy failed writing routed down")
+            del tmp
+        torch.npu.synchronize()
+
+
+def reclaim_hbm(*, target=None, draft=None, mgr=None):
+    import torch
+
+    for model_obj in (target, draft):
+        if model_obj is None:
+            continue
+        re = getattr(getattr(model_obj, "attention", None), "rotary_emb", None)
+        if re is not None:
+            for nm in ("cos_sin_cache", "_rope_derived_cos_cache", "_rope_derived_sin_cache"):
+                t = getattr(re, nm, None)
+                if torch.is_tensor(t) and t.shape[0] > 16384:
+                    re._buffers[nm] = t[:16384].contiguous().clone()
+        blds = getattr(model_obj, "builders", None)
+        if blds:
+            for b in blds:
+                obj = b[1] if isinstance(b, (list, tuple)) and len(b) > 1 else b
+                if getattr(obj, "chunked_prefill_workspace", None) is not None:
+                    obj.chunked_prefill_workspace = None
+    og = getattr(mgr, "_orig_gates", None)
+    if isinstance(og, dict):
+        for k in list(og.keys()):
+            v = og[k]
+            if torch.is_tensor(v) and str(v.device).startswith("npu"):
+                og[k] = v.cpu()
+    gc.collect()
+    torch.npu.empty_cache()
+
+
+class _DenseWeights:
+    def __init__(self, layer, moe0_weights, device, f0_nz=False, tail_nz=False):
+        import torch
+
+        self.attention = layer.self_attn.mla_attn.mla_attn
+        self.impl = self.attention.impl
+        self.mode = attention._validate_impl(self.impl)
+        with torch.npu.device(device), torch.inference_mode():
+            self.main, self.front, self.tail = attention._pack_weights(self.impl, self.mode)
+            _apply_attention_nz(self, f0_nz, tail_nz)
+            self.dense_mlp = _pack_dense_mlp_weights(layer)
+            torch.npu.synchronize()
+        self.caches = attention._cache_tensors(self.attention, self.mode)
+        self.device = self.caches[0].device
+        if getattr(layer.self_attn.mla_attn, "topk_indices_buffer", None) is None:
+            layer.self_attn.mla_attn.topk_indices_buffer = self.impl.topk_indices_buffer
+        self.topk = layer.self_attn.mla_attn.topk_indices_buffer
+        self.routed = moe0_weights.routed
+        self.shared = moe0_weights.shared
+        self.input_gamma = attention._nd(layer.input_layernorm.weight)
+        self.post = [
+            attention._nd(layer.post_attention_layernorm.weight),
+            moe0_weights.post[1],
+            moe0_weights.post[2],
+        ]
+        self.scalars = (
+            self.impl.scale,
+            self.impl.q_a_layernorm.variance_epsilon,
+            self.impl.kv_a_layernorm.variance_epsilon,
+            layer.input_layernorm.variance_epsilon,
+            layer.post_attention_layernorm.variance_epsilon,
+        )
+        self.owners = (
+            *self.main,
+            *self.front,
+            *self.tail,
+            *self.routed,
+            *self.shared,
+            self.input_gamma,
+            *self.post,
+            *self.caches,
+            self.topk,
+            *self.dense_mlp,
+        )
+        self.identities = tuple(map(tensor_identity, self.owners))
+
+    def check_owners(self):
+        if tuple(map(tensor_identity, self.owners)) != self.identities:
+            raise RuntimeError("Dense whole-layer weight or cache storage changed")
+
+    def metadata(self, rows):
+        from vllm.forward_context import get_forward_context
+
+        values = get_forward_context().attn_metadata
+        if not isinstance(values, dict):
+            return None
+        main = attention._metadata_values(values.get(self.impl.layer_name), rows)
+        index = None
+        if self.mode != "shared":
+            index = attention._metadata_values(
+                self.impl._get_indexer_attn_metadata(), rows, indexed=True)
+        if main is None or (self.mode != "shared" and index is None):
+            return None
+        return main, index
+
+
+class _DenseLayer:
+    def __init__(self, manager, layer, moe0_weights, device, f0_nz=False, tail_nz=False):
+        self.manager = manager
+        self.layer = layer
+        self.weights = _DenseWeights(layer, moe0_weights, device, f0_nz=f0_nz, tail_nz=tail_nz)
+        self.name = self.weights.impl.layer_name
+        self.original = layer.forward
+        self.entries = {}
+        self.reserves = {}
+        self.counters = Counter()
+
+    def reserve(self, reference):
+        metadata = self.weights.metadata(reference.shape[0])
+        if metadata is None:
+            raise ValueError(f"{self.name}: target capture metadata is unsupported")
+        geometry = attention.geometry_for(self.weights.mode, self.weights.caches, *metadata)
+        key = reference.shape[0], geometry
+        if key not in self.reserves:
+            self.reserves[key] = _Arena(self, reference, metadata)
+        self.counters["prepared"] += 1
+
+    def forward(self, unused_layer, positions, hidden_states, residual, llama_4_scaling=None):
+        import torch
+
+        if self.manager.closed:
+            raise RuntimeError("The whole-layer manager has been closed")
+        rows = hidden_states.shape[0] if hidden_states.ndim == 2 else 0
+        if rows not in WIDTHS:
+            self.counters["other_width_fallback"] += 1
+            return self.original(positions, hidden_states, residual, llama_4_scaling)
+        pre_normed = residual is None
+        if pre_normed:
+            residual = hidden_states
+            hidden_states = self.layer.input_layernorm(hidden_states)
+        self.weights.check_owners()
+        metadata = self.weights.metadata(rows)
+        if metadata is None:
+            raise ValueError(f"{self.name}: unsupported native metadata at M={rows}")
+        geometry = attention.geometry_for(self.weights.mode, self.weights.caches, *metadata)
+        stream = torch.npu.current_stream(hidden_states.device)
+        capturing = torch.npu.is_current_stream_capturing()
+        window = self.manager.window(stream, capturing)
+        key = stream.npu_stream, rows, geometry
+        if key not in self.entries:
+            if capturing:
+                reserve = rows, geometry
+                if reserve not in self.reserves:
+                    raise RuntimeError(f"{self.name}: capture has no reserved arena")
+                self.entries[key] = self.reserves.pop(reserve)
+                self.counters["reserve_claimed"] += 1
+            else:
+                self.entries[key] = _Arena(self, hidden_states, metadata)
+        arena = self.entries[key]
+        if self.manager.chain_enabled and self.name == self.manager.layer_order[0]:
+            self.manager.begin_chain()
+        prepared = arena.bind(hidden_states, residual, metadata, window)
+        prepared.local.indexed = (
+            (1 if self.weights.mode != "shared" else 0)
+            | 2
+            | (4 if pre_normed else 0)
+        )
+        if self.manager.chain_enabled:
+            self.manager.record_step(self.name, prepared, rows, capturing)
+        else:
+            prepared.launch()
+        self.counters["submitted"] += 1
+        self.counters[f"submitted_m{rows}"] += 1
+        if capturing:
+            self.manager.capture_layer(self.name, rows)
+        return arena.output, arena.bridge[1]
+
+    def restore(self):
+        self.layer.forward = self.original
 
 
 class _Layer:
@@ -519,12 +963,6 @@ class _Layer:
 
 
 class WholeLayerManager:
-    """Own a real TP16 model installation and its two in-kernel reductions.
-
-    All ranks must install the same layers and reserve widths in the same
-    order. The caller must retain this object through graph teardown. The
-    collective endpoint must be distinct from any other SHMEM context.
-    """
 
     def __init__(self, config, libraries, *, device, rank, ranks, endpoint,
                  target_width=12, heap_bytes=1 << 30, chain_mode=True):
@@ -532,10 +970,12 @@ class WholeLayerManager:
         import torch_npu
         from vllm.distributed import get_tp_group
 
-        if (target_width not in WIDTHS or ranks != 16
+        if (target_width not in WIDTHS or ranks not in (8, 16)
                 or not config.model_config.enforce_eager
                 or getattr(config, "lora_config", None) is not None):
-            raise ValueError("Whole-layer requires eager Python capture, TP16 and a supported width")
+            raise ValueError(
+                "Whole-layer requires eager Python capture, TP8/TP16 and a supported width"
+            )
         group = get_tp_group()
         if group.world_size != ranks or group.rank_in_group != rank:
             raise ValueError("SHMEM ranks must match the actual model TP group")
@@ -557,7 +997,9 @@ class WholeLayerManager:
         self.ffn = getattr(torch.ops, FFN_NAMESPACE)
         self.metadata_library = MetadataLibrary(libraries.metadata,
                                                 LIBRARY_HASHES["metadata"])
-        self.tree = TreeLibrary(libraries.tree, LIBRARY_HASHES["tree"])
+        self.tree_manifest = libraries.tree_manifest()
+        tree_expected = None if self.tree_manifest is not None else LIBRARY_HASHES["tree"]
+        self.tree = TreeLibrary(libraries.tree, tree_expected)
         self.layers = {}
         self.dense = []
         self.windows = {}
@@ -582,6 +1024,10 @@ class WholeLayerManager:
         self.chain_reserves = {}
         self.chains = {}
         self.copy_stream = None
+        self.tree_mask_ptr = 0
+        self.peer_weights_ptr = 0
+        self.peer_weights_buf = None
+        self._orig_gates = {}
 
     def _allocate_chain_buffer(self):
         import torch
@@ -593,7 +1039,6 @@ class WholeLayerManager:
         return raw[offset:offset + chain_bytes]
 
     def install_model(self, model):
-        """Install every MoE Decoder in a loaded backbone, then initialize SHMEM."""
         import torch
 
         if self.layers or self.initialized:
@@ -608,7 +1053,33 @@ class WholeLayerManager:
         if not expected:
             raise ValueError("The loaded backbone has no eligible MoE Decoder")
         prepared = [_Layer(self, layer) for layer in expected]
-        names = [item.name for item in prepared]
+        flags = list(self.tree_manifest.get("flags", ())) if self.tree_manifest else []
+        flag_set = set(flags)
+        use_dense78 = bool(
+            self.chain_mode
+            and self.tree.has_chain
+            and self.tree._set_peer_weights_ptr is not None
+            and ("-DK11220_DENSE78_COLD=1" in flag_set or self.tree_manifest is None)
+        )
+        dense_items = []
+        if use_dense78:
+            dense_raw = sorted(
+                (layer for layer in values if layer.layer_idx < hf.first_k_dense_replace),
+                key=lambda item: item.layer_idx,
+            )
+            dense_items = [
+                _DenseLayer(
+                    self,
+                    lyr,
+                    prepared[0].weights,
+                    self.device,
+                    f0_nz="-DK11040_F0_NZ=1" in flag_set,
+                    tail_nz="-DK11040_TAIL_NZ=1" in flag_set,
+                )
+                for lyr in dense_raw
+            ]
+        all_items = [*dense_items, *prepared]
+        names = [item.name for item in all_items]
         if len(set(names)) != len(names):
             raise ValueError("Whole-layer Decoder names are not unique")
         peers = [None] * self.ranks
@@ -616,23 +1087,50 @@ class WholeLayerManager:
                                             group=self.group.cpu_group)
         if any(peer != names for peer in peers):
             raise RuntimeError("TP ranks selected different native Decoder layers")
+        if flags:
+            _apply_r4_moe_transforms(prepared, self.device, flags, self._orig_gates)
+        if dense_items:
+            total_bytes = len(all_items) * 640
+            peer_raw = torch.zeros(total_bytes + 64, dtype=torch.uint8, device=self.device)
+            peer_off = (-int(peer_raw.data_ptr())) % 64
+            peer_sub = peer_raw[peer_off:peer_off + total_bytes]
+            peer_cpu = bytearray(total_bytes)
+            for li, item in enumerate(dense_items):
+                p_gu, s_gu, p_dn, s_dn = item.weights.dense_mlp
+                struct.pack_into(
+                    "<4Q",
+                    peer_cpu,
+                    li * 640 + 128,
+                    int(p_gu.data_ptr()),
+                    int(s_gu.data_ptr()),
+                    int(p_dn.data_ptr()),
+                    int(s_dn.data_ptr()),
+                )
+            with torch.npu.device(self.device), torch.inference_mode():
+                peer_sub.copy_(torch.frombuffer(peer_cpu, dtype=torch.uint8))
+                torch.npu.synchronize()
+            self.peer_weights_buf = peer_raw
+            self.peer_weights_ptr = int(peer_sub.data_ptr())
         self.tree.initialize(self.device.index, self.rank, self.ranks,
                              self.endpoint, self.heap_bytes)
         self.initialized = True
-        for item in prepared:
+        for item in all_items:
             self.layers[item.name] = item
             item.layer.forward = MethodType(item.forward, item.layer)
-        self.dense = [layer.layer_idx for layer in values if layer not in expected]
+        self.dense = ([] if dense_items else
+                      [layer.layer_idx for layer in values if layer not in expected])
         self.layer_order = tuple(names)
-        indices = [item.layer.layer_idx for item in prepared]
+        indices = [item.layer.layer_idx for item in all_items]
         contiguous = indices == list(range(indices[0], indices[0] + len(indices)))
         self.chain_enabled = bool(self.chain_mode and self.tree.has_chain
                                   and contiguous)
         if self.chain_enabled:
             self.copy_stream = torch.npu.Stream(device=self.device)
-        # Eager and graph streams have separate symmetric storage and epochs.
         self.window(torch.npu.current_stream(self.device), False)
         return self
+
+    def set_tree_mask_ptr(self, ptr):
+        self.tree_mask_ptr = int(ptr)
 
     def begin_chain(self):
         self.chain_active = True
@@ -653,17 +1151,33 @@ class WholeLayerManager:
             self.pending_steps.clear()
             self.chain_active = False
             self.slot_refreshed.clear()
-            chain_key = ("capture" if capturing else "eager", rows, *steps)
+            chain_key = (
+                "capture" if capturing else "eager",
+                rows,
+                self.tree_mask_ptr,
+                self.peer_weights_ptr,
+                *steps,
+            )
             if chain_key not in self.chains:
                 if capturing:
                     if rows not in self.chain_reserves:
                         raise RuntimeError("Capture has no reserved chain descriptor buffer")
                     steps_device = self.chain_reserves.pop(rows)
                     self.chains[chain_key] = PreparedChain(
-                        steps, steps_device, self.copy_stream)
+                        steps,
+                        steps_device,
+                        self.copy_stream,
+                        mask_ptr=self.tree_mask_ptr,
+                        peer_weights_ptr=self.peer_weights_ptr,
+                    )
                 else:
                     steps_device = self._allocate_chain_buffer()
-                    self.chains[chain_key] = PreparedChain(steps, steps_device)
+                    self.chains[chain_key] = PreparedChain(
+                        steps,
+                        steps_device,
+                        mask_ptr=self.tree_mask_ptr,
+                        peer_weights_ptr=self.peer_weights_ptr,
+                    )
             self.chains[chain_key].launch()
 
     def window(self, stream, capturing):
@@ -677,7 +1191,6 @@ class WholeLayerManager:
         return self.windows[key]
 
     def reserve_capture(self, reference):
-        """Allocate before official ACLGraphWrapper enters its default stream."""
         import torch
         from vllm_ascend.compilation.updatable_graph import UpdatableGraph
 
@@ -711,7 +1224,6 @@ class WholeLayerManager:
         self.capture_seen.add(name)
 
     def validate_capture(self, rows):
-        """Require every installed MoE layer once before the first graph replay."""
         if (rows != self.capture_width
                 or self.capture_seen != set(self.layers)):
             missing = sorted(set(self.layers) - self.capture_seen)
@@ -721,7 +1233,6 @@ class WholeLayerManager:
         self.capture_width = None
 
     def coverage(self):
-        """Report host submissions; captured replay does not execute Python."""
         storage = {}
         for layer in self.layers.values():
             for arena in (*layer.entries.values(), *layer.reserves.values()):
@@ -743,7 +1254,6 @@ class WholeLayerManager:
                                                    for window in self.windows.values())}
 
     def close_after_graphs(self):
-        """After resetting every graph, drain ranks, release windows and restore."""
         import torch
 
         if self.closed:
@@ -754,11 +1264,16 @@ class WholeLayerManager:
         for layer in self.layers.values():
             layer.restore()
         self.chains.clear()
+        if hasattr(self, 'arena_pool'): self.arena_pool.clear()
         self.chain_reserves.clear()
         self.slot_buffers.clear()
         self.slot_refreshed.clear()
         self.pending_steps.clear()
         self.copy_stream = None
+        self.peer_weights_buf = None
+        self.peer_weights_ptr = 0
+        self.tree_mask_ptr = 0
+        self._orig_gates.clear()
         for window in reversed(tuple(self.windows.values())):
             window.close()
         self.windows.clear()

@@ -1,18 +1,6 @@
-"""Fixed-width ACL graph for the CANN model and fixed cache storage."""
-
-
-# The widths a captured graph is replayed at. Narrower rounds decode eagerly,
-# so an arm that wants the narrowest comparison takes four, not two.
 CAPTURED_WIDTHS = (4, 6, 8, 12, 16, 24, 32)
 
-
 class CannGraph:
-    """Capture model forward; prepare metadata and sample outside the graph.
-
-    All TP ranks must finish uncaptured warmup before the first call.
-    The caller updates inputs and metadata before each forward, retaining
-    their storage through close(). Returned hidden storage is reused on replay.
-    """
 
     _METADATA_FIELDS = (
         "slot_mapping", "seq_lens", "cum_query_lens", "block_table",
@@ -54,8 +42,6 @@ class CannGraph:
             compiled = getattr(backbone, "compiled", False) or callable(
                 getattr(backbone, "aot_compiled_fn", None),
             )
-            # One message for four unrelated conditions cost an arm: a width
-            # the capture does not carry reported itself as a cold model.
             if width not in CAPTURED_WIDTHS:
                 raise ValueError(
                     f"Capture carries widths {CAPTURED_WIDTHS}, not {width}"
@@ -107,7 +93,6 @@ class CannGraph:
             if value.slot_mapping.data_ptr() != self.slots.data_ptr():
                 raise ValueError("Metadata must use the persistent slots")
             if isinstance(value, AscendSFAMetadata):
-                # _int64_kv_slots otherwise reuses a warmup-only cast result.
                 value.kv_slots_i64 = (value.slot_mapping, self.slots_i64)
                 sfa_count += 1
         if not sfa_count:
@@ -116,7 +101,6 @@ class CannGraph:
         self._captured_metadata = metadata
 
     def validate_metadata(self, metadata):
-        """Check replay addresses during acceptance, outside the hot path."""
         if self._addresses is None:
             raise RuntimeError("Capture before validating replay addresses")
         if self._metadata_addresses(metadata) != self._addresses:
@@ -144,7 +128,6 @@ class CannGraph:
         if entry.aclgraph is None:
             raise RuntimeError("The wrapper did not create an ACL graph")
         self._entry = entry
-        # Ascend capture records tasks; its output is not a completed forward.
         get_forward_context().capturing = False
         hidden = self.wrapper(self.tokens, self.positions)
         self.capture_count += 1
@@ -152,7 +135,6 @@ class CannGraph:
         return hidden
 
     def forward(self, metadata):
-        """Consume the fixed query width using freshly prepared metadata."""
         import torch
         from vllm.config import set_current_vllm_config
         from vllm_ascend.ascend_forward_context import (
@@ -186,7 +168,6 @@ class CannGraph:
                 return hidden
 
     def close(self):
-        """Drain device work and release the graph before worker shutdown."""
         import torch
 
         if self._closed:

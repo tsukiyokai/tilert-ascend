@@ -1,21 +1,3 @@
-"""Combine the shared and routed MoE outputs with a plain add.
-
-vLLM-Ascend overrides upstream's inline combine for one reason: to route it
-through `torch._foreach_add`, whose launch count does not grow with the tensor
-list. It passes a list of one. At matched shapes in a single capture the
-multi-tensor kernel costs 21.282 us against the plain add's 1.820, and its
-cost is flat in row count -- 21.282 at one row, 21.442 at eight -- so all of
-it is structure rather than work. Over 75 MoE layers that is 1.4 ms a round.
-
-Both compute an elementwise add of two BF16 tensors, so the substitution is
-bit-exact. The vendor's own comment retires the override once a superkernel
-add exists; `enable_super_kernel` is on and the capture's plain `Add` runs on
-AI_VECTOR_CORE.
-
-Evidence: docs/evidence/ascend-decode/critical-path-20261020.
-"""
-
-
 def _install_moe_superkernel_fusion(restorers, model=None):
     import os
     import torch
@@ -647,7 +629,7 @@ def _install_moe_superkernel_fusion(restorers, model=None):
         )
     if fuse_ar_norm:
         import torch_npu
-        import vllm_ascend.vllm_ascend_C  # noqa: F401
+        import vllm_ascend.vllm_ascend_C
         from .cann_graph import CannGraph
 
         reduce_obj = getattr(get_tp_group(), "_tilert_onesided_reduce", None)
@@ -801,7 +783,8 @@ def _install_moe_superkernel_fusion(restorers, model=None):
                 if rank == 0:
                     print(
                         f"[FUSED_PROBE] Capture done! produced_norms={fused_norm_produced}, "
-                        f"consumed_dq={fused_dq_consumed}, remaining_unconsumed={len(pending_quant)}",
+                        f"consumed_dq={fused_dq_consumed}, "
+                        f"remaining_unconsumed={len(pending_quant)}",
                         flush=True,
                     )
                 return ret
@@ -830,7 +813,6 @@ def _install_moe_superkernel_fusion(restorers, model=None):
 
     _install_sfa_superkernel_fusion(restorers, model=model)
 
-
 def _install_sfa_superkernel_fusion(restorers, model=None):
     import os
     import torch
@@ -838,6 +820,7 @@ def _install_sfa_superkernel_fusion(restorers, model=None):
     try:
         import torch_npu
         from vllm.distributed import get_tp_group
+        from vllm_ascend.ascend_forward_context import _EXTRA_CTX
         from vllm_ascend.attention.indexer import AscendSFAIndexerBackend
         from vllm_ascend.attention.sfa_v1 import AscendSFAImpl
     except ImportError:
@@ -893,14 +876,16 @@ def _install_sfa_superkernel_fusion(restorers, model=None):
     last_topk_by_buf = {}
 
     def _update_indexcache_topk_indices(self, topk_indices):
-        if skip_topk_copy and self.topk_indices_buffer is not None:
+        if (skip_topk_copy and not _EXTRA_CTX.is_draft_model
+                and self.topk_indices_buffer is not None):
             last_topk_by_buf[self.topk_indices_buffer.data_ptr()] = topk_indices
             self.topk_indices_buffer._tilert_last_topk = topk_indices
             return
         return orig_update_topk(self, topk_indices)
 
     def _get_indexcache_topk_indices(self, num_tokens):
-        if skip_topk_copy and self.topk_indices_buffer is not None:
+        if (skip_topk_copy and not _EXTRA_CTX.is_draft_model
+                and self.topk_indices_buffer is not None):
             cached = last_topk_by_buf.get(self.topk_indices_buffer.data_ptr())
             if cached is not None:
                 topk_indices = cached[:num_tokens]
@@ -989,9 +974,7 @@ def _install_sfa_superkernel_fusion(restorers, model=None):
         )
     )
 
-
 def install(model=None):
-    """Send one-element combines to a plain add; return how to undo it."""
     import torch
 
     original = torch._foreach_add
@@ -1010,4 +993,3 @@ def install(model=None):
             undo()
 
     return restore
-

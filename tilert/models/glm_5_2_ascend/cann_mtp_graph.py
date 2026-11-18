@@ -1,17 +1,6 @@
-"""Fixed-width graph for GLM-5.2's MTP draft layer and its own head."""
-
-
 WIDTHS = (1, 4, 6, 8, 12, 16)
 
-
 class CannMtpGraph:
-    """Replay the draft and its own head; returned storage is reused.
-
-    Warm the eager path at this width on every TP rank before enabling
-    the graph. The caller owns ``set_skip_topk``: an M1 chain replays
-    against shared indices, the M4 target-conditioned pass selects its
-    own. Seed forwards retain eager execution.
-    """
 
     def __init__(self, draft, width=1):
         import torch
@@ -49,16 +38,12 @@ class CannMtpGraph:
         }
 
     def validate_metadata(self, metadata):
-        """Check persistent replay buffers outside the measured path."""
         if self._addresses(metadata) != self.addresses:
             raise ValueError("MTP graph metadata addresses changed")
 
     def _execute(self):
         from .cann_model import CannModel
 
-        # Captured here rather than issued per round: the gather reads the
-        # resident positions and writes the rope slices this graph captured,
-        # so a replay refreshes them with no host launch at all.
         CannModel.refresh_hoisted_rope(self.draft, self.width, self.positions)
         model = self.draft.model
         pre_norm, recycle = model(
@@ -80,7 +65,6 @@ class CannMtpGraph:
 
         if self.closed:
             raise RuntimeError("MTP graph is closed")
-        # A chained parent can be this graph's previous recycle output.
         self.parent.copy_(parent)
         self.slots_i64.copy_(self.slots)
         if not self.capture_count:

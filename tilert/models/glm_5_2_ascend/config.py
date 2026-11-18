@@ -1,5 +1,3 @@
-"""Batch-one GLM-5.2 decoder dimensions."""
-
 from dataclasses import asdict, dataclass
 
 
@@ -29,7 +27,6 @@ class DecodeConfig:
 
     @classmethod
     def smoke(cls) -> "DecodeConfig":
-        """Four layers retain the dense prefix, first MoE, and index sharing."""
         return cls(
             vocab_size=256,
             hidden_size=256,
@@ -53,7 +50,6 @@ class DecodeConfig:
         return layer < 3 or (layer - 2) % 4 == 0
 
     def to_hf_config(self):
-        """Construct the independent eager reference configuration."""
         from transformers import GlmMoeDsaConfig
 
         values = asdict(self)

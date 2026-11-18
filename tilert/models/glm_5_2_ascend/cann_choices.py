@@ -1,5 +1,3 @@
-"""Capture the indices and expert IDs consumed by one eager CANN forward."""
-
 from functools import wraps
 import hashlib
 import inspect
@@ -12,14 +10,6 @@ _ROUTING_METHOD = "_select_experts"
 
 
 class CannChoices:
-    """Snapshot actual selections without recomputing either top-k.
-
-    Pass ``CannModel.model`` and run one forward inside the context.
-    ``finish()`` returns two tuples of 78 owned, detached tensors on their
-    original device: indices are [M,2048], routes are [M,8], and the first
-    three dense layers have route None. Integer dtype and order are kept.
-    Instance methods are restored on every context exit, including errors.
-    """
 
     def __init__(self, model, width=1):
         widths = (1, 2, 4, 6, 8, 12, 16, 24, 32)
@@ -141,7 +131,6 @@ class CannChoices:
         return capture
 
     def finish(self):
-        """Require one SFA call per layer and one router call per MoE layer."""
         if not self._active or self._finished:
             raise RuntimeError("finish requires an unfinished active capture")
         if len(self._indices) != 78 or len(self._routes) != 78:
@@ -153,7 +142,6 @@ class CannChoices:
         return tuple(self._indices), tuple(self._routes)
 
     def source_metadata(self):
-        """Return source hashes saved at context entry, also after exit."""
         if self._source_sha256 is None:
             raise RuntimeError("Enter the capture before reading its sources")
         return dict(self._source_sha256)

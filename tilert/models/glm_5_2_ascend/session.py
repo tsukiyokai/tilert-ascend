@@ -1,5 +1,3 @@
-"""Batch-one greedy request lifecycle for the Ascend TP16 backend."""
-
 from dataclasses import dataclass, field
 import math
 
@@ -11,27 +9,17 @@ from tilert.pd_vllm.capabilities import (
 )
 from tilert.pd_vllm.grammar_spec import GrammarUnsupported
 
-
 @dataclass(frozen=True)
 class PrefixRequest:
-    """Identify rank-local prefix storage without carrying device tensors."""
 
     request_id: str
     seq_len: int
     metadata: dict = field(default_factory=dict)
 
-
 def greedy_token(result):
     return int(result.logits.argmax(dim=-1).item())
 
-
 class AscendPDEngine:
-    """Adapt a coordinated TP16 backend to the existing PDEngine interface.
-
-    ``first_token_id`` has already been produced by prefill. It is emitted
-    before any step and remains outside main KV until a successor is needed.
-    Decode retains KV for inspection; the request owner calls ``reset``.
-    """
 
     def __init__(self, backend, stop_ids=(), select_token=greedy_token):
         self.backend = backend
@@ -99,7 +87,6 @@ class AscendPDEngine:
         initial_position = self.backend.position
         reason = "length"
         token = int(first_token_id)
-        # The final output token has not entered KV, so it needs no cache row.
         budget = min(max_tokens, self.backend.capacity - initial_position + 1)
         try:
             while len(tokens) < budget:

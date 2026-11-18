@@ -1,10 +1,3 @@
-"""CPU arithmetic for the GLM-5.2 W8 MLA Prolog V3 boundary.
-
-The raw checkpoint reader is shared with the independent HF reference.
-No production loader or CANN operator is called. The returned NoPE query
-uses HF's unabsorbed 192-channel space; CANN absorbs it into 512 channels.
-"""
-
 import torch
 
 from .reference_weights import quantize_dynamic_a8
@@ -34,7 +27,6 @@ EPSILON = 1e-5
 
 
 def project_codes(weights, prefix, codes, token_scale, *, scale_order):
-    """Return FP32 W8 projection with an explicit dequantization order."""
     if (codes.device.type != "cpu" or codes.dtype != torch.int8
             or codes.ndim != 2 or token_scale.dtype != torch.float32
             or token_scale.device.type != "cpu"
@@ -61,7 +53,6 @@ def project_codes(weights, prefix, codes, token_scale, *, scale_order):
 
 
 def rms_fp32(value, gamma):
-    """Retain row-local FP32 folds and the Prolog Div/gamma boundary."""
     if (value.device.type != "cpu" or value.dtype != torch.float32
             or value.ndim != 2 or value.shape[1] % 64
             or gamma.device.type != "cpu" or gamma.dtype != torch.bfloat16
@@ -77,7 +68,6 @@ def rms_fp32(value, gamma):
 
 
 def quantize_prolog(value):
-    """Quantize FP32 normalized queries without an intervening BF16 cast."""
     if (value.device.type != "cpu" or value.dtype != torch.float32
             or value.ndim != 2):
         raise ValueError("Prolog query quantization needs CPU FP32 rows")
@@ -91,7 +81,6 @@ def quantize_prolog(value):
 
 
 def rotary_half(value, cosine, sine):
-    """Rotate alternating FP32 lanes and return a BF16 half-basis tensor."""
     if (value.device.type != "cpu" or value.dtype != torch.float32
             or value.ndim != 3 or value.shape[-1] != ROPE):
         raise ValueError("RoPE needs CPU FP32 [tokens,heads,64]")
@@ -109,11 +98,6 @@ def rotary_half(value, cosine, sine):
 
 
 def preprocess(weights, prefix, hidden, cos, sin):
-    """Return full-64-head HF inputs from already normalized BF16 rows.
-
-    ``prefix`` names ``model.layers.N.self_attn``. The input is [M,6144];
-    angles are [M,64]. Outputs retain the token axis without batch nesting.
-    """
     if (hidden.device.type != "cpu" or hidden.dtype != torch.bfloat16
             or hidden.ndim != 2 or hidden.shape[1] != HIDDEN):
         raise ValueError("Prolog input must be CPU BF16 [tokens,6144]")
@@ -142,7 +126,6 @@ def preprocess(weights, prefix, hidden, cos, sin):
 
 
 def index_query(weights, prefix, q_norm):
-    """Return pre-RoPE BF16 [M,32,128] from the same Prolog INT8 pair."""
     if q_norm.ndim != 2 or q_norm.shape[1] != Q_LORA:
         raise ValueError("Indexer query input must have 2048 channels")
     codes, scale = quantize_prolog(q_norm)

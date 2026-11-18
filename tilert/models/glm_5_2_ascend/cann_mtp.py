@@ -1,12 +1,9 @@
-"""GLM-5.2 layer-78 MTP through the pinned vLLM-Ascend model."""
-
 import copy
 from dataclasses import dataclass
 import json
 from pathlib import Path
 
 from .cann_model import CannModel, device_tokens
-
 
 LAYER = 78
 HIDDEN = 6144
@@ -19,9 +16,7 @@ WEIGHT_FILES = tuple(
     for number in (91, 92, 93)
 )
 
-
 def weight_sources(checkpoint):
-    """Check the fixed checkpoint's MTP shard selection using JSON only."""
     path = Path(checkpoint) / "quant_model_weights.safetensors.index.json"
     weights = json.loads(path.read_text())["weight_map"]
     selected = {filename for name, filename in weights.items()
@@ -34,25 +29,19 @@ def weight_sources(checkpoint):
         raise ValueError("MTP requires rot.weight and its checkpoint head")
     return (*WEIGHT_FILES, "rot.safetensors")
 
-
 def draft_config(target_config):
-    """Keep target parallel settings and isolate draft registration state."""
     from vllm.config import CompilationMode, CUDAGraphMode, SpeculativeConfig
 
     parallel = target_config.parallel_config
-    if (parallel.tensor_parallel_size != 16
+    if (parallel.tensor_parallel_size not in (8, 16)
             or parallel.pipeline_parallel_size != 1
             or parallel.data_parallel_size != 1
             or parallel.prefill_context_parallel_size != 1
             or parallel.decode_context_parallel_size != 1):
-        raise ValueError("CANN MTP requires TP16/PP1/DP1/PCP1/DCP1")
+        raise ValueError("CANN MTP requires TP8 or TP16 with PP1/DP1/PCP1/DCP1")
     if target_config.speculative_config is not None:
         raise ValueError("The target must not own a speculative model")
     hf = target_config.model_config.hf_config
-    # The depth is not checked against a literal: a truncated backbone is a
-    # legitimate configuration for an arm that measures the ratio between two
-    # others, and what this guard is for is the model family and its single
-    # shared-index MTP layer.
     if (hf.model_type != "glm_moe_dsa"
             or hf.num_nextn_predict_layers != 1
             or not hf.index_share_for_mtp_iteration):
@@ -60,7 +49,8 @@ def draft_config(target_config):
     config = copy.copy(target_config)
     config.speculative_config = SpeculativeConfig(
         method="mtp", num_speculative_tokens=3,
-        draft_tensor_parallel_size=16, enforce_eager=True,
+        draft_tensor_parallel_size=parallel.tensor_parallel_size,
+        enforce_eager=True,
         parallel_drafting=False,
         target_model_config=target_config.model_config,
         target_parallel_config=parallel,
@@ -92,7 +82,6 @@ def draft_config(target_config):
     config.speculative_config.draft_load_config = config.load_config
     return config
 
-
 @dataclass
 class CannMtpStep:
     logits: object
@@ -102,14 +91,7 @@ class CannMtpStep:
     indices: object
     start_position: int
 
-
 class CannMtp:
-    """Independent MTP state using the target's reserved layer-78 storage.
-
-    Row p consumes token[p+1] with normalized, unrotated parent hidden[p].
-    External indices select a chained draft's seed set; the official
-    model still appends that row's latent, RoPE and BF16 index key.
-    """
 
     def __init__(self, target, *, shard_projections=False):
         import torch
@@ -122,6 +104,8 @@ class CannMtp:
         self.position = 0
         self.graph = None
         self.conditioned_graph = None
+        self.whole_layer_path = None
+        self.rope_graph = False
         self.shard_projections = shard_projections
         self.hoist_metadata = target.hoist_metadata
         self.attention_kernel = (
@@ -135,12 +119,6 @@ class CannMtp:
             set_current_vllm_config(self.config)
         ):
             if self.config.model_config.hf_config.num_hidden_layers < LAYER:
-                # A truncated backbone's MTP layer index is its own depth,
-                # where the checkpoint's is 78, so the completeness check
-                # cannot be satisfied. It is checked here rather than in
-                # `cann_model`, because the draft model loads in this object
-                # and a ContextVar set around the target's load does not reach
-                # it.
                 from vllm.model_executor.model_loader.mtp_validation import (
                     disable_mtp_completeness_check,
                 )
@@ -175,10 +153,6 @@ class CannMtp:
                 allow_patterns_overrides=["rot.safetensors"],
             )]
             loader.load_weights(model, model_config)
-            # `has_own_lm_head` is gone from this vllm's `DeepSeekMTP`,
-            # which says the same thing with `defer_lm_head`. What the check
-            # is for is that the MTP head was built at all, so ask for its own
-            # parameters by name: the two norms and the projection.
             names = {name for name, _ in model.named_parameters()}
             own = {"enorm.weight", "hnorm.weight", "eh_proj.weight"}
             if not all(any(name.endswith(suffix) for name in names)
@@ -186,11 +160,6 @@ class CannMtp:
                 raise ValueError("Official loader did not load the MTP head")
             process_weights_after_loading(model, model_config, self.device)
         model.model.embed_tokens = self.target.model.model.embed_tokens
-        # This vllm defers the MTP's output head and calls it `head`, to be
-        # filled from the target's -- `eagle/utils.py` does `sh.head =
-        # target_lm_head`. The engine shares the embedding the same way, so
-        # share the head too rather than reach for a `lm_head` that the
-        # deferred predictor does not have.
         head = self.target.model.lm_head
         for layer in model.model.layers.values():
             layer.head = head
@@ -239,7 +208,9 @@ class CannMtp:
             install_gather_fia(context[MAIN_CACHE].impl, self.target.graph_width)
         main_spec = AscendMLAAttentionSpec(
             block_size=128, num_kv_heads=1, head_size=576,
-            num_heads=4, dtype=torch.bfloat16, cache_dtype_str="auto",
+            num_heads=(self.config.model_config.hf_config.num_attention_heads
+                       // self.config.parallel_config.tensor_parallel_size),
+            dtype=torch.bfloat16, cache_dtype_str="auto",
         )
         index_spec = AscendSFAIndexerCacheSpec(
             block_size=128, num_kv_heads=1, head_size=128,
@@ -260,7 +231,6 @@ class CannMtp:
             raise ValueError("Expected a private MTP index buffer")
 
     def inject(self, prefix):
-        """Install P-1 MTP rows after the target has received P main rows."""
         import torch
 
         values = {key: value for key, value in prefix.items()
@@ -283,14 +253,6 @@ class CannMtp:
         self.model.model.set_skip_topk(False)
 
     def enable_graph(self, *, conditioned_width=0):
-        """Capture shared-index M1 chains after uncaptured TP warmup.
-
-        A positive ``conditioned_width`` also captures the target-conditioned
-        pass, which selects its own index set instead of replaying a shared
-        one. It must be the verify width: the pass carries one row per
-        verified token, so a graph captured at any other width is never
-        replayed.
-        """
         import torch
         from .cann_mtp_graph import CannMtpGraph
 
@@ -301,7 +263,6 @@ class CannMtp:
                 self.conditioned_graph = CannMtpGraph(self, conditioned_width)
 
     def close(self):
-        """Release the draft graphs before shutting down the target worker."""
         if self.graph is not None:
             self.graph.close()
             self.graph = None
@@ -310,15 +271,6 @@ class CannMtp:
             self.conditioned_graph = None
 
     def _graph(self, width, shared_indices):
-        """Name the captured graph for this call, or None for eager.
-
-        A chain replays only against a shared index set; the
-        target-conditioned pass replays only when it selects its own. Each
-        asks the graph it would use whether that graph was captured at this
-        width, rather than naming the width twice -- the literal 4 that used
-        to stand here kept the conditioned pass eager at every other verify
-        width even once it was captured at the right one.
-        """
         candidate = self.graph if shared_indices else self.conditioned_graph
         if candidate is not None and candidate.width == width:
             return candidate

@@ -1,10 +1,3 @@
-"""Run TP16 backbone attention through the native indexed or shared entry.
-
-Weights are packed after cache binding. Workspaces belong to a device/stream
-and exact row/cache geometry; reserve them under the forward context before
-graph capture. The model retains cross-layer top-k and the original TP sum.
-"""
-
 from dataclasses import dataclass
 import os
 from pathlib import Path
@@ -30,7 +23,9 @@ def library_paths(tp_size=None):
     if tp_size is None:
         tp_size = int(os.environ.get("TILERT_TP_SIZE", "8"))
     suffix = f"_tp{tp_size}" if tp_size != 16 else ""
-    default_indexed = _ROOT / f"attention_indexed_build-scale-order/whole_layer_indexed_attention{suffix}.so"
+    default_indexed = (
+        _ROOT / f"attention_indexed_build-scale-order/whole_layer_indexed_attention{suffix}.so"
+    )
     default_shared = _ROOT / f"attention_full_build-dequant/whole_layer_full_attention{suffix}.so"
     indexed = Path(os.environ.get("TILERT_INDEXED_ATTENTION_LIBRARY", default_indexed))
     shared = Path(os.environ.get("TILERT_SHARED_ATTENTION_LIBRARY", default_shared))
@@ -45,7 +40,6 @@ def load(tp_size=None):
 
 
 def pack_indexer_weights(query, key):
-    """Pack logical WQ [2048,4096] and merged WK [160,6144]."""
     import torch
 
     _require_tensor(query, torch.int8, (2048, 4096), "indexer WQ")
@@ -117,7 +111,10 @@ def _validate_impl(impl):
             or impl.vllm_config.kv_transfer_config is not None
             or getattr(impl.vllm_config, "lora_config", None) is not None
             or getattr(impl.vllm_config.model_config, "enable_sleep_mode", False)):
-        raise ValueError(f"Native attention requires fixed TP{tp_size} BF16-cache Prolog V3 without CP/SP or weight reload")
+        raise ValueError(
+            f"Native attention requires fixed TP{tp_size} BF16-cache Prolog V3 "
+            "without CP/SP or weight reload"
+        )
     projection = impl.o_proj
     scheme = getattr(projection.quant_method, "quant_method", None)
     if (type(scheme) is not AscendW8A8DynamicLinearMethod
@@ -125,7 +122,9 @@ def _validate_impl(impl):
             or projection.tp_size != tp_size or not projection.input_is_parallel
             or getattr(projection, "bias", None) is not None
             or impl.g_proj is not None):
-        raise ValueError(f"Native attention requires an ungated TP{tp_size} W8A8_DYNAMIC output projection")
+        raise ValueError(
+            f"Native attention requires an ungated TP{tp_size} W8A8_DYNAMIC output projection"
+        )
     if impl.indexer is None:
         if not impl.skip_topk or impl.topk_indices_buffer is None:
             raise ValueError("Shared attention requires persistent index-cache selections")
@@ -143,7 +142,9 @@ def _validate_impl(impl):
             or indexer._is_pcp_decode_sharded
             or getattr(indexer.wq_b, "bias", None) is not None
             or getattr(indexer.wk_weights_proj, "bias", None) is not None):
-        raise ValueError("Native indexer requires replicated W8A8 Q, BF16 WK, RoPE64 and 2048 selections")
+        raise ValueError(
+            "Native indexer requires replicated W8A8 Q, BF16 WK, RoPE64 and 2048 selections"
+        )
     if indexer.enable_sparse_li_c8:
         if (indexer.c8_k_cache_dtype != torch.int8
                 or indexer.c8_k_scale_cache_dtype != torch.float16):
@@ -228,7 +229,6 @@ def _cache_tensors(layer, mode):
 
 
 def _metadata_values(metadata, rows, indexed=False):
-    """Reject padded, multi-request, or custom-selector calls without GM reads."""
     import torch
 
     if (metadata is None or metadata.num_actual_tokens != rows
@@ -276,7 +276,6 @@ def geometry_for(mode, caches, main, index=None):
 
 
 class WorkspacePool:
-    """Own exact-M workspaces and live slot casts across sequential layers."""
 
     def __init__(self, blocks=24):
         self.blocks = blocks
@@ -325,12 +324,11 @@ class WorkspacePool:
             self.layouts[(rows, geometry)] = offsets
             topk = scratch.narrow(0, offsets["topk"], rows * 2048 * 4)
             topk = topk.view(torch.int32).view(rows, 1, 2048)
-        partial = torch.empty(rows, HIDDEN, dtype=torch.bfloat16,
+        partial = torch.zeros(rows, HIDDEN, dtype=torch.bfloat16,
                               device=reference.device)
         return scratch, tiling, blocks, sync, partial, topk
 
     def reserve_capture(self, reference):
-        """Resolve bound geometry under the capture's current forward context."""
         from vllm.forward_context import (
             get_forward_context,
             is_forward_context_available,
@@ -361,7 +359,6 @@ class WorkspacePool:
             self.reserve(reference, geometry, sources)
 
     def reserve(self, reference, geometry, slot_sources):
-        """Reserve one geometry and independent slot producers before capture."""
         import torch
 
         if torch.npu.is_current_stream_capturing():
@@ -401,7 +398,6 @@ class WorkspacePool:
                 tuple(source.stride()), source.dtype)
 
     def live_slots(self, source):
-        """Capture one producer per slot source; refresh every eager use."""
         import torch
 
         if source.dtype == torch.int64:
@@ -428,14 +424,6 @@ class WorkspacePool:
 def run_body(hidden, main_weights, front_weights, tail_weights, caches,
              main_metadata, index_metadata, pool, *, mode, scale,
              epsilon_cq, epsilon_ckv, topk=None):
-    """Return the rank partial and ordered top-k using the engine's pool path.
-
-    Metadata lists contain sine, cosine, live slots, cumulative query/key
-    lengths, and page table. An indexed call supplies four cache tensors,
-    including an empty FP16 scale tensor for BF16 keys. TP reduction and
-    cross-layer top-k publication belong to the caller. RoPE storage is
-    normalized to ND; base-format conversion can retag its storage aliases.
-    """
     import torch
     import torch_npu
 
@@ -467,7 +455,6 @@ def run_body(hidden, main_weights, front_weights, tail_weights, caches,
 
 
 def install(attention_layer, pool):
-    """Bind loaded backbone attention; retain MTP and unsupported call paths."""
     import torch
     import torch_npu
     from vllm.distributed import get_tp_group, tensor_model_parallel_all_reduce

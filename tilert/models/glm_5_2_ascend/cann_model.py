@@ -1,5 +1,3 @@
-"""GLM-5.2 execution through the pinned vLLM-Ascend model and CANN."""
-
 from dataclasses import dataclass, replace
 import hashlib
 import os
@@ -10,13 +8,8 @@ from tilert.pd_vllm.ascend_layout import (
     FULL_INDEX_LAYERS, INT8_INDEX_LAYERS, PAGE_SIZE, cache_layout,
 )
 
-
 VOCAB_SIZE = 154880
-# Pinned sequence-length slots, one per forward a round can have in flight:
-# the widest round is 32 draft steps plus the verify, the conditioned pass and
-# the commit, and the host reads nothing until all of them are enqueued.
 LENGTH_SLOTS = 64
-
 
 def _token_values(tokens):
     import torch
@@ -30,15 +23,7 @@ def _token_values(tokens):
             raise ValueError("Decode requires GLM-5.2 vocabulary tokens")
     return values, has_tensors
 
-
 def device_tokens(tokens, device):
-    """Normalise decode tokens to one device integer tensor.
-
-    An element may be a host integer, which a caller supplies and we check,
-    or a device scalar from ``logits.argmax``, which is a vocabulary index
-    by construction. Accepting both lets a round propose entirely on the
-    device while still naming its pending token on the host.
-    """
     import torch
 
     if torch.is_tensor(tokens):
@@ -51,21 +36,12 @@ def device_tokens(tokens, device):
         for value in values
     ])
 
-
 def rope_buffers():
-    """Name the module holding the process-wide MLA cos/sin buffers."""
     from vllm_ascend.ops import rotary_embedding
 
     return rotary_embedding
 
-
 def rope_destinations(values, width):
-    """Name the rope slices a replay reads outside the shared MLA buffers.
-
-    A builder configured for speculative decoding keeps independent RoPE
-    storage and copies the shared gather into it, so hoisted metadata still
-    points at that copy and the copy has to be repeated every round.
-    """
     rope = rope_buffers()
     seen = {(rope._cos_mla[:width].data_ptr(),
              rope._sin_mla[:width].data_ptr())}
@@ -80,14 +56,7 @@ def rope_destinations(values, width):
         destinations.append((value.cos, value.sin))
     return destinations
 
-
 def refresh_rope(positions, width, destinations):
-    """Gather this round's cos/sin into the addresses a replay captured.
-
-    One gather serves every builder group because they all alias the same
-    module-global buffers. ``index_select`` writes the destination directly,
-    which the builders reach in two dispatches instead of four.
-    """
     import torch
 
     rope = rope_buffers()
@@ -100,23 +69,16 @@ def refresh_rope(positions, width, destinations):
         cos.copy_(rope._cos_mla[:width])
         sin.copy_(rope._sin_mla[:width])
 
-
 @dataclass
 class CannStep:
     logits: object
     last_hidden: object
     token_ids: object
 
-
 def create_config(checkpoint, capacity=9344, gpu_memory_utilization=0.85,
                   *, compile_target=False, super_kernel=False,
                   expert_parallel=False, graph_width=4, index_topk=None,
                   mtp_tokens=0, layers=None, tp_size=None):
-    """Construct TP8+EP8 or TP16 config, optionally compiling the M4 target backbone.
-
-    ``expert_parallel`` reshards the 256 routed experts over the active ranks
-    (32 full experts per rank at TP8+EP8, 16 at EP16, intermediate stays 2048).
-    """
     if super_kernel and not compile_target:
         raise ValueError("SuperKernel requires the compiled M4 target")
     if tp_size is None:
@@ -134,30 +96,15 @@ def create_config(checkpoint, capacity=9344, gpu_memory_utilization=0.85,
         data_parallel_size=1,
         distributed_executor_backend="external_launcher",
         attention_config={"indexer_kv_dtype": "int8"},
-        # Sparse attention costs 51 us a call before any position plus 17.61
-        # a thousand picks, measured on one die, so the checkpoint's 2048 is
-        # 36 of its 87 us. Overriding the config rather than editing it keeps
-        # the checkpoint's hash stable, which the run's own record checks.
         hf_overrides={
             **({"index_topk": index_topk} if index_topk else {}),
-            # A shortened backbone fits the residue a tenant leaves. The round
-            # scales with the layer count, so absolute TPOT is not the full
-            # model's -- but the ratio between two arms is, and a ratio is what
-            # every lever here is measured as. Without this the engine needs
-            # 47 GiB a die and waits for the machine to empty.
             **({"num_hidden_layers": layers} if layers else {}),
         },
-        # Random weights, for an arm that measures timing rather than output.
-        # A truncated backbone cannot load the real checkpoint: the loader
-        # walks every tensor the index lists and raises on the first layer the
-        # model does not have, and `is_pp_missing_parameter` does not cover it
-        # at one pipeline stage.
         load_format="dummy" if layers else "auto",
         safetensors_load_strategy="lazy",
         kv_cache_dtype="auto", block_size=PAGE_SIZE,
-        # AscendCompiler filters static token buckets by this sequence limit.
         max_num_seqs=max(4, graph_width) if super_kernel else 1,
-        max_num_batched_tokens=max(16, graph_width),
+        max_num_batched_tokens=max(32, graph_width),
         max_model_len=capacity,
         gpu_memory_utilization=gpu_memory_utilization,
         enable_prefix_caching=False, enable_chunked_prefill=True,
@@ -166,14 +113,6 @@ def create_config(checkpoint, capacity=9344, gpu_memory_utilization=0.85,
         compilation_config={
             "mode": CompilationMode.VLLM_COMPILE,
             "cudagraph_mode": CUDAGraphMode.FULL_DECODE_ONLY,
-            # Several sizes, not one. Replay cost rises with the captured
-            # width while every operator in the graph is flat in the row
-            # count, cold and warm alike -- so a round that verifies six rows
-            # in a graph captured for twenty-four pays for eighteen rows of
-            # nothing. With a list, each round replays the smallest graph that
-            # covers its draft, and an adaptive drafter's proposals are mostly
-            # short. One size costs 0.66 ms a row by the round model where the
-            # operators cost between 0 and -0.02.
             "cudagraph_capture_sizes": (
                 sorted(
                     {size for size in (2, 4, 8, 16, 24, 32, 48, 64)
@@ -208,47 +147,18 @@ def create_config(checkpoint, capacity=9344, gpu_memory_utilization=0.85,
                     and os.environ.get("VLLM_ASCEND_ENABLE_SUPER_KERNEL", "1")
                     == "1"
                 ),
-                # Preserve BF16 norm rounding before INT8 quantization.
                 "fuse_norm_quant": False,
             },
         },
     ).create_engine_config()
 
-
 def _choose_collective_engine(aiv):
-    """Expand collectives on the vector cores rather than the device AI CPU.
-
-    A3 defaults to AI_CPU. At decode sizes the vector path is 1.6 to 1.9 times
-    faster -- sixteen ranks over twelve rows of 6144 bf16: all_reduce 300.56 us
-    to 183.40, reduce_scatter 318.09 to 177.41, all_gather 326.74 to 175.40 --
-    and the gain is the per-call floor rather than transport, since the only
-    case that barely moves is the one actually carrying a large payload.
-
-    The variable is read once when HCCL loads, so this has to run before any
-    communicator exists and cannot be changed afterwards; setting it from
-    inside the process works, measured at 181.50 us against 290.44 unset.
-
-    Determinism comes with it. The vector path reduces in its own order and is
-    not reproducible on its own -- two runs of the same sixteen-rank all_reduce
-    gave different digests -- while the AI CPU path is. `HCCL_DETERMINISTIC`
-    restores reproducibility for 6 to 8 percent: 189 us against 175
-    non-deterministic and 284 to 350 on the AI CPU. Bit-exactness is what every
-    comparison in this project is checked against, so it is not optional.
-    """
     if not aiv:
         return
     os.environ.setdefault("HCCL_OP_EXPANSION_MODE", "AIV")
     os.environ.setdefault("HCCL_DETERMINISTIC", "true")
 
-
 class CannModel:
-    """One request, TP16, full-P injection and fixed-width target forwards.
-
-    ``rank`` is the logical TP rank; ``device`` selects the process's NPU.
-    The caller supplies all 16 visible devices without a visibility rotation.
-    Worker construction and loading execute device code. No scheduler,
-    speculative model, profiling pass, or graph capture is created here.
-    """
 
     def __init__(
         self, checkpoint, device, rank, init_method="env://", capacity=9344,
@@ -276,11 +186,13 @@ class CannModel:
         if native_attention and (mla_tail or attention_kernel != "sfa"):
             raise ValueError("Native attention includes the MLA tail and requires SFA")
         if whole_layer is not None:
-            if (world_size != 16 or expert_parallel or compile_target
+            if (world_size not in (8, 16)
+                    or (world_size == 16 and expert_parallel)
+                    or compile_target
                     or attention_kernel != "sfa" or mla_tail
                     or routed_kernel or plain_moe_combine):
                 raise ValueError(
-                    "Whole-layer requires eager TP16 SFA without routed/compile hooks"
+                    "Whole-layer requires eager TP8+EP8 or TP16 SFA without routed/compile hooks"
                 )
         self.whole_layer_path = (
             Path(whole_layer).resolve() if whole_layer is not None else None
@@ -301,9 +213,6 @@ class CannModel:
         self.rope_graph = rope_graph
         self._rope_graphs = {}
         self._head_graphs = {}
-        # None keeps the bound where the measurement is bit-exact; a caller
-        # raising it accepts a bf16 unit in the last place on the attention
-        # output, which is a question about tokens rather than floats.
         self.gather_fia_max_width = gather_fia_max_width
         if capacity < 128:
             raise ValueError("Capacity must be at least one 128-token page")
@@ -314,14 +223,11 @@ class CannModel:
         os.environ["VLLM_USE_V2_MODEL_RUNNER"] = "0"
 
         import torch
-        import torch_npu  # noqa: F401
+        import torch_npu
         from vllm.config import set_current_vllm_config
         from vllm_ascend.worker.worker import NPUWorker
 
         if hoist_forward_context:
-            # Only the private vLLM-Ascend overlay carries this entry point, so
-            # importing it unconditionally would make every default run depend
-            # on the overlay being ahead of the installed package.
             from vllm_ascend.ascend_forward_context import hoist_mc2_mask
 
             hoist_mc2_mask(True)
@@ -338,11 +244,6 @@ class CannModel:
         self.hoist_metadata = hoist_metadata
         self.packed_host_inputs = packed_host_inputs
         self.fp32_head = fp32_head
-        # A config-store endpoint turns the TP sum into a one-sided push: the
-        # vendor collective is rendezvous rather than transfer. The decode
-        # path measures 37.9 us a site over 146 sites, not the 63.5 us this
-        # once recorded, so the headroom against the push's 22.3 us is 2.28 ms
-        # a round. [critical-path-20261020]
         self.onesided_endpoint = onesided_reduce
         self._onesided = None
         self._restore_combine = None
@@ -355,9 +256,6 @@ class CannModel:
             index_topk=index_topk, mtp_tokens=mtp_tokens, layers=layers,
             tp_size=world_size,
         )
-        # A tree's rows need a per-row index set, and the operator's selection
-        # width is what the checkpoint's `index_topk` sets -- the argument only
-        # overrides it, so the effective value is the one in the config.
         self.index_picks = (
             index_topk
             or self.config.model_config.hf_config.index_topk
@@ -376,9 +274,6 @@ class CannModel:
             if self.worker.device != self.device:
                 raise ValueError("Worker remapped the requested physical NPU")
             if routed_kernel:
-                # Before the weights load, because the hook has to see them
-                # in the checkpoint's own packing and `load_model` converts
-                # them to fractal NZ on the way in.
                 from .routed_expert import install_before_conversion
                 from vllm_ascend.quantization.methods.w4a8.w4a8 import (
                     AscendW4A8DynamicFusedMoEMethod,
@@ -435,15 +330,6 @@ class CannModel:
             self._whole_layer = manager.install_model(self.model)
 
     def _install_routed_kernel(self):
-        """Send the routed experts to the hand-written kernel.
-
-        Installed by wrapping the quant method's weight conversion, because
-        the kernel reads the checkpoint's own nibble packing and the
-        conversion to fractal NZ has already happened by the time this object
-        exists. The wrapper has to be in place before the model loads, so this
-        raises if it is not -- a silent miss would run the vendor path and
-        report the kernel's number.
-        """
         restore, installed, pool = self._routed_kernel_hook
         if not installed:
             raise RuntimeError("the routed kernel hook took no layer; it must "
@@ -477,7 +363,6 @@ class CannModel:
         self._routed_shared_workspace_pool = pool
 
     def _prepare_fused_workspaces(self, width):
-        """Reserve native storage before the wrapper enters graph capture."""
         import torch
 
         torch.npu.synchronize(self.device)
@@ -548,7 +433,6 @@ class CannModel:
         self.tp_reduction = "original"
 
     def shutdown(self):
-        """Restore the TP group's original reduction and stop the worker."""
         import torch
 
         if hasattr(getattr(torch.ops, "tilert", None),
@@ -608,7 +492,6 @@ class CannModel:
         self.storage = torch.empty(
             self.layout["nbytes"], dtype=torch.uint8, device=self.device,
         )
-        # Zero-initialize cache storage so masked/unwritten rows never hold NaN.
         self.storage.zero_()
         self.views = {}
         for name, region in self.layout["regions"].items():
@@ -660,9 +543,6 @@ class CannModel:
                 raise ValueError(f"Unexpected KV specification: {spec}")
             caches[name] = values
             groups.setdefault((builder_type, spec), []).append(name)
-        # Against the backbone's own depth, not a literal 78: a truncated
-        # backbone binds fewer caches and the check's intent is that every
-        # layer the model has is bound, not that the model has 78.
         depth = self.config.model_config.hf_config.num_hidden_layers
         wanted_index = {layer for layer in FULL_INDEX_LAYERS if layer < depth}
         if main_layers != set(range(depth)) or index_layers != wanted_index:
@@ -699,10 +579,12 @@ class CannModel:
                 install(context[name].impl, self._mla_tail_workspace_pool)
                 for name in attention_names
             ]
+        wl_manifest = None
         if self.whole_layer_path is not None:
             from .whole_layer import Libraries
 
             wl_libs = Libraries.from_json(self.whole_layer_path)
+            wl_manifest = wl_libs.tree_manifest()
             os.environ.setdefault("TILERT_INDEXED_ATTENTION_LIBRARY",
                                   str(wl_libs.indexed))
             os.environ.setdefault("TILERT_SHARED_ATTENTION_LIBRARY",
@@ -716,10 +598,16 @@ class CannModel:
             hf = self.config.model_config.hf_config
             first_k = getattr(hf, "first_k_dense_replace", 0)
             freq = getattr(hf, "moe_layer_freq", 1)
+            dense78 = (
+                self.whole_layer_path is not None
+                and wl_manifest is not None
+                and "-DK11220_DENSE78_COLD=1" in wl_manifest.get("flags", ())
+            )
             target_names = [
                 name for name in attention_names
                 if self.whole_layer_path is None
-                or int(re.search(r"(?:^|\.)layers\.(\d+)\.", name)[1]) < first_k
+                or (not dense78
+                    and int(re.search(r"(?:^|\.)layers\.(\d+)\.", name)[1]) < first_k)
                 or int(re.search(r"(?:^|\.)layers\.(\d+)\.", name)[1]) % freq != 0
             ]
             try:
@@ -742,7 +630,14 @@ class CannModel:
     def _allocate_inputs(self):
         import torch
 
-        widths = (1, 2, 4, 6, 8, 12, 16, 24, 32)
+        base_w = (1, 2, 4, 6, 8, 12, 16, 24, 32)
+        extra_w = tuple(
+            w for w in (64, 128, 256, 512)
+            if getattr(self, "graph_width", 32) >= w
+            and getattr(self, "whole_layer_path", None) is None
+        )
+        widths = base_w + extra_w
+        self._supported_widths = set(widths)
         self._host_inputs = None
         if getattr(self, "packed_host_inputs", False):
             from .host_inputs import HostInputs
@@ -773,13 +668,6 @@ class CannModel:
         (self.input_ids, self.positions, self.slots,
          self.query_cpu, self.query) = self._input_buffers[1]
         self.seq_lens = torch.empty(1, dtype=torch.int32, device=self.device)
-        # A copy from pageable host memory drains the stream before it stages,
-        # and a round enqueues every forward before it reads anything, so each
-        # forward's copy pays for the work queued ahead of it: measured at 139
-        # microseconds behind one draft graph and 1141 behind the target graph,
-        # against 48 to 71 from pinned memory. A slot per enqueued forward,
-        # because the host writes the next one long before the engine reads
-        # this one.
         self._lengths = torch.zeros(
             LENGTH_SLOTS, dtype=torch.int32).pin_memory()
         self._length_slot = 0
@@ -793,9 +681,8 @@ class CannModel:
         self._dynamic_sfa_len = (
             os.environ.get("TRT_DYNAMIC_SFA_LEN", "1") == "1"
         )
-        self._dynamic_sfa_max = (
-            0 if self.whole_layer_path is not None
-            else int(os.environ.get("TRT_DYNAMIC_SFA_MAX", "32"))
+        self._dynamic_sfa_max = int(
+            os.environ.get("TRT_DYNAMIC_SFA_MAX", "32")
         )
         self._dynamic_idx_max = (
             0 if self.whole_layer_path is not None
@@ -824,7 +711,6 @@ class CannModel:
                 self._mc2_host_masks[width] = tuple(table.unbind())
 
     def inject(self, prefixes):
-        """Copy all P main rows; the next consumed token has position P."""
         import torch
 
         if len(prefixes) != 78:
@@ -874,7 +760,6 @@ class CannModel:
             slots_cpu = torch.arange(
                 self.position, self.position + width, dtype=torch.long,
             )
-            # A tree stores rows linearly and assigns RoPE positions by depth.
             positions_cpu = slots_cpu if depths is None else torch.tensor(
                 [self.position + depth for depth in depths], dtype=torch.long,
             )
@@ -1025,16 +910,6 @@ class CannModel:
         return result
 
     def refresh_hoisted_rope(self, width, positions):
-        """Rewrite rope values for a replay that reuses hoisted metadata.
-
-        Nothing else the metadata holds depends on the round: every other
-        field is either a view of a buffer the caller refreshes by H2D copy
-        or is invariant for the captured width.
-
-        The refresh itself is 530 eager `copy_` calls a round -- one pair a
-        speculative builder's private RoPE storage -- so it is captured when
-        asked, which leaves the work and removes the dispatch.
-        """
         hoisted = self._hoisted.get(width)
         if hoisted is None:
             return
@@ -1061,7 +936,6 @@ class CannModel:
         captured.refresh()
 
     def enable_graph(self, width=1):
-        """Capture one query width; other widths retain eager execution."""
         from .cann_graph import CannGraph
 
         if self.graph is None:
@@ -1070,7 +944,6 @@ class CannModel:
             raise ValueError("The model already captures another width")
 
     def _prepare_inputs(self, tokens, *, depths=None):
-        """Stage persistent model inputs and build their consumer metadata."""
         import torch
 
         host_values = None
@@ -1084,7 +957,9 @@ class CannModel:
             width = tokens.shape[0]
         else:
             width = len(host_values)
-        if width not in (1, 2, 4, 6, 8, 12, 16, 24, 32):
+        if width not in getattr(
+            self, "_supported_widths", {1, 2, 4, 6, 8, 12, 16, 24, 32}
+        ):
             raise ValueError("Unsupported verification width")
         if self.position + width > self.capacity:
             raise ValueError("Decode exceeds cache capacity")
@@ -1103,8 +978,7 @@ class CannModel:
             self.input_ids.copy_(tokens)
         return width, metadata
 
-    def verify(self, tokens, *, full_logits=True, depths=None):
-        """Consume causal rows, with optional tree depths for RoPE."""
+    def verify(self, tokens, *, full_logits=True, depths=None, compute_head=True):
         import torch
         from vllm.config import set_current_vllm_config
         from vllm_ascend.ascend_forward_context import (
@@ -1117,7 +991,9 @@ class CannModel:
             if use_graph and self.graph.capture_count:
                 hidden = self.graph.forward(metadata)
                 processor = getattr(self.model, "logits_processor", None)
-                if (not full_logits and self.fp32_head
+                if not compute_head:
+                    logits, token_ids = None, None
+                elif (not full_logits and width <= 64 and self.fp32_head
                         and self._onesided is not None
                         and processor is not None
                         and hasattr(getattr(torch.ops, "tilert", None),
@@ -1170,7 +1046,9 @@ class CannModel:
                           if not use_graph
                           else self.graph.forward(metadata))
                 processor = getattr(self.model, "logits_processor", None)
-                if (not full_logits and self.fp32_head
+                if not compute_head:
+                    logits, token_ids = None, None
+                elif (not full_logits and width <= 64 and self.fp32_head
                         and self._onesided is not None
                         and processor is not None
                         and hasattr(getattr(torch.ops, "tilert", None),
@@ -1194,17 +1072,6 @@ class CannModel:
             )
 
     def install_tree_mask(self):
-        """Give a draft tree the visibility its branches need.
-
-        `shared_fia` already composes the indexer's selection with a causal
-        mask, so a tree only has to replace the causal half -- the indexer
-        keeps choosing the prefix at the width the checkpoint sets. The other
-        kernels take `sparse_indices` instead, where the tree has to name
-        every position a row may see, which means the whole prefix has to fit
-        in `index_topk`.
-
-        Idempotent: the round executor asks once a request.
-        """
         if self.tree_mask is None:
             if self._shared_attention is not None:
                 from .tree_mask import ancestor_bitmap
@@ -1230,18 +1097,7 @@ class CannModel:
         return self.tree_mask
 
     def indexer_buffers(self):
-        """The selected positions each indexer layer last wrote.
-
-        Only one layer in `index_topk_freq` runs the indexer and the rest
-        reuse its result, so the buffers alias; de-duplicating by storage
-        gives the distinct selections. What they are wanted for is whether
-        those positions cluster, which decides whether an eight-token sparse
-        block covers them without attending to much that was never selected.
-        """
         buffers = {}
-        # `named_children` rather than `items`: the pinned vendor holds the
-        # layers in a `ModuleList`, which has no `items`, so this accessor
-        # raised on every call and `--dump-indices` had never run.
         for name, layer in self.model.model.layers.named_children():
             attention = getattr(layer, "self_attn", None)
             indices = getattr(getattr(attention, "mla_attn", None),
@@ -1251,12 +1107,6 @@ class CannModel:
         return [value for value in buffers.values()]
 
     def host_tokens(self, *groups):
-        """Read several token groups to the host in one transfer.
-
-        A round issues every kernel before calling this, so this is its only
-        synchronisation. The host needs these values to commit cache lengths
-        and to deliver text.
-        """
         import torch
 
         tensors = [device_tokens(group, self.device) for group in groups]
@@ -1273,7 +1123,6 @@ class CannModel:
         return self.verify((token,), full_logits=False)
 
     def predict(self, normalized_parent, *, full_logits=False):
-        """Project transferred hidden[P-1] without changing the KV length."""
         import torch
         from vllm.config import set_current_vllm_config
 
@@ -1289,18 +1138,6 @@ class CannModel:
                             logits.argmax(dim=-1))
 
     def compact(self, start, rows):
-        """Gather written rows `start + rows[j]` into `start + j`.
-
-        A chain's accepted prefix is already the rows it occupies, so nothing
-        needed this until a tree: there the accepted path is scattered across
-        the verification rows, and the cache the next round attends to has to
-        hold those tokens contiguously.
-
-        `rows[j] >= j` because a tree's parents precede its children, so a
-        node at depth `j` cannot sit before row `j` -- which makes the gather
-        safe to do in place and in order. The drafter expands best-first, so
-        the likeliest path usually is `0, 1, 2, ...` and this does nothing.
-        """
         import torch
 
         if rows != sorted(rows) or any(row < j for j, row in enumerate(rows)):
@@ -1317,13 +1154,11 @@ class CannModel:
                     )
 
     def truncate(self, length):
-        """Retain written rows [0, length); later writes replace the tail."""
         if type(length) is not int or not 0 <= length <= self.position:
             raise ValueError("Truncation requires an already written prefix")
         self.position = length
 
     def reset(self):
-        """Exclude prior rows from attention without replaying the prompt."""
         self.position = 0
 
     def source_metadata(self):

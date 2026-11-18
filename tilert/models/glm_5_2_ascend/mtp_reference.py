@@ -1,9 +1,3 @@
-"""CPU MTP oracle using HF's decoder and independent TP16 weight arithmetic.
-
-Importing this module requires only the standard library. Construction loads
-Torch and Transformers; inference uses expanded HF KV and no CANN operators.
-"""
-
 import json
 from pathlib import Path
 import struct
@@ -18,7 +12,6 @@ IMPLEMENTATION = "transformers.GlmMoeDsaDecoderLayer.MTP"
 
 
 def checkpoint_contract(directory):
-    """Validate the MTP configuration and tensor headers without Torch."""
     directory = Path(directory)
     config = json.loads((directory / "config.json").read_text())
     description = directory / "quant_model_description.json"
@@ -92,12 +85,6 @@ def _shared_indexer(weights):
 
 
 class MtpReference:
-    """Execute M=1/2/4 as causal HF rows at parent RoPE/cache positions.
-
-    The single HF layer at index zero reads checkpoint layer 78. Prefixes
-    contain replicated compressed latent/RoPE/index rows; only HF attention
-    expands them into per-head K/V. Trace fields match the native MTP runner.
-    """
 
     def __init__(self, checkpoint, capacity=9216):
         import torch
@@ -361,7 +348,6 @@ class MtpReference:
         }
 
     def forward(self, tokens, normalized_parent_hidden, external_indices=None):
-        """Return the native snapshot schema, computed as CPU HF M=1 rows."""
         import torch
 
         selections = self._validate(

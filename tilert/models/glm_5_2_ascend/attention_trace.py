@@ -334,7 +334,12 @@ class AttentionTrace:
             "native_offsets": self.native_offsets})
 
     def dump(self, position, width, active_rows, *args, **kwargs):
-        if self.saved or width != WIDTH or position != self.position or self.request != self.capture_request:
+        if (
+            self.saved
+            or width != WIDTH
+            or position != self.position
+            or self.request != self.capture_request
+        ):
             return
         import torch
 

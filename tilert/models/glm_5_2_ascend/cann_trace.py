@@ -1,15 +1,7 @@
-"""Diagnostic hidden-state snapshots for one eager CANN forward."""
-
 from functools import partial
 
 
 class CannTrace:
-    """Capture embedding, 77 merged residuals, and final normalized hidden.
-
-    Pass the causal LM held by ``CannModel.model``. The next layer's input
-    norm exposes the preceding layer's actual fused residual. Hooks only
-    copy those tensors; they do not reconstruct a residual or project logits.
-    """
 
     def __init__(self, model, width=1):
         if type(width) is not int or width not in (1, 2, 4):
@@ -83,7 +75,6 @@ class CannTrace:
         self._snapshot(layer, output[1])
 
     def finish(self, step):
-        """Return 79 owned snapshots after the single forward completes."""
         if not self._active or self._finished:
             raise RuntimeError("finish requires an unfinished active trace")
         if len(self._hidden) != 78:

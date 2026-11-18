@@ -1,8 +1,4 @@
-"""Shard the two BF16 MTP projections over the existing TP group."""
-
-
 def shard_mtp_projections(model):
-    """Keep complete K reductions and gather outputs before either consumer."""
     import torch
     from vllm_ascend.ops.linear import AscendColumnParallelLinear
 

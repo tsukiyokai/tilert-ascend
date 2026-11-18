@@ -1,5 +1,3 @@
-"""Ordered request commands for sixteen rank-local CANN engines."""
-
 from dataclasses import asdict
 from datetime import timedelta
 
@@ -10,7 +8,6 @@ TP_SIZE = 16
 
 
 class TorchControlChannel:
-    """Wait for host commands on Gloo without an outstanding NPU task."""
 
     def __init__(self, group=None):
         import torch
@@ -47,7 +44,6 @@ class TorchControlChannel:
 
 
 class RankExecutor:
-    """Apply the same command stream using this rank's own prefix storage."""
 
     def __init__(self, engine, rank, prefix_loader):
         if not 0 <= rank < TP_SIZE:
@@ -113,7 +109,6 @@ class RankExecutor:
 
 
 class CoordinatedBackend:
-    """Rank-zero facade; workers execute each command before the next one."""
 
     def __init__(self, executor, channel):
         if executor.rank != 0:

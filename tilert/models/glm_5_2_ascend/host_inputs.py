@@ -1,10 +1,3 @@
-"""Persistent typed device inputs backed by one asynchronous host packet.
-
-Each width owns a pinned source ring. The caller must keep the number of
-unfinished stages per width within the ring size before reusing a slot.
-"""
-
-
 def _layout(width):
     positions = (4 * width + 7) // 8 * 8
     slots = positions + 8 * width
@@ -29,7 +22,6 @@ def _views(packet, width):
 
 
 class HostInputs:
-    """Keep packet addresses fixed; stage CPU-only token tuples in one copy."""
 
     def __init__(self, device, widths, slots=64, pin_memory=True):
         import torch

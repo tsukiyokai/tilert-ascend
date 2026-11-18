@@ -1,11 +1,3 @@
-"""Independent CPU arithmetic for the TP16 GLM-5.2 ModelSlim checkpoint.
-
-Raw safetensors reads bypass the production loader. W4 reproduces CANN
-9.2.0 MSD's FP16 partial products and FP32 correction; W8 uses INT32 dots.
-TP reduction sums BF16 partials in FP32 rank order and casts once to BF16;
-this defines a reference and does not reproduce an HCCL reduction tree.
-"""
-
 from collections import OrderedDict
 from dataclasses import dataclass
 import hashlib
@@ -16,7 +8,6 @@ import sys
 
 import torch
 import torch.nn.functional as functional
-
 
 TP_SIZE = 16
 DYNAMIC_DIV_BIASED_MANTISSAS = (
@@ -31,33 +22,18 @@ STORAGE_DTYPES = {
     "I64": (torch.int64, 8),
 }
 
-
 def quantize_a8(x):
-    """Retain the CPU Div(127,amax) formula for the C8 reference.
-
-    Rounding is nearest-even. Zero rows produce zero codes and zero scales.
-    The 128-channel C8 NPU quantization order is not yet calibrated; this
-    function specifies the CPU formula rather than asserting C8 parity.
-    """
     if x.device.type != "cpu":
         raise ValueError("The reference requires CPU tensors")
     values = x.to(torch.float32)
     maximum = torch.max(torch.abs(values), dim=-1).values
     scale = maximum * (1 / 127)
     denominator = torch.where(maximum > 0, maximum, 1.0)
-    # Tensor division avoids Torch scalar rdiv's reciprocal/multiply lowering.
     factor = torch.div(torch.full_like(denominator, 127), denominator)
     codes = torch.round(torch.mul(values, factor.unsqueeze(-1)))
     return codes.clamp(-127, 127).to(torch.int8), scale
 
-
 def quantize_dynamic_a8(x):
-    """Quantize BF16 rows with the calibrated A3 FP32 Div factor.
-
-    Positive amax has exponent [-120,127]; zero rows remain zero. Scale
-    uses FP32 Muls(amax,1/127). Codes use the corrected factor, FP32 Mul
-    and nearest-even RINT.
-    """
     if x.device.type != "cpu" or x.dtype != torch.bfloat16:
         raise ValueError("Dynamic A8 reference requires CPU BF16 input")
     values = x.float()
@@ -77,9 +53,7 @@ def quantize_dynamic_a8(x):
     codes = torch.round(values * factor.unsqueeze(-1))
     return codes.clamp(-127, 127).to(torch.int8), scale
 
-
 def unpack_w4(packed):
-    """Decode each byte into adjacent signed output rows, low nibble first."""
     if (packed.device.type != "cpu" or packed.dtype != torch.int8
             or packed.ndim != 2):
         raise ValueError("Packed W4 must be INT8 [output/2, input]")
@@ -93,11 +67,8 @@ def unpack_w4(packed):
     output[1::2] = torch.where(high < 8, high, high - 16)
     return output
 
-
 def w4_msd_product(codes, integer, scales, correction, activation_scale,
                    output_dtype=torch.bfloat16):
-    """Emulate CANN 9.2.0 API-dequant MSD with separate FP32 additions."""
-    # A3 Fixpipe uses a 1+8+10-bit scale, truncating the low 13 FP32 bits.
     scale_bits = scales.contiguous().view(torch.int32) & -8192
     scales = scale_bits.view(torch.float32)
     high = torch.div(codes, 16, rounding_mode="floor")
@@ -111,9 +82,7 @@ def w4_msd_product(codes, integer, scales, correction, activation_scale,
     result = result + correction
     return (result * activation_scale).to(output_dtype)
 
-
 def tp_sum(partials):
-    """Sum in FP32 rank order, then restore BF16 or retain FP32 output."""
     if len(partials) != TP_SIZE:
         raise ValueError("TP16 reduction requires sixteen partials")
     dtype = partials[0].dtype
@@ -128,7 +97,6 @@ def tp_sum(partials):
         total.add_(partial.float())
     return total.to(dtype)
 
-
 @dataclass(frozen=True)
 class _IntegerWeight:
     values: torch.Tensor
@@ -140,17 +108,7 @@ class _IntegerWeight:
     def shape(self):
         return self.values.shape[0] * (8 // self.bits), self.values.shape[1]
 
-
 class ReferenceWeights:
-    """Lazy raw tensors with an active-layer byte limit and expert LRU.
-
-    ``tensor`` accepts half-open row/column ranges and an optional dtype.
-    ``linear`` supports replicated, output-concatenated, or input-reduced
-    projections. ``input_partials`` exposes the sixteen rank-local results
-    for MoE combine before TP reduction. Floating products accumulate in FP32
-    and retain the input dtype, except for an explicitly selected FP32 head.
-    Global tensors, including embedding/head slices, are never cached.
-    """
 
     def __init__(self, directory, expert_cache_size=8,
                  dense_cache_bytes=256 * 1024**2, *, fp32_head=False):
@@ -208,7 +166,6 @@ class ReferenceWeights:
         self._headers = OrderedDict()
 
     def clear(self):
-        """Release cached payloads and retain index/header metadata."""
         self._dense.clear()
         self._experts.clear()
         self._dense_bytes = 0
@@ -247,7 +204,6 @@ class ReferenceWeights:
         return filename, base, header[name]
 
     def tensor(self, name, rows=None, columns=None, dtype=None):
-        """Read a vector/matrix slice directly from safetensors bytes."""
         cache = self._cache_for(name, rows, columns)
         key = name, rows, columns
         value = None if cache is None else cache.get(key)
@@ -383,12 +339,6 @@ class ReferenceWeights:
         return (result * activation_scale[..., None]).to(output_dtype)
 
     def fused_expert_partials(self, prefix, x, ranks=range(TP_SIZE)):
-        """CANN W4 GMM1/SwiGLU/A8 fusion, followed by BF16 GMM2.
-
-        GMM1 and SwiGLU retain FP32. The fused quantizer uses amax/127,
-        its reciprocal, then FP16 and INT8 nearest-even conversions.
-        ``ranks`` selects the returned partials in logical TP order.
-        """
         self._check_input(x)
         codes, input_scale = quantize_dynamic_a8(x)
         gate = self._integer_weight(prefix + ".gate_proj")
@@ -429,7 +379,6 @@ class ReferenceWeights:
         return output.to(x.dtype)
 
     def input_partials(self, prefix, x):
-        """Apply local A8 quantization before each rank's input-shard dot."""
         self._check_input(x)
         if x.shape[-1] % TP_SIZE:
             raise ValueError("Input width must be divisible by sixteen")
@@ -464,7 +413,6 @@ class ReferenceWeights:
             raise ValueError("Linear reference input needs a token dimension")
 
     def linear(self, prefix, x, partition):
-        """Apply a projection with an explicit TP16 partition contract."""
         self._check_input(x)
         if partition == "input":
             return tp_sum(self.input_partials(prefix, x))

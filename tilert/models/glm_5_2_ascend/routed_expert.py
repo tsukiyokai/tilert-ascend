@@ -1,22 +1,5 @@
-"""TP16 W4A8 routed experts with one AscendC matrix/activation launch.
-
-Install before ModelSlim weights are converted to NZ. Native weights are
-copied ND INT4 B[K,N] by default, or borrowed final vendor NZ tensors.
-Both pack adjacent output columns low nibble first. Route metadata retains
-the original top-8 slot and its BF16 probability boundary. Vendor dispatch
-quantization precedes the fused projections and combine; shared experts
-and TP finalization remain with the caller.
-
-Workspaces belong to a device, stream, token count and weight format. Layers on that
-stream reuse them in execution order. Returned storage is valid until the
-next call with the same workspace; the model consumes it before entering
-the next layer. Reserve each captured width before recording; its first
-consumer binds the reserved storage to the actual capture stream.
-"""
-
 import os
 from pathlib import Path
-
 
 HIDDEN = 6144
 GATE_UP = 256
@@ -31,9 +14,7 @@ LIBRARY_DIR = Path(os.environ.get(
     / "tests/glm52/routed_int4/build",
 ))
 
-
 def _repack(packed, columns):
-    """ModelSlim INT8 [E,N/2,K] to non-transposed packed B[E,K,N/2]."""
     import torch
 
     if (packed.dtype != torch.int8 or packed.ndim != 3
@@ -41,9 +22,7 @@ def _repack(packed, columns):
         raise ValueError("Expected ModelSlim INT8 weights [E,N/2,K]")
     return packed.transpose(1, 2).contiguous()
 
-
 def unpack_codes(packed):
-    """Decode checkpoint INT4 [E,N/2,K] to signed INT8 [E,N,K]."""
     import torch
 
     if packed.ndim != 3 or packed.dtype != torch.int8:
@@ -57,15 +36,7 @@ def unpack_codes(packed):
         experts, 2 * halved, inner,
     )
 
-
 def route_metadata(topk_ids, topk_weights):
-    """Build fixed-capacity expert groups on device without host reads.
-
-    Inputs are [M,8], with distinct expert IDs per token in [0,256).
-    Active rows occupy the first M*8 entries, ordered by expert, token and
-    slot. Padding is outside every group interval. Probabilities round to
-    BF16, as in the vendor BF16 unpermute path.
-    """
     import torch
 
     if (topk_ids.ndim != 2 or topk_ids.shape[1] != TOP_K
@@ -94,16 +65,12 @@ def route_metadata(topk_ids, topk_weights):
     weights[:ids.numel()] = probabilities[order]
     return counts, starts, source_row, source_slot, weights
 
-
 def _restore_token_rows(sorted_rows, sorted_scales, inverse, tokens):
-    """Select original top-8 slot zero from token-major inverse indices."""
     positions = inverse.reshape(tokens, TOP_K)[:, 0].long()
     return (sorted_rows.index_select(0, positions),
             sorted_scales.reshape(-1).index_select(0, positions))
 
-
 def _dispatch_rows(x, topk_ids):
-    """Return all four outputs of the vendor W4A8 dispatch quantizer."""
     import torch_npu
 
     return torch_npu.npu_moe_init_routing_v2(
@@ -113,9 +80,7 @@ def _dispatch_rows(x, topk_ids):
         active_expert_range=[0, EXPERTS_PER_RANK], quant_mode=1,
     )
 
-
 def _quant_rows(x, topk_ids, token_scale):
-    """Preserve the dispatch quantizer used by the vendor W4A8 chain."""
     import torch
 
     if x.dtype == torch.int8 and token_scale is not None:
@@ -125,9 +90,7 @@ def _quant_rows(x, topk_ids, token_scale):
     rows, inverse, _, scales = _dispatch_rows(x, topk_ids)
     return _restore_token_rows(rows, scales, inverse, x.shape[0])
 
-
 class _WorkspacePool:
-    """Own native allocations across layers, keeping streams independent."""
 
     def __init__(self, experts, blocks, weight_layout=0, from_dispatch=False):
         self.experts = experts
@@ -141,7 +104,6 @@ class _WorkspacePool:
     def _prepare(self, rows):
         import torch
 
-        # ND's original calling convention also accepts the validated old .so.
         options = {"weight_layout": self.weight_layout} if self.weight_layout else {}
         if self.from_dispatch:
             options["from_dispatch"] = True
@@ -150,7 +112,6 @@ class _WorkspacePool:
         )
 
     def reserve_capture(self, rows):
-        """Allocate before capture; the first consumer binds its stream."""
         key = (rows.device, rows.shape[0], self.from_dispatch, self.weight_layout)
         if key not in self.capture_reserves:
             self.capture_reserves[key] = self._prepare(rows)
@@ -174,12 +135,10 @@ class _WorkspacePool:
                 self.entries[key] = self._prepare(rows)
         return self.entries[key]
 
-
 def _load():
     import torch
 
     torch.ops.load_library(str(LIBRARY_DIR / "routed_int4_torch.so"))
-
 
 def _check_checkpoint_weights(layer, experts):
     import torch
@@ -198,9 +157,7 @@ def _check_checkpoint_weights(layer, experts):
         if tuple(tensor.shape) != shape or tensor.dtype != dtype:
             raise ValueError(f"{name} requires {dtype} {shape} at TP16")
 
-
 def _weights(layer, experts):
-    """Copy rank-local ModelSlim tensors before vendor conversion."""
     _check_checkpoint_weights(layer, experts)
     return (
         _repack(layer.w13_weight.detach(), GATE_UP),
@@ -211,9 +168,7 @@ def _weights(layer, experts):
         layer.w2_weight_scale.detach().squeeze(-1).clone(),
     )
 
-
 def _borrow_nz_weights(layer, experts, scales):
-    """Retain the vendor's final INT32 carriers and FP32 corrections."""
     import torch
     import torch_npu
 
@@ -240,9 +195,7 @@ def _borrow_nz_weights(layer, experts, scales):
         layer.w2_weight, layer.w2_scale_bias, scales[1],
     )
 
-
 def _run(method, layer, x, topk_weights, topk_ids, weights, pool):
-    """Replace the entire routed body; finalize remains with the caller."""
     from vllm_ascend.ascend_forward_context import _EXTRA_CTX
     from vllm_ascend.ops.fused_moe.moe_comm_method import (
         AllGatherCommImpl,
@@ -257,8 +210,6 @@ def _run(method, layer, x, topk_weights, topk_ids, weights, pool):
     options = {"weight_layout": pool.weight_layout} if pool.weight_layout else {}
     if pool.from_dispatch:
         rows, inverse, expert_tokens, token_scale = _dispatch_rows(x, topk_ids)
-        # Only the shape is consumed by the workspace pool. This view does
-        # not restore or copy rows; the kernel owns that data movement.
         scratch, sync_base = pool.get(rows[:x.shape[0]])
         output = torch.ops.tilert.routed_experts_from_dispatch(
             rows, *weights, token_scale.reshape(-1), inverse, expert_tokens,
@@ -287,9 +238,7 @@ def _run(method, layer, x, topk_weights, topk_ids, weights, pool):
         expert_tokens=expert_tokens,
     )
 
-
 def _install_layer(layer, method, weights, pool):
-    """Dispatch on layer identity because a quant method can be shared."""
     original = method.apply
 
     def apply(layer, x, topk_weights, topk_ids, shared_experts,
@@ -315,18 +264,9 @@ def _install_layer(layer, method, weights, pool):
 
     return restore
 
-
 def install_before_conversion(quant_class, experts=EXPERTS_PER_RANK,
                               blocks=BLOCKS, weight_layout=None,
                               reuse_dispatch=None):
-    """Install a routed body with copied ND or borrowed vendor NZ weights.
-
-    Supports TP16, EP=1, 256 experts, unclipped SwiGLU, and M=1..32.
-    Larger prefill batches keep the vendor path. Restore removes both the
-    loading hook and the installed per-object methods. ND is the default;
-    select NZ with weight_layout="nz" or TILERT_ROUTED_WEIGHT_LAYOUT=nz.
-    NZ retains final vendor tensors and copies only the original FP32 scales.
-    """
     if experts != EXPERTS_PER_RANK:
         raise ValueError("TP16 shards all 256 experts on each rank")
     if weight_layout is None:

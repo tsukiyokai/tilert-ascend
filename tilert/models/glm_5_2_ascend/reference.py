@@ -1,5 +1,3 @@
-"""CPU HF decoder with independent ModelSlim and TP16 arithmetic adapters."""
-
 import json
 import math
 from pathlib import Path
@@ -40,7 +38,6 @@ ROTARY_CONTRACT = {
 
 
 class StableTopk(TorchFunctionMode):
-    """Resolve equal router scores by ascending expert ID."""
 
     def __torch_function__(self, func, types, args=(), kwargs=None):
         kwargs = kwargs or {}
@@ -86,7 +83,6 @@ class ReferenceEmbedding(nn.Module):
 
 
 def fused_swiglu(gate, up):
-    """Round the FP32 activation/product once at the BF16 FFN boundary."""
     return (functional.silu(gate.float()) * up.float()).to(torch.bfloat16)
 
 
@@ -108,7 +104,6 @@ class ReferenceMlp(nn.Module):
 
 
 class ReferenceMoe(nn.Module):
-    """Retain HF routing and combine experts before each rank's TP sum."""
 
     def __init__(self, weights, prefix, moe):
         super().__init__()
@@ -162,7 +157,6 @@ class ReferenceMoe(nn.Module):
 
 
 def rotary_components(x, cosine, sine, head_axis):
-    """Apply CANN's FP32 rotary intermediates to BF16 inputs and angles."""
     half = x.shape[-1] // 2
     cosine = cosine[..., :half].float().unsqueeze(head_axis)
     sine = sine[..., :half].float().unsqueeze(head_axis)
@@ -171,13 +165,11 @@ def rotary_components(x, cosine, sine, head_axis):
 
 
 def interleaved_rope(x, cosine, sine):
-    """Round once to BF16 and retain alternating indexer coordinates."""
     first, second = rotary_components(x, cosine, sine, head_axis=2)
     return torch.stack((first, second), dim=-1).flatten(-2).to(x.dtype)
 
 
 def attention_rope(q, k, cos, sin, position_ids=None, unsqueeze_dim=1):
-    """Retain HF's half-basis layout with CANN's rotary rounding boundary."""
     query = rotary_components(q, cos, sin, unsqueeze_dim)
     key = rotary_components(k, cos, sin, unsqueeze_dim)
     return (torch.cat(query, dim=-1).to(q.dtype),
@@ -185,7 +177,6 @@ def attention_rope(q, k, cos, sin, position_ids=None, unsqueeze_dim=1):
 
 
 def install_attention_rope(attention):
-    """Change only this instance's HF forward rotary function lookup."""
     original = attention.forward.__func__
     namespace = dict(original.__globals__)
     namespace["apply_rotary_pos_emb_interleave"] = attention_rope
@@ -199,7 +190,6 @@ def prolog_attention_forward(
     self, hidden_states, position_embeddings, attention_mask,
     past_key_values=None, position_ids=None, prev_topk_indices=None, **kwargs,
 ):
-    """Use CPU Prolog arithmetic before HF cache, attention and projection."""
     from .reference_prolog import preprocess
 
     batch, length, hidden = hidden_states.shape
@@ -253,7 +243,6 @@ def prolog_attention_forward(
 
 
 def prolog_input_norm(self, hidden):
-    """Keep FP32 normalized values through gamma before the BF16 output."""
     values = hidden.float()
     variance = values.square().mean(-1, keepdim=True)
     normalized = values * torch.rsqrt(variance + self.variance_epsilon)
@@ -283,7 +272,6 @@ def hadamard_matrix():
 
 
 def prefix_length(prefixes):
-    """Validate the replicated backbone cache before changing HF state."""
     if len(prefixes) != LAYERS:
         raise ValueError("The reference needs 78 backbone prefixes")
     length = prefixes[0]["latent"].shape[0]
@@ -310,7 +298,6 @@ def prefix_length(prefixes):
 
 
 class ReferenceIndexer(nn.Module):
-    """Independent CPU scoring over BF16 or C8 keys in HF DynamicCache."""
 
     def __init__(self, weights, prefix, layer, quantized):
         super().__init__()
@@ -415,7 +402,6 @@ class ReferenceIndexer(nn.Module):
 
 
 class HfReference:
-    """Run the installed HF model without CANN or production weight helpers."""
 
     def __init__(self, checkpoint, mla_preprocess="native",
                  layer_count=LAYERS, *, fp32_head=False,

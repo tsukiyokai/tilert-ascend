@@ -1,15 +1,6 @@
-"""Fuse TP16 MLA value-up, dynamic quantization and local output projection.
-
-The vendor attention implementation needs the explicit tail hook in
-patches/vllm-ascend/mla-tail-hook.patch. SFA, KV writes, index selection and
-TP reduction keep their original call sites. Native workspaces are shared
-across layers on one stream and reserved before graph capture.
-"""
-
 import os
 from pathlib import Path
 from types import MethodType
-
 
 HEADS = 4
 LATENT = 512
@@ -21,9 +12,7 @@ LIBRARY_DIR = Path(os.environ.get(
     Path(__file__).resolve().parents[3] / "tests/glm52/mla_tail/build",
 ))
 
-
 def pack_value_weights(weight):
-    """ND BF16 [H,512,256] to 16 independent [512,256*H//16] CUBE tiles."""
     import torch
 
     if (weight.dim() != 3 or weight.shape[0] not in (4, 8)
@@ -36,9 +25,7 @@ def pack_value_weights(weight):
         0, 2, 1, 3,
     ).contiguous().reshape(16, LATENT, tile)
 
-
 def pack_output_weights(weight):
-    """ND INT8 [256*H,6144] to 24 independent [256*H,256] CUBE tiles."""
     import torch
 
     if (weight.dim() != 2 or weight.shape[0] not in (4 * VALUE, 8 * VALUE)
@@ -49,9 +36,7 @@ def pack_output_weights(weight):
         1, 0, 2,
     ).contiguous()
 
-
 class WorkspacePool:
-    """Keep each live stream's native scratch and tiling tensors owned."""
 
     def __init__(self, blocks=0):
         self.blocks = blocks
@@ -100,15 +85,12 @@ class WorkspacePool:
                 )
         return capacity, self.entries[key]
 
-
 def load(tp_size=None):
     import torch
 
     torch.ops.load_library(str(LIBRARY_DIR / "mla_tail_torch.so"))
 
-
 def install(impl, pool):
-    """Bind an ungated TP8/TP16 W8A8_DYNAMIC output projection to the tail."""
     import torch
     import torch_npu
     from vllm.distributed import tensor_model_parallel_all_reduce
@@ -118,7 +100,7 @@ def install(impl, pool):
 
     if not hasattr(impl, "_project_attention_output"):
         raise RuntimeError(
-            "Apply patches/vllm-ascend/mla-tail-hook.patch to vLLM-Ascend "
+            "Apply scripts/patches/vllm-ascend/mla-tail-hook.patch to vLLM-Ascend "
             "before enabling the MLA tail"
         )
     projection = impl.o_proj
@@ -137,8 +119,6 @@ def install(impl, pool):
     output_weight = pack_output_weights(
         torch_npu.npu_format_cast(projection.weight.detach(), 2),
     )
-    # A contiguous four-dimensional view can retain NCHW format metadata
-    # after reshaping back to three dimensions. Normalize the packed tiles.
     value_weight = torch_npu.npu_format_cast(value_weight, 2)
     output_weight = torch_npu.npu_format_cast(output_weight, 2)
     output_scale = projection.weight_scale.detach().float().contiguous()

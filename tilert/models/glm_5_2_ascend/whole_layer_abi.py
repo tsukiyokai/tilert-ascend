@@ -1,9 +1,3 @@
-"""Own the frozen layer records and stream-bound SHMEM windows.
-
-The record layouts are checked by the compiled metadata builder. Tensors remain
-owned until every graph using them has been reset and the stream synchronized.
-"""
-
 import ctypes
 import hashlib
 from pathlib import Path
@@ -17,13 +11,14 @@ def pointers(values):
 
 
 class LocalRecords:
-    """Own both host records and every tensor referenced by the device record."""
 
     def __init__(self, library, norm, attention, post, routed, bridge, body,
                  shared, shared_topk, geometry, scalars, sync, indexed):
         groups = (norm, attention, post, routed, bridge, body, shared)
         if tuple(map(len, groups)) != (8, 41, 3, 6, 12, 21, 4):
-            raise ValueError("Expected norm/attention/post/routed/bridge/body/shared slots 8/41/3/6/12/21/4")
+            raise ValueError(
+                "Expected norm/attention/post/routed/bridge/body/shared slots 8/41/3/6/12/21/4"
+            )
         if len(geometry) != 9 or len(scalars) != 5:
             raise ValueError("Expected nine geometry and five scalar fields")
         if norm[0] is None or norm[0].device.type != "npu":
@@ -78,11 +73,13 @@ class LocalRecords:
 
 
 class MetadataLibrary:
-    """Load a frozen library after importing the matching TorchNPU runtime."""
 
     def __init__(self, path, expected_sha256):
         path = Path(path)
-        if hashlib.sha256(path.read_bytes()).hexdigest() != expected_sha256:
+        actual_sha256 = hashlib.sha256(path.read_bytes()).hexdigest()
+        allowed = ({expected_sha256} if isinstance(expected_sha256, str)
+                   else set(expected_sha256 or ()))
+        if allowed and actual_sha256 not in allowed:
             raise RuntimeError("The local-chain library differs from its build record")
         self.handle = ctypes.CDLL(str(path.resolve()))
         for name in ("layer_local_config_bytes", "layer_local_address_bytes"):
@@ -115,7 +112,6 @@ class MetadataLibrary:
 
 
 class TreeLibrary:
-    """Own one explicitly initialized SHMEM context in each rank process."""
 
     def __init__(self, path, expected_sha256):
         path = Path(path)
@@ -146,6 +142,12 @@ class TreeLibrary:
             function.argtypes = arguments
             function.restype = result
         self.has_chain = hasattr(self.handle, "layer_tp_tree_submit_chain")
+        self._set_mask_ptr = getattr(
+            self.handle, "layer_tp_tree_set_mask_ptr", None
+        )
+        self._set_peer_weights_ptr = getattr(
+            self.handle, "layer_tp_tree_set_peer_weights_ptr", None
+        )
         if self.has_chain:
             submit_chain = self.handle.layer_tp_tree_submit_chain
             submit_chain.argtypes = [
@@ -153,9 +155,23 @@ class TreeLibrary:
                 ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t,
             ]
             submit_chain.restype = ctypes.c_int
+            if self._set_mask_ptr is not None:
+                self._set_mask_ptr.argtypes = [ctypes.c_uint64]
+                self._set_mask_ptr.restype = None
+            if self._set_peer_weights_ptr is not None:
+                self._set_peer_weights_ptr.argtypes = [ctypes.c_uint64]
+                self._set_peer_weights_ptr.restype = None
         sizes = tuple(self.handle.layer_tp_tree_record_bytes(index) for index in range(3))
         if sizes != (664, 928, 48):
             raise RuntimeError(f"The TP layer record ABI changed: {sizes}")
+
+    def set_mask_ptr(self, ptr):
+        if self._set_mask_ptr is not None:
+            self._set_mask_ptr(int(ptr))
+
+    def set_peer_weights_ptr(self, ptr):
+        if self._set_peer_weights_ptr is not None:
+            self._set_peer_weights_ptr(int(ptr))
 
     def check(self, status):
         if status != 0:
@@ -171,7 +187,6 @@ class TreeLibrary:
 
 
 class Window:
-    """Allocate collectively, on the stream that will capture every layer call."""
 
     def __init__(self, library, capacity):
         self.library = library
@@ -183,13 +198,11 @@ class Window:
         self.address, self.bytes, self.capacity, self.rank, self.ranks, self.device = fields
 
     def close(self):
-        """Call after destroying all graphs and synchronizing all ranks."""
         self.library.check(self.library.handle.layer_tp_tree_window_destroy(self.handle))
         self.handle = 0
 
 
 class PreparedLayer:
-    """Extend a validated local-layer owner with distinct BF16 reduction outputs."""
 
     def __init__(self, local, window, attention_sum, output):
         import torch
@@ -232,9 +245,11 @@ class PreparedLayer:
 
 
 class PreparedChain:
-    """Pack a sequence of PreparedLayer steps into one persistent chain launch."""
 
-    def __init__(self, steps, steps_device, copy_stream=None):
+    def __init__(
+        self, steps, steps_device, copy_stream=None, *,
+        mask_ptr=0, peer_weights_ptr=0,
+    ):
         import struct
         import torch
 
@@ -272,9 +287,15 @@ class PreparedChain:
             raise ValueError("Chain device buffer must be 64B-aligned NPU uint8")
         host_tensor = torch.frombuffer(bytearray(payload), dtype=torch.uint8)
         if copy_stream is not None:
-            with torch.npu.stream(copy_stream):
-                steps_device[:len(payload)].copy_(host_tensor)
-            copy_stream.synchronize()
+            acl = ctypes.CDLL("libascendcl.so")
+            mode = ctypes.c_int(2)
+            acl.aclmdlRICaptureThreadExchangeMode(ctypes.byref(mode))
+            try:
+                with torch.npu.stream(copy_stream):
+                    steps_device[:len(payload)].copy_(host_tensor)
+                copy_stream.synchronize()
+            finally:
+                acl.aclmdlRICaptureThreadExchangeMode(ctypes.byref(mode))
         else:
             steps_device[:len(payload)].copy_(host_tensor)
         self.device = device
@@ -285,6 +306,8 @@ class PreparedChain:
         self.steps_device = steps_device
         self.steps_device_ptr = int(steps_device.data_ptr())
         self.steps = tuple(steps)
+        self.mask_ptr = int(mask_ptr)
+        self.peer_weights_ptr = int(peer_weights_ptr)
 
     def launch(self):
         if self.window.handle == 0:
@@ -298,6 +321,8 @@ class PreparedChain:
             if pointers(step.outputs) != step.output_pointers:
                 raise RuntimeError("A retained reduction output changed its data address")
         library = self.window.library
+        library.set_mask_ptr(self.mask_ptr)
+        library.set_peer_weights_ptr(self.peer_weights_ptr)
         library.check(library.handle.layer_tp_tree_submit_chain(
             self.device, self.window.handle,
             self.steps_host, self.steps_bytes,

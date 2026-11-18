@@ -1,5 +1,3 @@
-"""Greedy MTP delivery and cache retention for one Ascend PD request."""
-
 from dataclasses import dataclass, field
 
 from tilert.pd_vllm.capabilities import (
@@ -8,7 +6,6 @@ from tilert.pd_vllm.capabilities import (
 )
 
 from .session import AscendPDEngine
-
 
 @dataclass
 class _Output:
@@ -37,16 +34,7 @@ class _Output:
         if len(self.tokens) == self.budget:
             self.reason = "length"
 
-
 class AscendMtpPDEngine(AscendPDEngine):
-    """Deliver verified tokens and trim every started MTP request.
-
-    The first token comes from prefill and counts toward ``max_tokens``.
-    Each backend round completes on every rank before token delivery.
-    ``accepted`` counts tokens accepted by completed rounds, including EOS
-    and any tail withheld after cancellation. ``output_tokens`` counts
-    returned token IDs or callbacks that completed successfully.
-    """
 
     def __init__(self, backend, width=4, stop_ids=(), rounds_per_command=1):
         if (isinstance(width, bool) or not isinstance(width, int)
@@ -126,8 +114,6 @@ class AscendMtpPDEngine(AscendPDEngine):
                         "output_tokens": 0,
                         "main_start": commit.main.before,
                         "main_retained": commit.main.retained,
-                        # Predictions beyond the first mismatch belong to
-                        # the rejected branch, not the serial continuation.
                         "candidates": list(result.candidates),
                         "predictions": list(result.target_predictions),
                         **({"parents": list(result.parents)}

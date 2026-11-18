@@ -1,5 +1,3 @@
-"""Read GLM-5.2 ModelSlim weights without materializing a model or shard file."""
-
 from contextlib import ExitStack
 import json
 from dataclasses import dataclass
@@ -11,12 +9,6 @@ from safetensors import safe_open
 
 @dataclass(frozen=True)
 class QuantizedWeight:
-    """Symmetric per-output-channel weights in the checkpoint's packed layout.
-
-    W4 stores output channel 2*i in the low nibble and 2*i+1 in the high
-    nibble of values[i, :]. scale_bias compensates the activation shift in
-    CANN's A8W4 decomposition; it is not a learned linear bias.
-    """
 
     values: torch.Tensor
     scale: torch.Tensor
@@ -32,7 +24,6 @@ class QuantizedWeight:
         return self.values.shape[1]
 
     def unpack(self) -> torch.Tensor:
-        """Return signed int8 [output, input], preserving channel order."""
         if self.bits == 8:
             return self.values
         low = ((self.values & 15) ^ 8) - 8
@@ -47,11 +38,6 @@ class QuantizedWeight:
     def reference(
         self, activation: torch.Tensor, activation_scale: torch.Tensor
     ) -> torch.Tensor:
-        """FP32 result of an int8 activation times signed integer weights.
-
-        activation_scale has one value per input row. Integer accumulation
-        and dequantization are separate so BF16 weight rounding is excluded.
-        """
         product = activation.to(torch.int32) @ self.unpack().to(torch.int32).T
         return product.float() * self.scale * activation_scale.reshape(-1, 1)
 
@@ -64,7 +50,6 @@ class ExpertWeights:
 
 
 class ModelSlimCheckpoint:
-    """Indexed CPU reads; each tensor or requested slice owns its storage."""
 
     def __init__(self, directory: str | Path):
         self.directory = Path(directory)
@@ -83,7 +68,6 @@ class ModelSlimCheckpoint:
             return value.clone().contiguous()
 
     def tensors(self, names):
-        """Yield owned CPU tensors, opening each shard once per iteration."""
         with ExitStack() as stack:
             shards = {}
             for name in names:
@@ -107,12 +91,6 @@ class ModelSlimCheckpoint:
         output_range: tuple[int, int] | None = None,
         input_range: tuple[int, int] | None = None,
     ) -> QuantizedWeight:
-        """Load W8A8 or W4A8 channels, including the matching A8W4 correction.
-
-        W4 output boundaries must be even. Input boundaries must follow the
-        checkpoint's scale_bias partitions (16 for an expert down projection).
-        The GLM-5.2 checkpoint uses zero weight offsets; others are rejected.
-        """
         kind = self.quantization[name + ".weight"]
         if kind not in ("W4A8_DYNAMIC", "W8A8_DYNAMIC"):
             raise ValueError(f"{name}: unsupported quantization {kind}")
@@ -156,7 +134,6 @@ class ModelSlimCheckpoint:
         return QuantizedWeight(values, scale, bits, scale_bias)
 
     def expert(self, layer: int, expert: int, rank: int) -> ExpertWeights:
-        """Read one TP16 expert: 128 intermediate channels on this rank."""
         if not 0 <= rank < 16:
             raise ValueError("TP16 rank must be between 0 and 15")
         prefix = f"model.layers.{layer}.mlp.experts.{expert}"

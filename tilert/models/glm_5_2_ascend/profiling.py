@@ -1,5 +1,3 @@
-"""Bounded decode capture over the production TP16 request loop."""
-
 from contextlib import contextmanager, nullcontext
 from dataclasses import replace
 from time import perf_counter_ns
@@ -9,7 +7,6 @@ import threading
 from .tp_runtime import CoordinatedBackend, RankExecutor
 from tilert.pd_vllm.ascend_cache import AscendRankEngine
 from tilert.pd_vllm.ascend_server import create_session
-
 
 TORCH_NPU_COMMIT = "fa0f83fe49d309dcbc31e264e9e6ed6e5dc49d2d"
 PROFILER_SOURCES = {
@@ -38,7 +35,6 @@ PROFILER_CONTRACT = {
     },
 }
 
-
 def reject_msprof_environment(environment=None):
     environment = os.environ if environment is None else environment
     active = [name for name in ("PROFILER_SAMPLECONFIG", "PROFILING_MODE")
@@ -47,9 +43,7 @@ def reject_msprof_environment(environment=None):
         raise RuntimeError("torch_npu profiler is disabled by "
                            + ", ".join(active))
 
-
 class StageMarkers:
-    """Record stage identity in the same thread that calls the backend."""
 
     def __init__(self, rank, range_factory=nullcontext):
         self.rank = rank
@@ -64,9 +58,6 @@ class StageMarkers:
             "thread_id": threading.get_ident(),
             "native_thread_id": threading.get_native_id(), **fields,
         }
-        # The clock makes this stream readable without a profiler attached,
-        # which matters because a profiler adds host work to a device the host
-        # feeds and so changes the durations it reports.
         self.events.append({**event, "event": "begin",
                             "ts_ns": perf_counter_ns()})
         try:
@@ -76,7 +67,6 @@ class StageMarkers:
             self.events.append({**event, "event": "end",
                                 "ts_ns": perf_counter_ns()})
 
-
 class _Proxy:
     def __init__(self, wrapped, state):
         self.wrapped = wrapped
@@ -85,7 +75,6 @@ class _Proxy:
     def __getattr__(self, name):
         return getattr(self.wrapped, name)
 
-
 class _TraceState:
     def __init__(self, markers):
         self.markers = markers
@@ -93,7 +82,6 @@ class _TraceState:
         self.round = 0
         self.verified = False
         self.commit = None
-
 
 class _Target(_Proxy):
     def verify(self, tokens, **kwargs):
@@ -105,7 +93,6 @@ class _Target(_Proxy):
             self.state.verified = True
         return result
 
-
 class _Draft(_Proxy):
     def forward(self, tokens, parent_hidden, **kwargs):
         if kwargs.get("external_indices") is not None:
@@ -116,11 +103,9 @@ class _Draft(_Proxy):
                                      position=self.position):
             result = self.wrapped.forward(tokens, parent_hidden, **kwargs)
         if name == "conditioned":
-            # The caller resolves acceptance and truncates both caches next.
             self.state.commit = self.state.markers.span("commit")
             self.state.commit.__enter__()
         return result
-
 
 class _Rank(_Proxy):
     def inject(self, prefix):
@@ -168,17 +153,13 @@ class _Rank(_Proxy):
         with self.state.markers.span("reset"):
             return self.wrapped.reset()
 
-
 def instrument_engine(target, draft, markers, *,
                       engine_class=AscendRankEngine):
-    """Wrap calls without replacing verification, acceptance or cache logic."""
     state = _TraceState(markers)
     engine = engine_class(_Target(target, state), _Draft(draft, state))
     return _Rank(engine, state)
 
-
 def capture_phase(profiler, markers, barrier, request_runner):
-    """Start every rank before decode and stop after its command loop exits."""
     with profiler:
         with markers.span("capture_ready"):
             barrier()
@@ -187,13 +168,11 @@ def capture_phase(profiler, markers, barrier, request_runner):
             barrier()
     return result
 
-
 def run_phase(
     engine, rank, channel, prefix_loader, request, width, max_tokens,
     markers, *, requests=1, stop_ids=(), ignore_eos=False, on_token=None,
     cancel_event=None,
 ):
-    """Run one command-stream phase, closing workers before returning."""
     if not 1 <= max_tokens <= 6 or requests < 1:
         raise ValueError("Capture requests require 1..6 output tokens")
     executor = RankExecutor(engine, rank, prefix_loader)

@@ -1,16 +1,3 @@
-"""Greedy, batch-one MTP control for verification widths 1, 2, 4 and 8.
-
-The main cache stores consumed tokens. Its pending token has already
-been emitted but has not been consumed by the main model. MTP row p
-uses target hidden[p] and the embedding of token[p+1], while retaining
-position p for RoPE and the cache. Equal main/MTP cache lengths thus
-allow the MTP cache to include the pending token's embedding.
-Chained draft hidden states must not survive as target-conditioned KV.
-
-Plans describe logical writes and truncation. The caller executes those
-writes, then resolves the round. No tensors or device APIs are imported.
-"""
-
 from dataclasses import dataclass
 
 
@@ -57,7 +44,6 @@ class RoundPlan:
 
 @dataclass(frozen=True)
 class CacheCommit:
-    """Logical lengths; discard is a half-open range, not a memory erase."""
 
     before: int
     written: int
@@ -96,18 +82,6 @@ class RoundResult:
 
 
 class MtpState:
-    """Own one request's greedy control state, independently of KV storage.
-
-    reset() counts first_token as the first output when the budget is
-    nonzero. A host drafter leaves draft_prefix_length unset. For MTP it
-    must be P-1 or P. P-1 requires
-    a seed from target hidden[P-1] and first_token at MTP position P-1;
-    P asserts that this target-conditioned seed already exists.
-
-    During verification every planned MTP row must be recomputed from
-    target hidden and target predictions, even when a chained draft row
-    contains the same token. resolve() does not inspect tensor contents.
-    """
 
     def __init__(self, width, capacity, max_new_tokens, eos_tokens=()):
         _integer(width, "width", 1)
@@ -159,7 +133,6 @@ class MtpState:
         return None
 
     def begin(self):
-        """Reserve one verification round without advancing valid lengths."""
         if self.finish_reason is not None:
             raise ValueError(f"request cannot decode: {self.finish_reason}")
         if self._active is not None:
@@ -183,13 +156,6 @@ class MtpState:
             raise ValueError("round is stale or is not active")
 
     def resolve(self, plan, candidates, target_predictions):
-        """Commit a matching prefix and its correction or bonus token.
-
-        target_predictions[i] follows candidates[i]. Each MTP verify row
-        uses that prediction with target hidden[i], not draft hidden[i].
-        EOS and the output budget can shorten the natural accepted span.
-        draft_hidden.row also selects the next MTP draft prediction.
-        """
         self._require_active(plan)
         candidates = tuple(_token(token) for token in candidates)
         predictions = tuple(_token(token) for token in target_predictions)
@@ -238,7 +204,6 @@ class MtpState:
         return result
 
     def abort(self, plan):
-        """Return truncations for a failed round; preserve request state."""
         self._require_active(plan)
         main = CacheCommit(plan.main_start, plan.main_end, plan.main_start)
         draft = None
@@ -250,7 +215,6 @@ class MtpState:
         return main, draft
 
     def statistics(self):
-        """Return logical work counts, without timing or performance claims."""
         committed = sum(item.committed for item in self.history)
         rounds = len(self.history)
         return {
