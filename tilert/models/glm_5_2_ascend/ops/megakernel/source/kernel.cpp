@@ -1,3 +1,6 @@
+#if defined(__CCE_AICORE__) && !defined(__NPU_DEVICE__)
+#define __NPU_DEVICE__ 1
+#endif
 #ifndef ASCENDC_CUBE_ONLY
 #define ASCENDC_CUBE_ONLY
 #endif

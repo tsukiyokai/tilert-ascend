@@ -447,7 +447,13 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
             const uint32_t obit = 1U << static_cast<uint32_t>(owner);
             if ((rt_unready & obit) == 0U) {
                 const int64_t elem_off = orig * kCommunicationHidden + col;
-#ifdef K11150_SIP_RELAY_RED2
+#ifdef K112808_PULL_RED2
+                __gm__ bfloat16_t* src_base = (owner == rank) ? rt_plane
+                    : reinterpret_cast<__gm__ bfloat16_t*>(aclshmem_ptr(rt_plane, owner));
+                AscendC::GlobalTensor<bfloat16_t> source;
+                source.SetGlobalBuffer(src_base + elem_off, chunk);
+                AscendC::DataCopy(rt_narrow[slot * chunk], source, chunk);
+#elif defined(K11150_SIP_RELAY_RED2)
                 __gm__ bfloat16_t* src_base = (((owner ^ rank) & 1) == 0) ? rt_plane : rt_twin_plane;
                 AscendC::GlobalTensor<bfloat16_t> source;
                 source.SetGlobalBuffer(src_base + elem_off, chunk);

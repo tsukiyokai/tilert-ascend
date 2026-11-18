@@ -727,6 +727,9 @@ struct DirectW4A8Runner16 {
         GlobalTensor<int4b_t> b_gm;
         GlobalTensor<int32_t> c_gm;
         b_gm.SetGlobalBuffer(weight, static_cast<uint64_t>(tile_columns) * kInner);
+        if (matrix_rows <= 16) {
+            b_gm.SetL2CacheHint(CacheMode::CACHE_MODE_DISABLE);
+        }
         c_gm.SetGlobalBuffer(product, static_cast<uint64_t>(matrix_rows) * org_columns);
 
 #ifdef K11220_MULTI_M32
