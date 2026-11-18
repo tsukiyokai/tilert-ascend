@@ -84,10 +84,16 @@ __aicore__ __attribute__((noinline)) void Forward(AscendC::TPipe& pipe, const Co
     if (q_len < 0) {
         AscendC::GlobalTensor<int32_t> query_lengths;
         query_lengths.SetGlobalBuffer((__gm__ int32_t*)a.main_metadata[3], 1);
+        AscendC::DataCacheCleanAndInvalid<int32_t,
+            AscendC::CacheLine::SINGLE_CACHE_LINE,
+            AscendC::DcciDst::CACHELINE_OUT>(query_lengths);
         q_len = query_lengths.GetValue(0);
     }
+    if (q_len <= 0) {
+        return;
+    }
     const uint32_t sfa_rows =
-        (q_len > 0 && q_len <= static_cast<int32_t>(c.attention.rows))
+        (q_len <= static_cast<int32_t>(c.attention.rows))
             ? static_cast<uint32_t>(q_len)
             : c.attention.rows;
     whole_layer_attention::Config c_attn = c.attention;

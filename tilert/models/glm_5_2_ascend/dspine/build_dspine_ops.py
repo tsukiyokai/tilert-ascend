@@ -49,6 +49,42 @@ __aicore__ inline void Publish()
     DataSyncBarrier<MemDsbT::DDR>();
 }
 
+__aicore__ inline void DcciRange(uint64_t addr, int32_t bytes)
+{
+    if (addr == 0ULL || bytes <= 0) {
+        return;
+    }
+    const uint64_t start = addr & ~63ULL;
+    const uint64_t end = (addr + static_cast<uint64_t>(bytes) + 63ULL) & ~63ULL;
+    for (uint64_t p = start; p < end; p += 64ULL) {
+        GlobalTensor<int64_t> g;
+        g.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(p), 8);
+        DataCacheCleanAndInvalid<
+            int64_t, CacheLine::SINGLE_CACHE_LINE, DcciDst::CACHELINE_OUT>(g);
+    }
+}
+
+struct RoundState {
+    int32_t q_len;
+    int32_t done;
+    int32_t eos_hit;
+    int32_t round_idx;
+    int32_t main_pos;
+    int32_t draft_pos;
+    int32_t horizon_level;
+    int32_t max_pos;
+    int32_t last_w_act;
+    int32_t drain_q_len;
+    int32_t hi_streak;
+    int32_t lo_streak;
+    int32_t eos_token_id;
+    int32_t pad0;
+    int64_t prev_accepted_total;
+    uint64_t ema_acc;
+    int64_t pending_token;
+    int64_t pad1[6];
+};
+
 __aicore__ inline void RunPrologPack(
     TPipe& pipe, uint64_t ctrl_gm, uint64_t target_toks_gm, uint64_t emb_w_gm,
     uint64_t rot_part_gm, uint64_t comm_in_gm,
@@ -69,13 +105,18 @@ __aicore__ inline void RunPrologPack(
         g_ttoks.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(target_toks_gm), 32);
         g_emb.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(emb_w_gm));
         g_rot.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(rot_part_gm), m_max * 768);
-        g_out.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(comm_in_gm), 2 * m_max * 6144);
+        g_out.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(comm_in_gm), 4 * m_max * 6144);
 
+        DcciRange(ctrl_gm, 48 * 8);
         DataCopy(ub_ctrl, g_ctrl, 48);
-        DataCopy(ub_ttoks, g_ttoks, 32);
         Fence<HardEvent::MTE2_S>();
 
         const int32_t count = static_cast<int32_t>(ub_ctrl.GetValue(2));
+        if (count <= 0) {
+            return;
+        }
+        DataCopy(ub_ttoks, g_ttoks, 32);
+        Fence<HardEvent::MTE2_S>();
         const int32_t aiv = GetBlockIdx();
 
         for (int32_t task = aiv; task < m_max * 12; task += 48) {
@@ -98,7 +139,7 @@ __aicore__ inline void RunPrologPack(
         for (int32_t task = aiv; task < m_max * 8; task += 48) {
             const int32_t r_idx = task / 8;
             const int32_t s_rk = task % 8;
-            const int64_t dst_off = static_cast<int64_t>(m_max + r_idx) * 6144
+            const int64_t dst_off = static_cast<int64_t>(2 * m_max + r_idx) * 6144
                 + static_cast<int64_t>(s_rk) * 768;
             if (r_idx < count && s_rk == rank) {
                 DataCopy(ub_bf16, g_rot[r_idx * 768], 768);
@@ -239,6 +280,7 @@ __aicore__ inline void RunPrepCommitSeedV3(
         auto ub_i64 = b_i64.Get<int64_t>();
         auto ub_i32 = b_i32.Get<int32_t>();
 
+        DcciRange(ctrl_gm, 48 * sizeof(int64_t));
         GlobalTensor<int64_t> g_ctrl;
         g_ctrl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(ctrl_gm), 48);
         DataCopy(ub_ctrl, g_ctrl, 48);
@@ -246,8 +288,8 @@ __aicore__ inline void RunPrepCommitSeedV3(
 
         const int64_t main_start = ub_ctrl.GetValue(0);
         int32_t count = static_cast<int32_t>(ub_ctrl.GetValue(1));
-        if (count < 1) {
-            count = 1;
+        if (count <= 0) {
+            return;
         }
         if (count > kv_m_cap + 1) {
             count = kv_m_cap + 1;
@@ -269,11 +311,10 @@ __aicore__ inline void RunPrepCommitSeedV3(
         g_s_sin.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(seed_sin_gm), 64);
         g_s_cos.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(seed_cos_gm), 64);
 
-        for (int32_t task = aiv; task < kv_m_cap * 12; task += 48) {
+        for (int32_t task = aiv; task < kv_rows * 12; task += 48) {
             const int32_t r = task / 12;
             const int64_t col = static_cast<int64_t>(task % 12) * 512;
-            const int32_t src_r = (r < kv_rows) ? r : 0;
-            DataCopy(ub_bf16, g_hs_all[src_r * 6144 + col], 512);
+            DataCopy(ub_bf16, g_hs_all[r * 6144 + col], 512);
             Fence<HardEvent::MTE2_MTE3>();
             DataCopy(g_kv_hs[r * 6144 + col], ub_bf16, 512);
             Fence<HardEvent::MTE3_MTE2>();
@@ -287,9 +328,9 @@ __aicore__ inline void RunPrepCommitSeedV3(
             Fence<HardEvent::MTE3_MTE2>();
         }
 
-        if (aiv >= 24 && aiv < 24 + kv_m_cap) {
+        if (aiv >= 24 && aiv < 24 + kv_rows) {
             const int32_t r = aiv - 24;
-            const int64_t p = (r < kv_rows) ? (main_start + r) : main_start;
+            const int64_t p = main_start + r;
             DataCopy(ub_bf16[0], g_sin_c[p * 64], 64);
             DataCopy(ub_bf16[64], g_cos_c[p * 64], 64);
             Fence<HardEvent::MTE2_MTE3>();
@@ -332,6 +373,13 @@ __aicore__ inline void RunPrepCommitSeedV3(
             DataCopyPad(g_kv_kvl, ub_i32[8], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
             DataCopyPad(g_s_ql, ub_i32[16], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
             DataCopyPad(g_s_kvl, ub_i32[24], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
+            Fence<HardEvent::MTE3_S>();
+            DcciRange(kv_slot_gm, kv_m_cap * sizeof(int64_t));
+            DcciRange(seed_slot_gm, sizeof(int64_t));
+            DcciRange(kv_qlen_gm, sizeof(int32_t));
+            DcciRange(kv_kvlen_gm, sizeof(int32_t));
+            DcciRange(seed_qlen_gm, sizeof(int32_t));
+            DcciRange(seed_kvlen_gm, sizeof(int32_t));
         }
         Publish();
     }
@@ -377,6 +425,45 @@ __aicore__ inline void RunBeamStepV3(
     uint64_t work_gm)
 {
     if ASCEND_IS_AIV {
+        if (draft_ctrl_gm != 0ULL) {
+            DcciRange(draft_ctrl_gm, 8 * sizeof(int64_t));
+            GlobalTensor<int64_t> g_dc;
+            g_dc.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(draft_ctrl_gm), 8);
+            if (g_dc.GetValue(2) <= 0) {
+                return;
+            }
+            const uint64_t packed = static_cast<uint64_t>(g_dc.GetValue(7));
+            if (packed != 0ULL) {
+                const int32_t b0 = static_cast<int32_t>(packed & 0xFULL);
+                if (step == -1) {
+                    b_next = b0;
+                } else if (step > 0) {
+                    const int32_t b_cur_d = (step <= 14)
+                        ? static_cast<int32_t>((packed >> (4 * (step - 1))) & 0xFULL) : 0;
+                    if (b_cur_d <= 0) {
+                        return;
+                    }
+                    const int32_t b_nxt_d = (step < 14)
+                        ? static_cast<int32_t>((packed >> (4 * step)) & 0xFULL) : 0;
+                    const int32_t k_exp_d = (b_nxt_d > b_cur_d) ? b_nxt_d : b_cur_d;
+                    int32_t p_off_d = 1 + b0;
+                    int32_t s_cur_d = b0;
+                    for (int32_t t = 0; t < step - 1; ++t) {
+                        const int32_t bt = static_cast<int32_t>((packed >> (4 * t)) & 0xFULL);
+                        const int32_t bn =
+                            static_cast<int32_t>((packed >> (4 * (t + 1))) & 0xFULL);
+                        const int32_t ke = (bn > bt) ? bn : bt;
+                        p_off_d += bt * ke;
+                        s_cur_d += bn;
+                    }
+                    b_cur = b_cur_d;
+                    b_next = b_nxt_d;
+                    k_expand = k_exp_d;
+                    pool_off = p_off_d;
+                    next_slot_cur = s_cur_d;
+                }
+            }
+        }
         const int32_t aiv = GetBlockIdx();
         TBuf<TPosition::VECCALC> b_gat, b_mr, b_sr, b_sum, b_wk, b_i64, b_f32, b_anc, b_bf16;
         pipe.InitBuffer(b_gat, 512 * 4);
@@ -482,7 +569,7 @@ __aicore__ inline void RunBeamStepV3(
             GlobalTensor<int32_t> g_pre, g_idx;
             g_pre.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(prefix_topk_gm), 2048);
             g_idx.SetGlobalBuffer(
-                reinterpret_cast<__gm__ int32_t*>(indices_buf_gm), b_next * k_sfa);
+                reinterpret_cast<__gm__ int32_t*>(indices_buf_gm), b_next * 2048);
             auto ub_idx = ub_bf16.ReinterpretCast<int32_t>();
             const int32_t chunks_per_row = k_sfa / 64;
             const int32_t total_chunks = b_next * chunks_per_row;
@@ -498,7 +585,7 @@ __aicore__ inline void RunBeamStepV3(
                 } else {
                     Fence<HardEvent::MTE2_MTE3>();
                 }
-                DataCopy(g_idx[r * k_sfa + pre_off], ub_idx, 64);
+                DataCopy(g_idx[r * 2048 + pre_off], ub_idx, 64);
                 Fence<HardEvent::MTE3_MTE2>();
             }
 
@@ -780,7 +867,7 @@ __aicore__ inline void RunBeamStepV3(
             GlobalTensor<int32_t> g_pre, g_idx;
             g_pre.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(prefix_topk_gm), 2048);
             g_idx.SetGlobalBuffer(
-                reinterpret_cast<__gm__ int32_t*>(indices_buf_gm), b_next * k_sfa);
+                reinterpret_cast<__gm__ int32_t*>(indices_buf_gm), b_next * 2048);
             auto ub_idx = ub_bf16.ReinterpretCast<int32_t>();
             const int32_t chunks_per_row = k_sfa / 64;
             const int32_t total_chunks = b_next * chunks_per_row;
@@ -800,7 +887,7 @@ __aicore__ inline void RunBeamStepV3(
                 } else {
                     Fence<HardEvent::MTE2_MTE3>();
                 }
-                DataCopy(g_idx[r * k_sfa + pre_off], ub_idx, 64);
+                DataCopy(g_idx[r * 2048 + pre_off], ub_idx, 64);
                 Fence<HardEvent::MTE3_MTE2>();
             }
             Publish();
@@ -841,6 +928,14 @@ __aicore__ inline void RunBuildTreeV3(
     uint64_t work_gm)
 {
     if ASCEND_IS_AIV {
+        if (draft_ctrl_gm != 0ULL) {
+            DcciRange(draft_ctrl_gm, 8 * sizeof(int64_t));
+            GlobalTensor<int64_t> g_dc;
+            g_dc.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(draft_ctrl_gm), 8);
+            if (g_dc.GetValue(2) <= 0) {
+                return;
+            }
+        }
         const int32_t aiv = GetBlockIdx();
         TBuf<TPosition::VECCALC> b_pos, b_rdsts, b_cos, b_sin;
         pipe.InitBuffer(b_pos, 32 * 8);
@@ -911,8 +1006,32 @@ __aicore__ inline void RunBuildTreeV3(
 
             const int64_t pending_tok = ub_ctrl.GetValue(0);
             const int64_t base_pos = ub_ctrl.GetValue(1);
+            int32_t eff_pool_size = pool_size;
+            const uint64_t packed_sched = static_cast<uint64_t>(ub_ctrl.GetValue(7));
+            if (packed_sched != 0ULL) {
+                int32_t p_idx = 0;
+                const int32_t b0 = static_cast<int32_t>(packed_sched & 0xFULL);
+                ub_pdp.SetValue(p_idx++, 0);
+                for (int32_t k = 0; k < b0; ++k) {
+                    ub_pdp.SetValue(p_idx++, 1);
+                }
+                for (int32_t t = 0; t < 14; ++t) {
+                    const int32_t bt = static_cast<int32_t>((packed_sched >> (4 * t)) & 0xFULL);
+                    if (bt <= 0) {
+                        break;
+                    }
+                    const int32_t bn = (t + 1 < 14)
+                        ? static_cast<int32_t>((packed_sched >> (4 * (t + 1))) & 0xFULL) : 0;
+                    const int32_t ke = (bn > bt) ? bn : bt;
+                    const int32_t cnt = bt * ke;
+                    for (int32_t k = 0; k < cnt; ++k) {
+                        ub_pdp.SetValue(p_idx++, t + 2);
+                    }
+                }
+                eff_pool_size = p_idx;
+            }
 
-            for (int32_t i = pool_size - 1; i >= 1; --i) {
+            for (int32_t i = eff_pool_size - 1; i >= 1; --i) {
                 const int32_t p = static_cast<int32_t>(ub_ppr.GetValue(i));
                 const float child_need = ub_psc.GetValue(i) + 2.0e-4F;
                 if (p > 0 && child_need > ub_psc.GetValue(p)) {
@@ -924,7 +1043,7 @@ __aicore__ inline void RunBuildTreeV3(
                 ub_best_sc.SetValue(j, -1.0e30F);
                 ub_best_pid.SetValue(j, 0);
             }
-            for (int32_t i = 0; i < pool_size; ++i) {
+            for (int32_t i = 0; i < eff_pool_size; ++i) {
                 const float adj = (i == 0)
                     ? 1.0e6F : (ub_psc.GetValue(i) - 1.0e-5F * static_cast<float>(i));
                 if (adj > ub_best_sc.GetValue(width - 1)) {
@@ -989,7 +1108,7 @@ __aicore__ inline void RunBuildTreeV3(
                 ub_best_pid.SetValue(j + 1, key);
             }
 
-            for (int32_t i = 0; i < pool_size; ++i) {
+            for (int32_t i = 0; i < eff_pool_size; ++i) {
                 ub_pid2node.SetValue(i, 0);
             }
             for (int32_t j = 0; j < w_act; ++j) {
@@ -1556,6 +1675,1155 @@ __aicore__ inline void RunLogitsTopkLseImpl(
     }
 }
 
+__aicore__ inline uint64_t F64FromU32(uint32_t v)
+{
+    if (v == 0U) {
+        return 0ULL;
+    }
+    int32_t msb = 0;
+    while ((v >> msb) > 1U) {
+        ++msb;
+    }
+    const uint64_t exp = 1023ULL + static_cast<uint64_t>(msb);
+    const uint64_t mant = (static_cast<uint64_t>(v) << (52 - msb)) & 0xFFFFFFFFFFFFFULL;
+    return (exp << 52) | mant;
+}
+
+__aicore__ inline uint64_t F64Mul(uint64_t a, uint64_t b)
+{
+    if (a == 0ULL || b == 0ULL) {
+        return 0ULL;
+    }
+    const int32_t ea = static_cast<int32_t>((a >> 52) & 0x7FFULL);
+    const int32_t eb = static_cast<int32_t>((b >> 52) & 0x7FFULL);
+    const uint64_t ma = (1ULL << 52) | (a & 0xFFFFFFFFFFFFFULL);
+    const uint64_t mb = (1ULL << 52) | (b & 0xFFFFFFFFFFFFFULL);
+    const uint64_t ma_l = ma & 0xFFFFFFFFULL;
+    const uint64_t ma_h = ma >> 32;
+    const uint64_t mb_l = mb & 0xFFFFFFFFULL;
+    const uint64_t mb_h = mb >> 32;
+    const uint64_t p00 = ma_l * mb_l;
+    const uint64_t p01 = ma_l * mb_h;
+    const uint64_t p10 = ma_h * mb_l;
+    const uint64_t p11 = ma_h * mb_h;
+    const uint64_t mid = p01 + (p00 >> 32);
+    const uint64_t mid2 = (mid & 0xFFFFFFFFULL) + p10;
+    const uint64_t lo64 = (p00 & 0xFFFFFFFFULL) | (mid2 << 32);
+    const uint64_t hi64 = p11 + (mid >> 32) + (mid2 >> 32);
+    int32_t er = ea + eb - 1023;
+    uint64_t sig = 0;
+    uint64_t guard = 0;
+    bool sticky = false;
+    if ((hi64 >> 41) != 0ULL) {
+        er += 1;
+        sig = (hi64 << 11) | (lo64 >> 53);
+        guard = (lo64 >> 52) & 1ULL;
+        sticky = (lo64 & ((1ULL << 52) - 1ULL)) != 0ULL;
+    } else {
+        sig = (hi64 << 12) | (lo64 >> 52);
+        guard = (lo64 >> 51) & 1ULL;
+        sticky = (lo64 & ((1ULL << 51) - 1ULL)) != 0ULL;
+    }
+    if (guard != 0ULL && (sticky || ((sig & 1ULL) != 0ULL))) {
+        sig += 1ULL;
+        if (sig >= (1ULL << 53)) {
+            sig >>= 1;
+            er += 1;
+        }
+    }
+    return (static_cast<uint64_t>(er) << 52) | (sig & 0xFFFFFFFFFFFFFULL);
+}
+
+__aicore__ inline uint64_t F64Add(uint64_t a, uint64_t b)
+{
+    if (a == 0ULL) {
+        return b;
+    }
+    if (b == 0ULL) {
+        return a;
+    }
+    if (a < b) {
+        const uint64_t t = a;
+        a = b;
+        b = t;
+    }
+    const int32_t ea = static_cast<int32_t>((a >> 52) & 0x7FFULL);
+    const int32_t eb = static_cast<int32_t>((b >> 52) & 0x7FFULL);
+    const int32_t diff = ea - eb;
+    if (diff > 56) {
+        return a;
+    }
+    const uint64_t ma = ((1ULL << 52) | (a & 0xFFFFFFFFFFFFFULL)) << 3;
+    const uint64_t mb_raw = ((1ULL << 52) | (b & 0xFFFFFFFFFFFFFULL)) << 3;
+    uint64_t sticky = 0ULL;
+    if (diff > 0) {
+        sticky = ((mb_raw & ((1ULL << diff) - 1ULL)) != 0ULL) ? 1ULL : 0ULL;
+    }
+    const uint64_t mb = (mb_raw >> diff) | sticky;
+    uint64_t sum = ma + mb;
+    int32_t er = ea;
+    if (sum >= (1ULL << 56)) {
+        const uint64_t s2 = sum & 1ULL;
+        sum = (sum >> 1) | s2;
+        er += 1;
+    }
+    uint64_t sig = sum >> 3;
+    const uint64_t grs = sum & 7ULL;
+    if (grs > 4ULL || (grs == 4ULL && ((sig & 1ULL) != 0ULL))) {
+        sig += 1ULL;
+        if (sig >= (1ULL << 53)) {
+            sig >>= 1;
+            er += 1;
+        }
+    }
+    return (static_cast<uint64_t>(er) << 52) | (sig & 0xFFFFFFFFFFFFFULL);
+}
+
+__aicore__ inline void RunPrologPrepareMeta(
+    uint64_t state_gm,
+    uint64_t draft_ctrl_gm,
+    uint64_t compact_ctrl_gm,
+    uint64_t commit_ctrl_gm,
+    uint64_t dyn_w_gm,
+    uint64_t mc2_mask_gm,
+    uint64_t step_qlen_gm,
+    uint64_t step_qlen_ptrs_gm,
+    uint64_t step_table_gm,
+    uint64_t receipt_ring_gm,
+    uint64_t commit_qlen_ptrs_gm,
+    int32_t width,
+    int32_t max_steps)
+{
+    if ASCEND_IS_AIV {
+        if (GetBlockIdx() == 0) {
+    DcciRange(state_gm, static_cast<int32_t>(sizeof(RoundState)));
+    auto* st = reinterpret_cast<__gm__ RoundState*>(state_gm);
+    const int32_t done = st->done;
+    const int32_t r_idx = st->round_idx;
+    const int32_t main_pos = st->main_pos;
+    const int32_t h_lvl = st->horizon_level;
+    const int32_t last_w_act = st->last_w_act;
+    const int32_t eos_hit = st->eos_hit;
+    const int64_t pending = st->pending_token;
+
+    auto* d_ctrl = reinterpret_cast<__gm__ int64_t*>(draft_ctrl_gm);
+    auto* cmp_ctrl = reinterpret_cast<__gm__ int64_t*>(compact_ctrl_gm);
+    auto* cmt_ctrl = reinterpret_cast<__gm__ int64_t*>(commit_ctrl_gm);
+    auto* dw = reinterpret_cast<__gm__ int32_t*>(dyn_w_gm);
+    auto* mask = reinterpret_cast<__gm__ uint8_t*>(mc2_mask_gm);
+    auto* s_ql = reinterpret_cast<__gm__ int32_t*>(step_qlen_gm);
+    auto* s_ptrs = reinterpret_cast<__gm__ uint64_t*>(step_qlen_ptrs_gm);
+    auto* s_tbl = reinterpret_cast<__gm__ int64_t*>(step_table_gm);
+    auto* c_ptrs = reinterpret_cast<__gm__ uint64_t*>(commit_qlen_ptrs_gm);
+
+    if (done != 0) {
+        st->q_len = 0;
+        st->drain_q_len = 0;
+        if (draft_ctrl_gm != 0ULL) {
+            d_ctrl[2] = 0;
+        }
+        if (dyn_w_gm != 0ULL) {
+            for (int32_t i = 0; i < 16; ++i) {
+                dw[i] = 0;
+            }
+        }
+        if (mc2_mask_gm != 0ULL) {
+            for (int32_t i = 0; i < width; ++i) {
+                mask[i] = 0;
+            }
+        }
+        if (compact_ctrl_gm != 0ULL) {
+            cmp_ctrl[1] = 0;
+        }
+        if (commit_ctrl_gm != 0ULL) {
+            cmt_ctrl[1] = 0;
+            cmt_ctrl[2] = 0;
+            cmt_ctrl[47] = 0;
+        }
+        if (step_qlen_ptrs_gm != 0ULL) {
+            DcciRange(step_qlen_ptrs_gm, max_steps * 8);
+        }
+        for (int32_t s = 0; s < max_steps; ++s) {
+            if (step_qlen_gm != 0ULL) {
+                s_ql[s] = 0;
+            }
+            if (step_qlen_ptrs_gm != 0ULL && s_ptrs[s] != 0ULL) {
+                *reinterpret_cast<__gm__ int32_t*>(s_ptrs[s]) = 0;
+                PipeBarrier<PIPE_ALL>();
+                DcciRange(s_ptrs[s], 64);
+            }
+        }
+        if (commit_qlen_ptrs_gm != 0ULL) {
+            DcciRange(commit_qlen_ptrs_gm, 16);
+            for (int32_t i = 0; i < 2; ++i) {
+                if (c_ptrs[i] != 0ULL) {
+                    *reinterpret_cast<__gm__ int32_t*>(c_ptrs[i]) = 0;
+                    PipeBarrier<PIPE_ALL>();
+                    DcciRange(c_ptrs[i], 64);
+                }
+            }
+        }
+        if (receipt_ring_gm != 0ULL) {
+            const int32_t slot_off = (r_idx & 3) * 16;
+            auto* rec = reinterpret_cast<__gm__ int32_t*>(receipt_ring_gm) + slot_off;
+            rec[0] = r_idx + 1;
+            rec[1] = 0;
+            rec[2] = main_pos;
+            rec[3] = last_w_act;
+            rec[4] = h_lvl;
+            rec[5] = 0;
+            rec[6] = 1;
+            rec[7] = 0;
+            rec[8] = eos_hit;
+            rec[9] = st->draft_pos;
+            rec[10] = 0;
+            for (int32_t j = 11; j < 16; ++j) {
+                rec[j] = 0;
+            }
+        }
+    } else {
+        st->q_len = width;
+        st->drain_q_len = width;
+        if (draft_ctrl_gm != 0ULL) {
+            d_ctrl[0] = pending;
+            d_ctrl[1] = static_cast<int64_t>(main_pos);
+            d_ctrl[2] = static_cast<int64_t>(width);
+            d_ctrl[3] = static_cast<int64_t>(h_lvl);
+        }
+        int32_t num_steps = max_steps;
+        const int32_t stride = max_steps + 2;
+        if (step_table_gm != 0ULL) {
+            DcciRange(step_table_gm, 16 * stride * 8);
+            const int64_t* row_tbl = nullptr;
+            (void)row_tbl;
+            const int32_t tbl_off = h_lvl * stride;
+            num_steps = static_cast<int32_t>(s_tbl[tbl_off + 0]);
+            if (draft_ctrl_gm != 0ULL) {
+                d_ctrl[7] = s_tbl[tbl_off + 1];
+            }
+            if (step_qlen_ptrs_gm != 0ULL) {
+                DcciRange(step_qlen_ptrs_gm, max_steps * 8);
+            }
+            for (int32_t s = 0; s < max_steps; ++s) {
+                const int32_t val = (s < num_steps)
+                    ? static_cast<int32_t>(s_tbl[tbl_off + 2 + s]) : 0;
+                if (step_qlen_gm != 0ULL) {
+                    s_ql[s] = val;
+                }
+                if (step_qlen_ptrs_gm != 0ULL && s_ptrs[s] != 0ULL) {
+                    *reinterpret_cast<__gm__ int32_t*>(s_ptrs[s]) = val;
+                    PipeBarrier<PIPE_ALL>();
+                    DcciRange(s_ptrs[s], 64);
+                }
+            }
+        }
+    }
+
+    PipeBarrier<PIPE_ALL>();
+    DcciRange(state_gm, static_cast<int32_t>(sizeof(RoundState)));
+    if (draft_ctrl_gm != 0ULL) {
+        DcciRange(draft_ctrl_gm, 64);
+    }
+    if (compact_ctrl_gm != 0ULL) {
+        DcciRange(compact_ctrl_gm, 64);
+    }
+    if (commit_ctrl_gm != 0ULL) {
+        DcciRange(commit_ctrl_gm, 64);
+    }
+    if (dyn_w_gm != 0ULL) {
+        DcciRange(dyn_w_gm, 64);
+    }
+    if (mc2_mask_gm != 0ULL) {
+        DcciRange(mc2_mask_gm, width);
+    }
+    if (step_qlen_gm != 0ULL && max_steps > 0) {
+        DcciRange(step_qlen_gm, max_steps * 4);
+    }
+    if (receipt_ring_gm != 0ULL) {
+        DcciRange(receipt_ring_gm, 256);
+    }
+    Publish();
+        }
+    }
+}
+
+__aicore__ inline void RunResolveAndAdvance(
+    uint64_t state_gm,
+    uint64_t dyn_w_gm,
+    uint64_t tree_tokens_gm,
+    uint64_t tree_parents_gm,
+    uint64_t target_tokens_gm,
+    uint64_t compact_ctrl_gm,
+    uint64_t commit_ctrl_gm,
+    uint64_t receipt_ring_gm,
+    uint64_t receipt_toks_gm,
+    int32_t width,
+    int32_t commit_m,
+    int32_t max_pos,
+    int32_t eos_token_id,
+    uint64_t alpha_bits,
+    uint64_t oma_bits,
+    uint64_t mid_thresh_bits,
+    uint64_t up_thresh_bits,
+    uint64_t down_thresh_bits,
+    int32_t streak_acc,
+    int32_t drop_acc,
+    int32_t jump_acc,
+    int32_t num_levels)
+{
+    if ASCEND_IS_AIV {
+        if (GetBlockIdx() == 0) {
+    DcciRange(state_gm, static_cast<int32_t>(sizeof(RoundState)));
+    DcciRange(dyn_w_gm, 64);
+    DcciRange(tree_tokens_gm, width * 8);
+    DcciRange(tree_parents_gm, width * 8);
+    DcciRange(target_tokens_gm, width * 8);
+
+    auto* st = reinterpret_cast<__gm__ RoundState*>(state_gm);
+    if (st->q_len > 0) {
+
+    const auto* dw = reinterpret_cast<__gm__ const int32_t*>(dyn_w_gm);
+    const auto* t_toks = reinterpret_cast<__gm__ const int64_t*>(tree_tokens_gm);
+    const auto* t_pars = reinterpret_cast<__gm__ const int64_t*>(tree_parents_gm);
+    const auto* preds = reinterpret_cast<__gm__ const int64_t*>(target_tokens_gm);
+
+    int32_t w_act = dw[0];
+    if (w_act < 1) {
+        w_act = 1;
+    }
+    if (w_act > width) {
+        w_act = width;
+    }
+    if (w_act > 32) {
+        w_act = 32;
+    }
+
+    bool reachable[32];
+    int32_t depth[32];
+    int32_t came_from[32];
+    for (int32_t i = 0; i < 32; ++i) {
+        reachable[i] = false;
+        depth[i] = 0;
+        came_from[i] = -1;
+    }
+    reachable[0] = true;
+    int32_t best_node = 0;
+    int32_t best_depth = 0;
+    for (int32_t node = 1; node < w_act; ++node) {
+        const int64_t par64 = t_pars[node];
+        if (par64 >= 0 && par64 < static_cast<int64_t>(node)) {
+            const int32_t par = static_cast<int32_t>(par64);
+            if (reachable[par] && preds[par] == t_toks[node]) {
+                reachable[node] = true;
+                came_from[node] = par;
+                depth[node] = depth[par] + 1;
+                if (depth[node] > best_depth) {
+                    best_depth = depth[node];
+                    best_node = node;
+                }
+            }
+        }
+    }
+
+    int32_t acc_rows[32];
+    const int32_t path_len = best_depth + 1;
+    int32_t cur = best_node;
+    for (int32_t i = path_len - 1; i >= 0; --i) {
+        acc_rows[i] = cur;
+        cur = came_from[cur];
+    }
+
+    int64_t emitted[32];
+    for (int32_t i = 0; i < path_len; ++i) {
+        emitted[i] = preds[acc_rows[i]];
+    }
+
+    const int32_t main_start = st->main_pos;
+    const int32_t eff_max_pos = (max_pos > 0) ? max_pos : st->max_pos;
+    const int32_t rem = eff_max_pos - main_start;
+    int32_t acc = (rem <= 0) ? 0 : ((path_len < rem) ? path_len : rem);
+    int32_t eos_hit = 0;
+    const int32_t eff_eos = (eos_token_id >= 0) ? eos_token_id : st->eos_token_id;
+    if (eff_eos >= 0) {
+        for (int32_t i = 0; i < acc; ++i) {
+            if (emitted[i] == static_cast<int64_t>(eff_eos)) {
+                acc = i + 1;
+                eos_hit = 1;
+                break;
+            }
+        }
+    }
+    const int32_t done = (eos_hit != 0 || (main_start + acc) >= eff_max_pos) ? 1 : 0;
+
+    bool compact_needed = false;
+    for (int32_t i = 0; i < acc; ++i) {
+        if (acc_rows[i] != i) {
+            compact_needed = true;
+            break;
+        }
+    }
+
+    if (compact_ctrl_gm != 0ULL) {
+        auto* cmp = reinterpret_cast<__gm__ int64_t*>(compact_ctrl_gm);
+        if (compact_needed && acc > 0) {
+            cmp[0] = static_cast<int64_t>(main_start);
+            cmp[1] = static_cast<int64_t>(acc);
+            for (int32_t i = 0; i < acc; ++i) {
+                cmp[2 + i] = static_cast<int64_t>(main_start + acc_rows[i]);
+            }
+        } else {
+            cmp[1] = 0;
+        }
+    }
+
+    if (commit_ctrl_gm != 0ULL) {
+        auto* cmt = reinterpret_cast<__gm__ int64_t*>(commit_ctrl_gm);
+        if (acc > 0) {
+            cmt[0] = static_cast<int64_t>(main_start);
+            cmt[1] = static_cast<int64_t>(acc);
+            cmt[2] = static_cast<int64_t>(acc);
+            cmt[47] = static_cast<int64_t>(commit_m + acc);
+            const int32_t last_row = acc_rows[acc - 1];
+            for (int32_t j = 0; j < commit_m; ++j) {
+                cmt[3 + j] = static_cast<int64_t>((j < acc) ? acc_rows[j] : last_row);
+            }
+        } else {
+            cmt[1] = 0;
+            cmt[2] = 0;
+            cmt[47] = 0;
+        }
+    }
+
+    const uint64_t acc_f64 = F64FromU32(static_cast<uint32_t>(acc));
+    uint64_t ema = F64Add(F64Mul(oma_bits, st->ema_acc), F64Mul(alpha_bits, acc_f64));
+    int32_t hi = st->hi_streak;
+    int32_t lo = st->lo_streak;
+    int32_t lvl = st->horizon_level;
+    if (acc >= streak_acc) {
+        hi += 1;
+        lo = 0;
+    } else if (acc <= drop_acc) {
+        lo += 1;
+        hi = 0;
+    } else {
+        hi = 0;
+        lo = 0;
+    }
+    const int32_t top = num_levels - 1;
+    if (acc <= 2 || lo >= 2) {
+        lvl = 0;
+        if (down_thresh_bits < ema) {
+            ema = down_thresh_bits;
+        }
+    } else if (acc >= jump_acc || hi >= 2) {
+        lvl = top;
+        if (up_thresh_bits > ema) {
+            ema = up_thresh_bits;
+        }
+    } else if (num_levels >= 3) {
+        if (ema >= up_thresh_bits) {
+            lvl = 2;
+        } else if (ema >= mid_thresh_bits) {
+            lvl = 1;
+        } else if (ema < down_thresh_bits) {
+            lvl = 0;
+        }
+    } else {
+        if (ema >= up_thresh_bits) {
+            lvl = 1;
+        } else if (ema < down_thresh_bits) {
+            lvl = 0;
+        }
+    }
+
+    const int32_t r_cur = st->round_idx;
+    const int32_t new_pos = main_start + acc;
+    st->main_pos = new_pos;
+    st->draft_pos = new_pos;
+    if (acc > 0) {
+        st->pending_token = emitted[acc - 1];
+    }
+    st->ema_acc = ema;
+    st->hi_streak = hi;
+    st->lo_streak = lo;
+    st->horizon_level = lvl;
+    st->eos_hit = eos_hit;
+    st->done = done;
+    st->last_w_act = w_act;
+    st->drain_q_len = (done != 0) ? 0 : width;
+    st->prev_accepted_total += static_cast<int64_t>(acc);
+    st->round_idx = r_cur + 1;
+
+    if (receipt_ring_gm != 0ULL) {
+        const int32_t slot_off = (r_cur & 3) * 16;
+        auto* rec = reinterpret_cast<__gm__ int32_t*>(receipt_ring_gm) + slot_off;
+        rec[0] = r_cur + 1;
+        rec[1] = acc;
+        rec[2] = new_pos;
+        rec[3] = w_act;
+        rec[4] = lvl;
+        rec[5] = (acc > 0) ? (acc - 1) : 0;
+        rec[6] = done;
+        rec[7] = width;
+        rec[8] = eos_hit;
+        rec[9] = new_pos;
+        rec[10] = compact_needed ? 1 : 0;
+        for (int32_t j = 11; j < 16; ++j) {
+            rec[j] = 0;
+        }
+    }
+    if (receipt_toks_gm != 0ULL) {
+        const int32_t tok_off = (r_cur & 3) * width;
+        auto* rtok = reinterpret_cast<__gm__ int64_t*>(receipt_toks_gm) + tok_off;
+        for (int32_t i = 0; i < width; ++i) {
+            rtok[i] = (i < acc) ? emitted[i] : 0LL;
+        }
+    }
+
+    PipeBarrier<PIPE_ALL>();
+    DcciRange(state_gm, static_cast<int32_t>(sizeof(RoundState)));
+    if (compact_ctrl_gm != 0ULL) {
+        DcciRange(compact_ctrl_gm, 64 + width * 8);
+    }
+    if (commit_ctrl_gm != 0ULL) {
+        DcciRange(commit_ctrl_gm, 48 * 8);
+    }
+    if (receipt_ring_gm != 0ULL) {
+        DcciRange(receipt_ring_gm, 256);
+    }
+    if (receipt_toks_gm != 0ULL) {
+        DcciRange(receipt_toks_gm, 4 * width * 8);
+    }
+    Publish();
+    }
+        }
+    }
+}
+
+__aicore__ inline void RunEmbedLookup(
+    TPipe& pipe,
+    uint64_t t_ids_gm,
+    uint64_t q_len_gm,
+    uint64_t emb_w_gm,
+    uint64_t partial_out_gm,
+    int32_t width,
+    int32_t hidden_dim,
+    int32_t vocab_start,
+    int32_t vocab_end)
+{
+    if ASCEND_IS_AIV {
+    int32_t active = width;
+    if (q_len_gm != 0ULL) {
+        DcciRange(q_len_gm, 64);
+        active = *reinterpret_cast<__gm__ const int32_t*>(q_len_gm);
+    }
+    if (active < 0) {
+        active = 0;
+    }
+    if (active > width) {
+        active = width;
+    }
+    const int32_t chunk = 512;
+    const int32_t chunks_per_row = hidden_dim / chunk;
+    const int32_t total_tasks = width * chunks_per_row;
+    const int32_t aiv = GetBlockIdx();
+
+    TBuf<TPosition::VECCALC> b_ids, b_bf16;
+    pipe.InitBuffer(b_ids, 64 * 4);
+    pipe.InitBuffer(b_bf16, chunk * 2);
+    auto ub_ids = b_ids.Get<int32_t>();
+    auto ub_bf16 = b_bf16.Get<bfloat16_t>();
+
+    GlobalTensor<int32_t> g_ids;
+    GlobalTensor<bfloat16_t> g_emb, g_out;
+    g_ids.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(t_ids_gm), width);
+    g_emb.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(emb_w_gm));
+    g_out.SetGlobalBuffer(
+        reinterpret_cast<__gm__ bfloat16_t*>(partial_out_gm),
+        static_cast<int64_t>(width) * hidden_dim);
+
+    if (active > 0) {
+        DcciRange(t_ids_gm, width * 4);
+        const int32_t copy_ids = ((width + 7) / 8) * 8;
+        DataCopy(ub_ids, g_ids, copy_ids);
+        Fence<HardEvent::MTE2_S>();
+    }
+
+    for (int32_t task = aiv; task < total_tasks; task += 48) {
+        const int32_t r = task / chunks_per_row;
+        const int32_t c_idx = task % chunks_per_row;
+        const int64_t col = static_cast<int64_t>(c_idx) * chunk;
+        const int64_t dst_off = static_cast<int64_t>(r) * hidden_dim + col;
+        bool valid_tok = false;
+        int32_t tok = 0;
+        if (r < active) {
+            tok = ub_ids.GetValue(r);
+            valid_tok = (tok >= vocab_start && tok < vocab_end);
+        }
+        if (valid_tok) {
+            const int64_t src_off = static_cast<int64_t>(tok - vocab_start) * hidden_dim + col;
+            DataCopy(ub_bf16, g_emb[src_off], chunk);
+            Fence<HardEvent::MTE2_MTE3>();
+        } else {
+            Duplicate(ub_bf16.ReinterpretCast<int16_t>(), static_cast<int16_t>(0), chunk);
+            Fence<HardEvent::V_MTE3>();
+        }
+        DataCopy(g_out[dst_off], ub_bf16, chunk);
+        Fence<HardEvent::MTE3_V>();
+        Fence<HardEvent::MTE3_MTE2>();
+    }
+    Publish();
+    }
+}
+
+__aicore__ inline void RunExactIndexKeys(
+    TPipe& pipe,
+    uint64_t norm_x_gm,
+    uint64_t q_len_gm,
+    uint64_t slot_i64_gm,
+    uint64_t cos_gm,
+    uint64_t sin_gm,
+    uint64_t wk_w_gm,
+    uint64_t k_norm_w_gm,
+    uint64_t k_norm_b_gm,
+    uint64_t k_cache_gm,
+    uint64_t work_gm,
+    int32_t rows_cap,
+    float eps,
+    int32_t is_neox)
+{
+    int32_t active_rows = rows_cap;
+    if (q_len_gm != 0ULL) {
+        DcciRange(q_len_gm, 64);
+        active_rows = *reinterpret_cast<__gm__ const int32_t*>(q_len_gm);
+    }
+    if (active_rows <= 0) {
+        return;
+    }
+    if (active_rows > rows_cap) {
+        active_rows = rows_cap;
+    }
+
+    if ASCEND_IS_AIC {
+        constexpr int32_t kTile = 16;
+        constexpr int32_t kInner = 128;
+        constexpr int32_t kHidden = 6144;
+        constexpr int32_t kSteps = kHidden / kInner;
+        constexpr int32_t kStage = kTile * kInner;
+        constexpr int32_t kAcc = kTile * kTile;
+
+        TBuf<TPosition::A1> a_stage;
+        TBuf<TPosition::B1> b_stage;
+        TBuf<TPosition::A2> a_op;
+        TBuf<TPosition::B2> b_op;
+        TBuf<TPosition::CO1> c_acc;
+        pipe.InitBuffer(a_stage, 2 * kStage * sizeof(bfloat16_t));
+        pipe.InitBuffer(b_stage, 2 * kStage * sizeof(bfloat16_t));
+        pipe.InitBuffer(a_op, 2 * kStage * sizeof(bfloat16_t));
+        pipe.InitBuffer(b_op, 2 * kStage * sizeof(bfloat16_t));
+        pipe.InitBuffer(c_acc, kAcc * sizeof(float));
+
+        auto a_l1 = a_stage.Get<bfloat16_t>();
+        auto b_l1 = b_stage.Get<bfloat16_t>();
+        auto a_l0 = a_op.Get<bfloat16_t>();
+        auto b_l0 = b_op.Get<bfloat16_t>();
+        auto c_l0 = c_acc.Get<float>();
+
+        GlobalTensor<bfloat16_t> a_gm, b_gm;
+        GlobalTensor<float> c_gm;
+        a_gm.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(norm_x_gm), rows_cap * kHidden);
+        b_gm.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(wk_w_gm), 128 * kHidden);
+        c_gm.SetGlobalBuffer(
+            reinterpret_cast<__gm__ float*>(work_gm), rows_cap * 128);
+
+        const int32_t blk = GetBlockIdx();
+        const int32_t row_tiles = (active_rows + 15) / 16;
+        const int32_t total_tiles = row_tiles * 8;
+
+        for (int32_t tile = blk; tile < total_tiles; tile += 24) {
+            const int32_t row_tile = tile / 8;
+            const int32_t col_tile = tile % 8;
+            const int32_t r_start = row_tile * kTile;
+            const int32_t r_rem = active_rows - r_start;
+            const int32_t r_valid = (r_rem < kTile) ? r_rem : kTile;
+
+            Nd2NzParams copy_a{};
+            copy_a.ndNum = 1;
+            copy_a.nValue = r_valid;
+            copy_a.dValue = kInner;
+            copy_a.srcDValue = kHidden;
+            copy_a.dstNzC0Stride = kTile;
+            copy_a.dstNzNStride = 1;
+
+            Nd2NzParams copy_b{};
+            copy_b.ndNum = 1;
+            copy_b.nValue = kTile;
+            copy_b.dValue = kInner;
+            copy_b.srcDValue = kHidden;
+            copy_b.dstNzC0Stride = kTile;
+            copy_b.dstNzNStride = 1;
+
+            LoadData2DParams load_a{};
+            load_a.repeatTimes = kInner / kTile;
+            load_a.srcStride = 1;
+            load_a.ifTranspose = false;
+
+            LoadData2DParams load_b{};
+            load_b.repeatTimes = kInner / kTile;
+            load_b.srcStride = 1;
+            load_b.ifTranspose = false;
+
+            SetFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
+            SetFlag<HardEvent::MTE1_MTE2>(EVENT_ID1);
+            SetFlag<HardEvent::M_MTE1>(EVENT_ID0);
+            SetFlag<HardEvent::M_MTE1>(EVENT_ID1);
+
+            for (int32_t s = 0; s < kSteps; ++s) {
+                const int32_t buf = s & 1;
+                const event_t ev = buf ? EVENT_ID1 : EVENT_ID0;
+                const int64_t k_off = static_cast<int64_t>(s) * kInner;
+                const int64_t a_off = static_cast<int64_t>(r_start) * kHidden + k_off;
+                const int64_t b_off = static_cast<int64_t>(col_tile) * kTile * kHidden + k_off;
+
+                WaitFlag<HardEvent::MTE1_MTE2>(ev);
+                DataCopy(a_l1[buf * kStage], a_gm[a_off], copy_a);
+                DataCopy(b_l1[buf * kStage], b_gm[b_off], copy_b);
+                SetFlag<HardEvent::MTE2_MTE1>(ev);
+
+                WaitFlag<HardEvent::MTE2_MTE1>(ev);
+                WaitFlag<HardEvent::M_MTE1>(ev);
+                LoadData(a_l0[buf * kStage], a_l1[buf * kStage], load_a);
+                LoadData(b_l0[buf * kStage], b_l1[buf * kStage], load_b);
+                SetFlag<HardEvent::MTE1_MTE2>(ev);
+                SetFlag<HardEvent::MTE1_M>(ev);
+
+                WaitFlag<HardEvent::MTE1_M>(ev);
+                MmadParams mad{};
+                mad.m = kTile;
+                mad.n = kTile;
+                mad.k = kInner;
+                mad.cmatrixInitVal = (s == 0);
+                mad.cmatrixSource = false;
+                Mmad(c_l0, a_l0[buf * kStage], b_l0[buf * kStage], mad);
+                PipeBarrier<PIPE_M>();
+                SetFlag<HardEvent::M_MTE1>(ev);
+            }
+            WaitFlag<HardEvent::M_MTE1>(EVENT_ID0);
+            WaitFlag<HardEvent::M_MTE1>(EVENT_ID1);
+            WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
+            WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID1);
+
+            SetFlag<HardEvent::M_FIX>(EVENT_ID0);
+            WaitFlag<HardEvent::M_FIX>(EVENT_ID0);
+            FixpipeParamsV220 store{};
+            store.nSize = kTile;
+            store.mSize = r_valid;
+            store.srcStride = kTile;
+            store.dstStride = 128;
+            store.ndNum = 1;
+            store.quantPre = QuantMode_t::NoQuant;
+            const int64_t c_off = static_cast<int64_t>(r_start) * 128 + col_tile * kTile;
+            Fixpipe(c_gm[c_off], c_l0, store);
+            SetFlag<HardEvent::FIX_M>(EVENT_ID0);
+            WaitFlag<HardEvent::FIX_M>(EVENT_ID0);
+        }
+        Publish();
+    }
+
+    SyncAll<false>();
+
+    if ASCEND_IS_AIV {
+        const int32_t aiv = GetBlockIdx();
+        DcciRange(slot_i64_gm, rows_cap * 8);
+        DcciRange(work_gm, active_rows * 128 * 4);
+
+        TBuf<TPosition::VECCALC> b_f32, b_bf, b_slot;
+        pipe.InitBuffer(b_f32, 11 * 128 * 4);
+        pipe.InitBuffer(b_bf, 4 * 128 * 2);
+        pipe.InitBuffer(b_slot, 64 * 8);
+
+        auto ub_f32 = b_f32.Get<float>();
+        auto ub_kw = ub_f32[0];
+        auto ub_x = ub_f32[128];
+        auto ub_diff = ub_f32[256];
+        auto ub_sq = ub_f32[384];
+        auto ub_gw = ub_f32[512];
+        auto ub_gb = ub_f32[640];
+        auto ub_tmp = ub_f32[768];
+        auto ub_sum = ub_f32[896];
+        auto ub_k = ub_f32[1024];
+        auto ub_cos = ub_f32[1152];
+        auto ub_sin = ub_f32[1280];
+
+        auto ub_bf = b_bf.Get<bfloat16_t>();
+        auto ub_kw_bf = ub_bf[0];
+        auto ub_out_bf = ub_bf[128];
+        auto ub_cos_bf = ub_bf[256];
+        auto ub_sin_bf = ub_bf[384];
+        auto ub_slot = b_slot.Get<int64_t>();
+
+        GlobalTensor<float> g_work, g_gw, g_gb;
+        GlobalTensor<bfloat16_t> g_cos, g_sin, g_kcache;
+        GlobalTensor<int64_t> g_slot;
+        g_work.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(work_gm), rows_cap * 128);
+        g_gw.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(k_norm_w_gm), 128);
+        g_gb.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(k_norm_b_gm), 128);
+        g_cos.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(cos_gm), rows_cap * 64);
+        g_sin.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(sin_gm), rows_cap * 64);
+        g_kcache.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(k_cache_gm));
+        g_slot.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(slot_i64_gm), rows_cap);
+
+        const int32_t copy_sl = ((rows_cap + 3) / 4) * 4;
+        DataCopy(ub_slot, g_slot, copy_sl);
+        DataCopy(ub_gw, g_gw, 128);
+        DataCopy(ub_gb, g_gb, 128);
+        Fence<HardEvent::MTE2_S>();
+        Fence<HardEvent::MTE2_V>();
+
+        for (int32_t r = aiv; r < active_rows; r += 48) {
+            const int64_t slot = ub_slot.GetValue(r);
+            if (slot < 0) {
+                continue;
+            }
+            DataCopy(ub_kw, g_work[r * 128], 128);
+            DataCopy(ub_cos_bf, g_cos[r * 64], 64);
+            DataCopy(ub_sin_bf, g_sin[r * 64], 64);
+            Fence<HardEvent::MTE2_V>();
+
+            Cast(ub_kw_bf, ub_kw, RoundMode::CAST_RINT, 128);
+            PipeBarrier<PIPE_V>();
+            Cast(ub_x, ub_kw_bf, RoundMode::CAST_NONE, 128);
+            PipeBarrier<PIPE_V>();
+
+            ReduceSum(ub_sum, ub_x, ub_tmp, 128);
+            Fence<HardEvent::V_S>();
+            const float mean = ub_sum.GetValue(0) * (1.0F / 128.0F);
+            Fence<HardEvent::S_V>();
+            Adds(ub_diff, ub_x, -mean, 128);
+            PipeBarrier<PIPE_V>();
+            Mul(ub_sq, ub_diff, ub_diff, 128);
+            PipeBarrier<PIPE_V>();
+            ReduceSum(ub_sum, ub_sq, ub_tmp, 128);
+            Fence<HardEvent::V_S>();
+            const float var = ub_sum.GetValue(0) * (1.0F / 128.0F);
+            const float inv_std = 1.0F / sqrt(var + eps);
+            Fence<HardEvent::S_V>();
+            Muls(ub_x, ub_diff, inv_std, 128);
+            PipeBarrier<PIPE_V>();
+            Mul(ub_x, ub_x, ub_gw, 128);
+            PipeBarrier<PIPE_V>();
+            Add(ub_x, ub_x, ub_gb, 128);
+            PipeBarrier<PIPE_V>();
+            Cast(ub_out_bf, ub_x, RoundMode::CAST_RINT, 128);
+            PipeBarrier<PIPE_V>();
+
+            Cast(ub_k, ub_out_bf, RoundMode::CAST_NONE, 64);
+            Cast(ub_cos, ub_cos_bf, RoundMode::CAST_NONE, 64);
+            Cast(ub_sin, ub_sin_bf, RoundMode::CAST_NONE, 64);
+            Fence<HardEvent::V_S>();
+            for (int32_t j = 0; j < 32; ++j) {
+                const float c = ub_cos.GetValue(j);
+                const float s = ub_sin.GetValue(j);
+                if (is_neox == 0) {
+                    const float k0 = ub_k.GetValue(2 * j);
+                    const float k1 = ub_k.GetValue(2 * j + 1);
+                    ub_diff.SetValue(2 * j, k0 * c - k1 * s);
+                    ub_diff.SetValue(2 * j + 1, k1 * c + k0 * s);
+                } else {
+                    const float k0 = ub_k.GetValue(j);
+                    const float k1 = ub_k.GetValue(j + 32);
+                    ub_diff.SetValue(j, k0 * c - k1 * s);
+                    ub_diff.SetValue(j + 32, k1 * c + k0 * s);
+                }
+            }
+            Fence<HardEvent::S_V>();
+            Cast(ub_out_bf, ub_diff, RoundMode::CAST_RINT, 64);
+            Fence<HardEvent::V_MTE3>();
+            DataCopy(g_kcache[slot * 128], ub_out_bf, 128);
+            Fence<HardEvent::MTE3_V>();
+            Fence<HardEvent::MTE3_MTE2>();
+        }
+        Publish();
+    }
+}
+
+__aicore__ inline void RunStep3cPrologPackGuarded(
+    TPipe& pipe,
+    uint64_t q_len_gm,
+    uint64_t active_toks_gm,
+    uint64_t emb_w_gm,
+    uint64_t rot_part_gm,
+    uint64_t rot_bias_gm,
+    uint64_t comm_in_gm,
+    int32_t b_rows,
+    int32_t vocab_start,
+    int32_t vocab_end,
+    int32_t rank)
+{
+    int32_t eff = b_rows;
+    if (q_len_gm != 0ULL) {
+        DcciRange(q_len_gm, 64);
+        const int32_t q = *reinterpret_cast<__gm__ const int32_t*>(q_len_gm);
+        if (q <= 0) {
+            return;
+        }
+        if (q < eff) {
+            eff = q;
+        }
+    }
+    RunStep3cPrologPack(
+        pipe, active_toks_gm, emb_w_gm, rot_part_gm, rot_bias_gm, comm_in_gm,
+        eff, vocab_start, vocab_end, rank);
+}
+
+__aicore__ inline void RunStep3cDualRmsNormSliceGuarded(
+    TPipe& pipe,
+    uint64_t q_len_gm,
+    uint64_t comm_out_gm,
+    uint64_t enorm_w_gm,
+    uint64_t hnorm_w_gm,
+    uint64_t eh_in_gm,
+    int32_t b_rows,
+    int32_t rank,
+    float eps)
+{
+    int32_t eff = b_rows;
+    if (q_len_gm != 0ULL) {
+        DcciRange(q_len_gm, 64);
+        const int32_t q = *reinterpret_cast<__gm__ const int32_t*>(q_len_gm);
+        if (q <= 0) {
+            return;
+        }
+        if (q < eff) {
+            eff = q;
+        }
+    }
+    RunStep3cDualRmsNormSlice(
+        pipe, comm_out_gm, enorm_w_gm, hnorm_w_gm, eh_in_gm, eff, rank, eps);
+}
+
+__aicore__ inline void RunLogitsTopkLseGuarded(
+    TPipe& pipe,
+    uint64_t q_len_gm,
+    uint64_t logits_gm,
+    uint64_t work_gm,
+    uint64_t gather_in_gm,
+    int32_t m_rows,
+    int32_t row_stride,
+    int32_t valid_vocab,
+    int32_t vocab_start,
+    int32_t k,
+    int32_t rank)
+{
+    int32_t eff = m_rows;
+    if (q_len_gm != 0ULL) {
+        DcciRange(q_len_gm, 64);
+        const int32_t q = *reinterpret_cast<__gm__ const int32_t*>(q_len_gm);
+        if (q <= 0) {
+            return;
+        }
+        if (q < eff) {
+            eff = q;
+        }
+    }
+    RunLogitsTopkLseImpl<true>(
+        pipe, logits_gm, work_gm, gather_in_gm,
+        eff, row_stride, valid_vocab, vocab_start, k, rank);
+}
+
+__aicore__ inline void RunAddRmsNormQuant(
+    TPipe& pipe,
+    uint64_t x_gm,
+    uint64_t res_gm,
+    uint64_t norm_w_gm,
+    uint64_t y_out_gm,
+    uint64_t q8_out_gm,
+    uint64_t scale_out_gm,
+    uint64_t q_len_gm,
+    int32_t rows_cap,
+    int32_t hidden_dim,
+    float eps)
+{
+    if ASCEND_IS_AIV {
+    int32_t active = rows_cap;
+    if (q_len_gm != 0ULL) {
+        DcciRange(q_len_gm, 64);
+        active = *reinterpret_cast<__gm__ const int32_t*>(q_len_gm);
+    }
+    if (active > rows_cap) {
+        active = rows_cap;
+    }
+    const int32_t aiv = GetBlockIdx();
+    if (active > 0 && aiv < active) {
+
+    TBuf<TPosition::VECCALC> b_f32, b_bf, b_i8;
+    pipe.InitBuffer(b_f32, 3 * hidden_dim * 4 + 256 * 4);
+    pipe.InitBuffer(b_bf, 3 * hidden_dim * 2);
+    pipe.InitBuffer(b_i8, hidden_dim + 32);
+
+    auto ub_f32 = b_f32.Get<float>();
+    auto ub_x = ub_f32[0];
+    auto ub_w = ub_f32[hidden_dim];
+    auto ub_tmp = ub_f32[2 * hidden_dim];
+    auto ub_red = ub_f32[3 * hidden_dim];
+    auto ub_sc = ub_f32[3 * hidden_dim + 128];
+
+    auto ub_bf = b_bf.Get<bfloat16_t>();
+    auto ub_x_bf = ub_bf[0];
+    auto ub_r_bf = ub_bf[hidden_dim];
+    auto ub_w_bf = ub_bf[2 * hidden_dim];
+    auto ub_q8 = b_i8.Get<int8_t>();
+
+    GlobalTensor<bfloat16_t> g_x, g_r, g_w, g_y;
+    GlobalTensor<int8_t> g_q8;
+    GlobalTensor<float> g_sc;
+    g_x.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(x_gm));
+    g_r.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(res_gm));
+    g_w.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(norm_w_gm));
+    g_y.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(y_out_gm));
+    g_q8.SetGlobalBuffer(reinterpret_cast<__gm__ int8_t*>(q8_out_gm));
+    g_sc.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(scale_out_gm));
+
+    DataCopy(ub_w_bf, g_w, hidden_dim);
+    Fence<HardEvent::MTE2_V>();
+    Cast(ub_w, ub_w_bf, RoundMode::CAST_NONE, hidden_dim);
+    PipeBarrier<PIPE_V>();
+
+    for (int32_t r = aiv; r < active; r += 48) {
+        const int64_t row_off = static_cast<int64_t>(r) * hidden_dim;
+        DataCopy(ub_x_bf, g_x[row_off], hidden_dim);
+        if (res_gm != 0ULL) {
+            DataCopy(ub_r_bf, g_r[row_off], hidden_dim);
+        }
+        Fence<HardEvent::MTE2_V>();
+        Cast(ub_x, ub_x_bf, RoundMode::CAST_NONE, hidden_dim);
+        if (res_gm != 0ULL) {
+            Cast(ub_tmp, ub_r_bf, RoundMode::CAST_NONE, hidden_dim);
+            PipeBarrier<PIPE_V>();
+            Add(ub_x, ub_x, ub_tmp, hidden_dim);
+        }
+        PipeBarrier<PIPE_V>();
+        Mul(ub_tmp, ub_x, ub_x, hidden_dim);
+        PipeBarrier<PIPE_V>();
+        ReduceSum(ub_red, ub_tmp, ub_w_bf.ReinterpretCast<float>(), hidden_dim);
+        Fence<HardEvent::V_S>();
+        const float mean_sq = ub_red.GetValue(0) / static_cast<float>(hidden_dim);
+        const float rsqrt_v = 1.0F / sqrt(mean_sq + eps);
+        Fence<HardEvent::S_V>();
+        Muls(ub_x, ub_x, rsqrt_v, hidden_dim);
+        PipeBarrier<PIPE_V>();
+        Mul(ub_x, ub_x, ub_w, hidden_dim);
+        PipeBarrier<PIPE_V>();
+        if (y_out_gm != 0ULL) {
+            Cast(ub_x_bf, ub_x, RoundMode::CAST_RINT, hidden_dim);
+            Fence<HardEvent::V_MTE3>();
+            DataCopy(g_y[row_off], ub_x_bf, hidden_dim);
+            Fence<HardEvent::MTE3_V>();
+        }
+        if (q8_out_gm != 0ULL) {
+            Abs(ub_tmp, ub_x, hidden_dim);
+            PipeBarrier<PIPE_V>();
+            ReduceMax(ub_red, ub_tmp, ub_r_bf.ReinterpretCast<float>(), hidden_dim);
+            Fence<HardEvent::V_S>();
+            const float max_v = ub_red.GetValue(0);
+            const float sc = (max_v > 0.0F) ? (max_v / 127.0F) : 1.0F;
+            const float inv_sc = 1.0F / sc;
+            ub_sc.SetValue(0, sc);
+            Fence<HardEvent::S_V>();
+            Muls(ub_tmp, ub_x, inv_sc, hidden_dim);
+            PipeBarrier<PIPE_V>();
+            Cast(ub_r_bf.ReinterpretCast<half>(), ub_tmp, RoundMode::CAST_RINT, hidden_dim);
+            PipeBarrier<PIPE_V>();
+            Cast(ub_q8, ub_r_bf.ReinterpretCast<half>(), RoundMode::CAST_RINT, hidden_dim);
+            Fence<HardEvent::V_MTE3>();
+            Fence<HardEvent::S_MTE3>();
+            DataCopy(g_q8[row_off], ub_q8, hidden_dim);
+            if (scale_out_gm != 0ULL) {
+                DataCopyExtParams copy_sc{1, 4, 0, 0, 0};
+                DataCopyPad(g_sc[r], ub_sc, copy_sc);
+            }
+            Fence<HardEvent::MTE3_V>();
+            Fence<HardEvent::MTE3_MTE2>();
+        }
+    }
+    Publish();
+    }
+    }
+}
+
+__aicore__ inline void RunPrologPackCompact(
+    TPipe& pipe, uint64_t ctrl_gm, uint64_t target_toks_gm, uint64_t emb_w_gm,
+    uint64_t rot_part_gm, uint64_t comm_in_gm,
+    int32_t m_max, int32_t vocab_start, int32_t vocab_end, int32_t rank)
+{
+    if ASCEND_IS_AIV {
+        TBuf<TPosition::VECCALC> b_ctrl, b_ttoks, b_bf16;
+        pipe.InitBuffer(b_ctrl, 48 * 8);
+        pipe.InitBuffer(b_ttoks, 32 * 8);
+        pipe.InitBuffer(b_bf16, 768 * 2);
+        auto ub_ctrl = b_ctrl.Get<int64_t>();
+        auto ub_ttoks = b_ttoks.Get<int64_t>();
+        auto ub_bf16 = b_bf16.Get<bfloat16_t>();
+
+        GlobalTensor<int64_t> g_ctrl, g_ttoks;
+        GlobalTensor<bfloat16_t> g_emb, g_rot, g_out;
+        g_ctrl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(ctrl_gm), 48);
+        g_ttoks.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(target_toks_gm), 32);
+        g_emb.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(emb_w_gm));
+        g_rot.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(rot_part_gm), m_max * 768);
+        g_out.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(comm_in_gm), 2 * m_max * 6144);
+
+        DcciRange(ctrl_gm, 48 * 8);
+        DataCopy(ub_ctrl, g_ctrl, 48);
+        Fence<HardEvent::MTE2_S>();
+
+        const int32_t count = static_cast<int32_t>(ub_ctrl.GetValue(2));
+        if (count <= 0) {
+            return;
+        }
+        DataCopy(ub_ttoks, g_ttoks, 32);
+        Fence<HardEvent::MTE2_S>();
+        const int32_t aiv = GetBlockIdx();
+
+        for (int32_t task = aiv; task < count * 12; task += 48) {
+            const int32_t r_idx = task / 12;
+            const int64_t col = static_cast<int64_t>(task % 12) * 512;
+            const int64_t row_id = ub_ctrl.GetValue(3 + r_idx);
+            const int64_t tok = ub_ttoks.GetValue(row_id);
+            if (tok >= vocab_start && tok < vocab_end) {
+                DataCopy(ub_bf16, g_emb[(tok - vocab_start) * 6144 + col], 512);
+                Fence<HardEvent::MTE2_MTE3>();
+            } else {
+                Duplicate(ub_bf16.ReinterpretCast<int16_t>(), static_cast<int16_t>(0), 512);
+                Fence<HardEvent::V_MTE3>();
+            }
+            DataCopy(g_out[r_idx * 6144 + col], ub_bf16, 512);
+            Fence<HardEvent::MTE3_V>();
+            Fence<HardEvent::MTE3_MTE2>();
+        }
+
+        for (int32_t task = aiv; task < count * 8; task += 48) {
+            const int32_t r_idx = task / 8;
+            const int32_t s_rk = task % 8;
+            const int64_t dst_off = static_cast<int64_t>(m_max + r_idx) * 6144
+                + static_cast<int64_t>(s_rk) * 768;
+            if (s_rk == rank) {
+                DataCopy(ub_bf16, g_rot[r_idx * 768], 768);
+                Fence<HardEvent::MTE2_MTE3>();
+            } else {
+                Duplicate(ub_bf16.ReinterpretCast<int16_t>(), static_cast<int16_t>(0), 768);
+                Fence<HardEvent::V_MTE3>();
+            }
+            DataCopy(g_out[dst_off], ub_bf16, 768);
+            Fence<HardEvent::MTE3_V>();
+            Fence<HardEvent::MTE3_MTE2>();
+        }
+        Publish();
+    }
+}
+
 }
 
 extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
@@ -1926,9 +3194,320 @@ extern "C" int tilert_logits_topk_lse_bf16_raw(
         m_rows, row_stride, valid_vocab, vocab_start, k, rank);
     return 0;
 }
+
+extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+void dspine_prolog_prepare_meta_k(
+    uint64_t state_gm,
+    uint64_t draft_ctrl_gm,
+    uint64_t compact_ctrl_gm,
+    uint64_t commit_ctrl_gm,
+    uint64_t dyn_w_gm,
+    uint64_t mc2_mask_gm,
+    uint64_t step_qlen_gm,
+    uint64_t step_qlen_ptrs_gm,
+    uint64_t step_table_gm,
+    uint64_t receipt_ring_gm,
+    uint64_t commit_qlen_ptrs_gm,
+    int32_t width,
+    int32_t max_steps)
+{
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    AscendC::InitSocState();
+    dspine_ops::RunPrologPrepareMeta(
+        state_gm, draft_ctrl_gm, compact_ctrl_gm, commit_ctrl_gm,
+        dyn_w_gm, mc2_mask_gm, step_qlen_gm, step_qlen_ptrs_gm,
+        step_table_gm, receipt_ring_gm, commit_qlen_ptrs_gm, width, max_steps);
+}
+
+extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+void dspine_resolve_and_advance_k(
+    uint64_t state_gm,
+    uint64_t dyn_w_gm,
+    uint64_t tree_tokens_gm,
+    uint64_t tree_parents_gm,
+    uint64_t target_tokens_gm,
+    uint64_t compact_ctrl_gm,
+    uint64_t commit_ctrl_gm,
+    uint64_t receipt_ring_gm,
+    uint64_t receipt_toks_gm,
+    int32_t width,
+    int32_t commit_m,
+    int32_t max_pos,
+    int32_t eos_token_id,
+    uint64_t alpha_bits,
+    uint64_t oma_bits,
+    uint64_t mid_thresh_bits,
+    uint64_t up_thresh_bits,
+    uint64_t down_thresh_bits,
+    int32_t streak_acc,
+    int32_t drop_acc,
+    int32_t jump_acc,
+    int32_t num_levels)
+{
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    AscendC::InitSocState();
+    dspine_ops::RunResolveAndAdvance(
+        state_gm, dyn_w_gm, tree_tokens_gm, tree_parents_gm, target_tokens_gm,
+        compact_ctrl_gm, commit_ctrl_gm, receipt_ring_gm, receipt_toks_gm,
+        width, commit_m, max_pos, eos_token_id,
+        alpha_bits, oma_bits, mid_thresh_bits, up_thresh_bits, down_thresh_bits,
+        streak_acc, drop_acc, jump_acc, num_levels);
+}
+
+extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+void dspine_embed_lookup_k(
+    uint64_t t_ids_gm,
+    uint64_t q_len_gm,
+    uint64_t emb_w_gm,
+    uint64_t partial_out_gm,
+    int32_t width,
+    int32_t hidden_dim,
+    int32_t vocab_start,
+    int32_t vocab_end)
+{
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    AscendC::InitSocState();
+    AscendC::TPipe pipe;
+    dspine_ops::RunEmbedLookup(
+        pipe, t_ids_gm, q_len_gm, emb_w_gm, partial_out_gm,
+        width, hidden_dim, vocab_start, vocab_end);
+}
+
+extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+void dspine_exact_index_keys_k(
+    uint64_t sync_base,
+    uint64_t norm_x_gm,
+    uint64_t q_len_gm,
+    uint64_t slot_i64_gm,
+    uint64_t cos_gm,
+    uint64_t sin_gm,
+    uint64_t wk_w_gm,
+    uint64_t k_norm_w_gm,
+    uint64_t k_norm_b_gm,
+    uint64_t k_cache_gm,
+    uint64_t work_gm,
+    int32_t rows_cap,
+    float eps,
+    int32_t is_neox)
+{
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    AscendC::InitSocState();
+    AscendC::SetSyncBaseAddr(sync_base);
+    AscendC::TPipe pipe;
+    dspine_ops::RunExactIndexKeys(
+        pipe, norm_x_gm, q_len_gm, slot_i64_gm, cos_gm, sin_gm,
+        wk_w_gm, k_norm_w_gm, k_norm_b_gm, k_cache_gm, work_gm,
+        rows_cap, eps, is_neox);
+}
+
+extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+void dspine_step3c_prolog_pack_guarded_k(
+    uint64_t q_len_gm,
+    uint64_t active_toks_gm,
+    uint64_t emb_w_gm,
+    uint64_t rot_part_gm,
+    uint64_t rot_bias_gm,
+    uint64_t comm_in_gm,
+    int32_t b_rows,
+    int32_t vocab_start,
+    int32_t vocab_end,
+    int32_t rank)
+{
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    AscendC::InitSocState();
+    AscendC::TPipe pipe;
+    dspine_ops::RunStep3cPrologPackGuarded(
+        pipe, q_len_gm, active_toks_gm, emb_w_gm, rot_part_gm, rot_bias_gm, comm_in_gm,
+        b_rows, vocab_start, vocab_end, rank);
+}
+
+extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+void dspine_step3c_dual_rmsnorm_slice_guarded_k(
+    uint64_t q_len_gm,
+    uint64_t comm_out_gm,
+    uint64_t enorm_w_gm,
+    uint64_t hnorm_w_gm,
+    uint64_t eh_in_gm,
+    int32_t b_rows,
+    int32_t rank,
+    float eps)
+{
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    AscendC::InitSocState();
+    AscendC::TPipe pipe;
+    dspine_ops::RunStep3cDualRmsNormSliceGuarded(
+        pipe, q_len_gm, comm_out_gm, enorm_w_gm, hnorm_w_gm, eh_in_gm, b_rows, rank, eps);
+}
+
+extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+void dspine_logits_topk_lse_bf16_guarded_k(
+    uint64_t sync_base,
+    uint64_t q_len_gm,
+    uint64_t logits_gm,
+    uint64_t work_gm,
+    uint64_t gather_in_gm,
+    int32_t m_rows,
+    int32_t row_stride,
+    int32_t valid_vocab,
+    int32_t vocab_start,
+    int32_t k,
+    int32_t rank)
+{
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    AscendC::InitSocState();
+    AscendC::SetSyncBaseAddr(sync_base);
+    AscendC::TPipe pipe;
+    dspine_ops::RunLogitsTopkLseGuarded(
+        pipe, q_len_gm, logits_gm, work_gm, gather_in_gm,
+        m_rows, row_stride, valid_vocab, vocab_start, k, rank);
+}
+
+extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+void dspine_add_rmsnorm_quant_k(
+    uint64_t x_gm,
+    uint64_t res_gm,
+    uint64_t norm_w_gm,
+    uint64_t y_out_gm,
+    uint64_t q8_out_gm,
+    uint64_t scale_out_gm,
+    uint64_t q_len_gm,
+    int32_t rows_cap,
+    int32_t hidden_dim,
+    float eps)
+{
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    AscendC::InitSocState();
+    AscendC::TPipe pipe;
+    dspine_ops::RunAddRmsNormQuant(
+        pipe, x_gm, res_gm, norm_w_gm, y_out_gm, q8_out_gm, scale_out_gm,
+        q_len_gm, rows_cap, hidden_dim, eps);
+}
+
+extern "C" int tilert_dspine_prolog_prepare_meta_raw(
+    void* stream, uint64_t state_gm, uint64_t draft_ctrl_gm, uint64_t compact_ctrl_gm,
+    uint64_t commit_ctrl_gm, uint64_t dyn_w_gm, uint64_t mc2_mask_gm,
+    uint64_t step_qlen_gm, uint64_t step_qlen_ptrs_gm, uint64_t step_table_gm,
+    uint64_t receipt_ring_gm, uint64_t commit_qlen_ptrs_gm, int32_t width, int32_t max_steps)
+{
+    dspine_prolog_prepare_meta_k<<<1, nullptr, stream>>>(
+        state_gm, draft_ctrl_gm, compact_ctrl_gm, commit_ctrl_gm,
+        dyn_w_gm, mc2_mask_gm, step_qlen_gm, step_qlen_ptrs_gm,
+        step_table_gm, receipt_ring_gm, commit_qlen_ptrs_gm, width, max_steps);
+    return 0;
+}
+
+extern "C" int tilert_dspine_resolve_and_advance_raw(
+    void* stream, uint64_t state_gm, uint64_t dyn_w_gm, uint64_t tree_tokens_gm,
+    uint64_t tree_parents_gm, uint64_t target_tokens_gm, uint64_t compact_ctrl_gm,
+    uint64_t commit_ctrl_gm, uint64_t receipt_ring_gm, uint64_t receipt_toks_gm,
+    int32_t width, int32_t commit_m, int32_t max_pos, int32_t eos_token_id,
+    uint64_t alpha_bits, uint64_t oma_bits, uint64_t mid_thresh_bits,
+    uint64_t up_thresh_bits, uint64_t down_thresh_bits,
+    int32_t streak_acc, int32_t drop_acc, int32_t jump_acc, int32_t num_levels)
+{
+    dspine_resolve_and_advance_k<<<1, nullptr, stream>>>(
+        state_gm, dyn_w_gm, tree_tokens_gm, tree_parents_gm, target_tokens_gm,
+        compact_ctrl_gm, commit_ctrl_gm, receipt_ring_gm, receipt_toks_gm,
+        width, commit_m, max_pos, eos_token_id,
+        alpha_bits, oma_bits, mid_thresh_bits, up_thresh_bits, down_thresh_bits,
+        streak_acc, drop_acc, jump_acc, num_levels);
+    return 0;
+}
+
+extern "C" int tilert_dspine_embed_lookup_raw(
+    void* stream, uint64_t t_ids_gm, uint64_t q_len_gm, uint64_t emb_w_gm,
+    uint64_t partial_out_gm, int32_t width, int32_t hidden_dim,
+    int32_t vocab_start, int32_t vocab_end)
+{
+    dspine_embed_lookup_k<<<24, nullptr, stream>>>(
+        t_ids_gm, q_len_gm, emb_w_gm, partial_out_gm,
+        width, hidden_dim, vocab_start, vocab_end);
+    return 0;
+}
+
+extern "C" int tilert_dspine_exact_index_keys_raw(
+    void* stream, uint64_t sync_base, uint64_t norm_x_gm, uint64_t q_len_gm,
+    uint64_t slot_i64_gm, uint64_t cos_gm, uint64_t sin_gm, uint64_t wk_w_gm,
+    uint64_t k_norm_w_gm, uint64_t k_norm_b_gm, uint64_t k_cache_gm, uint64_t work_gm,
+    int32_t rows_cap, float eps, int32_t is_neox)
+{
+    dspine_exact_index_keys_k<<<24, nullptr, stream>>>(
+        sync_base, norm_x_gm, q_len_gm, slot_i64_gm, cos_gm, sin_gm,
+        wk_w_gm, k_norm_w_gm, k_norm_b_gm, k_cache_gm, work_gm,
+        rows_cap, eps, is_neox);
+    return 0;
+}
+
+extern "C" int tilert_step3c_prolog_pack_guarded_raw(
+    void* stream, uint64_t q_len_gm, uint64_t active_toks_gm, uint64_t emb_w_gm,
+    uint64_t rot_part_gm, uint64_t rot_bias_gm, uint64_t comm_in_gm,
+    int32_t b_rows, int32_t vocab_start, int32_t vocab_end, int32_t rank)
+{
+    dspine_step3c_prolog_pack_guarded_k<<<24, nullptr, stream>>>(
+        q_len_gm, active_toks_gm, emb_w_gm, rot_part_gm, rot_bias_gm, comm_in_gm,
+        b_rows, vocab_start, vocab_end, rank);
+    return 0;
+}
+
+extern "C" int tilert_step3c_dual_rmsnorm_slice_guarded_raw(
+    void* stream, uint64_t q_len_gm, uint64_t comm_out_gm, uint64_t enorm_w_gm,
+    uint64_t hnorm_w_gm, uint64_t eh_in_gm, int32_t b_rows, int32_t rank, float eps)
+{
+    dspine_step3c_dual_rmsnorm_slice_guarded_k<<<24, nullptr, stream>>>(
+        q_len_gm, comm_out_gm, enorm_w_gm, hnorm_w_gm, eh_in_gm, b_rows, rank, eps);
+    return 0;
+}
+
+extern "C" int tilert_logits_topk_lse_bf16_guarded_raw(
+    void* stream, uint64_t sync_base, uint64_t q_len_gm, uint64_t logits_gm,
+    uint64_t work_gm, uint64_t gather_in_gm, int32_t m_rows, int32_t row_stride,
+    int32_t valid_vocab, int32_t vocab_start, int32_t k, int32_t rank)
+{
+    dspine_logits_topk_lse_bf16_guarded_k<<<24, nullptr, stream>>>(
+        sync_base, q_len_gm, logits_gm, work_gm, gather_in_gm,
+        m_rows, row_stride, valid_vocab, vocab_start, k, rank);
+    return 0;
+}
+
+extern "C" int tilert_dspine_add_rmsnorm_quant_raw(
+    void* stream, uint64_t x_gm, uint64_t res_gm, uint64_t norm_w_gm, uint64_t y_out_gm,
+    uint64_t q8_out_gm, uint64_t scale_out_gm, uint64_t q_len_gm,
+    int32_t rows_cap, int32_t hidden_dim, float eps)
+{
+    dspine_add_rmsnorm_quant_k<<<24, nullptr, stream>>>(
+        x_gm, res_gm, norm_w_gm, y_out_gm, q8_out_gm, scale_out_gm,
+        q_len_gm, rows_cap, hidden_dim, eps);
+    return 0;
+}
+
+extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+void dspine_prolog_pack_compact_k(
+    uint64_t ctrl_gm, uint64_t target_toks_gm, uint64_t emb_w_gm,
+    uint64_t rot_part_gm, uint64_t comm_in_gm,
+    int32_t m_max, int32_t vocab_start, int32_t vocab_end, int32_t rank)
+{
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    AscendC::InitSocState();
+    AscendC::TPipe pipe;
+    dspine_ops::RunPrologPackCompact(
+        pipe, ctrl_gm, target_toks_gm, emb_w_gm, rot_part_gm, comm_in_gm,
+        m_max, vocab_start, vocab_end, rank);
+}
+
+extern "C" int tilert_dspine_prolog_pack_compact_raw(
+    void* stream, uint64_t ctrl_gm, uint64_t target_toks_gm, uint64_t emb_w_gm,
+    uint64_t rot_part_gm, uint64_t comm_in_gm,
+    int32_t m_max, int32_t vocab_start, int32_t vocab_end, int32_t rank)
+{
+    dspine_prolog_pack_compact_k<<<24, nullptr, stream>>>(
+        ctrl_gm, target_toks_gm, emb_w_gm, rot_part_gm, comm_in_gm,
+        m_max, vocab_start, vocab_end, rank);
+    return 0;
+}
 """
 
 HOST_CPP = """#include <cstdint>
+#include <cstring>
 #include <torch_npu/csrc/core/npu/NPUStream.h>
 
 extern "C" {
@@ -1985,6 +3564,61 @@ int tilert_logits_topk_lse_bf16_raw(
     void* stream, uint64_t sync_base, uint64_t logits_gm, uint64_t work_gm, uint64_t gather_in_gm,
     int32_t m_rows, int32_t row_stride, int32_t valid_vocab, int32_t vocab_start,
     int32_t k, int32_t rank);
+int tilert_dspine_prolog_prepare_meta_raw(
+    void* stream, uint64_t state_gm, uint64_t draft_ctrl_gm, uint64_t compact_ctrl_gm,
+    uint64_t commit_ctrl_gm, uint64_t dyn_w_gm, uint64_t mc2_mask_gm,
+    uint64_t step_qlen_gm, uint64_t step_qlen_ptrs_gm, uint64_t step_table_gm,
+    uint64_t receipt_ring_gm, uint64_t commit_qlen_ptrs_gm, int32_t width, int32_t max_steps);
+int tilert_dspine_resolve_and_advance_raw(
+    void* stream, uint64_t state_gm, uint64_t dyn_w_gm, uint64_t tree_tokens_gm,
+    uint64_t tree_parents_gm, uint64_t target_tokens_gm, uint64_t compact_ctrl_gm,
+    uint64_t commit_ctrl_gm, uint64_t receipt_ring_gm, uint64_t receipt_toks_gm,
+    int32_t width, int32_t commit_m, int32_t max_pos, int32_t eos_token_id,
+    uint64_t alpha_bits, uint64_t oma_bits, uint64_t mid_thresh_bits,
+    uint64_t up_thresh_bits, uint64_t down_thresh_bits,
+    int32_t streak_acc, int32_t drop_acc, int32_t jump_acc, int32_t num_levels);
+int tilert_dspine_embed_lookup_raw(
+    void* stream, uint64_t t_ids_gm, uint64_t q_len_gm, uint64_t emb_w_gm,
+    uint64_t partial_out_gm, int32_t width, int32_t hidden_dim,
+    int32_t vocab_start, int32_t vocab_end);
+int tilert_dspine_exact_index_keys_raw(
+    void* stream, uint64_t sync_base, uint64_t norm_x_gm, uint64_t q_len_gm,
+    uint64_t slot_i64_gm, uint64_t cos_gm, uint64_t sin_gm, uint64_t wk_w_gm,
+    uint64_t k_norm_w_gm, uint64_t k_norm_b_gm, uint64_t k_cache_gm, uint64_t work_gm,
+    int32_t rows_cap, float eps, int32_t is_neox);
+int tilert_step3c_prolog_pack_guarded_raw(
+    void* stream, uint64_t q_len_gm, uint64_t active_toks_gm, uint64_t emb_w_gm,
+    uint64_t rot_part_gm, uint64_t rot_bias_gm, uint64_t comm_in_gm,
+    int32_t b_rows, int32_t vocab_start, int32_t vocab_end, int32_t rank);
+int tilert_step3c_dual_rmsnorm_slice_guarded_raw(
+    void* stream, uint64_t q_len_gm, uint64_t comm_out_gm, uint64_t enorm_w_gm,
+    uint64_t hnorm_w_gm, uint64_t eh_in_gm, int32_t b_rows, int32_t rank, float eps);
+int tilert_logits_topk_lse_bf16_guarded_raw(
+    void* stream, uint64_t sync_base, uint64_t q_len_gm, uint64_t logits_gm,
+    uint64_t work_gm, uint64_t gather_in_gm, int32_t m_rows, int32_t row_stride,
+    int32_t valid_vocab, int32_t vocab_start, int32_t k, int32_t rank);
+int tilert_dspine_add_rmsnorm_quant_raw(
+    void* stream, uint64_t x_gm, uint64_t res_gm, uint64_t norm_w_gm, uint64_t y_out_gm,
+    uint64_t q8_out_gm, uint64_t scale_out_gm, uint64_t q_len_gm,
+    int32_t rows_cap, int32_t hidden_dim, float eps);
+int tilert_dspine_prolog_pack_compact_raw(
+    void* stream, uint64_t ctrl_gm, uint64_t target_toks_gm, uint64_t emb_w_gm,
+    uint64_t rot_part_gm, uint64_t comm_in_gm,
+    int32_t m_max, int32_t vocab_start, int32_t vocab_end, int32_t rank);
+int32_t rtGetC2cCtrlAddr(uint64_t* address, uint32_t* length);
+
+static inline uint64_t ResolveSyncBase(uint64_t sync_base)
+{
+    if (sync_base != 0ULL) {
+        return sync_base;
+    }
+    uint64_t ffts = 0ULL;
+    uint32_t len = 0U;
+    if (rtGetC2cCtrlAddr(&ffts, &len) == 0 && ffts != 0ULL) {
+        return ffts;
+    }
+    return 0ULL;
+}
 
 void* tilert_get_flushed_stream()
 {
@@ -2105,6 +3739,123 @@ int tilert_dspine_build_tree_v3_launch(
         tree_tokens_gm, tree_parents_gm, tree_depths_gm, tree_mask_gm,
         t_ids_gm, t_pos_gm, t_slots_gm, t_slots_i64_gm,
         dyn_w_gm, seq_ptrs_gm, q_ptrs_gm, cos_cache_gm, sin_cache_gm, rope_dsts_gm, work_gm);
+}
+
+int tilert_dspine_prolog_prepare_meta_launch(
+    void*, uint64_t state_gm, uint64_t draft_ctrl_gm, uint64_t compact_ctrl_gm,
+    uint64_t commit_ctrl_gm, uint64_t dyn_w_gm, uint64_t mc2_mask_gm,
+    uint64_t step_qlen_gm, uint64_t step_qlen_ptrs_gm, uint64_t step_table_gm,
+    uint64_t receipt_ring_gm, uint64_t commit_qlen_ptrs_gm, int32_t width, int32_t max_steps)
+{
+    return tilert_dspine_prolog_prepare_meta_raw(
+        c10_npu::getCurrentNPUStream().stream(true),
+        state_gm, draft_ctrl_gm, compact_ctrl_gm, commit_ctrl_gm,
+        dyn_w_gm, mc2_mask_gm, step_qlen_gm, step_qlen_ptrs_gm,
+        step_table_gm, receipt_ring_gm, commit_qlen_ptrs_gm, width, max_steps);
+}
+
+int tilert_dspine_resolve_and_advance_launch(
+    void*, uint64_t state_gm, uint64_t dyn_w_gm, uint64_t tree_tokens_gm,
+    uint64_t tree_parents_gm, uint64_t target_tokens_gm, uint64_t compact_ctrl_gm,
+    uint64_t commit_ctrl_gm, uint64_t receipt_ring_gm, uint64_t receipt_toks_gm,
+    int32_t width, int32_t commit_m, int32_t max_pos, int32_t eos_token_id,
+    double alpha, double mid_thresh, double up_thresh, double down_thresh,
+    int32_t streak_acc, int32_t drop_acc, int32_t jump_acc, int32_t num_levels)
+{
+    uint64_t a_b = 0;
+    uint64_t oma_b = 0;
+    uint64_t m_b = 0;
+    uint64_t u_b = 0;
+    uint64_t d_b = 0;
+    const double oma = 1.0 - alpha;
+    std::memcpy(&a_b, &alpha, 8);
+    std::memcpy(&oma_b, &oma, 8);
+    std::memcpy(&m_b, &mid_thresh, 8);
+    std::memcpy(&u_b, &up_thresh, 8);
+    std::memcpy(&d_b, &down_thresh, 8);
+    return tilert_dspine_resolve_and_advance_raw(
+        c10_npu::getCurrentNPUStream().stream(true),
+        state_gm, dyn_w_gm, tree_tokens_gm, tree_parents_gm, target_tokens_gm,
+        compact_ctrl_gm, commit_ctrl_gm, receipt_ring_gm, receipt_toks_gm,
+        width, commit_m, max_pos, eos_token_id,
+        a_b, oma_b, m_b, u_b, d_b, streak_acc, drop_acc, jump_acc, num_levels);
+}
+
+int tilert_dspine_embed_lookup_launch(
+    void*, uint64_t t_ids_gm, uint64_t q_len_gm, uint64_t emb_w_gm,
+    uint64_t partial_out_gm, int32_t width, int32_t hidden_dim,
+    int32_t vocab_start, int32_t vocab_end)
+{
+    return tilert_dspine_embed_lookup_raw(
+        c10_npu::getCurrentNPUStream().stream(true),
+        t_ids_gm, q_len_gm, emb_w_gm, partial_out_gm,
+        width, hidden_dim, vocab_start, vocab_end);
+}
+
+int tilert_dspine_exact_index_keys_launch(
+    void*, uint64_t sync_base, uint64_t norm_x_gm, uint64_t q_len_gm,
+    uint64_t slot_i64_gm, uint64_t cos_gm, uint64_t sin_gm, uint64_t wk_w_gm,
+    uint64_t k_norm_w_gm, uint64_t k_norm_b_gm, uint64_t k_cache_gm, uint64_t work_gm,
+    int32_t rows_cap, float eps, int32_t is_neox)
+{
+    return tilert_dspine_exact_index_keys_raw(
+        c10_npu::getCurrentNPUStream().stream(true),
+        ResolveSyncBase(sync_base), norm_x_gm, q_len_gm, slot_i64_gm, cos_gm, sin_gm,
+        wk_w_gm, k_norm_w_gm, k_norm_b_gm, k_cache_gm, work_gm,
+        rows_cap, eps, is_neox);
+}
+
+int tilert_step3c_prolog_pack_guarded_launch(
+    void*, uint64_t q_len_gm, uint64_t active_toks_gm, uint64_t emb_w_gm,
+    uint64_t rot_part_gm, uint64_t rot_bias_gm, uint64_t comm_in_gm,
+    int32_t b_rows, int32_t vocab_start, int32_t vocab_end, int32_t rank)
+{
+    return tilert_step3c_prolog_pack_guarded_raw(
+        c10_npu::getCurrentNPUStream().stream(true),
+        q_len_gm, active_toks_gm, emb_w_gm, rot_part_gm, rot_bias_gm, comm_in_gm,
+        b_rows, vocab_start, vocab_end, rank);
+}
+
+int tilert_step3c_dual_rmsnorm_slice_guarded_launch(
+    void*, uint64_t q_len_gm, uint64_t comm_out_gm, uint64_t enorm_w_gm,
+    uint64_t hnorm_w_gm, uint64_t eh_in_gm, int32_t b_rows, int32_t rank, float eps)
+{
+    return tilert_step3c_dual_rmsnorm_slice_guarded_raw(
+        c10_npu::getCurrentNPUStream().stream(true),
+        q_len_gm, comm_out_gm, enorm_w_gm, hnorm_w_gm, eh_in_gm, b_rows, rank, eps);
+}
+
+int tilert_logits_topk_lse_bf16_guarded_launch(
+    void*, uint64_t sync_base, uint64_t q_len_gm, uint64_t logits_gm,
+    uint64_t work_gm, uint64_t gather_in_gm, int32_t m_rows, int32_t row_stride,
+    int32_t valid_vocab, int32_t vocab_start, int32_t k, int32_t rank)
+{
+    return tilert_logits_topk_lse_bf16_guarded_raw(
+        c10_npu::getCurrentNPUStream().stream(true),
+        ResolveSyncBase(sync_base), q_len_gm, logits_gm, work_gm, gather_in_gm,
+        m_rows, row_stride, valid_vocab, vocab_start, k, rank);
+}
+
+int tilert_dspine_add_rmsnorm_quant_launch(
+    void*, uint64_t x_gm, uint64_t res_gm, uint64_t norm_w_gm, uint64_t y_out_gm,
+    uint64_t q8_out_gm, uint64_t scale_out_gm, uint64_t q_len_gm,
+    int32_t rows_cap, int32_t hidden_dim, float eps)
+{
+    return tilert_dspine_add_rmsnorm_quant_raw(
+        c10_npu::getCurrentNPUStream().stream(true),
+        x_gm, res_gm, norm_w_gm, y_out_gm, q8_out_gm, scale_out_gm,
+        q_len_gm, rows_cap, hidden_dim, eps);
+}
+
+int tilert_dspine_prolog_pack_compact_launch(
+    void*, uint64_t ctrl_gm, uint64_t target_toks_gm, uint64_t emb_w_gm,
+    uint64_t rot_part_gm, uint64_t comm_in_gm,
+    int32_t m_max, int32_t vocab_start, int32_t vocab_end, int32_t rank)
+{
+    return tilert_dspine_prolog_pack_compact_raw(
+        c10_npu::getCurrentNPUStream().stream(true),
+        ctrl_gm, target_toks_gm, emb_w_gm, rot_part_gm, comm_in_gm,
+        m_max, vocab_start, vocab_end, rank);
 }
 }"""
 

@@ -196,9 +196,6 @@ __aicore__ inline void RunLayer(
     bool* inout_resolved_ok = nullptr, int32_t known_kv_len = -1,
     int32_t known_q_len = -1, uint64_t fused_rtk_hdr = 0ULL)
 {
-    SetSysWorkspace((GM_ADDR)addresses.bridge[ffn_bridge::kSystem]);
-    const auto rows = addresses.body.rows;
-    const auto blocks = addresses.body.blocks;
     int32_t q_len = known_q_len;
     if (q_len < 0) {
         AscendC::GlobalTensor<int32_t> q_len_gm;
@@ -208,7 +205,13 @@ __aicore__ inline void RunLayer(
             AscendC::DcciDst::CACHELINE_OUT>(q_len_gm);
         q_len = q_len_gm.GetValue(0);
     }
-    const int64_t active_rows = (q_len > 0 && q_len <= rows) ? q_len : rows;
+    if (q_len <= 0) {
+        return;
+    }
+    SetSysWorkspace((GM_ADDR)addresses.bridge[ffn_bridge::kSystem]);
+    const auto rows = addresses.body.rows;
+    const auto blocks = addresses.body.blocks;
+    const int64_t active_rows = (q_len <= rows) ? q_len : rows;
     const int64_t norm_rows = active_rows;
     const auto& norm = addresses.norm;
     int64_t ts0 = GetSystemCycle();
@@ -499,6 +502,21 @@ void ChainKernel(uint64_t steps_gm, int32_t count, uint64_t tree_mask_gm, uint64
 {
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
     InitSocState();
+    if (count <= 0) {
+        return;
+    }
+    const uint64_t top_ql_ptr =
+        reinterpret_cast<const ChainStep*>(steps_gm)[0].addresses.attention.main_metadata[3];
+    if (top_ql_ptr != 0ULL) {
+        AscendC::GlobalTensor<int32_t> top_q_gm;
+        top_q_gm.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(top_ql_ptr), 1);
+        AscendC::DataCacheCleanAndInvalid<int32_t,
+            AscendC::CacheLine::SINGLE_CACHE_LINE,
+            AscendC::DcciDst::CACHELINE_OUT>(top_q_gm);
+        if (top_q_gm.GetValue(0) <= 0) {
+            return;
+        }
+    }
     TPipe pipe;
     uint64_t current_sync = 0;
 #ifdef ENABLE_KERNEL_PROF
@@ -1053,14 +1071,17 @@ __aicore__ __attribute__((noinline)) void RunDenseLayer(
     int64_t* prof_acc)
 {
     using namespace AscendC;
-    SetSysWorkspace((GM_ADDR)addresses.bridge[ffn_bridge::kSystem]);
-    const auto rows = addresses.body.rows;
-    const auto blocks = addresses.body.blocks;
     GlobalTensor<int32_t> q_len_gm;
     q_len_gm.SetGlobalBuffer((__gm__ int32_t*)addresses.attention.main_metadata[3], 1);
     DataCacheCleanAndInvalid<int32_t, CacheLine::SINGLE_CACHE_LINE, DcciDst::CACHELINE_OUT>(q_len_gm);
     const int32_t q_len = q_len_gm.GetValue(0);
-    const int64_t active_rows = (q_len > 0 && q_len <= rows) ? q_len : rows;
+    if (q_len <= 0) {
+        return;
+    }
+    SetSysWorkspace((GM_ADDR)addresses.bridge[ffn_bridge::kSystem]);
+    const auto rows = addresses.body.rows;
+    const auto blocks = addresses.body.blocks;
+    const int64_t active_rows = (q_len <= rows) ? q_len : rows;
     const auto& norm = addresses.norm;
 
     GlobalTensor<uint64_t> dw_gm;

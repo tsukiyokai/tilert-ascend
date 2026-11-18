@@ -33,10 +33,16 @@ __aicore__ K11240_TOP_NOINLINE void FullForward(
     if (q_len < 0) {
         AscendC::GlobalTensor<int32_t> query_lengths;
         query_lengths.SetGlobalBuffer((__gm__ int32_t*)attention.query_lengths, 1);
+        AscendC::DataCacheCleanAndInvalid<int32_t,
+            AscendC::CacheLine::SINGLE_CACHE_LINE,
+            AscendC::DcciDst::CACHELINE_OUT>(query_lengths);
         q_len = query_lengths.GetValue(0);
     }
+    if (q_len <= 0) {
+        return;
+    }
     const uint32_t sfa_rows =
-        (q_len > 0 && q_len <= static_cast<int32_t>(config.attention.rows))
+        (q_len <= static_cast<int32_t>(config.attention.rows))
             ? static_cast<uint32_t>(q_len)
             : config.attention.rows;
     Config c_attn = config.attention;

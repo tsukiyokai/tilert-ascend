@@ -10,10 +10,8 @@ import subprocess
 import torch
 from torch import nn
 
-from ..mla_tail import pack_output_weights, pack_value_weights
-from ..routed_shared import pack_shared_weights
+from ..weights import pack_output_weights, pack_shared_weights, pack_value_weights
 from .build_dspine_ops import build_dspine_ops
-from .tp_drafter import _load_ops_cdll
 
 try:
     import torch_npu
@@ -352,6 +350,8 @@ class TpCalibratedL78Weights:
         self.beta_depth = float(tree_calib.get("beta_depth", 0.0))
         self.ops = None
         if ops_so_path is not None:
+            from .tp_drafter import _load_ops_cdll
+
             so_p = Path(ops_so_path)
             if not so_p.exists():
                 if self.rank == 0:
@@ -777,7 +777,39 @@ def _patch_l78_copied_sources(out: Path) -> None:
         raise RuntimeError("Missing kernel.cpp KV commit injection anchors")
     kern_txt = kern_txt.replace(anchor_dev, _KV_COMMIT_DEVICE_SNIPPET + "\n" + anchor_dev, 1)
     kern_txt = kern_txt.replace(anchor_host, _KV_COMMIT_HOST_SNIPPET + "\n" + anchor_host, 1)
+    if "RunLayer(" in kern_txt and "if (q_len <= 0)" not in kern_txt:
+        ql_anchor = "    const int64_t active_rows = (q_len > 0 && q_len <= rows) ? q_len : rows;"
+        if ql_anchor not in kern_txt:
+            raise RuntimeError("Missing RunLayer q_len anchor in kernel.cpp")
+        kern_txt = kern_txt.replace(
+            ql_anchor,
+            f"    if (q_len <= 0) {{\n        return;\n    }}\n{ql_anchor}",
+        )
     kern_cpp.write_text(kern_txt)
+
+    wl_dir = out / "local/attention/source/tests/glm52/whole_layer"
+    for fname, anchor in (
+        (
+            "attention_indexed_native.h",
+            "    const uint32_t sfa_rows =\n"
+            "        (q_len > 0 && q_len <= static_cast<int32_t>(c.attention.rows))",
+        ),
+        (
+            "attention_full_native.h",
+            "    const uint32_t sfa_rows =\n"
+            "        (q_len > 0 && q_len <= static_cast<int32_t>(config.attention.rows))",
+        ),
+    ):
+        hdr = wl_dir / fname
+        if hdr.is_file():
+            txt = hdr.read_text()
+            if anchor in txt and "if (q_len <= 0)" not in txt:
+                txt = txt.replace(
+                    anchor,
+                    f"    if (q_len <= 0) {{\n        return;\n    }}\n{anchor}",
+                    1,
+                )
+                hdr.write_text(txt)
 
 
 def _render_l78_build_script(
@@ -828,12 +860,12 @@ def _render_l78_build_script(
             "-ltorch -ltorch_cpu -lc10 -ltorch_npu",
         ]
     )
+    base_defs_block = "\n".join(f"        {shlex.quote(d)}" for d in L78_BASE_DEFS)
     compile_lines = []
     for k_val in target_ks:
         ver, sfx = L78_VARIANT_SPECS[k_val]
         compile_lines.append(
-            f"compile_variant {ver} {sfx} -DK11040_F0_NZ=1 "
-            f"-DK11040_GU_FAST128=1 -DDRAFT_SFA_TOPK={k_val} &"
+            f"compile_variant {ver} {sfx} -DDRAFT_SFA_TOPK={k_val} &"
         )
     compile_block = "\n".join(compile_lines)
     return f"""set -euo pipefail
@@ -851,19 +883,7 @@ compile_variant() {{
     shift 2
     local defs=(
         -DKERNEL_VER=$ver
-        -DSFA_MM2_PAIR_LOAD=1
-        -DQUERY_GROUPS_NARROW=1
-        -DBF16_QUERY12_GROUPS=1
-        -DGU_WIDE=1
-        -DATTENTION_HEADS=8
-        -DFFN_OP_NS=tilert_ffn_original_shared_gu_static
-        -DROUTED_ROW_BALANCED=1
-        -DROUTED_SHARED_PIPELINE=1
-        -DROUTED_INPUT_FRONT=1
-        -DSHARED_W8_DYNAMIC_PERFORMANCE_QUANT=1
-        -DROUTED_ACTIVE_LIST=1
-        -DL78_PLAIN_RMSNORM=1
-        -DL78_EXACT_INDEXER=1
+{base_defs_block}
         -Dlayer_tp_tree_chain=layer_tp_tree_chain_K$ver
         -Dlayer_tp_tree_chain_launch=layer_tp_tree_chain_launch_K$ver
         -Dlayer_tp_tree_indexed_launch=layer_tp_tree_indexed_launch_K$ver

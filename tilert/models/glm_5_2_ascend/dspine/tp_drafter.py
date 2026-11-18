@@ -1,30 +1,32 @@
-from contextlib import contextmanager
 import copy
 import ctypes
 import gc
 import hashlib
-import json
 from pathlib import Path
 import shutil
 import struct
-import time
-from types import MethodType
 
-import torch
-
+from ..abi import LocalRecords, _alloc_aligned
+from ..config import HIDDEN_SIZE, K_NORM_EPS, RMS_NORM_EPS, VOCAB_SIZE
 from .build_dspine_ops import build_dspine_ops, default_build_dir
+from .calibrated_l78 import (
+    L78_VARIANT_SPECS,
+    build_beam_specs,
+    build_draft_l78_k110419,
+)
 
-try:
-    import torch_npu
-except ImportError:
-    torch_npu = None
+MAX_COMMIT_M = 16
 
 
 def _load_ops_cdll(so_path: Path, rank: int) -> ctypes.CDLL:
+    import torch
+
     sha = hashlib.sha256(so_path.read_bytes()).hexdigest()[:10]
     ver_so = so_path.with_name(f"tilert_dspine_ops_{sha}.so")
     if rank == 0 and not ver_so.exists():
-        shutil.copy2(so_path, ver_so)
+        tmp = ver_so.with_name(f".{ver_so.name}.{rank}.tmp")
+        shutil.copy2(so_path, tmp)
+        tmp.replace(ver_so)
     if torch.distributed.is_initialized():
         torch.distributed.barrier()
     lib = ctypes.CDLL(str(ver_so), ctypes.RTLD_LOCAL)
@@ -121,10 +123,107 @@ def _load_ops_cdll(so_path: Path, rank: int) -> ctypes.CDLL:
         *([ctypes.c_uint64] * 21),
     ]
     lib.tilert_dspine_build_tree_v3_launch.restype = ctypes.c_int
+
+    lib.tilert_dspine_prolog_prepare_meta_launch.argtypes = [
+        ctypes.c_void_p,
+        *([ctypes.c_uint64] * 11),
+        ctypes.c_int32,
+        ctypes.c_int32,
+    ]
+    lib.tilert_dspine_prolog_prepare_meta_launch.restype = ctypes.c_int
+
+    lib.tilert_dspine_resolve_and_advance_launch.argtypes = [
+        ctypes.c_void_p,
+        *([ctypes.c_uint64] * 9),
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_double,
+        ctypes.c_double,
+        ctypes.c_double,
+        ctypes.c_double,
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_int32,
+    ]
+    lib.tilert_dspine_resolve_and_advance_launch.restype = ctypes.c_int
+
+    lib.tilert_dspine_embed_lookup_launch.argtypes = [
+        ctypes.c_void_p,
+        *([ctypes.c_uint64] * 4),
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_int32,
+    ]
+    lib.tilert_dspine_embed_lookup_launch.restype = ctypes.c_int
+
+    lib.tilert_dspine_exact_index_keys_launch.argtypes = [
+        ctypes.c_void_p,
+        *([ctypes.c_uint64] * 11),
+        ctypes.c_int32,
+        ctypes.c_float,
+        ctypes.c_int32,
+    ]
+    lib.tilert_dspine_exact_index_keys_launch.restype = ctypes.c_int
+
+    lib.tilert_step3c_prolog_pack_guarded_launch.argtypes = [
+        ctypes.c_void_p,
+        *([ctypes.c_uint64] * 6),
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_int32,
+    ]
+    lib.tilert_step3c_prolog_pack_guarded_launch.restype = ctypes.c_int
+
+    lib.tilert_step3c_dual_rmsnorm_slice_guarded_launch.argtypes = [
+        ctypes.c_void_p,
+        *([ctypes.c_uint64] * 5),
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_float,
+    ]
+    lib.tilert_step3c_dual_rmsnorm_slice_guarded_launch.restype = ctypes.c_int
+
+    lib.tilert_logits_topk_lse_bf16_guarded_launch.argtypes = [
+        ctypes.c_void_p,
+        *([ctypes.c_uint64] * 5),
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_int32,
+    ]
+    lib.tilert_logits_topk_lse_bf16_guarded_launch.restype = ctypes.c_int
+
+    lib.tilert_dspine_add_rmsnorm_quant_launch.argtypes = [
+        ctypes.c_void_p,
+        *([ctypes.c_uint64] * 7),
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_float,
+    ]
+    lib.tilert_dspine_add_rmsnorm_quant_launch.restype = ctypes.c_int
+
+    lib.tilert_dspine_prolog_pack_compact_launch.argtypes = [
+        ctypes.c_void_p,
+        *([ctypes.c_uint64] * 5),
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_int32,
+    ]
+    lib.tilert_dspine_prolog_pack_compact_launch.restype = ctypes.c_int
     return lib
 
 
 def load_dspine_ops(rank: int, out_dir: str | Path | None = None) -> tuple[Path, ctypes.CDLL]:
+    import torch
+
     out = default_build_dir() if out_dir is None else Path(out_dir)
     so_path = out / "tilert_dspine_ops.so"
     if not so_path.exists():
@@ -133,53 +232,6 @@ def load_dspine_ops(rank: int, out_dir: str | Path | None = None) -> tuple[Path,
         if torch.distributed.is_initialized():
             torch.distributed.barrier()
     return so_path, _load_ops_cdll(so_path, rank)
-
-
-@contextmanager
-def exact_rows(target):
-    original = target._metadata
-
-    def exact_meta(self, width_arg, *, graphed=False, depths=None, host_values=None):
-        ea = getattr(self, "_exact_active", None)
-        res = original(width_arg, graphed=graphed, depths=depths, host_values=host_values)
-        if ea is not None and graphed and self._hoisted.get(width_arg) is not None:
-            self._active_rows = ea
-            if self._dynamic_mc2_mask and self.graph is not None and self.graph.capture_count:
-                if self._last_mc2_active.get(width_arg, width_arg) != ea:
-                    from vllm_ascend.ascend_forward_context import (
-                        _hoisted_mc2_masks,
-                        get_mc2_mask,
-                    )
-
-                    mask = (
-                        _hoisted_mc2_masks.get((width_arg, width_arg))
-                        if _hoisted_mc2_masks is not None
-                        else None
-                    )
-                    if mask is None:
-                        reserved = get_mc2_mask()
-                        if reserved is not None:
-                            mask = reserved[:width_arg]
-                    if mask is not None:
-                        mask.copy_(self._mc2_host_masks[width_arg][ea], non_blocking=True)
-                    self._last_mc2_active[width_arg] = ea
-            if self._dynamic_sfa_len:
-                s_idx = self._sfa_len_idx % len(self._sfa_len_slots)
-                self._sfa_len_idx += 1
-                s_len = self._sfa_len_slots[s_idx]
-                s_len[0, 0] = ea
-                s_len[1, 0] = self.position + ea
-                s_len[0, 1] = width_arg
-                s_len[1, 1] = self.position + width_arg
-                self._dyn_lens_dev[width_arg].copy_(s_len, non_blocking=True)
-        return res
-
-    target._metadata = MethodType(exact_meta, target)
-    try:
-        yield
-    finally:
-        target._exact_active = None
-        target._metadata = original
 
 
 def _bind_draft_klib(so_path: Path, ver: int):
@@ -203,226 +255,61 @@ def _bind_draft_klib(so_path: Path, ver: int):
     return lib, fn_m, fn_i, fn_s, fn_kvc
 
 
-class _DraftLayerWeights:
-    def __init__(self, layer, mode: str, device: torch.device, *, f0_nz: bool = False):
-        from .. import attention_native as an
-        from ..routed_shared import _shared_weights
-        from ..whole_layer import HIDDEN, unpack_scale
-
-        self.attention = layer.self_attn.mla_attn.mla_attn
-        self.impl = self.attention.impl
-        self.mode = mode
-        with torch.npu.device(device), torch.inference_mode():
-            self.main, self.front, self.tail = an._pack_weights(self.impl, mode)
-            if f0_nz and self.front:
-                f0 = self.front[0]
-                f0.copy_(f0.view(16, 2048, 8, 32).permute(0, 2, 1, 3).contiguous().view_as(f0))
-            torch.npu.synchronize()
-        self.caches = an._cache_tensors(self.attention, mode)
-        self.device = self.caches[0].device
-        runner = layer.mlp.experts
-        routed = runner.routed_experts
-        moe = runner.moe_config
-        local_experts = moe.num_local_experts
-        inter = moe.intermediate_size_per_partition
-        gu_cols = 2 * inter
-        scales = [
-            an._nd(unpack_scale(getattr(routed, name), columns, local_experts).to(device))
-            for name, columns in (("w13_weight_scale", gu_cols), ("w2_weight_scale", HIDDEN))
-        ]
-        self.routed = [
-            routed.w13_weight,
-            routed.w13_scale_bias,
-            scales[0],
-            routed.w2_weight,
-            routed.w2_scale_bias,
-            scales[1],
-        ]
-        self.shared = list(_shared_weights(runner.ascend_shared_experts))
-        self.input_gamma = an._nd(layer.input_layernorm.weight)
-        self.post = [
-            an._nd(layer.post_attention_layernorm.weight),
-            an._nd(an._nd(layer.mlp.gate.weight).t()),
-            layer.mlp.gate.e_score_correction_bias.detach(),
-        ]
-        self.scalars = (
-            self.impl.scale,
-            self.impl.q_a_layernorm.variance_epsilon,
-            self.impl.kv_a_layernorm.variance_epsilon,
-            layer.input_layernorm.variance_epsilon,
-            layer.post_attention_layernorm.variance_epsilon,
-        )
-
-
-def capture_shared_target_for_width(
-    target,
-    draft,
-    width: int,
-    case_prefix_main,
-    case_mtp,
-    golden_tokens: list[int],
-    tree_mask_i32: torch.Tensor,
-    channel_group,
-) -> dict:
-    from ..cann_graph import CannGraph
-    from ..cann_model import rope_buffers
-    from vllm_ascend.ascend_forward_context import _hoisted_mc2_masks, get_mc2_mask
-
-    dev = target.device
-    mgr = target._whole_layer
-    mgr.set_tree_mask_ptr(int(tree_mask_i32.data_ptr()))
-    tree_mask_i32.zero_()
-    torch.npu.synchronize()
-
-    target._hoisted.pop(width, None)
-    target._last_mc2_active.pop(width, None)
-    with torch.inference_mode():
-        target._input_buffers[width][4].copy_(target._input_buffers[width][3].to(dev))
-        if _hoisted_mc2_masks is not None and (width, width) in _hoisted_mc2_masks:
-            _hoisted_mc2_masks[(width, width)].fill_(True)
-    torch.ops.tilert.set_active_tokens_ptr(target._dyn_lens_dev[width], True, True)
-
-    target.inject(case_prefix_main)
-    draft.inject(case_mtp)
-    torch.distributed.barrier(group=channel_group)
-
-    if target.graph is not None:
-        target.graph.reset()
-        target.graph = None
-
-    with torch.npu.device(dev), torch.inference_mode(), exact_rows(target):
-        target.graph = CannGraph(target, width)
-        for _ in range(3):
-            tree_mask_i32.zero_()
-            st_w = target.verify(golden_tokens[:width], full_logits=False)
-            torch.npu.synchronize()
-            if st_w.token_ids[:width].cpu().tolist() != golden_tokens[1 : width + 1]:
-                raise RuntimeError(f"Target capture parity mismatch at width={width}")
-            target.truncate(8192)
-
-    for rg in getattr(target, "_rope_graphs", {}).values():
-        rg.graph.reset()
-    target._rope_graphs.clear()
-
-    hoisted_vals = target._hoisted[width][1]
-    hoisted_rope_dsts = target._hoisted[width][2]
-    rb = rope_buffers()
-    all_rope_pairs = [(rb._cos_mla[:width], rb._sin_mla[:width])] + list(hoisted_rope_dsts)
-    rdsts_cpu = torch.zeros((1024,), dtype=torch.int64)
-    for idx_r, (rcos, rsin) in enumerate(all_rope_pairs):
-        rdsts_cpu[2 * idx_r] = int(rcos.data_ptr())
-        rdsts_cpu[2 * idx_r + 1] = int(rsin.data_ptr())
-    rope_dsts_dev = rdsts_cpu.to(dev)
-
-    dyn_w_t = target._dyn_lens_dev[width]
-    dyn_kv_ptrs = {int(dyn_w_t[1, :1].data_ptr()), int(dyn_w_t[1, 1:2].data_ptr())}
-    full_seq_ptrs = {}
-    q_restore_map = {}
-    for v in hoisted_vals:
-        if int(v.seq_lens.data_ptr()) not in dyn_kv_ptrs:
-            full_seq_ptrs[v.seq_lens.data_ptr()] = v.seq_lens
-        if hasattr(v, "actual_seq_lengths_key"):
-            if int(v.actual_seq_lengths_key.data_ptr()) not in dyn_kv_ptrs:
-                full_seq_ptrs[v.actual_seq_lengths_key.data_ptr()] = v.actual_seq_lengths_key
-        for q_attr in ("cum_query_lens", "actual_seq_lengths_query"):
-            tq = getattr(v, q_attr, None)
-            if isinstance(tq, torch.Tensor) and tq.device.type == "npu" and tq.dtype == torch.int32:
-                q_restore_map[int(tq.data_ptr())] = tq
-
-    full_seq_tensors = list(full_seq_ptrs.values())
-    fsptrs_cpu = torch.zeros((16,), dtype=torch.int64)
-    for i, sl in enumerate(full_seq_tensors):
-        fsptrs_cpu[i] = int(sl.data_ptr())
-    full_seq_ptrs_dev = fsptrs_cpu.to(dev)
-
-    mc2_mask = _hoisted_mc2_masks.get((width, width)) if _hoisted_mc2_masks is not None else None
-    if mc2_mask is None:
-        res_m = get_mc2_mask()
-        if res_m is not None:
-            mc2_mask = res_m[:width]
-    mc2_mask_ptr = int(mc2_mask.data_ptr()) if mc2_mask is not None else 0
-    has_mc2_mask = 1 if mc2_mask is not None else 0
-
-    q_restore_pairs = [
-        (dyn_w_t, dyn_w_t.clone()),
-        *((tq, tq.clone()) for tq in q_restore_map.values()),
-    ]
-    if mc2_mask is not None:
-        q_restore_pairs.append((mc2_mask, mc2_mask.clone()))
-
-    t_ids, t_pos, t_slots = target._input_buffers[width][:3]
-    head_graph, target_tokens = target._head_graphs[width]
-    return {
-        "width": width,
-        "graph_width": width,
-        "target_aclgraph": target.graph._entry.aclgraph,
-        "target_hidden": target.graph._entry.output,
-        "head_graph": head_graph,
-        "target_tokens": target_tokens,
-        "t_input_ids": t_ids,
-        "t_positions": t_pos,
-        "t_slots": t_slots,
-        "t_slots_i64": target.graph.slots_i64,
-        "dyn_w": dyn_w_t,
-        "full_seq_ptrs_dev": full_seq_ptrs_dev,
-        "num_full_seq_ptrs": len(full_seq_tensors),
-        "mc2_mask_ptr": mc2_mask_ptr,
-        "has_mc2_mask": has_mc2_mask,
-        "rope_dsts_dev": rope_dsts_dev,
-        "num_rope_dsts": len(all_rope_pairs),
-        "q_restore_pairs": q_restore_pairs,
-        "tree_mask_i32": tree_mask_i32,
-    }
-
-
 class _DraftEntry:
     pass
 
 
 class CalibratedL78V3Runner:
-    COMMIT_M = 16
+    COMMIT_M = MAX_COMMIT_M
 
     def __init__(
         self,
-        target,
-        draft,
+        arena,
+        prefix,
+        metadata_lib,
+        ffn_ops,
+        l78_win,
         shared_tgt: dict,
-        cal_wt,
-        rank: int,
         channel_group,
         first_token: int,
-        prefix_parent_hidden: torch.Tensor,
         b_scheds: list[list[int]],
-        horizon_ctrl=None,
-        inv_temp: float = 0.96,
+        horizon_ctrl,
+        *,
+        inv_temp: float = 0.95,
         beta_margin: float | None = None,
         beta_depth: float | None = None,
         k_sfa: int = 1024,
         min_w_act: int = 10,
-        t_base_ms: float = 47.0,
-        c_w_ms: float = 0.72,
-        p2_commit: bool = True,
-        narrow_topk: bool = True,
+        t_base_ms: float = 41.5,
+        c_w_ms: float = 0.68,
+        narrow_topk: bool = False,
         l78_build_dir: str | Path | None = None,
     ):
-        from .calibrated_l78 import build_beam_specs
+        import torch
 
-        self.target = target
-        self.draft = draft
+        self.arena = arena
+        self.prefix = prefix
+        self.metadata_lib = metadata_lib
+        self.ffn_ops = ffn_ops
+        self.l78_win = l78_win
         self.st = shared_tgt
         self.w = int(shared_tgt["width"])
-        self.wt = cal_wt
-        self.rank = int(rank)
-        self.dev = target.device
+        self.dw = arena.draft
+        self.wt = self.dw.cal_wt
+        self.rank = int(arena.rank)
+        if self.wt.ops is None:
+            _, self.wt.ops = load_dspine_ops(self.rank)
+        self.world_size = int(arena.world_size)
+        self.dev = arena.device
         self.channel_group = channel_group
         self.first_token = int(first_token)
-        self.prefix_parent_hidden = prefix_parent_hidden
         self.l78_build_dir = l78_build_dir
 
         self.b_scheds = [tuple(int(x) for x in s) for s in b_scheds]
         if not 1 <= len(self.b_scheds) <= 3 or max(len(s) for s in self.b_scheds) > 14:
             raise ValueError("Unsupported DSpine beam schedule dimensions")
         self.b0 = int(self.b_scheds[0][0])
+        self.max_steps = max(len(s) for s in self.b_scheds)
         self.max_b = max(max(s) for s in self.b_scheds)
         if not (
             1 <= self.b0 <= 4
@@ -433,38 +320,90 @@ class CalibratedL78V3Runner:
 
         self.horizon_ctrl = horizon_ctrl
         self.inv_temp = float(inv_temp)
-        self.beta_margin = float(cal_wt.beta_margin if beta_margin is None else beta_margin)
-        self.beta_depth = float(cal_wt.beta_depth if beta_depth is None else beta_depth)
-        self.p2_commit = bool(p2_commit)
-        self.k_sfa = int(k_sfa) if self.p2_commit else 2048
+        self.beta_margin = float(self.wt.beta_margin if beta_margin is None else beta_margin)
+        self.beta_depth = float(self.wt.beta_depth if beta_depth is None else beta_depth)
+        self.k_sfa = int(k_sfa)
         if self.k_sfa not in (512, 1024, 2048):
             raise ValueError(f"Unsupported k_sfa: {self.k_sfa}")
-        self.min_w_act = int(min_w_act) if self.p2_commit else self.w
+        self.min_w_act = int(min_w_act)
         self.t_base_ms = float(t_base_ms)
         self.c_w_ms = float(c_w_ms)
-        self.narrow_topk = bool(narrow_topk) and self.p2_commit
+        self.narrow_topk = bool(narrow_topk)
 
         dev = self.dev
-        self.sched_specs = []
-        for sched in self.b_scheds:
-            specs, depths = build_beam_specs(sched)
-            dep_cpu = torch.zeros((256,), dtype=torch.int64)
-            for i, dp in enumerate(depths):
-                dep_cpu[i] = dp
-            self.sched_specs.append((specs, len(depths), dep_cpu.to(dev)))
+        self._owners = []
+        self.step_m_rows = [
+            max(s[idx] for s in self.b_scheds if idx < len(s))
+            for idx in range(self.max_steps)
+        ]
 
-        self._init_runtime_buffers()
+        max_pool = 1
+        max_depths = [0]
+        for s in self.b_scheds:
+            _, depths = build_beam_specs(s)
+            if len(depths) > max_pool:
+                max_pool = len(depths)
+                max_depths = depths
+        self.max_pool_size = max_pool
+        dep_cpu = torch.zeros((256,), dtype=torch.int64)
+        for i, dp in enumerate(max_depths):
+            dep_cpu[i] = dp
+        self.pool_depths_dev = self._alloc_from(dep_cpu, 64)
 
-        head_cache = getattr(cal_wt, "_head_q8_cache", None)
-        if head_cache is None:
-            head_cache = {}
-            cal_wt._head_q8_cache = head_cache
-        t_key = round(self.inv_temp, 6)
-        if t_key not in head_cache:
-            head_cache[t_key] = cal_wt.quantize_head_q8_nz(
-                self.head_w, self.head_valid_vocab, inv_temp=self.inv_temp
-            )
-        self.cal_head_w_q8_nz, self.cal_head_s8 = head_cache[t_key]
+        self.step_table_stride = self.max_steps + 2
+        tbl_cpu = torch.zeros((16, self.step_table_stride), dtype=torch.int64)
+        for lvl, sched in enumerate(self.b_scheds):
+            packed = 0
+            for t, b in enumerate(sched):
+                packed |= (int(b) & 0xF) << (4 * t)
+            tbl_cpu[lvl, 0] = len(sched)
+            tbl_cpu[lvl, 1] = packed
+            for t, b in enumerate(sched):
+                tbl_cpu[lvl, 2 + t] = int(b)
+        self.step_table_dev = self._alloc_from(tbl_cpu, 64)
+
+        _, sq_u8 = self._alloc_bytes(max(16, self.max_steps) * 4, 64, zero=True)
+        self.step_qlen_dev = sq_u8.view(torch.int32)
+        _, sq2_u8 = self._alloc_bytes(max(16, self.max_steps) * 4, 64, zero=True)
+        self.step_2qlen_dev = sq2_u8.view(torch.int32)
+        _, sqp_u8 = self._alloc_bytes(max(8, self.max_steps) * 8, 64, zero=True)
+        self.step_qlen_ptrs_dev = sqp_u8.view(torch.int64)
+        _, cqp_u8 = self._alloc_bytes(64, 64, zero=True)
+        self.commit_qlen_ptrs_dev = cqp_u8.view(torch.int64)
+
+        self.rot_shard_t = self.dw.rot_w_shard.contiguous()
+        self.w_eh_col_r = self.dw.w_eh_shard.contiguous()
+        self.emb_w = arena.embed_w.contiguous()
+        local_vocab = VOCAB_SIZE // self.world_size
+        self.emb_vocab_start = self.rank * local_vocab
+        self.emb_vocab_end = (self.rank + 1) * local_vocab
+        self.enorm_w = self.dw.enorm_w.contiguous()
+        self.hnorm_w = self.dw.hnorm_w.contiguous()
+        self.norm_eps = RMS_NORM_EPS
+
+        self.head_w = self.dw.head_w_shard.contiguous()
+        self.head_row_stride = int(self.head_w.shape[0])
+        self.head_valid_vocab = local_vocab
+        self.head_vocab_start = self.rank * local_vocab
+        self.cal_head_w_q8_nz = self.dw.head_q8_nz
+        self.cal_head_s8 = self.dw.head_scale
+
+        self.wk_w_128 = (
+            self.dw.front[2][:4]
+            .permute(1, 0, 2)
+            .reshape(HIDDEN_SIZE, 128)
+            .t()
+            .contiguous()
+        )
+        self.exact_idx_work = torch.zeros((self.COMMIT_M, 128), dtype=torch.float32, device=dev)
+
+        self.gather_in = torch.zeros((8, 64), dtype=torch.float32, device=dev)
+        self.gather_out = torch.zeros((8, 64), dtype=torch.float32, device=dev)
+        self.logits_work = torch.zeros((1024,), dtype=torch.float32, device=dev)
+        self.beam_work = torch.zeros((32,), dtype=torch.int64, device=dev)
+        self.tree_work = torch.zeros((32,), dtype=torch.int64, device=dev)
+        self.seed_rec_buf = torch.zeros((1, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
+        self.draft_indices_buf = torch.zeros((32, 2048), dtype=torch.int32, device=dev)
 
         self.seed_top_i = torch.zeros((8,), dtype=torch.int64, device=dev)
         self.seed_top_lp = torch.zeros((8,), dtype=torch.float32, device=dev)
@@ -475,124 +414,81 @@ class CalibratedL78V3Runner:
         self.active_raw_lp = torch.zeros((8,), dtype=torch.float32, device=dev)
         self.active_margins = torch.zeros((8,), dtype=torch.float32, device=dev)
         self.active_pids = torch.zeros((8,), dtype=torch.int64, device=dev)
-        self.active_recs = torch.zeros((self.max_b, 6144), dtype=torch.bfloat16, device=dev)
+        self.active_recs = torch.zeros((self.max_b, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
 
         self.rot_part = torch.zeros((self.max_b, 768), dtype=torch.bfloat16, device=dev)
-        self.prolog_comm_in = torch.zeros((2 * self.max_b, 6144), dtype=torch.bfloat16, device=dev)
-        self.prolog_comm_out = torch.zeros((2 * self.max_b, 6144), dtype=torch.bfloat16, device=dev)
+        self.prolog_comm_in = torch.zeros(
+            (32, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev
+        )
+        self.prolog_comm_out = torch.zeros(
+            (32, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev
+        )
         self.eh_in = torch.zeros((self.max_b, 1536), dtype=torch.bfloat16, device=dev)
-        self.eh_comm_in = torch.zeros((self.max_b, 6144), dtype=torch.bfloat16, device=dev)
+        self.eh_comm_in = torch.zeros((32, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
 
         self.pool_scores = torch.zeros((256,), dtype=torch.float32, device=dev)
         self.pool_raw_lp = torch.zeros((256,), dtype=torch.float32, device=dev)
         self.pool_tokens = torch.zeros((256,), dtype=torch.int64, device=dev)
         self.pool_parents = torch.zeros((256,), dtype=torch.int64, device=dev)
 
-        self.tree_tokens = torch.zeros((self.w,), dtype=torch.int64, device=dev)
-        self.tree_parents = torch.zeros((self.w,), dtype=torch.int64, device=dev)
-        self.tree_depths = torch.zeros((self.w,), dtype=torch.int64, device=dev)
+        _, tt_u8 = self._alloc_bytes(max(8, self.w) * 8, 64, zero=True)
+        self.tree_tokens = tt_u8.view(torch.int64)[: self.w]
+        _, tp_u8 = self._alloc_bytes(max(8, self.w) * 8, 64, zero=True)
+        self.tree_parents = tp_u8.view(torch.int64)[: self.w]
+        _, td_u8 = self._alloc_bytes(max(8, self.w) * 8, 64, zero=True)
+        self.tree_depths = td_u8.view(torch.int64)[: self.w]
 
-        self.draft_ctrl_cpu = torch.zeros((8,), dtype=torch.int64, pin_memory=True)
-        self.draft_ctrl_dev = torch.zeros((8,), dtype=torch.int64, device=dev)
-        self.compact_ctrl_cpu = torch.zeros((64,), dtype=torch.int64, pin_memory=True)
-        self.compact_ctrl_dev = torch.zeros((64,), dtype=torch.int64, device=dev)
+        _, dc_u8 = self._alloc_bytes(64, 64, zero=True)
+        self.draft_ctrl_dev = dc_u8.view(torch.int64)
+        _, cmp_u8 = self._alloc_bytes(64 * 8, 64, zero=True)
+        self.compact_ctrl_dev = cmp_u8.view(torch.int64)
 
         cm = self.COMMIT_M
         self.commit_ttoks_pad32 = torch.zeros((32,), dtype=torch.int64, device=dev)
-        self.commit_ctrl_cpu = torch.zeros((48,), dtype=torch.int64, pin_memory=True)
-        self.commit_ctrl_dev = torch.zeros((48,), dtype=torch.int64, device=dev)
+        _, cmt_u8 = self._alloc_bytes(48 * 8, 64, zero=True)
+        self.commit_ctrl_dev = cmt_u8.view(torch.int64)
+        self.commit_acc_i32 = cmt_u8[8:12].view(torch.int32)
+        self.commit_2acc_i32 = cmt_u8[47 * 8 : 47 * 8 + 4].view(torch.int32)
         self.commit_rot_shard = torch.zeros((cm, 768), dtype=torch.bfloat16, device=dev)
-        self.commit_comm_in = torch.zeros((2 * cm, 6144), dtype=torch.bfloat16, device=dev)
-        self.commit_comm_out = torch.zeros((2 * cm, 6144), dtype=torch.bfloat16, device=dev)
-        self.commit_eh_in = torch.zeros((cm, 12288), dtype=torch.bfloat16, device=dev)
+        self.commit_comm_in = torch.zeros((4 * cm, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
+        self.commit_comm_out = torch.zeros((4 * cm, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
+        self.commit_eh_in = torch.zeros((cm, 2 * HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
         self.commit_eh_shard = torch.zeros((cm, 768), dtype=torch.bfloat16, device=dev)
-        self.commit_eh_comm = torch.zeros((cm, 6144), dtype=torch.bfloat16, device=dev)
-        self.commit_hs_all = torch.zeros((cm + 4, 6144), dtype=torch.bfloat16, device=dev)
+        self.commit_eh_comm = torch.zeros((2 * cm, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
+        self.commit_hs_all = torch.zeros((2 * cm, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
         self.kv_commit_topk = torch.zeros((cm, 1, 2048), dtype=torch.int32, device=dev)
 
-        self.host_read_buf = torch.zeros((3 * self.w,), dtype=torch.int64, device=dev)
-
-        all_widths = sorted({b for s in self.b_scheds for b in s})
-        (
-            self.cal_entries,
-            self.entry_cal_idx_1,
-            self.entry_kv_commit,
-        ) = self._build_v3_entries(all_widths)
+        self._build_v3_entries()
         self.sync_addr = int(self.entry_cal_idx_1.sync)
-        with torch.inference_mode():
-            for dst_q, ref_q in self.st.get("q_restore_pairs", ()):
-                dst_q.copy_(ref_q)
-        torch.ops.tilert.set_active_tokens_ptr(shared_tgt["dyn_w"], True, True)
-        self._capture()
 
-    def _init_runtime_buffers(self):
-        from vllm.distributed import get_tp_group
-
-        dev = self.dev
-        draft = self.draft
-        mtp_layer = draft.model.model.layers["78"]
-        blk = mtp_layer.mtp_block
-        mla_wrapper = blk.self_attn.mla_attn
-        impl = mla_wrapper.mla_attn.impl
-        self.mtp_layer = mtp_layer
-        self.impl = impl
-        tp_grp = get_tp_group().device_group
-
-        def gather_col_shards(mod):
-            w = mod.weight.data.contiguous()
-            chunks = [torch.empty_like(w) for _ in range(8)]
-            torch.distributed.all_gather(chunks, w, group=tp_grp)
-            full = torch.cat(chunks, dim=0).contiguous()
-            return tuple(c.contiguous() for c in chunks), full
-
-        cache_rep = getattr(draft, "_dspine_rep_weights", None)
-        if cache_rep is None:
-            rot_shards, _ = gather_col_shards(draft.model.rot)
-            _, eh_full = gather_col_shards(mtp_layer.eh_proj)
-            cache_rep = (rot_shards, eh_full)
-            draft._dspine_rep_weights = cache_rep
-        rot_shards, eh_full = cache_rep
-
-        self.rot_shard_t = rot_shards[self.rank].t().contiguous()
-        self.w_eh_col_r = (
-            eh_full[self.rank * 768 : (self.rank + 1) * 768, :].t().contiguous()
+        cqp_cpu = torch.tensor(
+            [
+                int(self.entry_kv_commit.q_len.data_ptr()),
+                int(self.entry_cal_idx_1.q_len.data_ptr()),
+            ],
+            dtype=torch.int64,
         )
+        self.commit_qlen_ptrs_dev[:2].copy_(cqp_cpu.to(dev))
 
-        emb_mod = draft.model.model.embed_tokens
-        self.emb_w = emb_mod.weight.contiguous()
-        self.emb_vocab_start = int(emb_mod.shard_indices.org_vocab_start_index)
-        self.emb_vocab_end = int(emb_mod.shard_indices.org_vocab_end_index)
-        self.enorm_w = mtp_layer.enorm.weight.contiguous()
-        self.hnorm_w = mtp_layer.hnorm.weight.contiguous()
-        self.norm_eps = float(mtp_layer.enorm.variance_epsilon)
-
-        lm_head = mtp_layer.shared_head.head
-        self.head_w = lm_head.weight.contiguous()
-        self.head_row_stride = int(self.head_w.shape[0])
-        self.head_valid_vocab = (
-            self.head_row_stride - int(lm_head.shard_indices.num_org_vocab_padding)
+        sqp_cpu = torch.tensor(
+            [int(eshr.q_len.data_ptr()) for eshr in self.eshr_steps],
+            dtype=torch.int64,
         )
-        self.head_vocab_start = int(lm_head.shard_indices.org_vocab_start_index)
+        self.step_qlen_ptrs_dev[: self.max_steps].copy_(sqp_cpu.to(dev))
 
-        self.gather_in = torch.zeros((8, 64), dtype=torch.float32, device=dev)
-        self.gather_out = torch.zeros((8, 64), dtype=torch.float32, device=dev)
-        self.logits_work = torch.zeros((1024,), dtype=torch.float32, device=dev)
-        self.beam_work = torch.zeros((32,), dtype=torch.int64, device=dev)
-        self.tree_work = torch.zeros((32,), dtype=torch.int64, device=dev)
-        self.seed_rec_buf = torch.zeros((1, 6144), dtype=torch.bfloat16, device=dev)
+    def _alloc_bytes(self, nbytes: int, align: int, *, zero: bool = True):
+        raw, view = _alloc_aligned(nbytes, align, self.dev, zero=zero)
+        self._owners.append(raw)
+        return raw, view
 
-        cache_tensors = [t for layer in self.target.cache for t in layer.values()]
-        self.num_cache_tensors = len(cache_tensors)
-        descs_cpu = torch.zeros((512,), dtype=torch.int64)
-        for idx_t, t in enumerate(cache_tensors):
-            row_bytes = t.stride(0) * t.element_size() if t.dim() > 1 else t.element_size()
-            descs_cpu[2 * idx_t] = int(t.data_ptr())
-            descs_cpu[2 * idx_t + 1] = int(row_bytes)
-        self.descs_dev = descs_cpu.to(dev)
+    def _alloc_from(self, cpu_tensor, align: int):
+        nbytes = cpu_tensor.numel() * cpu_tensor.element_size()
+        _, view = self._alloc_bytes(nbytes, align, zero=False)
+        typed = view.view(cpu_tensor.dtype).view(cpu_tensor.shape)
+        typed.copy_(cpu_tensor.to(self.dev))
+        return typed
 
     def _ensure_l78_klibs(self):
-        from .calibrated_l78 import L78_VARIANT_SPECS, build_draft_l78_k110419
-
         need_ver = L78_VARIANT_SPECS[self.k_sfa][0]
         klibs_by_ver = getattr(self.wt, "_p2_klibs_by_ver", None)
         if not isinstance(klibs_by_ver, dict):
@@ -609,7 +505,10 @@ class CalibratedL78V3Runner:
             ver_so = src_so.with_name(f"{src_so.stem}_{sha}.so")
             if not ver_so.exists():
                 shutil.copy2(src_so, ver_so)
-        torch.distributed.barrier(group=self.channel_group)
+        if torch_dist_ready():
+            import torch
+
+            torch.distributed.barrier(group=self.channel_group)
         so_19, _ = build_draft_l78_k110419(out_dir=self.l78_build_dir, k_sfa=self.k_sfa)
         out_dir = so_19.parent
         src_so = out_dir / f"chain_K{need_ver}.so"
@@ -618,212 +517,197 @@ class CalibratedL78V3Runner:
         klibs_by_ver[need_ver] = _bind_draft_klib(ver_so, need_ver)
         return klibs_by_ver
 
-    def _build_v3_entries(self, widths: list[int]):
-        from vllm.config import set_current_vllm_config
-        from .. import attention_native as an
-        from ..cann_model import CannModel
-        from ..cann_mtp import INDEX_CACHE, MAIN_CACHE
-        from ..whole_layer_abi import LocalRecords, Window
-        from .calibrated_l78 import L78_VARIANT_SPECS
+    def _build_v3_entries(self):
+        import torch
 
         klibs_by_ver = self._ensure_l78_klibs()
         need_ver = L78_VARIANT_SPECS[self.k_sfa][0]
         _, _, fn_i, fn_s_rollout, fn_kvc = klibs_by_ver[need_ver]
 
         dev = self.dev
-        draft = self.draft
-        mgr = self.target._whole_layer
+        dw = self.dw
+        pages = int(self.prefix.pages)
+        table_pages = int(self.prefix.block_table.shape[1])
+        raw_mt = self.prefix.block_table
+        raw_it = self.prefix.block_table
 
-        bundle = getattr(self.wt, "_v3_shared_bundle", None)
-        if bundle is None:
-            with (
-                torch.npu.device(dev),
-                torch.inference_mode(),
-                set_current_vllm_config(draft.config),
-            ):
-                old_pos = draft.position
-                draft.position = 9300
-                gmeta1 = CannModel._metadata(draft, 1, graphed=True)
-                raw_mt = an._nd(gmeta1[MAIN_CACHE].block_table).clone()
-                raw_it = an._nd(gmeta1[INDEX_CACHE].block_table).clone()
-                draft.position = old_pos
+        cal_input_gamma = self.wt.cal_input_gamma
+        cal_main = list(dw.main)
+        if self.wt.cal_uq_qr_q8_nz is not None:
+            cal_main[1] = self.wt.cal_uq_qr_q8_nz
+            cal_main[5] = self.wt.cal_uq_qr_scale
+        cal_main[2] = self.wt.cal_w_uk_t
+        cal_main[7] = self.wt.cal_q_a_norm
 
-            blk = self.mtp_layer.mtp_block
-            idx_mode = an._validate_impl(self.impl)
-            w_idx = _DraftLayerWeights(blk, idx_mode, dev, f0_nz=True)
-            w_shr = _DraftLayerWeights(blk, "shared", dev, f0_nz=False)
-            l78_win = getattr(draft, "_l78_win", None)
-            if l78_win is None:
-                l78_win = Window(mgr.tree, 32)
-                draft._l78_win = l78_win
+        cal_tail = list(dw.tail)
+        cal_tail[0] = self.wt.cal_w_uv_packed
+        if self.wt.cal_w_o_packed is not None:
+            cal_tail[1] = self.wt.cal_w_o_packed
+            cal_tail[2] = self.wt.cal_w_o_scale
 
-            with torch.npu.device(dev):
-                cal_input_gamma = an._nd(self.wt.cal_input_gamma)
-                cal_main = list(w_shr.main)
-                if self.wt.cal_uq_qr_q8_nz is not None:
-                    cal_main[1] = self.wt.cal_uq_qr_q8_nz
-                    cal_main[5] = an._nd(self.wt.cal_uq_qr_scale)
-                cal_main[2] = an._nd(self.wt.cal_w_uk_t)
-                cal_main[7] = an._nd(self.wt.cal_q_a_norm)
+        cal_post = [self.wt.cal_post_gamma, self.wt.cal_router_w_packed, dw.post[2]]
+        cal_routed = list(dw.routed_folded)
+        cal_shared = (
+            list(self.wt.cal_shared_packed)
+            if self.wt.cal_shared_packed is not None
+            else list(dw.shared)
+        )
 
-                cal_t0 = an._nd(self.wt.cal_w_uv_packed.clone())
-                cal_tail = list(w_shr.tail)
-                cal_tail[0] = cal_t0
-                if self.wt.cal_w_o_packed is not None:
-                    cal_t1 = an._nd(self.wt.cal_w_o_packed.clone())
-                    cal_tail[1] = cal_t1
-                    cal_tail[2] = an._nd(self.wt.cal_w_o_scale)
+        caches_idx = [
+            self.prefix.views["mla_latent.78"],
+            self.prefix.views["mla_rope.78"],
+            self.prefix.views["index.78"],
+        ]
+        caches_shr = [
+            self.prefix.views["mla_latent.78"],
+            self.prefix.views["mla_rope.78"],
+        ]
 
-                cal_post = [
-                    an._nd(self.wt.cal_post_gamma),
-                    an._nd(self.wt.cal_router_w_packed),
-                    w_shr.post[2],
-                ]
-                cal_routed = self.wt.fold_routed_weights(w_shr.routed)
-                cal_shared = list(w_shr.shared)
-                if self.wt.cal_shared_packed is not None:
-                    cal_shared = [an._nd(x) for x in self.wt.cal_shared_packed]
-                weight_refs = (
-                    w_idx, w_shr, l78_win,
-                    cal_input_gamma, cal_main, cal_tail, cal_post, cal_routed, cal_shared,
-                    raw_mt, raw_it,
+        def empty(shape, dtype):
+            return torch.zeros(shape, dtype=dtype, device=dev)
+
+        def make_ws(m_rows: int, indexed: bool):
+            ws = _DraftEntry()
+            ws.m = m_rows
+            ws.indexed = indexed
+            ws.hs_in_full = empty((32, HIDDEN_SIZE), torch.bfloat16)
+            ws.hs_in = ws.hs_in_full[:m_rows]
+            ws.zero_res = empty((m_rows, HIDDEN_SIZE), torch.bfloat16)
+            ws.norm_outputs = [
+                empty((m_rows, HIDDEN_SIZE), torch.bfloat16),
+                empty((m_rows, HIDDEN_SIZE), torch.bfloat16),
+                empty((m_rows,), torch.float32),
+                empty((m_rows, HIDDEN_SIZE), torch.int8),
+                empty((m_rows, 1), torch.float32),
+            ]
+            ws.sin_buf = empty((m_rows, 64), torch.bfloat16)
+            ws.cos_buf = empty((m_rows, 64), torch.bfloat16)
+            ws.slot_i64 = empty((m_rows,), torch.int64)
+            ws.slot_i64.copy_(torch.arange(9250, 9250 + m_rows, dtype=torch.int64, device=dev))
+            ws.kv_len = torch.zeros((1,), dtype=torch.int32, device=dev)
+            if not indexed:
+                ws.scratch, ws.tiling, blocks, ws.sync = (
+                    torch.ops.tilert.shared_full_attention_prepare(
+                        ws.norm_outputs[3], pages, table_pages, 24
+                    )
                 )
-
-                def empty(shape, dtype):
-                    return an._nd(torch.zeros(shape, dtype=dtype, device=dev))
-
-                def make_entry(
-                    m_rows: int, indexed: bool, fn_launch, use_cal: bool, custom_topk=None
-                ):
-                    em = _DraftEntry()
-                    w_ref = w_idx if indexed else w_shr
-                    em.weights = w_ref
-                    em.m = m_rows
-                    em.indexed = indexed
-                    em.hs_in = empty((m_rows, 6144), torch.bfloat16)
-                    em.zero_res = empty((m_rows, 6144), torch.bfloat16)
-                    em.norm_outputs = [
-                        empty((m_rows, 6144), torch.bfloat16),
-                        empty((m_rows, 6144), torch.bfloat16),
-                        empty((m_rows,), torch.float32),
-                        empty((m_rows, 6144), torch.int8),
-                        empty((m_rows, 1), torch.float32),
-                    ]
-                    em.sin_buf = empty((m_rows, 64), torch.bfloat16)
-                    em.cos_buf = empty((m_rows, 64), torch.bfloat16)
-                    em.slot_i64 = empty((m_rows,), torch.int64)
-                    em.slot_i64.copy_(
-                        torch.arange(9250, 9250 + m_rows, dtype=torch.int64, device=dev)
+            else:
+                ws.scratch, ws.tiling, _, blocks, ws.sync = (
+                    torch.ops.tilert.indexed_attention_prepare(
+                        ws.norm_outputs[3], pages, table_pages, pages, table_pages, False, 24
                     )
-                    em.q_len = torch.full((1,), m_rows, dtype=torch.int32, device=dev)
-                    em.kv_len = torch.zeros((1,), dtype=torch.int32, device=dev)
-                    main_meta = [em.sin_buf, em.cos_buf, em.slot_i64, em.q_len, em.kv_len, raw_mt]
-                    idx_meta = (
-                        [em.sin_buf, em.cos_buf, em.slot_i64, em.q_len, em.kv_len, raw_it]
-                        if indexed
-                        else None
-                    )
-                    g = an.geometry_for(w_ref.mode, w_ref.caches, main_meta, idx_meta)
-                    if not indexed:
-                        (
-                            em.scratch,
-                            em.tiling,
-                            blocks,
-                            em.sync,
-                        ) = torch.ops.tilert.shared_full_attention_prepare(
-                            em.norm_outputs[3], g.pages, g.table_pages, 24
-                        )
-                    else:
-                        (
-                            em.scratch,
-                            em.tiling,
-                            _,
-                            blocks,
-                            em.sync,
-                        ) = torch.ops.tilert.indexed_attention_prepare(
-                            em.norm_outputs[3],
-                            g.pages,
-                            g.table_pages,
-                            g.index_pages,
-                            g.index_table_pages,
-                            False,
-                            24,
-                        )
-                    em.partial = empty((m_rows, 6144), torch.bfloat16)
-                    em.bridge, em.body, sync_f = mgr.ffn.prepare(em.partial, 24, 1)
-                    if blocks != 24 or em.sync != sync_f:
-                        raise RuntimeError("Draft entry FFN workspace mismatch")
-                    em.attention_sum = empty((m_rows, 6144), torch.bfloat16)
-                    em.output = empty((m_rows, 6144), torch.bfloat16)
+                )
+            ws.partial = empty((m_rows, HIDDEN_SIZE), torch.bfloat16)
+            ws.bridge, ws.body, sync_f = self.ffn_ops.prepare(ws.partial, 24, 1)
+            if blocks != 24 or ws.sync != sync_f:
+                raise RuntimeError("Draft entry FFN workspace mismatch")
+            ws.attention_sum = empty((m_rows, HIDDEN_SIZE), torch.bfloat16)
+            ws.output = empty((m_rows, HIDDEN_SIZE), torch.bfloat16)
+            return ws
 
-                    ig_use = cal_input_gamma if use_cal else w_ref.input_gamma
-                    mn_use = cal_main if use_cal else w_ref.main
-                    tl_use = cal_tail if use_cal else w_ref.tail
-                    ps_use = cal_post if use_cal else w_ref.post
-                    rt_use = cal_routed if use_cal else w_ref.routed
-                    sh_use = cal_shared if use_cal else w_ref.shared
-
-                    norm = [em.hs_in, em.zero_res, ig_use, *em.norm_outputs]
-                    caches = [*w_ref.caches, *([None] * (4 - len(w_ref.caches)))]
-                    addrs = [
-                        *norm[3:4], *norm[6:8], *mn_use,
-                        *(w_ref.front or [None] * 6), *tl_use, None,
-                        *main_meta, *(idx_meta or [None] * 6), *caches,
-                        em.scratch, em.tiling, em.partial,
-                    ]
-                    dims = (
-                        m_rows, g.pages, g.table_pages,
-                        g.index_pages or g.pages, g.index_table_pages or g.table_pages,
-                        24, 0, int(bool(w_ref.front) and w_ref.front[1].dtype == torch.bfloat16), 0,
-                    )
-                    groups = (norm, addrs, ps_use, rt_use, em.bridge, em.body, sh_use)
-                    shared_topk = (
-                        custom_topk
-                        if custom_topk is not None
-                        else draft.indices_buffer[:m_rows].view(m_rows, 1, 2048)
-                    )
-                    em.local = LocalRecords(
-                        mgr.metadata_library,
-                        *groups,
-                        shared_topk,
-                        dims,
-                        w_ref.scalars,
-                        em.sync,
-                        indexed,
-                    )
-                    comm_raw = struct.pack(
-                        "<QQQQqii",
-                        l78_win.address, l78_win.bytes,
-                        em.attention_sum.data_ptr(), em.output.data_ptr(),
-                        l78_win.capacity, l78_win.rank, l78_win.ranks,
-                    )
-                    em.comm_buf = ctypes.create_string_buffer(comm_raw, 48)
-                    em.fn = fn_launch
-                    return em
-
-                e_cal_idx1 = make_entry(1, True, fn_i, True)
-                torch.npu.synchronize()
-                bundle = ({}, e_cal_idx1, weight_refs, make_entry)
-                self.wt._v3_shared_bundle = bundle
-
-        base_shr, e_cal_idx1, weight_refs, make_entry = bundle
-        e_cal_idx1.fn = fn_i
-        self._cal_weight_refs = weight_refs
-        out_shr = {}
-        with torch.npu.device(dev):
-            for m_rows in widths:
-                if m_rows not in base_shr:
-                    base_shr[m_rows] = make_entry(m_rows, False, fn_s_rollout, True)
-                em_cl = copy.copy(base_shr[m_rows])
-                em_cl.fn = fn_s_rollout
-                out_shr[m_rows] = em_cl
-            e_kvc = make_entry(
-                self.COMMIT_M, True, fn_kvc, False, custom_topk=self.kv_commit_topk
+        def bind_entry(
+            ws,
+            indexed: bool,
+            fn_launch,
+            use_cal: bool,
+            q_len_tensor=None,
+            custom_topk=None,
+        ):
+            em = copy.copy(ws)
+            if q_len_tensor is None:
+                _, q_u8 = self._alloc_bytes(64, 64, zero=False)
+                em.q_len = q_u8[:4].view(torch.int32)
+                em.q_len.fill_(ws.m)
+            else:
+                em.q_len = q_len_tensor
+            main_meta = [em.sin_buf, em.cos_buf, em.slot_i64, em.q_len, em.kv_len, raw_mt]
+            idx_meta = (
+                [em.sin_buf, em.cos_buf, em.slot_i64, em.q_len, em.kv_len, raw_it]
+                if indexed
+                else None
             )
-            torch.npu.synchronize()
-        return out_shr, e_cal_idx1, e_kvc
+            ig_use = cal_input_gamma if use_cal else dw.input_gamma
+            mn_use = cal_main if use_cal else list(dw.main)
+            tl_use = cal_tail if use_cal else list(dw.tail)
+            ps_use = cal_post if use_cal else list(dw.post)
+            rt_use = cal_routed if use_cal else list(dw.routed)
+            sh_use = cal_shared if use_cal else list(dw.shared)
+            caches_use = caches_idx if indexed else caches_shr
 
-    def _q8_logits_rollout(self, x: torch.Tensor) -> torch.Tensor:
+            norm = [em.hs_in, em.zero_res, ig_use, *em.norm_outputs]
+            caches = [*caches_use, *([None] * (4 - len(caches_use)))]
+            front = list(dw.front) if indexed else [None] * 6
+            addrs = [
+                *norm[3:4], *norm[6:8], *mn_use,
+                *front, *tl_use, None,
+                *main_meta, *(idx_meta or [None] * 6), *caches,
+                em.scratch, em.tiling, em.partial,
+            ]
+            dims = (
+                ws.m,
+                pages,
+                table_pages,
+                pages,
+                table_pages,
+                24,
+                0,
+                int(indexed and bool(dw.front) and dw.front[1].dtype == torch.bfloat16),
+                0,
+            )
+            groups = (norm, addrs, ps_use, rt_use, em.bridge, em.body, sh_use)
+            shared_topk = (
+                custom_topk
+                if custom_topk is not None
+                else self.draft_indices_buf[: ws.m].view(ws.m, 1, 2048)
+            )
+            em.local = LocalRecords(
+                self.metadata_lib,
+                *groups,
+                shared_topk,
+                dims,
+                dw.scalars,
+                em.sync,
+                indexed,
+            )
+            comm_raw = struct.pack(
+                "<QQQQqii",
+                self.l78_win.address,
+                self.l78_win.bytes,
+                em.attention_sum.data_ptr(),
+                em.output.data_ptr(),
+                self.l78_win.capacity,
+                self.l78_win.rank,
+                self.l78_win.ranks,
+            )
+            em.comm_buf = ctypes.create_string_buffer(comm_raw, 48)
+            em.fn = fn_launch
+            return em
+
+        self._ws_shr = {}
+        for m_rows in sorted(set(self.step_m_rows)):
+            self._ws_shr[m_rows] = make_ws(m_rows, False)
+        self.eshr_steps = [
+            bind_entry(
+                self._ws_shr[m_rows],
+                False,
+                fn_s_rollout,
+                True,
+                q_len_tensor=self.step_qlen_dev[s : s + 1],
+            )
+            for s, m_rows in enumerate(self.step_m_rows)
+        ]
+        self._ws_idx1 = make_ws(1, True)
+        self.entry_cal_idx_1 = bind_entry(self._ws_idx1, True, fn_i, True)
+        self._ws_kvc = make_ws(self.COMMIT_M, True)
+        self.entry_kv_commit = bind_entry(
+            self._ws_kvc, True, fn_kvc, False, custom_topk=self.kv_commit_topk
+        )
+        torch.npu.synchronize(dev)
+
+    def _q8_logits_rollout(self, x):
+        import torch
+        import torch_npu
+
         act_q, act_s = torch_npu.npu_dynamic_quant(x, dst_type=torch.int8)
         return torch_npu.npu_quant_matmul(
             act_q,
@@ -833,48 +717,336 @@ class CalibratedL78V3Runner:
             output_dtype=torch.bfloat16,
         )
 
-    def _run_compact_body(self):
+    def _exact_index_keys(self, entry):
+        import torch
+
         stream_ptr = ctypes.c_void_p(torch.npu.current_stream(self.dev).npu_stream)
-        st = self.wt.ops.tilert_kv_compact_launch(
+        st = self.wt.ops.tilert_dspine_exact_index_keys_launch(
             stream_ptr,
-            self.descs_dev.data_ptr(),
-            self.compact_ctrl_dev.data_ptr(),
-            self.num_cache_tensors,
+            self.sync_addr,
+            entry.norm_outputs[0].data_ptr(),
+            entry.q_len.data_ptr(),
+            entry.slot_i64.data_ptr(),
+            entry.cos_buf.data_ptr(),
+            entry.sin_buf.data_ptr(),
+            self.wk_w_128.data_ptr(),
+            self.dw.front[3].data_ptr(),
+            self.dw.front[4].data_ptr(),
+            self.prefix.draft_cache["index_keys"].data_ptr(),
+            self.exact_idx_work.data_ptr(),
+            entry.m,
+            K_NORM_EPS,
+            0,
         )
         if st != 0:
-            raise RuntimeError(f"kv_compact failed: {st}")
+            raise RuntimeError(f"dspine_exact_index_keys failed: {st}")
 
-    def _exact_index_keys(self, entry):
-        from vllm_ascend.ops.triton.rope import rope_forward_triton_siso
+    def emit_prolog_prepare_meta(self, state_dev, receipt_ring_dev):
+        import torch
 
-        idx_impl = self.impl.indexer.impl
-        wk_proj = idx_impl.wk_weights_proj
-        norm_x = entry.norm_outputs[0]
-        rows = norm_x.shape[0]
-        if rows == 1:
-            kw, _ = wk_proj(norm_x)
-        else:
-            kw = torch.cat([wk_proj(norm_x[r : r + 1])[0] for r in range(rows)], dim=0)
-        k_li = idx_impl.k_norm(kw[:, :128]).view(rows, 1, 128)
-        k_li = rope_forward_triton_siso(
-            k_li,
-            entry.cos_buf.view(rows, 64),
-            entry.sin_buf.view(rows, 64),
-            rope_dim=64,
-            is_neox_style=idx_impl.is_rope_neox_style,
-        ).view(rows, 128)
-        self.draft.cache["index_keys"].view(-1, 128).index_copy_(0, entry.slot_i64, k_li)
+        stream_ptr = ctypes.c_void_p(torch.npu.current_stream(self.dev).npu_stream)
+        st = self.wt.ops.tilert_dspine_prolog_prepare_meta_launch(
+            stream_ptr,
+            state_dev.data_ptr(),
+            self.draft_ctrl_dev.data_ptr(),
+            self.compact_ctrl_dev.data_ptr(),
+            self.commit_ctrl_dev.data_ptr(),
+            self.st["dyn_w"].data_ptr(),
+            self.st["mc2_mask_ptr"],
+            self.step_qlen_dev.data_ptr(),
+            self.step_qlen_ptrs_dev.data_ptr(),
+            self.step_table_dev.data_ptr(),
+            receipt_ring_dev.data_ptr(),
+            self.commit_qlen_ptrs_dev.data_ptr(),
+            self.w,
+            self.max_steps,
+        )
+        if st != 0:
+            raise RuntimeError(f"prolog_prepare_meta failed: {st}")
+        torch.add(self.step_qlen_dev, self.step_qlen_dev, out=self.step_2qlen_dev)
 
-    def _run_commit_seed_body(self):
-        from vllm_ascend.ops import rotary_embedding as rope_mod
+    def emit_draft_stage(self):
+        import torch
+        import torch_npu
+
+        b0 = self.b0
+        eshr0 = self.eshr_steps[0]
+        stream_ptr = ctypes.c_void_p(torch.npu.current_stream(self.dev).npu_stream)
+        flushed = self.wt.ops.tilert_get_flushed_stream
+        sin_ptr = self.arena.sin_cache.data_ptr()
+        cos_ptr = self.arena.cos_cache.data_ptr()
+
+        st = self.wt.ops.tilert_dspine_beam_step_v3_launch(
+            stream_ptr,
+            self.sync_addr,
+            -1,
+            b0,
+            b0,
+            b0,
+            b0,
+            0,
+            self.k_sfa,
+            0,
+            self.beta_margin,
+            self.beta_depth,
+            self.gather_out.data_ptr(),
+            self.draft_ctrl_dev.data_ptr(),
+            self.seed_top_i.data_ptr(),
+            self.seed_top_lp.data_ptr(),
+            self.seed_rec_buf.data_ptr(),
+            self.prefix_topk_buf.data_ptr(),
+            self.anc_slots_buf.data_ptr(),
+            self.draft_indices_buf.data_ptr(),
+            self.active_toks.data_ptr(),
+            self.active_scores.data_ptr(),
+            self.active_raw_lp.data_ptr(),
+            self.active_margins.data_ptr(),
+            self.active_pids.data_ptr(),
+            self.active_recs[:b0].data_ptr(),
+            0,
+            self.pool_scores.data_ptr(),
+            self.pool_raw_lp.data_ptr(),
+            self.pool_tokens.data_ptr(),
+            self.pool_parents.data_ptr(),
+            sin_ptr,
+            cos_ptr,
+            eshr0.sin_buf.data_ptr(),
+            eshr0.cos_buf.data_ptr(),
+            eshr0.slot_i64.data_ptr(),
+            eshr0.kv_len.data_ptr(),
+            self.beam_work.data_ptr(),
+        )
+        if st != 0:
+            raise RuntimeError(f"beam_step_v3 init failed: {st}")
+
+        slot_cur = b0
+        for s in range(self.max_steps):
+            d = s + 1
+            m_rows = self.step_m_rows[s]
+            s_idx = self.wt.step_idx(d)
+            eshr = self.eshr_steps[s]
+            a_rec = self.active_recs[:m_rows]
+            r_part = self.rot_part[:m_rows]
+            e_in = self.eh_in[:m_rows]
+            e_comm = self.eh_comm_in[:m_rows]
+            ql_ptr = self.step_qlen_dev[s : s + 1].data_ptr()
+
+            torch.matmul(a_rec, self.wt.rot_w_step[s_idx], out=r_part)
+            st = self.wt.ops.tilert_step3c_prolog_pack_guarded_launch(
+                stream_ptr,
+                ql_ptr,
+                self.active_toks.data_ptr(),
+                self.emb_w.data_ptr(),
+                r_part.data_ptr(),
+                self.wt.rot_b_step[s_idx].data_ptr(),
+                self.prolog_comm_in.data_ptr(),
+                m_rows,
+                self.emb_vocab_start,
+                self.emb_vocab_end,
+                self.rank,
+            )
+            if st != 0:
+                raise RuntimeError(f"prolog_pack_guarded failed: {st}")
+            torch.ops.tilert.onesided_all_reduce_out_guarded(
+                self.prolog_comm_in, self.prolog_comm_out, self.step_2qlen_dev[s : s + 1]
+            )
+            st = self.wt.ops.tilert_step3c_dual_rmsnorm_slice_guarded_launch(
+                stream_ptr,
+                ql_ptr,
+                self.prolog_comm_out.data_ptr(),
+                self.wt.enorm_step[s_idx].data_ptr(),
+                self.wt.hnorm_step[s_idx].data_ptr(),
+                e_in.data_ptr(),
+                m_rows,
+                self.rank,
+                self.norm_eps,
+            )
+            if st != 0:
+                raise RuntimeError(f"dual_rmsnorm_slice_guarded failed: {st}")
+            torch.matmul(e_in, self.wt.w_eh_step[s_idx], out=e_comm)
+            torch.ops.tilert.onesided_all_reduce_out_guarded(
+                self.eh_comm_in, eshr.hs_in_full, self.step_qlen_dev[s : s + 1]
+            )
+
+            st_eshr = eshr.fn(
+                flushed(),
+                ctypes.c_uint64(eshr.local.sync),
+                eshr.local.config,
+                eshr.local.addresses,
+                eshr.comm_buf,
+            )
+            if st_eshr != 0:
+                raise RuntimeError("draft rollout kernel failed")
+
+            recs_d = torch_npu.npu_rms_norm(
+                eshr.bridge[1] + eshr.output, self.wt.logit_norm_step[s_idx], self.norm_eps
+            )[0]
+            logits_d = self._q8_logits_rollout(recs_d)
+            k_top = max(2, m_rows) if self.narrow_topk else 4
+            st = self.wt.ops.tilert_logits_topk_lse_bf16_guarded_launch(
+                stream_ptr,
+                self.sync_addr,
+                ql_ptr,
+                logits_d.data_ptr(),
+                self.logits_work.data_ptr(),
+                self.gather_in.data_ptr(),
+                m_rows,
+                self.head_row_stride,
+                self.head_valid_vocab,
+                self.head_vocab_start,
+                k_top,
+                self.rank,
+            )
+            if st != 0:
+                raise RuntimeError(f"logits_topk_lse_bf16_guarded failed: {st}")
+            torch.ops.tilert.onesided_gather_f32_guarded(
+                self.gather_in, self.gather_out, self.step_qlen_dev[s : s + 1]
+            )
+
+            nxt_b = self.step_m_rows[s + 1] if (s + 1) < self.max_steps else 0
+            eshr_nxt = self.eshr_steps[s + 1] if (s + 1) < self.max_steps else eshr
+            st = self.wt.ops.tilert_dspine_beam_step_v3_launch(
+                stream_ptr,
+                self.sync_addr,
+                d,
+                m_rows,
+                m_rows,
+                k_top,
+                nxt_b,
+                0,
+                self.k_sfa,
+                slot_cur,
+                self.beta_margin,
+                self.beta_depth,
+                self.gather_out.data_ptr(),
+                self.draft_ctrl_dev.data_ptr(),
+                self.seed_top_i.data_ptr(),
+                self.seed_top_lp.data_ptr(),
+                self.seed_rec_buf.data_ptr(),
+                self.prefix_topk_buf.data_ptr(),
+                self.anc_slots_buf.data_ptr(),
+                self.draft_indices_buf.data_ptr(),
+                self.active_toks.data_ptr(),
+                self.active_scores.data_ptr(),
+                self.active_raw_lp.data_ptr(),
+                self.active_margins.data_ptr(),
+                self.active_pids.data_ptr(),
+                self.active_recs[: max(1, nxt_b)].data_ptr(),
+                recs_d.data_ptr(),
+                self.pool_scores.data_ptr(),
+                self.pool_raw_lp.data_ptr(),
+                self.pool_tokens.data_ptr(),
+                self.pool_parents.data_ptr(),
+                sin_ptr,
+                cos_ptr,
+                eshr_nxt.sin_buf.data_ptr(),
+                eshr_nxt.cos_buf.data_ptr(),
+                eshr_nxt.slot_i64.data_ptr(),
+                eshr_nxt.kv_len.data_ptr(),
+                self.beam_work.data_ptr(),
+            )
+            if st != 0:
+                raise RuntimeError(f"beam_step_v3 step failed: {st}")
+            slot_cur += nxt_b
+
+        torch.ops.tilert.set_active_tokens_ptr(self.st["dyn_w"], True, True)
+        st = self.wt.ops.tilert_dspine_build_tree_v3_launch(
+            stream_ptr,
+            self.sync_addr,
+            self.w,
+            self.min_w_act,
+            self.max_pool_size,
+            self.st["num_full_seq_ptrs"],
+            self.st["has_mc2_mask"],
+            self.st["num_rope_dsts"],
+            self.t_base_ms,
+            self.c_w_ms,
+            self.draft_ctrl_dev.data_ptr(),
+            self.pool_scores.data_ptr(),
+            self.pool_raw_lp.data_ptr(),
+            self.pool_tokens.data_ptr(),
+            self.pool_parents.data_ptr(),
+            self.pool_depths_dev.data_ptr(),
+            self.tree_tokens.data_ptr(),
+            self.tree_parents.data_ptr(),
+            self.tree_depths.data_ptr(),
+            self.st["tree_mask_i32"].data_ptr(),
+            self.st["t_input_ids"].data_ptr(),
+            self.st["t_positions"].data_ptr(),
+            self.st["t_slots"].data_ptr(),
+            self.st["t_slots_i64"].data_ptr(),
+            self.st["dyn_w"].data_ptr(),
+            self.st["full_seq_ptrs_dev"].data_ptr(),
+            self.st["mc2_mask_ptr"],
+            cos_ptr,
+            sin_ptr,
+            self.st["rope_dsts_dev"].data_ptr(),
+            self.tree_work.data_ptr(),
+        )
+        if st != 0:
+            raise RuntimeError(f"build_tree_v3 failed: {st}")
+        torch.ops.tilert.set_active_tokens_ptr(self.st["dyn_w"], True, True)
+
+    def emit_resolve_and_advance(
+        self,
+        state_dev,
+        receipt_ring_dev,
+        receipt_toks_dev,
+        max_pos: int,
+        eos_token_id: int = -1,
+    ):
+        import torch
+
+        stream_ptr = ctypes.c_void_p(torch.npu.current_stream(self.dev).npu_stream)
+        hc = self.horizon_ctrl
+        st = self.wt.ops.tilert_dspine_resolve_and_advance_launch(
+            stream_ptr,
+            state_dev.data_ptr(),
+            self.st["dyn_w"].data_ptr(),
+            self.tree_tokens.data_ptr(),
+            self.tree_parents.data_ptr(),
+            self.st["target_tokens"].data_ptr(),
+            self.compact_ctrl_dev.data_ptr(),
+            self.commit_ctrl_dev.data_ptr(),
+            receipt_ring_dev.data_ptr(),
+            receipt_toks_dev.data_ptr(),
+            self.w,
+            self.COMMIT_M,
+            int(max_pos),
+            int(eos_token_id),
+            float(hc.alpha),
+            float(hc.mid_thresh),
+            float(hc.up_thresh),
+            float(hc.down_thresh),
+            int(hc.streak_acc),
+            int(hc.drop_acc),
+            int(hc.jump_acc),
+            int(hc.num_levels),
+        )
+        if st != 0:
+            raise RuntimeError(f"resolve_and_advance failed: {st}")
+
+    def emit_compact_and_commit_seed(self, *, include_compact: bool = True):
+        import torch
+        import torch_npu
 
         cm = self.COMMIT_M
         ekv = self.entry_kv_commit
         e1 = self.entry_cal_idx_1
         stream_ptr = ctypes.c_void_p(torch.npu.current_stream(self.dev).npu_stream)
         flushed = self.wt.ops.tilert_get_flushed_stream
-        sin_ptr = rope_mod._sin_cache.data_ptr()
-        cos_ptr = rope_mod._cos_cache.data_ptr()
+        sin_ptr = self.arena.sin_cache.data_ptr()
+        cos_ptr = self.arena.cos_cache.data_ptr()
+
+        if include_compact:
+            st = self.wt.ops.tilert_kv_compact_launch(
+                stream_ptr,
+                self.prefix.descs_dev.data_ptr(),
+                self.compact_ctrl_dev.data_ptr(),
+                self.prefix.num_cache_tensors,
+            )
+            if st != 0:
+                raise RuntimeError(f"kv_compact failed: {st}")
 
         self.commit_ttoks_pad32[: self.w].copy_(self.st["target_tokens"][: self.w])
         row_idx = self.commit_ctrl_dev[3 : 3 + cm]
@@ -885,7 +1057,7 @@ class CalibratedL78V3Runner:
                 self.rot_shard_t,
                 out=self.commit_rot_shard[off : off + 8],
             )
-        st = self.wt.ops.tilert_dspine_prolog_pack_launch(
+        st = self.wt.ops.tilert_dspine_prolog_pack_compact_launch(
             stream_ptr,
             self.commit_ctrl_dev.data_ptr(),
             self.commit_ttoks_pad32.data_ptr(),
@@ -898,12 +1070,12 @@ class CalibratedL78V3Runner:
             self.rank,
         )
         if st != 0:
-            raise RuntimeError(f"dspine_prolog_pack failed: {st}")
-        torch.ops.tilert.onesided_all_reduce_out(
-            self.commit_comm_in[:cm], self.commit_comm_out[:cm]
-        )
-        torch.ops.tilert.onesided_all_reduce_out(
-            self.commit_comm_in[cm : 2 * cm], self.commit_comm_out[cm : 2 * cm]
+            raise RuntimeError(f"dspine_prolog_pack_compact failed: {st}")
+
+        torch.ops.tilert.onesided_all_reduce_out_guarded(
+            self.commit_comm_in[: 2 * cm],
+            self.commit_comm_out[: 2 * cm],
+            self.commit_2acc_i32,
         )
         en = torch_npu.npu_rms_norm(
             self.commit_comm_out[:cm], self.enorm_w, self.norm_eps
@@ -911,8 +1083,8 @@ class CalibratedL78V3Runner:
         hn = torch_npu.npu_rms_norm(
             self.commit_comm_out[cm : 2 * cm], self.hnorm_w, self.norm_eps
         )[0]
-        self.commit_eh_in[:, :6144].copy_(en)
-        self.commit_eh_in[:, 6144:].copy_(hn)
+        self.commit_eh_in[:, :HIDDEN_SIZE].copy_(en)
+        self.commit_eh_in[:, HIDDEN_SIZE:].copy_(hn)
         for off in range(0, cm, 8):
             torch.mm(
                 self.commit_eh_in[off : off + 8],
@@ -920,9 +1092,9 @@ class CalibratedL78V3Runner:
                 out=self.commit_eh_shard[off : off + 8],
             )
         sl_s = self.rank * 768
-        self.commit_eh_comm[:, sl_s : sl_s + 768].copy_(self.commit_eh_shard)
-        torch.ops.tilert.onesided_all_reduce_out(
-            self.commit_eh_comm, self.commit_hs_all[:cm]
+        self.commit_eh_comm[:cm, sl_s : sl_s + 768].copy_(self.commit_eh_shard)
+        torch.ops.tilert.onesided_all_reduce_out_guarded(
+            self.commit_eh_comm, self.commit_hs_all, self.commit_acc_i32
         )
 
         st = self.wt.ops.tilert_dspine_prep_commit_seed_v3_launch(
@@ -972,15 +1144,16 @@ class CalibratedL78V3Runner:
         s0_gamma = (
             self.wt.logit_norm_seed0
             if self.wt.logit_norm_seed0 is not None
-            else self.mtp_layer.shared_head.norm.weight
+            else self.dw.shared_head_norm_w
         )
         rec_0 = torch_npu.npu_rms_norm(e1.bridge[1] + e1.output, s0_gamma, self.norm_eps)[0]
         self.seed_rec_buf.copy_(rec_0)
         logits_0 = self._q8_logits_rollout(rec_0)
         k_seed = max(2, self.b0) if self.narrow_topk else 4
-        st = self.wt.ops.tilert_logits_topk_lse_bf16_launch(
+        st = self.wt.ops.tilert_logits_topk_lse_bf16_guarded_launch(
             stream_ptr,
             self.sync_addr,
+            e1.q_len.data_ptr(),
             logits_0.data_ptr(),
             self.logits_work.data_ptr(),
             self.gather_in.data_ptr(),
@@ -992,8 +1165,8 @@ class CalibratedL78V3Runner:
             self.rank,
         )
         if st != 0:
-            raise RuntimeError(f"logits_topk_lse_bf16 failed: {st}")
-        torch.ops.tilert.onesided_all_reduce_out(self.gather_in, self.gather_out)
+            raise RuntimeError(f"logits_topk_lse_bf16_guarded failed: {st}")
+        torch.ops.tilert.onesided_gather_f32_guarded(self.gather_in, self.gather_out, e1.q_len)
         st = self.wt.ops.tilert_dspine_beam_step_v3_launch(
             stream_ptr,
             self.sync_addr,
@@ -1008,13 +1181,13 @@ class CalibratedL78V3Runner:
             self.beta_margin,
             self.beta_depth,
             self.gather_out.data_ptr(),
-            0,
+            self.draft_ctrl_dev.data_ptr(),
             self.seed_top_i.data_ptr(),
             self.seed_top_lp.data_ptr(),
             0,
             self.prefix_topk_buf.data_ptr(),
             0,
-            self.draft.indices_buffer.data_ptr(),
+            self.draft_indices_buf.data_ptr(),
             0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0,
             0, 0, 0, 0, 0, 0,
@@ -1023,518 +1196,156 @@ class CalibratedL78V3Runner:
         if st != 0:
             raise RuntimeError(f"beam_step_v3 seed0 failed: {st}")
 
-    def _run_draft_level(self, lvl_idx: int):
-        from vllm_ascend.ops import rotary_embedding as rope_mod
+    def seed_round0_eager(self):
+        import torch
 
-        specs, pool_sz, p_depths = self.sched_specs[lvl_idx]
-        w = self.w
-        b0 = self.b0
-        eshr0 = self.cal_entries[b0]
+        with torch.npu.device(self.dev), torch.inference_mode():
+            self.draft_ctrl_dev.zero_()
+            self.draft_ctrl_dev[0] = self.first_token
+            self.draft_ctrl_dev[1] = 8192
+            self.draft_ctrl_dev[2] = self.w
+            self.commit_ctrl_dev.zero_()
+            self.commit_ctrl_dev[0] = 8191
+            self.commit_ctrl_dev[1] = 1
+            self.commit_ctrl_dev[2] = 1
+            self.commit_ctrl_dev[47] = self.COMMIT_M + 1
+            self.st["target_tokens"][:2].fill_(self.first_token)
+            self.st["target_hidden"][:2].copy_(self.prefix.parent_hidden.to(self.dev).expand(2, -1))
+            self.emit_compact_and_commit_seed(include_compact=False)
+            torch.npu.synchronize(self.dev)
+
+    def run_serial_commit_pass(
+        self,
+        tokens: list[int],
+        hidden_seq,
+        pos_limit: int,
+        seed_positions: list[int],
+        prev_tail: dict,
+    ) -> tuple[dict, dict[str, float], dict[str, float]]:
+        import torch
+        import torch_npu
+
+        cm = self.COMMIT_M
+        ekv = self.entry_kv_commit
+        e1 = self.entry_cal_idx_1
+        parent_h = self.prefix.parent_hidden.to(self.dev)
+        total_need = pos_limit - 8191
+        sin_ptr = self.arena.sin_cache.data_ptr()
+        cos_ptr = self.arena.cos_cache.data_ptr()
         stream_ptr = ctypes.c_void_p(torch.npu.current_stream(self.dev).npu_stream)
         flushed = self.wt.ops.tilert_get_flushed_stream
-        sin_ptr = rope_mod._sin_cache.data_ptr()
-        cos_ptr = rope_mod._cos_cache.data_ptr()
 
-        st = self.wt.ops.tilert_dspine_beam_step_v3_launch(
-            stream_ptr,
-            self.sync_addr,
-            -1,
-            b0,
-            b0,
-            b0,
-            b0,
-            0,
-            self.k_sfa,
-            0,
-            self.beta_margin,
-            self.beta_depth,
-            self.gather_out.data_ptr(),
-            self.draft_ctrl_dev.data_ptr(),
-            self.seed_top_i.data_ptr(),
-            self.seed_top_lp.data_ptr(),
-            self.seed_rec_buf.data_ptr(),
-            self.prefix_topk_buf.data_ptr(),
-            self.anc_slots_buf.data_ptr(),
-            self.draft.indices_buffer.data_ptr(),
-            self.active_toks.data_ptr(),
-            self.active_scores.data_ptr(),
-            self.active_raw_lp.data_ptr(),
-            self.active_margins.data_ptr(),
-            self.active_pids.data_ptr(),
-            self.active_recs[:b0].data_ptr(),
-            0,
-            self.pool_scores.data_ptr(),
-            self.pool_raw_lp.data_ptr(),
-            self.pool_tokens.data_ptr(),
-            self.pool_parents.data_ptr(),
-            sin_ptr,
-            cos_ptr,
-            eshr0.sin_buf.data_ptr(),
-            eshr0.cos_buf.data_ptr(),
-            eshr0.slot_i64.data_ptr(),
-            eshr0.kv_len.data_ptr(),
-            self.beam_work.data_ptr(),
-        )
-        if st != 0:
-            raise RuntimeError(f"beam_step_v3 init failed: {st}")
-
-        slot_cur = b0
-        for d, cur_b, k_exp, nxt_b, p_off in specs:
-            s_idx = self.wt.step_idx(d)
-            eshr = self.cal_entries[cur_b]
-            a_rec = self.active_recs[:cur_b]
-            r_part = self.rot_part[:cur_b]
-            p_in = self.prolog_comm_in[: 2 * cur_b]
-            p_out = self.prolog_comm_out[: 2 * cur_b]
-            e_in = self.eh_in[:cur_b]
-            e_comm = self.eh_comm_in[:cur_b]
-
-            torch.matmul(a_rec, self.wt.rot_w_step[s_idx], out=r_part)
-            st = self.wt.ops.tilert_prolog_pack_launch(
+        def run_single(entry, pos: int, tok: int, hid):
+            self.commit_ctrl_dev.zero_()
+            self.commit_ctrl_dev[0] = pos
+            self.commit_ctrl_dev[1] = 1
+            self.commit_ctrl_dev[2] = 1
+            self.commit_ctrl_dev[47] = cm + 1
+            self.commit_ttoks_pad32[0] = int(tok)
+            torch.mm(hid, self.rot_shard_t, out=self.commit_rot_shard[:1])
+            self.wt.ops.tilert_dspine_prolog_pack_launch(
                 stream_ptr,
-                self.active_toks.data_ptr(),
+                self.commit_ctrl_dev.data_ptr(),
+                self.commit_ttoks_pad32.data_ptr(),
                 self.emb_w.data_ptr(),
-                r_part.data_ptr(),
-                self.wt.rot_b_step[s_idx].data_ptr(),
-                p_in.data_ptr(),
-                cur_b,
+                self.commit_rot_shard.data_ptr(),
+                self.commit_comm_in.data_ptr(),
+                cm,
                 self.emb_vocab_start,
                 self.emb_vocab_end,
                 self.rank,
             )
-            if st != 0:
-                raise RuntimeError(f"prolog_pack failed: {st}")
-            torch.ops.tilert.onesided_all_reduce_out(p_in, p_out)
-            st = self.wt.ops.tilert_dual_rmsnorm_slice_launch(
-                stream_ptr,
-                p_out.data_ptr(),
-                self.wt.enorm_step[s_idx].data_ptr(),
-                self.wt.hnorm_step[s_idx].data_ptr(),
-                e_in.data_ptr(),
-                cur_b,
-                self.rank,
-                self.norm_eps,
+            torch.ops.tilert.set_active_tokens_ptr(self.commit_acc_i32, True, False)
+            torch.ops.tilert.onesided_all_reduce_out(
+                self.commit_comm_in[: 2 * cm], self.commit_comm_out[: 2 * cm]
             )
-            if st != 0:
-                raise RuntimeError(f"dual_rmsnorm_slice failed: {st}")
-            torch.matmul(e_in, self.wt.w_eh_step[s_idx], out=e_comm)
-            torch.ops.tilert.onesided_all_reduce_out(e_comm, eshr.hs_in)
-
-            st_eshr = eshr.fn(
-                flushed(),
-                ctypes.c_uint64(eshr.local.sync),
-                eshr.local.config,
-                eshr.local.addresses,
-                eshr.comm_buf,
+            torch.ops.tilert.onesided_all_reduce_out(
+                self.commit_comm_in[2 * cm : 4 * cm], self.commit_comm_out[2 * cm : 4 * cm]
             )
-            if st_eshr != 0:
-                raise RuntimeError("draft rollout kernel failed")
-
-            recs_d = torch_npu.npu_rms_norm(
-                eshr.bridge[1] + eshr.output, self.wt.logit_norm_step[s_idx], self.norm_eps
+            en = torch_npu.npu_rms_norm(
+                self.commit_comm_out[:cm], self.enorm_w, self.norm_eps
             )[0]
-            logits_d = self._q8_logits_rollout(recs_d)
-            k_top = max(2, k_exp) if self.narrow_topk else 4
-            st = self.wt.ops.tilert_logits_topk_lse_bf16_launch(
-                stream_ptr,
-                self.sync_addr,
-                logits_d.data_ptr(),
-                self.logits_work.data_ptr(),
-                self.gather_in.data_ptr(),
-                cur_b,
-                self.head_row_stride,
-                self.head_valid_vocab,
-                self.head_vocab_start,
-                k_top,
-                self.rank,
+            hn = torch_npu.npu_rms_norm(
+                self.commit_comm_out[2 * cm : 3 * cm], self.hnorm_w, self.norm_eps
+            )[0]
+            self.commit_eh_in[:, :HIDDEN_SIZE].copy_(en)
+            self.commit_eh_in[:, HIDDEN_SIZE:].copy_(hn)
+            torch.mm(self.commit_eh_in[:1], self.w_eh_col_r, out=self.commit_eh_shard[:1])
+            sl_s = self.rank * 768
+            self.commit_eh_comm[:cm, sl_s : sl_s + 768].copy_(self.commit_eh_shard)
+            torch.ops.tilert.onesided_all_reduce_out(
+                self.commit_eh_comm, self.commit_hs_all
             )
-            if st != 0:
-                raise RuntimeError(f"logits_topk_lse_bf16 rollout failed: {st}")
-            torch.ops.tilert.onesided_all_reduce_out(self.gather_in, self.gather_out)
-
-            eshr_nxt = self.cal_entries[nxt_b] if nxt_b > 0 else eshr
-            st = self.wt.ops.tilert_dspine_beam_step_v3_launch(
-                stream_ptr,
-                self.sync_addr,
-                d,
-                cur_b,
-                k_exp,
-                k_top,
-                nxt_b,
-                p_off,
-                self.k_sfa,
-                slot_cur,
-                self.beta_margin,
-                self.beta_depth,
-                self.gather_out.data_ptr(),
-                self.draft_ctrl_dev.data_ptr(),
-                self.seed_top_i.data_ptr(),
-                self.seed_top_lp.data_ptr(),
-                self.seed_rec_buf.data_ptr(),
-                self.prefix_topk_buf.data_ptr(),
-                self.anc_slots_buf.data_ptr(),
-                self.draft.indices_buffer.data_ptr(),
-                self.active_toks.data_ptr(),
-                self.active_scores.data_ptr(),
-                self.active_raw_lp.data_ptr(),
-                self.active_margins.data_ptr(),
-                self.active_pids.data_ptr(),
-                self.active_recs[: max(1, nxt_b)].data_ptr(),
-                recs_d.data_ptr(),
-                self.pool_scores.data_ptr(),
-                self.pool_raw_lp.data_ptr(),
-                self.pool_tokens.data_ptr(),
-                self.pool_parents.data_ptr(),
-                sin_ptr,
-                cos_ptr,
-                eshr_nxt.sin_buf.data_ptr(),
-                eshr_nxt.cos_buf.data_ptr(),
-                eshr_nxt.slot_i64.data_ptr(),
-                eshr_nxt.kv_len.data_ptr(),
-                self.beam_work.data_ptr(),
-            )
-            if st != 0:
-                raise RuntimeError(f"beam_step_v3 step failed: {st}")
-            slot_cur += nxt_b
-
-        st = self.wt.ops.tilert_dspine_build_tree_v3_launch(
-            stream_ptr,
-            self.sync_addr,
-            w,
-            self.min_w_act,
-            pool_sz,
-            self.st["num_full_seq_ptrs"],
-            self.st["has_mc2_mask"],
-            self.st["num_rope_dsts"],
-            self.t_base_ms,
-            self.c_w_ms,
-            self.draft_ctrl_dev.data_ptr(),
-            self.pool_scores.data_ptr(),
-            self.pool_raw_lp.data_ptr(),
-            self.pool_tokens.data_ptr(),
-            self.pool_parents.data_ptr(),
-            p_depths.data_ptr(),
-            self.tree_tokens.data_ptr(),
-            self.tree_parents.data_ptr(),
-            self.tree_depths.data_ptr(),
-            self.st["tree_mask_i32"].data_ptr(),
-            self.st["t_input_ids"].data_ptr(),
-            self.st["t_positions"].data_ptr(),
-            self.st["t_slots"].data_ptr(),
-            self.st["t_slots_i64"].data_ptr(),
-            self.st["dyn_w"].data_ptr(),
-            self.st["full_seq_ptrs_dev"].data_ptr(),
-            self.st["mc2_mask_ptr"],
-            cos_ptr,
-            sin_ptr,
-            self.st["rope_dsts_dev"].data_ptr(),
-            self.tree_work.data_ptr(),
-        )
-        if st != 0:
-            raise RuntimeError(f"build_tree_v3 failed: {st}")
-        self.host_read_buf[:w].copy_(self.tree_tokens)
-        self.host_read_buf[w : 2 * w].copy_(self.tree_parents)
-
-    def _capture(self):
-        from vllm.config import set_current_vllm_config
-        from vllm_ascend.worker.model_runner_v1 import graph_capture
-
-        dev = self.dev
-        self.draft_ctrl_cpu.zero_()
-        self.draft_ctrl_cpu[0] = self.first_token
-        self.draft_ctrl_cpu[1] = 8192
-        self.draft_ctrl_dev.copy_(self.draft_ctrl_cpu)
-
-        self.compact_ctrl_cpu.zero_()
-        self.compact_ctrl_cpu[0] = 8192
-        self.compact_ctrl_cpu[1] = 1
-        self.compact_ctrl_cpu[2] = 8192
-        self.compact_ctrl_dev.copy_(self.compact_ctrl_cpu)
-
-        self.commit_ctrl_cpu.zero_()
-        self.commit_ctrl_cpu[0] = 8191
-        self.commit_ctrl_cpu[1] = 2
-        self.commit_ctrl_cpu[2] = 2
-        self.commit_ctrl_dev.copy_(self.commit_ctrl_cpu)
-
-        with (
-            torch.npu.device(dev),
-            torch.inference_mode(),
-            set_current_vllm_config(self.draft.config),
-        ):
-            self.st["target_tokens"][0:2].fill_(self.first_token)
-            self.st["target_hidden"][0:2].copy_(self.prefix_parent_hidden.to(dev).expand(2, -1))
-            for c_val in self.draft.cache.values():
-                c_val[8191:].zero_()
-
-            self._run_commit_seed_body()
-            for lvl_i in range(len(self.sched_specs)):
-                self._run_draft_level(lvl_i)
-            self._run_compact_body()
-            torch.npu.synchronize()
-
-            pool = torch.npu.graph_pool_handle()
-            caller = torch.npu.current_stream(dev)
-
-            self.compact_graph = torch.npu.NPUGraph()
-            with graph_capture(dev) as cap:
-                with torch.npu.graph(self.compact_graph, pool=pool, stream=cap.stream):
-                    self._run_compact_body()
-            caller.wait_stream(cap.stream)
-
-            self.commit_seed_graph = torch.npu.NPUGraph()
-            with graph_capture(dev) as cap:
-                with torch.npu.graph(self.commit_seed_graph, pool=pool, stream=cap.stream):
-                    self._run_commit_seed_body()
-            caller.wait_stream(cap.stream)
-
-            self.draft_graphs = []
-            for lvl_i in range(len(self.sched_specs)):
-                dg = torch.npu.NPUGraph()
-                with graph_capture(dev) as cap:
-                    with torch.npu.graph(dg, pool=pool, stream=cap.stream):
-                        self._run_draft_level(lvl_i)
-                caller.wait_stream(cap.stream)
-                self.draft_graphs.append(dg)
-            torch.npu.synchronize()
-
-        with torch.inference_mode():
-            for dst_q, ref_q in self.st.get("q_restore_pairs", ()):
-                dst_q.copy_(ref_q)
-            for c_val in self.draft.cache.values():
-                c_val[8191:].zero_()
-            self.st["tree_mask_i32"].zero_()
-        torch.npu.synchronize()
-
-    def _replay_commit_seed(self, main_start: int, acc_rows: list[int]):
-        count = len(acc_rows)
-        cm = self.COMMIT_M
-        self.commit_ctrl_cpu[0] = main_start
-        self.commit_ctrl_cpu[1] = count
-        self.commit_ctrl_cpu[2] = count
-        last_r = acc_rows[-1]
-        for j in range(cm):
-            self.commit_ctrl_cpu[3 + j] = acc_rows[j] if j < count else last_r
-        self.commit_ctrl_dev.copy_(self.commit_ctrl_cpu, non_blocking=True)
-        self.commit_seed_graph.replay()
-
-    def _seed_round0(self, pending_tok: int, parent_hidden: torch.Tensor, pos_minus_1: int):
-        self.st["target_tokens"][0:1].fill_(pending_tok)
-        self.st["target_hidden"][0:1].copy_(parent_hidden)
-        self._replay_commit_seed(pos_minus_1, [0])
-
-    def _commit_and_seed(self, main_start: int, acc_rows: list[int], need_seed: bool):
-        count = len(acc_rows)
-        did_compact = False
-        if acc_rows != list(range(count)):
-            did_compact = True
-            self.compact_ctrl_cpu[0] = main_start
-            self.compact_ctrl_cpu[1] = count
-            for j in range(count):
-                self.compact_ctrl_cpu[2 + j] = main_start + acc_rows[j]
-            self.compact_ctrl_dev.copy_(self.compact_ctrl_cpu, non_blocking=True)
-            self.compact_graph.replay()
-        if need_seed:
-            self._replay_commit_seed(main_start, acc_rows)
-        return did_compact
-
-    def _read_round_tensors(self):
-        w = self.w
-        self.host_read_buf[2 * w : 3 * w].copy_(self.st["target_tokens"][:w], non_blocking=True)
-        vals = self.host_read_buf.tolist()
-        return vals[:w], vals[w : 2 * w], vals[2 * w : 3 * w]
-
-    def decode_full(self, case_b: dict, name: str, check_digests: bool = False):
-        from ..cann_model import VOCAB_SIZE
-        from ..mtp_round import MtpRoundExecutor
-        from ..tree_resolve import accepted_path
-
-        w = self.w
-        target = self.target
-        draft = self.draft
-        with torch.npu.device(self.dev), torch.inference_mode(), exact_rows(target):
-            for dst_q, ref_q in self.st.get("q_restore_pairs", ()):
-                dst_q.copy_(ref_q)
             torch.ops.tilert.set_active_tokens_ptr(self.st["dyn_w"], True, True)
-            target.inject(case_b["prefix"].main)
-            draft.inject(case_b["mtp"])
-            for c_val in draft.cache.values():
-                c_val[8191:].zero_()
-            parent_dev = case_b["prefix"].parent_hidden.to(self.dev)
-            executor = MtpRoundExecutor(target, draft, width=w, max_new_tokens=1024, eos_tokens=())
-            executor.start(case_b["first"], parent_dev)
+            entry.hs_in[:1].copy_(self.commit_hs_all[:1])
+            entry.sin_buf[:1].copy_(self.arena.sin_cache[pos : pos + 1])
+            entry.cos_buf[:1].copy_(self.arena.cos_cache[pos : pos + 1])
+            entry.slot_i64[:1].fill_(pos)
+            entry.q_len.fill_(1)
+            entry.kv_len.fill_(pos + 1)
+            st_k = entry.fn(
+                flushed(),
+                ctypes.c_uint64(entry.local.sync),
+                entry.local.config,
+                entry.local.addresses,
+                entry.comm_buf,
+            )
+            if st_k != 0:
+                raise RuntimeError("serial commit kernel failed")
+            self._exact_index_keys(entry)
 
-            out_toks = [case_b["first"]]
-            rounds_acc = []
-            round_traces = []
-            compact_cnt = 0
-            lvl_counts = [0] * len(self.draft_graphs)
-            h_ctrl = self.horizon_ctrl
-            if h_ctrl is not None:
-                h_ctrl.reset()
-
-            torch.npu.synchronize()
-            torch.distributed.barrier(group=self.channel_group)
-            t_start = time.perf_counter()
-            seeded = False
-            draft_committed_pos = int(draft.position)
-            seed_positions = [8191]
-            while executor.state.finish_reason is None:
-                plan = executor.state.begin()
-                if h_ctrl is not None and len(self.draft_graphs) > 1:
-                    lvl = min(h_ctrl.select_level(), len(self.draft_graphs) - 1)
-                else:
-                    lvl = 0
-                lvl_counts[lvl] += 1
-                dg = self.draft_graphs[lvl]
-
-                if not seeded:
-                    self._seed_round0(
-                        plan.pending_token,
-                        executor.seed_parent_hidden,
-                        plan.main_start - 1,
+        with torch.npu.device(self.dev), torch.inference_mode():
+            for i in range(total_need):
+                pos = 8191 + i
+                hid = parent_h if i == 0 else hidden_seq[i - 1 : i]
+                run_single(ekv, pos, tokens[i], hid)
+            torch.npu.synchronize(self.dev)
+            seed_set = set(seed_positions)
+            ekv_idx = [p - 8191 for p in range(8191, pos_limit) if p not in seed_set]
+            ekv_raw = {
+                k: float(
+                    (
+                        v[8191:pos_limit].cpu()[ekv_idx].float()
+                        - prev_tail[k][ekv_idx].float()
                     )
-                    seeded = True
-                self.draft_ctrl_cpu[0] = plan.pending_token
-                self.draft_ctrl_cpu[1] = plan.main_start
-                self.draft_ctrl_dev.copy_(self.draft_ctrl_cpu, non_blocking=True)
-                dg.replay()
-                self.st["target_aclgraph"].replay()
-                self.st["head_graph"].replay()
-                nodes, lineage, predictions = self._read_round_tensors()
-                path = accepted_path(nodes, lineage, predictions)
-                along = [nodes[idx] for idx in path]
-                predicted = [predictions[idx] for idx in path]
-                bonus = predictions[path[-1]]
-                along += [(bonus + 1) % VOCAB_SIZE] * (w - len(along))
-                predicted += [bonus] * (w - len(predicted))
-                commit = executor.state.resolve(plan, along, predicted)
-                acc_rows = path[: commit.committed]
-                if self._commit_and_seed(plan.main_start, acc_rows, True):
-                    compact_cnt += 1
-                draft_committed_pos = int(commit.draft.retained)
-                seed_positions.append(plan.main_start + len(acc_rows) - 1)
-                target.position = commit.main.retained
-                draft.position = commit.draft.retained
-
-                h_lvl = int(h_ctrl.update(commit.committed)) if h_ctrl is not None else 0
-                rounds_acc.append(commit.committed)
-                out_toks.extend(commit.accepted_tokens)
-                if check_digests:
-                    w_act = int(self.st["dyn_w"][0, 0].item())
-                    kv_q = len(acc_rows) - 1
-                    round_traces.append(
-                        {
-                            "round_idx": len(rounds_acc) - 1,
-                            "width": w,
-                            "min_w_act": self.min_w_act,
-                            "w_act": w_act,
-                            "mc2_mask": [i < w_act for i in range(w)],
-                            "dcci_issued": True,
-                            "collective_rows": self.COMMIT_M,
-                            "l78_gemm_chunk_rows": 8,
-                            "kv_commit_q_len": kv_q,
-                            "kv_commit_wrote": kv_q > 0,
-                            "accepted": commit.committed,
-                            "final_pos": int(target.position),
-                            "horizon_level": h_lvl,
-                            "done": executor.state.finish_reason is not None,
-                        }
-                    )
-
-            torch.npu.synchronize()
-            torch.distributed.barrier(group=self.channel_group)
-            dt_ms = (time.perf_counter() - t_start) * 1000.0
-
-            for dst_q, ref_q in self.st.get("q_restore_pairs", ()):
-                dst_q.copy_(ref_q)
-
-            dt_list = [None] * 8
-            torch.distributed.all_gather_object(dt_list, dt_ms, group=self.channel_group)
-            tpot_list = [x / 1023.0 for x in dt_list]
-            max_tpot = round(max(tpot_list), 4)
-            out_sha = hashlib.sha256(json.dumps(out_toks).encode()).hexdigest()
-            sum_acc = sum(rounds_acc)
-            tok_ok = len(out_toks) == 1024 and sum_acc == 1023 and out_sha == case_b["ref_sha"]
-
-            res = {
-                "name": name,
-                "case": case_b["slug"],
-                "w": w,
-                "rounds": len(rounds_acc),
-                "sum_accepted": sum_acc,
-                "mean_accepted": round(sum_acc / len(rounds_acc), 3),
-                "compact_rounds": compact_cnt,
-                "lvl_counts": lvl_counts,
-                "max_tpot_ms": max_tpot,
-                "rank_dt_ms": dt_list,
-                "rank_tpots_ms": [round(x, 4) for x in tpot_list],
-                "ms_per_round": round(max(tpot_list) * 1023.0 / len(rounds_acc), 3),
-                "accepted_per_round": list(rounds_acc),
-                "output_token_ids": list(out_toks),
-                "output_sha256": out_sha,
-                "tokens_ok": tok_ok,
-                "target_pos": int(target.position),
-                "draft_pos": int(draft.position),
-                "draft_committed_pos": draft_committed_pos,
-                "seed_positions": seed_positions,
+                    .abs()
+                    .max()
+                    .item()
+                )
+                for k, v in self.prefix.draft_cache.items()
             }
-            if check_digests:
-                target_dig = case_b["digest_fn"](target.cache, target.position)
-                draft_dig = case_b["digest_fn"]([draft.cache], draft_committed_pos)
-                main_ok = target_dig == case_b["ref_state"]
-                all_checks = [None] * 8
-                torch.distributed.all_gather_object(
-                    all_checks,
-                    {
-                        "tok": tok_ok,
-                        "main": main_ok,
-                        "target_digest": target_dig,
-                        "draft_digest": draft_dig,
-                    },
-                    group=self.channel_group,
+            ekv_diffs = {k: d for k, d in ekv_raw.items() if d > 0.0}
+            for pos in sorted(seed_set):
+                if not 8191 <= pos < pos_limit:
+                    continue
+                i = pos - 8191
+                hid = parent_h if i == 0 else hidden_seq[i - 1 : i]
+                run_single(e1, pos, tokens[i], hid)
+            torch.npu.synchronize(self.dev)
+            diffs_raw = {
+                k: float(
+                    (v[8191:pos_limit].cpu().float() - prev_tail[k].float())
+                    .abs()
+                    .max()
+                    .item()
                 )
-                same_target = all(
-                    c["target_digest"] == all_checks[0]["target_digest"] for c in all_checks
-                )
-                same_draft = all(
-                    c["draft_digest"] == all_checks[0]["draft_digest"] for c in all_checks
-                )
-                res["all_ranks_target_exact"] = all(c["tok"] and c["main"] for c in all_checks)
-                res["all_ranks_cache_parity"] = same_target and same_draft
-                res["target_digest"] = all_checks[0]["target_digest"]
-                res["draft_digest"] = all_checks[0]["draft_digest"]
-                res["local_target_digest"] = target_dig
-                res["local_draft_digest"] = draft_dig
-                res["round_traces"] = round_traces
-                if not res["all_ranks_target_exact"] or not res["all_ranks_cache_parity"]:
-                    raise RuntimeError(f"Verification mismatch: {all_checks}")
-            elif not tok_ok:
-                raise RuntimeError(f"Rank {self.rank} token parity mismatch: {out_sha}")
-            return res
+                for k, v in self.prefix.draft_cache.items()
+            }
+            diffs = {k: d for k, d in diffs_raw.items() if d > 0.0}
+            return self.prefix.draft_state(pos_limit), diffs, ekv_diffs
 
     def close(self):
-        torch.npu.synchronize()
-        tree_mask = self.st.get("tree_mask_i32")
-        if tree_mask is not None:
-            tree_mask.zero_()
-        mgr = getattr(self.target, "_whole_layer", None)
-        if mgr is not None:
-            mgr.set_tree_mask_ptr(0)
-        torch.npu.synchronize()
-        for g_attr in ("compact_graph", "commit_seed_graph"):
-            g_obj = getattr(self, g_attr, None)
-            if g_obj is not None:
-                g_obj.reset()
-                setattr(self, g_attr, None)
-        for dg in getattr(self, "draft_graphs", ()):
-            dg.reset()
-        self.draft_graphs = []
-        if hasattr(self.wt, "_v3_shared_bundle"):
-            delattr(self.wt, "_v3_shared_bundle")
-        self._cal_weight_refs = None
-        l78_win = getattr(self.draft, "_l78_win", None)
-        if l78_win is not None and getattr(l78_win, "handle", 0) != 0:
-            l78_win.close()
-            self.draft._l78_win = None
+        self.eshr_steps = []
+        self.entry_cal_idx_1 = None
+        self.entry_kv_commit = None
+        self._owners.clear()
         gc.collect()
+
+
+def torch_dist_ready() -> bool:
+    try:
+        import torch
+
+        return torch.distributed.is_initialized()
+    except Exception:
+        return False
