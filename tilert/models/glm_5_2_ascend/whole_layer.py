@@ -121,7 +121,7 @@ class Libraries:
         return None
 
     def verify(self):
-        from .ops.build_megakernel import ROOT as mk_root, source_digest
+        from .ops.build_megakernel import ROOT as mk_root, effective_source_digest, source_digest
 
         for name, expected in LIBRARY_HASHES.items():
             if name == "tree":
@@ -129,8 +129,17 @@ class Libraries:
                 if manifest is not None:
                     if _digest(self.tree) != manifest.get("sha256"):
                         raise ValueError("The built whole-layer tree library changed")
-                    if mk_root.is_dir() and manifest.get("source_sha256") != source_digest():
-                        raise ValueError("The built whole-layer tree source changed")
+                    if "enable_kernel_prof" in manifest:
+                        flag_prof = "-DENABLE_KERNEL_PROF=1" in (manifest.get("flags") or ())
+                        if bool(manifest.get("enable_kernel_prof")) != flag_prof:
+                            raise ValueError("The built whole-layer tree prof flag changed")
+                    if mk_root.is_dir():
+                        if "effective_source_sha256" in manifest:
+                            eff = effective_source_digest(manifest.get("flags", ()))
+                            if manifest.get("effective_source_sha256") != eff:
+                                raise ValueError("The built whole-layer tree source changed")
+                        elif manifest.get("source_sha256") != source_digest():
+                            raise ValueError("The built whole-layer tree source changed")
                     continue
             allowed = {expected} if isinstance(expected, str) else set(expected)
             if _digest(getattr(self, name)) not in allowed:
@@ -1028,6 +1037,72 @@ class WholeLayerManager:
         self.peer_weights_ptr = 0
         self.peer_weights_buf = None
         self._orig_gates = {}
+
+    @property
+    def kernel_prof_enabled(self) -> bool:
+        if self.tree_manifest is None:
+            return False
+        flags = self.tree_manifest.get("flags") or ()
+        return bool(
+            self.tree_manifest.get("enable_kernel_prof", False)
+            or "-DENABLE_KERNEL_PROF=1" in flags
+        )
+
+    def capture_prof_acc(
+        self,
+        width: int | None = None,
+        *,
+        sync: bool = True,
+        cpu: bool = True,
+    ):
+        import torch
+
+        if not self.layer_order or self.layer_order[-1] not in self.layers:
+            raise RuntimeError("Whole-layer model has no installed layers")
+        if self.capture_stream is None:
+            raise RuntimeError("Whole-layer model has no capture stream")
+        if width is not None:
+            target_rows = int(width)
+        elif self.capture_history:
+            target_rows = int(self.capture_history[-1]["rows"])
+        else:
+            target_rows = int(self.target_width)
+        last_layer = self.layers[self.layer_order[-1]]
+        stream_id = self.capture_stream.npu_stream
+        matches = [
+            arena
+            for (entry_stream, entry_rows, _geom), arena in last_layer.entries.items()
+            if entry_stream == stream_id and entry_rows == target_rows
+        ]
+        if not matches:
+            raise RuntimeError(
+                f"No capture-stream arena found for {last_layer.name} at width={target_rows}"
+            )
+        raws = []
+        for arena in matches:
+            body = getattr(arena, "body", None)
+            if body is None or len(body) <= 6 or body[6] is None:
+                raise RuntimeError(
+                    f"Capture-stream arena missing body[6] scratch for {last_layer.name}"
+                )
+            raws.append(body[6])
+        ptrs = {int(r.data_ptr()) if hasattr(r, "data_ptr") else id(r) for r in raws}
+        if len(ptrs) > 1:
+            raise RuntimeError(
+                f"Ambiguous capture-stream arenas ({len(matches)}) for "
+                f"{last_layer.name} at width={target_rows}"
+            )
+        raw = raws[0]
+        nbytes = raw.numel() * raw.element_size()
+        if nbytes < 512:
+            raise RuntimeError("Arena body[6] scratch is smaller than 512 bytes")
+        if nbytes % 8 != 0:
+            raise RuntimeError(f"Arena body[6] scratch size {nbytes} is not 8-byte aligned")
+        if sync and getattr(getattr(raw, "device", None), "type", None) == "npu":
+            torch.npu.synchronize(self.device)
+        words = raw if raw.dtype == torch.int64 else raw.view(torch.int64)
+        prof = words.reshape(-1)[40:64]
+        return prof.detach().cpu().clone() if cpu else prof
 
     def _allocate_chain_buffer(self):
         import torch

@@ -1,5 +1,6 @@
 from dataclasses import asdict, dataclass
 import hashlib
+import json
 import math
 import os
 from pathlib import Path
@@ -661,6 +662,31 @@ def _site_root() -> Path:
         return Path("/usr/local/lib/python3.11/site-packages")
 
 
+L78_VARIANT_SPECS: dict[int, tuple[int, str]] = {
+    2048: (110415, "l78k2048"),
+    1024: (110419, "l78k1024"),
+    512: (110420, "l78k512"),
+}
+L78_PATCH_VERSION = "a2_idx_ktopk_v1"
+L78_BASE_DEFS: tuple[str, ...] = (
+    "-DSFA_MM2_PAIR_LOAD=1",
+    "-DQUERY_GROUPS_NARROW=1",
+    "-DBF16_QUERY12_GROUPS=1",
+    "-DGU_WIDE=1",
+    "-DATTENTION_HEADS=8",
+    "-DFFN_OP_NS=tilert_ffn_original_shared_gu_static",
+    "-DROUTED_ROW_BALANCED=1",
+    "-DROUTED_SHARED_PIPELINE=1",
+    "-DROUTED_INPUT_FRONT=1",
+    "-DSHARED_W8_DYNAMIC_PERFORMANCE_QUANT=1",
+    "-DROUTED_ACTIVE_LIST=1",
+    "-DL78_PLAIN_RMSNORM=1",
+    "-DL78_EXACT_INDEXER=1",
+    "-DK11040_F0_NZ=1",
+    "-DK11040_GU_FAST128=1",
+)
+
+
 def _l78_source_digest(src: Path) -> str:
     h = hashlib.sha256()
     for sub in ("local", "source", "vendor", "communication"):
@@ -674,44 +700,74 @@ def _l78_source_digest(src: Path) -> str:
     return h.hexdigest()
 
 
-def build_draft_l78_k110419(
-    src_dir: str | Path | None = None,
-    out_dir: str | Path | None = None,
-) -> tuple[Path, Path]:
-    src = _default_l78_src_dir() if src_dir is None else Path(src_dir)
-    out = _default_l78_out_dir() if out_dir is None else Path(out_dir)
-    so_2048 = out / "chain_K110415.so"
-    so_1024 = out / "chain_K110419.so"
-    so_512 = out / "chain_K110420.so"
-    digest = _l78_source_digest(src)
-    digest_file = out / "l78.digest"
-    if (
-        so_2048.exists()
-        and so_1024.exists()
-        and so_512.exists()
-        and digest_file.exists()
-        and digest_file.read_text().strip() == digest
-    ):
-        return so_1024, so_512
+def _resolve_l78_ksfa(
+    k_sfa: int | None,
+    variants: tuple[int, ...] | list[int] | None,
+) -> tuple[int, ...]:
+    if k_sfa is not None:
+        if isinstance(k_sfa, bool) or not isinstance(k_sfa, int) or k_sfa not in L78_VARIANT_SPECS:
+            raise ValueError(f"Unsupported k_sfa for L78 build: {k_sfa!r}")
+    if variants is not None:
+        if not variants:
+            raise ValueError("variants must not be empty")
+        cleaned: list[int] = []
+        for item in variants:
+            if (
+                isinstance(item, bool)
+                or not isinstance(item, int)
+                or item not in L78_VARIANT_SPECS
+            ):
+                raise ValueError(f"Unsupported L78 variant k_sfa: {item!r}")
+            if item not in cleaned:
+                cleaned.append(item)
+        if k_sfa is not None and tuple(cleaned) != (k_sfa,):
+            raise ValueError(f"Conflicting k_sfa={k_sfa} and variants={variants!r}")
+        return tuple(cleaned)
+    if k_sfa is not None:
+        return (k_sfa,)
+    return (2048, 1024, 512)
 
-    if out.exists():
-        shutil.rmtree(out)
-    out.mkdir(parents=True, exist_ok=True)
-    for sub in ("local", "source", "vendor", "communication"):
-        shutil.copytree(src / sub, out / sub)
 
+def _l78_variant_digest(src_digest: str, ver: int, k_val: int) -> str:
+    payload = {
+        "source_digest": src_digest,
+        "ver": ver,
+        "k_sfa": k_val,
+        "defs": list(L78_BASE_DEFS),
+        "patch_version": L78_PATCH_VERSION,
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def _file_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _patch_l78_copied_sources(out: Path) -> None:
     attn_h = out / "local/attention/source/tests/glm52/whole_layer/attention_native.h"
     attn_txt = attn_h.read_text()
     if "base.sparseBlockCount = kTopK;" in attn_txt:
-        attn_h.write_text(
-            attn_txt.replace(
-                "base.sparseBlockCount = kTopK;",
-                "base.sparseBlockCount = DRAFT_SFA_TOPK;",
-                1,
-            )
+        attn_txt = attn_txt.replace(
+            "base.sparseBlockCount = kTopK;",
+            "base.sparseBlockCount = DRAFT_SFA_TOPK;",
+            1,
         )
     elif "base.sparseBlockCount = DRAFT_SFA_TOPK;" not in attn_txt:
         raise RuntimeError("Missing sparseBlockCount anchor in attention_native.h")
+    tiling_anchor = "auto tiling = SfaTiling(config);"
+    if attn_txt.count(tiling_anchor) != 1:
+        raise RuntimeError("Missing or ambiguous SfaTiling anchor in attention_native.h")
+    attn_txt = attn_txt.replace(
+        tiling_anchor,
+        (
+            f"{tiling_anchor}\n"
+            "        if (!is_shared_only) {\n"
+            "            tiling.baseParams.sparseBlockCount = kTopK;\n"
+            "        }"
+        ),
+        1,
+    )
+    attn_h.write_text(attn_txt)
 
     kern_cpp = out / "source/kernel.cpp"
     kern_txt = kern_cpp.read_text()
@@ -723,8 +779,13 @@ def build_draft_l78_k110419(
     kern_txt = kern_txt.replace(anchor_host, _KV_COMMIT_HOST_SNIPPET + "\n" + anchor_host, 1)
     kern_cpp.write_text(kern_txt)
 
-    cann = _cann_root()
-    site = _site_root()
+
+def _render_l78_build_script(
+    out: Path,
+    cann: Path,
+    site: Path,
+    target_ks: tuple[int, ...],
+) -> str:
     asc_subdirs = (
         "asc", "asc/include", "asc/include/adv_api", "asc/include/basic_api",
         "asc/include/c_api", "asc/include/simt_api", "asc/include/utils",
@@ -767,8 +828,15 @@ def build_draft_l78_k110419(
             "-ltorch -ltorch_cpu -lc10 -ltorch_npu",
         ]
     )
-
-    build_sh = f"""set -euo pipefail
+    compile_lines = []
+    for k_val in target_ks:
+        ver, sfx = L78_VARIANT_SPECS[k_val]
+        compile_lines.append(
+            f"compile_variant {ver} {sfx} -DK11040_F0_NZ=1 "
+            f"-DK11040_GU_FAST128=1 -DDRAFT_SFA_TOPK={k_val} &"
+        )
+    compile_block = "\n".join(compile_lines)
+    return f"""set -euo pipefail
 cann={shlex.quote(str(cann))}
 out={shlex.quote(str(out))}
 set +u
@@ -820,13 +888,88 @@ compile_variant() {{
         -o "$out/chain_K${{ver}}.so" "${{libs[@]}}"
     rm -f "$out/kernel_$sfx.o" "$out/host_$sfx.o" "$out/comm_$sfx.o"
 }}
-compile_variant 110415 l78k2048 -DK11040_F0_NZ=1 -DK11040_GU_FAST128=1 -DDRAFT_SFA_TOPK=2048 &
-compile_variant 110419 l78k1024 -DK11040_F0_NZ=1 -DK11040_GU_FAST128=1 -DDRAFT_SFA_TOPK=1024 &
-compile_variant 110420 l78k512 -DK11040_F0_NZ=1 -DK11040_GU_FAST128=1 -DDRAFT_SFA_TOPK=512 &
+{compile_block}
 wait
 """
+
+
+def build_draft_l78_k110419(
+    src_dir: str | Path | None = None,
+    out_dir: str | Path | None = None,
+    k_sfa: int | None = None,
+    variants: tuple[int, ...] | list[int] | None = None,
+) -> tuple[Path, Path]:
+    src = _default_l78_src_dir() if src_dir is None else Path(src_dir)
+    out = _default_l78_out_dir() if out_dir is None else Path(out_dir)
+    target_ks = _resolve_l78_ksfa(k_sfa, variants)
+    so_1024 = out / "chain_K110419.so"
+    so_512 = out / "chain_K110420.so"
+    src_digest = _l78_source_digest(src)
+    manifest_path = out / "l78.manifest.json"
+    prev_variants: dict[str, dict[str, object]] = {}
+    if manifest_path.is_file():
+        try:
+            loaded = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            loaded = None
+        if isinstance(loaded, dict) and isinstance(loaded.get("variants"), dict):
+            prev_variants = loaded["variants"]
+
+    missing_or_stale: list[int] = []
+    for k_val in target_ks:
+        ver, _ = L78_VARIANT_SPECS[k_val]
+        so_p = out / f"chain_K{ver}.so"
+        entry = prev_variants.get(str(ver))
+        expected_vdig = _l78_variant_digest(src_digest, ver, k_val)
+        hit = (
+            so_p.is_file()
+            and isinstance(entry, dict)
+            and entry.get("k_sfa") == k_val
+            and entry.get("variant_digest") == expected_vdig
+            and entry.get("so_sha256") == _file_sha256(so_p)
+        )
+        if not hit:
+            missing_or_stale.append(k_val)
+
+    if not missing_or_stale:
+        return so_1024, so_512
+
+    out.mkdir(parents=True, exist_ok=True)
+    for sub in ("local", "source", "vendor", "communication"):
+        dst_sub = out / sub
+        if dst_sub.exists():
+            shutil.rmtree(dst_sub)
+        shutil.copytree(src / sub, dst_sub)
+
+    _patch_l78_copied_sources(out)
+    build_sh = _render_l78_build_script(out, _cann_root(), _site_root(), tuple(missing_or_stale))
     sh_path = out / "build_p2.sh"
-    sh_path.write_text(build_sh)
+    sh_path.write_text(build_sh, encoding="utf-8")
     subprocess.run(["bash", str(sh_path)], check=True)
-    digest_file.write_text(digest + "\n")
+
+    next_variants: dict[str, dict[str, object]] = {}
+    for k_val, (ver, _) in L78_VARIANT_SPECS.items():
+        so_p = out / f"chain_K{ver}.so"
+        if not so_p.is_file():
+            continue
+        expected_vdig = _l78_variant_digest(src_digest, ver, k_val)
+        if k_val in missing_or_stale:
+            next_variants[str(ver)] = {
+                "k_sfa": k_val,
+                "variant_digest": expected_vdig,
+                "so_sha256": _file_sha256(so_p),
+            }
+        else:
+            prev_entry = prev_variants.get(str(ver))
+            if (
+                isinstance(prev_entry, dict)
+                and prev_entry.get("variant_digest") == expected_vdig
+                and prev_entry.get("so_sha256") == _file_sha256(so_p)
+            ):
+                next_variants[str(ver)] = prev_entry
+
+    new_manifest = {"source_digest": src_digest, "variants": next_variants}
+    tmp_manifest = manifest_path.with_name(f".{manifest_path.name}.{os.getpid()}.tmp")
+    tmp_manifest.write_text(json.dumps(new_manifest, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp_manifest, manifest_path)
     return so_1024, so_512

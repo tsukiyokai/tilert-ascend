@@ -591,36 +591,32 @@ class CalibratedL78V3Runner:
         self.descs_dev = descs_cpu.to(dev)
 
     def _ensure_l78_klibs(self):
-        from .calibrated_l78 import build_draft_l78_k110419
+        from .calibrated_l78 import L78_VARIANT_SPECS, build_draft_l78_k110419
 
-        cached = getattr(self.wt, "_p2_klibs", None)
-        if cached is not None:
-            for h in cached:
-                h[1](0)
-            return cached
+        need_ver = L78_VARIANT_SPECS[self.k_sfa][0]
+        klibs_by_ver = getattr(self.wt, "_p2_klibs_by_ver", None)
+        if not isinstance(klibs_by_ver, dict):
+            klibs_by_ver = {}
+            self.wt._p2_klibs_by_ver = klibs_by_ver
+        if need_ver in klibs_by_ver:
+            klibs_by_ver[need_ver][1](0)
+            return klibs_by_ver
         if self.rank == 0:
-            so_19, so_20 = build_draft_l78_k110419(out_dir=self.l78_build_dir)
+            so_19, _ = build_draft_l78_k110419(out_dir=self.l78_build_dir, k_sfa=self.k_sfa)
             out_dir = so_19.parent
-            so_15 = out_dir / "chain_K110415.so"
-            for src_so in (so_15, so_19, so_20):
-                sha = hashlib.sha256(src_so.read_bytes()).hexdigest()[:10]
-                ver_so = src_so.with_name(f"{src_so.stem}_{sha}.so")
-                if not ver_so.exists():
-                    shutil.copy2(src_so, ver_so)
+            src_so = out_dir / f"chain_K{need_ver}.so"
+            sha = hashlib.sha256(src_so.read_bytes()).hexdigest()[:10]
+            ver_so = src_so.with_name(f"{src_so.stem}_{sha}.so")
+            if not ver_so.exists():
+                shutil.copy2(src_so, ver_so)
         torch.distributed.barrier(group=self.channel_group)
-        so_19, so_20 = build_draft_l78_k110419(out_dir=self.l78_build_dir)
+        so_19, _ = build_draft_l78_k110419(out_dir=self.l78_build_dir, k_sfa=self.k_sfa)
         out_dir = so_19.parent
-        so_15 = out_dir / "chain_K110415.so"
-
-        def ver_path(p):
-            sha = hashlib.sha256(p.read_bytes()).hexdigest()[:10]
-            return p.with_name(f"{p.stem}_{sha}.so")
-
-        h15 = _bind_draft_klib(ver_path(so_15), 110415)
-        h19 = _bind_draft_klib(ver_path(so_19), 110419)
-        h20 = _bind_draft_klib(ver_path(so_20), 110420)
-        self.wt._p2_klibs = (h15, h19, h20)
-        return self.wt._p2_klibs
+        src_so = out_dir / f"chain_K{need_ver}.so"
+        sha = hashlib.sha256(src_so.read_bytes()).hexdigest()[:10]
+        ver_so = src_so.with_name(f"{src_so.stem}_{sha}.so")
+        klibs_by_ver[need_ver] = _bind_draft_klib(ver_so, need_ver)
+        return klibs_by_ver
 
     def _build_v3_entries(self, widths: list[int]):
         from vllm.config import set_current_vllm_config
@@ -628,17 +624,11 @@ class CalibratedL78V3Runner:
         from ..cann_model import CannModel
         from ..cann_mtp import INDEX_CACHE, MAIN_CACHE
         from ..whole_layer_abi import LocalRecords, Window
+        from .calibrated_l78 import L78_VARIANT_SPECS
 
-        h15, h19, h20 = self._ensure_l78_klibs()
-        _, _, fn_i15, fn_s15, _ = h15
-        _, _, _, fn_s19, fn_kvc19 = h19
-        _, _, _, fn_s20, _ = h20
-        if self.k_sfa == 2048:
-            fn_s_rollout = fn_s15
-        elif self.k_sfa == 1024:
-            fn_s_rollout = fn_s19
-        else:
-            fn_s_rollout = fn_s20
+        klibs_by_ver = self._ensure_l78_klibs()
+        need_ver = L78_VARIANT_SPECS[self.k_sfa][0]
+        _, _, fn_i, fn_s_rollout, fn_kvc = klibs_by_ver[need_ver]
 
         dev = self.dev
         draft = self.draft
@@ -811,12 +801,13 @@ class CalibratedL78V3Runner:
                     em.fn = fn_launch
                     return em
 
-                e_cal_idx1 = make_entry(1, True, fn_i15, True)
+                e_cal_idx1 = make_entry(1, True, fn_i, True)
                 torch.npu.synchronize()
                 bundle = ({}, e_cal_idx1, weight_refs, make_entry)
                 self.wt._v3_shared_bundle = bundle
 
         base_shr, e_cal_idx1, weight_refs, make_entry = bundle
+        e_cal_idx1.fn = fn_i
         self._cal_weight_refs = weight_refs
         out_shr = {}
         with torch.npu.device(dev):
@@ -827,7 +818,7 @@ class CalibratedL78V3Runner:
                 em_cl.fn = fn_s_rollout
                 out_shr[m_rows] = em_cl
             e_kvc = make_entry(
-                self.COMMIT_M, True, fn_kvc19, False, custom_topk=self.kv_commit_topk
+                self.COMMIT_M, True, fn_kvc, False, custom_topk=self.kv_commit_topk
             )
             torch.npu.synchronize()
         return out_shr, e_cal_idx1, e_kvc
