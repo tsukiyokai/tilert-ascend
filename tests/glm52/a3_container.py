@@ -1,0 +1,1493 @@
+import argparse
+from collections.abc import Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import secrets
+import shlex
+import subprocess
+import sys
+import time
+from typing import Any
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from tests.glm52.e2e_tp8_ep8.contracts import (
+    ALLOWED_A3_CHIPS,
+    ALLOWED_A3_GENERATION,
+    ALLOWED_KBENV_STATES,
+    DEFAULT_KBENV_BIN,
+    IsolationError,
+    MIN_KBENV_RAM_PCT,
+    WORLD_SIZE,
+)
+from tests.glm52.e2e_tp8_ep8.hygiene_gate import (
+    allocate_free_port_base,
+    allocate_isolation_env,
+    assert_host_allowed,
+    parse_kbenv_output,
+    parse_strict_ipv4,
+    select_a3_host,
+    select_free_die_slice,
+    validate_run_id,
+    verify_isolation_env,
+    verify_shm_isolation,
+)
+
+DEFAULT_IMAGE = "0d182d9cae98"
+DEFAULT_PRESTAGE_ROOT = "/dev/shm/tilert_prestage"
+DEFAULT_IFNAME = "enp23s0f3"
+SFS_MODEL_DIR = "/mnt/sfs_turbo_new/shanshan/GLM-5.2-w4a8c8"
+SFS_CKPT_PATH = (
+    "/mnt/sfs_turbo_new/shanshan/dspine-glm52/checkpoints/cal_l78_v3_hybrid_best.pt"
+)
+SFS_AGY_TP8_DIR = "/mnt/sfs_turbo_new/shanshan/dspine-glm52/runtime_bundle_v5/agy_tp8"
+SFS_PROBE_TARGETS: tuple[str, ...] = (
+    SFS_MODEL_DIR,
+    SFS_CKPT_PATH,
+    "/mnt/sfs_turbo_new/trt-sync-tmp",
+)
+CONTAINER_SFS_CKPT_PROBE = "/sfs/shanshan/dspine-glm52/checkpoints/cal_l78_v3_hybrid_best.pt"
+PRESTAGE_CKPT_PATH = "/prestage/cal_l78_v3_hybrid_best.pt"
+CONTAINER_SFS_PROBES: tuple[str, ...] = (
+    "/work/model-raw",
+    CONTAINER_SFS_CKPT_PROBE,
+)
+DEFAULT_DSPINE_STAMP = "tests/.artifacts/checks/dspine_unit_stamp.json"
+PRESTAGE_SPECS: dict[str, tuple[str, str]] = {
+    "ckpt": (SFS_CKPT_PATH, "cal_l78_v3_hybrid_best.pt"),
+    "case01": (f"{SFS_AGY_TP8_DIR}/cases/case-01-coding", "case-01-coding"),
+    "mtp-prefix": (f"{SFS_AGY_TP8_DIR}/mtp-prefix-rank-0.pt", "mtp-prefix-rank-0.pt"),
+    "model-raw": (SFS_MODEL_DIR, "GLM-5.2-w4a8c8"),
+}
+DEFAULT_STATIC_RO_MOUNTS: tuple[tuple[str, str], ...] = (
+    ("/mnt/sfs_turbo_new/shanshan", "/sfs/shanshan"),
+    (
+        "/mnt/sfs_turbo_new/trt-sync-tmp/vendor-hook-runtime212-int8",
+        "/assets/vendor-hook-runtime212-int8",
+    ),
+    ("/mnt/sfs_turbo_new/trt-sync-tmp/kernel-overlay", "/opt/kernel-overlay"),
+    ("/mnt/sfs_turbo_new/trt-sync-tmp/vllm-unified", "/assets/vllm-unified"),
+    ("/mnt/sfs_turbo_new/trt-sync-tmp/vllm-ascend-unified", "/assets/vllm-ascend-unified"),
+    ("/mnt/sfs_turbo_new/trt-sync-tmp/shmem-lib", "/assets/shmem-lib"),
+    (
+        "/mnt/sfs_turbo_new/trt-sync-tmp/runtime-sfa-token-mlatail",
+        "/work/runtime-sfa-token-mlatail",
+    ),
+    ("/mnt/sfs_turbo_new/trt-sync-tmp/runs/v3x58", "/assets/runs/v3x58"),
+    (
+        "/mnt/sfs_turbo_new/shanshan/dspine-glm52/runtime_bundle_v5/cann-9.2.0",
+        "/opt/ascend/cann-9.2.0",
+    ),
+    (
+        "/mnt/sfs_turbo_new/shanshan/dspine-glm52/runtime_bundle_v5/nnal",
+        "/usr/local/Ascend/nnal",
+    ),
+    (
+        "/mnt/sfs_turbo_new/shanshan/dspine-glm52/runtime_bundle_v5/shmem-capacity",
+        "/assets/shmem-capacity",
+    ),
+    ("/usr/local/Ascend/driver", "/usr/local/Ascend/driver"),
+    ("/usr/local/sbin/npu-smi", "/usr/local/sbin/npu-smi"),
+)
+DEFAULT_WHOLE_LAYER_BASE: dict[str, str] = {
+    "indexed": "/assets/runs/v3x58/build/indexed/whole_layer_indexed_attention_tp8.so",
+    "shared": "/assets/runs/v3x58/build/full/whole_layer_full_attention_tp8.so",
+    "ffn": "/sfs/shanshan/dspine-glm52/runtime_bundle_v5/agy_tp8/build/complete_ffn_tp8_ep8.so",
+    "metadata": (
+        "/sfs/shanshan/dspine-glm52/runtime_bundle_v5/agy_tp8/build/layer_local_chain_tp8_ep8.so"
+    ),
+}
+RUN_SUBDIRS: tuple[str, ...] = (
+    "source",
+    "builds",
+    "control",
+    "bench",
+    "report",
+    "vllm_cache",
+    "inductor_cache",
+    "triton_cache",
+    "xdg_cache",
+    "ascend_log",
+    "tmp",
+)
+SHARED_DEVICES: tuple[str, ...] = (
+    "/dev/davinci_manager",
+    "/dev/devmm_svm",
+    "/dev/hisi_hdc",
+)
+MEMINFO_KB_RE = re.compile(r"^(MemTotal|MemAvailable):\s+(\d+)\s+kB$", re.MULTILINE)
+
+
+def generate_run_id(prefix: str = "m21") -> str:
+    stamp = time.strftime("%Y%m%d_%H%M%S", time.gmtime())
+    suffix = secrets.token_hex(3)
+    return validate_run_id(f"{prefix}_{stamp}_{suffix}")
+
+
+def parse_die_slice(spec: str) -> tuple[int, ...] | None:
+    clean = spec.strip()
+    if not clean or clean == "auto":
+        return None
+    if clean in ("0..7", "0-7", "low"):
+        return tuple(range(8))
+    if clean in ("8..15", "8-15", "high"):
+        return tuple(range(8, 16))
+    parts = [p.strip() for p in clean.split(",") if p.strip()]
+    if len(parts) != WORLD_SIZE:
+        raise IsolationError(f"die_slice must specify {WORLD_SIZE} dies, got {spec!r}")
+    dies: list[int] = []
+    for part in parts:
+        if not part.isdigit():
+            raise IsolationError(f"Invalid die index {part!r} in {spec!r}")
+        idx = int(part)
+        if not (0 <= idx < 16) or idx in dies:
+            raise IsolationError(f"Invalid or duplicate die index {idx} in {spec!r}")
+        dies.append(idx)
+    return tuple(dies)
+
+
+def select_host_and_dies(
+    hosts: Sequence[Any],
+    target_host: str | None = None,
+    die_slice: str = "auto",
+    min_free_dies: int = WORLD_SIZE,
+    allow_idle_dies: bool = False,
+) -> tuple[Any, tuple[int, ...]]:
+    explicit_dies = parse_die_slice(die_slice)
+    if target_host is None:
+        selected = select_a3_host(hosts, min_free_dies=min_free_dies)
+    else:
+        canonical = assert_host_allowed(target_host)
+        matches = [h for h in hosts if h.ip == canonical]
+        if not matches:
+            raise IsolationError(f"Target host {canonical} not found in kbenv output")
+        selected = matches[0]
+        if selected.generation != ALLOWED_A3_GENERATION:
+            raise IsolationError(f"Host {canonical} generation {selected.generation!r} != A3")
+        if selected.chip not in ALLOWED_A3_CHIPS:
+            raise IsolationError(f"Host {canonical} chip {selected.chip!r} not eligible")
+        if not allow_idle_dies and selected.state not in ALLOWED_KBENV_STATES:
+            raise IsolationError(f"Host {canonical} state {selected.state!r} not idle/partial")
+        if selected.ram_pct is None or selected.ram_pct < MIN_KBENV_RAM_PCT:
+            raise IsolationError(
+                f"Host {canonical} RAM {selected.ram_pct}% < {MIN_KBENV_RAM_PCT}%"
+            )
+    if explicit_dies is not None:
+        free_set = set(selected.free_die_indices)
+        missing = [d for d in explicit_dies if d not in free_set]
+        if missing:
+            raise IsolationError(
+                f"Requested dies {missing} busy on {selected.ip} "
+                f"(free={list(selected.free_die_indices)})"
+            )
+        return selected, explicit_dies
+    return selected, select_free_die_slice(selected.free_die_indices, count=min_free_dies)
+
+
+def select_fleet_slots(
+    hosts: Sequence[Any],
+    max_slots: int | None = None,
+    dual_slot: bool = True,
+    exclude_hosts: Sequence[str] = (),
+) -> list[tuple[str, tuple[int, ...]]]:
+    excluded = {
+        parse_strict_ipv4(ip)
+        for ip in exclude_hosts
+        if ip is not None and str(ip).strip()
+    }
+    eligible: list[Any] = []
+    for host in hosts:
+        try:
+            assert_host_allowed(host.ip)
+        except IsolationError:
+            continue
+        if host.ip in excluded:
+            continue
+        if host.generation != ALLOWED_A3_GENERATION or host.chip not in ALLOWED_A3_CHIPS:
+            continue
+        if host.state not in ALLOWED_KBENV_STATES:
+            continue
+        if host.ram_pct is None or host.ram_pct < MIN_KBENV_RAM_PCT:
+            continue
+        if host.total_dies != 16 or host.free_dies < WORLD_SIZE:
+            continue
+        eligible.append(host)
+    eligible.sort(
+        key=lambda h: (
+            0 if h.state == "空闲" else 1,
+            -h.free_dies,
+            -(h.ram_pct or 0),
+            h.ip,
+        )
+    )
+    slots: list[tuple[str, tuple[int, ...]]] = []
+    for host in eligible:
+        free_set = set(host.free_die_indices)
+        low = tuple(range(8))
+        high = tuple(range(8, 16))
+        added_half = False
+        if all(d in free_set for d in low):
+            slots.append((host.ip, low))
+            added_half = True
+        if (dual_slot or not added_half) and all(d in free_set for d in high):
+            slots.append((host.ip, high))
+            added_half = True
+        if not added_half and len(host.free_die_indices) >= WORLD_SIZE:
+            slots.append((host.ip, select_free_die_slice(host.free_die_indices, WORLD_SIZE)))
+    if max_slots is not None:
+        return slots[: max(0, int(max_slots))]
+    return slots
+
+
+def parse_meminfo_bytes(meminfo_text: str) -> tuple[int, int]:
+    found = {k: int(v) * 1024 for k, v in MEMINFO_KB_RE.findall(meminfo_text)}
+    if "MemTotal" not in found or "MemAvailable" not in found:
+        raise IsolationError("Failed to parse MemTotal/MemAvailable from /proc/meminfo")
+    return found["MemTotal"], found["MemAvailable"]
+
+
+def parse_df_avail_bytes(df_text: str) -> int:
+    lines = [ln.strip() for ln in df_text.splitlines() if ln.strip()]
+    if len(lines) < 2:
+        raise IsolationError(f"Unexpected df output: {df_text!r}")
+    parts = lines[-1].split()
+    if len(parts) < 4 or not parts[3].isdigit():
+        raise IsolationError(f"Cannot parse df available bytes from {lines[-1]!r}")
+    return int(parts[3])
+
+
+def check_prestage_capacity(
+    shm_free_bytes: int,
+    mem_total_bytes: int,
+    mem_avail_bytes: int,
+    payload_bytes: int,
+    min_ram_pct: int = MIN_KBENV_RAM_PCT,
+    shm_headroom_bytes: int = 32 * 1024**3,
+) -> tuple[bool, str]:
+    if payload_bytes < 0 or mem_total_bytes <= 0:
+        return False, "Invalid capacity inputs"
+    rem_shm = shm_free_bytes - payload_bytes
+    if rem_shm < shm_headroom_bytes:
+        return (
+            False,
+            f"Insufficient /dev/shm headroom after staging: "
+            f"{rem_shm // (1024**3)} GiB < {shm_headroom_bytes // (1024**3)} GiB",
+        )
+    rem_ram_pct = ((mem_avail_bytes - payload_bytes) * 100.0) / float(mem_total_bytes)
+    if rem_ram_pct < float(min_ram_pct):
+        return (
+            False,
+            f"Insufficient host RAM headroom after staging: "
+            f"{rem_ram_pct:.1f}% < {min_ram_pct}%",
+        )
+    return True, f"ok (rem_shm={rem_shm // (1024**3)}GiB, rem_ram={rem_ram_pct:.1f}%)"
+
+
+def build_sfs_probe_script(
+    paths: Sequence[str] = SFS_PROBE_TARGETS,
+    timeout_s: int = 5,
+) -> str:
+    if timeout_s <= 0:
+        raise ValueError(f"timeout_s must be > 0, got {timeout_s}")
+    checks = [f"timeout {int(timeout_s)} test -e {shlex.quote(p)}" for p in paths]
+    return " && ".join(checks)
+
+
+def build_container_sfs_probe_script(
+    probes: Sequence[str] = CONTAINER_SFS_PROBES,
+    timeout_s: int = 5,
+    prestage_ckpt: bool | None = None,
+) -> str:
+    if timeout_s <= 0:
+        raise ValueError(f"timeout_s must be > 0, got {timeout_s}")
+    checks: list[str] = []
+    for path in probes:
+        if path == CONTAINER_SFS_CKPT_PROBE:
+            if prestage_ckpt is True:
+                checks.append(
+                    f"timeout {int(timeout_s)} test -e {shlex.quote(PRESTAGE_CKPT_PATH)}"
+                )
+            elif prestage_ckpt is False:
+                checks.append(f"timeout {int(timeout_s)} test -e {shlex.quote(path)}")
+            else:
+                checks.append(
+                    f"(test -e {shlex.quote(PRESTAGE_CKPT_PATH)} || "
+                    f"timeout {int(timeout_s)} test -e {shlex.quote(path)})"
+                )
+        else:
+            checks.append(f"timeout {int(timeout_s)} test -e {shlex.quote(path)}")
+    return " && ".join(checks)
+
+
+def du_timeout_for_item(item: str) -> int:
+    return 60 if item == "model-raw" else 15
+
+
+def build_whole_layer_base_json(run_id: str) -> str:
+    clean_id = validate_run_id(run_id)
+    payload = {
+        **DEFAULT_WHOLE_LAYER_BASE,
+        "tree": f"/dev/shm/{clean_id}/builds/chain.so",
+    }
+    return json.dumps(payload, indent=2) + "\n"
+
+
+def build_container_env_script(
+    iso_env: Mapping[str, str],
+    host_ifname: str = DEFAULT_IFNAME,
+) -> str:
+    verify_isolation_env(iso_env)
+    run_id = iso_env["TILERT_E2E_RUN_ID"]
+    run_dir = iso_env["TILERT_RUN_DIR"]
+    verify_shm_isolation(run_dir, run_id)
+    py_paths = ":".join(
+        [
+            "/work/source",
+            "/assets/vllm-unified",
+            "/work/runtime-sfa-token-mlatail",
+            "/assets/vendor-hook-runtime212-int8/vendor-hook-pinned/vendor-metadata",
+            "/assets/vendor-hook-runtime212-int8/vendor-hook-deps/transformers519",
+            "/assets/vendor-hook-runtime212-int8/vendor-hook-deps/python",
+            "/opt/ascend/cann-9.2.0/python/site-packages",
+            "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe",
+        ]
+    )
+    ld_paths = ":".join(
+        [
+            "/opt/ascend/cann-9.2.0/aarch64-linux/lib64",
+            "/assets/shmem-capacity",
+            "/assets/shmem-lib/lib",
+            "/opt/openEuler/gcc-toolset-12/root/usr/lib64",
+            "/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1/lib",
+            "/opt/ascend/cann-9.2.0/lib64",
+            "/opt/ascend/cann-9.2.0/lib64/plugin/opskernel",
+            "/opt/ascend/cann-9.2.0/lib64/plugin/nnengine",
+            (
+                "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/"
+                "op_tiling/lib/linux/aarch64"
+            ),
+            "/usr/local/Ascend/driver/lib64",
+            "/usr/local/Ascend/driver/lib64/common",
+            "/usr/local/Ascend/driver/lib64/driver",
+        ]
+    )
+    bin_paths = ":".join(
+        [
+            "/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1/bin",
+            "/opt/ascend/cann-9.2.0/bin",
+            "/opt/ascend/cann-9.2.0/tools/ccec_compiler/bin",
+            "/opt/ascend/cann-9.2.0/tools/profiler/bin",
+            "/usr/local/sbin",
+            "/usr/local/bin",
+            "/usr/sbin",
+            "/usr/bin",
+            "/sbin",
+            "/bin",
+        ]
+    )
+    ascend_custom = ":".join(
+        [
+            "/opt/kernel-overlay/vendors/custom_transformer",
+            (
+                "/work/runtime-sfa-token-mlatail/vllm_ascend/"
+                "_cann_ops_custom/vendors/custom_transformer"
+            ),
+        ]
+    )
+    cmake_pfx = (
+        "/opt/ascend/cann-9.2.0/toolkit/tools/tikicpulib/lib/cmake:"
+        "/opt/ascend/cann-9.2.0/lib64/cmake"
+    )
+    exports: list[tuple[str, str]] = [
+        ("TRANSFORMERS_OFFLINE", "1"),
+        ("HF_HUB_OFFLINE", "1"),
+        ("TILERT_E2E_RUN_ID", iso_env["TILERT_E2E_RUN_ID"]),
+        ("TILERT_RUN_DIR", run_dir),
+        ("TILERT_JOB_DIR", iso_env["TILERT_JOB_DIR"]),
+        ("TILERT_BENCH_ROOT", iso_env["TILERT_BENCH_ROOT"]),
+        ("TILERT_BUILD_DIR", f"{run_dir}/builds"),
+        ("HCCL_SOCKET_IFNAME", host_ifname),
+        ("GLOO_SOCKET_IFNAME", host_ifname),
+        ("HCCL_DETERMINISTIC", iso_env["HCCL_DETERMINISTIC"]),
+        ("HCCL_OP_EXPANSION_MODE", iso_env["HCCL_OP_EXPANSION_MODE"]),
+        ("HCCL_BUFFSIZE", "64"),
+        ("HCCL_EXEC_TIMEOUT", "120"),
+        ("MASTER_PORT", iso_env["MASTER_PORT"]),
+        ("TILERT_WHOLE_LAYER_ENDPOINT", iso_env["TILERT_WHOLE_LAYER_ENDPOINT"]),
+        ("TILERT_ONESIDED_ENDPOINT", iso_env["TILERT_ONESIDED_ENDPOINT"]),
+        ("HCCL_NPU_SOCKET_PORT_RANGE", iso_env["HCCL_NPU_SOCKET_PORT_RANGE"]),
+        ("ASCEND_RT_VISIBLE_DEVICES", iso_env["ASCEND_RT_VISIBLE_DEVICES"]),
+        ("ATB_OPSRUNNER_KERNEL_CACHE_LOCAL_COUNT", "1"),
+        ("ATB_OPSRUNNER_KERNEL_CACHE_GLOABL_COUNT", "5"),
+        ("ATB_STREAM_SYNC_EVERY_RUNNER_ENABLE", "0"),
+        ("ATB_STREAM_SYNC_EVERY_KERNEL_ENABLE", "0"),
+        ("ATB_STREAM_SYNC_EVERY_OPERATION_ENABLE", "0"),
+        ("ATB_COMPARE_TILING_EVERY_KERNEL", "0"),
+        ("ATB_MATMUL_SHUFFLE_K_ENABLE", "1"),
+        ("ATB_WORKSPACE_MEM_ALLOC_ALG_TYPE", "1"),
+        ("ATB_SHARE_MEMORY_NAME_SUFFIX", iso_env["ATB_SHARE_MEMORY_NAME_SUFFIX"]),
+        ("TILERT_SHMEM_LIB_DIR", "/assets/shmem-capacity"),
+        ("VLLM_CACHE_ROOT", iso_env["VLLM_CACHE_ROOT"]),
+        ("TORCHINDUCTOR_CACHE_DIR", f"{run_dir}/inductor_cache"),
+        ("TRITON_CACHE_DIR", f"{run_dir}/triton_cache"),
+        ("XDG_CACHE_HOME", f"{run_dir}/xdg_cache"),
+        ("ASCEND_PROCESS_LOG_PATH", f"{run_dir}/ascend_log"),
+        ("ASCEND_SLOG_PRINT_TO_STDOUT", "0"),
+        ("ASCEND_GLOBAL_LOG_LEVEL", "3"),
+        ("TMPDIR", f"{run_dir}/tmp"),
+        ("ASCEND_HOME_PATH", "/opt/ascend/cann-9.2.0"),
+        ("ASCEND_TOOLKIT_HOME", "/opt/ascend/cann-9.2.0"),
+        ("ASCEND_OPP_PATH", "/opt/ascend/cann-9.2.0/opp"),
+        ("ASCEND_AICPU_PATH", "/opt/ascend/cann-9.2.0"),
+        ("TOOLCHAIN_HOME", "/opt/ascend/cann-9.2.0/toolkit"),
+        ("CMAKE_PREFIX_PATH", cmake_pfx),
+        ("ASCEND_CUSTOM_OPP_PATH", ascend_custom),
+        ("ATB_HOME_PATH", "/usr/local/Ascend/nnal/atb/latest/atb/cxx_abi_1"),
+        ("VLLM_PLUGINS", "ascend,ascend_model"),
+        ("PYTHONDONTWRITEBYTECODE", "1"),
+        ("LCCL_DETERMINISTIC", "0"),
+        ("LCCL_PARALLEL", "0"),
+        ("OMP_NUM_THREADS", "1"),
+        ("MKL_NUM_THREADS", "1"),
+        ("PYTHONPATH", py_paths),
+        ("LD_LIBRARY_PATH", ld_paths),
+        ("PATH", bin_paths),
+    ]
+    if "TILERT_TARGET_HOST" in iso_env:
+        exports.append(("TILERT_TARGET_HOST", iso_env["TILERT_TARGET_HOST"]))
+    lines = ["unset PROFILER_SAMPLECONFIG PROFILING_MODE ASCEND_LAUNCH_BLOCKING"]
+    lines.extend(f"export {k}={shlex.quote(v)}" for k, v in exports)
+    return "\n".join(lines) + "\n"
+
+
+def build_docker_run_cmd(
+    run_id: str,
+    visible_devices: Sequence[int],
+    image: str = DEFAULT_IMAGE,
+    model_host_path: str | None = None,
+    extra_ro_mounts: Sequence[tuple[str, str]] = (),
+    privileged: bool = False,
+) -> list[str]:
+    clean_id = validate_run_id(run_id)
+    shm_dir = f"/dev/shm/{clean_id}"
+    verify_shm_isolation(shm_dir, clean_id)
+    dies = tuple(visible_devices)
+    if (
+        len(dies) != WORLD_SIZE
+        or len(set(dies)) != WORLD_SIZE
+        or any(isinstance(d, bool) or not isinstance(d, int) or not (0 <= d < 16) for d in dies)
+    ):
+        raise IsolationError(f"visible_devices must be {WORLD_SIZE} unique ints in 0..15")
+    cmd = [
+        "docker",
+        "run",
+        "-d",
+        "--init",
+        "--name",
+        clean_id,
+        "--entrypoint",
+        "",
+        "--network=host",
+        "--ipc=host",
+        "--cgroupns=host",
+        "--runtime=ascend",
+        "--security-opt",
+        "label=disable",
+        "--shm-size=64g",
+    ]
+    if privileged:
+        cmd.append("--privileged")
+    for die in dies:
+        cmd.append(f"--device=/dev/davinci{die}")
+    for dev in SHARED_DEVICES:
+        cmd.append(f"--device={dev}")
+    mounts: list[tuple[str, str, str]] = [
+        (f"{shm_dir}/source", "/work/source", "ro"),
+        (shm_dir, shm_dir, "rw"),
+        (model_host_path or SFS_MODEL_DIR, "/work/model-raw", "ro"),
+    ]
+    for h_path, c_path in DEFAULT_STATIC_RO_MOUNTS:
+        mounts.append((h_path, c_path, "ro"))
+    for h_path, c_path in extra_ro_mounts:
+        mounts.append((h_path, c_path, "ro"))
+    for h_path, c_path, mode in mounts:
+        suffix = "" if mode == "rw" else ":ro"
+        cmd.extend(["-v", f"{h_path}:{c_path}{suffix}"])
+    cmd.extend([image, "sleep", "infinity"])
+    return cmd
+
+
+def build_docker_exec_cmd(
+    run_id: str,
+    inner_cmd: str,
+    sfs_timeout_s: int = 5,
+    probes: Sequence[str] = CONTAINER_SFS_PROBES,
+    prestage_ckpt: bool | None = None,
+) -> list[str]:
+    clean_id = validate_run_id(run_id)
+    shm_dir = f"/dev/shm/{clean_id}"
+    verify_shm_isolation(shm_dir, clean_id)
+    probe_cmd = build_container_sfs_probe_script(
+        probes,
+        timeout_s=sfs_timeout_s,
+        prestage_ckpt=prestage_ckpt,
+    )
+    script = "\n".join(
+        [
+            "set -euo pipefail",
+            f"source {shlex.quote(shm_dir)}/env.sh",
+            "unset PROFILER_SAMPLECONFIG PROFILING_MODE ASCEND_LAUNCH_BLOCKING",
+            f"mkdir -p {shlex.quote(shm_dir)}/tmp && cd {shlex.quote(shm_dir)}/tmp",
+            probe_cmd,
+            inner_cmd,
+        ]
+    )
+    return ["docker", "exec", clean_id, "bash", "-c", script]
+
+
+def build_teardown_cmd(run_id: str) -> str:
+    clean_id = validate_run_id(run_id)
+    shm_dir = f"/dev/shm/{clean_id}"
+    verify_shm_isolation(shm_dir, clean_id)
+    return (
+        f"docker rm -f {shlex.quote(clean_id)} >/dev/null 2>&1 || true; "
+        f"rm -rf {shlex.quote(shm_dir)}"
+    )
+
+
+def build_remote_port_check_cmd(env: Mapping[str, str]) -> str:
+    verify_isolation_env(env)
+    p_master = int(env["MASTER_PORT"])
+    p_wl = int(env["TILERT_WHOLE_LAYER_ENDPOINT"].rsplit(":", 1)[1])
+    p_os = int(env["TILERT_ONESIDED_ENDPOINT"].rsplit(":", 1)[1])
+    lo_s, hi_s = env["HCCL_NPU_SOCKET_PORT_RANGE"].split("-", 1)
+    lo, hi = int(lo_s), int(hi_s)
+    py_check = (
+        "import subprocess, sys; "
+        "out = subprocess.check_output(['ss', '-Htan'], text=True); "
+        f"fixed = {{{p_master}, {p_wl}, {p_os}}}; "
+        "used = set(); "
+        "[used.add(int(tok.rsplit(':', 1)[1])) for ln in out.splitlines() "
+        "for tok in ln.split()[3:5] if ':' in tok and tok.rsplit(':', 1)[1].isdigit()]; "
+        f"bad = sorted((used & fixed) | {{p for p in used if {lo} <= p <= {hi}}}); "
+        "sys.exit(0 if not bad else 1)"
+    )
+    return f"python3 -c {shlex.quote(py_check)}"
+
+
+def build_remote_die_check_cmd(visible_devices: Sequence[int]) -> str:
+    dies_csv = ",".join(str(int(d)) for d in visible_devices)
+    py_check = (
+        "import re, subprocess, sys; "
+        f"dies = {{{dies_csv}}}; "
+        "out = subprocess.check_output(['npu-smi', 'info'], text=True); "
+        "procs = False; busy = set(); "
+        "\nfor ln in out.splitlines():\n"
+        "  if 'Process id' in ln: procs = True; continue\n"
+        "  if procs and '|' in ln:\n"
+        "    parts = ln.split('|')\n"
+        "    if len(parts) >= 4 and parts[2].strip().isdigit():\n"
+        "      toks = parts[1].split()\n"
+        "      if len(toks) >= 2 and toks[0].isdigit() and toks[1].isdigit():\n"
+        "        busy.add(int(toks[0]) * 2 + int(toks[1]))\n"
+        "ov = sorted(dies & busy); "
+        "sys.exit(0 if not ov else 1)"
+    )
+    return f"python3 -c {shlex.quote(py_check)}"
+
+
+def _load_ssh_passwords() -> dict[str, str]:
+    cred_file = Path(
+        os.environ.get("TRT_SSH_CREDENTIALS", Path.home() / ".config/kbenv/passwords")
+    )
+    creds: dict[str, str] = {}
+    if cred_file.is_file():
+        for line in cred_file.read_text(encoding="utf-8").splitlines():
+            parts = line.split("\t")
+            if len(parts) >= 2 and parts[0].strip():
+                creds[parts[0].strip()] = parts[1].strip()
+    return creds
+
+
+def _ssh_batch_opts(host: str) -> list[str] | None:
+    base_opts = ["-o", "BatchMode=yes"]
+    probe = subprocess.run(
+        ["ssh", *base_opts, "-o", "ConnectTimeout=5", f"root@{host}", "true"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if probe.returncode == 0:
+        return base_opts
+    force_pw = os.environ.get("TILERT_SSH_FORCE_PASSWORD", "").lower() in ("1", "true")
+    codex_key = Path.home() / ".ssh/id_ed25519_a3_a5_codex"
+    if not force_pw and codex_key.is_file():
+        key_opts = [
+            "-i",
+            str(codex_key),
+            "-o",
+            "IdentitiesOnly=yes",
+            "-o",
+            "BatchMode=yes",
+            "-o",
+            "StrictHostKeyChecking=accept-new",
+        ]
+        probe_key = subprocess.run(
+            ["ssh", *key_opts, "-o", "ConnectTimeout=5", f"root@{host}", "true"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if probe_key.returncode == 0:
+            return key_opts
+    return None
+
+
+def _ssh_base_cmd(host: str) -> tuple[list[str], dict[str, str] | None]:
+    batch_opts = _ssh_batch_opts(host)
+    if batch_opts is not None:
+        return ["ssh", *batch_opts, "-o", "ConnectTimeout=10", f"root@{host}"], None
+    creds = _load_ssh_passwords()
+    if host not in creds:
+        raise IsolationError(f"SSH BatchMode failed and no password found for {host}")
+    env = dict(os.environ)
+    env["SSHPASS"] = creds[host]
+    cmd = [
+        "sshpass",
+        "-e",
+        "ssh",
+        "-o",
+        "StrictHostKeyChecking=no",
+        "-o",
+        "PreferredAuthentications=password",
+        "-o",
+        "PubkeyAuthentication=no",
+        "-o",
+        "ConnectTimeout=10",
+        f"root@{host}",
+    ]
+    return cmd, env
+
+
+def _scp_cmd(host: str, src: str, dst: str) -> tuple[list[str], dict[str, str] | None]:
+    batch_opts = _ssh_batch_opts(host)
+    if batch_opts is not None:
+        return ["scp", "-q", "-r", *batch_opts, f"root@{host}:{src}", dst], None
+    creds = _load_ssh_passwords()
+    if host not in creds:
+        raise IsolationError(f"SCP BatchMode failed and no password found for {host}")
+    env = dict(os.environ)
+    env["SSHPASS"] = creds[host]
+    cmd = [
+        "sshpass",
+        "-e",
+        "scp",
+        "-q",
+        "-r",
+        "-o",
+        "StrictHostKeyChecking=no",
+        "-o",
+        "PreferredAuthentications=password",
+        "-o",
+        "PubkeyAuthentication=no",
+        f"root@{host}:{src}",
+        dst,
+    ]
+    return cmd, env
+
+
+def remote_ssh(
+    host: str,
+    remote_cmd: str,
+    *,
+    input_bytes: bytes | None = None,
+    check: bool = True,
+) -> subprocess.CompletedProcess[bytes]:
+    assert_host_allowed(host)
+    base, env = _ssh_base_cmd(host)
+    return subprocess.run(
+        [*base, remote_cmd],
+        input=input_bytes,
+        env=env,
+        capture_output=True,
+        check=check,
+    )
+
+
+def _kbenv_hosts(kbenv_bin: str) -> list[Any]:
+    proc = subprocess.run(
+        [kbenv_bin, "--once"],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=90.0,
+    )
+    return parse_kbenv_output(proc.stdout)
+
+
+def probe_host(
+    host: str | None,
+    die_slice: str = "auto",
+    image: str = DEFAULT_IMAGE,
+    kbenv_bin: str = DEFAULT_KBENV_BIN,
+    allow_idle_dies: bool = False,
+) -> dict[str, Any]:
+    hosts = _kbenv_hosts(kbenv_bin)
+    selected, dies = select_host_and_dies(
+        hosts,
+        target_host=host,
+        die_slice=die_slice,
+        allow_idle_dies=allow_idle_dies,
+    )
+    sfs_cmd = build_sfs_probe_script(SFS_PROBE_TARGETS, timeout_s=5)
+    check_script = "\n".join(
+        [
+            "set -euo pipefail",
+            sfs_cmd,
+            f"docker image inspect {shlex.quote(image)} >/dev/null",
+            "echo '---DF---'",
+            "df -B1 /dev/shm",
+            "echo '---MEM---'",
+            "cat /proc/meminfo",
+            "echo '---PS---'",
+            "docker ps --format '{{.Names}}'",
+        ]
+    )
+    res = remote_ssh(selected.ip, check_script)
+    out = res.stdout.decode("utf-8", errors="replace")
+    df_part = out.split("---DF---\n", 1)[1].split("---MEM---\n", 1)[0]
+    mem_part = out.split("---MEM---\n", 1)[1].split("---PS---\n", 1)[0]
+    ps_part = out.split("---PS---\n", 1)[1]
+    shm_avail = parse_df_avail_bytes(df_part)
+    mem_total, mem_avail = parse_meminfo_bytes(mem_part)
+    remote_ssh(selected.ip, build_remote_die_check_cmd(dies))
+    return {
+        "host": selected.ip,
+        "state": selected.state,
+        "free_dies": selected.free_dies,
+        "selected_dies": list(dies),
+        "ram_pct": selected.ram_pct,
+        "shm_avail_gib": round(shm_avail / (1024**3), 2),
+        "mem_avail_gib": round(mem_avail / (1024**3), 2),
+        "mem_total_gib": round(mem_total / (1024**3), 2),
+        "running_containers": [ln for ln in ps_part.splitlines() if ln.strip()],
+        "sfs_ok": True,
+        "image_present": True,
+    }
+
+
+def prestage_host(
+    host: str,
+    items: Sequence[str],
+    prestage_root: str = DEFAULT_PRESTAGE_ROOT,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    assert_host_allowed(host)
+    for item in items:
+        if item not in PRESTAGE_SPECS:
+            raise ValueError(f"Unknown prestage item: {item!r}")
+    df_res = remote_ssh(host, "df -B1 /dev/shm")
+    mem_res = remote_ssh(host, "cat /proc/meminfo")
+    shm_free = parse_df_avail_bytes(df_res.stdout.decode("utf-8"))
+    mem_total, mem_avail = parse_meminfo_bytes(mem_res.stdout.decode("utf-8"))
+    results: list[dict[str, Any]] = []
+    cur_shm = shm_free
+    cur_mem = mem_avail
+    for item in items:
+        sfs_src, rel_name = PRESTAGE_SPECS[item]
+        dst = f"{prestage_root.rstrip('/')}/{rel_name}"
+        marker = f"{dst}.prestage_complete.json"
+        has_marker = remote_ssh(host, f"test -f {shlex.quote(marker)}", check=False).returncode == 0
+        if has_marker:
+            results.append({"item": item, "dst": dst, "status": "already_staged"})
+            continue
+        du_timeout = du_timeout_for_item(item)
+        du_out = remote_ssh(
+            host,
+            f"set -euo pipefail; timeout {du_timeout} du -sb {shlex.quote(sfs_src)} | "
+            "awk '{print $1}'",
+        ).stdout.decode("utf-8").strip()
+        size_bytes = int(du_out)
+        ok, reason = check_prestage_capacity(cur_shm, mem_total, cur_mem, size_bytes)
+        if not ok:
+            raise IsolationError(f"Prestage rejected for {item} on {host}: {reason}")
+        if dry_run:
+            results.append(
+                {
+                    "item": item,
+                    "src": sfs_src,
+                    "dst": dst,
+                    "size_gib": round(size_bytes / (1024**3), 3),
+                    "status": f"dry_run:{reason}",
+                }
+            )
+            cur_shm -= size_bytes
+            cur_mem -= size_bytes
+            continue
+        tmp_dst = f"{dst}.tmp.{os.getpid()}"
+        stage_script = "\n".join(
+            [
+                "set -euo pipefail",
+                f"mkdir -p {shlex.quote(prestage_root)}",
+                f"rm -rf {shlex.quote(tmp_dst)}",
+                f"cp -a {shlex.quote(sfs_src)} {shlex.quote(tmp_dst)}",
+                f"rm -rf {shlex.quote(dst)}",
+                f"mv {shlex.quote(tmp_dst)} {shlex.quote(dst)}",
+                f"printf '{{\"item\":\"%s\",\"bytes\":%s}}\\n' {shlex.quote(item)} {size_bytes} "
+                f"> {shlex.quote(marker)}",
+            ]
+        )
+        remote_ssh(host, stage_script)
+        cur_shm -= size_bytes
+        cur_mem -= size_bytes
+        results.append(
+            {
+                "item": item,
+                "src": sfs_src,
+                "dst": dst,
+                "size_gib": round(size_bytes / (1024**3), 3),
+                "status": "staged",
+            }
+        )
+    return {"host": host, "prestage_root": prestage_root, "items": results}
+
+
+def _detect_remote_prestage_mounts(
+    host: str,
+    prestage_root: str = DEFAULT_PRESTAGE_ROOT,
+) -> tuple[str | None, list[tuple[str, str]]]:
+    model_dst = f"{prestage_root.rstrip('/')}/{PRESTAGE_SPECS['model-raw'][1]}"
+    model_marker = f"{model_dst}.prestage_complete.json"
+    has_model = (
+        remote_ssh(
+            host,
+            f"test -d {shlex.quote(model_dst)} && test -f {shlex.quote(model_marker)}",
+            check=False,
+        ).returncode
+        == 0
+    )
+    model_override = model_dst if has_model else None
+    extra_mounts: list[tuple[str, str]] = []
+    for item in ("ckpt", "case01", "mtp-prefix"):
+        dst = f"{prestage_root.rstrip('/')}/{PRESTAGE_SPECS[item][1]}"
+        marker = f"{dst}.prestage_complete.json"
+        chk = remote_ssh(
+            host,
+            f"test -e {shlex.quote(dst)} && test -f {shlex.quote(marker)}",
+            check=False,
+        )
+        if chk.returncode == 0:
+            extra_mounts.append((dst, f"/prestage/{PRESTAGE_SPECS[item][1]}"))
+    return model_override, extra_mounts
+
+
+def build_up_source_tar_cmd(repo_root: Path = REPO_ROOT) -> list[str]:
+    return [
+        "tar",
+        "--exclude=.git",
+        "--exclude=tests/.artifacts",
+        "--exclude=docs/evidence",
+        "--exclude=docs/assets",
+        "--exclude=__pycache__",
+        "--exclude=.pytest_cache",
+        "--exclude=*.pyc",
+        "-czf",
+        "-",
+        "-C",
+        str(repo_root),
+        ".",
+    ]
+
+
+def up_container(
+    host: str | None = None,
+    run_id: str | None = None,
+    die_slice: str = "auto",
+    port_base: int | None = None,
+    image: str = DEFAULT_IMAGE,
+    kbenv_bin: str = DEFAULT_KBENV_BIN,
+    use_prestage: bool = True,
+    allow_idle_dies: bool = False,
+    privileged: bool = False,
+) -> dict[str, Any]:
+    hosts = _kbenv_hosts(kbenv_bin)
+    selected, dies = select_host_and_dies(
+        hosts,
+        target_host=host,
+        die_slice=die_slice,
+        allow_idle_dies=allow_idle_dies,
+    )
+    clean_id = validate_run_id(run_id or generate_run_id())
+    remote_ssh(selected.ip, build_sfs_probe_script(SFS_PROBE_TARGETS, timeout_s=5))
+    remote_ssh(selected.ip, f"docker image inspect {shlex.quote(image)} >/dev/null")
+    remote_ssh(selected.ip, build_remote_die_check_cmd(dies))
+
+    reserved: list[int] = []
+    iso_env: dict[str, str] | None = None
+    for _ in range(8):
+        cand_port = allocate_free_port_base(reserved) if port_base is None else port_base
+        cand_env = allocate_isolation_env(
+            clean_id,
+            port_base=cand_port,
+            target_host=selected.ip,
+            visible_devices=dies,
+        )
+        chk = remote_ssh(selected.ip, build_remote_port_check_cmd(cand_env), check=False)
+        if chk.returncode == 0:
+            iso_env = cand_env
+            break
+        if port_base is not None:
+            raise IsolationError(f"Requested port_base {port_base} busy on {selected.ip}")
+        reserved.append(cand_port)
+    if iso_env is None:
+        raise IsolationError(f"Unable to reserve free port block on {selected.ip}")
+
+    ifname_res = remote_ssh(
+        selected.ip,
+        "ip -o link show | awk -F': ' '$2 != \"lo\" {print $2; exit}'",
+        check=False,
+    )
+    ifname = ifname_res.stdout.decode("utf-8").strip() or DEFAULT_IFNAME
+    shm_dir = iso_env["TILERT_RUN_DIR"]
+    dirs_cmd = "mkdir -p " + " ".join(shlex.quote(f"{shm_dir}/{sub}") for sub in RUN_SUBDIRS)
+    remote_ssh(selected.ip, dirs_cmd)
+
+    tar_proc = subprocess.run(
+        build_up_source_tar_cmd(REPO_ROOT),
+        capture_output=True,
+        check=True,
+    )
+    remote_ssh(
+        selected.ip,
+        f"tar -xzf - -C {shlex.quote(shm_dir)}/source",
+        input_bytes=tar_proc.stdout,
+    )
+
+    env_txt = build_container_env_script(iso_env, host_ifname=ifname)
+    wl_txt = build_whole_layer_base_json(clean_id)
+    remote_ssh(
+        selected.ip,
+        f"cat > {shlex.quote(shm_dir)}/env.sh",
+        input_bytes=env_txt.encode("utf-8"),
+    )
+    remote_ssh(
+        selected.ip,
+        f"cat > {shlex.quote(shm_dir)}/whole_layer_base.json",
+        input_bytes=wl_txt.encode("utf-8"),
+    )
+
+    model_override = None
+    extra_ro: list[tuple[str, str]] = []
+    if use_prestage:
+        model_override, extra_ro = _detect_remote_prestage_mounts(selected.ip)
+    run_cmd = build_docker_run_cmd(
+        clean_id,
+        dies,
+        image=image,
+        model_host_path=model_override,
+        extra_ro_mounts=extra_ro,
+        privileged=privileged,
+    )
+    remote_ssh(selected.ip, " ".join(shlex.quote(tok) for tok in run_cmd))
+    return {
+        "run_id": clean_id,
+        "host": selected.ip,
+        "visible_devices": list(dies),
+        "port_base": int(iso_env["MASTER_PORT"]),
+        "shm_dir": shm_dir,
+        "prestage_model": model_override,
+    }
+
+
+def exec_in_container(
+    host: str,
+    run_id: str,
+    inner_cmd: str,
+    sfs_timeout_s: int = 5,
+    stream: bool = True,
+) -> int:
+    assert_host_allowed(host)
+    docker_cmd = build_docker_exec_cmd(run_id, inner_cmd, sfs_timeout_s=sfs_timeout_s)
+    remote_str = " ".join(shlex.quote(tok) for tok in docker_cmd)
+    base, env = _ssh_base_cmd(host)
+    if stream:
+        proc = subprocess.run([*base, remote_str], env=env, check=False)
+        return proc.returncode
+    proc = subprocess.run([*base, remote_str], env=env, capture_output=True, check=False)
+    return proc.returncode
+
+
+def down_container(host: str, run_id: str) -> dict[str, Any]:
+    assert_host_allowed(host)
+    teardown = build_teardown_cmd(run_id)
+    remote_ssh(host, teardown)
+    return {"host": host, "run_id": run_id, "torn_down": True}
+
+
+def sync_source(
+    host: str,
+    run_id: str,
+    paths: Sequence[str] = ("tilert", "tests/glm52"),
+    repo_root: Path = REPO_ROOT,
+) -> dict[str, Any]:
+    assert_host_allowed(host)
+    clean_id = validate_run_id(run_id)
+    shm_dir = f"/dev/shm/{clean_id}"
+    verify_shm_isolation(shm_dir, clean_id)
+    rel_paths = [p.strip("/") for p in paths if p.strip("/")]
+    if not rel_paths:
+        raise ValueError("sync_source requires at least one relative path")
+    tar_proc = subprocess.run(
+        [
+            "tar",
+            "--exclude=.git",
+            "--exclude=tests/.artifacts",
+            "--exclude=__pycache__",
+            "--exclude=.pytest_cache",
+            "--exclude=*.pyc",
+            "-czf",
+            "-",
+            "-C",
+            str(repo_root),
+            *rel_paths,
+        ],
+        capture_output=True,
+        check=True,
+    )
+    remote_ssh(
+        host,
+        f"test -d {shlex.quote(shm_dir)}/source && "
+        f"tar -xzf - -C {shlex.quote(shm_dir)}/source",
+        input_bytes=tar_proc.stdout,
+    )
+    return {
+        "host": host,
+        "run_id": clean_id,
+        "shm_dir": shm_dir,
+        "paths": rel_paths,
+        "tar_bytes": len(tar_proc.stdout),
+    }
+
+
+def _resolve_dspine_stamp_path(
+    stamp_path: Path | str | None = None,
+    repo_root: Path = REPO_ROOT,
+) -> Path:
+    return Path(stamp_path) if stamp_path is not None else Path(repo_root) / DEFAULT_DSPINE_STAMP
+
+
+def dspine_unit_digest(repo_root: Path = REPO_ROOT) -> str:
+    root = Path(repo_root)
+    files: list[Path] = []
+    dspine_dir = root / "tilert/models/glm_5_2_ascend/dspine"
+    if dspine_dir.is_dir():
+        for cand in sorted(dspine_dir.rglob("*")):
+            if cand.is_file() and "__pycache__" not in cand.parts and cand.suffix != ".pyc":
+                files.append(cand)
+    for rel in (
+        "tilert/models/glm_5_2_ascend/mla_tail.py",
+        "tilert/models/glm_5_2_ascend/routed_shared.py",
+        "tests/glm52/test_dspine_unit.py",
+    ):
+        cand = root / rel
+        if cand.is_file():
+            files.append(cand)
+    h = hashlib.sha256()
+    seen: set[Path] = set()
+    for path in sorted(files):
+        if path in seen:
+            continue
+        seen.add(path)
+        h.update(str(path.relative_to(root)).encode("utf-8"))
+        h.update(path.read_bytes())
+    return h.hexdigest()
+
+
+def read_dspine_unit_stamp(
+    stamp_path: Path | str | None = None,
+    repo_root: Path = REPO_ROOT,
+) -> dict[str, Any] | None:
+    path = _resolve_dspine_stamp_path(stamp_path, repo_root=repo_root)
+    if not path.is_file():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def write_dspine_unit_stamp(
+    digest: str,
+    *,
+    passed: bool = True,
+    source: str = "local",
+    stamp_path: Path | str | None = None,
+    repo_root: Path = REPO_ROOT,
+    extra: Mapping[str, Any] | None = None,
+) -> Path:
+    path = _resolve_dspine_stamp_path(stamp_path, repo_root=repo_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, Any] = {
+        "digest": digest,
+        "passed": bool(passed),
+        "source": str(source),
+        "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    if extra:
+        payload.update(extra)
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    tmp.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp, path)
+    return path
+
+
+def run_dspine_check(
+    *,
+    host: str | None = None,
+    run_id: str | None = None,
+    force: bool = False,
+    stamp_path: Path | str | None = None,
+    repo_root: Path = REPO_ROOT,
+) -> dict[str, Any]:
+    if bool(host) != bool(run_id):
+        raise ValueError("Both --host and --run-id are required together")
+    resolved_stamp = _resolve_dspine_stamp_path(stamp_path, repo_root=repo_root)
+    digest = dspine_unit_digest(repo_root)
+    stamp = read_dspine_unit_stamp(resolved_stamp, repo_root=repo_root)
+    if (
+        not force
+        and stamp is not None
+        and stamp.get("passed") is True
+        and stamp.get("digest") == digest
+    ):
+        return {
+            "status": "skipped",
+            "returncode": 0,
+            "digest": digest,
+            "stamp_path": str(resolved_stamp),
+            "stamp": stamp,
+        }
+    if host and run_id:
+        rc = exec_in_container(
+            host,
+            run_id,
+            "pytest -q -p no:cacheprovider /work/source/tests/glm52/test_dspine_unit.py",
+            stream=True,
+        )
+        source = f"container:{host}:{run_id}"
+    else:
+        proc = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                "-q",
+                "-p",
+                "no:cacheprovider",
+                str(Path(repo_root) / "tests/glm52/test_dspine_unit.py"),
+            ],
+            check=False,
+        )
+        rc = proc.returncode
+        source = "local"
+    if rc != 0:
+        return {
+            "status": "failed",
+            "returncode": rc,
+            "digest": digest,
+            "source": source,
+            "stamp_path": str(resolved_stamp),
+        }
+    write_dspine_unit_stamp(digest, passed=True, source=source, stamp_path=resolved_stamp)
+    return {
+        "status": "passed",
+        "returncode": 0,
+        "digest": digest,
+        "source": source,
+        "stamp_path": str(resolved_stamp),
+    }
+
+
+def pull_from_container_shm(host: str, remote_path: str, local_path: Path) -> None:
+    assert_host_allowed(host)
+    local_path.parent.mkdir(parents=True, exist_ok=True)
+    cmd, env = _scp_cmd(host, remote_path, str(local_path))
+    subprocess.run(cmd, env=env, check=True)
+
+
+def run_ephemeral(
+    host: str | None,
+    inner_cmd: str,
+    run_id: str | None = None,
+    die_slice: str = "auto",
+    port_base: int | None = None,
+    image: str = DEFAULT_IMAGE,
+    kbenv_bin: str = DEFAULT_KBENV_BIN,
+    keep_container: bool = False,
+    pull_from: str | None = None,
+    pull_to: str | None = None,
+    use_prestage: bool = True,
+    allow_idle_dies: bool = False,
+    privileged: bool = False,
+) -> dict[str, Any]:
+    info = up_container(
+        host=host,
+        run_id=run_id,
+        die_slice=die_slice,
+        port_base=port_base,
+        image=image,
+        kbenv_bin=kbenv_bin,
+        use_prestage=use_prestage,
+        allow_idle_dies=allow_idle_dies,
+        privileged=privileged,
+    )
+    rc = 1
+    try:
+        rc = exec_in_container(info["host"], info["run_id"], inner_cmd, stream=True)
+        if pull_from and pull_to:
+            pull_from_container_shm(info["host"], pull_from, Path(pull_to))
+    finally:
+        if not keep_container:
+            down_container(info["host"], info["run_id"])
+    info["returncode"] = rc
+    return info
+
+
+def fanout_fleet(
+    inner_cmd: str,
+    max_slots: int = 2,
+    dual_slot: bool = True,
+    exclude_hosts: Sequence[str] = (),
+    image: str = DEFAULT_IMAGE,
+    kbenv_bin: str = DEFAULT_KBENV_BIN,
+) -> list[dict[str, Any]]:
+    hosts = _kbenv_hosts(kbenv_bin)
+    slots = select_fleet_slots(
+        hosts,
+        max_slots=max_slots,
+        dual_slot=dual_slot,
+        exclude_hosts=exclude_hosts,
+    )
+    if not slots:
+        raise IsolationError("No eligible A3 slots found for fanout")
+    results: list[dict[str, Any]] = []
+    with ThreadPoolExecutor(max_workers=len(slots)) as pool:
+        futs = {}
+        for idx, (ip, dies) in enumerate(slots):
+            slice_str = ",".join(str(d) for d in dies)
+            rid = generate_run_id(f"m21f{idx}")
+            fut = pool.submit(
+                run_ephemeral,
+                ip,
+                inner_cmd,
+                rid,
+                slice_str,
+                None,
+                image,
+                kbenv_bin,
+                False,
+                None,
+                None,
+                True,
+            )
+            futs[fut] = (ip, slice_str, rid)
+        for fut in as_completed(futs):
+            results.append(fut.result())
+    return results
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser()
+    sub = parser.add_subparsers(dest="subcmd", required=True)
+
+    p_probe = sub.add_parser("probe")
+    p_probe.add_argument("--host", default=None)
+    p_probe.add_argument("--die-slice", default="auto")
+    p_probe.add_argument("--image", default=DEFAULT_IMAGE)
+    p_probe.add_argument("--kbenv", default=DEFAULT_KBENV_BIN)
+    p_probe.add_argument("--allow-idle-dies", action="store_true")
+
+    p_fleet = sub.add_parser("probe-fleet")
+    p_fleet.add_argument("--max-slots", type=int, default=None)
+    p_fleet.add_argument("--no-dual-slot", action="store_true")
+    p_fleet.add_argument("--exclude", default="")
+    p_fleet.add_argument("--kbenv", default=DEFAULT_KBENV_BIN)
+
+    p_stage = sub.add_parser("prestage")
+    p_stage.add_argument("--host", required=True)
+    p_stage.add_argument("--items", default="ckpt,case01,mtp-prefix")
+    p_stage.add_argument("--prestage-root", default=DEFAULT_PRESTAGE_ROOT)
+    p_stage.add_argument("--dry-run", action="store_true")
+
+    p_up = sub.add_parser("up")
+    p_up.add_argument("--host", default=None)
+    p_up.add_argument("--run-id", default=None)
+    p_up.add_argument("--die-slice", default="auto")
+    p_up.add_argument("--port-base", type=int, default=None)
+    p_up.add_argument("--image", default=DEFAULT_IMAGE)
+    p_up.add_argument("--kbenv", default=DEFAULT_KBENV_BIN)
+    p_up.add_argument("--no-prestage", action="store_true")
+    p_up.add_argument("--allow-idle-dies", action="store_true")
+    p_up.add_argument("--privileged", action="store_true")
+
+    p_exec = sub.add_parser("exec")
+    p_exec.add_argument("--host", required=True)
+    p_exec.add_argument("--run-id", required=True)
+    p_exec.add_argument("--cmd", required=True)
+    p_exec.add_argument("--sfs-timeout", type=int, default=5)
+
+    p_down = sub.add_parser("down")
+    p_down.add_argument("--host", required=True)
+    p_down.add_argument("--run-id", required=True)
+
+    p_sync = sub.add_parser("sync-source")
+    p_sync.add_argument("--host", required=True)
+    p_sync.add_argument("--run-id", required=True)
+    p_sync.add_argument("--paths", default="tilert,tests/glm52")
+
+    p_dspine = sub.add_parser("dspine-check")
+    p_dspine.add_argument("--host", default=None)
+    p_dspine.add_argument("--run-id", default=None)
+    p_dspine.add_argument("--force", action="store_true")
+    p_dspine.add_argument("--stamp-path", default=None)
+
+    p_run = sub.add_parser("run")
+    p_run.add_argument("--host", default=None)
+    p_run.add_argument("--run-id", default=None)
+    p_run.add_argument("--die-slice", default="auto")
+    p_run.add_argument("--port-base", type=int, default=None)
+    p_run.add_argument("--image", default=DEFAULT_IMAGE)
+    p_run.add_argument("--kbenv", default=DEFAULT_KBENV_BIN)
+    p_run.add_argument("--cmd", required=True)
+    p_run.add_argument("--keep-container", action="store_true")
+    p_run.add_argument("--pull-from", default=None)
+    p_run.add_argument("--pull-to", default=None)
+    p_run.add_argument("--no-prestage", action="store_true")
+    p_run.add_argument("--allow-idle-dies", action="store_true")
+    p_run.add_argument("--privileged", action="store_true")
+
+    p_fan = sub.add_parser("fanout")
+    p_fan.add_argument("--cmd", required=True)
+    p_fan.add_argument("--max-slots", type=int, default=2)
+    p_fan.add_argument("--no-dual-slot", action="store_true")
+    p_fan.add_argument("--exclude", default="")
+    p_fan.add_argument("--image", default=DEFAULT_IMAGE)
+    p_fan.add_argument("--kbenv", default=DEFAULT_KBENV_BIN)
+
+    args = parser.parse_args(argv)
+    if args.subcmd == "probe":
+        out = probe_host(
+            args.host,
+            die_slice=args.die_slice,
+            image=args.image,
+            kbenv_bin=args.kbenv,
+            allow_idle_dies=args.allow_idle_dies,
+        )
+        print(json.dumps(out, indent=2))
+        return 0
+    if args.subcmd == "probe-fleet":
+        excl = [x.strip() for x in args.exclude.split(",") if x.strip()]
+        slots = select_fleet_slots(
+            _kbenv_hosts(args.kbenv),
+            max_slots=args.max_slots,
+            dual_slot=not args.no_dual_slot,
+            exclude_hosts=excl,
+        )
+        print(
+            json.dumps(
+                [{"host": ip, "dies": list(dies)} for ip, dies in slots],
+                indent=2,
+            )
+        )
+        return 0
+    if args.subcmd == "prestage":
+        items = [x.strip() for x in args.items.split(",") if x.strip()]
+        out = prestage_host(
+            args.host,
+            items=items,
+            prestage_root=args.prestage_root,
+            dry_run=args.dry_run,
+        )
+        print(json.dumps(out, indent=2))
+        return 0
+    if args.subcmd == "up":
+        out = up_container(
+            host=args.host,
+            run_id=args.run_id,
+            die_slice=args.die_slice,
+            port_base=args.port_base,
+            image=args.image,
+            kbenv_bin=args.kbenv,
+            use_prestage=not args.no_prestage,
+            allow_idle_dies=args.allow_idle_dies,
+            privileged=args.privileged,
+        )
+        print(json.dumps(out, indent=2))
+        return 0
+    if args.subcmd == "exec":
+        return exec_in_container(
+            args.host,
+            args.run_id,
+            args.cmd,
+            sfs_timeout_s=args.sfs_timeout,
+        )
+    if args.subcmd == "down":
+        out = down_container(args.host, args.run_id)
+        print(json.dumps(out, indent=2))
+        return 0
+    if args.subcmd == "sync-source":
+        paths = [x.strip() for x in args.paths.split(",") if x.strip()]
+        out = sync_source(args.host, args.run_id, paths=paths)
+        print(json.dumps(out, indent=2))
+        return 0
+    if args.subcmd == "dspine-check":
+        out = run_dspine_check(
+            host=args.host,
+            run_id=args.run_id,
+            force=args.force,
+            stamp_path=args.stamp_path,
+        )
+        print(json.dumps(out, indent=2))
+        return int(out["returncode"])
+    if args.subcmd == "run":
+        out = run_ephemeral(
+            host=args.host,
+            inner_cmd=args.cmd,
+            run_id=args.run_id,
+            die_slice=args.die_slice,
+            port_base=args.port_base,
+            image=args.image,
+            kbenv_bin=args.kbenv,
+            keep_container=args.keep_container,
+            pull_from=args.pull_from,
+            pull_to=args.pull_to,
+            use_prestage=not args.no_prestage,
+            allow_idle_dies=args.allow_idle_dies,
+            privileged=args.privileged,
+        )
+        print(json.dumps(out, indent=2))
+        return int(out["returncode"])
+    if args.subcmd == "fanout":
+        excl = [x.strip() for x in args.exclude.split(",") if x.strip()]
+        out = fanout_fleet(
+            args.cmd,
+            max_slots=args.max_slots,
+            dual_slot=not args.no_dual_slot,
+            exclude_hosts=excl,
+            image=args.image,
+            kbenv_bin=args.kbenv,
+        )
+        print(json.dumps(out, indent=2))
+        return 0 if all(item["returncode"] == 0 for item in out) else 1
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1421,3 +1421,207 @@ def test_t2_r1_r2_r4_r6_visible_devices_cpp_splice_kbenv_and_py_ast(
     call_ok = tmp_path / "call_ok.py"
     call_ok.write_text('print("ok")\n', encoding="utf-8")
     verify_python_source_hygiene([call_ok])
+
+
+def test_t2_m21_fast_parity_rejected_by_formal_gate_and_protocol_helper(
+    tmp_path: Path,
+    case_root: Path,
+    repo_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import importlib
+    from types import ModuleType, SimpleNamespace
+    from .cli import main as cli_main
+
+    monkeypatch.syspath_prepend(str(repo_root))
+    if "torch" not in sys.modules:
+        fake_torch = ModuleType("torch")
+        fake_torch.__file__ = "/opt/fake/torch/__init__.py"
+        fake_torch.Tensor = object
+        fake_torch.bfloat16 = "bf16"
+        fake_torch.float16 = "f16"
+        fake_torch.float32 = "f32"
+        fake_torch.int8 = "i8"
+        fake_torch.int32 = "i32"
+        fake_torch.int64 = "i64"
+        fake_torch.uint8 = "u8"
+        fake_torch.nn = SimpleNamespace(Module=object)
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
+    if "vllm" not in sys.modules:
+        fake_vllm = ModuleType("vllm")
+        fake_vllm_dist = ModuleType("vllm.distributed")
+        fake_vllm_dist.get_world_group = lambda: None
+        fake_vllm.distributed = fake_vllm_dist
+        monkeypatch.setitem(sys.modules, "vllm", fake_vllm)
+        monkeypatch.setitem(sys.modules, "vllm.distributed", fake_vllm_dist)
+    if "tilert.pd_vllm.ascend_cache" not in sys.modules:
+        fake_pd = ModuleType("tilert.pd_vllm")
+        fake_pd.__path__ = []
+        fake_ac = ModuleType("tilert.pd_vllm.ascend_cache")
+        fake_ac.FullRankPrefix = object
+        fake_al = ModuleType("tilert.pd_vllm.ascend_layout")
+        fake_al.FULL_INDEX_LAYERS = 0
+        fake_al.INT8_INDEX_LAYERS = 0
+        fake_al.PAGE_SIZE = 128
+        fake_al.cache_layout = lambda *_a, **_kw: None
+        fake_cap = ModuleType("tilert.pd_vllm.capabilities")
+        fake_cap.CapabilityUnavailable = Exception
+        fake_cap.InvalidParameter = ValueError
+        fake_cap.engine_capabilities = lambda *_a, **_kw: {}
+        fake_cap.validate_generation_request = lambda *_a, **_kw: None
+        fake_gs = ModuleType("tilert.pd_vllm.grammar_spec")
+        fake_gs.GrammarUnsupported = Exception
+        fake_pd.ascend_cache = fake_ac
+        fake_pd.ascend_layout = fake_al
+        fake_pd.capabilities = fake_cap
+        fake_pd.grammar_spec = fake_gs
+        monkeypatch.setitem(sys.modules, "tilert.pd_vllm", fake_pd)
+        monkeypatch.setitem(sys.modules, "tilert.pd_vllm.ascend_cache", fake_ac)
+        monkeypatch.setitem(sys.modules, "tilert.pd_vllm.ascend_layout", fake_al)
+        monkeypatch.setitem(sys.modules, "tilert.pd_vllm.capabilities", fake_cap)
+        monkeypatch.setitem(sys.modules, "tilert.pd_vllm.grammar_spec", fake_gs)
+
+    runner_mod = importlib.import_module("tests.glm52.run_m1_case01")
+    assert runner_mod.resolve_trial_protocol(None, None, True, False) == (0, 1, True)
+    assert runner_mod.resolve_trial_protocol(None, None, False, False) == (2, 5, False)
+    assert runner_mod.resolve_trial_protocol(1, 2, True, False) == (1, 2, True)
+    with pytest.raises(ValueError):
+        runner_mod.resolve_trial_protocol(-1, 1, True, False)
+    with pytest.raises(ValueError):
+        runner_mod.resolve_trial_protocol(0, 0, True, False)
+
+    bundle = build_dry_run_bundle(
+        case_id="case-01-coding",
+        output_dir=tmp_path / "fast_parity_bundle",
+        case_root=case_root,
+        warmups=2,
+        formals=5,
+        port_base=39100,
+    )
+    report = _load_json(bundle / "e2e_result.json")
+    formal_trial = deepcopy(report["trials"][2])
+    formal_trial["trial_idx"] = 0
+    formal_trial["is_warmup"] = False
+    report["protocol"]["warmups"] = 0
+    report["protocol"]["formals"] = 1
+    report["trials"] = [formal_trial]
+    report["summary"]["warmups_ms"] = []
+    report["summary"]["formal_ms"] = [formal_trial["max_tpot_ms"]]
+    report["summary"]["median_tpot_ms"] = formal_trial["max_tpot_ms"]
+    report["summary"]["min_tpot_ms"] = formal_trial["max_tpot_ms"]
+    report["summary"]["p90_tpot_ms"] = formal_trial["max_tpot_ms"]
+    _write_json(bundle / "e2e_result.json", report)
+
+    with pytest.raises(VerificationError):
+        verify_timing_and_protocol(report)
+    with pytest.raises(VerificationError):
+        verify_e2e_run(bundle, case_root / "case-01-coding")
+    rc = cli_main(
+        [
+            "--mode",
+            "verify-report",
+            "--case",
+            "case-01-coding",
+            "--case-root",
+            str(case_root),
+            "--report-dir",
+            str(bundle),
+        ]
+    )
+    assert rc == 1
+
+
+def test_t2_m21_a3_container_isolation_fleet_prestage_and_hygiene(
+    repo_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.syspath_prepend(str(repo_root))
+    from tests.glm52 import a3_container as ac
+
+    hosts = parse_kbenv_output(
+        "\n".join(
+            [
+                (
+                    "  7.150.11.91 A3 Ascend910_9392 ====······ 41% "
+                    "················ 16/16 41% 空闲 否"
+                ),
+                (
+                    "  7.150.14.84 A3 Ascend910_9392 =====····· 51% "
+                    "················ 16/16 51% 占用 否"
+                ),
+                (
+                    "  10.83.185.129 A3 Ascend910_9392 =========· 89% "
+                    "················ 16/16 89% 空闲 长期"
+                ),
+            ]
+        )
+    )
+    sel, dies = ac.select_host_and_dies(hosts, die_slice="8..15")
+    assert sel.ip == "7.150.11.91"
+    assert dies == tuple(range(8, 16))
+    slots = ac.select_fleet_slots(hosts, dual_slot=True)
+    assert slots == [
+        ("7.150.11.91", tuple(range(8))),
+        ("7.150.11.91", tuple(range(8, 16))),
+    ]
+
+    ok, _ = ac.check_prestage_capacity(
+        shm_free_bytes=500 * 1024**3,
+        mem_total_bytes=1000 * 1024**3,
+        mem_avail_bytes=450 * 1024**3,
+        payload_bytes=100 * 1024**3,
+    )
+    assert ok is True
+    low_ram, reason_ram = ac.check_prestage_capacity(
+        shm_free_bytes=500 * 1024**3,
+        mem_total_bytes=1000 * 1024**3,
+        mem_avail_bytes=200 * 1024**3,
+        payload_bytes=100 * 1024**3,
+    )
+    assert low_ram is False and "RAM" in reason_ram
+    low_shm, reason_shm = ac.check_prestage_capacity(
+        shm_free_bytes=50 * 1024**3,
+        mem_total_bytes=1000 * 1024**3,
+        mem_avail_bytes=450 * 1024**3,
+        payload_bytes=30 * 1024**3,
+    )
+    assert low_shm is False and "/dev/shm" in reason_shm
+
+    run_cmd = ac.build_docker_run_cmd("run_test_m21", tuple(range(8, 16)))
+    assert "--init" in run_cmd
+    assert "--network=host" in run_cmd
+    assert "--ipc=host" in run_cmd
+    assert "--cgroupns=host" in run_cmd
+    assert "--device=/dev/davinci8" in run_cmd
+    assert "--device=/dev/davinci15" in run_cmd
+    assert "--device=/dev/davinci0" not in run_cmd
+    assert ac.DEFAULT_IMAGE in run_cmd
+
+    exec_cmd = ac.build_docker_exec_cmd("run_test_m21", "echo hi")
+    assert exec_cmd[:4] == ["docker", "exec", "run_test_m21", "bash"]
+    assert "unset PROFILER_SAMPLECONFIG PROFILING_MODE ASCEND_LAUNCH_BLOCKING" in exec_cmd[5]
+    assert "cd /dev/shm/run_test_m21/tmp" in exec_cmd[5]
+    assert "timeout 5 test -e /work/model-raw" in exec_cmd[5]
+
+    for bad_host in FORBIDDEN_HOSTS:
+        with pytest.raises(ac.IsolationError):
+            ac.select_host_and_dies(hosts, target_host=bad_host)
+    for bad_id in ("agy_tp8", "../oops"):
+        with pytest.raises(ac.IsolationError):
+            ac.build_docker_run_cmd(bad_id, tuple(range(8)))
+        with pytest.raises(ac.IsolationError):
+            ac.build_teardown_cmd(bad_id)
+
+    iso_env = allocate_isolation_env("run_test_m21", port_base=29900, target_host="7.150.11.91")
+    env_sh = ac.build_container_env_script(iso_env)
+    assert "export TILERT_BUILD_DIR=/dev/shm/run_test_m21/builds" in env_sh
+    assert "unset PROFILER_SAMPLECONFIG PROFILING_MODE ASCEND_LAUNCH_BLOCKING" in env_sh
+
+    verify_python_source_hygiene(
+        [
+            repo_root / "tests/glm52/a3_container.py",
+            repo_root / "tests/glm52/run_m1_case01.py",
+            Path(__file__),
+        ],
+        max_line_length=100,
+    )

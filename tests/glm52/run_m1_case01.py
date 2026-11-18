@@ -65,9 +65,14 @@ def _apply_l78_chunked_gemm(draft: CannMtp) -> None:
 
 
 def _prepare_whole_layer_json(args, rank: int) -> tuple[Path, Path, Path, Path]:
-    build_dir = Path(args.build_dir) if args.build_dir else default_build_dir()
-    chain_so = build_dir / "chain.so"
-    chain_manifest = build_dir / "chain.manifest.json"
+    enable_prof = bool(getattr(args, "enable_kernel_prof", False))
+    if args.build_dir:
+        build_dir = Path(args.build_dir)
+        chain_out_dir: Path | None = build_dir
+    else:
+        base_dir = default_build_dir()
+        build_dir = base_dir / "prof" if enable_prof else base_dir
+        chain_out_dir = None
     wl_json = build_dir / "whole_layer.json"
     ready = build_dir / "whole_layer.ready"
     ops_dir = build_dir / "dspine_ops"
@@ -76,8 +81,11 @@ def _prepare_whole_layer_json(args, rank: int) -> tuple[Path, Path, Path, Path]:
         build_dir.mkdir(parents=True, exist_ok=True)
         if ready.exists():
             ready.unlink()
-        if not chain_so.exists() or not chain_manifest.exists():
-            build_chain(out_dir=build_dir, union_sfa=args.union_sfa)
+        chain_so, _ = build_chain(
+            out_dir=chain_out_dir,
+            union_sfa=args.union_sfa,
+            enable_kernel_prof=enable_prof,
+        )
         base_wl = json.loads(Path(args.whole_layer_base).read_text())
         base_wl["tree"] = str(chain_so)
         wl_json.write_text(json.dumps(base_wl, indent=2) + "\n")
@@ -183,6 +191,27 @@ def _serial_draft_digest(
         return cache_digest([draft.cache], pos_limit), diffs, ekv_diffs
 
 
+def resolve_trial_protocol(
+    warmups: int | None,
+    formals: int | None,
+    fast_parity: bool,
+    serial_draft_parity: bool,
+) -> tuple[int, int, bool]:
+    if fast_parity:
+        w = 0 if warmups is None else int(warmups)
+        f = 1 if formals is None else int(formals)
+        sdp = True
+    else:
+        w = 2 if warmups is None else int(warmups)
+        f = 5 if formals is None else int(formals)
+        sdp = bool(serial_draft_parity)
+    if w < 0:
+        raise ValueError(f"warmups must be >= 0, got {w}")
+    if f < 1:
+        raise ValueError(f"formals must be >= 1, got {f}")
+    return w, f, sdp
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-dir", default="/work/model-raw")
@@ -194,12 +223,20 @@ def main(argv=None):
     parser.add_argument("--out-json", default="/tmp/m1_case01_summary.json")
     parser.add_argument("--report-dir", default=None)
     parser.add_argument("--milestone", default="M1")
-    parser.add_argument("--warmups", type=int, default=2)
-    parser.add_argument("--formals", type=int, default=5)
+    parser.add_argument("--warmups", type=int, default=None)
+    parser.add_argument("--formals", type=int, default=None)
     parser.add_argument("--k-sfa", type=int, default=1024)
     parser.add_argument("--union-sfa", action="store_true")
+    parser.add_argument("--enable-kernel-prof", action="store_true")
     parser.add_argument("--serial-draft-parity", action="store_true")
+    parser.add_argument("--fast-parity", action="store_true")
     args = parser.parse_args(argv)
+    args.warmups, args.formals, args.serial_draft_parity = resolve_trial_protocol(
+        args.warmups,
+        args.formals,
+        args.fast_parity,
+        args.serial_draft_parity,
+    )
 
     rank = int(os.environ["RANK"])
     orig_install = CannModel._install_tp_sum
@@ -244,7 +281,7 @@ def main(argv=None):
     channel = TorchControlChannel(get_world_group().cpu_group)
     ops_so, _ = load_dspine_ops(rank, out_dir=ops_dir)
     if rank == 0:
-        build_draft_l78_k110419(out_dir=l78_dir)
+        build_draft_l78_k110419(out_dir=l78_dir, k_sfa=args.k_sfa)
     torch.distributed.barrier(group=channel.group)
 
     case_dir = Path(args.case_dir)
@@ -336,6 +373,10 @@ def main(argv=None):
     formal_tpots = [s["max_tpot_ms"] for s in samples[args.warmups :]]
     median_tpot = round(statistics.median(formal_tpots), 4)
     last = samples[-1]
+    prof_acc = None
+    if args.enable_kernel_prof and getattr(target, "_whole_layer", None) is not None:
+        if target._whole_layer.kernel_prof_enabled:
+            prof_acc = target._whole_layer.capture_prof_acc(16).tolist()
 
     serial_draft_match = None
     serial_draft_diffs = None
@@ -496,9 +537,7 @@ def main(argv=None):
                     "loaded_modules_has_vllm": (
                         "vllm" in sys.modules or "vllm_ascend" in sys.modules
                     ),
-                    "compiled_so_dir": str(
-                        Path(args.build_dir) if args.build_dir else default_build_dir()
-                    ),
+                    "compiled_so_dir": str(wl_json.parent),
                     "draft_head_distinct_from_lm_head": True,
                 },
                 "round_traces": traces,
@@ -537,6 +576,8 @@ def main(argv=None):
             "serial_draft_match": serial_draft_match,
             "serial_draft_diffs": serial_draft_diffs,
             "ekv_serial_diffs": ekv_serial_diffs,
+            "fast_parity": bool(args.fast_parity or args.warmups < 2 or args.formals < 5),
+            "kernel_prof_acc": prof_acc,
         }
         out_p = Path(args.out_json)
         out_p.parent.mkdir(parents=True, exist_ok=True)
@@ -546,6 +587,15 @@ def main(argv=None):
     target.shutdown()
     gc.collect()
     torch.npu.empty_cache()
+    if args.fast_parity:
+        parity_ok = (
+            serial_draft_match is True
+            and not ekv_serial_diffs
+            and bool(last["all_ranks_target_exact"])
+            and bool(last["all_ranks_cache_parity"])
+        )
+        if not parity_ok:
+            raise SystemExit(1)
 
 
 if __name__ == "__main__":
