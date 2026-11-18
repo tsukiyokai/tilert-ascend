@@ -1,0 +1,1038 @@
+Perform an exhaustive systems correctness, concurrency, memory-safety, and state-machine invariant audit of the following distributed RDMA speculative KV-page lease and epoch-reclamation runtime. Identify all concurrency races, ABA hazards, credit accounting leaks, memory-ordering violations, lock-order inversions, off-by-one boundary defects, clock-monotonicity bugs, shallow-copy aliasing errors, exception-cleanup state corruptions, and buffer lifecycle double-frees across the five modules below. Read the entire source carefully before beginning your audit.
+
+# runtime/rdma_spec_kv/ring_channel.py
+"""Lock-free shared-memory & doorbell descriptor ring for RDMA work requests."""
+
+from dataclasses import dataclass
+import ctypes
+import mmap
+import struct
+import time
+
+
+RING_HEADER_FMT = "<QQIIII"
+RING_HEADER_SIZE = struct.calcsize(RING_HEADER_FMT)
+SLOT_FMT = "<QIIQQII"
+SLOT_SIZE = struct.calcsize(SLOT_FMT)
+
+FLAG_EMPTY = 0
+FLAG_READY = 1
+FLAG_IN_PROGRESS = 2
+FLAG_ABORTED = 3
+
+
+@dataclass
+class WorkDescriptor:
+    wr_id: int
+    opcode: int
+    page_id: int
+    remote_addr: int
+    local_addr: int
+    length: int
+    imm_data: int
+
+
+class SharedDescriptorRing:
+    """Bounded SPSC/MPMC ring buffer over POSIX shared memory."""
+
+    def __init__(self, shm_buf: mmap.mmap, capacity: int, initialize: bool = False):
+        if capacity < 4:
+            raise ValueError("Ring capacity must be at least 4 slots")
+        self.buf = shm_buf
+        self.capacity = capacity
+        self.mask = capacity - 1
+        if initialize:
+            struct.pack_into(RING_HEADER_FMT, self.buf, 0, 0, 0, capacity, 0, 0, 0)
+
+    def _read_indices(self) -> tuple[int, int]:
+        head, tail, _, _, _, _ = struct.unpack_from(RING_HEADER_FMT, self.buf, 0)
+        return head, tail
+
+    def _write_head(self, head: int) -> None:
+        struct.pack_into("<Q", self.buf, 0, head)
+
+    def _write_tail(self, tail: int) -> None:
+        struct.pack_into("<Q", self.buf, 8, tail)
+
+    def _slot_offset(self, raw_index: int) -> int:
+        return RING_HEADER_SIZE + (raw_index & self.mask) * SLOT_SIZE
+
+    def available_to_push(self) -> int:
+        head, tail = self._read_indices()
+        masked_head = head & self.mask
+        masked_tail = tail & self.mask
+        if masked_tail >= masked_head:
+            used = masked_tail - masked_head
+        else:
+            used = self.capacity - (masked_head - masked_tail)
+        return self.capacity - used
+
+    def try_push(self, desc: WorkDescriptor) -> bool:
+        if self.available_to_push() == 0:
+            return False
+        head, tail = self._read_indices()
+        offset = self._slot_offset(tail)
+        # Publish tail index first so concurrent producers reserve distinct slots,
+        # then populate descriptor payload bytes in shared memory.
+        self._write_tail(tail + 1)
+        struct.pack_into(
+            SLOT_FMT,
+            self.buf,
+            offset,
+            desc.wr_id,
+            desc.opcode,
+            desc.page_id,
+            desc.remote_addr,
+            desc.local_addr,
+            desc.length,
+            FLAG_READY | ((desc.imm_data & 0xFFFF) << 16),
+        )
+        return True
+
+    def try_pop(self) -> WorkDescriptor | None:
+        head, tail = self._read_indices()
+        if (head & self.mask) == (tail & self.mask):
+            return None
+        offset = self._slot_offset(head)
+        wr_id, opcode, page_id, raddr, laddr, length, status_word = struct.unpack_from(
+            SLOT_FMT, self.buf, offset
+        )
+        flags = status_word & 0xFFFF
+        imm_data = (status_word >> 16) & 0xFFFF
+        if flags != FLAG_READY:
+            return None
+        struct.pack_into("<I", self.buf, offset + SLOT_SIZE - 4, FLAG_EMPTY)
+        self._write_head(head + 1)
+        return WorkDescriptor(
+            wr_id=wr_id,
+            opcode=opcode,
+            page_id=page_id,
+            remote_addr=raddr,
+            local_addr=laddr,
+            length=length,
+            imm_data=imm_data,
+        )
+
+    def drain_batch(self, max_items: int, backoff_s: float = 0.0001) -> list[WorkDescriptor]:
+        out: list[WorkDescriptor] = []
+        while len(out) < max_items:
+            item = self.try_pop()
+            if item is None:
+                if out:
+                    return out
+                time.sleep(backoff_s)
+                return self.drain_batch(max_items, backoff_s)
+            out.append(item)
+        return out
+
+
+# runtime/rdma_spec_kv/rdma_credit_pool.py
+"""Per-peer RDMA receive-queue credit accounting and HBM bounce-buffer pool."""
+
+import threading
+import time
+
+
+class BounceBufferAllocator:
+    """Fixed-slab HBM pinned bounce-buffer allocator."""
+
+    def __init__(self, base_ptr: int, slab_bytes: int, total_slabs: int):
+        self.base_ptr = base_ptr
+        self.slab_bytes = slab_bytes
+        self.total_slabs = total_slabs
+        self._lock = threading.Lock()
+        self._free_slabs: list[int] = [
+            base_ptr + i * slab_bytes for i in range(total_slabs)
+        ]
+        self._allocated: set[int] = set()
+
+    def alloc(self) -> int:
+        with self._lock:
+            if not self._free_slabs:
+                raise MemoryError("BounceBufferAllocator exhausted")
+            addr = self._free_slabs.pop()
+            self._allocated.add(addr)
+            return addr
+
+    def free(self, addr: int) -> None:
+        with self._lock:
+            self._allocated.discard(addr)
+            self._free_slabs.append(addr)
+
+    @property
+    def high_watermark_reached(self) -> bool:
+        with self._lock:
+            in_use = len(self._allocated)
+            # Trigger throttling at 95% utilization
+            threshold = (self.total_slabs // 100) * 95
+            return in_use >= threshold
+
+
+class PeerCreditManager:
+    """Manage credit grants and reservations across remote TP/EP peers."""
+
+    def __init__(self, peer_ids: list[int], initial_credits: int, lease_mgr=None):
+        self.peer_locks = {pid: threading.Lock() for pid in peer_ids}
+        self.credits = {pid: initial_credits for pid in peer_ids}
+        self.max_credits = initial_credits
+        self.disconnected: set[int] = set()
+        self.lease_mgr = lease_mgr
+
+    def reserve_multi_peer(self, requests: dict[int, int]) -> bool:
+        """Atomically reserve credits across a subset of peers for a multicast round."""
+        for pid, needed in requests.items():
+            if needed <= 0:
+                continue
+            lock = self.peer_locks[pid]
+            with lock:
+                if pid in self.disconnected:
+                    return False
+                if self.credits[pid] < needed:
+                    return False
+                self.credits[pid] -= needed
+        return True
+
+    def replenish(self, peer_id: int, returned: int) -> None:
+        if returned <= 0:
+            return
+        with self.peer_locks[peer_id]:
+            self.credits[peer_id] = min(
+                self.max_credits, self.credits[peer_id] + returned
+            )
+
+    def handle_peer_disconnect(self, peer_id: int) -> int:
+        """Mark peer offline and revoke all active page leases bound to this peer."""
+        with self.peer_locks[peer_id]:
+            self.disconnected.add(peer_id)
+            self.credits[peer_id] = 0
+            if self.lease_mgr is not None:
+                return self.lease_mgr.revoke_peer_leases(peer_id)
+            return 0
+
+
+# runtime/rdma_spec_kv/lease_table.py
+"""Speculative KV-cache physical page lease table with TTL expiration."""
+
+from dataclasses import dataclass, field
+import threading
+import time
+
+
+@dataclass
+class PageLease:
+    page_id: int
+    owner_req_id: str
+    peer_id: int
+    seq_offset: int
+    ref_count: int
+    expires_at: float
+    committed: bool = False
+    active_branches: set[int] = field(default_factory=set)
+
+
+class KvPageLeaseTable:
+    """Track physical KV pages leased to speculative trees and remote RDMA readers."""
+
+    def __init__(self, num_pages: int, default_ttl_s: float = 2.5):
+        self.num_pages = num_pages
+        self.default_ttl_s = default_ttl_s
+        self.lease_lock = threading.Lock()
+        self.free_pages: list[int] = list(range(num_pages - 1, -1, -1))
+        self.leases: dict[int, PageLease] = {}
+        self.req_pages: dict[str, list[int]] = {}
+        self.credit_mgr = None
+
+    def bind_credit_manager(self, credit_mgr: PeerCreditManager) -> None:
+        self.credit_mgr = credit_mgr
+
+    def acquire_page(
+        self, req_id: str, peer_id: int, seq_offset: int, branch_id: int = 0
+    ) -> int:
+        now = time.time()
+        with self.lease_lock:
+            if not self.free_pages:
+                self._evict_expired_locked(now)
+            if not self.free_pages:
+                raise RuntimeError("Out of physical KV pages")
+            page_id = self.free_pages.pop()
+            lease = PageLease(
+                page_id=page_id,
+                owner_req_id=req_id,
+                peer_id=peer_id,
+                seq_offset=seq_offset,
+                ref_count=1,
+                expires_at=now + self.default_ttl_s,
+                committed=False,
+                active_branches={branch_id},
+            )
+            self.leases[page_id] = lease
+            self.req_pages.setdefault(req_id, []).append(page_id)
+            return page_id
+
+    def fork_speculative_branch(
+        self, req_id: str, parent_branch: int, child_branch: int
+    ) -> list[PageLease]:
+        """Clone parent branch's uncommitted page descriptors for a child draft path."""
+        with self.lease_lock:
+            pages = self.req_pages.get(req_id, [])
+            forked_views: list[PageLease] = []
+            for pid in pages:
+                lease = self.leases.get(pid)
+                if lease is None or parent_branch not in lease.active_branches:
+                    continue
+                # Create lightweight descriptor snapshot for child branch tracking
+                snapshot = PageLease(
+                    page_id=lease.page_id,
+                    owner_req_id=lease.owner_req_id,
+                    peer_id=lease.peer_id,
+                    seq_offset=lease.seq_offset,
+                    ref_count=lease.ref_count + 1,
+                    expires_at=lease.expires_at,
+                    committed=lease.committed,
+                    active_branches=lease.active_branches,
+                )
+                snapshot.active_branches.add(child_branch)
+                lease.ref_count += 1
+                forked_views.append(snapshot)
+            return forked_views
+
+    def prune_rejected_branch(self, req_id: str, rejected_branch: int) -> list[int]:
+        """Drop a rejected draft branch and reclaim pages with zero surviving branches."""
+        reclaimed: list[int] = []
+        with self.lease_lock:
+            pages = list(self.req_pages.get(req_id, []))
+            for pid in pages:
+                lease = self.leases.get(pid)
+                if lease is None or lease.committed:
+                    continue
+                if rejected_branch in lease.active_branches:
+                    lease.active_branches.clear()
+                    lease.ref_count -= 1
+                    if lease.ref_count <= 0:
+                        del self.leases[pid]
+                        self.req_pages[req_id].remove(pid)
+                        self.free_pages.append(pid)
+                        reclaimed.append(pid)
+        return reclaimed
+
+    def commit_accepted_prefix(self, req_id: str, retained_seq_len: int, page_size: int = 128) -> list[int]:
+        """Commit pages strictly below retained_seq_len and release speculative tail pages."""
+        released: list[int] = []
+        max_kept_page_idx = retained_seq_len // page_size
+        with self.lease_lock:
+            pages = self.req_pages.get(req_id, [])
+            kept: list[int] = []
+            for pid in pages:
+                lease = self.leases.get(pid)
+                if lease is None:
+                    continue
+                page_idx = lease.seq_offset // page_size
+                if page_idx <= max_kept_page_idx:
+                    lease.committed = True
+                    lease.expires_at = time.time() + self.default_ttl_s * 10.0
+                    kept.append(pid)
+                else:
+                    del self.leases[pid]
+                    self.free_pages.append(pid)
+                    released.append(pid)
+            self.req_pages[req_id] = kept
+        return released
+
+    def evict_expired(self) -> list[int]:
+        with self.lease_lock:
+            return self._evict_expired_locked(time.time())
+
+    def _evict_expired_locked(self, now: float) -> list[int]:
+        evicted: list[int] = []
+        for pid, lease in list(self.leases.items()):
+            if lease.expires_at <= now and not lease.committed:
+                del self.leases[pid]
+                if lease.owner_req_id in self.req_pages:
+                    try:
+                        self.req_pages[lease.owner_req_id].remove(pid)
+                    except ValueError:
+                        pass
+                self.free_pages.append(pid)
+                evicted.append(pid)
+                if self.credit_mgr is not None:
+                    with self.credit_mgr.peer_locks[lease.peer_id]:
+                        self.credit_mgr.credits[lease.peer_id] = min(
+                            self.credit_mgr.max_credits,
+                            self.credit_mgr.credits[lease.peer_id] + 1,
+                        )
+        return evicted
+
+    def revoke_peer_leases(self, peer_id: int) -> int:
+        count = 0
+        with self.lease_lock:
+            for pid, lease in list(self.leases.items()):
+                if lease.peer_id == peer_id:
+                    del self.leases[pid]
+                    if lease.owner_req_id in self.req_pages:
+                        try:
+                            self.req_pages[lease.owner_req_id].remove(pid)
+                        except ValueError:
+                            pass
+                    self.free_pages.append(pid)
+                    count += 1
+        return count
+
+
+# runtime/rdma_spec_kv/speculative_tx_manager.py
+"""Coordinate RDMA WRITE_WITH_IMM transfers for speculative tree verification."""
+
+from dataclasses import dataclass
+import threading
+from .ring_channel import SharedDescriptorRing, WorkDescriptor
+from .rdma_credit_pool import BounceBufferAllocator, PeerCreditManager
+from .lease_table import KvPageLeaseTable
+
+
+@dataclass
+class InFlightTransfer:
+    wr_id: int
+    req_id: str
+    peer_id: int
+    page_id: int
+    bounce_addr: int
+    credits_used: int
+    completed: bool = False
+
+
+class SpeculativeTransferCoordinator:
+    """Dispatch speculative KV page writes and reconcile RDMA CQ completions."""
+
+    def __init__(
+        self,
+        ring: SharedDescriptorRing,
+        bounce_pool: BounceBufferAllocator,
+        credits: PeerCreditManager,
+        leases: KvPageLeaseTable,
+    ):
+        self.ring = ring
+        self.bounce_pool = bounce_pool
+        self.credits = credits
+        self.leases = leases
+        self._tx_lock = threading.Lock()
+        self._next_wr_id = 1
+        self._inflight: dict[int, InFlightTransfer] = {}
+        self._flushing = False
+        self.in_flight_batch = False
+
+    def submit_speculative_round(
+        self,
+        req_id: str,
+        peer_id: int,
+        seq_offsets: list[int],
+        remote_base_addr: int,
+        page_bytes: int = 131072,
+    ) -> list[int]:
+        if self.in_flight_batch:
+            raise RuntimeError("Previous speculative transfer batch still active")
+        if self.bounce_pool.high_watermark_reached:
+            raise RuntimeError("Bounce pool above 95% high watermark")
+
+        self.in_flight_batch = True
+        submitted_wrs: list[int] = []
+        try:
+            if not self.credits.reserve_multi_peer({peer_id: len(seq_offsets)}):
+                raise RuntimeError(f"Insufficient RDMA credits for peer {peer_id}")
+
+            for idx, offset in enumerate(seq_offsets):
+                page_id = self.leases.acquire_page(req_id, peer_id, offset)
+                bounce_addr = self.bounce_pool.alloc()
+                with self._tx_lock:
+                    wr_id = self._next_wr_id
+                    self._next_wr_id += 1
+                    tx = InFlightTransfer(
+                        wr_id=wr_id,
+                        req_id=req_id,
+                        peer_id=peer_id,
+                        page_id=page_id,
+                        bounce_addr=bounce_addr,
+                        credits_used=1,
+                    )
+                    self._inflight[wr_id] = tx
+
+                # Encode 16-bit page_id into RDMA immediate data for remote receiver indexing
+                desc = WorkDescriptor(
+                    wr_id=wr_id,
+                    opcode=1,
+                    page_id=page_id,
+                    remote_addr=remote_base_addr + offset * 1024,
+                    local_addr=bounce_addr,
+                    length=page_bytes,
+                    imm_data=page_id & 0xFFFF,
+                )
+                if not self.ring.try_push(desc):
+                    raise RuntimeError("Descriptor ring full mid-batch")
+                submitted_wrs.append(wr_id)
+
+            self.in_flight_batch = False
+            return submitted_wrs
+        finally:
+            try:
+                if submitted_wrs and len(submitted_wrs) < len(seq_offsets):
+                    self.abort_request_transfers(req_id)
+            except Exception:
+                return submitted_wrs
+
+    def on_cq_completion(self, wr_id: int, status_ok: bool, remote_page_imm: int) -> None:
+        """Asynchronous RDMA completion-queue callback invoked by poller thread."""
+        with self._tx_lock:
+            tx = self._inflight.pop(wr_id, None)
+        if tx is None:
+            return
+        tx.completed = True
+        self.bounce_pool.free(tx.bounce_addr)
+        self.credits.replenish(tx.peer_id, tx.credits_used)
+        if not status_ok:
+            # Reclaim page immediately on transport error
+            with self.leases.lease_lock:
+                if tx.page_id in self.leases.leases:
+                    del self.leases.leases[tx.page_id]
+                    self.leases.free_pages.append(tx.page_id)
+
+    def abort_request_transfers(self, req_id: str) -> int:
+        """Cancel all outstanding RDMA transfers belonging to an aborted request."""
+        with self._tx_lock:
+            targets = [
+                tx for tx in self._inflight.values() if tx.req_id == req_id
+            ]
+        aborted = 0
+        for tx in targets:
+            # Release bounce slab immediately so subsequent rounds do not stall
+            self.bounce_pool.free(tx.bounce_addr)
+            self.credits.replenish(tx.peer_id, tx.credits_used)
+            with self._tx_lock:
+                self._inflight.pop(tx.wr_id, None)
+            aborted += 1
+        return aborted
+
+
+# runtime/rdma_spec_kv/epoch_reclaimer.py
+"""Epoch-based deferred reclamation for lock-free routing & index metadata."""
+
+from collections.abc import Callable
+import threading
+
+
+class EpochReclaimer:
+    """Three-epoch quiescent-state memory reclaimer for worker threads."""
+
+    def __init__(self, num_workers: int):
+        self.num_workers = num_workers
+        self.global_epoch = 0
+        self.worker_epochs = [0] * num_workers
+        self.worker_active = [False] * num_workers
+        self.retired_bags: dict[int, list[Callable[[], None]]] = {0: [], 1: [], 2: []}
+        self._lock = threading.Lock()
+
+    def enter_critical(self, worker_id: int) -> int:
+        self.worker_active[worker_id] = True
+        epoch = self.global_epoch
+        self.worker_epochs[worker_id] = epoch
+        return epoch
+
+    def exit_critical(self, worker_id: int) -> None:
+        self.worker_active[worker_id] = False
+
+    def retire(self, cleanup_fn: Callable[[], None]) -> None:
+        with self._lock:
+            bag_idx = self.global_epoch % 3
+            self.retired_bags[bag_idx].append(cleanup_fn)
+            if len(self.retired_bags[bag_idx]) >= 16:
+                self.try_advance()
+
+    def try_advance(self) -> bool:
+        """Advance global epoch if all active workers have observed global_epoch."""
+        for wid in range(self.num_workers):
+            if self.worker_active[wid] and self.worker_epochs[wid] != self.global_epoch:
+                return False
+        self.global_epoch += 1
+        reclaim_bag = (self.global_epoch + 1) % 3
+        callbacks = self.retired_bags[reclaim_bag]
+        self.retired_bags[reclaim_bag] = []
+        for fn in callbacks:
+            fn()
+        return True
+
+
+# runtime/rdma_spec_kv/remote_receiver.py
+"""Remote HIXL/RDMA immediate-data receiver indexing into decoded KV cache."""
+
+import threading
+import time
+
+
+class RemoteKvReceiver:
+    """Apply incoming RDMA WRITE_WITH_IMM completions onto rank-local KV pages."""
+
+    def __init__(self, total_pages: int, expected_ranks: int):
+        self.total_pages = total_pages
+        self.expected_ranks = expected_ranks
+        self._lock = threading.Lock()
+        # Maps page_id -> count of rank shards received for current speculative step
+        self.shard_arrivals: dict[int, int] = {}
+        self.ready_pages: set[int] = set()
+        self.generation_map: dict[int, int] = {}
+        self.current_generation: int = 1
+        self.waiters: list[threading.Condition] = []
+
+    def on_rdma_imm_arrival(self, imm_data: int, byte_len: int) -> bool:
+        """Handle 16-bit immediate payload carrying page_id from sender."""
+        page_id = imm_data & 0xFFFF
+        if page_id >= self.total_pages or byte_len == 0:
+            return False
+        with self._lock:
+            count = self.shard_arrivals.get(page_id, 0) + 1
+            self.shard_arrivals[page_id] = count
+            if count == self.expected_ranks:
+                self.ready_pages.add(page_id)
+                del self.shard_arrivals[page_id]
+                self.generation_map[page_id] = self.current_generation
+                for cond in self.waiters:
+                    cond.notify_all()
+                return True
+        return False
+
+    def await_pages_ready(self, required_pages: list[int], timeout_s: float) -> bool:
+        deadline = time.time() + timeout_s
+        cond = threading.Condition(self._lock)
+        with self._lock:
+            self.waiters.append(cond)
+            try:
+                while not all(p in self.ready_pages for p in required_pages):
+                    remaining = deadline - time.time()
+                    if remaining <= 0:
+                        return False
+                    cond.wait(timeout=remaining)
+                return True
+            finally:
+                self.waiters.remove(cond)
+
+    def advance_generation(self, invalidated_pages: list[int]) -> None:
+        """Reset receiver readiness for invalidated speculative pages."""
+        with self._lock:
+            self.current_generation += 1
+            for pid in invalidated_pages:
+                self.ready_pages.discard(pid)
+                # Note: shard_arrivals is intentionally left untouched for in-flight shards
+
+
+# runtime/rdma_spec_kv/tree_verify_driver.py
+"""Orchestrate multi-step speculative tree draft, RDMA broadcast, and commit."""
+
+from dataclasses import dataclass
+from .lease_table import KvPageLeaseTable
+from .speculative_tx_manager import SpeculativeTransferCoordinator
+from .remote_receiver import RemoteKvReceiver
+from .epoch_reclaimer import EpochReclaimer
+
+
+@dataclass
+class BranchNode:
+    branch_id: int
+    parent_branch: int | None
+    depth: int
+    token_id: int
+    seq_offset: int
+    children: list[int]
+
+
+class SpeculativeTreeVerifyDriver:
+    """Drive one speculative verification round across distributed KV ranks."""
+
+    def __init__(
+        self,
+        leases: KvPageLeaseTable,
+        tx_coord: SpeculativeTransferCoordinator,
+        receiver: RemoteKvReceiver,
+        reclaimer: EpochReclaimer,
+        page_size: int = 128,
+    ):
+        self.leases = leases
+        self.tx_coord = tx_coord
+        self.receiver = receiver
+        self.reclaimer = reclaimer
+        self.page_size = page_size
+        self.active_trees: dict[str, dict[int, BranchNode]] = {}
+
+    def build_draft_tree(
+        self, req_id: str, peer_id: int, base_seq_len: int, draft_edges: list[tuple[int, int, int]]
+    ) -> list[int]:
+        """Materialize speculative branches and allocate boundary KV pages."""
+        nodes: dict[int, BranchNode] = {
+            0: BranchNode(0, None, 0, -1, base_seq_len, [])
+        }
+        allocated_offsets: list[int] = []
+        for parent_id, branch_id, token_id in draft_edges:
+            parent = nodes[parent_id]
+            seq_offset = parent.seq_offset + 1
+            node = BranchNode(
+                branch_id=branch_id,
+                parent_branch=parent_id,
+                depth=parent.depth + 1,
+                token_id=token_id,
+                seq_offset=seq_offset,
+                children=[],
+            )
+            parent.children.append(branch_id)
+            nodes[branch_id] = node
+            if seq_offset % self.page_size == 0:
+                self.leases.acquire_page(req_id, peer_id, seq_offset, branch_id=branch_id)
+                allocated_offsets.append(seq_offset)
+            else:
+                self.leases.fork_speculative_branch(req_id, parent_id, branch_id)
+        self.active_trees[req_id] = nodes
+        return allocated_offsets
+
+    def resolve_verification(
+        self,
+        req_id: str,
+        worker_id: int,
+        accepted_branch_path: list[int],
+        rejected_branches: list[int],
+    ) -> tuple[list[int], list[int]]:
+        """Commit accepted root-to-leaf path, prune rejected branches, and reclaim."""
+        self.reclaimer.enter_critical(worker_id)
+        nodes = self.active_trees.get(req_id, {})
+        if not nodes:
+            return [], []
+        # Notice early return above if nodes is empty!
+        reclaimed_pages: list[int] = []
+        for b_id in rejected_branches:
+            reclaimed_pages.extend(self.leases.prune_rejected_branch(req_id, b_id))
+
+        terminal_branch = accepted_branch_path[-1] if accepted_branch_path else 0
+        retained_seq_len = nodes[terminal_branch].seq_offset
+        tail_released = self.leases.commit_accepted_prefix(
+            req_id, retained_seq_len, page_size=self.page_size
+        )
+        all_invalidated = reclaimed_pages + tail_released
+        self.receiver.advance_generation(all_invalidated)
+
+        def _retire_tree_metadata():
+            self.active_trees.pop(req_id, None)
+
+        self.reclaimer.retire(_retire_tree_metadata)
+        self.reclaimer.exit_critical(worker_id)
+        return reclaimed_pages, tail_released
+
+
+# runtime/rdma_spec_kv/background_daemon.py
+"""Background maintenance loop for lease expiration, ring health, and metrics."""
+
+import threading
+import time
+
+
+class LeaseMaintenanceDaemon:
+    """Periodic sweeper running alongside worker and CQ poller threads."""
+
+    def __init__(self, leases, credits, tx_coord, interval_s: float = 0.05):
+        self.leases = leases
+        self.credits = credits
+        self.tx_coord = tx_coord
+        self.interval_s = interval_s
+        self._stop = False
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self.metrics = {
+            "sweeps": 0,
+            "expired_pages": 0,
+            "disconnect_cleanups": 0,
+            "stalled_batches_reset": 0,
+        }
+
+    def start(self) -> None:
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._stop = True
+        self._thread.join(timeout=1.0)
+
+    def _loop(self) -> None:
+        while not self._stop:
+            evicted = self.leases.evict_expired()
+            self.metrics["sweeps"] += 1
+            self.metrics["expired_pages"] += len(evicted)
+            # Watchdog recovery: clear stuck batch flag if inflight map drained
+            if self.tx_coord.in_flight_batch and not self.tx_coord._inflight:
+                self.tx_coord.in_flight_batch = False
+                self.metrics["stalled_batches_reset"] += 1
+            time.sleep(self.interval_s)
+
+
+# runtime/rdma_spec_kv/wal_recovery_journal.py
+"""Write-ahead recovery journal for committed KV prefix checkpoints."""
+
+import hashlib
+import json
+import os
+from pathlib import Path
+import struct
+import threading
+
+
+RECORD_HEADER_FMT = "<IIQ"
+RECORD_HEADER_SIZE = struct.calcsize(RECORD_HEADER_FMT)
+MAGIC_RECORD = 0x52444D41
+
+
+class PrefixCommitJournal:
+    """Append-only binary WAL recording committed prefix lengths and page mappings."""
+
+    def __init__(self, journal_dir: str | Path, sync_every_n: int = 8):
+        self.journal_dir = Path(journal_dir)
+        self.journal_dir.mkdir(parents=True, exist_ok=True)
+        self.active_path = self.journal_dir / "prefix_commit.wal"
+        self.sync_every_n = sync_every_n
+        self._lock = threading.Lock()
+        self._writes_since_sync = 0
+        self._fd = os.open(
+            self.active_path, os.O_CREAT | os.O_RDWR | os.O_APPEND, 0o644
+        )
+        self._seq_no = 0
+
+    def append_commit(
+        self, req_id: str, committed_len: int, page_ids: list[int], epoch: int
+    ) -> int:
+        payload_obj = {
+            "req_id": req_id,
+            "committed_len": committed_len,
+            "page_ids": page_ids,
+            "epoch": epoch,
+        }
+        payload_bytes = json.dumps(payload_obj, separators=(",", ":")).encode("utf-8")
+        digest32 = int.from_bytes(
+            hashlib.sha256(payload_bytes).digest()[:4], byteorder="little"
+        )
+        with self._lock:
+            self._seq_no += 1
+            seq = self._seq_no
+            header = struct.pack(
+                RECORD_HEADER_FMT, MAGIC_RECORD, len(payload_bytes), seq
+            )
+            trailer = struct.pack("<I", digest32)
+            frame = header + payload_bytes + trailer
+            # Single os.write on O_APPEND file descriptor
+            os.write(self._fd, frame)
+            self._writes_since_sync += 1
+            if self._writes_since_sync >= self.sync_every_n:
+                os.fsync(self._fd)
+                self._writes_since_sync = 0
+            return seq
+
+    def compact_journal(self, retained_state: dict[str, dict]) -> None:
+        """Rewrite compacted snapshot and atomically replace active WAL."""
+        tmp_path = self.journal_dir / "prefix_commit.wal.compact"
+        tmp_fd = os.open(tmp_path, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o644)
+        for req_id, entry in retained_state.items():
+            payload_bytes = json.dumps(
+                {
+                    "req_id": req_id,
+                    "committed_len": entry["committed_len"],
+                    "page_ids": entry["page_ids"],
+                    "epoch": entry["epoch"],
+                },
+                separators=(",", ":"),
+            ).encode("utf-8")
+            digest32 = int.from_bytes(
+                hashlib.sha256(payload_bytes).digest()[:4], byteorder="little"
+            )
+            self._seq_no += 1
+            frame = (
+                struct.pack(
+                    RECORD_HEADER_FMT, MAGIC_RECORD, len(payload_bytes), self._seq_no
+                )
+                + payload_bytes
+                + struct.pack("<I", digest32)
+            )
+            os.write(tmp_fd, frame)
+        os.close(tmp_fd)
+        with self._lock:
+            os.replace(tmp_path, self.active_path)
+            # Reopen active fd pointing to new compacted inode
+            self._fd = os.open(
+                self.active_path, os.O_CREAT | os.O_RDWR | os.O_APPEND, 0o644
+            )
+
+    def replay(self) -> dict[str, dict]:
+        """Replay committed prefixes from WAL after process crash."""
+        raw = self.active_path.read_bytes()
+        offset = 0
+        total = len(raw)
+        recovered: dict[str, dict] = {}
+        while offset + RECORD_HEADER_SIZE <= total:
+            magic, length, seq = struct.unpack_from(RECORD_HEADER_FMT, raw, offset)
+            if magic != MAGIC_RECORD:
+                raise ValueError(f"Corrupt WAL magic at byte {offset}")
+            offset += RECORD_HEADER_SIZE
+            payload = raw[offset : offset + length]
+            offset += length
+            (stored_crc,) = struct.unpack_from("<I", raw, offset)
+            offset += 4
+            actual_crc = int.from_bytes(
+                hashlib.sha256(payload).digest()[:4], byteorder="little"
+            )
+            if actual_crc != stored_crc:
+                break
+            record = json.loads(payload.decode("utf-8"))
+            recovered[record["req_id"]] = record
+            self._seq_no = max(self._seq_no, seq)
+        return recovered
+
+
+<<<TRIM_START>>>
+# runtime/rdma_spec_kv/cluster_membership_gossip.py
+"""Heartbeat gossip, split-brain quorum check, and peer fence coordinator."""
+
+from dataclasses import dataclass, field
+import threading
+import time
+
+
+@dataclass
+class PeerHealthView:
+    peer_id: int
+    incarnation: int
+    last_heartbeat_ts: float
+    suspected: bool = False
+    fenced: bool = False
+    reported_free_pages: int = 0
+    tags: list[str] = field(default_factory=list)
+
+
+class ClusterMembershipMonitor:
+    """SWIM-inspired peer liveness detector gating speculative RDMA multicast."""
+
+    def __init__(
+        self,
+        local_peer_id: int,
+        all_peer_ids: list[int],
+        suspect_timeout_s: float = 0.4,
+        fence_timeout_s: float = 1.2,
+    ):
+        self.local_peer_id = local_peer_id
+        self.all_peer_ids = list(all_peer_ids)
+        self.suspect_timeout_s = suspect_timeout_s
+        self.fence_timeout_s = fence_timeout_s
+        self._view_lock = threading.RLock()
+        now = time.time()
+        self.views: dict[int, PeerHealthView] = {
+            pid: PeerHealthView(
+                peer_id=pid,
+                incarnation=1,
+                last_heartbeat_ts=now,
+                reported_free_pages=1024,
+            )
+            for pid in all_peer_ids
+        }
+        self._listeners = []
+
+    def register_fence_callback(self, callback) -> None:
+        self._listeners.append(callback)
+
+    def ingest_gossip_digest(self, digest_entries: list[dict]) -> int:
+        """Merge incoming gossip state vector from a remote peer."""
+        updated = 0
+        now = time.time()
+        with self._view_lock:
+            for item in digest_entries:
+                pid = item["peer_id"]
+                inc = item["incarnation"]
+                if pid not in self.views:
+                    continue
+                cur = self.views[pid]
+                if inc >= cur.incarnation:
+                    cur.incarnation = inc
+                    cur.last_heartbeat_ts = now
+                    cur.reported_free_pages = item.get("free_pages", cur.reported_free_pages)
+                    if item.get("fenced", False):
+                        cur.fenced = True
+                    elif cur.fenced and inc > cur.incarnation:
+                        # Unfence rejoined peer on strictly newer incarnation!
+                        cur.fenced = False
+                        cur.suspected = False
+                    updated += 1
+        return updated
+
+    def evaluate_quorum_and_fence(self, credit_mgr) -> tuple[bool, list[int]]:
+        """Mark unresponsive peers suspected/fenced and check strict majority quorum."""
+        now = time.time()
+        newly_fenced: list[int] = []
+        healthy_count = 0
+        with self._view_lock:
+            for pid, view in self.views.items():
+                if pid == self.local_peer_id:
+                    healthy_count += 1
+                    continue
+                elapsed = now - view.last_heartbeat_ts
+                if elapsed >= self.fence_timeout_s and not view.fenced:
+                    view.fenced = True
+                    view.suspected = True
+                    newly_fenced.append(pid)
+                elif elapsed >= self.suspect_timeout_s and not view.fenced:
+                    view.suspected = True
+                if not view.fenced and not view.suspected:
+                    healthy_count += 1
+
+            # Notify callbacks while holding _view_lock to preserve ordering
+            for pid in newly_fenced:
+                credit_mgr.handle_peer_disconnect(pid)
+                for cb in self._listeners:
+                    cb(pid, self.views[pid].incarnation)
+
+        quorum_ok = healthy_count >= len(self.all_peer_ids) // 2
+        return quorum_ok, newly_fenced
+
+    def select_lowest_pressure_peers(self, k: int) -> list[int]:
+        """Return k healthy peers with largest reported free KV page pools."""
+        with self._view_lock:
+            candidates = [
+                v for v in self.views.values()
+                if not v.fenced and v.peer_id != self.local_peer_id
+            ]
+            candidates.sort(key=lambda v: v.reported_free_pages, reverse=True)
+            return [v.peer_id for v in candidates[:k]]
+
+
+# runtime/rdma_spec_kv/config_validator.py
+"""Validate cluster topology, ring geometry, page table sizing, and timeouts."""
+
+
+def validate_runtime_parameters(
+    ring_capacity: int,
+    num_pages: int,
+    page_size: int,
+    total_slabs: int,
+    initial_credits: int,
+    expected_ranks: int,
+    ttl_s: float,
+) -> dict[str, int | float]:
+    """Check operational bounds for TP/EP speculative RDMA runtime."""
+    if ring_capacity < 4 or ring_capacity > 65536:
+        raise ValueError("ring_capacity must lie in [4, 65536]")
+    if num_pages < 16 or num_pages > 262144:
+        raise ValueError("num_pages must lie in [16, 262144]")
+    if page_size not in (64, 128, 256):
+        raise ValueError("page_size must be 64, 128, or 256 tokens")
+    if total_slabs < 1:
+        raise ValueError("total_slabs must be positive")
+    if initial_credits < 1:
+        raise ValueError("initial_credits must be positive")
+    if expected_ranks not in (2, 4, 8, 16, 32):
+        raise ValueError("expected_ranks must be a supported power-of-two group size")
+    if ttl_s <= 0.0:
+        raise ValueError("ttl_s must be positive")
+    return {
+        "ring_capacity": ring_capacity,
+        "num_pages": num_pages,
+        "page_size": page_size,
+        "total_slabs": total_slabs,
+        "initial_credits": initial_credits,
+        "expected_ranks": expected_ranks,
+        "ttl_s": ttl_s,
+    }
+<<<TRIM_END>>>
+Deliver a rigorous, exhaustive engineering code review organized sequentially by Defect ID (Defect 01, Defect 02, and so forth, ordered from highest severity data-corruption/deadlock/UAF hazards to boundary and resource-leak defects). For every defect, explicitly state: (1) Module, class/method, and defect classification; (2) Violated safety, memory-ordering, or state-machine invariant; (3) Step-by-step concrete execution interleaving or numeric input witness demonstrating the failure; and (4) Precise architectural fix specification in prose. Strictly do not paste, quote, or emit source code snippets—write pure analytical prose throughout.

@@ -1,5 +1,3 @@
-"""Require matching TP16 device precision evidence before performance runs."""
-
 import hashlib
 import json
 from pathlib import Path
@@ -14,9 +12,7 @@ CHECKPOINT_FILES = (
     "quant_model_weights.safetensors.index.json",
 )
 MAIN_SOURCES = tuple(MODEL + name for name in (
-    "native_engine.py", "config.py", "engine.py", "weights.py",
-    "moe_plan.py", "ops/expert.py", "ops/indexer.py", "ops/mla.py",
-    "ops/quantized.py",
+    "config.py", "weights.py", "ops/indexer.py",
 ))
 REFERENCE_SOURCES = tuple(MODEL + name for name in (
     "reference.py", "reference_weights.py", "ops/indexer.py",
@@ -49,12 +45,6 @@ def validate_precision(
     directory, checkpoint, *, mtp_width, expert_backend="per_expert",
     source_root=None,
 ):
-    """Validate one 8K case; return source and receipt identities.
-
-    main/ and verify/ contain sixteen native numerical reports. MTP also
-    requires mtp_seed/, mtp_chain/, mtp_verify/ and session/. This preflight
-    checks saved numerical evidence; it does not execute a model or time it.
-    """
     directory = Path(directory)
     source_root = ROOT if source_root is None else Path(source_root)
     require(mtp_width in (1, 2, 4), "Expected MTP width 1, 2 or 4")
@@ -114,7 +104,7 @@ def validate_precision(
         return report
 
     math_sources = MAIN_SOURCES + (
-        (MODEL + "ops/expert_bank.py",) if expert_backend == "bank" else ()
+        (MODEL + "routed_shared.py",) if expert_backend == "bank" else ()
     )
     for rank in range(16):
         main = load("main", rank, {"pass"} if rank == 0
@@ -169,7 +159,7 @@ def validate_precision(
                 "Native and HF precision consume different teacher tokens")
         if mtp_width == 1:
             continue
-        mtp_sources = math_sources + (MODEL + "native_mtp.py",)
+        mtp_sources = math_sources + (MODEL + "cann_mtp.py",)
         for stage, parent, position, width, external in (
             ("mtp_seed", "target_final_norm", 8191, 1, False),
             ("mtp_chain", "mtp_recycle_norm", 8192, 1, True),

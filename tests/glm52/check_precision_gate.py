@@ -1,9 +1,3 @@
-"""Exercise saved-report validation with synthetic stdlib metadata only.
-
-Fixtures contain no tensors or model results. Passing this checker does
-not establish numerical precision, NPU execution, HIXL behavior or TPOT.
-"""
-
 import argparse
 from contextlib import contextmanager, ExitStack
 from copy import deepcopy
@@ -23,11 +17,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import precision_gate as gate  # noqa: E402
-from prefix_io import (  # noqa: E402
+import precision_gate as gate
+from prefix_io import (
     mtp_prefix_layer, prefix_prompt_identity, prompt_identity,
 )
-from tilert.models.glm_5_2_ascend.ops.indexer import (  # noqa: E402
+from tilert.models.glm_5_2_ascend.ops.indexer import (
     cann_arch22_scoring_contract,
 )
 
@@ -227,7 +221,7 @@ class PrecisionGateChecks(unittest.TestCase):
         ))
 
     def test_stale_math_and_runner_sources(self):
-        for name in (gate.MODEL + "native_engine.py",
+        for name in (gate.MODEL + "config.py",
                      "tests/glm52/run_native_decode.py"):
             with self.subTest(name=name):
                 self.reject_change("main", lambda item: item["source_sha256"]
@@ -353,7 +347,9 @@ class PrecisionGateChecks(unittest.TestCase):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description="Exercise saved-report validation with synthetic stdlib metadata only.",
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(

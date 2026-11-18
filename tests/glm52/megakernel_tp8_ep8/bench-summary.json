@@ -1,0 +1,110 @@
+[
+  {
+    "case_id": "case-01-coding",
+    "scenario": "coding",
+    "seq_len": 8192,
+    "output_len": 1024,
+    "first_token_id": 13534,
+    "eos_position_in_1024": null,
+    "unique_4gram_ratio": 0.7698,
+    "lookup_min2": {
+      "rounds": 713,
+      "mean_accepted": 1.435,
+      "elapsed_ms": 26550.21,
+      "ms_per_round": 37.24,
+      "tpot_ms": 25.95,
+      "tps": 38.5
+    },
+    "recency_lookup": {
+      "rounds": 625,
+      "mean_accepted": 1.637,
+      "elapsed_ms": 23072.36,
+      "ms_per_round": 36.92,
+      "tpot_ms": 22.55,
+      "tps": 44.3
+    },
+    "output_preview_head": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>AquaDesk Studio</title>\n<style>\n  :root {\n    --bg-0: #0a0e1a;\n    --bg-1: #141a2e;\n    --glass: rgba(20, 26, 46, 0.72);\n    --glass-2: rgba(28, 36, 60, 0.85);\n    --border: rgba(",
+    "output_preview_tail": "splay: flex; align-items: flex-end; gap: 10px;\n    padding: 0 14px 6px; z-index: 999;\n    background: var(--glass); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);\n    border: 1px solid var(--border); border-radius: 18px;\n"
+  },
+  {
+    "case_id": "case-02-review",
+    "scenario": "code_review",
+    "seq_len": 8192,
+    "output_len": 1024,
+    "first_token_id": 334,
+    "eos_position_in_1024": null,
+    "unique_4gram_ratio": 0.8619,
+    "lookup_min2": {
+      "rounds": 816,
+      "mean_accepted": 1.254,
+      "elapsed_ms": 27269.87,
+      "ms_per_round": 33.42,
+      "tpot_ms": 26.66,
+      "tps": 37.5
+    },
+    "recency_lookup": {
+      "rounds": 763,
+      "mean_accepted": 1.341,
+      "elapsed_ms": 26551.46,
+      "ms_per_round": 34.8,
+      "tpot_ms": 25.95,
+      "tps": 38.5
+    },
+    "output_preview_head": "**Defect 01**\n* **Module:** `speculative_tx_manager.py`, `SpeculativeTransferCoordinator.on_cq_completion`\n* **Classification:** Use-After-Free (UAF) / Double-Free / State Corruption\n* **Violated Invariant:** Physical page uniqueness and bounce-buffer lifecycle exclusivity.\n* **Witness:** A completion event arrives for",
+    "output_preview_tail": "urrency Race\n* **Violated Invariant:** `in_flight_batch` mutual exclusion guarantee.\n* **Witness:** Thread A checks `in_flight_batch` (False), then begins allocations. Before it sets `in_flight_batch = True`, Thread B also checks `in_flight"
+  },
+  {
+    "case_id": "case-03-refactor",
+    "scenario": "refactoring",
+    "seq_len": 8192,
+    "output_len": 1024,
+    "first_token_id": 1499,
+    "eos_position_in_1024": null,
+    "unique_4gram_ratio": 0.8443,
+    "lookup_min2": {
+      "rounds": 698,
+      "mean_accepted": 1.466,
+      "elapsed_ms": 28113.58,
+      "ms_per_round": 40.28,
+      "tpot_ms": 27.48,
+      "tps": 36.4
+    },
+    "recency_lookup": {
+      "rounds": 606,
+      "mean_accepted": 1.688,
+      "elapsed_ms": 22828.54,
+      "ms_per_round": 37.67,
+      "tpot_ms": 22.32,
+      "tps": 44.8
+    },
+    "output_preview_head": "from __future__ import annotations\n\nimport math\nfrom abc import ABC, abstractmethod\nfrom dataclasses import dataclass, field, replace\nfrom enum import Enum, IntEnum\nfrom typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Type\n\n\nclass DType(Enum):\n    FP32 = (\"fp32\", 4)\n    FP16 = (\"fp16\", 2)\n    BF16 = ",
+    "output_preview_tail": "serted_events,\n            \"stream_histogram\": stream_counts,\n            \"kernel_histogram\": kernel_hist,\n        }\n\n\n@dataclass(frozen=True, slots=True)\nclass GraphIR:\n    tensors: Mapping[str, TensorSpec]\n    nodes: Tuple[OpNode, ...]\n\n\n"
+  },
+  {
+    "case_id": "case-04-math",
+    "scenario": "math_reasoning",
+    "seq_len": 8192,
+    "output_len": 1024,
+    "first_token_id": 8419,
+    "eos_position_in_1024": null,
+    "unique_4gram_ratio": 0.7267,
+    "lookup_min2": {
+      "rounds": 632,
+      "mean_accepted": 1.619,
+      "elapsed_ms": 25874.46,
+      "ms_per_round": 40.94,
+      "tpot_ms": 25.29,
+      "tps": 39.5
+    },
+    "recency_lookup": {
+      "rounds": 583,
+      "mean_accepted": 1.755,
+      "elapsed_ms": 22949.32,
+      "ms_per_round": 39.36,
+      "tpot_ms": 22.43,
+      "tps": 44.6
+    },
+    "output_preview_head": "Here are the complete, rigorous, and self-contained proofs for Theorems 1 through 6, strictly following the provided definitions, notation conventions, and background lemmas.\n\n### Theorem 1 (Exact Spectral Survival Bound & Equitable Tightness for Lazy Expander Walks)\n\n**Proof of (a):**\nLet $u \\in \\mathbb{R}^n$ be a uni",
+    "output_preview_tail": "ho + (1-\\rho) \\beta) = \\beta + (1-\\beta)(\\gamma + (1-\\gamma)\\rho) = 1 - \\alpha(1-\\gamma)(1 - \\lambda/d). $$\nBy the Rayleigh-Ritz theorem, the operator norm $\\rho(M_{U, \\gamma})$ is the maximum of this quadratic form over all unit vectors in"
+  }
+]
