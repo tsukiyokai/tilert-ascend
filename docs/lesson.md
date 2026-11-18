@@ -34,12 +34,12 @@
 
 为每个检查选择会触发目标故障的输入：
 
-| 故障 | 检查方法 |
-| -- | -- |
-| 旧状态、漏写、跨轮串扰 | 变化输入、输出哨兵、分配扰动、反复 reset |
-| 归约顺序改变 | 各 rank 使用不同的抵消值与舍入边界值 |
-| indexer 选择错误 | 输入长度超过 top-k |
-| 检查漏报 | 注入漏写、旧状态、错 mask、错提交长度 |
+|故障|检查方法|
+|---|---|
+|旧状态、漏写、跨轮串扰|变化输入、输出哨兵、分配扰动、反复 reset|
+|归约顺序改变|各 rank 使用不同的抵消值与舍入边界值|
+|indexer 选择错误|输入长度超过 top-k|
+|检查漏报|注入漏写、旧状态、错 mask、错提交长度|
 
 输入变化周期要避开缓冲区单双面的重复周期。FP32 归约检查使用对加法顺序敏感的值；rank 编号组成的小整数和通常无法区分顺序。indexer 的短前缀若全部入选，就只验证了全选路径。每个负例都须被测试拒绝。
 
@@ -149,16 +149,16 @@ ACL graph capture 记录任务；要得到一次完成的 forward，须显式重
 
 `VLLM_PLUGINS` 同时筛选平台与通用插件。只允许 `ascend` 会漏掉 `ascend_model`，使主模型使用基础 GLM loader，把 MTP 专用 `rot.weight` 当成未知主干参数。先核对实际 entry point metadata，再在全新进程里检查 `get_model_architecture()` 返回类和真实 `load_weights` 源码；导入成功或只查看注册表不足以证明已解析类的缓存同步更新。[实际对照](evidence/ascend-decode/cann-precision-a3-20261028/README.md)
 
-| 任务 | 入口 | 先核对 |
-| -- | -- | -- |
-| 整机 decode | [统一启动](../tests/glm52/launch_arm_unified.sh) | 配套源码、模型、设备、TAG |
-| 旧环境运行 | [旧启动](../tests/glm52/launch_arm.sh) | 激活脚本、固定路径 |
-| 参数检查 | [测量程序](../tests/glm52/bench_cann_mtp.py) | 展开参数、请求记录 |
-| 轮计时 | [round_clock.py](../tests/glm52/round_clock.py) | 记录完整、排除诊断请求 |
-| 配对统计 | [paired.py](../tests/glm52/paired.py) | 目录约定、实际接受数 |
-| 设备盘点 | [逐卡读数](../scripts/free_dies.sh)、[阈值检查](../tests/glm52/precheck.sh) | 进程、die 映射、占用者 |
-| A3 MIX 构建 | [构建脚本](../tests/glm52/mixbrick/build.sh) | AArch64、CANN 9.2.0 |
-| kernel 正确性 | [INT4 对照](../tests/glm52/routed_int4/check.py) | vendor、shape、构建变体 |
+|任务|入口|先核对|
+|---|---|---|
+|整机 decode|[统一启动](../tests/glm52/launch_arm_unified.sh)|配套源码、模型、设备、TAG|
+|旧环境运行|[旧启动](../tests/glm52/launch_arm.sh)|激活脚本、固定路径|
+|参数检查|[测量程序](../tests/glm52/bench_cann_mtp.py)|展开参数、请求记录|
+|轮计时|[round_clock.py](../tests/glm52/round_clock.py)|记录完整、排除诊断请求|
+|配对统计|[paired.py](../tests/glm52/paired.py)|目录约定、实际接受数|
+|设备盘点|[逐卡读数](../scripts/free_dies.sh)、[阈值检查](../tests/glm52/precheck.sh)|进程、die 映射、占用者|
+|A3 MIX 构建|[构建脚本](../tests/glm52/mixbrick/build.sh)|AArch64、CANN 9.2.0|
+|kernel 正确性|[INT4 对照](../tests/glm52/routed_int4/check.py)|vendor、shape、构建变体|
 
 统一启动须设置 `TAG`、`WIDTH`、`TREE`、`OUT`、`MODEL`、`CAPTURE`、`RUNTIME`，核对 vLLM 与 vLLM-Ascend 的配套源码、镜像挂载和独立端口。脚本会删除同 TAG 的输出与 VLLM 缓存，每次用新 TAG 保存证据。它没有设备占用检查，提交前另行盘点；盘点脚本也不取得独占租约。
 
@@ -180,16 +180,16 @@ A3 MIX 的构建入口是现有脚本与 [算子包装说明](reference/ascend-c
 
 原始 MIX 跨核同步先绑定设备，再取得 `rtGetC2cCtrlAddr`，用 `AscendC::SetSyncBaseAddr` 安装同步地址。随后按 [同步参考](reference/ascend-launch-overhead-and-sync.md)核对 flag 资源、核数与通知/等待的配对规则。
 
-| 目的 | 工具 |
-| -- | -- |
-| 找到最早失败 | runtime 日志、显式同步 |
-| 检查内存与竞争 | `mssanitizer` |
-| 断点调试 | `msdebug` |
-| 查看执行与代码 | `msprof`、`msobjdump` |
-| 读取中间值 | `AscendC::printf`、`DumpTensor` |
-| 收集异常 | `ASCEND_LAUNCH_BLOCKING`、`NPU_COLLECT_PATH` |
-| 模拟与对照 | `simulator`、`operator_cmp` |
-| 定位挂起阶段 | stage bitmask |
+|目的|工具|
+|---|---|
+|找到最早失败|runtime 日志、显式同步|
+|检查内存与竞争|`mssanitizer`|
+|断点调试|`msdebug`|
+|查看执行与代码|`msprof`、`msobjdump`|
+|读取中间值|`AscendC::printf`、`DumpTensor`|
+|收集异常|`ASCEND_LAUNCH_BLOCKING`、`NPU_COLLECT_PATH`|
+|模拟与对照|`simulator`、`operator_cmp`|
+|定位挂起阶段|stage bitmask|
 
 runtime 日志在命令前设置 `ASCEND_GLOBAL_LOG_LEVEL=1 ASCEND_SLOG_PRINT_TO_STDOUT=1`。先读最早的原始错误，再追 Python 堆栈；异步 AI core 错误可能在下一算子才报告。探针在 `try` 内显式同步，让本次检查捕获本次调用的失败。
 

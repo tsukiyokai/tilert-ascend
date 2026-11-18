@@ -7,11 +7,11 @@ from so a later reader can re-check it without repeating the search.
 
 Three trees were read:
 
-| tree | what it is |
-| --- | --- |
-| `/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer` on 7.150.10.194, inside the `trt-asc` container | 54 MB vendor package, 44 operators, currently prepended to `ASCEND_CUSTOM_OPP_PATH` by benchmark arms. It is **this project's own build output**, produced by `tests/glm52/build_gmm1_barrier.sh` |
-| `/opt/ascend/cann-9.2.0` in the same container | CANN 9.2.0: `bin/opc`, `bin/msopgen`, `python/site-packages/asc_opc_tool/`, `tools/op_project_templates/`, and the built-in opp |
-| `/workspace/experiments/gmm-fastpath-20261018/prod-kernel/source/csrc` | the full vLLM-Ascend C++ tree the package is built from — `op_host/`, `op_kernel/`, `torch_binding.cpp`, `build.sh`, `scripts/opgen/` |
+|tree|what it is|
+|---|---|
+|`/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer` on 7.150.10.194, inside the `trt-asc` container|54 MB vendor package, 44 operators, currently prepended to `ASCEND_CUSTOM_OPP_PATH` by benchmark arms. It is **this project's own build output**, produced by `tests/glm52/build_gmm1_barrier.sh`|
+|`/opt/ascend/cann-9.2.0` in the same container|CANN 9.2.0: `bin/opc`, `bin/msopgen`, `python/site-packages/asc_opc_tool/`, `tools/op_project_templates/`, and the built-in opp|
+|`/workspace/experiments/gmm-fastpath-20261018/prod-kernel/source/csrc`|the full vLLM-Ascend C++ tree the package is built from — `op_host/`, `op_kernel/`, `torch_binding.cpp`, `build.sh`, `scripts/opgen/`|
 
 Verified means read in one of those three trees. Inference is labelled inference.
 
@@ -248,16 +248,16 @@ untouched (§4.4); for a new operator all three must be generated together.
 `binary_info_config.json`'s `GroupedMatmulSwigluQuantV2` entry is the parameter registry — per
 tensor only `{name, index, paramType, formatMode}`:
 
-| index | name | paramType |
-| --- | --- | --- |
-| 0 | `x` | required |
-| 1 | `x_scale` | required |
-| 2 | `group_list` | required |
-| 3 | `weight` | **dynamic** (tensorlist) |
-| 4 | `weight_scale` | **dynamic** |
-| 5 | `weight_assist_matrix` | **dynamic** |
-| 6 | `bias` | optional |
-| 7 | `smooth_scale` | optional |
+|index|name|paramType|
+|---|---|---|
+|0|`x`|required|
+|1|`x_scale`|required|
+|2|`group_list`|required|
+|3|`weight`|**dynamic** (tensorlist)|
+|4|`weight_scale`|**dynamic**|
+|5|`weight_assist_matrix`|**dynamic**|
+|6|`bias`|optional|
+|7|`smooth_scale`|optional|
 
 Outputs: `y`, `y_scale`. That matches the production capture's
 `INT8;FLOAT;INT64;DT_INT4;UINT64;FLOAT` / `ND;ND;ND;FRACTAL_NZ;ND;ND` exactly, with the two
@@ -349,27 +349,27 @@ Enum tables are authoritative at
 
 Decoded against the V2 signature, `/2,2/0,2/9,2/29,29/10,2/0,2/2,2/0,2` reads
 
-| field | parameter | dtype,format |
-| --- | --- | --- |
-| 1 | `x` | int8, ND |
-| 2 | `x_scale` | float32, ND |
-| 3 | `group_list` | int64, ND |
-| 4 | `weight` (folded list) | int4, FRACTAL_NZ |
-| 5 | `weight_scale` (folded) | uint64, ND |
-| 6 | `weight_assist_matrix` (folded) | float32, ND |
-| 7 | `y` | int8, ND |
-| 8 | `y_scale` | float32, ND |
+|field|parameter|dtype,format|
+|---|---|---|
+|1|`x`|int8, ND|
+|2|`x_scale`|float32, ND|
+|3|`group_list`|int64, ND|
+|4|`weight` (folded list)|int4, FRACTAL_NZ|
+|5|`weight_scale` (folded)|uint64, ND|
+|6|`weight_assist_matrix` (folded)|float32, ND|
+|7|`y`|int8, ND|
+|8|`y_scale`|float32, ND|
 
 Differential confirmation, across entries that differ in exactly one position:
 
-| entries | source difference | key difference |
-| --- | --- | --- |
-| V1 0 → 4 | `weight` FRACTAL_NZ → ND | `29,29` → `29,2` |
-| V1 0 → 1 | `weight` int4→int8, `weight_scale` uint64→float32 | `29,29`→`2,29`; `10,2`→`0,2` |
-| V1 1 → 2 | `weight_scale` float32 → float16 | `0,2` → `1,2` |
-| V1 2 → 3 | `weight_scale` float16 → bfloat16 | `1,2` → `27,2` |
-| V2 0 → 6 | `weight` int4/ND → int4/FRACTAL_NZ | field 4 `29,2` → `29,29` |
-| V2 0 → 5 | `x` int8 → int4 | field 1 `2,2` → `29,2` |
+|entries|source difference|key difference|
+|---|---|---|
+|V1 0 → 4|`weight` FRACTAL_NZ → ND|`29,29` → `29,2`|
+|V1 0 → 1|`weight` int4→int8, `weight_scale` uint64→float32|`29,29`→`2,29`; `10,2`→`0,2`|
+|V1 1 → 2|`weight_scale` float32 → float16|`0,2` → `1,2`|
+|V1 2 → 3|`weight_scale` float16 → bfloat16|`1,2` → `27,2`|
+|V2 0 → 6|`weight` int4/ND → int4/FRACTAL_NZ|field 4 `29,2` → `29,29`|
+|V2 0 → 5|`x` int8 → int4|field 1 `2,2` → `29,2`|
 
 ### 3.3 `staticKey` — a sha256 per impl mode
 
@@ -970,19 +970,19 @@ resolved by `asc-config.cmake` as `$ENV{ASCEND_HOME_PATH}/compiler/tikcpp/ascend
 `tools/op_project_templates/ascendc/customize/` is the full self-contained reference project — what
 the documentation describes and what `-m 1` extension assumes. Its layout, with roles:
 
-| file | lines | role |
-| --- | --- | --- |
-| `CMakeLists.txt` | 76 | includes `cmake/{config,func,intf}.cmake`, conditional `add_subdirectory(framework\|op_host\|op_kernel\|testcases)`, seds `vendor_name=customize` into `scripts/*`, runs `cmake/util/gen_version_info.sh`, CPack with `CPACK_GENERATOR External` + `cmake/makeself.cmake` → `custom_opp_<system>_<arch>.run` |
-| `CMakePresets.json` | — | the only file a user edits. `ASCEND_COMPUTE_UNIT` ships as the literal placeholder `__ASCNED_COMPUTE_UNIT__` (typo included; msopgen substitutes it), plus `vendor_name=customize`, `ASCEND_CANN_PACKAGE_PATH=/usr/local/Ascend/latest`, `ENABLE_BINARY_PACKAGE=True`, `ENABLE_SOURCE_PACKAGE=True`, `ENABLE_TEST=True`, `ENABLE_CROSS_COMPILE=False`, `ASCEND_PACK_SHARED_LIBRARY=False` |
-| `cmake/config.cmake` | 50 | defaults; `ASCEND_AUTOGEN_PATH=${CMAKE_BINARY_DIR}/autogen`; touches `autogen/custom_compile_options.ini` and `autogen/custom_opc_options.ini` at configure time |
-| `cmake/func.cmake` | 427 | all the logic: `opbuild()`, `add_ops_info_target()`, `add_ops_compile_options()`, `add_simple_kernel_compile()`, `add_kernels_compile()`, `add_kernels_install()` |
-| `cmake/intf.cmake` | 28 | the `intf_pub` INTERFACE target: `-fPIC -fvisibility=hidden -std=c++11`, **`_GLIBCXX_USE_CXX11_ABI=0`**, `-Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack` |
-| `cmake/makeself.cmake`, `cmake/device_task.cmake` | 31, 50 | packaging; tiling-sink `ExternalProject` |
-| `cmake/util/` | 38 files | the generators. Load-bearing: `ascendc_compile_kernel.py`, `ascendc_bin_param_build.py`, `ascendc_impl_build.py`, `insert_simplified_keys.py`, `ascendc_ops_config.py`, `parse_ini_to_json.py`, `opdesc_parser.py`, `ascendc_get_op_name.py`, `ascendc_gen_options.py`, `const_var.py`, `makeself/` |
-| `op_host/CMakeLists.txt` | 221 | `aux_source_directory` + `opbuild()`, then three libraries |
-| `op_kernel/CMakeLists.txt` | 5 | `add_kernels_compile()`, plus an optional `add_ops_compile_options(ALL OPTIONS -g -O0)` under Debug. Nothing else |
-| `framework/CMakeLists.txt` | — | TF/ONNX/Caffe parser plugins, optional |
-| `scripts/` | — | `help.info`, `install.sh` (the `config.ini` writer quoted in §1), `upgrade.sh` |
+|file|lines|role|
+|---|---|---|
+|`CMakeLists.txt`|76|includes `cmake/{config,func,intf}.cmake`, conditional `add_subdirectory(framework\|op_host\|op_kernel\|testcases)`, seds `vendor_name=customize` into `scripts/*`, runs `cmake/util/gen_version_info.sh`, CPack with `CPACK_GENERATOR External` + `cmake/makeself.cmake` → `custom_opp_<system>_<arch>.run`|
+|`CMakePresets.json`|—|the only file a user edits. `ASCEND_COMPUTE_UNIT` ships as the literal placeholder `__ASCNED_COMPUTE_UNIT__` (typo included; msopgen substitutes it), plus `vendor_name=customize`, `ASCEND_CANN_PACKAGE_PATH=/usr/local/Ascend/latest`, `ENABLE_BINARY_PACKAGE=True`, `ENABLE_SOURCE_PACKAGE=True`, `ENABLE_TEST=True`, `ENABLE_CROSS_COMPILE=False`, `ASCEND_PACK_SHARED_LIBRARY=False`|
+|`cmake/config.cmake`|50|defaults; `ASCEND_AUTOGEN_PATH=${CMAKE_BINARY_DIR}/autogen`; touches `autogen/custom_compile_options.ini` and `autogen/custom_opc_options.ini` at configure time|
+|`cmake/func.cmake`|427|all the logic: `opbuild()`, `add_ops_info_target()`, `add_ops_compile_options()`, `add_simple_kernel_compile()`, `add_kernels_compile()`, `add_kernels_install()`|
+|`cmake/intf.cmake`|28|the `intf_pub` INTERFACE target: `-fPIC -fvisibility=hidden -std=c++11`, **`_GLIBCXX_USE_CXX11_ABI=0`**, `-Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack`|
+|`cmake/makeself.cmake`, `cmake/device_task.cmake`|31, 50|packaging; tiling-sink `ExternalProject`|
+|`cmake/util/`|38 files|the generators. Load-bearing: `ascendc_compile_kernel.py`, `ascendc_bin_param_build.py`, `ascendc_impl_build.py`, `insert_simplified_keys.py`, `ascendc_ops_config.py`, `parse_ini_to_json.py`, `opdesc_parser.py`, `ascendc_get_op_name.py`, `ascendc_gen_options.py`, `const_var.py`, `makeself/`|
+|`op_host/CMakeLists.txt`|221|`aux_source_directory` + `opbuild()`, then three libraries|
+|`op_kernel/CMakeLists.txt`|5|`add_kernels_compile()`, plus an optional `add_ops_compile_options(ALL OPTIONS -g -O0)` under Debug. Nothing else|
+|`framework/CMakeLists.txt`|—|TF/ONNX/Caffe parser plugins, optional|
+|`scripts/`|—|`help.info`, `install.sh` (the `config.ini` writer quoted in §1), `upgrade.sh`|
 
 Note `cmake/intf.cmake`'s `_GLIBCXX_USE_CXX11_ABI=0` against this host's `torch` built with ABI 1
 (§9): an operator project and a torch extension cannot share one compiled object.
@@ -1133,16 +1133,16 @@ From `profiles/width8-20261019/rank-0/kernel_details.csv`, the kernel named
 (247 launches, 22419.4 µs) and `aclnnGroupedMatmulWeightNz_GroupedMatmul_GroupedMatmul`
 (247 launches, 18515.3 µs) — 6.81 and 5.63 ms a round at 247/75 = 3.29 forwards.
 
-| parameter | shape | dtype | format |
-| --- | --- | --- | --- |
-| `x` | `8,6144` | INT8 | ND |
-| `x_scale` | `8` | FLOAT | ND |
-| `group_list` | `256` | INT64 | ND |
-| `weight` | `256,4,384,16,64` | DT_INT4 | FRACTAL_NZ |
-| `weight_scale` | `256,256` | UINT64 | ND |
-| `weight_assist_matrix` | `256,256` | FLOAT | ND |
-| `y` | `8,128` | INT8 | ND |
-| `y_scale` | `8` | FLOAT | ND |
+|parameter|shape|dtype|format|
+|---|---|---|---|
+|`x`|`8,6144`|INT8|ND|
+|`x_scale`|`8`|FLOAT|ND|
+|`group_list`|`256`|INT64|ND|
+|`weight`|`256,4,384,16,64`|DT_INT4|FRACTAL_NZ|
+|`weight_scale`|`256,256`|UINT64|ND|
+|`weight_assist_matrix`|`256,256`|FLOAT|ND|
+|`y`|`8,128`|INT8|ND|
+|`y_scale`|`8`|FLOAT|ND|
 
 `MIX_AIC`, 24 blocks. **M = 8**, i.e. eight permuted rows, with a 256-slot group-list table and all
 256 experts declared — pure TP16, no expert parallelism (`n = 2 × 2048/16 = 256`, `k = 6144`;
@@ -1189,7 +1189,7 @@ computes `storageShape = {expertNum, n / 64, k / 16, 16, 8}`, calls `SetStorageS
 和 ViewFormat 为NZ」 — and asserts the *incoming* storage shape already had `dimNum == 5`. So the
 fractal tile is k0=16 by n0=64 int4, and without the load-time cast the operator rejects the tensor.
 
-`patches/cann-gmm-swiglu-v2/w4a8-compact.patch` records what cannot be undone later:
+`scripts/patches/cann-gmm-swiglu-v2/w4a8-compact.patch` records what cannot be undone later:
 `index_select` on an NZ weight fails inside TransData, a per-expert `copy_` into an NZ destination
 fails the same way, and `npu_format_cast` back to ND fails. The global escape is
 `additional_config` `weight_nz_mode: 0`, which turns the cast off for **every** quantized weight in
@@ -1197,7 +1197,7 @@ the model, linear layers included. Per-layer or per-tensor means patching
 `process_weights_after_loading`, which is exactly where that patch already edits.
 
 The installed tree is stock: `grep -c _compact_expert_declaration` on the installed `w4a8.py`
-returns 0, and none of `patches/vllm-ascend/*.patch` is applied on the host.
+returns 0, and none of `scripts/patches/vllm-ascend/*.patch` is applied on the host.
 
 ### Two traps that will silently invalidate a measurement
 
@@ -1311,12 +1311,12 @@ link rather than an executable one.
 
 ### Four registration routes, each with a template on this box
 
-| route | template | cost |
-| --- | --- | --- |
-| pure Python `torch.library` | `vllm_ascend/ops/packaged_attention.py:40,83,130` — `define`, `register_fake`, `impl(..., "PrivateUse1")`, with the DSL imported lazily so tracing never pulls the compiler in. Modern one-decorator form at `vllm_ascend/lora/lora_ops.py:460,504` | no compiler; needs an existing callable |
-| C++ `TORCH_LIBRARY` extension | `csrc/third_party/catlass/examples/python_extension/src/bindings/torch_bindings.cpp` (31 lines) with `CMakeLists.txt:35,41,43` and loader `torch_catlass/__init__.py`; build helper `NpuExtension` at `torch_npu/utils/cpp_extension.py:12` | one `.so` |
-| stable-ABI `.so` + `torch.ops.load_library` | in production as `/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/libfla_npu_stable.so`, consumed at `fla_npu/ops/ascendc/_stable.py:386,476`, stream passed as a trailing `int` | one `.so`, no torch headers |
-| override `torch_npu`'s own op | `torch.library.Library("npu", "IMPL").impl("npu_grouped_matmul_swiglu_quant_v2", fn, "NPU", allow_override=True)` — `allow_override=True` is mandatory, torch_npu already holds that key. Precedent against `aten` at `vllm_ascend/batch_invariant.py:126-163` | keeps existing call sites |
+|route|template|cost|
+|---|---|---|
+|pure Python `torch.library`|`vllm_ascend/ops/packaged_attention.py:40,83,130` — `define`, `register_fake`, `impl(..., "PrivateUse1")`, with the DSL imported lazily so tracing never pulls the compiler in. Modern one-decorator form at `vllm_ascend/lora/lora_ops.py:460,504`|no compiler; needs an existing callable|
+|C++ `TORCH_LIBRARY` extension|`csrc/third_party/catlass/examples/python_extension/src/bindings/torch_bindings.cpp` (31 lines) with `CMakeLists.txt:35,41,43` and loader `torch_catlass/__init__.py`; build helper `NpuExtension` at `torch_npu/utils/cpp_extension.py:12`|one `.so`|
+|stable-ABI `.so` + `torch.ops.load_library`|in production as `/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/libfla_npu_stable.so`, consumed at `fla_npu/ops/ascendc/_stable.py:386,476`, stream passed as a trailing `int`|one `.so`, no torch headers|
+|override `torch_npu`'s own op|`torch.library.Library("npu", "IMPL").impl("npu_grouped_matmul_swiglu_quant_v2", fn, "NPU", allow_override=True)` — `allow_override=True` is mandatory, torch_npu already holds that key. Precedent against `aten` at `vllm_ascend/batch_invariant.py:126-163`|keeps existing call sites|
 
 A second vendor-package precedent, outside vLLM-Ascend entirely: the `fla_npu` wheel ships
 `/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/` and
@@ -1415,7 +1415,7 @@ Each of these is something this project has held and the material above contradi
    intermediate in UB; an `.o` swap preserves the operator's prototype by construction, so the
    graph still issues the second operator and the GM round trip between them survives. A per-op
    override can only deliver a win that is internal to one operator — which is what the four landed
-   `patches/cann-gmm-swiglu-v2/` patches did, measured at −1.468 ms a round. Fusing two operators
+   `scripts/patches/cann-gmm-swiglu-v2/` patches did, measured at −1.468 ms a round. Fusing two operators
    requires changing the caller.
 
 ---

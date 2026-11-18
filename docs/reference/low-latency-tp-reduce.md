@@ -8037,37 +8037,37 @@ aclshmem_<type>_atomic_<op>()          ← 标准接口
 
 ### 2.1 接口清单
 
-| 接口完整名 | 返回值 | 支持类型 | 硬件平台 |
-| --- | --- | --- | --- |
-| `aclshmemx_mte_atomic_fetch` | T | int32, uint32, float, int64, uint64 | 950 |
-| `aclshmemx_mte_atomic_set` | void | uint32, uint64 | 950 |
-| `aclshmemx_mte_atomic_swap` | T | uint32, uint64 | 950 |
-| `aclshmemx_mte_atomic_compare_swap` | T | uint32, uint64 | 950 |
-| `aclshmemx_mte_atomic_inc` | void | int32, uint32, float, int64, uint64 | 950 |
-| `aclshmemx_mte_atomic_add` | void | int8, int16, bf16, half, int32, float (A2/A3/950) + uint32, uint64, int64 (950) | A2/A3/950 |
-| `aclshmemx_mte_atomic_fetch_inc` | T | int32, uint32, float, int64, uint64 | 950 |
-| `aclshmemx_mte_atomic_fetch_add` | T | int32, uint32, float, int64, uint64 | 950 |
+|接口完整名|返回值|支持类型|硬件平台|
+|---|---|---|---|
+|`aclshmemx_mte_atomic_fetch`|T|int32, uint32, float, int64, uint64|950|
+|`aclshmemx_mte_atomic_set`|void|uint32, uint64|950|
+|`aclshmemx_mte_atomic_swap`|T|uint32, uint64|950|
+|`aclshmemx_mte_atomic_compare_swap`|T|uint32, uint64|950|
+|`aclshmemx_mte_atomic_inc`|void|int32, uint32, float, int64, uint64|950|
+|`aclshmemx_mte_atomic_add`|void|int8, int16, bf16, half, int32, float (A2/A3/950) + uint32, uint64, int64 (950)|A2/A3/950|
+|`aclshmemx_mte_atomic_fetch_inc`|T|int32, uint32, float, int64, uint64|950|
+|`aclshmemx_mte_atomic_fetch_add`|T|int32, uint32, float, int64, uint64|950|
 
 ### 2.2 同步要求
 
 所有 MTE 后端接口调用后，如果存在**标量计算单元（Scalar）与搬运单元（MTE2/MTE3）之间的数据依赖**，开发者需根据实际数据流插入同步：
 
-| 时机 | 场景 | 同步方式 |
-| --- | --- | --- |
-| 调用前 | 其他单元（如 MTE2）正在写同一 UB 区域 | `SetFlag/WaitFlag` on `MTE2_S` |
-| 调用后 | 后续操作依赖原子操作在 GM 中的结果 | `SetFlag/WaitFlag` on `MTE3_MTE2` |
-| 调用后 | 需要复用同一 UB 区域写入新数据 | `SetFlag/WaitFlag` on `MTE3_S` |
+|时机|场景|同步方式|
+|---|---|---|
+|调用前|其他单元（如 MTE2）正在写同一 UB 区域|`SetFlag/WaitFlag` on `MTE2_S`|
+|调用后|后续操作依赖原子操作在 GM 中的结果|`SetFlag/WaitFlag` on `MTE3_MTE2`|
+|调用后|需要复用同一 UB 区域写入新数据|`SetFlag/WaitFlag` on `MTE3_S`|
 
 ### 2.3 `aclshmemx_mte_atomic_add` 的类型差异（重要）
 
 `aclshmemx_mte_atomic_add` 在 Ascend950 上按类型有两种实现路径：
 
-| 类型组 | 支持类型 | 实现方式 | 同步要点 |
-| --- | --- | --- | --- |
-| UB + MTE3 路径 | int8, int16, bf16, half, int32, float | Scalar 写操作数到 UB → MTE3 读 UB → MTE3 atomic add 写 GM | 需关注 UB 相关 fence（MTE2_S、MTE3_S）和 GM fence（MTE3_MTE2） |
+|类型组|支持类型|实现方式|同步要点|
+|---|---|---|---|
+|UB + MTE3 路径|int8, int16, bf16, half, int32, float|Scalar 写操作数到 UB → MTE3 读 UB → MTE3 atomic add 写 GM|需关注 UB 相关 fence（MTE2_S、MTE3_S）和 GM fence（MTE3_MTE2）|
 
-| UB + MTE3 路径 | int8, int16, bf16, half, int32, float | Scalar 写操作数到 UB → MTE3 读 UB → MTE3 atomic add 写 GM | 需关注 UB 相关 fence（MTE2_S、MTE3_S）和 GM fence（MTE3_MTE2） |
-| Scalar AtomicAdd 路径 | uint32, uint64, int64 | Scalar 单元直接执行标量 AtomicAdd 写 GM，不经过 UB 和 MTE3 | 不需要 UB/MTE3 相关 fence；仅在 Scalar↔MTE2/MTE3 有 GM 数据依赖时按通用规则同步 |
+|UB + MTE3 路径|int8, int16, bf16, half, int32, float|Scalar 写操作数到 UB → MTE3 读 UB → MTE3 atomic add 写 GM|需关注 UB 相关 fence（MTE2_S、MTE3_S）和 GM fence（MTE3_MTE2）|
+|Scalar AtomicAdd 路径|uint32, uint64, int64|Scalar 单元直接执行标量 AtomicAdd 写 GM，不经过 UB 和 MTE3|不需要 UB/MTE3 相关 fence；仅在 Scalar↔MTE2/MTE3 有 GM 数据依赖时按通用规则同步|
 
 ---
 
@@ -8085,29 +8085,29 @@ RDMA AMO 的 target/source 参数会作为本地对称地址换算到指定 PE�
 
 ### 3.1 接口清单（同步接口——内部完成 quiet）
 
-| 接口完整名 | 返回值 | 支持类型 | 硬件平台 |
-| --- | --- | --- | --- |
-| `aclshmemx_roce_atomic_fetch` | T | 32/64 位整数 | 950 |
-| `aclshmemx_roce_atomic_fetch_add` | T | 32/64 位整数 | 950 |
-| `aclshmemx_roce_atomic_fetch_inc` | T | 32/64 位整数 | 950 |
-| `aclshmemx_roce_atomic_fetch_and` | T | int32, uint32, int64, uint64 | 950 |
-| `aclshmemx_roce_atomic_fetch_or` | T | int32, uint32, int64, uint64 | 950 |
-| `aclshmemx_roce_atomic_fetch_xor` | T | int32, uint32, int64, uint64 | 950 |
-| `aclshmemx_roce_atomic_compare_swap` | T | 32/64 位整数 | 950 |
-| `aclshmemx_roce_atomic_swap` | T | 32/64 位整数 | 950 |
+|接口完整名|返回值|支持类型|硬件平台|
+|---|---|---|---|
+|`aclshmemx_roce_atomic_fetch`|T|32/64 位整数|950|
+|`aclshmemx_roce_atomic_fetch_add`|T|32/64 位整数|950|
+|`aclshmemx_roce_atomic_fetch_inc`|T|32/64 位整数|950|
+|`aclshmemx_roce_atomic_fetch_and`|T|int32, uint32, int64, uint64|950|
+|`aclshmemx_roce_atomic_fetch_or`|T|int32, uint32, int64, uint64|950|
+|`aclshmemx_roce_atomic_fetch_xor`|T|int32, uint32, int64, uint64|950|
+|`aclshmemx_roce_atomic_compare_swap`|T|32/64 位整数|950|
+|`aclshmemx_roce_atomic_swap`|T|32/64 位整数|950|
 
 > 以上接口在返回前内部调用 `aclshmemx_roce_quiet`，**调用者无需额外同步**。
 
 ### 3.2 接口清单（异步接口——需调用者 quiet）
 
-| 接口完整名 | 返回值 | 支持类型 | 硬件平台 |
-| --- | --- | --- | --- |
-| `aclshmemx_roce_atomic_set` | void | 32/64 位整数 | 950 |
-| `aclshmemx_roce_atomic_add` | void | 32/64 位整数 | 950 |
-| `aclshmemx_roce_atomic_inc` | void | 32/64 位整数 | 950 |
-| `aclshmemx_roce_atomic_and` | void | int32, uint32, int64, uint64 | 950 |
-| `aclshmemx_roce_atomic_or` | void | int32, uint32, int64, uint64 | 950 |
-| `aclshmemx_roce_atomic_xor` | void | int32, uint32, int64, uint64 | 950 |
+|接口完整名|返回值|支持类型|硬件平台|
+|---|---|---|---|
+|`aclshmemx_roce_atomic_set`|void|32/64 位整数|950|
+|`aclshmemx_roce_atomic_add`|void|32/64 位整数|950|
+|`aclshmemx_roce_atomic_inc`|void|32/64 位整数|950|
+|`aclshmemx_roce_atomic_and`|void|int32, uint32, int64, uint64|950|
+|`aclshmemx_roce_atomic_or`|void|int32, uint32, int64, uint64|950|
+|`aclshmemx_roce_atomic_xor`|void|int32, uint32, int64, uint64|950|
 
 > 以上接口仅发起操作即返回，**调用者必须在依赖结果前调用 `aclshmemx_roce_quiet(pe, buf, sync_id)`**。
 
@@ -11831,24 +11831,24 @@ Engine-by-engine completion semantics in Chinese: MTE-backend atomics are ALL as
 
 ### 2.1 接口清单
 
-| 接口完整名 | 返回值 | 支持类型 | 硬件平台 |
+|接口完整名|返回值|支持类型|硬件平台|
 |---|---|---|---|
-| `aclshmemx_mte_atomic_fetch` | T | int32, uint32, float, int64, uint64 | 950 |
+|`aclshmemx_mte_atomic_fetch`|T|int32, uint32, float, int64, uint64|950|
 
 [... interface tables omitted ...]
 
-| 调用前 | 其他单元（如 MTE2）正在写同一 UB 区域 | `SetFlag/WaitFlag` on `MTE2_S` |
-| 调用后 | 后续操作依赖原子操作在 GM 中的结果 | `SetFlag/WaitFlag` on `MTE3_MTE2` |
-| 调用后 | 需要复用同一 UB 区域写入新数据 | `SetFlag/WaitFlag` on `MTE3_S` |
+|调用前|其他单元（如 MTE2）正在写同一 UB 区域|`SetFlag/WaitFlag` on `MTE2_S`|
+|调用后|后续操作依赖原子操作在 GM 中的结果|`SetFlag/WaitFlag` on `MTE3_MTE2`|
+|调用后|需要复用同一 UB 区域写入新数据|`SetFlag/WaitFlag` on `MTE3_S`|
 
 ### 2.3 `aclshmemx_mte_atomic_add` 的类型差异（重要）
 
 `aclshmemx_mte_atomic_add` 在 Ascend950 上按类型有两种实现路径：
 
-| 类型组 | 支持类型 | 实现方式 | 同步要点 |
+|类型组|支持类型|实现方式|同步要点|
 |---|---|---|---|
-| UB + MTE3 路径 | int8, int16, bf16, half, int32, float | Scalar 写操作数到 UB → MTE3 读 UB → MTE3 atomic add 写 GM | 需关注 UB 相关 fence（MTE2_S、MTE3_S）和 GM fence（MTE3_MTE2） |
-| Scalar AtomicAdd 路径 | uint32, uint64, int64 | Scalar 单元直接执行标量 AtomicAdd 写 GM，不经过 UB 和 MTE3 | 不需要 UB/MTE3 相关 fence；仅在 Scalar↔MTE2/MTE3 有 GM 数据依赖时按通用规则同步 |
+|UB + MTE3 路径|int8, int16, bf16, half, int32, float|Scalar 写操作数到 UB → MTE3 读 UB → MTE3 atomic add 写 GM|需关注 UB 相关 fence（MTE2_S、MTE3_S）和 GM fence（MTE3_MTE2）|
+|Scalar AtomicAdd 路径|uint32, uint64, int64|Scalar 单元直接执行标量 AtomicAdd 写 GM，不经过 UB 和 MTE3|不需要 UB/MTE3 相关 fence；仅在 Scalar↔MTE2/MTE3 有 GM 数据依赖时按通用规则同步|
 
 ---
 
@@ -12542,11 +12542,11 @@ The compile commands in the documentation linked above omit this flag, and witho
 it the kernel never executes. Measured on Ascend 910B2, CANN 9.0.0, driver
 26.0.rc1, 10 runs per build:
 
-| build | runs that print |
+|build|runs that print|
 |---|---|
-| exactly as documented | 0/10 |
-| as documented, plus `-fPIC` | 0/10 |
-| plus `--cce-aicpu-no-firmware` | 9/10 |
+|exactly as documented|0/10|
+|as documented, plus `-fPIC`|0/10|
+|plus `--cce-aicpu-no-firmware`|9/10|
 
 `-fPIC` and `-g` make no difference; only the flag does.
 

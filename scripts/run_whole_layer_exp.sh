@@ -27,8 +27,8 @@ cd "$REPO_ROOT"
 [[ "$TAG" =~ ^[a-zA-Z0-9][a-zA-Z0-9._-]*$ ]]
 [[ "$EXP" =~ ^[a-zA-Z0-9][a-zA-Z0-9._-]*$ ]]
 if [ "${TILERT_LAUNCHER_FROZEN:-0}" != 1 ]; then
-  mkdir -p .artifacts/launchers
-  launcher=$(mktemp "$REPO_ROOT/.artifacts/launchers/$EXP.XXXXXX.sh")
+  mkdir -p tests/.artifacts/launchers
+  launcher=$(mktemp "$REPO_ROOT/tests/.artifacts/launchers/$EXP.XXXXXX.sh")
   cp -- "${BASH_SOURCE[0]}" "$launcher"
   TILERT_PROJECT_ROOT="$REPO_ROOT" TILERT_LAUNCHER_FROZEN=1 exec bash "$launcher" "$@"
 fi
@@ -44,19 +44,19 @@ else
   rscp() { SSHPASS="$PASSWORD" sshpass -e scp -q -o StrictHostKeyChecking=no -o PreferredAuthentications=password -o PubkeyAuthentication=no "$@"; }
 fi
 
-if [ -f ".artifacts/snapshots/$TAG/manifest.json" ]; then
-  python3 scripts/project.py verify ".artifacts/snapshots/$TAG/manifest.json"
+if [ -f "tests/.artifacts/snapshots/$TAG/manifest.json" ]; then
+  python3 scripts/project.py verify "tests/.artifacts/snapshots/$TAG/manifest.json"
 else
   python3 scripts/project.py snapshot "$TAG"
 fi
 SOURCE_COMMIT=$(git rev-parse "refs/snapshots/$TAG")
 rssh mkdir -p "$RUN"
 if rssh test -f "$RUN/manifest.json"; then
-  expected=$(sha256sum ".artifacts/snapshots/$TAG/manifest.json" | cut -d ' ' -f1)
+  expected=$(sha256sum "tests/.artifacts/snapshots/$TAG/manifest.json" | cut -d ' ' -f1)
   actual=$(rssh sha256sum "$RUN/manifest.json" | cut -d ' ' -f1)
   [ "$actual" = "$expected" ]
 else
-  rscp ".artifacts/snapshots/$TAG/source.tar.gz" ".artifacts/snapshots/$TAG/manifest.json" "root@$HOST:$RUN/"
+  rscp "tests/.artifacts/snapshots/$TAG/source.tar.gz" "tests/.artifacts/snapshots/$TAG/manifest.json" "root@$HOST:$RUN/"
 fi
 rscp "${BASH_SOURCE[0]}" "root@$HOST:$RUN/launcher-$EXP.sh"
 remote_status=0
@@ -85,9 +85,14 @@ mkdir -p "$run/build"
 if [ "$native" = 1 ] && [ "$skip_build" != 1 ]; then
   if [ ! -d "$run/vendor" ]; then
     cp -a "$assets/attention_vendor_patched" "$run/vendor"
-    cp -a "$run/source/patches/cann-quant-lightning-indexer/." \
+    patch_root=$run/source/scripts/patches
+    if [ ! -d "$patch_root" ]; then patch_root=$run/source/patches; fi
+    if [ -f "$patch_root/cann-lightning-indexer/query-groups.patch" ]; then
+      patch -d "$run/vendor" -p1 < "$patch_root/cann-lightning-indexer/query-groups.patch"
+    fi
+    cp -a "$patch_root/cann-quant-lightning-indexer/." \
       "$run/vendor/attention/quant_lightning_indexer/op_kernel/"
-    cp "$run/source/patches/cann-sfa-v3x3/"*.h \
+    cp "$patch_root/cann-sfa-v3x3/"*.h \
       "$run/vendor/attention/sparse_flash_attention/op_kernel/arch22/"
     tar -czf "$run/build/vendor-source.tar.gz" -C "$run" vendor
   fi
@@ -212,30 +217,30 @@ rm -rf "/dev/shm/trt-run-dirs/$experiment" "/dev/shm/trt-evidence/$experiment"
 exit "$status"
 REMOTE
 
-mkdir -p ".artifacts/builds/$TAG"
+mkdir -p "tests/.artifacts/builds/$TAG"
 if [ "$NATIVE_ATTENTION" = 1 ]; then
-  rscp -r "root@$HOST:$RUN/build/." ".artifacts/builds/$TAG/"
-  rscp "root@$HOST:$RUN/build.log" ".artifacts/builds/$TAG/build.log"
+  rscp -r "root@$HOST:$RUN/build/." "tests/.artifacts/builds/$TAG/"
+  rscp "root@$HOST:$RUN/build.log" "tests/.artifacts/builds/$TAG/build.log"
 fi
 if [ "$BUILD_ONLY" = 1 ]; then exit "$remote_status"; fi
-mkdir -p ".artifacts/incoming/$EXP"
-rscp -r "root@$HOST:$RUN/evidence/$EXP/." ".artifacts/incoming/$EXP/"
+mkdir -p "tests/.artifacts/incoming/$EXP"
+rscp -r "root@$HOST:$RUN/evidence/$EXP/." "tests/.artifacts/incoming/$EXP/"
 audit=()
-if [ "$MODE" = formal ] && [ -f ".artifacts/incoming/$EXP/summary.json" ]; then
-  golden=.artifacts/runs/test-w112-sfa-restored-v7-formal/evidence/rank-0.json
-  python3 scripts/check_whole_layer_exp.py ".artifacts/incoming/$EXP" "$golden" \
-    --output ".artifacts/incoming/$EXP/audit.json" || remote_status=1
-  audit=(--audit ".artifacts/incoming/$EXP/audit.json")
+if [ "$MODE" = formal ] && [ -f "tests/.artifacts/incoming/$EXP/summary.json" ]; then
+  golden=tests/.artifacts/runs/test-w112-sfa-restored-v7-formal/evidence/rank-0.json
+  python3 scripts/check_whole_layer_exp.py "tests/.artifacts/incoming/$EXP" "$golden" \
+    --output "tests/.artifacts/incoming/$EXP/audit.json" || remote_status=1
+  audit=(--audit "tests/.artifacts/incoming/$EXP/audit.json")
 fi
 binaries=()
 if [ "$NATIVE_ATTENTION" = 1 ]; then
-  binaries=(--binary ".artifacts/builds/$TAG/indexed/whole_layer_indexed_attention_tp8.so"
-            --binary ".artifacts/builds/$TAG/full/whole_layer_full_attention_tp8.so"
-            --artifact ".artifacts/builds/$TAG/vendor-source.tar.gz"
-            --artifact ".artifacts/builds/$TAG/build.log"
-            --artifact ".artifacts/builds/$TAG/indexed/provenance.json"
-            --artifact ".artifacts/builds/$TAG/full/provenance.json")
+  binaries=(--binary "tests/.artifacts/builds/$TAG/indexed/whole_layer_indexed_attention_tp8.so"
+            --binary "tests/.artifacts/builds/$TAG/full/whole_layer_full_attention_tp8.so"
+            --artifact "tests/.artifacts/builds/$TAG/vendor-source.tar.gz"
+            --artifact "tests/.artifacts/builds/$TAG/build.log"
+            --artifact "tests/.artifacts/builds/$TAG/indexed/provenance.json"
+            --artifact "tests/.artifacts/builds/$TAG/full/provenance.json")
 fi
-python3 scripts/project.py register "$EXP" --evidence ".artifacts/incoming/$EXP" \
+python3 scripts/project.py register "$EXP" --evidence "tests/.artifacts/incoming/$EXP" \
   --source-ref "refs/snapshots/$TAG" "${audit[@]}" "${binaries[@]}"
 exit "$remote_status"

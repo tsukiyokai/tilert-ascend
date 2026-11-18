@@ -17,14 +17,14 @@ Huawei / CANN `ops-transformer` repo, master branch.
 >
 > ## 产品支持情况
 >
-> | 产品 | 是否支持 |
-> | :---------------------------- | :-----------: |
-> | <term>Ascend 950PR&950DT系列产品</term> | √ |
-> | <term>Atlas A3系列产品</term> | √ |
-> | <term>Atlas A2系列产品</term> | √ |
-> | <term>Atlas 200I/500 A2推理产品</term> | × |
-> | <term>Atlas推理系列产品</term> | × |
-> | <term>Atlas训练系列产品</term> | × |
+> |产品|是否支持|
+> |:---|:---:|
+> |<term>Ascend 950PR&950DT系列产品</term>|√|
+> |<term>Atlas A3系列产品</term>|√|
+> |<term>Atlas A2系列产品</term>|√|
+> |<term>Atlas 200I/500 A2推理产品</term>|×|
+> |<term>Atlas推理系列产品</term>|×|
+> |<term>Atlas训练系列产品</term>|×|
 >
 > ## 功能说明
 >
@@ -188,9 +188,9 @@ aclnnStatus aclnnGroupedMatmulSwigluQuantV2GetWorkspaceSize(
     aclOpExecutor      **executor);
 ```
 
-> | groupListType | 输入 | 表示分组的解释方式，用于确定groupList的语义。 | 0表示cumsum模式，groupList中的每个元素代表当前分组的累计长度。 1表示count模式，groupList中的每个元素代表该分组包含多少元素。 | INT64 |
+> |groupListType|输入|表示分组的解释方式，用于确定groupList的语义。|0表示cumsum模式，groupList中的每个元素代表当前分组的累计长度。 1表示count模式，groupList中的每个元素代表该分组包含多少元素。|INT64|
 >
-> | tuningConfigOptional | 可选输入 | 用于算子预估M/E的大小，走不同的算子模板，以适配不同场景性能要求。 | 数组，传入的第一个数字表示各个专家处理的token数的预期值，用于优化tiling，A4W4 右矩阵NZ输入时开启，其他输入请传入空指针。 | INT64 |
+> |tuningConfigOptional|可选输入|用于算子预估M/E的大小，走不同的算子模板，以适配不同场景性能要求。|数组，传入的第一个数字表示各个专家处理的token数的预期值，用于优化tiling，A4W4 右矩阵NZ输入时开启，其他输入请传入空指针。|INT64|
 
 > - weightAssistMatrix：
 >   - 仅A8W4场景生效，其他场景需传空指针。
@@ -441,12 +441,12 @@ Grouping axis semantics:
 
 Single/multi tensor shape table:
 
-> | group_type | supported scenario | x shape | weight shape | y shape | optional-dynamic inputs shape if needed | group_list shape if passed | per_token_scale shape if passed |
-> | :--------: | :----------------: | :-----: | :----------: | :-----: | :-------------------------------------: | :------------------------: | :-----------------------------: |
-> | -1 | 多多多 | [(M1,K1),(M2,K2),...] | [(K1,N1),(K2,N2),...] | [(M1,N1),(M2,N2),...] | [(N1),(N2),...] | not support | not support |
-> | 0 | 单单单 | [(M,K)] | [(G,K,N)] | [(M,N)] | [(G,N)] | (G) | (M) |
-> | 0 | 单多单 | [(M,K)] | [(K,N),(K,N),...] | [(M,N)] | [(N),(N),...] | (G) | not support |
-> | 0 | 多多单 | [(M1,K1),(M2,K2),...] | [(K1,N),(K2,N),...] | [(M,N)] | [(N),(N),...] | (G) | not support |
+> |group_type|supported scenario|x shape|weight shape|y shape|optional-dynamic inputs shape if needed|group_list shape if passed|per_token_scale shape if passed|
+> |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+> |-1|多多多|[(M1,K1),(M2,K2),...]|[(K1,N1),(K2,N2),...]|[(M1,N1),(M2,N2),...]|[(N1),(N2),...]|not support|not support|
+> |0|单单单|[(M,K)]|[(G,K,N)]|[(M,N)]|[(G,N)]|(G)|(M)|
+> |0|单多单|[(M,K)]|[(K,N),(K,N),...]|[(M,N)]|[(N),(N),...]|(G)|not support|
+> |0|多多单|[(M1,K1),(M2,K2),...]|[(K1,N),(K2,N),...]|[(M,N)]|[(N),(N),...]|(G)|not support|
 >
 > 例如在多多多场景，x shape={{4，16}, {12，16}, {16，16}}，weight shape={{16，8}，{16，8}，{16，8}}，y shape={{4，8}，{12，8}，{16，8}}，如果想在单单单场景进行相同的计算，则x shape={32，16}，weight shape= {3，16，8}，y shape={32，8}，groupList={4，12，16}。
 
@@ -1281,19 +1281,19 @@ https://gitcode.com/cann/ops-transformer/blob/master/gmm/grouped_matmul_finalize
 >
 > ## 产品支持情况
 >
-> | 产品 | 是否支持 |
-> | :---------------------------- | :-----------: |
-> | <term>Ascend 950PR&950DT系列产品</term> | √ |
-> | <term>Atlas A3系列产品</term> | √ |
-> | <term>Atlas A2系列产品</term> | √ |
+> |产品|是否支持|
+> |:---|:---:|
+> |<term>Ascend 950PR&950DT系列产品</term>|√|
+> |<term>Atlas A3系列产品</term>|√|
+> |<term>Atlas A2系列产品</term>|√|
 >
 > ## 功能说明
 >
 > - 算子功能：GroupedMatmul和MoeFinalizeRouting的融合算子，GroupedMatmul计算后的输出按照索引做combine动作
 
-> | x1 | 输入 | 输入x(左矩阵)。 | INT8、FLOAT8_E5M2<sup>1</sup>、FLOAT8_E4M3FN<sup>1</sup>、HIFLOAT8<sup>1</sup>、FLOAT4_E2M1<sup>1</sup> | ND |
-> | x2 | 输入 | 输入weight(右矩阵) | INT4<sup>2</sup>、INT8、INT32<sup>2</sup>、FLOAT8_E5M2<sup>1</sup>、FLOAT8_E4M3FN<sup>1</sup>、HIFLOAT8<sup>1</sup>、FLOAT4_E2M1<sup>1</sup> | ND、NZ |
-> | scaleOptional | 输入 | 量化参数中的缩放因子，perchannel量化参数 | INT64<sup>2</sup>、BFLOAT16、FLOAT32、FLOAT8_E8M0<sup>1</sup> | ND |
+> |x1|输入|输入x(左矩阵)。|INT8、FLOAT8_E5M2<sup>1</sup>、FLOAT8_E4M3FN<sup>1</sup>、HIFLOAT8<sup>1</sup>、FLOAT4_E2M1<sup>1</sup>|ND|
+> |x2|输入|输入weight(右矩阵)|INT4<sup>2</sup>、INT8、INT32<sup>2</sup>、FLOAT8_E5M2<sup>1</sup>、FLOAT8_E4M3FN<sup>1</sup>、HIFLOAT8<sup>1</sup>、FLOAT4_E2M1<sup>1</sup>|ND、NZ|
+> |scaleOptional|输入|量化参数中的缩放因子，perchannel量化参数|INT64<sup>2</sup>、BFLOAT16、FLOAT32、FLOAT8_E8M0<sup>1</sup>|ND|
 
 The kernel directory shows a dedicated A8W4-MSD implementation plus an L1-optimized variant:
 
@@ -1843,16 +1843,16 @@ https://github.com/vllm-project/vllm-ascend/pull/17201
 
 > Paired operator measurements below use E=14/K=3584/N=6144, capacity=28672 and the eight fitted routing cases. Each ND/NZ pair used the same card and alternating independent weight sets, 50 graph replays per batch and five batches. Values are median NPU Graph Event time per operator call; they are not an end-to-end throughput comparison or a comparison against the prior W8-cache implementation.
 >
-> | Case | Valid rows | ND (us) | Native NZ (us) | NZ / ND |
-> | --- | ---: | ---: | ---: | ---: |
-> | 1 | 320 | 235.37 | 167.37 | 0.711 |
-> | 2 | 260 | 242.50 | 177.28 | 0.731 |
-> | 3 | 320 | 260.27 | 187.17 | 0.719 |
-> | 4 | 320 | 294.33 | 206.60 | 0.702 |
-> | 5 | 400 | 308.68 | 224.35 | 0.727 |
-> | 6 | 500 | 325.34 | 234.87 | 0.722 |
-> | 7 | 600 | 341.40 | 252.78 | 0.740 |
-> | 8 | 800 | 373.88 | 284.01 | 0.760 |
+> |Case|Valid rows|ND (us)|Native NZ (us)|NZ / ND|
+> |---|---:|---:|---:|---:|
+> |1|320|235.37|167.37|0.711|
+> |2|260|242.50|177.28|0.731|
+> |3|320|260.27|187.17|0.719|
+> |4|320|294.33|206.60|0.702|
+> |5|400|308.68|224.35|0.727|
+> |6|500|325.34|234.87|0.722|
+> |7|600|341.40|252.78|0.740|
+> |8|800|373.88|284.01|0.760|
 >
 > Geometric mean NZ/ND: **0.7263**.
 
@@ -1878,22 +1878,22 @@ https://github.com/vllm-project/vllm-ascend/pull/10488
 > - **vs. standard vllm-ascend W4A4 (same checkpoint, same accuracy):** the fused kernel is the headline win — **1.46x higher decode throughput** purely from removing the per-op dispatch/sync/HBM-round-trip overhead. The quantization is byte-identical (cos 0.997 between the two kernels), so this is a free serving-throughput gain over the vendor path.
 > - **vs. bf16:** faster on decode (**1.20x**) *and* the 4x-smaller expert weights free enough HBM to grow KV-cache capacity / max concurrency by **+30%**.
 >
-> | stage | engine | work |
-> | --- | --- | --- |
-> | 1 | cube | 64x64 block-diagonal Hadamard on activations (fp16 GEMM) |
-> | 2 | vector | fp16 -> INT4 activations + fp32 scale, fused routing scatter |
-> | 3 | cube | INT4xINT4 -> INT32 `gate_up` |
-> | 4 | vector | dequant + SwiGLU + INT4 requant |
-> | 5 | cube | INT4xINT4 -> INT32 `down` |
-> | 6 | vector | dequant + scatter-add unpermute + top-k-weight combine |
+> |stage|engine|work|
+> |---|---|---|
+> |1|cube|64x64 block-diagonal Hadamard on activations (fp16 GEMM)|
+> |2|vector|fp16 -> INT4 activations + fp32 scale, fused routing scatter|
+> |3|cube|INT4xINT4 -> INT32 `gate_up`|
+> |4|vector|dequant + SwiGLU + INT4 requant|
+> |5|cube|INT4xINT4 -> INT32 `down`|
+> |6|vector|dequant + scatter-add unpermute + top-k-weight combine|
 >
 > - Cube matmuls: AscendC `MatmulImpl<int4b_t>`. Vector stages: PTO-ISA. Cross-core scheduling via FFTS so cube/vector overlap across expert-chunks.
 >
-> | config | GPQA decode (3-seed) | vs bf16 | vs vendor W4A4 |
-> | --- | ---: | :--: | :--: |
-> | bf16 | 276 +/- 25 tok/s | — | — |
-> | w4a4 vendor — `torch_npu` `npu_*` chain (separated) | 227 +/- 22 tok/s | 0.82x | 1.00x |
-> | **w4a4 hybrid-mega (ours, fused single launch)** | **332 +/- 18 tok/s** | **1.20x** | **1.46x** |
+> |config|GPQA decode (3-seed)|vs bf16|vs vendor W4A4|
+> |---|---:|:---:|:---:|
+> |bf16|276 +/- 25 tok/s|—|—|
+> |w4a4 vendor — `torch_npu` `npu_*` chain (separated)|227 +/- 22 tok/s|0.82x|1.00x|
+> |**w4a4 hybrid-mega (ours, fused single launch)**|**332 +/- 18 tok/s**|**1.20x**|**1.46x**|
 
 ## Relevance
 
@@ -1914,20 +1914,20 @@ https://github.com/vllm-project/vllm-ascend/pull/15714
 >
 > Profiled with `torch_npu.profiler` on Qwen3-30B-A3B, 8x Atlas 800I A2, EP=8, batch 1, ACL graph captured, rank 0:
 >
-> | kernel | before | after |
-> | --- | --: | --: |
-> | `aclnnConstantPadNd_PadV3AiCore_PadV3` | 945.2 us/step | 0.0 (0 calls) |
-> | `aclnnConstantPadNd_PadV3AiCore_MemSet` | 808.4 us/step | 0.0 (0 calls) |
-> | all padding kernels | 36.7 us/layer | 0.20 us/layer |
+> |kernel|before|after|
+> |---|---:|---:|
+> |`aclnnConstantPadNd_PadV3AiCore_PadV3`|945.2 us/step|0.0 (0 calls)|
+> |`aclnnConstantPadNd_PadV3AiCore_MemSet`|808.4 us/step|0.0 (0 calls)|
+> |all padding kernels|36.7 us/layer|0.20 us/layer|
 >
 > At 18.6 us per call for 32 KB of data, this is launch overhead rather than bandwidth, so the absolute cost is largely independent of how many rows are padded.
 
 > **Decode latency, batch 1** — 32 prompts served one at a time, 128 generated tokens, 3 rounds with the arms rotated within each round to cancel thermal drift:
 >
-> | round | ITL unpatched | ITL patched | delta |
-> | --: | --: | --: | --: |
-> | 1 | 18.3972 ms | 17.6319 ms | -4.16% |
-> | 2 | 18.4899 ms | 17.5666 ms | -4.99% |
+> |round|ITL unpatched|ITL patched|delta|
+> |---:|---:|---:|---:|
+> |1|18.3972 ms|17.6319 ms|-4.16%|
+> |2|18.4899 ms|17.5666 ms|-4.99%|
 
 And the companion, with a TP16 calibration:
 
@@ -1957,22 +1957,22 @@ https://github.com/vllm-project/vllm-ascend/pull/16606
 >
 > **Operator level** (torch_npu profiler, rank 13, identical request, decode path; 11776 GroupedMatmul calls in both runs, deterministic and directly comparable):
 >
-> | metric | baseline | tuning_config | delta |
-> | --- | --- | --- | --- |
-> | total (ms) | 776.2 | 743.4 | -4.2% |
-> | mean (us) | 65.9 | 63.1 | -4.2% |
-> | median (us) | 61.6 | 58.4 | -5.2% |
-> | p90 (us) | 94.8 | 92.4 | -2.5% |
-> | max (us) | 165.6 | 151.2 | -8.7% |
+> |metric|baseline|tuning_config|delta|
+> |---|---|---|---|
+> |total (ms)|776.2|743.4|-4.2%|
+> |mean (us)|65.9|63.1|-4.2%|
+> |median (us)|61.6|58.4|-5.2%|
+> |p90 (us)|94.8|92.4|-2.5%|
+> |max (us)|165.6|151.2|-8.7%|
 >
 > **E2E** (benchmark_serving, 20 requests, 20k-40k input tokens, max-concurrency=1):
 >
-> | metric | baseline | tuning_config | delta |
-> | --- | --- | --- | --- |
-> | duration (s) | 1242.13 | 1161.33 | -6.5% |
-> | output throughput (tok/s) | 27.94 | 30.08 | +7.7% |
-> | TPOT mean (ms) | 32.70 | 28.51 | -12.8% |
-> | TPOT P99 (ms) | 44.82 | 40.79 | -9.0% |
+> |metric|baseline|tuning_config|delta|
+> |---|---|---|---|
+> |duration (s)|1242.13|1161.33|-6.5%|
+> |output throughput (tok/s)|27.94|30.08|+7.7%|
+> |TPOT mean (ms)|32.70|28.51|-12.8%|
+> |TPOT P99 (ms)|44.82|40.79|-9.0%|
 
 ## Relevance
 
@@ -2004,12 +2004,12 @@ https://github.com/vllm-project/vllm-ascend/pull/19033
 > 8. **[BugFix][Kernel] Make multistream shared-expert overlap capture-safe for MTP**
 >    The side-stream overlap path was not capture-safe: during NPU graph capture the shared-experts side stream is not registered with the graph pool, so any side-stream op — or even a `wait_stream()` recording an event on it — fails with `aclrtAllocatorGetByStream` / `rtStreamWaitEvent` errors, crashing startup at graph capture when MTP is combined with the overlap.
 >
-> | Scenario | Before | After |
-> | --- | --- | --- |
-> | c=1 TPOT (no MTP) | ~8.2 ms | ~7.6 ms |
-> | c=1 TPOT (MTP=4, min_tokens=512) | ~7.0 ms | ~5.1 ms (-27%) |
-> | c=4 TPOT (MTP=4, min_tokens=512) | ~8.9 ms | ~9.0 ms (unchanged) |
-> | c=8 TPOT (MTP=4, min_tokens=512) | ~12.7 ms | ~12.4 ms |
+> |Scenario|Before|After|
+> |---|---|---|
+> |c=1 TPOT (no MTP)|~8.2 ms|~7.6 ms|
+> |c=1 TPOT (MTP=4, min_tokens=512)|~7.0 ms|~5.1 ms (-27%)|
+> |c=4 TPOT (MTP=4, min_tokens=512)|~8.9 ms|~9.0 ms (unchanged)|
+> |c=8 TPOT (MTP=4, min_tokens=512)|~12.7 ms|~12.4 ms|
 
 > reuses a pre-allocated NPU event for the mamba align-mode stream sync (removes per-step event create/destroy, ~10us host each step)
 
@@ -2489,20 +2489,20 @@ The derived geometry table — every tile count is a closed form of (E, N, K) an
 > `UP_W_SLOTS` = SLOTS = 4; `UP_COL_HALVES` = UCH is derived).  All stage geometry
 > follows from these and the (E, N, K) dims:
 >
-> | derived quantity | formula | value | meaning |
-> | ----------------- | --------------------------------------- | ----- | ----------------------------------- |
-> | `UCH` | `max(1, 2N·DCT / (128·K))` | 1 | 128-row M-atoms per up-block |
-> | `UP_GRID` | `2N / (128·UCH)` | 8 | blocks per expert, up-proj |
-> | `UP_GROUPS` | `GRID_SIZE / UP_GRID` | 16 | experts in parallel, up-proj |
-> | `K_TILES_UP` | `K / KUP` | 8 | up-proj outer K iterations |
-> | `K_SUBSTEPS_UP` | `KUP / 128` | 2 | 128-K substeps per iteration |
-> | `UP_ARM_DISTANCE` | `max(1, SLOTS − 2)` | 2 | weight-TMA prefetch distance |
-> | `DOWN_GRID` | `K / DCT` | 8 | blocks per expert, down-proj |
-> | `DOWN_GROUPS` | `GRID_SIZE / DOWN_GRID` | 16 | experts in parallel, down-proj |
-> | `DOWN_COL_HALVES` | `DCT / 128` | 2 | 128-col WGMMA passes per K-step |
-> | `K_TILES_DOWN` | `N / KDN` | 2 | down-proj outer K iterations |
-> | `K_SUBSTEPS_DOWN` | `KDN / 128` | 2 | 128-K substeps per iteration |
-> | `K_BLOCKS_TOTAL` | `K / 128` | 16 | routing-window / quantization atoms |
+> |derived quantity|formula|value|meaning|
+> |---|---|---|---|
+> |`UCH`|`max(1, 2N·DCT / (128·K))`|1|128-row M-atoms per up-block|
+> |`UP_GRID`|`2N / (128·UCH)`|8|blocks per expert, up-proj|
+> |`UP_GROUPS`|`GRID_SIZE / UP_GRID`|16|experts in parallel, up-proj|
+> |`K_TILES_UP`|`K / KUP`|8|up-proj outer K iterations|
+> |`K_SUBSTEPS_UP`|`KUP / 128`|2|128-K substeps per iteration|
+> |`UP_ARM_DISTANCE`|`max(1, SLOTS − 2)`|2|weight-TMA prefetch distance|
+> |`DOWN_GRID`|`K / DCT`|8|blocks per expert, down-proj|
+> |`DOWN_GROUPS`|`GRID_SIZE / DOWN_GRID`|16|experts in parallel, down-proj|
+> |`DOWN_COL_HALVES`|`DCT / 128`|2|128-col WGMMA passes per K-step|
+> |`K_TILES_DOWN`|`N / KDN`|2|down-proj outer K iterations|
+> |`K_SUBSTEPS_DOWN`|`KDN / 128`|2|128-K substeps per iteration|
+> |`K_BLOCKS_TOTAL`|`K / 128`|16|routing-window / quantization atoms|
 >
 > `UP_GROUPS == DOWN_GROUPS` (16), so the site-#2 producer/consumer sets coincide.
 > The routing-window tile is 32 KB (BS=8).  These constraints hold: `GRID_SIZE` is
@@ -2669,11 +2669,11 @@ The shared-memory budget, with the lifetime union and the bank-conflict padding:
 > The dominant space is a union whose members have strictly disjoint lifetimes
 > (separated by the Phase-2 trailing sync and the site-#2 barrier):
 >
-> | view | phase | size (N512_K2048 cfg0) |
-> | -------------------------------------- | ----- | --------------- |
-> | `bf16_in_full[K/128][BS][128]` | 1–2 | 32 KB |
-> | `w_wgmma[UP_W_SLOTS][M_total][128]` | 3 | 64 KB |
-> | `w_down_wgmma[2][DCT·K_SUBSTEPS][128]` | 4 | dominates |
+> |view|phase|size (N512_K2048 cfg0)|
+> |---|---|---|
+> |`bf16_in_full[K/128][BS][128]`|1–2|32 KB|
+> |`w_wgmma[UP_W_SLOTS][M_total][128]`|3|64 KB|
+> |`w_down_wgmma[2][DCT·K_SUBSTEPS][128]`|4|dominates|
 >
 > Other notable fields:
 >
@@ -2720,12 +2720,12 @@ The global scratchpad, and the address-stability invariant required for graph re
 
 TMA descriptor table:
 
-> | descriptor | tensor | box | swizzle |
-> | ---------------- | ------------------------------------ | ------- | ------- |
-> | up weights | `[E·2N, K]` fp8 (interleaved or raw) | 128×128 | 128B |
-> | activations | `[BS, K]` bf16 | 8×128 | none |
-> | down weights | `[E·K, N]` fp8 (raw) | 128×128 | 128B |
-> | down activations | `temp_fp8 [rows, N]` fp8 | 8×128 | 128B |
+> |descriptor|tensor|box|swizzle|
+> |---|---|---|---|
+> |up weights|`[E·2N, K]` fp8 (interleaved or raw)|128×128|128B|
+> |activations|`[BS, K]` bf16|8×128|none|
+> |down weights|`[E·K, N]` fp8 (raw)|128×128|128B|
+> |down activations|`temp_fp8 [rows, N]` fp8|8×128|128B|
 
 ## Relevance
 
@@ -5807,15 +5807,15 @@ in place.
 The task brief guessed `cann/ops-nn`, `hicann/ops-nn`, `cann/cann-ops-adv`, `cann/cann-ops`,
 `cann/ops-math`. Result of probing gitcode:
 
-| candidate | status |
-| --- | --- |
-| `cann/ops-nn` | EXISTS. Walked the whole tree (6254 path entries at depth 2). NO `grouped_matmul` anywhere. Only `norm/group_norm*`, `quant/group_quant`, `quant/grouped_dynamic_*quant`, `activation/swiglu_group*`. Root categories are `activation cmake common control conv docs examples experimental foreach hash index loss matmul norm optim pooling quant rnn scripts tests torch_extension vfusion`; `matmul/` holds 34 ops, none grouped. |
-| `hicann/ops-nn` | 404 `Project not found:hicann/ops-nn` |
-| `cann/cann-ops-adv` | 404 `Project not found:cann/cann-ops-adv` |
-| `cann/cann-ops` | 404 `Project not found:cann/cann-ops` |
-| `cann/ops-math` | EXISTS (not the right place for GMM). |
-| `cann/catlass` | EXISTS. |
-| **`cann/ops-transformer`** | **EXISTS — this is the real home of every GroupedMatmul variant.** |
+|candidate|status|
+|---|---|
+|`cann/ops-nn`|EXISTS. Walked the whole tree (6254 path entries at depth 2). NO `grouped_matmul` anywhere. Only `norm/group_norm*`, `quant/group_quant`, `quant/grouped_dynamic_*quant`, `activation/swiglu_group*`. Root categories are `activation cmake common control conv docs examples experimental foreach hash index loss matmul norm optim pooling quant rnn scripts tests torch_extension vfusion`; `matmul/` holds 34 ops, none grouped.|
+|`hicann/ops-nn`|404 `Project not found:hicann/ops-nn`|
+|`cann/cann-ops-adv`|404 `Project not found:cann/cann-ops-adv`|
+|`cann/cann-ops`|404 `Project not found:cann/cann-ops`|
+|`cann/ops-math`|EXISTS (not the right place for GMM).|
+|`cann/catlass`|EXISTS.|
+|**`cann/ops-transformer`**|**EXISTS — this is the real home of every GroupedMatmul variant.**|
 
 Real paths found in `cann/ops-transformer` (branch `master`):
 
@@ -7950,14 +7950,14 @@ mc2/tools/dump_analysis/dump_analysis_megamoe.py
 
 ### B6.7 Summary of real repo paths (for the record)
 
-| what | where |
-| --- | --- |
-| every `GroupedMatmul*` op | `cann/ops-transformer` (gitcode) == `hicann/ops-transformer` (GitHub), dir `gmm/` |
-| MC2 grouped-matmul + comm fusion | same repo, dir `mc2/` |
-| MegaMoE | same repo, `mc2/mega_moe/` |
-| CATLASS grouped templates | `hicann/catlass` (GitHub), `include/catlass/gemm/kernel/grouped_*` |
-| `cann/ops-nn` / `hicann/ops-nn` | NO grouped matmul. Negative result, see section 5. |
-| `cann/cann-ops-adv`, `cann/cann-ops`, `hicann/ops-nn` on gitcode | 404 |
+|what|where|
+|---|---|
+|every `GroupedMatmul*` op|`cann/ops-transformer` (gitcode) == `hicann/ops-transformer` (GitHub), dir `gmm/`|
+|MC2 grouped-matmul + comm fusion|same repo, dir `mc2/`|
+|MegaMoE|same repo, `mc2/mega_moe/`|
+|CATLASS grouped templates|`hicann/catlass` (GitHub), `include/catlass/gemm/kernel/grouped_*`|
+|`cann/ops-nn` / `hicann/ops-nn`|NO grouped matmul. Negative result, see section 5.|
+|`cann/cann-ops-adv`, `cann/cann-ops`, `hicann/ops-nn` on gitcode|404|
 
 ### gitcode API notes (useful if this has to be redone)
 
@@ -8053,12 +8053,12 @@ expansion of the acronym, and the assumption that one paper covers it.
 
 The four families, all verified in-tree:
 
-| # | Family | Activation | Components | Radix / scales | Cube out | Where |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | **A8W4 MSD** — OURS | INT8 | 2 × int4 nibbles | 16 | `half` | `grouped_matmul*/..._a8w4_msd*`, `ops-nn/matmul/quant_batch_matmul_v4/op_kernel/quant_batch_matmul_v4_msd.h` |
-| 2 | A16W8 MSD | BF16/FP16 | 2 × int8 digits | 127.499, then 127.499²·2 | `int32` | `ops-nn/matmul/weight_quant_batch_matmul_v2/op_kernel/weight_quant_batch_matmul_v2_msd_*.h` |
-| 3 | A16W4 MSD | BF16/FP16 | 2 × int8 | `float multiFactors[2] = {127.0f, 254.0f}` | `int32` (`LocalTensor<int32_t> s32l0c_`) | `ops-transformer/gmm/grouped_matmul/op_kernel/a16w4_msd/` |
-| 4 | SFA antiquant MSD | — | — | `antiqCoeff1 = 127`, `scaleC1 = 1024.0/127`, `scaleC2 = 1024.0` | — | SparseFlashAttention |
+|#|Family|Activation|Components|Radix / scales|Cube out|Where|
+|---|---|---|---|---|---|---|
+|1|**A8W4 MSD** — OURS|INT8|2 × int4 nibbles|16|`half`|`grouped_matmul*/..._a8w4_msd*`, `ops-nn/matmul/quant_batch_matmul_v4/op_kernel/quant_batch_matmul_v4_msd.h`|
+|2|A16W8 MSD|BF16/FP16|2 × int8 digits|127.499, then 127.499²·2|`int32`|`ops-nn/matmul/weight_quant_batch_matmul_v2/op_kernel/weight_quant_batch_matmul_v2_msd_*.h`|
+|3|A16W4 MSD|BF16/FP16|2 × int8|`float multiFactors[2] = {127.0f, 254.0f}`|`int32` (`LocalTensor<int32_t> s32l0c_`)|`ops-transformer/gmm/grouped_matmul/op_kernel/a16w4_msd/`|
+|4|SFA antiquant MSD|—|—|`antiqCoeff1 = 127`, `scaleC1 = 1024.0/127`, `scaleC2 = 1024.0`|—|SparseFlashAttention|
 
 **arXiv 2605.13915, everything below in this section, is families 2-4 — not family 1.** Search `a8w4_msd`,
 never bare `msd`, or you land in the wrong family. Two practical notes from the same pass: the non-grouped W4A8
@@ -8103,17 +8103,17 @@ literally `GlobalTensor<DTYPE_BIAS_A8W4MSD> biasGm; // for 8 * weight`), and `yO
    > Table 4: MSD applicability to various precision configurations. K denotes the number of decomposition
    > scales. Eff. Bits and Error Bound are for the K shown.
    >
-   > | Activation | Weight | MSD Decomposition | K | Eff. Bits | Error Bound |
-   > | --- | --- | --- | --- | --- | --- |
-   > | BF16 | INT8 | BF16→INT8 + INT8 | 2 | ∼16 | M/64516 |
-   > | BF16 | MXFP4 | BF16→MXFP4 + MXFP4 | 2 | ∼6.6 | α/64 |
-   > | BF16 | FP8 | BF16→FP8 + FP8 | 2 | ∼16 | TBD |
-   > | BF16 | INT4 | BF16→INT4 + INT4 + INT4 | 3 | ∼11 | TBD |
+   > |Activation|Weight|MSD Decomposition|K|Eff. Bits|Error Bound|
+   > |---|---|---|---|---|---|
+   > |BF16|INT8|BF16→INT8 + INT8|2|∼16|M/64516|
+   > |BF16|MXFP4|BF16→MXFP4 + MXFP4|2|∼6.6|α/64|
+   > |BF16|FP8|BF16→FP8 + FP8|2|∼16|TBD|
+   > |BF16|INT4|BF16→INT4 + INT4 + INT4|3|∼11|TBD|
    >
    > Baselines for comparison:
    >
-   > | BF16 | INT8 | Dequant (BF16×BF16) | — | ∼8 | — |
-   > | BF16 | MXFP4 | MXFP8 activation | — | ∼5.24 | — |
+   > |BF16|INT8|Dequant (BF16×BF16)|—|∼8|—|
+   > |BF16|MXFP4|MXFP8 activation|—|∼5.24|—|
 
    and §3.4, verbatim:
 
@@ -8368,10 +8368,10 @@ Table 2, verbatim:
 
 > Table 2: Effective compute time: MXFP8 baseline vs. MSD-MXFP4 (K = 2)
 >
-> | Method | Raw FLOPs | Throughput | Effective Time |
-> | --- | --- | --- | --- |
-> | MXFP8 × MXFP4 (dequant) | 2mn (FP8) | 2× | 1.0 mn |
-> | MSD-MXFP4 (2 × FP4) | 4mn (FP4) | 4× | 1.0 mn |
+> |Method|Raw FLOPs|Throughput|Effective Time|
+> |---|---|---|---|
+> |MXFP8 × MXFP4 (dequant)|2mn (FP8)|2×|1.0 mn|
+> |MSD-MXFP4 (2 × FP4)|4mn (FP4)|4×|1.0 mn|
 >
 > Two FP4 GEMMs at 4× throughput yield the same effective Cube time as one FP8 GEMM at 2× throughput.
 
@@ -8524,15 +8524,15 @@ for i in range(g):
 
 表1 算子规格, verbatim:
 
-| input | shape | data type | format |
-| --- | --- | --- | --- |
-| x | (1024,1024) | int8 | ND |
-| weight | (8,1024,8192) | int8 | **NZ** |
-| bias | (8,8192) | int32 | ND |
-| groupList | 8 | int64 | ND |
-| scale | (8,8192) | float | ND |
-| pertokenScale | 1024 | float | ND |
-| y | (1024,8192) | float16 | ND |
+|input|shape|data type|format|
+|---|---|---|---|
+|x|(1024,1024)|int8|ND|
+|weight|(8,1024,8192)|int8|**NZ**|
+|bias|(8,8192)|int32|ND|
+|groupList|8|int64|ND|
+|scale|(8,8192)|float|ND|
+|pertokenScale|1024|float|ND|
+|y|(1024,8192)|float16|ND|
 
 > 主要介绍以下优化方法：
 > - 对于Vector计算占比较高（Vector Bound）的场景，将AI Core中的AIC核和AIV核启动比例设置为1:2；
@@ -8555,13 +8555,13 @@ and the measurement recipe, verbatim:
 
 ### B8.2 ★ The measured ladder
 
-| step | total | delta |
-| --- | --- | --- |
-| baseline (AIC:AIV 1:1, 8 cores) | **218.1 us** | — |
-| AIC:AIV ratio set to **1:2** | **154.2 us** | −29.3% |
-| workspace count 2 → **4** | **131.8 us** | −14.5% |
-| Vector **double buffer** | **128.1 us** | −2.8% |
-| cumulative | | **−41.3%** |
+|step|total|delta|
+|---|---|---|
+|baseline (AIC:AIV 1:1, 8 cores)|**218.1 us**|—|
+|AIC:AIV ratio set to **1:2**|**154.2 us**|−29.3%|
+|workspace count 2 → **4**|**131.8 us**|−14.5%|
+|Vector **double buffer**|**128.1 us**|−2.8%|
+|cumulative||**−41.3%**|
 
 Verbatim:
 

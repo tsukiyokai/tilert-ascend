@@ -620,30 +620,30 @@ memory, as quoted in section 2.
 All kernels are wave64. Measured resources for the 20 reachable families, over all compiled
 specialisations of each (ranges where instances differ):
 
-| kernel | compiled inst | reachable sites | LDS B | VGPR | SGPR | max wg | kernarg B | barriers | static instrs |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `topk_select_kernel` | 4 | 4 | 158896 | 49-99 | 106 | 1024 | 60 | 32 | 8158-13350 |
-| `pure_mla_moe_layer_kernel` | 48 | 48 | 109072-150592 | 110-230 | 92-106 | 512 | 560 | 30-34 | 6087-7864 |
-| `topk_collect_cta_kernel` | 4 | 0 | 3108-24864 | 34-97 | 58-106 | 256 | 60 | 4 | 932-5425 |
-| `sparse_index_ts16_kernel` | 63 | 3 | 9344-37376 | 98-512 | 41-55 | 256-512 | 328 | 3 | 653-4787 |
-| `pure_mla_allreduce_kernel` | 24 | 24 | 109072-150592 | 112-128 | 80-100 | 512 | 424 | 16 | 3339-4523 |
-| `sparse_index_fp8_kernel` | 57 | 3 | 5248-121088 | 73-496 | 45-72 | 256-512 | 344 | 3 | 640-4240 |
-| `topk_finish_cta_kernel` | 1 | 0 | 158896 | 46 | 84 | 1024 | 56 | 13 | 3841 |
-| `fused_moe_allreduce_v4_kernel` | 30 | 6 | 27312-57872 | 100-234 | 52-53 | 512 | 184 | 12-13 | 2834-3480 |
-| `fused_moe_allreduce_w8a8_v4_kernel` | 24 | 6 | 27152 | 98-164 | 58-61 | 512 | 184 | 14-16 | 2968-3321 |
-| `sparse_select_s0123_kernel` | 6 | 6 | 12848-51392 | 68-97 | 58-62 | 512 | 212 | 3 | 1852-2586 |
-| `rmsnorm_head_proj_kernel` | 48 | 12 | 15396-105888 | 74-276 | 22-69 | 256-512 | 360 | 5-9 | 575-2297 |
-| `top_p_sample_kernel` | 2 | 2 | 5212-26800 | 21-24 | 29-42 | 512 | 88 | 11 | 897-1650 |
-| `top_p_local_scores_kernel` | 1 | 1 | 88948 | 60 | 42 | 512 | 48 | 11 | 1508 |
-| `eh_proj_allreduce_kernel` | 10 | 10 | 12368-34336 | 34-50 | 42-54 | 768 | 128 | 7 | 544-1235 |
-| `rmsnorm_upgate_silu_kernel` | 6 | 3 | 18480-56512 | 79-120 | 18-25 | 512 | 40 | 1-2 | 574-946 |
-| `mtp_step_tail_kernel` | 1 | 1 | 0 | 17 | 58 | 1024 | 152 | 1 | 662 |
-| `llm_preprocess_kernel` | 1 | 1 | 0 | 12 | 26 | 256 | 52 | 0 | 418 |
-| `broadcast_selected_token_ids_kernel` | 1 | 1 | 0 | 10 | 16 | 256 | 32 | 0 | 311 |
-| `padded_allreduce_add_kernel` | 6 | 6 | 384-1536 | 14-18 | 28-30 | 256 | 40 | 3 | 216-276 |
-| `ar_tail_no_mtp_kernel` | 1 | 1 | 0 | 9 | 22 | 1024 | 64 | 0 | 103 |
-| `simulate_accept_len_kernel` | 1 | 1 | 0 | 10 | 14 | 1024 | 28 | 0 | 60 |
-| `glm52_prefill_next_kernel` | 1 | 1 | 0 | 2 | 11 | 1024 | 16 | 0 | 12 |
+|kernel|compiled inst|reachable sites|LDS B|VGPR|SGPR|max wg|kernarg B|barriers|static instrs|
+|---|---|---|---|---|---|---|---|---|---|
+|`topk_select_kernel`|4|4|158896|49-99|106|1024|60|32|8158-13350|
+|`pure_mla_moe_layer_kernel`|48|48|109072-150592|110-230|92-106|512|560|30-34|6087-7864|
+|`topk_collect_cta_kernel`|4|0|3108-24864|34-97|58-106|256|60|4|932-5425|
+|`sparse_index_ts16_kernel`|63|3|9344-37376|98-512|41-55|256-512|328|3|653-4787|
+|`pure_mla_allreduce_kernel`|24|24|109072-150592|112-128|80-100|512|424|16|3339-4523|
+|`sparse_index_fp8_kernel`|57|3|5248-121088|73-496|45-72|256-512|344|3|640-4240|
+|`topk_finish_cta_kernel`|1|0|158896|46|84|1024|56|13|3841|
+|`fused_moe_allreduce_v4_kernel`|30|6|27312-57872|100-234|52-53|512|184|12-13|2834-3480|
+|`fused_moe_allreduce_w8a8_v4_kernel`|24|6|27152|98-164|58-61|512|184|14-16|2968-3321|
+|`sparse_select_s0123_kernel`|6|6|12848-51392|68-97|58-62|512|212|3|1852-2586|
+|`rmsnorm_head_proj_kernel`|48|12|15396-105888|74-276|22-69|256-512|360|5-9|575-2297|
+|`top_p_sample_kernel`|2|2|5212-26800|21-24|29-42|512|88|11|897-1650|
+|`top_p_local_scores_kernel`|1|1|88948|60|42|512|48|11|1508|
+|`eh_proj_allreduce_kernel`|10|10|12368-34336|34-50|42-54|768|128|7|544-1235|
+|`rmsnorm_upgate_silu_kernel`|6|3|18480-56512|79-120|18-25|512|40|1-2|574-946|
+|`mtp_step_tail_kernel`|1|1|0|17|58|1024|152|1|662|
+|`llm_preprocess_kernel`|1|1|0|12|26|256|52|0|418|
+|`broadcast_selected_token_ids_kernel`|1|1|0|10|16|256|32|0|311|
+|`padded_allreduce_add_kernel`|6|6|384-1536|14-18|28-30|256|40|3|216-276|
+|`ar_tail_no_mtp_kernel`|1|1|0|9|22|1024|64|0|103|
+|`simulate_accept_len_kernel`|1|1|0|10|14|1024|28|0|60|
+|`glm52_prefill_next_kernel`|1|1|0|2|11|1024|16|0|12|
 
 The LDS figure for the layer kernel is exactly linear in the speculation width, and it is
 identical to the attention-only kernel at every width:

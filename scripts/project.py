@@ -10,7 +10,12 @@ import tempfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-STORE = ROOT / ".artifacts"
+STORE = ROOT / "tests" / ".artifacts"
+ROOT_ENTRIES = {
+    ".flake8", ".github", ".gitignore", ".pre-commit-config.yaml",
+    "Dockerfile", "LICENSE", "README.md", "assets", "docs", "pyproject.toml",
+    "requirements-dev.txt", "requirements.txt", "scripts", "tests", "tilert",
+}
 GENERATED = {".artifacts", "reports", "evidence", "__pycache__",
              ".pytest_cache", ".ruff_cache", "build", "_build"}
 SUFFIXES = {".o", ".a", ".elf", ".pt", ".pyc", ".log", ".npy", ".npz",
@@ -52,7 +57,7 @@ def inventory():
     ignored = paths("--others", "--ignored", "--exclude-standard")
     files = []
     for name in sorted(visible | ignored):
-        if name.startswith(".artifacts/"):
+        if name.startswith("tests/.artifacts/"):
             continue
         path = ROOT / name
         if path.exists() or path.is_symlink():
@@ -141,7 +146,9 @@ def register(args):
                       for path in sorted(staged.rglob("*")) if path.is_file()],
         }
         if store.exists():
-            assert json.loads((store / "manifest.json").read_text()) == report, (
+            existing = json.loads((store / "manifest.json").read_text())
+            report["origin"] = existing["origin"]
+            assert existing == report, (
                 f"Run name already used: {args.name}")
             verify(store / "manifest.json")
         else:
@@ -164,15 +171,19 @@ def verify(path):
 def check():
     names = git("diff", "--cached", "--name-only", "--diff-filter=ACMRT",
                 "-z").split(b"\0")
+    unexpected = sorted({Path(os.fsdecode(name)).parts[0] for name in names
+                         if name and Path(os.fsdecode(name)).parts[0] not in ROOT_ENTRIES})
+    assert not unexpected, ("Keep the upstream root layout; use tilert, tests, docs or scripts: "
+                            + ", ".join(unexpected))
     bad = [os.fsdecode(name) for name in names
            if name and generated(os.fsdecode(name))]
-    assert not bad, ("Generated files belong in .artifacts; unstage: "
+    assert not bad, ("Generated files belong in tests/.artifacts; unstage: "
                      + ", ".join(bad))
     return {"pass": True, "staged_files": sum(bool(name) for name in names)}
 
 
 def initialize():
-    git("config", "--local", "core.hooksPath", ".githooks")
+    git("config", "--local", "core.hooksPath", "scripts/hooks")
     return {"hooks": git("config", "--get", "core.hooksPath").decode().strip()}
 
 

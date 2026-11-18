@@ -24,17 +24,17 @@ family. Everything below is quoted as published.
 
 Reading order:
 
-| Want | Go to |
-| --- | --- |
-| The design to build | §12 (exact int32 + correction row), then §10 (L1-resident A) |
-| Huawei's own writeup, and the only expansion of the acronym | §1 |
-| The shipped kernel, instruction by instruction | §2 (SwiGLU variant), §3 (plain GroupedMatmul, better engineered), §5 (non-grouped) |
-| The official formula and the operator contract | §4 (grouped), §5.2 (non-grouped) |
-| What `Mmad`/`Matmul`/`Cast` will and will not accept for int4 on A3 | §11.1 |
-| Why "MSD" sends you to the wrong source | §7 |
-| Where `8*sum(w)` is computed offline, and the GLM-5 recipe | §13 |
-| Ways a hand-written int4 kernel silently computes garbage | §14.3 |
-| Accuracy evidence, such as it is | §11.2.3, §13.5 |
+|Want|Go to|
+|---|---|
+|The design to build|§12 (exact int32 + correction row), then §10 (L1-resident A)|
+|Huawei's own writeup, and the only expansion of the acronym|§1|
+|The shipped kernel, instruction by instruction|§2 (SwiGLU variant), §3 (plain GroupedMatmul, better engineered), §5 (non-grouped)|
+|The official formula and the operator contract|§4 (grouped), §5.2 (non-grouped)|
+|What `Mmad`/`Matmul`/`Cast` will and will not accept for int4 on A3|§11.1|
+|Why "MSD" sends you to the wrong source|§7|
+|Where `8*sum(w)` is computed offline, and the GLM-5 recipe|§13|
+|Ways a hand-written int4 kernel silently computes garbage|§14.3|
+|Accuracy evidence, such as it is|§11.2.3, §13.5|
 
 ---
 
@@ -438,11 +438,11 @@ And the loop body — this is the whole decomposition, and the only arithmetic i
 
 Decoded, with nothing added:
 
-| | high nibble | low nibble |
-| --- | --- | --- |
-| extract | `Cast(int8 -> half)`, `Muls(0.0625)`, `Cast(half -> int4b_t, CAST_FLOOR)` | `And(int16, 0x0F0F)`, `Cast(int8 -> half)`, `Adds(-8)`, `Cast(half -> int4b_t, CAST_NONE)` |
-| value | `h = floor(x / 16)`, in `[-8, 7]` | `l = (x & 0x0F) - 8`, in `[-8, 7]` |
-| GM byte offset within row `r` | `r*vK` | `r*vK + vK/2` |
+||high nibble|low nibble|
+|---|---|---|
+|extract|`Cast(int8 -> half)`, `Muls(0.0625)`, `Cast(half -> int4b_t, CAST_FLOOR)`|`And(int16, 0x0F0F)`, `Cast(int8 -> half)`, `Adds(-8)`, `Cast(half -> int4b_t, CAST_NONE)`|
+|value|`h = floor(x / 16)`, in `[-8, 7]`|`l = (x & 0x0F) - 8`, in `[-8, 7]`|
+|GM byte offset within row `r`|`r*vK`|`r*vK + vK/2`|
 
 So the identity the kernel relies on is
 
@@ -1247,7 +1247,7 @@ is therefore an overstatement of its own operator.
 
 The `weightAssistMatrix` parameter entry:
 
-> | weightAssistMatrix | 表示计算矩阵乘时的辅助矩阵，公式中的weightAssistMatrix。<br> • 仅A8W4场景生效，其他场景需传空指针。 |
+> |weightAssistMatrix|表示计算矩阵乘时的辅助矩阵，公式中的weightAssistMatrix。<br> • 仅A8W4场景生效，其他场景需传空指针。|
 
 and in V1, which spells out the non-tensorlist signature and the "offline" caveat again:
 
@@ -1255,10 +1255,10 @@ and in V1, which spells out the non-tensorlist signature and the "offline" cavea
 > - 2.生成辅助矩阵（weightAssistMatrix）的计算过程（请注意weightAssistMatrix部分计算为离线生成作为输入，并非算子内部完成）：
 >   $weightAssistMatrix_{i} = 8 × w\_scale × Σ_{k=0}^{K-1} weight[:,k,:]$
 
-> | 权重矩阵，对应公式中的W。 <br> • INT32为适配用途，实际1个INT32会被解释为8个INT4数据。<br> • A8W4场景：shape支持3或5维，分别对应数据格式ND、FRACTAL_NZ。 | INT8、INT4、INT32 |
-> | 计算矩阵乘时的辅助矩阵，对应公式中的weightAssistMatrix。<br> 仅A8W4场景生效，A8W8场景需传空指针。 |
-> | per-channel非对称反量化的偏移，对应公式中的offset。 |
-> | 右矩阵的量化因子，对应公式中的w_scale。 <br> • A8W4场景：shape支持2或3维，数据类型支持UINT64。 |
+> |权重矩阵，对应公式中的W。 <br> • INT32为适配用途，实际1个INT32会被解释为8个INT4数据。<br> • A8W4场景：shape支持3或5维，分别对应数据格式ND、FRACTAL_NZ。|INT8、INT4、INT32|
+> |计算矩阵乘时的辅助矩阵，对应公式中的weightAssistMatrix。<br> 仅A8W4场景生效，A8W8场景需传空指针。|
+> |per-channel非对称反量化的偏移，对应公式中的offset。|
+> |右矩阵的量化因子，对应公式中的w_scale。 <br> • A8W4场景：shape支持2或3维，数据类型支持UINT64。|
 
 V2 differs from V1 only in plurality:
 
@@ -1268,16 +1268,16 @@ V2 differs from V1 only in plurality:
 
 The scenario table, verbatim:
 
-> | 场景名 | x | weight | out | 约束说明 | 计算公式 |
-> | --------- | --------- | ---------------- | -------- | -------- | -- |
-> | 非量化 | FLOAT32 | FLOAT32 | FLOAT32 | ... |
-> | 非量化 | BFLOAT16 | BFLOAT16 | BFLOAT16 | ... |
-> | 非量化 | FLOAT16 | FLOAT16 | FLOAT16 | ... |
-> | 全量化-A8W8 | INT8 | INT8 | BFLOAT16/FLOAT16/INT32/INT8 | [A8W8场景约束](#a8w8场景约束) | [计算公式](#全量化场景) |
-> | 全量化-A4W4 | INT4 | INT4 | BFLOAT16/FLOAT16 | [A4W4场景约束](#a4w4场景约束) | [计算公式](#全量化场景) |
-> | 伪量化-A8W4 | INT8 | INT4 | BFLOAT16/FLOAT16 | [A8W4场景约束](#a8w4场景约束) | [计算公式](#a8w4伪量化场景) |
-> | 伪量化-A16W8 | BFLOAT16/FLOAT16 | INT8 | BFLOAT16/FLOAT16 | ... |
-> | 伪量化-A16W4 | BFLOAT16/FLOAT16 | INT4 | BFLOAT16/FLOAT16 | ... |
+> |场景名|x|weight|out|约束说明|计算公式|
+> |---|---|---|---|---|---|
+> |非量化|FLOAT32|FLOAT32|FLOAT32|...|
+> |非量化|BFLOAT16|BFLOAT16|BFLOAT16|...|
+> |非量化|FLOAT16|FLOAT16|FLOAT16|...|
+> |全量化-A8W8|INT8|INT8|BFLOAT16/FLOAT16/INT32/INT8|[A8W8场景约束](#a8w8场景约束)|[计算公式](#全量化场景)|
+> |全量化-A4W4|INT4|INT4|BFLOAT16/FLOAT16|[A4W4场景约束](#a4w4场景约束)|[计算公式](#全量化场景)|
+> |伪量化-A8W4|INT8|INT4|BFLOAT16/FLOAT16|[A8W4场景约束](#a8w4场景约束)|[计算公式](#a8w4伪量化场景)|
+> |伪量化-A16W8|BFLOAT16/FLOAT16|INT8|BFLOAT16/FLOAT16|...|
+> |伪量化-A16W4|BFLOAT16/FLOAT16|INT4|BFLOAT16/FLOAT16|...|
 
 The four formulas, side by side, verbatim — this is the cleanest statement of the accuracy
 difference anywhere in the material:
@@ -1312,10 +1312,10 @@ split into two is not mentioned in the `GroupedMatmulV4` doc at all; only the Sw
 
 > **数据类型要求**
 >
-> | x | weight | bias | scale | offset | antiquantScale | antiquantOffset | perTokenScale | groupList | activationInput | activationQuantScale | activationQuantOffset | out |
-> | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-> | INT8 | INT4 (ND/NZ) | FLOAT | UINT64 | null | null | null | FLOAT | INT64 | null | null | null | BFLOAT16 |
-> | INT8 | INT4 (ND/NZ) | FLOAT | UINT64 | FLOAT/null | null | null | FLOAT | INT64 | null | null | null | FLOAT16 |
+> |x|weight|bias|scale|offset|antiquantScale|antiquantOffset|perTokenScale|groupList|activationInput|activationQuantScale|activationQuantOffset|out|
+> |---|---|---|---|---|---|---|---|---|---|---|---|---|
+> |INT8|INT4 (ND/NZ)|FLOAT|UINT64|null|null|null|FLOAT|INT64|null|null|null|BFLOAT16|
+> |INT8|INT4 (ND/NZ)|FLOAT|UINT64|FLOAT/null|null|null|FLOAT|INT64|null|null|null|FLOAT16|
 >
 > **约束说明**
 >
@@ -1339,13 +1339,13 @@ split into two is not mentioned in the `GroupedMatmulV4` doc at all; only the Sw
 
 From `aclnnGroupedMatmulV5.md`, the `tuningConfigOptional` triple is spelled out:
 
-> | tuningConfigOptional（aclIntArray *） | 可选输入 | 第一个数代表各个专家处理的 token数的预期值；第二个数代表 A8W4 可选开启weight先转置的NZ格式；第三个数代表允许额外使用的内存空间。 | 兼容历史版本，用户如不使用该参数，不传（即为 nullptr）即可 | INT64 | - | 3 | - |
+> |tuningConfigOptional（aclIntArray *）|可选输入|第一个数代表各个专家处理的 token数的预期值；第二个数代表 A8W4 可选开启weight先转置的NZ格式；第三个数代表允许额外使用的内存空间。|兼容历史版本，用户如不使用该参数，不传（即为 nullptr）即可|INT64|-|3|-|
 
 > - `[0]`：预期各专家处理的token数，tiling 按此优化，适用场景：A8W4/A8W8/A4W4，x/weight/out 单Tensor。
 > - `[1]`：是否开启weight亲和格式（先转置再 NZ），适用场景：A8W4。
 
 > - A8W8、A8W4、A4W4：仅支持 groupType=0，且 x 为单 tensor。
-> | x不转置；weight可转置（A8W4/A4W4 不可） |
+> |x不转置；weight可转置（A8W4/A4W4 不可）|
 
 > - 确定性计算：
 >   - aclnnGroupedMatmulV4默认确定性实现。
@@ -1527,25 +1527,25 @@ The `yOffset` constraint, from 「T-C && T-T && K-C && K-T量化场景约束」:
 
 The dtype table for the W4A8 row (K-C && K-T), verbatim, with the A8W8 rows for contrast:
 
-> | x1 | x2 | x1Scale | x2Scale | x2Offset | yScale | bias | yOffset | out |
-> | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-> | INT8 | INT32 | FLOAT32 | UINT64/INT64 | null | null | null | FLOAT32 | FLOAT16/BFLOAT16 |
-> | INT8 | INT8 | null | UINT64/INT64 | null | null | null/INT32 | null | FLOAT16 |
-> | INT8 | INT8 | null | UINT64/INT64 | null/FLOAT32 | null | null/INT32 | null | INT8 |
-> | INT8 | INT8 | null/FLOAT32 | FLOAT32/BFLOAT16 | null | null | null/INT32/BFLOAT16/FLOAT32 | null | BFLOAT16 |
-> | INT8 | INT8 | FLOAT32 | FLOAT32 | null | null | null/INT32/FLOAT16/FLOAT32 | null | FLOAT16 |
-> | INT4/INT32 | INT4/INT32 | null | UINT64/INT64 | null | null | null/INT32 | null | FLOAT16 |
-> | INT8 | INT8 | null | FLOAT32/BFLOAT16 | null | null | null/INT32 | null | INT32 |
-> | INT8 | INT8 | FLOAT32 | FLOAT32 | null | null | FLOAT32 | null | BFLOAT16 |
-> | INT4/INT32 | INT4/INT32 | FLOAT32 | FLOAT32/BFLOAT16 | null | null | null/INT32/BFLOAT16/FLOAT32 | null | BFLOAT16 |
-> | INT4/INT32 | INT4/INT32 | FLOAT32 | FLOAT32 | null | null | null/INT32/FLOAT16/FLOAT32 | null | FLOAT16 |
+> |x1|x2|x1Scale|x2Scale|x2Offset|yScale|bias|yOffset|out|
+> |---|---|---|---|---|---|---|---|---|
+> |INT8|INT32|FLOAT32|UINT64/INT64|null|null|null|FLOAT32|FLOAT16/BFLOAT16|
+> |INT8|INT8|null|UINT64/INT64|null|null|null/INT32|null|FLOAT16|
+> |INT8|INT8|null|UINT64/INT64|null/FLOAT32|null|null/INT32|null|INT8|
+> |INT8|INT8|null/FLOAT32|FLOAT32/BFLOAT16|null|null|null/INT32/BFLOAT16/FLOAT32|null|BFLOAT16|
+> |INT8|INT8|FLOAT32|FLOAT32|null|null|null/INT32/FLOAT16/FLOAT32|null|FLOAT16|
+> |INT4/INT32|INT4/INT32|null|UINT64/INT64|null|null|null/INT32|null|FLOAT16|
+> |INT8|INT8|null|FLOAT32/BFLOAT16|null|null|null/INT32|null|INT32|
+> |INT8|INT8|FLOAT32|FLOAT32|null|null|FLOAT32|null|BFLOAT16|
+> |INT4/INT32|INT4/INT32|FLOAT32|FLOAT32/BFLOAT16|null|null|null/INT32/BFLOAT16/FLOAT32|null|BFLOAT16|
+> |INT4/INT32|INT4/INT32|FLOAT32|FLOAT32|null|null|null/INT32/FLOAT16/FLOAT32|null|FLOAT16|
 
 And the K-G shape table:
 
-> | 量化类型 | x1数据类型 | x2数据类型 | x1Scale数据类型 | x2Scale数据类型 | x1 shape | x2 shape | x1Scale shape | x2Scale shape | x2Offset shape | yOffset shape | [gsM，gsN，gsK] |
-> | ----- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-> | K-G量化 | INT8 | INT32 | FLOAT32 | UINT64/INT64 | (m, k) | (k, ceil(n / 8)) | (m, 1) | (ceil(k / 256), n) | null | (n) | [0, 0, 256] |
-> | K-G量化 | INT4 | INT4 | FLOAT32 | FLOAT32 | (m, k) | (n, k) | (m, 1) | (ceil(k / 256), n) | (ceil(k / 256), n) | null | [0, 0, 256] |
+> |量化类型|x1数据类型|x2数据类型|x1Scale数据类型|x2Scale数据类型|x1 shape|x2 shape|x1Scale shape|x2Scale shape|x2Offset shape|yOffset shape|[gsM，gsN，gsK]|
+> |---|---|---|---|---|---|---|---|---|---|---|---|
+> |K-G量化|INT8|INT32|FLOAT32|UINT64/INT64|(m, k)|(k, ceil(n / 8))|(m, 1)|(ceil(k / 256), n)|null|(n)|[0, 0, 256]|
+> |K-G量化|INT4|INT4|FLOAT32|FLOAT32|(m, k)|(n, k)|(m, 1)|(ceil(k / 256), n)|(ceil(k / 256), n)|null|[0, 0, 256]|
 
 > - x1的约束：
 >   - 当数据类型为INT8时，k需与256对齐，并小于29576。transposeX1为false。
@@ -1766,12 +1766,12 @@ same. All four are "split the activation into digits, matmul each digit against 
 weight, recombine with a radix". They differ in the activation dtype, the radix, and — decisively
 for us — whether the cube output is `int32` or `half`.
 
-| # | Operator / file | activation in | digits | radix | cube out | expansion |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | `grouped_matmul*/..._a8w4_msd*`, `quant_batch_matmul_v4_msd.h` | INT8 | 2 x int4 | **16** | `half` | 「Mixed-precision Split-activation Decomposition / 混合精度激活拆分分解」 (§1) |
-| 2 | `weight_quant_batch_matmul_v2_msd_*.h` (A16W8) | FP16/BF16 | 2 x int8 | **127.499**, then `127.499²·2` | `int32` | not expanded in source |
-| 3 | `grouped_matmul/op_kernel/a16w4_msd/` (A16W4) | FP16/BF16 | 2 x int8 | **127.0**, `254.0` | `int32` | not expanded in source |
-| 4 | `sparse_flash_attention_antiquant/..._gqa_msd.h` | FP16/BF16 | 2 x int8 | **127**, with `1024.0/127` and `1024.0` | `int32` | not expanded in source |
+|#|Operator / file|activation in|digits|radix|cube out|expansion|
+|---|---|---|---|---|---|---|
+|1|`grouped_matmul*/..._a8w4_msd*`, `quant_batch_matmul_v4_msd.h`|INT8|2 x int4|**16**|`half`|「Mixed-precision Split-activation Decomposition / 混合精度激活拆分分解」 (§1)|
+|2|`weight_quant_batch_matmul_v2_msd_*.h` (A16W8)|FP16/BF16|2 x int8|**127.499**, then `127.499²·2`|`int32`|not expanded in source|
+|3|`grouped_matmul/op_kernel/a16w4_msd/` (A16W4)|FP16/BF16|2 x int8|**127.0**, `254.0`|`int32`|not expanded in source|
+|4|`sparse_flash_attention_antiquant/..._gqa_msd.h`|FP16/BF16|2 x int8|**127**, with `1024.0/127` and `1024.0`|`int32`|not expanded in source|
 
 **Row 1 is ours.** Rows 2-4 are a different mechanism that happens to share the acronym: they
 exist to avoid *dequantizing the weight* for a float activation, not to work around a missing
@@ -3032,16 +3032,16 @@ The Python side passes an empty list where the auxiliary matrix used to go
 Measured (E=14 / K=3584 / N=6144, capacity 28672, median NPU Graph Event time per operator call,
 50 graph replays per batch, five batches), verbatim:
 
-> | Case | Valid rows | ND (us) | Native NZ (us) | NZ / ND |
-> | --- | ---: | ---: | ---: | ---: |
-> | 1 | 320 | 235.37 | 167.37 | 0.711 |
-> | 2 | 260 | 242.50 | 177.28 | 0.731 |
-> | 3 | 320 | 260.27 | 187.17 | 0.719 |
-> | 4 | 320 | 294.33 | 206.60 | 0.702 |
-> | 5 | 400 | 308.68 | 224.35 | 0.727 |
-> | 6 | 500 | 325.34 | 234.87 | 0.722 |
-> | 7 | 600 | 341.40 | 252.78 | 0.740 |
-> | 8 | 800 | 373.88 | 284.01 | 0.760 |
+> |Case|Valid rows|ND (us)|Native NZ (us)|NZ / ND|
+> |---|---:|---:|---:|---:|
+> |1|320|235.37|167.37|0.711|
+> |2|260|242.50|177.28|0.731|
+> |3|320|260.27|187.17|0.719|
+> |4|320|294.33|206.60|0.702|
+> |5|400|308.68|224.35|0.727|
+> |6|500|325.34|234.87|0.722|
+> |7|600|341.40|252.78|0.740|
+> |8|800|373.88|284.01|0.760|
 
 > Geometric mean NZ/ND: 0.7263.
 
@@ -3424,8 +3424,8 @@ The older per-group path, `example/DeepSeek/quant_deepseek_w4a8.py` lines 229-27
 And the knowledge-base spec table,
 `docs/zh/knowledge_base/quantization_mode/linear_layer_quantization/term_w4a8_dynamic.md`:
 
-> | 量化粒度 | 权重 per-channel；激活 per-token | 权重逐输出通道共享 scale；激活逐 token 共享 scale |
-> | 对称性 | 对称 | 仅 scale，无 offset |
+> |量化粒度|权重 per-channel；激活 per-token|权重逐输出通道共享 scale；激活逐 token 共享 scale|
+> |对称性|对称|仅 scale，无 offset|
 
 with its 使用限制, which names our exact problem as a limitation of the method:
 
@@ -3455,19 +3455,19 @@ Tables that do exist:
 **(a)** `https://github.com/vllm-project/vllm-ascend/blob/main/docs/source/tutorials/models/DeepSeek-V4-Pro.md`
 §7.1, verbatim:
 
-> | dataset | version | metric | mode | vllm-api-general-chat | note |
-> | ----- | ----- | ----- | ----- | ----- | ----- |
-> | GPQA | - | accuracy | gen | 91.41 | 0831 official W4A8 weight with DSpark enabled |
-> | GPQA | - | accuracy | gen | 89.90 | 2 Atlas 800 A3 (128GB × 8) |
-> | GSM8K | - | accuracy | gen | 96.21 | 2 Atlas 800 A3 (128GB × 8) |
-> | GSM8K | - | accuracy | gen | 97.54 | 950PR&950DT Products, w4a4c8 |
+> |dataset|version|metric|mode|vllm-api-general-chat|note|
+> |---|---|---|---|---|---|
+> |GPQA|-|accuracy|gen|91.41|0831 official W4A8 weight with DSpark enabled|
+> |GPQA|-|accuracy|gen|89.90|2 Atlas 800 A3 (128GB × 8)|
+> |GSM8K|-|accuracy|gen|96.21|2 Atlas 800 A3 (128GB × 8)|
+> |GSM8K|-|accuracy|gen|97.54|950PR&950DT Products, w4a4c8|
 
 **(b)** msmodelslim `docs/zh/best_practices/deepseek_v4_pro_w4a8_new_llm_quantization_case.md`
 §6.3, verbatim:
 
-> | 数据集 / 任务 | 样本数 | 基线（论文） | 待验（W4A8 量化） | 差值 | 结论 |
-> | --- | --- | --- | --- | --- | --- |
-> | GPQA | 全量 | 89.1 (Accuracy) | 89.9 (Accuracy) | +0.8 | 量化误差 < 1%，通过 |
+> |数据集 / 任务|样本数|基线（论文）|待验（W4A8 量化）|差值|结论|
+> |---|---|---|---|---|---|
+> |GPQA|全量|89.1 (Accuracy)|89.9 (Accuracy)|+0.8|量化误差 < 1%，通过|
 >
 > 精度结论：DeepSeek-V4-Pro W4A8 混合量化后 GPQA 实测 89.9，相对论文基线 89.1，得分提升 0.8，满足精度验收标准（相对损失 < 1%）。
 > 说明：本案例以论文基线作为对比基准，非浮点服务实测值。量化接入案例聚焦模型接入与量化流程验证，不单独拉起浮点推理服务做对比评测。
@@ -3500,11 +3500,11 @@ DIFF_THRESHOLDS = {
 
 **(e)** From sglang PR 32601 (MXFP W4A8, *not* the INT4 MSD path), verbatim:
 
-> | Configuration | Accuracy (%) | Δ vs bf16 |
-> | --- | ---: | ---: |
-> | bf16 (baseline) | 93.33 | — |
-> | Online W4A8 | 93.63 | +0.30 pp (+0.32%) |
-> | Offline W4A8 | 93.71 | +0.38 pp (+0.41%) |
+> |Configuration|Accuracy (%)|Δ vs bf16|
+> |---|---:|---:|
+> |bf16 (baseline)|93.33|—|
+> |Online W4A8|93.63|+0.30 pp (+0.32%)|
+> |Offline W4A8|93.71|+0.38 pp (+0.41%)|
 >
 > Note: Single-run GSM8K exact match. Δ = quantized − baseline.
 

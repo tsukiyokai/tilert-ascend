@@ -4,22 +4,34 @@ TileRT-Ascend 是构建在 Ascend 上的专用低时延 decode 框架：它从�
 
 ## 当前验收
 
-当前子任务是 A3 单机 TP8+EP8、`case-00`、8K 前缀、1024 输出、冻结 `LookupDrafter(shortest=2,width=32)` 的 Megakernel 数值轨迹修复。验收要求三次预热和三次测量全部复现 223 轮、输出 SHA `4fb8be2df58a4ea7f75ac1193749df945950129dfade1691b02c6c6c6b21443b`，且八个 rank 的接受与状态历史一致。[实验登记](experiments.json)保存候选状态与收据位置。
+当前目标是 A3、GLM-5.2 W4A8C8、TP8+EP8、`case-01-coding`、batch=1、ISL8192、OSL1024：稳态 TPOT < 3.0 ms，1024 词元 SHA256 与逐 rank 状态位级对齐。技术路线为 persistent kernel、Megakernel 和投机解码。
 
-`w112-sfa-restored-v7` 是历史轨迹基准，记录 TPOT 中位数 8.808 ms。新流程的 `w115-discrete-control` 使用只读 Git 快照、独立缓存，六次均复现黄金轨迹，三次测量 TPOT 中位数 8.846 ms，已登记为当前轨迹对照。`v3x9` 六次均为 373 轮，已拒绝。`v3x10` 的十个单 die 分桶、140 项逐位检查通过，整模六次为 197/223/223/276/223/223 轮，输出存在跳变且未匹配黄金 SHA，已拒绝。离散对照已复现，下一步在相同真实输入上定位首个 attention 边界差异。`v3x12` 改用快照内完整 QLI/SFA 补丁构建，七个头文件哈希一致，真实权重前端与七种动态行数共 112 项逐位检查通过；正式六次均为 223 轮、输出 SHA 均为 `3877d3aa…`，仍在 token 443 首差，已拒绝；本次未复现跨请求输出跳变。真实观测已锁定 position 8631 的第 30 层：输入逐位相同，输出仅第 6、30 行不同；此前 30 层的输入输出均逐位相同。正在比较该层的 QLI 实参与中间状态。数值轨迹通过后再进行配对性能验收。
+2026-11-12，当前保留 W8 MTP、GU N256、物理主图12行，以及仅作用于未提交草稿链的提示内回收向量校准，使用完整草稿词表。同批三臂、每臂五次交替测量：原动态词表方案中位9.170 ms，校准加动态词表9.106 ms，校准加完整词表9.101 ms；两种候选均五组更快，120份逐卡黄金词元、主网及独立串行草稿状态全部通过。完整词表候选为197轮，较对照快0.754%；两种校准候选差距很小，不声称其中一种稳定快于另一种。当前尚未达到3.0 ms。证据见 [投机解码](speculative-decoding.md)。
+
+后续接收端轮询、预搬与生产端分批down均未取得收益；两种递推重拟合未过质量门槛。共享索引下M2/M4的288个逐卡对照已通过。审计确认MTP使用自己的BF16输出头；换成主网head并校准在512项中净退化9，一步候选前瞻净退化5，均已拒绝。随后4160参数的自有head分类校准也未过内部验证，保留identity，未评估外层512项。该分支已结束，完整基线恢复与同机时序见下文。[最近筛选](../tests/.artifacts/runs/glm52-width-20261111/mtp-selection-partial/README.md)。
+
+原常驻容器退出后，已在7.156.97.214用原Python、Torch、CANN、全部真实权重与相同内核恢复完整78层。108个文件、377.08GiB逐文件源流与目标重读SHA相同。冷启动清理和并发建目录的两次入口故障已修正，失败及恢复记录保留。新机3次预热、5次正式测量：rank0中位9.2601ms，每次取八卡最大值后的中位9.2618ms；88个逐卡请求的264项词元/主网/独立串行草稿状态通过，恢复和诊断样本不入统计。旧机9.101ms仍保留，不作跨机速度结论。单独阶段诊断中，主网验证占78.5%，单轮中位38.53ms；下一步测验证宽度成本，判断多分支能否在相同完整状态契约下降低总耗时。[完整恢复与新基线](../tests/.artifacts/runs/glm52-width-20261111/recovery/full/README.md)。
+
+## 2026-11-05 case-00 历史记录
+
+2026-11-05 的子任务是 A3 单机 TP8+EP8、`case-00`、8K 前缀、1024 输出、冻结 `LookupDrafter(shortest=2,width=32)` 的 Megakernel 数值轨迹修复。验收要求三次预热和三次测量全部复现 223 轮、输出 SHA `4fb8be2df58a4ea7f75ac1193749df945950129dfade1691b02c6c6c6b21443b`，且八个 rank 的接受与状态历史一致。[实验登记](experiments.json)保存候选状态与收据位置。
+
+`w112-sfa-restored-v7` 是历史轨迹基准，记录 TPOT 中位数 8.808 ms。新流程的 `w115-discrete-control` 使用只读 Git 快照、独立缓存，六次均复现黄金轨迹，三次测量 TPOT 中位数 8.846 ms，已登记为当时的轨迹对照。`v3x9` 六次均为 373 轮，已拒绝。`v3x10` 的十个单 die 分桶、140 项逐位检查通过，整模六次为 197/223/223/276/223/223 轮，输出存在跳变且未匹配黄金 SHA，已拒绝。离散对照已复现，下一步在相同真实输入上定位首个 attention 边界差异。`v3x12` 改用快照内完整 QLI/SFA 补丁构建，七个头文件哈希一致，真实权重前端与七种动态行数共 112 项逐位检查通过；正式六次均为 223 轮、输出 SHA 均为 `3877d3aa…`，仍在 token 443 首差，已拒绝；本次未复现跨请求输出跳变。真实观测已锁定 position 8631 的第 30 层：输入逐位相同，输出仅第 6、30 行不同；此前 30 层的输入输出均逐位相同。该记录停在 QLI 实参与中间状态的比较。数值轨迹通过后再进行配对性能验收。
 
 ## 项目与产物管理
 
 |内容|位置|管理方式|
 |---|---|---|
-|可编辑源码|`tilert/`、`tests/`、`patches/`、`scripts/`、`experiments/`|Git 提交与独立源码快照|
+|可编辑源码|`tilert/`、`tests/`、`scripts/`|Git 提交与独立源码快照|
 |目标、计划、实验状态|`docs/goal.txt`、本文、`docs/experiments.json`、`docs/probe.md`|随源码版本保存|
-|源码快照|`refs/snapshots/<版本>`、`.artifacts/snapshots/<版本>/`|临时 index 建树，保存源码包与工作区差异，不改当前暂存区|
-|当前实验收据与二进制|`.artifacts/runs/<实验>/`|独立复制，逐文件 SHA256，记录验收结果与源码身份|
-|历史产物|`docs/evidence/`、`evidence/`、`reports/`、既有构建目录|保留原件；当前实验归档后按 manifest 读取|
+|源码快照|`refs/snapshots/<版本>`、`tests/.artifacts/snapshots/<版本>/`|临时 index 建树，保存源码包与工作区差异，不改当前暂存区|
+|当前实验收据与二进制|`tests/.artifacts/runs/<实验>/`|独立复制，逐文件 SHA256，记录验收结果与源码身份|
+|历史产物|`docs/evidence/`、`tests/.artifacts/`|保留原件；当前实验归档后按 manifest 读取|
 |登录凭据|仓库外的 `~/.config/kbenv/passwords`|权限 0600；启动脚本按主机读取|
 
-在新工作区执行 `python scripts/project.py init` 安装仓库提交钩子。钩子拒绝把构建目录、版本化动态库、权重、日志和原始运行收据新增或改写进源码提交。历史已跟踪产物保持原样。
+根目录沿用 [TileRT 上游](https://github.com/tile-ai/TileRT) 布局，仅增加 `docs/`、`tests/`。实验入口放在 `tests/experiments/`，外部补丁放在 `scripts/patches/`，提交钩子放在 `scripts/hooks/`；生成物和工具缓存统一放在 `tests/.artifacts/`。
+
+在新工作区执行 `python scripts/project.py init` 安装仓库提交钩子。钩子拒绝新增布局之外的根目录条目。钩子拒绝把构建目录、版本化动态库、权重、日志和原始运行收据新增或改写进源码提交。历史已跟踪产物保持原样。
 
 用 `python scripts/project.py inventory` 更新本地目录清单。用 `python scripts/project.py snapshot <版本>` 建立不可覆盖的 WIP 源码快照。用 `python scripts/project.py register <实验> --evidence <收据目录> --audit <验收JSON> --source-ref <快照ref> --binary <动态库>` 归档实验，多个动态库重复传入 `--binary`。用 `python scripts/project.py verify <manifest.json>` 复核归档字节与快照 ref。历史记录缺少完整源码身份时显式使用 `--legacy`，登记为历史基准或失败候选。
 
@@ -27,7 +39,7 @@ TileRT-Ascend 是构建在 Ascend 上的专用低时延 decode 框架：它从�
 
 组件通过、整模轨迹通过和可发布版本分别登记。`summary.json` 的 `measured` 只说明测量及内部一致性检查完成，黄金轨迹须由 `scripts/check_whole_layer_exp.py` 独立核对。失败候选保留源码和收据，不进入性能结论。
 
-`scripts/run_whole_layer_exp.sh <主机> <版本> <实验> <fast|formal|diagnostic>` 从源码快照启动，容器只读挂载源码，构建、编译缓存和收据均按版本或实验独占目录。`source_commit` 使用真实 Git commit。设置 `NATIVE_ATTENTION=0` 运行离散对照；`diagnostic` 仅生成 448 token、一次预热、一次测量请求，不用于性能验收。原生构建从版本独占的 vendor 副本读取头文件，应用快照内 QLI/SFA 补丁，保存依赖源码包与构建日志。正式运行后自动保存库、编译产物与独立验收结果，归档到 `.artifacts/runs/<实验>/`。同名结果不会被覆盖。已存在的版本名复用经哈希校验的冻结快照；源码有改动时先选择新版本名。实际启动脚本随收据保存，依赖源码包、两份构建 provenance 和构建日志一并归档。 `TRACE_ATTENTION=1` 在诊断运行中保存 rank0、position 8631 的真实 attention 边界与 layer0 状态；图内只复制 NPU 缓冲，TP 延迟融合完成后记录输出，回放后导出。该观测不进入性能结论。
+`scripts/run_whole_layer_exp.sh <主机> <版本> <实验> <fast|formal|diagnostic>` 从源码快照启动，容器只读挂载源码，构建、编译缓存和收据均按版本或实验独占目录。`source_commit` 使用真实 Git commit。设置 `NATIVE_ATTENTION=0` 运行离散对照；`diagnostic` 仅生成 448 token、一次预热、一次测量请求，不用于性能验收。原生构建从版本独占的 vendor 副本读取头文件，应用快照内 QLI/SFA 补丁，保存依赖源码包与构建日志。正式运行后自动保存库、编译产物与独立验收结果，归档到 `tests/.artifacts/runs/<实验>/`。同名结果不会被覆盖。已存在的版本名复用经哈希校验的冻结快照；源码有改动时先选择新版本名。实际启动脚本随收据保存，依赖源码包、两份构建 provenance 和构建日志一并归档。 `TRACE_ATTENTION=1` 在诊断运行中保存 rank0、position 8631 的真实 attention 边界与 layer0 状态；图内只复制 NPU 缓冲，TP 延迟融合完成后记录输出，回放后导出。该观测不进入性能结论。
 
 ## 2026-10-29 阶段记录
 
@@ -49,24 +61,24 @@ CPU 接入、状态、计时修复及正负结果见 [10-28 账本](probe.md)。
 
 ## 首条验证锚点与演进路线图
 
-| 项目 | 范围 |
-| -- | -- |
-| 模型与精度 | 真实 GLM-5.2-W4A8C8 checkpoint，保留原稀疏 attention、量化、采样与 KV 语义 |
-| 解码拓扑 | 一台 A3，16 die（`Ascend910_9392` 或 `9382`），TP16，单请求常驻服务；单算子与少卡实验可直接利用局部空闲 die 推进 |
-| 基准负载 | 八个独立 8192-token 输入，每请求连续生成 1024 个 token |
-| 终极时延门禁 | 生产端与客户端双时钟 32 请求 p50/p95 TPOT ≤ 2.x ms（`passes_2ms`） |
-| 成果沉淀目标 | 沿途下蛋回流全部 GitCode `cann/*` 仓库、`vllm-ascend`、`tilelang-ascend` 与 `TileRT` |
-| 扩展工作负载 | 短对话、长短交替会话、EOS 与取消恢复、百万上下文 AgentX 回放 |
+|项目|范围|
+|---|---|
+|模型与精度|真实 GLM-5.2-W4A8C8 checkpoint，保留原稀疏 attention、量化、采样与 KV 语义|
+|解码拓扑|一台 A3，16 die（`Ascend910_9392` 或 `9382`），TP16，单请求常驻服务；单算子与少卡实验可直接利用局部空闲 die 推进|
+|基准负载|八个独立 8192-token 输入，每请求连续生成 1024 个 token|
+|终极时延门禁|生产端与客户端双时钟 32 请求 p50/p95 TPOT ≤ 2.x ms（`passes_2ms`）|
+|成果沉淀目标|沿途下蛋回流全部 GitCode `cann/*` 仓库、`vllm-ascend`、`tilelang-ascend` 与 `TileRT`|
+|扩展工作负载|短对话、长短交替会话、EOS 与取消恢复、百万上下文 AgentX 回放|
 
 已有 [冻结前缀宽验证计时][width32]（内部 TPOT 中位数 12.413 ms，正式精度与多输入门禁未开）、[真实 P/D 冷启动链路][pd-live] 与 [三 rank 原生树规约整层检查][tree-check]。下述五个阶段为可证伪的工作假说地图而非教条禁锢：任何编译器/ISA 栈、规约拓扑（平面直写、两级规约或树规约）或常驻执行结构，只要经真实 NPU 精度门禁确认且能压降墙钟时延，均可超越或合并中间阶段：
 
-| 阶段 | 周期参考 | 核心目标与交付物 | 整轮与 TPOT 门禁 |
-| -- | -- | -- | -- |
-| P0 | 第 1–2 周 | 收束单一运行时状态机，锁死 8×8K 精度门禁与常驻 16 路 HIXL 宽验证 P/D | 精度与状态全过，客户端 TPOT ≤ 12.0 ms |
-| P1 | 第 3–6 周 | 肃清宿主周转空洞与 `PIPE_S` 标量全局读阻塞，打通 `dav-2201` Tile 直通图编译链 | 整轮 35–40 ms，稳态 TPOT ≤ 7.0 ms |
-| P2 | 第 7–12 周 | 78 层真实权重双积木具体化（索引注意力＋专家归并）与 `aclshmem` 核内确定性树规约 | 整轮 20–24 ms，稳态 TPOT 3.5–4.5 ms |
-| P3 | 第 13–18 周 | `SoftSyncAll` 跨层静态权重预取、L2 冷热隔离与混合草拟树动态宽度闭环控制 | 双时钟通过 `passes_2ms`，AgentX 达标 |
-| P4 | 第 19 周起 | 凝结 `compiler` / `comm` / `spec` / `pd_vllm` 四层框架，接入第二模型与新拓扑/芯片 | 双路径共用核心，净收益抵偿维护成本 |
+|阶段|周期参考|核心目标与交付物|整轮与 TPOT 门禁|
+|---|---|---|---|
+|P0|第 1–2 周|收束单一运行时状态机，锁死 8×8K 精度门禁与常驻 16 路 HIXL 宽验证 P/D|精度与状态全过，客户端 TPOT ≤ 12.0 ms|
+|P1|第 3–6 周|肃清宿主周转空洞与 `PIPE_S` 标量全局读阻塞，打通 `dav-2201` Tile 直通图编译链|整轮 35–40 ms，稳态 TPOT ≤ 7.0 ms|
+|P2|第 7–12 周|78 层真实权重双积木具体化（索引注意力＋专家归并）与 `aclshmem` 核内确定性树规约|整轮 20–24 ms，稳态 TPOT 3.5–4.5 ms|
+|P3|第 13–18 周|`SoftSyncAll` 跨层静态权重预取、L2 冷热隔离与混合草拟树动态宽度闭环控制|双时钟通过 `passes_2ms`，AgentX 达标|
+|P4|第 19 周起|凝结 `compiler` / `comm` / `spec` / `pd_vllm` 四层框架，接入第二模型与新拓扑/芯片|双路径共用核心，净收益抵偿维护成本|
 
 ## P0：闭合真相基座与常驻交接契约
 

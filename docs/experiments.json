@@ -1,255 +1,768 @@
 {
   "schema": 1,
-  "updated": "2026-11-05",
-  "active_task": "glm52-tp8-ep8-golden-trajectory",
+  "updated": "2026-11-12",
+  "active_task": "glm52-tp8-ep8-coding-8k1k",
   "target": {
     "sku": "Ascend910_9392",
     "tp": 8,
     "ep": 8,
-    "case": "case-00",
+    "case": "case-01-coding",
+    "batch_size": 1,
     "prefix_tokens": 8192,
     "output_tokens": 1024,
-    "drafter": "LookupDrafter(shortest=2,width=32)",
-    "warmup": 3,
-    "requests": 3,
-    "golden_rounds": 223,
-    "golden_output_sha256": "4fb8be2df58a4ea7f75ac1193749df945950129dfade1691b02c6c6c6b21443b"
+    "tpot_ms_below": 3.0,
+    "golden_output_sha256": "2f751372fc82cf290c8e35d3e7cc3cad0296fde4d8d188fba102ac34f82c2962"
   },
   "baseline": {
-    "id": "test-w115-discrete-control-formal",
-    "state": "trajectory_verified",
-    "source_ref": "refs/snapshots/control-v7-20261105",
-    "source_commit": "bdb30f4f71c152956e5e6aac891e9b10ee64e8c7",
-    "source_identity": "snapshot",
-    "archive": ".artifacts/runs/test-w115-discrete-control-formal/manifest.json",
-    "rounds": [
-      223,
-      223,
-      223,
-      223,
-      223,
-      223
-    ],
-    "tpot_median_ms": 8.846371599217987,
-    "precision_verified": false,
-    "scope": "case-00 TP8+EP8 baseline token and acceptance trajectory; excludes HF precision"
+    "id": "coding-recency-lookup-20261111",
+    "samples": 1,
+    "tpot_ms": 22.61,
+    "scope": "Golden tokens and frozen per-rank main KV",
+    "archive": "tests/.artifacts/runs/glm52-tp8-mtp-20261111/capacity/baseline"
   },
   "candidates": [
     {
-      "id": "test-w114-max-fusion-v3x9-formal",
+      "id": "coding-mtp-w4-graph-20261111",
+      "state": "paired_decode_verified",
+      "samples": 5,
+      "tpot_median_ms": 11.16,
+      "tpot_range_ms": [
+        11.14,
+        11.23
+      ],
+      "mean_accepted": 3.552,
+      "scope": "All 8 ranks golden tokens and frozen main KV; draft KV matches independent serial conditioned M1 reference and both eager/graph paired runs",
+      "archive": "tests/.artifacts/runs/glm52-tp8-mtp-20261111/capacity/mtp-paired/summary.json",
+      "goal_achieved": false,
+      "state_reference": "tests/.artifacts/runs/glm52-width-20261111/state-summary.json"
+    },
+    {
+      "id": "coding-mtp-w8-20261111",
       "state": "rejected",
-      "source_identity": "legacy_partial",
-      "rounds": [
-        373,
-        373,
-        373,
-        373,
-        373,
-        373
-      ],
-      "golden_trajectory": false,
-      "first_output_difference": {
-        "round": 142,
-        "position": 8583,
-        "token_index": 392
-      },
-      "audit": "evidence/test-w114-v3x9-validation/formal.json",
-      "archive": ".artifacts/runs/test-w114-max-fusion-v3x9-formal/manifest.json"
-    },
-    {
-      "id": "test-w114-max-fusion-v3x10-formal",
-      "state": "rejected",
-      "source_ref": "refs/snapshots/glm52-v3x10-20261105",
-      "rounds": [
-        197,
-        223,
-        223,
-        276,
-        223,
-        223
-      ],
-      "golden_trajectory": false,
-      "repeatable_output": false,
-      "component_checks": {
-        "cases": 10,
-        "bitwise_checks": 140,
-        "passed": true
-      },
-      "audit": "evidence/test-w114-v3x10-validation/formal.json",
-      "archive": ".artifacts/runs/test-w114-max-fusion-v3x10-formal/manifest.json"
-    },
-    {
-      "id": "test-w116-canonical-formal",
-      "state": "rejected",
-      "source_ref": "refs/snapshots/v3x12-canonical-20261105",
-      "indexed_sha256": "dd47e1664940f751f0982a94cd160efbef748a69b03e73d554f9a2821e1bc55b",
-      "shared_sha256": "0e985f72fda85389bcc6c11915cef5255a71475633089a82bea8639fd59e1d5d",
-      "next": "Capture baseline and native attention boundaries on the same actual decoder input.",
-      "rounds": [
-        223,
-        223,
-        223,
-        223,
-        223,
-        223
-      ],
-      "repeatable_output": true,
-      "golden_trajectory": false,
-      "output_sha256": "3877d3aa0f1a0e4acc5932b41bc864d7eec77a67cd2e5a99fae2de136bb317f0",
-      "first_output_difference": {
-        "token_index": 443
-      },
-      "audit": ".artifacts/incoming/test-w116-canonical-formal/audit.json",
-      "archive": ".artifacts/runs/test-w116-canonical-formal/manifest.json"
-    }
-  ],
-  "tasks": [
-    {
-      "id": "glm52-tp8-ep8-golden-trajectory",
-      "state": "active",
-      "acceptance": "All six requests match the golden tokens and acceptance history on all eight ranks.",
-      "next": "Trace the single indexer cache code mismatch at the write beginning at 8565; current queries and main caches agree bitwise."
-    },
-    {
-      "id": "paired-performance",
-      "state": "waiting_for_trajectory",
-      "acceptance": "Same host, frozen trajectory, isolated caches and profiler-off paired measurements."
-    }
-  ],
-  "historical_baseline": {
-    "id": "test-w112-sfa-restored-v7-formal",
-    "state": "recorded_baseline",
-    "git_anchor": "88e0c8913b4dcb494046bccdc67644f72f35dd3e",
-    "source_identity": "legacy_partial",
-    "evidence": "docs/evidence/ascend-decode/test-w112-sfa-restored-v7-formal/summary.json",
-    "tpot_median_ms": 8.807591524926687,
-    "precision_verified": false
-  },
-  "components": [
-    {
-      "id": "test-w115-wk-formats",
-      "state": "component_verified",
-      "shape": [
-        32,
-        160,
-        6144
-      ],
-      "scope": "Three synthetic seeds, BF16 WK ND/NZ layouts; no model trajectory claim.",
-      "archive": ".artifacts/runs/test-w115-wk-formats/manifest.json"
-    },
-    {
-      "id": "test-w115-output-scales-v2",
-      "state": "component_verified",
-      "shape": [
-        32,
-        6144,
-        2048
-      ],
-      "scope": "Three full-range INT8 seeds, BF16 and FP32 scales, ND weights; CombinedScales bitwise matches CANN. Production NZ path remains separate.",
-      "archive": ".artifacts/runs/test-w115-output-scales-v2/manifest.json"
-    },
-    {
-      "id": "test-w115-framework-front",
-      "state": "component_verified",
-      "scope": "M32 all-active synthetic input; actual framework LayerNorm, Triton RoPE, Hadamard and quantization; 14 bitwise checks.",
-      "archive": ".artifacts/runs/test-w115-framework-front/manifest.json"
-    },
-    {
-      "id": "test-w115-checkpoint-front-env2",
-      "state": "component_verified",
-      "scope": "Layer-0 checkpoint front weights with original FP32 scales and synthetic activations, M32; 14 bitwise checks. Production casts scales to BF16.",
-      "archive": ".artifacts/runs/test-w115-checkpoint-front-env2/manifest.json"
-    },
-    {
-      "id": "test-w116-production-formats",
-      "state": "component_verified",
-      "scope": "Three BF16-scale NZ TP8 output-matmul seeds support CombinedScales; checkpoint layer-0 frontend with BF16 scale and ND WQ passes 14 bitwise checks.",
-      "archive": ".artifacts/runs/test-w116-production-formats/manifest.json"
-    },
-    {
-      "id": "test-w116-canonical-micro",
-      "state": "oracle_rejected",
-      "reason": "Manual WQ NZ conversion failed the CPU INT32 projection check before comparing with native output. This is not a native numerical verdict.",
-      "archive": ".artifacts/runs/test-w116-canonical-micro/manifest.json"
-    },
-    {
-      "id": "test-w116-canonical-micro-nd",
-      "state": "component_verified",
-      "checks": 112,
-      "scope": "Canonical QLI/SFA headers, actual layer-0 front weights plus synthetic activations; framework M32 and C8 widths 1/6/8/12/16/24/32, ND vendor QMM, BF16 front scale.",
-      "archive": ".artifacts/runs/test-w116-canonical-micro-nd/manifest.json"
-    }
-  ],
-  "builds": [
-    {
-      "id": "v3x11-canonical-20261105",
-      "state": "rejected",
-      "source_ref": "refs/snapshots/v3x11-canonical-20261105",
-      "reason": "QLI common header was omitted from the overlay; compile failed. Launcher now copies the entire patch directory.",
-      "evidence": ".artifacts/builds/v3x11-canonical-20261105/build.log"
-    },
-    {
-      "id": "v3x12-canonical-20261105",
-      "state": "built",
-      "source_ref": "refs/snapshots/v3x12-canonical-20261105",
-      "evidence": ".artifacts/builds/v3x12-canonical-20261105/",
-      "patch_hash_checks": {
-        "passed": true,
-        "count": 7,
-        "evidence": ".artifacts/checks/canonical-vendor.json"
+      "first_token_difference": 52,
+      "archive": "tests/.artifacts/runs/glm52-tp8-mtp-20261111/capacity/mtp-eager-fixed/mtp-result.json",
+      "first_cache_difference": {
+        "position": 8221,
+        "layer": 25,
+        "prior_round_position": 8216,
+        "row": 5
       }
+    },
+    {
+      "id": "coding-mtp-w8-grouped-20261111",
+      "state": "paired_decode_verified",
+      "samples": 5,
+      "tpot_median_ms": 9.69,
+      "tpot_range_ms": [
+        9.67,
+        9.76
+      ],
+      "paired_w4_median_ms": 11.08,
+      "reduction_percent": 12.545126353790614,
+      "mean_accepted": 4.99,
+      "rounds": 205,
+      "scope": "80 rank-run receipts match golden tokens, frozen main KV, and independent serial conditioned M1 draft KV",
+      "chain_sha256": "10a144c9d2acb8429edc87c1cebfa4ac1a3e3a527f264bd8a120976063844ac4",
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/mtp-grouped-paired/summary.json",
+      "goal_achieved": false
+    },
+    {
+      "id": "coding-bf16-query-groups-20261111",
+      "state": "teacher_verified",
+      "teacher_widths": [
+        4,
+        8,
+        16,
+        32
+      ],
+      "scope": "All eight ranks match golden predictions, hidden states, and frozen main KV across the complete 1023 teacher-forced inputs",
+      "native_sha256": "d7c88e3e34248d18ef1dab9d48a28b4c43df7d3784cb4007e85cfc20297b5c3d",
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/teacher-dense-widths",
+      "mtp_w16_draft_state_exact": false,
+      "goal_achieved": false
+    },
+    {
+      "id": "coding-mtp-w6-20261111",
+      "state": "single_run_verified",
+      "tpot_ms": 9.76,
+      "mean_accepted": 4.487,
+      "rounds": 228,
+      "scope": "All eight ranks match golden tokens, frozen main KV, and independent serial draft KV; no paired improvement claim",
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/mtp-dense-w6/state-comparison.json",
+      "goal_achieved": false
+    },
+    {
+      "id": "coding-mtp-w8-slot-owner-20261111",
+      "state": "rejected_performance_regression",
+      "samples": 5,
+      "tpot_median_ms": 9.91,
+      "control_median_ms": 9.79,
+      "all_rank_tokens_main_serial_draft_exact": true,
+      "synchronized_start": true,
+      "source_applied": false,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/slot-owner/paired-sync/summary.json"
+    },
+    {
+      "id": "coding-mtp-w8-balanced-gate-20261111",
+      "state": "rejected_performance_regression",
+      "samples": 5,
+      "tpot_median_ms": 9.82,
+      "control_median_ms": 9.77,
+      "all_rank_tokens_main_serial_draft_exact": true,
+      "synchronized_start": true,
+      "source_applied": false,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/balanced-gate/paired/summary.json"
+    },
+    {
+      "id": "coding-mtp-w16-canonical-projections-20261111",
+      "state": "full_decode_verified",
+      "all_rank_tokens_main_serial_draft_exact": true,
+      "policy": "decode-only chunks of at most 8 for rot, eh_proj and indexer wk; original prepared prefix retained",
+      "source_applied": false,
+      "performance_claim": false,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/mtp-wide-draft/full-canonical/summary.json"
+    },
+    {
+      "id": "coding-sfa-staged-barrier-20261111",
+      "state": "historical_state_verified_cold_head_timing",
+      "samples": 5,
+      "control_tpot_median_ms": 9.79,
+      "tpot_median_ms": 9.76,
+      "scope": "80 rank-run receipts match golden tokens, frozen main KV, independent serial draft KV; matched 3550-source baseline/candidate builds",
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/sfa-barrier/paired/summary.json",
+      "source_applied": false,
+      "goal_achieved": false,
+      "timing_note": "First head capture was inside timing after main graph reset; explicit head warmup and receipt gate added."
+    },
+    {
+      "id": "coding-mtp-greedy-head-20261111",
+      "state": "no_consistent_paired_improvement",
+      "samples": 5,
+      "control_tpot_median_ms": 9.75,
+      "tpot_median_ms": 9.74,
+      "scope": "All 80 rank-run token/main/serial-draft states exact; per-pair changes have mixed signs; original head restored",
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/mtp-greedy-head/paired/summary.json",
+      "source_applied": false,
+      "goal_achieved": false
+    },
+    {
+      "id": "coding-mtp-adaptive-vocabulary-20261111",
+      "state": "steady_paired_decode_verified",
+      "samples": 5,
+      "control_tpot_median_ms": 9.759726295210166,
+      "tpot_median_ms": 9.49425219941349,
+      "change_percent": -2.7200977544520333,
+      "per_rank_candidates": 4096,
+      "rounds": 206,
+      "scope": "80 rank-run receipts match exact golden token IDs and independent main/serial-draft states; selection and weight copies included in timing; candidates use current target logits only",
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/mtp-adaptive-vocab/paired-warm/summary.json",
+      "source_applied": false,
+      "goal_achieved": false,
+      "timing_note": "All 80 records confirm head graph prepared before t0; prefix and candidate vocabulary reset after capture."
+    },
+    {
+      "id": "coding-gu-prefetch-20261111",
+      "state": "no_consistent_paired_improvement",
+      "samples": 5,
+      "control_tpot_median_ms": 9.742502443792766,
+      "tpot_median_ms": 9.7269403714565,
+      "scope": "80 rank-run tokens/main/serial-draft states exact; mixed per-pair changes; original GU retained",
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/gu-prefetch/paired/summary.json",
+      "source_applied": false,
+      "goal_achieved": false
+    },
+    {
+      "id": "coding-sfa-adaptive-vocabulary-20261111",
+      "state": "no_clear_incremental_improvement",
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/mtp-sfa/paired-warm/summary.json",
+      "source_applied": false,
+      "goal_achieved": false,
+      "samples": 5,
+      "control_tpot_median_ms": 9.48622678396872,
+      "tpot_median_ms": 9.468846529814272,
+      "all_rank_tokens_main_serial_draft_exact": true,
+      "all_heads_prepared": true
+    },
+    {
+      "id": "coding-mtp-valid-prefix-vocabulary-20261111",
+      "state": "rejected_lower_acceptance",
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/mtp-valid-vocab/device-result.json",
+      "source_applied": false,
+      "goal_achieved": false,
+      "samples": 1,
+      "tpot_ms": 9.78,
+      "rounds": 212,
+      "all_rank_tokens_main_serial_draft_exact": true,
+      "all_heads_prepared": true
+    },
+    {
+      "id": "coding-gu-wide-tiles-vocabulary-20261111",
+      "state": "steady_paired_decode_verified",
+      "samples": 5,
+      "control_tpot_median_ms": 9.470615835777126,
+      "tpot_median_ms": 9.416715542521993,
+      "change_percent": -0.5691318726234629,
+      "all_rank_tokens_main_serial_draft_exact": true,
+      "all_heads_prepared": true,
+      "all_pairs_faster": true,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/gu-tiles/paired-vocab/summary.json",
+      "source_applied": false,
+      "goal_achieved": false
+    },
+    {
+      "id": "coding-sfa-paired-pv-load-20261111",
+      "state": "steady_paired_decode_verified",
+      "samples": 5,
+      "control_tpot_median_ms": 9.779902248289345,
+      "tpot_median_ms": 9.669032258064517,
+      "change_percent": -1.1336513127646053,
+      "all_rank_tokens_main_serial_draft_exact": true,
+      "all_heads_prepared": true,
+      "all_pairs_faster": true,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/sfa-mm2-load/paired/summary.json",
+      "source_applied": false,
+      "goal_achieved": false
+    },
+    {
+      "id": "coding-gu-sfa-vocabulary-combined-20261111",
+      "state": "small_mixed_paired_increment_not_applied",
+      "samples": 5,
+      "control_tpot_median_ms": 9.484604105571847,
+      "tpot_median_ms": 9.463685239491692,
+      "change_percent": -0.22055602793020768,
+      "all_rank_tokens_main_serial_draft_exact": true,
+      "all_heads_prepared": true,
+      "all_pairs_faster": false,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/gu-sfa/paired-vocab/summary.json",
+      "source_applied": false,
+      "goal_achieved": false
+    },
+    {
+      "id": "coding-main-graph12-20261111",
+      "state": "steady_paired_decode_verified",
+      "samples": 5,
+      "control_tpot_median_ms": 9.633763440860216,
+      "tpot_median_ms": 9.490684261974584,
+      "change_percent": -1.4851846816041014,
+      "all_rank_tokens_main_serial_draft_exact": true,
+      "all_heads_prepared": true,
+      "all_pairs_faster": true,
+      "all_rank_teacher_hidden_cache_exact": true,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/main-graph12/bf16-chain/paired/summary.json",
+      "source_applied": false,
+      "goal_achieved": false
+    },
+    {
+      "id": "coding-main-graph12-gu-vocabulary-20261111",
+      "state": "steady_paired_decode_verified",
+      "samples": 5,
+      "control_tpot_median_ms": 9.333391984359725,
+      "tpot_median_ms": 9.17822091886608,
+      "change_percent": -1.662536682844462,
+      "all_rank_tokens_main_serial_draft_exact": true,
+      "all_heads_prepared": true,
+      "all_pairs_faster": true,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/main-graph12/gu-vocab/paired/summary.json",
+      "source_applied": false,
+      "goal_achieved": false
+    },
+    {
+      "id": "coding-routed-poll-dedup-20261111",
+      "state": "rejected_regression",
+      "samples": 5,
+      "control_tpot_median_ms": 9.151896383186704,
+      "tpot_median_ms": 9.233059628543499,
+      "change_percent": 0.8868462005962252,
+      "all_rank_tokens_main_serial_draft_exact": true,
+      "all_heads_prepared": true,
+      "all_pairs_slower": true,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/native-profile-ffn/poll-dedup/paired/summary.json",
+      "source_applied": false,
+      "goal_achieved": false
+    },
+    {
+      "id": "coding-mtp-w8-prompt-calibration-adaptive4096-20261111",
+      "state": "paired_decode_verified",
+      "samples": 5,
+      "tpot_median_ms": 9.105904203323558,
+      "control_median_ms": 9.17019550342131,
+      "change_percent": -0.7010897431114271,
+      "all_pairs_faster": true,
+      "rounds": 204,
+      "all_rank_tokens_main_serial_draft_exact": true,
+      "calibration_data": "prompt only; first1536 train, last512 model/alpha selection",
+      "calibration_rank": 64,
+      "calibration_alpha": 1.0,
+      "selected_for_next_experiment": false,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/mtp-recycle/paired/comparison-1.json",
+      "goal_achieved": false
+    },
+    {
+      "id": "coding-mtp-w8-prompt-calibration-full-vocabulary-20261111",
+      "state": "paired_decode_verified",
+      "samples": 5,
+      "tpot_median_ms": 9.10108504398827,
+      "control_median_ms": 9.17019550342131,
+      "change_percent": -0.7536421596164966,
+      "all_pairs_faster": true,
+      "rounds": 197,
+      "all_rank_tokens_main_serial_draft_exact": true,
+      "calibration_data": "prompt only; first1536 train, last512 model/alpha selection",
+      "calibration_rank": 64,
+      "calibration_alpha": 1.0,
+      "selected_for_next_experiment": true,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/mtp-recycle/paired/comparison-2.json",
+      "goal_achieved": false
+    },
+    {
+      "id": "coding-mtp-w8-shared-routed-overlap-20261111",
+      "state": "rejected_no_consistent_gain",
+      "samples": 5,
+      "rounds": 197,
+      "tpot_median_ms": 9.224525904203324,
+      "control_median_ms": 9.204584555229717,
+      "change_percent": 0.21664583397493775,
+      "pairs_slower": 4,
+      "all_rank_tokens_main_serial_draft_exact": true,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/native-profile-ffn/overlap/paired/summary.json",
+      "source_applied": false
+    },
+    {
+      "id": "coding-ffn-overlap-counts-20261112",
+      "state": "diagnostic_state_verified",
+      "formal_samples": 48,
+      "aiv_layer_records": 172800,
+      "records_with_remote_prefetch": 49656,
+      "remote_prefetched_slots": 120334,
+      "scope": "144 rank frames preserve teacher prefix, hidden and KV; counts describe local receive-window GM-to-UB prefetches, not physical overlap or network traffic",
+      "performance_claim": false,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/native-profile-ffn/overlap/counts/summary.json"
+    },
+    {
+      "id": "coding-ffn-overlap-witness-20261112",
+      "state": "diagnostic_verified",
+      "rank_frames_exact": 144,
+      "formal_aiv_layer_records": 172800,
+      "witnesses": 52928,
+      "shared_publication": {
+        "old": 37872,
+        "current": 15056,
+        "new": 0,
+        "ambiguous": 0
+      },
+      "old_shared_same_owner_as_ready_routed": 0,
+      "observer_chain_event_change_percent": 1.4856618864598103,
+      "scope": "Ordered original current RT read followed by one SH read; old publication witnesses exist across owners in the instrumented execution. No uninstrumented opportunity fraction, unfinished computation or saved-time claim.",
+      "performance_claim": false,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/native-profile-ffn/overlap/witness/summary.json"
+    },
+    {
+      "id": "coding-ffn-down-pipeline-20261112",
+      "state": "stopped_after_slower_frame_screen",
+      "decision": "stopped_after_slower_frame_screen",
+      "all_144_rank_frames_exact": true,
+      "active_lists_equal": true,
+      "eligible_rank_layer_prefix_cases": 639,
+      "total_rank_layer_prefix_cases": 1800,
+      "eligible_fraction": 0.355,
+      "rank0_chain_event_changes_percent": [
+        1.5691660706315114,
+        2.4031577725320163,
+        2.6281966546130464
+      ],
+      "full_decode_executed": false,
+      "paired_tpot_executed": false,
+      "performance_claim": false,
+      "reason": "All three prefix chain event medians increased in the frame screen; stop this implementation before full decode and formal TPOT.",
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/native-profile-ffn/down-pipeline/device-result.json"
+    },
+    {
+      "id": "coding-mtp-rollout-fixed-basis-20261112",
+      "state": "rejected_quality_gate",
+      "decision": "keep_predecessor_failed_registered_quality_gate",
+      "all_eight_collection_receipts_match_tensors": true,
+      "all_256_seed_recycles_equal_to_frozen_single_step": true,
+      "main_and_draft_prefixes_restored": true,
+      "train_rows": 1344,
+      "holdout_rows": 448,
+      "baseline_mse": 0.7606102405769207,
+      "best_holdout_alpha": 0.5,
+      "best_holdout_mse": 0.7523421598133339,
+      "best_holdout_change_percent": -1.0870325328930064,
+      "required_improvement_percent": 2.0,
+      "selected_alpha": 0.0,
+      "new_map_device_executed": false,
+      "performance_claim": false,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/mtp-rollout/result.json"
+    },
+    {
+      "id": "coding-mtp-supervised-regression-20261112",
+      "state": "rejected_quality_gate",
+      "decision": "keep_predecessor_failed_registered_quality_gate",
+      "baseline_mse": 0.7606102405769207,
+      "candidate_mse": 0.8002524793811576,
+      "mse_change_percent": 5.211899168510858,
+      "seed_mse_change_percent": 11.658172334770667,
+      "train_rows": 1344,
+      "holdout_rows": 448,
+      "rank": 64,
+      "selected_alpha": 0.0,
+      "new_map_device_executed": false,
+      "performance_claim": false,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/mtp-regression/result.json"
+    },
+    {
+      "id": "coding-mtp-parallel-candidates-20261112",
+      "state": "component_verified",
+      "rank_batch_cases": 288,
+      "original_graph_checks": 152,
+      "all_saved_fields_byte_equal": true,
+      "full_logits_evidence": "device source-bound matching SHA256, zero differences and finite receipt",
+      "quality_claim": false,
+      "performance_claim": false,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/mtp-candidates/summary.json"
+    },
+    {
+      "id": "coding-mtp-selection-20261112",
+      "state": "rejected_quality_gate",
+      "unique_contexts": 512,
+      "head_net_gain_threshold": 16,
+      "lookahead_net_gain_threshold": 32,
+      "device_executed": true,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/mtp-selection-partial/summary.json",
+      "head_contract": "MTP owns a distinct checkpoint head; shared-head premise rejected before device execution.",
+      "baseline_correct": 348,
+      "candidate_correct": 343,
+      "gains": 15,
+      "losses": 20,
+      "net_gain": -5,
+      "performance_claim": false
+    },
+    {
+      "id": "coding-mtp-head-replay-20261112",
+      "state": "rejected_quality_gate",
+      "decision": "reject_head_map_quality_gate",
+      "samples": 512,
+      "baseline_correct": 348,
+      "candidate_correct": 339,
+      "gains": 14,
+      "losses": 23,
+      "net_gain": -9,
+      "threshold": 16,
+      "main_raw_correct": 335,
+      "all_36_full_logits_recomputed_byte_exact": true,
+      "actual_mtp_logits_dtype": "torch.bfloat16",
+      "device": "Ascend910_9382",
+      "performance_claim": false,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/mtp-head/summary.json"
+    },
+    {
+      "id": "coding-mtp-head-calibration-20261112",
+      "state": "rejected_inner_quality_gate",
+      "trainable_parameters": 4160,
+      "fit_rows": 1280,
+      "validation_rows": 256,
+      "baseline_correct": 170,
+      "best_nonidentity_correct": 166,
+      "selected_epoch": 0,
+      "outer_evaluated": false,
+      "performance_claim": false,
+      "archive": "tests/.artifacts/runs/glm52-width-20261111/mtp-head-calibration/summary.json"
     }
   ],
-  "diagnostics": [
+  "history": [
     {
-      "id": "test-w117-capacity-rejected",
-      "state": "cancelled",
-      "reason": "Capacity recovered before the capacity-check rehearsal, so a baseline job started; stopped only this owned job to run the native trace instead.",
-      "archive": ".artifacts/runs/test-w117-capacity-rejected/manifest.json"
-    },
-    {
-      "id": "test-w117-discrete-trace",
-      "state": "observed",
-      "host": "7.150.11.149",
-      "source_ref": "refs/snapshots/trace-8631-20261105",
-      "position": 8631,
-      "performance_claim": false,
-      "archive": ".artifacts/runs/test-w117-discrete-trace/manifest.json"
-    },
-    {
-      "id": "test-w117-native-trace",
-      "state": "observed",
-      "host": "7.150.8.208",
-      "source_ref": "refs/snapshots/trace-8631-20261105",
-      "build_source_ref": "refs/snapshots/v3x12-canonical-20261105",
-      "position": 8631,
-      "performance_claim": false,
-      "archive": ".artifacts/runs/test-w117-native-trace/manifest.json"
-    },
-    {
-      "id": "test-w117-attention-comparison",
-      "state": "difference_found",
-      "position": 8631,
-      "layer": 30,
-      "rows": [
-        5,
-        29
+      "schema": 1,
+      "updated": "2026-11-05",
+      "active_task": "glm52-tp8-ep8-golden-trajectory",
+      "target": {
+        "sku": "Ascend910_9392",
+        "tp": 8,
+        "ep": 8,
+        "case": "case-00",
+        "prefix_tokens": 8192,
+        "output_tokens": 1024,
+        "drafter": "LookupDrafter(shortest=2,width=32)",
+        "warmup": 3,
+        "requests": 3,
+        "golden_rounds": 223,
+        "golden_output_sha256": "4fb8be2df58a4ea7f75ac1193749df945950129dfade1691b02c6c6c6b21443b"
+      },
+      "baseline": {
+        "id": "test-w115-discrete-control-formal",
+        "state": "trajectory_verified",
+        "source_ref": "refs/snapshots/control-v7-20261105",
+        "source_commit": "bdb30f4f71c152956e5e6aac891e9b10ee64e8c7",
+        "source_identity": "snapshot",
+        "archive": "tests/.artifacts/runs/test-w115-discrete-control-formal/manifest.json",
+        "rounds": [
+          223,
+          223,
+          223,
+          223,
+          223,
+          223
+        ],
+        "tpot_median_ms": 8.846371599217987,
+        "precision_verified": false,
+        "scope": "case-00 TP8+EP8 baseline token and acceptance trajectory; excludes HF precision"
+      },
+      "candidates": [
+        {
+          "id": "test-w114-max-fusion-v3x9-formal",
+          "state": "rejected",
+          "source_identity": "legacy_partial",
+          "rounds": [
+            373,
+            373,
+            373,
+            373,
+            373,
+            373
+          ],
+          "golden_trajectory": false,
+          "first_output_difference": {
+            "round": 142,
+            "position": 8583,
+            "token_index": 392
+          },
+          "audit": "evidence/test-w114-v3x9-validation/formal.json",
+          "archive": "tests/.artifacts/runs/test-w114-max-fusion-v3x9-formal/manifest.json"
+        },
+        {
+          "id": "test-w114-max-fusion-v3x10-formal",
+          "state": "rejected",
+          "source_ref": "refs/snapshots/glm52-v3x10-20261105",
+          "rounds": [
+            197,
+            223,
+            223,
+            276,
+            223,
+            223
+          ],
+          "golden_trajectory": false,
+          "repeatable_output": false,
+          "component_checks": {
+            "cases": 10,
+            "bitwise_checks": 140,
+            "passed": true
+          },
+          "audit": "evidence/test-w114-v3x10-validation/formal.json",
+          "archive": "tests/.artifacts/runs/test-w114-max-fusion-v3x10-formal/manifest.json"
+        },
+        {
+          "id": "test-w116-canonical-formal",
+          "state": "rejected",
+          "source_ref": "refs/snapshots/v3x12-canonical-20261105",
+          "indexed_sha256": "dd47e1664940f751f0982a94cd160efbef748a69b03e73d554f9a2821e1bc55b",
+          "shared_sha256": "0e985f72fda85389bcc6c11915cef5255a71475633089a82bea8639fd59e1d5d",
+          "next": "Capture baseline and native attention boundaries on the same actual decoder input.",
+          "rounds": [
+            223,
+            223,
+            223,
+            223,
+            223,
+            223
+          ],
+          "repeatable_output": true,
+          "golden_trajectory": false,
+          "output_sha256": "3877d3aa0f1a0e4acc5932b41bc864d7eec77a67cd2e5a99fae2de136bb317f0",
+          "first_output_difference": {
+            "token_index": 443
+          },
+          "audit": "tests/.artifacts/incoming/test-w116-canonical-formal/audit.json",
+          "archive": "tests/.artifacts/runs/test-w116-canonical-formal/manifest.json"
+        }
       ],
-      "previous_layers_bitwise_equal": 30,
-      "archive": ".artifacts/runs/test-w117-attention-comparison/manifest.json",
-      "next": "Capture layer30 QLI operands, selected indices and native frontend scratch."
-    },
-    {
-      "id": "test-w118-phase-comparison",
-      "state": "difference_found",
-      "source_ref": "refs/snapshots/trace30-20261105",
-      "archive": ".artifacts/runs/test-w118-phase-comparison/manifest.json",
-      "next": "Capture the write at before=8565, layer30, row0 and distinguish pre-quantization values from rounding."
-    },
-    {
-      "id": "test-w118-native-layer30",
-      "state": "capacity_rejected",
-      "archive": ".artifacts/runs/test-w118-native-layer30/manifest.json"
+      "tasks": [
+        {
+          "id": "glm52-tp8-ep8-golden-trajectory",
+          "state": "active",
+          "acceptance": "All six requests match the golden tokens and acceptance history on all eight ranks.",
+          "next": "Trace the single indexer cache code mismatch at the write beginning at 8565; current queries and main caches agree bitwise."
+        },
+        {
+          "id": "paired-performance",
+          "state": "waiting_for_trajectory",
+          "acceptance": "Same host, frozen trajectory, isolated caches and profiler-off paired measurements."
+        }
+      ],
+      "historical_baseline": {
+        "id": "test-w112-sfa-restored-v7-formal",
+        "state": "recorded_baseline",
+        "git_anchor": "88e0c8913b4dcb494046bccdc67644f72f35dd3e",
+        "source_identity": "legacy_partial",
+        "evidence": "docs/evidence/ascend-decode/test-w112-sfa-restored-v7-formal/summary.json",
+        "tpot_median_ms": 8.807591524926687,
+        "precision_verified": false
+      },
+      "components": [
+        {
+          "id": "test-w115-wk-formats",
+          "state": "component_verified",
+          "shape": [
+            32,
+            160,
+            6144
+          ],
+          "scope": "Three synthetic seeds, BF16 WK ND/NZ layouts; no model trajectory claim.",
+          "archive": "tests/.artifacts/runs/test-w115-wk-formats/manifest.json"
+        },
+        {
+          "id": "test-w115-output-scales-v2",
+          "state": "component_verified",
+          "shape": [
+            32,
+            6144,
+            2048
+          ],
+          "scope": "Three full-range INT8 seeds, BF16 and FP32 scales, ND weights; CombinedScales bitwise matches CANN. Production NZ path remains separate.",
+          "archive": "tests/.artifacts/runs/test-w115-output-scales-v2/manifest.json"
+        },
+        {
+          "id": "test-w115-framework-front",
+          "state": "component_verified",
+          "scope": "M32 all-active synthetic input; actual framework LayerNorm, Triton RoPE, Hadamard and quantization; 14 bitwise checks.",
+          "archive": "tests/.artifacts/runs/test-w115-framework-front/manifest.json"
+        },
+        {
+          "id": "test-w115-checkpoint-front-env2",
+          "state": "component_verified",
+          "scope": "Layer-0 checkpoint front weights with original FP32 scales and synthetic activations, M32; 14 bitwise checks. Production casts scales to BF16.",
+          "archive": "tests/.artifacts/runs/test-w115-checkpoint-front-env2/manifest.json"
+        },
+        {
+          "id": "test-w116-production-formats",
+          "state": "component_verified",
+          "scope": "Three BF16-scale NZ TP8 output-matmul seeds support CombinedScales; checkpoint layer-0 frontend with BF16 scale and ND WQ passes 14 bitwise checks.",
+          "archive": "tests/.artifacts/runs/test-w116-production-formats/manifest.json"
+        },
+        {
+          "id": "test-w116-canonical-micro",
+          "state": "oracle_rejected",
+          "reason": "Manual WQ NZ conversion failed the CPU INT32 projection check before comparing with native output. This is not a native numerical verdict.",
+          "archive": "tests/.artifacts/runs/test-w116-canonical-micro/manifest.json"
+        },
+        {
+          "id": "test-w116-canonical-micro-nd",
+          "state": "component_verified",
+          "checks": 112,
+          "scope": "Canonical QLI/SFA headers, actual layer-0 front weights plus synthetic activations; framework M32 and C8 widths 1/6/8/12/16/24/32, ND vendor QMM, BF16 front scale.",
+          "archive": "tests/.artifacts/runs/test-w116-canonical-micro-nd/manifest.json"
+        }
+      ],
+      "builds": [
+        {
+          "id": "v3x11-canonical-20261105",
+          "state": "rejected",
+          "source_ref": "refs/snapshots/v3x11-canonical-20261105",
+          "reason": "QLI common header was omitted from the overlay; compile failed. Launcher now copies the entire patch directory.",
+          "evidence": "tests/.artifacts/builds/v3x11-canonical-20261105/build.log"
+        },
+        {
+          "id": "v3x12-canonical-20261105",
+          "state": "built",
+          "source_ref": "refs/snapshots/v3x12-canonical-20261105",
+          "evidence": "tests/.artifacts/builds/v3x12-canonical-20261105/",
+          "patch_hash_checks": {
+            "passed": true,
+            "count": 7,
+            "evidence": "tests/.artifacts/checks/canonical-vendor.json"
+          }
+        }
+      ],
+      "diagnostics": [
+        {
+          "id": "test-w117-capacity-rejected",
+          "state": "cancelled",
+          "reason": "Capacity recovered before the capacity-check rehearsal, so a baseline job started; stopped only this owned job to run the native trace instead.",
+          "archive": "tests/.artifacts/runs/test-w117-capacity-rejected/manifest.json"
+        },
+        {
+          "id": "test-w117-discrete-trace",
+          "state": "observed",
+          "host": "7.150.11.149",
+          "source_ref": "refs/snapshots/trace-8631-20261105",
+          "position": 8631,
+          "performance_claim": false,
+          "archive": "tests/.artifacts/runs/test-w117-discrete-trace/manifest.json"
+        },
+        {
+          "id": "test-w117-native-trace",
+          "state": "observed",
+          "host": "7.150.8.208",
+          "source_ref": "refs/snapshots/trace-8631-20261105",
+          "build_source_ref": "refs/snapshots/v3x12-canonical-20261105",
+          "position": 8631,
+          "performance_claim": false,
+          "archive": "tests/.artifacts/runs/test-w117-native-trace/manifest.json"
+        },
+        {
+          "id": "test-w117-attention-comparison",
+          "state": "difference_found",
+          "position": 8631,
+          "layer": 30,
+          "rows": [
+            5,
+            29
+          ],
+          "previous_layers_bitwise_equal": 30,
+          "archive": "tests/.artifacts/runs/test-w117-attention-comparison/manifest.json",
+          "next": "Capture layer30 QLI operands, selected indices and native frontend scratch."
+        },
+        {
+          "id": "test-w118-phase-comparison",
+          "state": "difference_found",
+          "source_ref": "refs/snapshots/trace30-20261105",
+          "archive": "tests/.artifacts/runs/test-w118-phase-comparison/manifest.json",
+          "next": "Capture the write at before=8565, layer30, row0 and distinguish pre-quantization values from rounding."
+        },
+        {
+          "id": "test-w118-native-layer30",
+          "state": "capacity_rejected",
+          "archive": "tests/.artifacts/runs/test-w118-native-layer30/manifest.json"
+        }
+      ]
     }
-  ]
+  ],
+  "runtime_availability": {
+    "state": "owned_container_exited_devices_in_other_use",
+    "observed_at_utc": "2026-11-11T17:49:06Z",
+    "finished_at_utc": "2026-11-11T17:34:05.798173567Z",
+    "exit_code": 137,
+    "oom_killed": false,
+    "signals": [
+      15,
+      9
+    ],
+    "last_completed_epoch": 90,
+    "device_run_pending": true,
+    "evidence": [
+      "tests/.artifacts/runs/glm52-width-20261111/availability/container-state.json",
+      "tests/.artifacts/runs/glm52-width-20261111/availability/container-events.json",
+      "tests/.artifacts/runs/glm52-width-20261111/availability/kbenv-20261112.txt"
+    ],
+    "recovery_host": "7.156.97.214",
+    "recovery_state": "full_78_layer_baseline_verified",
+    "checkpoint_transfer": {
+      "files": 108,
+      "bytes": 404883003317,
+      "source_and_target_sha256_equal": true,
+      "evidence": "tests/.artifacts/runs/glm52-width-20261111/availability/full-transfer/result.json"
+    },
+    "new_host_tpot_available": true,
+    "recovery_baseline": {
+      "rank0_median_tpot_ms": 9.260097751710655,
+      "max_rank_median_tpot_ms": 9.261827956989247,
+      "rounds": 197,
+      "rank_requests": 88,
+      "state_checks": 264,
+      "warmups": 3,
+      "formal_repeats": 5,
+      "cross_host_speedup_claim": false,
+      "evidence": "tests/.artifacts/runs/glm52-width-20261111/recovery/full/summary.json"
+    }
+  }
 }

@@ -151,19 +151,19 @@ Repo `cann/asc-devkit`, branch `master`. In-repo agent skill reference.
 >
 > ### 核心概念
 >
-> | 概念 | 说明 |
-> | ----- | ------ |
-> | **NpuArch** | 芯片架构号，定义指令集和微架构 |
-> | **SocVersion** | 片上系统版本，软件命名标识 |
-> | **__NPU_ARCH__** | Device 侧编译宏，四位数值，用于条件编译 |
+> |概念|说明|
+> |---|---|
+> |**NpuArch**|芯片架构号，定义指令集和微架构|
+> |**SocVersion**|片上系统版本，软件命名标识|
+> |**__NPU_ARCH__**|Device 侧编译宏，四位数值，用于条件编译|
 >
 > ### 架构代号别名
 >
-> | 代号 | 对应 SocVersion | 说明 |
-> | ----- | ---------------- | ------ |
-> | **A2** | ASCEND910B | Ascend910B1~B4, Ascend910B2C |
-> | **A3** | ASCEND910B (含 Ascend910_93) | 训练/推理芯片 |
-> | **A5** | ASCEND950 | Ascend950DT / Ascend950PR |
+> |代号|对应 SocVersion|说明|
+> |---|---|---|
+> |**A2**|ASCEND910B|Ascend910B1~B4, Ascend910B2C|
+> |**A3**|ASCEND910B (含 Ascend910_93)|训练/推理芯片|
+> |**A5**|ASCEND950|Ascend950DT / Ascend950PR|
 >
 > ### 关键细节
 >
@@ -173,68 +173,68 @@ Repo `cann/asc-devkit`, branch `master`. In-repo agent skill reference.
 >
 > ## 统一芯片调用名
 >
-> | 统一调用名 | __NPU_ARCH__ | SocVersion | 产品系列 / 常见芯片 | 说明 |
-> | ----------- | :------------: | ------------ | --------------------- | ------ |
-> | `ascend910` | 1001 | ASCEND910 | Atlas 训练系列 / Ascend910 | 初代训练架构 |
-> | `ascend910b1` | 2201 | ASCEND910B | Atlas A2 / Ascend910B1~B4, Ascend910B2C | 与 A3 共用 2201 |
-> | `ascend310p` | 2002 | ASCEND310P | Atlas 推理系列 / Ascend310P1, Ascend310P3 | 与 `ascend610` 共用 2002 |
-> | `ascend610` | 2002 | ASCEND310P | Atlas 推理系列 / Ascend610 | 与 `ascend310p` 共用 2002 |
-> | `ascend310b1` | 3002 | ASCEND310B | Atlas 200I/500 A2 / Ascend310B1~B4 | 推理架构 |
-> | `ascend950pr_9599` | 3510 | ASCEND950 | Atlas A5 推理 / Ascend950PR | 当前 regbase / SIMT 主入口 |
+> |统一调用名|__NPU_ARCH__|SocVersion|产品系列 / 常见芯片|说明|
+> |---|:---:|---|---|---|
+> |`ascend910`|1001|ASCEND910|Atlas 训练系列 / Ascend910|初代训练架构|
+> |`ascend910b1`|2201|ASCEND910B|Atlas A2 / Ascend910B1~B4, Ascend910B2C|与 A3 共用 2201|
+> |`ascend310p`|2002|ASCEND310P|Atlas 推理系列 / Ascend310P1, Ascend310P3|与 `ascend610` 共用 2002|
+> |`ascend610`|2002|ASCEND310P|Atlas 推理系列 / Ascend610|与 `ascend310p` 共用 2002|
+> |`ascend310b1`|3002|ASCEND310B|Atlas 200I/500 A2 / Ascend310B1~B4|推理架构|
+> |`ascend950pr_9599`|3510|ASCEND950|Atlas A5 推理 / Ascend950PR|当前 regbase / SIMT 主入口|
 >
 > ## 完整映射表
 >
-> | 产品系列 | SocVersion | __NPU_ARCH__ | 芯片型号 | 说明 |
-> | --------- | ----------- | :---: | --------- | ------ |
-> | Atlas A2 训练/推理 | ASCEND910B | 2201 | Ascend910B1~B4, Ascend910B2C | 主流训练芯片 |
-> | Atlas A3 训练/推理 | ASCEND910B | 2201 | Ascend910_93 | 训练/推理芯片 |
-> | Atlas A5 训练 | ASCEND950 | 3510 | Ascend950DT | Decode |
-> | Atlas A5 推理 | ASCEND950 | 3510 | Ascend950PR | Prefill |
-> | Atlas 训练系列 | ASCEND910 | 1001 | Ascend910 | 初代训练架构 |
-> | Atlas 推理系列 | ASCEND310P | 2002 | Ascend310P1, Ascend310P3, Ascend610 | 推理芯片 |
-> | Atlas 200I/500 A2 推理 | ASCEND310B | 3002 | Ascend310B1~B4 | 推理芯片 |
+> |产品系列|SocVersion|__NPU_ARCH__|芯片型号|说明|
+> |---|---|:---:|---|---|
+> |Atlas A2 训练/推理|ASCEND910B|2201|Ascend910B1~B4, Ascend910B2C|主流训练芯片|
+> |Atlas A3 训练/推理|ASCEND910B|2201|Ascend910_93|训练/推理芯片|
+> |Atlas A5 训练|ASCEND950|3510|Ascend950DT|Decode|
+> |Atlas A5 推理|ASCEND950|3510|Ascend950PR|Prefill|
+> |Atlas 训练系列|ASCEND910|1001|Ascend910|初代训练架构|
+> |Atlas 推理系列|ASCEND310P|2002|Ascend310P1, Ascend310P3, Ascend610|推理芯片|
+> |Atlas 200I/500 A2 推理|ASCEND310B|3002|Ascend310B1~B4|推理芯片|
 >
 > ### 基础 dtype 大小与 32B 对齐
 >
-> | 数据类型 | sizeof | 32B 对齐元素数 | 说明 |
-> | --------- | -------- | --------------- | ------ |
-> | `bool` | 1 字节 | 32 个元素 | 全 0 为 false，否则为 true |
-> | `int8_t` | 1 字节 | 32 个元素 | INT8 |
-> | `uint8_t` | 1 字节 | 32 个元素 | UINT8 |
-> | `fp4x2_e2m1_t` | 1 字节 | 32 个元素 | 两个 FP4 E2M1 值打包 |
-> | `fp4x2_e1m2_t` | 1 字节 | 32 个元素 | 两个 FP4 E1M2 值打包 |
-> | `hifloat8_t` | 1 字节 | 32 个元素 | HiFloat8 |
-> | `fp8_e5m2_t` | 1 字节 | 32 个元素 | FP8 E5M2 |
-> | `fp8_e4m3fn_t` | 1 字节 | 32 个元素 | FP8 E4M3FN |
-> | `fp8_e8m0_t` | 1 字节 | 32 个元素 | FP8 E8M0 |
-> | `int4x2_t` | 1 字节 | 32 个元素 | 两个 4-bit 整数打包，单 lane 范围 `[-8, 7]` |
-> | `half` | 2 字节 | 16 个元素 | FP16 |
-> | `bfloat16_t` | 2 字节 | 16 个元素 | BF16 |
-> | `int16_t` | 2 字节 | 16 个元素 | INT16 |
-> | `uint16_t` | 2 字节 | 16 个元素 | UINT16 |
-> | `float` | 4 字节 | 8 个元素 | FP32 |
-> | `int32_t` | 4 字节 | 8 个元素 | INT32 |
-> | `uint32_t` | 4 字节 | 8 个元素 | UINT32 |
-> | `complex32` | 4 字节 | 8 个元素 | `AscendC::Complex<half>` |
-> | `int64_t` | 8 字节 | 4 个元素 | INT64 |
-> | `uint64_t` | 8 字节 | 4 个元素 | UINT64 |
-> | `double` | 8 字节 | 4 个元素 | FP64 |
-> | `complex64` | 8 字节 | 4 个元素 | `AscendC::Complex<float>` |
+> |数据类型|sizeof|32B 对齐元素数|说明|
+> |---|---|---|---|
+> |`bool`|1 字节|32 个元素|全 0 为 false，否则为 true|
+> |`int8_t`|1 字节|32 个元素|INT8|
+> |`uint8_t`|1 字节|32 个元素|UINT8|
+> |`fp4x2_e2m1_t`|1 字节|32 个元素|两个 FP4 E2M1 值打包|
+> |`fp4x2_e1m2_t`|1 字节|32 个元素|两个 FP4 E1M2 值打包|
+> |`hifloat8_t`|1 字节|32 个元素|HiFloat8|
+> |`fp8_e5m2_t`|1 字节|32 个元素|FP8 E5M2|
+> |`fp8_e4m3fn_t`|1 字节|32 个元素|FP8 E4M3FN|
+> |`fp8_e8m0_t`|1 字节|32 个元素|FP8 E8M0|
+> |`int4x2_t`|1 字节|32 个元素|两个 4-bit 整数打包，单 lane 范围 `[-8, 7]`|
+> |`half`|2 字节|16 个元素|FP16|
+> |`bfloat16_t`|2 字节|16 个元素|BF16|
+> |`int16_t`|2 字节|16 个元素|INT16|
+> |`uint16_t`|2 字节|16 个元素|UINT16|
+> |`float`|4 字节|8 个元素|FP32|
+> |`int32_t`|4 字节|8 个元素|INT32|
+> |`uint32_t`|4 字节|8 个元素|UINT32|
+> |`complex32`|4 字节|8 个元素|`AscendC::Complex<half>`|
+> |`int64_t`|8 字节|4 个元素|INT64|
+> |`uint64_t`|8 字节|4 个元素|UINT64|
+> |`double`|8 字节|4 个元素|FP64|
+> |`complex64`|8 字节|4 个元素|`AscendC::Complex<float>`|
 >
 > 32B 对齐的通用约束为 `count * sizeof(T) % 32 == 0`。
 >
-> | 产品范围 | 文档声明的支持 dtype |
-> | --------- | ---------------------- |
-> | Ascend 950PR&950DT系列产品 | `bool`, `int8_t`, `uint8_t`, `fp4x2_e2m1_t`, `fp4x2_e1m2_t`, `hifloat8_t`, `fp8_e5m2_t`, `fp8_e4m3fn_t`, `fp8_e8m0_t`, `int4x2_t`, `int16_t`, `uint16_t`, `half`, `bfloat16_t`, `int32_t`, `uint32_t`, `float`, `complex32`, `int64_t`, `uint64_t`, `double`, `complex64` |
-> | Atlas A2 / A3 训练和推理系列 | `int8_t`, `uint8_t`, `int16_t`, `uint16_t`, `int32_t`, `uint32_t`, `int64_t`, `uint64_t`, `half`, `bfloat16_t`, `float`, `double` |
+> |产品范围|文档声明的支持 dtype|
+> |---|---|
+> |Ascend 950PR&950DT系列产品|`bool`, `int8_t`, `uint8_t`, `fp4x2_e2m1_t`, `fp4x2_e1m2_t`, `hifloat8_t`, `fp8_e5m2_t`, `fp8_e4m3fn_t`, `fp8_e8m0_t`, `int4x2_t`, `int16_t`, `uint16_t`, `half`, `bfloat16_t`, `int32_t`, `uint32_t`, `float`, `complex32`, `int64_t`, `uint64_t`, `double`, `complex64`|
+> |Atlas A2 / A3 训练和推理系列|`int8_t`, `uint8_t`, `int16_t`, `uint16_t`, `int32_t`, `uint32_t`, `int64_t`, `uint64_t`, `half`, `bfloat16_t`, `float`, `double`|
 >
-> | 简写 | 类型 |
-> | ----- | ------ |
-> | `S4` | `int4b_t`，通常通过 `int4x2_t` 打包存储 |
-> | `U8` / `S8` | `uint8_t` / `int8_t` |
-> | `FP8_E4M3` | `fp8_e4m3fn_t` |
-> | `HiF8` | `hifloat8_t` |
-> | `FP16` / `BF16` / `FP32` | `half` / `bfloat16_t` / `float` |
+> |简写|类型|
+> |---|---|
+> |`S4`|`int4b_t`，通常通过 `int4x2_t` 打包存储|
+> |`U8` / `S8`|`uint8_t` / `int8_t`|
+> |`FP8_E4M3`|`fp8_e4m3fn_t`|
+> |`HiF8`|`hifloat8_t`|
+> |`FP16` / `BF16` / `FP32`|`half` / `bfloat16_t` / `float`|
 
 ## Relevance
 Our A3 compiles with `__NPU_ARCH__ == 2201` (DAV_2201), shared with A2/910B. Every conditional-compilation branch
@@ -332,17 +332,17 @@ Repo `cann/asc-devkit`, branch `master`.
 >
 > ### 4.1 内存对齐
 >
-> | 约束项 | 说明 |
-> | -------- | ------ |
-> | **32 字节对齐** | `len` 参数非 32Bytes 对齐时，会**自动向上补齐至 32Bytes** |
-> | **元素对齐** | 确保 count * sizeof(T) 满足对齐要求 |
+> |约束项|说明|
+> |---|---|
+> |**32 字节对齐**|`len` 参数非 32Bytes 对齐时，会**自动向上补齐至 32Bytes**|
+> |**元素对齐**|确保 count * sizeof(T) 满足对齐要求|
 >
 > ### 4.2 Buffer 数量限制
 >
-> | 限制类型 | 数量限制 |
-> | ---------- | ---------- |
-> | **TPipe 方式** | 一个 kernel 中所有 Buffer 数量之和**不能超过 64** |
-> | **TBufPool 方式** | `bufIDSize` 默认上限为 4，最大为 16 |
+> |限制类型|数量限制|
+> |---|---|
+> |**TPipe 方式**|一个 kernel 中所有 Buffer 数量之和**不能超过 64**|
+> |**TBufPool 方式**|`bufIDSize` 默认上限为 4，最大为 16|
 >
 > ### 4.3 Double Buffer
 >
@@ -368,15 +368,15 @@ Repo `cann/asc-devkit`, branch `master`.
 >
 > `TPosition` 决定了 LocalTensor 所在的物理存储位置：
 >
-> | 位置 | 适用场景 | 说明 |
-> | ------ | ---------- | ------ |
-> | **VECIN** | 矢量编程输入 | Vector Core 输入数据 |
-> | **VECOUT** | 矢量编程输出 | Vector Core 输出数据 |
-> | **VECCALC** | 矢量计算临时空间 | 用于临时变量，别名 LCM |
-> | **A1/A2** | 矩阵编程 | A 矩阵 L1 缓冲区 |
-> | **B1/B2** | 矩阵编程 | B 矩阵 L1 缓冲区 |
-> | **C1/C2** | 矩阵编程 | C 矩阵 L1 缓冲区 |
-> | **CO1/CO2** | 矩阵编程 | C 矩阵输出缓冲区 |
+> |位置|适用场景|说明|
+> |---|---|---|
+> |**VECIN**|矢量编程输入|Vector Core 输入数据|
+> |**VECOUT**|矢量编程输出|Vector Core 输出数据|
+> |**VECCALC**|矢量计算临时空间|用于临时变量，别名 LCM|
+> |**A1/A2**|矩阵编程|A 矩阵 L1 缓冲区|
+> |**B1/B2**|矩阵编程|B 矩阵 L1 缓冲区|
+> |**C1/C2**|矩阵编程|C 矩阵 L1 缓冲区|
+> |**CO1/CO2**|矩阵编程|C 矩阵输出缓冲区|
 
 ## Relevance
 Hard ceiling for a megakernel: **all TQue/TBuf buffers in one kernel must total <= 64**. A fused multi-stage kernel
@@ -398,15 +398,15 @@ Publisher: Huawei / Ascend, CANN Community Edition 9.0 API reference, parent top
 
 Applicability table (产品支持情况):
 
-> | 产品 | 是否支持 |
-> | --- | --- |
-> | Atlas 350 加速卡 | √ |
-> | Atlas A3 训练系列产品 / Atlas A3 推理系列产品 | √ |
-> | Atlas A2 训练系列产品 / Atlas A2 推理系列产品 | √ |
-> | Atlas 200I/500 A2 推理产品 | x |
-> | Atlas 推理系列产品 AI Core | √ |
-> | Atlas 推理系列产品 Vector Core | x |
-> | Atlas 训练系列产品 | x |
+> |产品|是否支持|
+> |---|---|
+> |Atlas 350 加速卡|√|
+> |Atlas A3 训练系列产品 / Atlas A3 推理系列产品|√|
+> |Atlas A2 训练系列产品 / Atlas A2 推理系列产品|√|
+> |Atlas 200I/500 A2 推理产品|x|
+> |Atlas 推理系列产品 AI Core|√|
+> |Atlas 推理系列产品 Vector Core|x|
+> |Atlas 训练系列产品|x|
 
 功能说明 (Function Usage) — **this is the documented statement that kernel type exists specifically to cut launch cost**:
 
@@ -434,10 +434,10 @@ Applicability table (产品支持情况):
 
 参数说明:
 
-> | 参数 | 输入/输出 | 说明 |
-> | --- | --- | --- |
-> | key | 输入 | tiling key的key值，此参数是正数，表示某个核函数的分支。 |
-> | value | 输入 | 设置的kernel类型，可选值范围，kernel类型具体说明请参考表2。不同硬件架构支持的参数取值不同，具体支持的参数取值请参考kernel type取值约束。 |
+> |参数|输入/输出|说明|
+> |---|---|---|
+> |key|输入|tiling key的key值，此参数是正数，表示某个核函数的分支。|
+> |value|输入|设置的kernel类型，可选值范围，kernel类型具体说明请参考表2。不同硬件架构支持的参数取值不同，具体支持的参数取值请参考kernel type取值约束。|
 
 The enum, verbatim:
 
@@ -459,18 +459,18 @@ enum KernelMetaType {
 
 表2 kernel type取值说明 — verbatim, each value:
 
-> | 参数 | 说明 |
-> | --- | --- |
-> | KERNEL_TYPE_AIV_ONLY | 算子执行时仅启动AI Core上的Vector核：比如用户在host侧设置numBlocks为10，则会启动10个Vector核。 |
-> | KERNEL_TYPE_AIC_ONLY | 算子执行时仅启动AI Core上的Cube核：比如用户在host侧设置numBlocks为10，则会启动10个Cube核。 |
-> | KERNEL_TYPE_MIX_AIV_1_0 | AIC、AIV混合场景下，使用了多核控制相关指令时，设置核函数的类型为MIX AIV:AIC 1:0（带有硬同步），算子执行时仅会启动AI Core上的Vector核，比如用户在host侧设置numBlocks为10，则会启动10个Vector核。<br>硬同步的概念解释如下：当不同核之间操作同一块全局内存且可能存在读后写、写后读以及写后写等数据依赖问题时，通过调用SyncAll()函数来插入同步语句来避免上述数据依赖时可能出现的数据读写错误问题。目前多核同步分为硬同步和软同步，硬同步是利用硬件自带的全核同步指令由硬件保证多核同步。 |
-> | KERNEL_TYPE_MIX_AIC_1_0 | AIC、AIV混合场景下，使用了多核控制相关指令时，设置核函数的类型为MIX AIC:AIV 1:0（带有硬同步），算子执行时仅会启动AI Core上的Cube核，比如用户在host侧设置numBlocks为10，则会启动10个Cube核。 |
-> | KERNEL_TYPE_MIX_AIC_1_1 | AIC、AIV混合场景下，设置核函数的类型为MIX AIC:AIV 1:1，算子执行时会同时启动AI Core上的Cube核和Vector核，比如用户在host侧设置numBlocks为10，则会启动10个Cube核和10个Vector核。 |
-> | KERNEL_TYPE_MIX_AIC_1_2 | AIC、AIV混合场景下，设置核函数的类型为MIX AIC:AIV 1:2，算子执行时会同时启动AI Core上的Cube核和Vector核，比如用户在host侧设置numBlocks为10，则会启动10个Cube核和20个Vector核。 |
-> | KERNEL_TYPE_AICORE | 算子执行时仅会启动AI Core，比如用户在host侧设置numBlocks为5，则会启动5个AI Core。 |
-> | KERNEL_TYPE_VECTORCORE | 该参数为预留参数，当前版本暂不支持。 |
-> | KERNEL_TYPE_MIX_AICORE | 该参数为预留参数，当前版本暂不支持。 |
-> | KERNEL_TYPE_MIX_VECTOR_CORE | 基于Ascend C开发的矢量计算相关的算子可以运行在Vector Core上，调用本接口传入该参数用于使能Vector Core。<br>使能Vector Core后，算子执行时会同时启动AI Core和Vector Core，用于并行计算。比如用户在host侧设置numBlocks为10，则会启动总数为10的AI Core和Vector Core。<br>需要注意的是，通过SetBlockDim设置核数时，需要大于AI Core的核数，否则不会启动VectorCore。 |
+> |参数|说明|
+> |---|---|
+> |KERNEL_TYPE_AIV_ONLY|算子执行时仅启动AI Core上的Vector核：比如用户在host侧设置numBlocks为10，则会启动10个Vector核。|
+> |KERNEL_TYPE_AIC_ONLY|算子执行时仅启动AI Core上的Cube核：比如用户在host侧设置numBlocks为10，则会启动10个Cube核。|
+> |KERNEL_TYPE_MIX_AIV_1_0|AIC、AIV混合场景下，使用了多核控制相关指令时，设置核函数的类型为MIX AIV:AIC 1:0（带有硬同步），算子执行时仅会启动AI Core上的Vector核，比如用户在host侧设置numBlocks为10，则会启动10个Vector核。<br>硬同步的概念解释如下：当不同核之间操作同一块全局内存且可能存在读后写、写后读以及写后写等数据依赖问题时，通过调用SyncAll()函数来插入同步语句来避免上述数据依赖时可能出现的数据读写错误问题。目前多核同步分为硬同步和软同步，硬同步是利用硬件自带的全核同步指令由硬件保证多核同步。|
+> |KERNEL_TYPE_MIX_AIC_1_0|AIC、AIV混合场景下，使用了多核控制相关指令时，设置核函数的类型为MIX AIC:AIV 1:0（带有硬同步），算子执行时仅会启动AI Core上的Cube核，比如用户在host侧设置numBlocks为10，则会启动10个Cube核。|
+> |KERNEL_TYPE_MIX_AIC_1_1|AIC、AIV混合场景下，设置核函数的类型为MIX AIC:AIV 1:1，算子执行时会同时启动AI Core上的Cube核和Vector核，比如用户在host侧设置numBlocks为10，则会启动10个Cube核和10个Vector核。|
+> |KERNEL_TYPE_MIX_AIC_1_2|AIC、AIV混合场景下，设置核函数的类型为MIX AIC:AIV 1:2，算子执行时会同时启动AI Core上的Cube核和Vector核，比如用户在host侧设置numBlocks为10，则会启动10个Cube核和20个Vector核。|
+> |KERNEL_TYPE_AICORE|算子执行时仅会启动AI Core，比如用户在host侧设置numBlocks为5，则会启动5个AI Core。|
+> |KERNEL_TYPE_VECTORCORE|该参数为预留参数，当前版本暂不支持。|
+> |KERNEL_TYPE_MIX_AICORE|该参数为预留参数，当前版本暂不支持。|
+> |KERNEL_TYPE_MIX_VECTOR_CORE|基于Ascend C开发的矢量计算相关的算子可以运行在Vector Core上，调用本接口传入该参数用于使能Vector Core。<br>使能Vector Core后，算子执行时会同时启动AI Core和Vector Core，用于并行计算。比如用户在host侧设置numBlocks为10，则会启动总数为10的AI Core和Vector Core。<br>需要注意的是，通过SetBlockDim设置核数时，需要大于AI Core的核数，否则不会启动VectorCore。|
 
 约束说明 — kernel type 取值约束, verbatim:
 
@@ -586,15 +586,15 @@ Publisher: Huawei / Ascend, CANN Community Edition 9.0, parent topic 「核间�
 
 产品支持情况:
 
-> | 产品 | 是否支持 |
-> | --- | --- |
-> | Atlas 350 加速卡 | √ |
-> | Atlas A3 训练系列产品 / Atlas A3 推理系列产品 | √ |
-> | Atlas A2 训练系列产品 / Atlas A2 推理系列产品 | √ |
-> | Atlas 200I/500 A2 推理产品 | x |
-> | Atlas 推理系列产品 AI Core | x |
-> | Atlas 推理系列产品 Vector Core | x |
-> | Atlas 训练系列产品 | x |
+> |产品|是否支持|
+> |---|---|
+> |Atlas 350 加速卡|√|
+> |Atlas A3 训练系列产品 / Atlas A3 推理系列产品|√|
+> |Atlas A2 训练系列产品 / Atlas A2 推理系列产品|√|
+> |Atlas 200I/500 A2 推理产品|x|
+> |Atlas 推理系列产品 AI Core|x|
+> |Atlas 推理系列产品 Vector Core|x|
+> |Atlas 训练系列产品|x|
 
 功能说明, verbatim:
 
@@ -623,16 +623,16 @@ __aicore__ inline void CrossCoreSetFlag(uint16_t flagId)
 
 表1 模板参数说明:
 
-> | 参数名 | 描述 |
-> | --- | --- |
-> | modeId | 核间同步的模式，取值如下：<br>模式0：AI Core核间的同步控制。<br>模式1：AI Core内部，Vector核（AIV）之间的同步控制。<br>模式2：AI Core内部，Cube核（AIC）与Vector核（AIV）之间的同步控制。<br>模式4：AI Core内部，AIC与AIV之间的同步控制。AIV0与AIV1可单独触发AIC等待。 |
-> | pipe | 设置这条指令所在的流水类型，流水类型可参考硬件流水类型。<br>特别地，PIPE_S流水类型仅Atlas 350 加速卡支持。 |
+> |参数名|描述|
+> |---|---|
+> |modeId|核间同步的模式，取值如下：<br>模式0：AI Core核间的同步控制。<br>模式1：AI Core内部，Vector核（AIV）之间的同步控制。<br>模式2：AI Core内部，Cube核（AIC）与Vector核（AIV）之间的同步控制。<br>模式4：AI Core内部，AIC与AIV之间的同步控制。AIV0与AIV1可单独触发AIC等待。|
+> |pipe|设置这条指令所在的流水类型，流水类型可参考硬件流水类型。<br>特别地，PIPE_S流水类型仅Atlas 350 加速卡支持。|
 
 表2 参数说明 — flagId range:
 
-> | 参数名 | 输入/输出 | 描述 |
-> | --- | --- | --- |
-> | flagId | 输入 | 核间同步的标记。<br>Atlas A2 训练系列产品 / Atlas A2 推理系列产品，取值范围是0-10。<br>Atlas A3 训练系列产品 / Atlas A3 推理系列产品，取值范围是0-10。<br>Atlas 350 加速卡，取值范围如下：<br>AIV0发起的flagId 0-10的CrossCoreSetFlag操作对应AIC CrossCoreWaitFlag中flagId 0-10的操作。<br>AIV1发起的flagId 0-10的CrossCoreSetFlag操作对应AIC CrossCoreWaitFlag中flagId 16-26的操作。<br>AIC发起的flagId 0-10的CrossCoreSetFlag操作对应AIV0 CrossCoreWaitFlag中flagId 0-10的操作。<br>AIC发起的flagId 16-26的CrossCoreSetFlag操作对应AIV1 CrossCoreWaitFlag中flagId 0-10的操作。 |
+> |参数名|输入/输出|描述|
+> |---|---|---|
+> |flagId|输入|核间同步的标记。<br>Atlas A2 训练系列产品 / Atlas A2 推理系列产品，取值范围是0-10。<br>Atlas A3 训练系列产品 / Atlas A3 推理系列产品，取值范围是0-10。<br>Atlas 350 加速卡，取值范围如下：<br>AIV0发起的flagId 0-10的CrossCoreSetFlag操作对应AIC CrossCoreWaitFlag中flagId 0-10的操作。<br>AIV1发起的flagId 0-10的CrossCoreSetFlag操作对应AIC CrossCoreWaitFlag中flagId 16-26的操作。<br>AIC发起的flagId 0-10的CrossCoreSetFlag操作对应AIV0 CrossCoreWaitFlag中flagId 0-10的操作。<br>AIC发起的flagId 16-26的CrossCoreSetFlag操作对应AIV1 CrossCoreWaitFlag中flagId 0-10的操作。|
 
 约束说明, verbatim — the constraints that bind a megakernel:
 
@@ -1333,12 +1333,12 @@ Npugraph_ex, verbatim — the kernel-launch-reduction rationale:
 > - **XliteGraph** is an optional graph path for selected model families and environments.
 > - In context parallel scenarios, `cudagraph_mode="FULL"` is not sufficiently supported yet.
 
-> | `cudagraph_mode` | Compile-time | Runtime | Npugraph_ex |
-> | --- | --- | --- | --- |
-> | FULL_AND_PIECEWISE | Piecewise compilation path | Mixed: PIECEWISE for mixed batches, FULL-capable for uniform decode batches | Disabled |
-> | FULL / FULL_DECODE_ONLY | Npugraph_ex FX optimization | ACLGraph capture/replay | Enabled |
-> | PIECEWISE | Fusion pass only | ACLGraph capture/replay | Disabled |
-> | NONE | None | Eager execution | Disabled |
+> |`cudagraph_mode`|Compile-time|Runtime|Npugraph_ex|
+> |---|---|---|---|
+> |FULL_AND_PIECEWISE|Piecewise compilation path|Mixed: PIECEWISE for mixed batches, FULL-capable for uniform decode batches|Disabled|
+> |FULL / FULL_DECODE_ONLY|Npugraph_ex FX optimization|ACLGraph capture/replay|Enabled|
+> |PIECEWISE|Fusion pass only|ACLGraph capture/replay|Disabled|
+> |NONE|None|Eager execution|Disabled|
 
 > Ascend sets `use_inductor=False` and selects its own compilation backend. That backend applies npugraph_ex optimizations or FX fusion passes according to the configuration.
 
@@ -1450,32 +1450,32 @@ Benchmark entries attached to that config, verbatim:
 
 https://raw.githubusercontent.com/vllm-project/vllm-ascend/v0.11.0rc0/docs/source/user_guide/configuration/additional_config.md
 
-> | Name | Type | Default | Description |
-> | ------------------------------- | ---- | ------ | ----------------------------------------------------------------------------------------------- |
-> | `torchair_graph_config` | dict | `{}` | The config options for torchair graph mode |
-> | `ascend_scheduler_config` | dict | `{}` | The config options for ascend scheduler |
-> | `refresh` | bool | `false` | Whether to refresh global ascend config content. This value is usually used by rlhf or ut/e2e test case. |
-> | `expert_map_path` | str | `None` | When using expert load balancing for the MOE model, an expert map path needs to be passed in. |
-> | `enable_prefetch` | bool | `False` | Whether to enable weight prefetch. |
-> | `kv_cache_dtype` | str | `None` | When using the kv cache quantization method, kv cache dtype needs to be set, currently only int8 is supported. |
-> | `enable_shared_expert_dp` | bool | `False` | When the shared expert in DP, it has better performance but consumes more memory. Currently only DeepSeek series models are supported to use. |
-> | `lmhead_tensor_parallel_size` | int | `None` | The custom tensor parallel size of lmhead. |
-> | `oproj_tensor_parallel_size` | int | `None` | The custom tensor parallel size of oproj. |
-> | `multistream_overlap_shared_expert` | bool | `False` | Whether to enable multistream shared expert. This option only takes effects on moe models with shared experts. |
+> |Name|Type|Default|Description|
+> |---|---|---|---|
+> |`torchair_graph_config`|dict|`{}`|The config options for torchair graph mode|
+> |`ascend_scheduler_config`|dict|`{}`|The config options for ascend scheduler|
+> |`refresh`|bool|`false`|Whether to refresh global ascend config content. This value is usually used by rlhf or ut/e2e test case.|
+> |`expert_map_path`|str|`None`|When using expert load balancing for the MOE model, an expert map path needs to be passed in.|
+> |`enable_prefetch`|bool|`False`|Whether to enable weight prefetch.|
+> |`kv_cache_dtype`|str|`None`|When using the kv cache quantization method, kv cache dtype needs to be set, currently only int8 is supported.|
+> |`enable_shared_expert_dp`|bool|`False`|When the shared expert in DP, it has better performance but consumes more memory. Currently only DeepSeek series models are supported to use.|
+> |`lmhead_tensor_parallel_size`|int|`None`|The custom tensor parallel size of lmhead.|
+> |`oproj_tensor_parallel_size`|int|`None`|The custom tensor parallel size of oproj.|
+> |`multistream_overlap_shared_expert`|bool|`False`|Whether to enable multistream shared expert. This option only takes effects on moe models with shared experts.|
 
 > **torchair_graph_config**
 >
-> | Name | Type | Default | Description |
-> | ---- | ---- | ------- | ----------- |
-> | `enabled` | bool | `False` | Whether to enable torchair graph mode. Currently only DeepSeek series models and PanguProMoE are supported to use torchair graph mode |
-> | `mode` | str | `None` | When using reduce-overhead mode for torchair, mode needs to be set |
-> | `enable_multistream_mla` | bool | `False` | Whether to put vector ops of MLA to another stream. This option only takes effects on models using MLA (e.g., DeepSeek). |
-> | `enable_view_optimize` | bool | `True` | Whether to enable torchair view optimization |
-> | `enable_frozen_parameter` | bool | `True` | Whether to fix the memory address of weights during inference to reduce the input address refresh time during graph execution. |
-> | `use_cached_graph` | bool | `False` | Whether to use cached graph |
-> | `graph_batch_sizes` | list[int] | `[]` | The batch size for torchair graph cache |
-> | `graph_batch_sizes_init` | bool | `False` | Init graph batch size dynamically if `graph_batch_sizes` is empty |
-> | `enable_kv_nz` | bool | `False` | Whether to enable kvcache NZ layout. This option only takes effects on models using MLA (e.g., DeepSeek). |
+> |Name|Type|Default|Description|
+> |---|---|---|---|
+> |`enabled`|bool|`False`|Whether to enable torchair graph mode. Currently only DeepSeek series models and PanguProMoE are supported to use torchair graph mode|
+> |`mode`|str|`None`|When using reduce-overhead mode for torchair, mode needs to be set|
+> |`enable_multistream_mla`|bool|`False`|Whether to put vector ops of MLA to another stream. This option only takes effects on models using MLA (e.g., DeepSeek).|
+> |`enable_view_optimize`|bool|`True`|Whether to enable torchair view optimization|
+> |`enable_frozen_parameter`|bool|`True`|Whether to fix the memory address of weights during inference to reduce the input address refresh time during graph execution.|
+> |`use_cached_graph`|bool|`False`|Whether to use cached graph|
+> |`graph_batch_sizes`|list[int]|`[]`|The batch size for torchair graph cache|
+> |`graph_batch_sizes_init`|bool|`False`|Init graph batch size dynamically if `graph_batch_sizes` is empty|
+> |`enable_kv_nz`|bool|`False`|Whether to enable kvcache NZ layout. This option only takes effects on models using MLA (e.g., DeepSeek).|
 
 Earlier doc versions (v0.9.1 / v0.11.0 published docs) described the option as:
 
@@ -1627,23 +1627,23 @@ ICache / DCache / L2 — exact figures as published, verbatim:
 
 存储单元 table, verbatim:
 
-> | 存储单元 | 描述 |
-> | --- | --- |
-> | L1 Buffer | L1缓冲区，通用内部存储，是AI Core内比较大的一块数据中转区，可暂存Cube计算单元需要反复使用的一些数据从而减少从总线读写的次数。 |
-> | L0A Buffer / L0B Buffer | Cube指令的输入。 |
-> | L0C Buffer | Cube指令的输出，但进行累加计算的时候，也是输入的一部分。 |
-> | Unified Buffer | 统一缓冲区，向量和标量计算的输入和输出。 |
-> | BT Buffer | BiasTable Buffer，存放矩阵计算中的Bias。 |
-> | FP Buffer | Fixpipe Buffer，存放量化参数、Relu参数等。 |
+> |存储单元|描述|
+> |---|---|
+> |L1 Buffer|L1缓冲区，通用内部存储，是AI Core内比较大的一块数据中转区，可暂存Cube计算单元需要反复使用的一些数据从而减少从总线读写的次数。|
+> |L0A Buffer / L0B Buffer|Cube指令的输入。|
+> |L0C Buffer|Cube指令的输出，但进行累加计算的时候，也是输入的一部分。|
+> |Unified Buffer|统一缓冲区，向量和标量计算的输入和输出。|
+> |BT Buffer|BiasTable Buffer，存放矩阵计算中的Bias。|
+> |FP Buffer|Fixpipe Buffer，存放量化参数、Relu参数等。|
 
 搬运单元 table, verbatim:
 
-> | 搬运单元 | 描述 |
-> | --- | --- |
-> | MTE1 | 负责如下通路的数据搬运：<br>L1->L0A/L0B<br>L1->BT Buffer |
-> | MTE2 | 负责如下通路的数据搬运：<br>GM->{L1, L0A/B}，在该通路下，基于分形大小搬运，搬运时满足Cache Line大小对齐，性能更优。<br>GM->UB，基于Cache Line大小搬运性能更优。 |
-> | MTE3 | 负责如下通路的数据搬运：<br>UB -> GM |
-> | FixPipe | 负责如下通路的数据搬运，搬运过程中可以完成随路数据格式/类型转换：<br>L0C->{GM/L1}<br>L1->FP Buffer |
+> |搬运单元|描述|
+> |---|---|
+> |MTE1|负责如下通路的数据搬运：<br>L1->L0A/L0B<br>L1->BT Buffer|
+> |MTE2|负责如下通路的数据搬运：<br>GM->{L1, L0A/B}，在该通路下，基于分形大小搬运，搬运时满足Cache Line大小对齐，性能更优。<br>GM->UB，基于Cache Line大小搬运性能更优。|
+> |MTE3|负责如下通路的数据搬运：<br>UB -> GM|
+> |FixPipe|负责如下通路的数据搬运，搬运过程中可以完成随路数据格式/类型转换：<br>L0C->{GM/L1}<br>L1->FP Buffer|
 
 > 不同类型的AI处理器，存储单元大小不同，开发者可通过GetCoreMemSize接口获取。
 >
@@ -1706,15 +1706,15 @@ The decisive sentence for megakernel data flow, verbatim:
 
 各存储单元的最小访问粒度（对齐要求）, verbatim:
 
-> | 核 | 存储单元 | 对齐要求 |
-> | --- | --- | --- |
-> | AIV | Unified Buffer | 32Byte对齐。 |
-> | AIC | L1 Buffer | 32Byte对齐。 |
-> | AIC | L0A Buffer | 512Byte对齐。 |
-> | AIC | L0B Buffer | 512Byte对齐。 |
-> | AIC | L0C Buffer | 64Byte对齐。 |
-> | AIC | BiasTable Buffer | 64Byte对齐。 |
-> | AIC | Fixpipe Buffer | 64Byte对齐。 |
+> |核|存储单元|对齐要求|
+> |---|---|---|
+> |AIV|Unified Buffer|32Byte对齐。|
+> |AIC|L1 Buffer|32Byte对齐。|
+> |AIC|L0A Buffer|512Byte对齐。|
+> |AIC|L0B Buffer|512Byte对齐。|
+> |AIC|L0C Buffer|64Byte对齐。|
+> |AIC|BiasTable Buffer|64Byte对齐。|
+> |AIC|Fixpipe Buffer|64Byte对齐。|
 
 > 各存储单元推荐使用的数据排布格式
 >
@@ -1851,15 +1851,15 @@ Parent topic 「核间同步」, whose TOC (https://www.hiascend.com/doc_center/
 
 产品支持情况 — note the two separate columns, 软同步原型 and 硬同步原型:
 
-> | 产品 | 是否支持（软同步原型） | 是否支持（硬同步原型） |
-> | --- | --- | --- |
-> | Atlas 350 加速卡 | √ | √ |
-> | Atlas A3 训练系列产品 / Atlas A3 推理系列产品 | √ | √ |
-> | Atlas A2 训练系列产品 / Atlas A2 推理系列产品 | √ | √ |
-> | Atlas 200I/500 A2 推理产品 | x | x |
-> | Atlas 推理系列产品 AI Core | √ | x |
-> | Atlas 推理系列产品 Vector Core | x | x |
-> | Atlas 训练系列产品 | √ | x |
+> |产品|是否支持（软同步原型）|是否支持（硬同步原型）|
+> |---|---|---|
+> |Atlas 350 加速卡|√|√|
+> |Atlas A3 训练系列产品 / Atlas A3 推理系列产品|√|√|
+> |Atlas A2 训练系列产品 / Atlas A2 推理系列产品|√|√|
+> |Atlas 200I/500 A2 推理产品|x|x|
+> |Atlas 推理系列产品 AI Core|√|x|
+> |Atlas 推理系列产品 Vector Core|x|x|
+> |Atlas 训练系列产品|√|x|
 
 功能说明, verbatim:
 
@@ -1879,18 +1879,18 @@ __aicore__ inline void SyncAll()
 
 表1 模板参数说明, verbatim:
 
-> | 参数名 | 描述 |
-> | --- | --- |
-> | isAIVOnly | 控制SyncAll作用于纯Vector算子或融合（Cube和Vector融合）算子。可选值：<br>true（默认值）：纯Vector算子的全核同步，仅执行Vector核的全核同步。<br>false：融合算子的全核同步，先分别完成Vector核和Cube核的全核同步，再执行两者之间的同步（软同步接口不支持此功能）。 |
-> | config | 控制SyncAll函数的行为 ，在多个AI Core之间进行流水线同步时，指定哪些管道（pipe）用于触发和等待。<br>triggerPipe：指定哪个管道用于"发送触发信号"。<br>waitPipe：指定哪个管道用于"接收等待信号"。<br>默认为SyncAllConfig DEFAULT_SYNC_ALL_CONFIG= {PIPE_ALL, PIPE_ALL} ，使用全部管道来进行触发和等待行为。<br>该参数仅支持如下型号：<br>Atlas 350 加速卡 |
+> |参数名|描述|
+> |---|---|
+> |isAIVOnly|控制SyncAll作用于纯Vector算子或融合（Cube和Vector融合）算子。可选值：<br>true（默认值）：纯Vector算子的全核同步，仅执行Vector核的全核同步。<br>false：融合算子的全核同步，先分别完成Vector核和Cube核的全核同步，再执行两者之间的同步（软同步接口不支持此功能）。|
+> |config|控制SyncAll函数的行为 ，在多个AI Core之间进行流水线同步时，指定哪些管道（pipe）用于触发和等待。<br>triggerPipe：指定哪个管道用于"发送触发信号"。<br>waitPipe：指定哪个管道用于"接收等待信号"。<br>默认为SyncAllConfig DEFAULT_SYNC_ALL_CONFIG= {PIPE_ALL, PIPE_ALL} ，使用全部管道来进行触发和等待行为。<br>该参数仅支持如下型号：<br>Atlas 350 加速卡|
 
 表2 参数说明, verbatim:
 
-> | 参数名称 | 输入/输出 | 含义 |
-> | --- | --- | --- |
-> | gmWorkspace | 输入 | gmWorkspace为用户定义的全局Global空间，作为所有核共用的缓存，用于保存每个核的状态标记，类型为GlobalTensor，支持的数据类型为int32_t。所需空间大小和使用注意项参见约束说明。硬同步接口不支持该参数。 |
-> | ubWorkspace | 输入 | ubWorkspace为用户定义的局部Local空间，每个核单独自用，用于标记当前核的状态。类型为LocalTensor，支持的TPosition为VECIN/VECCALC/VECOUT，支持的数据类型为int32_t。所需空间大小参见约束说明。硬同步接口不支持该参数。 |
-> | usedCores | 输入 | 指定多少个核之间的同步，传入数值不能超过算子调用时指定的逻辑numBlocks。此参数为默认参数，不传此参数表示全核软同步。仅在软同步接口中支持，硬同步接口不支持该参数。 |
+> |参数名称|输入/输出|含义|
+> |---|---|---|
+> |gmWorkspace|输入|gmWorkspace为用户定义的全局Global空间，作为所有核共用的缓存，用于保存每个核的状态标记，类型为GlobalTensor，支持的数据类型为int32_t。所需空间大小和使用注意项参见约束说明。硬同步接口不支持该参数。|
+> |ubWorkspace|输入|ubWorkspace为用户定义的局部Local空间，每个核单独自用，用于标记当前核的状态。类型为LocalTensor，支持的TPosition为VECIN/VECCALC/VECOUT，支持的数据类型为int32_t。所需空间大小参见约束说明。硬同步接口不支持该参数。|
+> |usedCores|输入|指定多少个核之间的同步，传入数值不能超过算子调用时指定的逻辑numBlocks。此参数为默认参数，不传此参数表示全核软同步。仅在软同步接口中支持，硬同步接口不支持该参数。|
 
 约束说明, verbatim:
 
@@ -1945,12 +1945,12 @@ https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/900/API/ascen
 __aicore__ inline void IBSet(const GlobalTensor<int32_t>& gmWorkspace, const LocalTensor<int32_t>& ubWorkspace, int32_t blockIdx, int32_t eventID)
 ```
 
-> | 参数名 | 输入/输出 | 描述 |
-> | --- | --- | --- |
-> | gmWorkspace | 输出 | 外部存储核状态的公共缓存，类型为GlobalTensor。 |
-> | ubWorkspace | 输入 | 存储当前核状态的公共缓存。类型为LocalTensor，支持的TPosition为VECIN/VECCALC/VECOUT。 |
-> | blockIdx | 输入 | 表示等待核的idx号，取值范围：[0, 核数-1]。 |
-> | eventID | 输入 | 用来控制当前核的set、wait事件。 |
+> |参数名|输入/输出|描述|
+> |---|---|---|
+> |gmWorkspace|输出|外部存储核状态的公共缓存，类型为GlobalTensor。|
+> |ubWorkspace|输入|存储当前核状态的公共缓存。类型为LocalTensor，支持的TPosition为VECIN/VECCALC/VECOUT。|
+> |blockIdx|输入|表示等待核的idx号，取值范围：[0, 核数-1]。|
+> |eventID|输入|用来控制当前核的set、wait事件。|
 
 约束说明, verbatim — the exact workspace sizing formula:
 
@@ -2005,9 +2005,9 @@ Parent topic 「缓存控制」 (sibling: `DataCachePreload`).
 __aicore__ inline void ICachePreLoad(const int64_t preFetchLen)
 ```
 
-> | 参数名 | 输入/输出 | 描述 |
-> | --- | --- | --- |
-> | preFetchLen | 输入 | 预取长度。<br>针对Atlas A2 训练系列产品/Atlas A2 推理系列产品：preFetchLen参数单位为2K Byte, 取值应小于ICache的大小/2K。AIC和AIV的ICache大小分别为32KB和16KB。<br>针对Atlas A3 训练系列产品/Atlas A3 推理系列产品：preFetchLen参数单位为2K Byte, 取值应小于ICache的大小/2K。AIC和AIV的ICache大小分别为32KB和16KB。<br>针对Atlas 推理系列产品AI Core：传入该参数无效，预取长度均为128Byte。<br>针对Atlas 350 加速卡：preFetchLen参数单位为2K Byte, 取值应小于ICache的大小/2K。AIC和AIV的ICache大小分别为32KB和16KB。 |
+> |参数名|输入/输出|描述|
+> |---|---|---|
+> |preFetchLen|输入|预取长度。<br>针对Atlas A2 训练系列产品/Atlas A2 推理系列产品：preFetchLen参数单位为2K Byte, 取值应小于ICache的大小/2K。AIC和AIV的ICache大小分别为32KB和16KB。<br>针对Atlas A3 训练系列产品/Atlas A3 推理系列产品：preFetchLen参数单位为2K Byte, 取值应小于ICache的大小/2K。AIC和AIV的ICache大小分别为32KB和16KB。<br>针对Atlas 推理系列产品AI Core：传入该参数无效，预取长度均为128Byte。<br>针对Atlas 350 加速卡：preFetchLen参数单位为2K Byte, 取值应小于ICache的大小/2K。AIC和AIV的ICache大小分别为32KB和16KB。|
 
 > 产品支持情况: Atlas 350 加速卡 √ / Atlas A3 训练系列产品/Atlas A3 推理系列产品 √ / Atlas A2 训练系列产品/Atlas A2 推理系列产品 √ / Atlas 200I/500 A2 推理产品 x / Atlas 推理系列产品AI Core √ / Atlas 推理系列产品Vector Core x / Atlas 训练系列产品 x
 
@@ -2112,12 +2112,12 @@ TYPE for A3, verbatim — note `int4b_t` is supported for A and B:
 
 表2 Matmul输入输出数据类型的支持列表 (relevant rows, verbatim):
 
-> | A矩阵 | B矩阵 | Bias | C矩阵 | 支持平台 |
-> | --- | --- | --- | --- | --- |
-> | int8_t | int8_t | int32_t | int32_t/half | Atlas 350 加速卡 / Atlas A3 训练系列产品 / Atlas A3 推理系列产品 / Atlas A2 训练系列产品 / Atlas A2 推理系列产品 / Atlas 推理系列产品 AI Core / Atlas 200I/500 A2 推理产品 |
-> | int4b_t | int4b_t | int32_t | int32_t/half | Atlas A3 训练系列产品 / Atlas A3 推理系列产品 / Atlas A2 训练系列产品 / Atlas A2 推理系列产品 |
-> | half | half | float | float | ... |
-> | bfloat16_t | bfloat16_t | float | float | ... |
+> |A矩阵|B矩阵|Bias|C矩阵|支持平台|
+> |---|---|---|---|---|
+> |int8_t|int8_t|int32_t|int32_t/half|Atlas 350 加速卡 / Atlas A3 训练系列产品 / Atlas A3 推理系列产品 / Atlas A2 训练系列产品 / Atlas A2 推理系列产品 / Atlas 推理系列产品 AI Core / Atlas 200I/500 A2 推理产品|
+> |int4b_t|int4b_t|int32_t|int32_t/half|Atlas A3 训练系列产品 / Atlas A3 推理系列产品 / Atlas A2 训练系列产品 / Atlas A2 推理系列产品|
+> |half|half|float|float|...|
+> |bfloat16_t|bfloat16_t|float|float|...|
 
 L1 budget formula for the transpose case, verbatim:
 
@@ -2240,10 +2240,10 @@ was reachable; the `zh` path returns AccessDenied.)
 >
 > The operator specifications are as follows.
 >
-> | Input | Shape | Data type | Format |
-> | --- | --- | --- | --- |
-> | a | 32, 2048 | float16 | ND |
-> | b | 2048, 32 | float16 | ND |
+> |Input|Shape|Data type|Format|
+> |---|---|---|---|
+> |a|32, 2048|float16|ND|
+> |b|2048, 32|float16|ND|
 >
 > For more examples of enabling Matmul static tiling, see matmul_api_constant.
 >
@@ -2304,10 +2304,10 @@ template<class A_TYPE, class B_TYPE, class C_TYPE, class BIAS_TYPE>
 __aicore__ constexpr MatmulApiStaticTiling GetMatmulApiTiling(const MatmulConfig& mmCFG, int32_t l1Size = Impl::L1_SIZE)
 ```
 
-> | 参数名 | 输入/输出 | 描述 |
-> | --- | --- | --- |
-> | mmCFG | 输入 | 获取的MatmulConfig模板。<br>对于Atlas 350 加速卡，支持常量化的为全部模板：Norm, IBShare, MDL模板。<br>对于Atlas A3 训练系列产品/Atlas A3 推理系列产品，支持常量化的模板有：Norm, MDL模板。<br>对于Atlas A2 训练系列产品/Atlas A2 推理系列产品，支持常量化的模板有：Norm, MDL模板。 |
-> | l1Size | 输入 | 可用的L1大小，默认值L1_SIZE。 |
+> |参数名|输入/输出|描述|
+> |---|---|---|
+> |mmCFG|输入|获取的MatmulConfig模板。<br>对于Atlas 350 加速卡，支持常量化的为全部模板：Norm, IBShare, MDL模板。<br>对于Atlas A3 训练系列产品/Atlas A3 推理系列产品，支持常量化的模板有：Norm, MDL模板。<br>对于Atlas A2 训练系列产品/Atlas A2 推理系列产品，支持常量化的模板有：Norm, MDL模板。|
+> |l1Size|输入|可用的L1大小，默认值L1_SIZE。|
 
 约束说明, verbatim:
 
@@ -2489,11 +2489,11 @@ add_custom<<<8, nullptr, stream>>>(x, y, z);
 Compiler architecture flag, from `cann/asc-devkit` `examples/README.md`
 (https://raw.gitcode.com/cann/asc-devkit/raw/master/examples/README.md):
 
-> | 产品型号 | npu-arch参数 |
-> | ---- | ---- |
-> | Ascend 950PR&950DT系列产品 | --npu-arch=dav-3510 |
-> | Atlas A3系列产品<br>Atlas A2系列产品 | --npu-arch=dav-2201 |
-> | Atlas推理系列产品AI Core | --npu-arch=dav-2002 |
+> |产品型号|npu-arch参数|
+> |---|---|
+> |Ascend 950PR&950DT系列产品|--npu-arch=dav-3510|
+> |Atlas A3系列产品<br>Atlas A2系列产品|--npu-arch=dav-2201|
+> |Atlas推理系列产品AI Core|--npu-arch=dav-2002|
 
 ## Relevance
 `blockDim` for a MIX kernel counts **groups**, not cores: one group = 1 AIC + 2 AIV, and 「blockDim (logical cores)
@@ -2518,11 +2518,11 @@ Repo `cann/asc-devkit`, branch `master`.
 >
 > ## 本样例支持的产品及CANN软件版本
 >
-> | 产品 | CANN软件版本 |
-> | ------ | ------------- |
-> | Ascend 950PR&950DT系列产品 | >= CANN 9.2.0 |
-> | Atlas A3系列产品 | >= CANN 9.2.0 |
-> | Atlas A2系列产品 | >= CANN 9.2.0 |
+> |产品|CANN软件版本|
+> |---|---|
+> |Ascend 950PR&950DT系列产品|>= CANN 9.2.0|
+> |Atlas A3系列产品|>= CANN 9.2.0|
+> |Atlas A2系列产品|>= CANN 9.2.0|
 
 Operator spec, verbatim: `x [8192, 1024] int8 ND`, `weight [8, 1024, 8192] int8 NZ`, `group [8] int64 ND`,
 `scale [8, 8192] float ND`, `perTokenScale [8192] float ND`, output `y [8192, 8192] float16 ND`,
@@ -2530,11 +2530,11 @@ kernel name `quant_group_matmul_custom`, invoked via `<<<>>>`.
 
 Scenario matrix, verbatim:
 
-> | 场景 | SCENARIO_NUM | __mix__模式 | PIPELINE_DEPTH | 说明 |
-> | ------ | ------------- | ------------ | ---------------- | ------ |
-> | Scenario 0 | 0 | `__mix__(1, 1)` | 1 | 基准：单AIV，无流水重叠，Cube与Vector串行 |
-> | Scenario 1 | 1 | `__mix__(1, 2)` | 1 | 双AIV，无流水重叠，多AIV分摊Vector任务 |
-> | Scenario 2 | 2 | `__mix__(1, 2)` | 4 | 双AIV + 4级流水，Cube-Vector细粒度流水重叠 |
+> |场景|SCENARIO_NUM|__mix__模式|PIPELINE_DEPTH|说明|
+> |---|---|---|---|---|
+> |Scenario 0|0|`__mix__(1, 1)`|1|基准：单AIV，无流水重叠，Cube与Vector串行|
+> |Scenario 1|1|`__mix__(1, 2)`|1|双AIV，无流水重叠，多AIV分摊Vector任务|
+> |Scenario 2|2|`__mix__(1, 2)`|4|双AIV + 4级流水，Cube-Vector细粒度流水重叠|
 
 ```cpp
 constexpr uint32_t scenarioNum = SCENARIO_NUM;
@@ -2666,19 +2666,19 @@ Vec:                 |─Slot0处理─|─Slot1处理─|─Slot2处理─|─S
 
 ### Measured numbers — Atlas A2 training series (DAV_2201, same arch as our A3), verbatim
 
-> | Scenario | Task Type | Task Duration(μs) | Block Num | Mix Block Num | aicore_time(μs) | aic_mac_time(μs) | aic_mac_ratio | aic_scalar_time(μs) | aic_scalar_ratio | aic_mte1_time(μs) | aic_mte1_ratio | aic_mte2_time(μs) | aic_mte2_ratio | aic_fixpipe_time(μs) | aic_fixpipe_ratio | aiv_time(μs) | aiv_vec_time(μs) | aiv_vec_ratio | aiv_scalar_time(μs) | aiv_scalar_ratio | aiv_mte2_time(μs) | aiv_mte2_ratio | aiv_mte3_time(μs) | aiv_mte3_ratio |
-> | ------ | ----------- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-> | Scenario 0 | MIX_AIC | 583.512 | 24 | 24 | 564.06 | 192.02 | 0.34 | 115.317 | 0.204 | 168.645 | 0.299 | 141.648 | 0.251 | 79.47 | 0.141 | 565.12 | 471.71 | 0.835 | 228.275 | 0.404 | 139.25 | 0.246 | 94.682 | 0.168 |
-> | Scenario 1 | MIX_AIC | 353.887 | 24 | 48 | 344.01 | 192.612 | 0.56 | 143.518 | 0.417 | 170.031 | 0.494 | 160.396 | 0.466 | 107.662 | 0.313 | 345.22 | 235.871 | 0.683 | 122.424 | 0.355 | 107.715 | 0.312 | 56.494 | 0.164 |
-> | Scenario 2 | MIX_AIC | 299.286 | 24 | 48 | 288.65 | 193.576 | 0.671 | 196.668 | 0.681 | 173.003 | 0.599 | 170.193 | 0.59 | 167.936 | 0.582 | 285.21 | 235.872 | 0.827 | 126.227 | 0.443 | 99.321 | 0.348 | 56.645 | 0.199 |
+> |Scenario|Task Type|Task Duration(μs)|Block Num|Mix Block Num|aicore_time(μs)|aic_mac_time(μs)|aic_mac_ratio|aic_scalar_time(μs)|aic_scalar_ratio|aic_mte1_time(μs)|aic_mte1_ratio|aic_mte2_time(μs)|aic_mte2_ratio|aic_fixpipe_time(μs)|aic_fixpipe_ratio|aiv_time(μs)|aiv_vec_time(μs)|aiv_vec_ratio|aiv_scalar_time(μs)|aiv_scalar_ratio|aiv_mte2_time(μs)|aiv_mte2_ratio|aiv_mte3_time(μs)|aiv_mte3_ratio|
+> |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+> |Scenario 0|MIX_AIC|583.512|24|24|564.06|192.02|0.34|115.317|0.204|168.645|0.299|141.648|0.251|79.47|0.141|565.12|471.71|0.835|228.275|0.404|139.25|0.246|94.682|0.168|
+> |Scenario 1|MIX_AIC|353.887|24|48|344.01|192.612|0.56|143.518|0.417|170.031|0.494|160.396|0.466|107.662|0.313|345.22|235.871|0.683|122.424|0.355|107.715|0.312|56.494|0.164|
+> |Scenario 2|MIX_AIC|299.286|24|48|288.65|193.576|0.671|196.668|0.681|173.003|0.599|170.193|0.59|167.936|0.582|285.21|235.872|0.827|126.227|0.443|99.321|0.348|56.645|0.199|
 
 ### Measured numbers — Ascend 950PR (DAV_3510), verbatim
 
-> | Scenario | Task Type | Task Duration(μs) | Block Num | Mix Block Num | aicore_time(μs) | aic_mac_time(μs) | aic_mac_ratio | ... | aiv_vec_time(μs) | aiv_vec_ratio | ... |
-> | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-> | Scenario 0 | MIX_AIC | 282.717 | 32 | 32 | 281.84 | 167.952 | 0.596 | | 229.166 | 0.813 | |
-> | Scenario 1 | MIX_AIC | 224.125 | 32 | 64 | 223.27 | 168.201 | 0.753 | | 112.441 | 0.504 | |
-> | Scenario 2 | MIX_AIC | 204.129 | 32 | 64 | 203.26 | 180.347 | 0.887 | | 112.218 | 0.552 | |
+> |Scenario|Task Type|Task Duration(μs)|Block Num|Mix Block Num|aicore_time(μs)|aic_mac_time(μs)|aic_mac_ratio|...|aiv_vec_time(μs)|aiv_vec_ratio|...|
+> |---|---|---|---|---|---|---|---|---|---|---|---|
+> |Scenario 0|MIX_AIC|282.717|32|32|281.84|167.952|0.596||229.166|0.813||
+> |Scenario 1|MIX_AIC|224.125|32|64|223.27|168.201|0.753||112.441|0.504||
+> |Scenario 2|MIX_AIC|204.129|32|64|203.26|180.347|0.887||112.218|0.552||
 
 性能分析总结, verbatim:
 
@@ -2690,10 +2690,10 @@ Vec:                 |─Slot0处理─|─Slot1处理─|─Slot2处理─|─S
 >
 > T_cube = (M × N × K) / (16 × 32 × 16 × f × CORE_NUM)
 >
-> | 芯片 | CORE_NUM | 理论Cube耗时(μs) | aic_mac_time(μs) | aic_mac_ratio | aiv_vec_time(μs) | 达到理论峰值比例 | 瓶颈判断 |
-> | ------ | ---------- | ------------------ | ------------------ | --------------- | ------------------ | ---------------- | ---------- |
-> | Atlas A2/A3（DAV_2201） | 24 | 188.93 | 193.576 | 0.671 | 235.872 | 97.60% | 仍偏Vector侧 |
-> | Ascend 950PR（DAV_3510） | 32 | 158.88 | 180.347 | 0.887 | 112.218 | 88.10% | 不再是Vector侧 |
+> |芯片|CORE_NUM|理论Cube耗时(μs)|aic_mac_time(μs)|aic_mac_ratio|aiv_vec_time(μs)|达到理论峰值比例|瓶颈判断|
+> |---|---|---|---|---|---|---|---|
+> |Atlas A2/A3（DAV_2201）|24|188.93|193.576|0.671|235.872|97.60%|仍偏Vector侧|
+> |Ascend 950PR（DAV_3510）|32|158.88|180.347|0.887|112.218|88.10%|不再是Vector侧|
 >
 > Atlas A2/A3上表现不同：Scenario 2中`aiv_vec_time`为235.872μs，高于`aic_mac_time`的193.576μs，`aiv_vec_ratio`也达到0.827，说明Vector侧的反量化、per-token缩放、FasterGelu和Cast链路仍然占据较大比例，整体仍偏Vector侧瓶颈。与此同时，A2实测Cube计算耗时193.576μs已经接近理论Cube耗时188.93μs，达到理论峰值约97.60%，说明Cube矩阵乘本身已经较充分利用，继续优化端到端性能需要优先关注Vector侧计算链路和Cube-Vector同步开销。
 >
@@ -2701,20 +2701,20 @@ Vec:                 |─Slot0处理─|─Slot1处理─|─Slot2处理─|─S
 
 Profiling metric definitions, verbatim (useful for reading our own traces):
 
-> | 指标 | 说明 |
-> | --- | --- |
-> | Task Duration(μs) | 整个任务执行的总时间，样例执行时间以该参数为准 |
-> | Block Num | 使用的核数（Block 数量） |
-> | aicore_time(μs) | AI Core 的平均执行时间 |
-> | aic_mac_time(μs) | cube 类型指令（矩阵类运算指令）耗时 |
-> | aic_mte1_time(μs) | mte1 类型指令（L1 -> L0A/L0B 搬运）耗时 |
-> | aic_mte2_time(μs) | mte2 类型指令（GM -> L1 搬运）耗时 |
-> | aic_fixpipe_time(μs) | fixpipe 类型指令（L0C -> GM/UB 搬运）耗时 |
-> | aiv_time(μs) | Task 在 AI Vector Core 上的执行时间 |
-> | aiv_vec_time(μs) | vec 类型指令（向量类运算指令）耗时 |
-> | aiv_scalar_time(μs) | scalar 类型指令（标量类运算指令）耗时 |
-> | aiv_mte2_time(μs) | mte2 类型指令（GM -> UB 搬运类指令）耗时 |
-> | aiv_mte3_time(μs) | mte3 类型指令（UB -> GM 搬运类指令）耗时 |
+> |指标|说明|
+> |---|---|
+> |Task Duration(μs)|整个任务执行的总时间，样例执行时间以该参数为准|
+> |Block Num|使用的核数（Block 数量）|
+> |aicore_time(μs)|AI Core 的平均执行时间|
+> |aic_mac_time(μs)|cube 类型指令（矩阵类运算指令）耗时|
+> |aic_mte1_time(μs)|mte1 类型指令（L1 -> L0A/L0B 搬运）耗时|
+> |aic_mte2_time(μs)|mte2 类型指令（GM -> L1 搬运）耗时|
+> |aic_fixpipe_time(μs)|fixpipe 类型指令（L0C -> GM/UB 搬运）耗时|
+> |aiv_time(μs)|Task 在 AI Vector Core 上的执行时间|
+> |aiv_vec_time(μs)|vec 类型指令（向量类运算指令）耗时|
+> |aiv_scalar_time(μs)|scalar 类型指令（标量类运算指令）耗时|
+> |aiv_mte2_time(μs)|mte2 类型指令（GM -> UB 搬运类指令）耗时|
+> |aiv_mte3_time(μs)|mte3 类型指令（UB -> GM 搬运类指令）耗时|
 
 ### Sibling example that does the same for an activation chain
 
@@ -2731,9 +2731,9 @@ https://gitcode.com/cann/asc-devkit/blob/master/examples/01_simd_cpp_api/05_best
 >
 > 本样例演示基础API场景下如何在同一个`__mix__(1, 2)`任务中使用SSBuffer实现AIV到AIC的消息通信。任务包含1个AIC和2个AIV，两个AIV分别通过独立的环形消息队列发送消息，AIC接收并检查消息，最后将结果写入GM，由Host侧逐条校验。
 >
-> | 产品 | CANN软件版本 |
-> | ------ | ------------- |
-> | Ascend 950PR&950DT系列产品 | >= CANN 9.2.0 |
+> |产品|CANN软件版本|
+> |---|---|
+> |Ascend 950PR&950DT系列产品|>= CANN 9.2.0|
 >
 > 本样例固定使用`dav-3510`架构，仅支持NPU和仿真运行模式。
 >
@@ -2814,11 +2814,11 @@ Repo `cann/asc-devkit`, branch `master`. Kernel file `mmad_gelu.asc`, kernel nam
 >
 > 本样例基于静态Tensor编程范式，展示了Cube-Vector（CV）融合的实现方法，将Matmul矩阵乘法与GELU激活函数融合到同一AI Core中并行执行。AIC侧完成Matmul计算后通过Fixpipe将结果输出到GM或UB，AIV侧从GM或UB读取数据完成GELU向量计算。
 >
-> | 产品 | CANN软件版本 |
-> | ------------------------------------------- | ------------- |
-> | Ascend 950PR&950DT系列产品 | >= CANN 9.2.0 |
-> | Atlas A3系列产品 | >= CANN 9.2.0 |
-> | Atlas A2系列产品 | >= CANN 9.2.0 |
+> |产品|CANN软件版本|
+> |---|---|
+> |Ascend 950PR&950DT系列产品|>= CANN 9.2.0|
+> |Atlas A3系列产品|>= CANN 9.2.0|
+> |Atlas A2系列产品|>= CANN 9.2.0|
 
 The two data paths, verbatim — **this is the definitive statement that A3 cannot do L0C -> UB**:
 
@@ -2903,21 +2903,21 @@ uint32_t nIterIdx = logicCoreId / mIter;
 >
 > - singleCoreM=2048, singleCoreN=1536，24核
 >
-> | Scenario | Task Type | Task Duration(μs) | Block Num | Mix Block Num | aicore_time(μs) | aic_mac_time(μs) | aic_mac_ratio | aic_scalar_time(μs) | aic_mte1_time(μs) | aic_mte2_time(μs) | aic_fixpipe_time(μs) | aiv_time(μs) | aiv_vec_time(μs) | aiv_vec_ratio | aiv_scalar_time(μs) | aiv_mte2_time(μs) | aiv_mte3_time(μs) |
-> | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-> | Gelu计算 | AI_VECTOR_CORE | 369.827 | 48 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 358.91 | 236.506 | 0.659 | 8.293 | 316.672 | 150.033 |
-> | Matmul计算 | AI_CORE | 4227.605 | 24 | 0 | 3760.55 | 3083.197 | 0.82 | 338.636 | 2516.081 | 3685.713 | 193.704 | 0 | 0 | 0 | 0 | 0 | 0 |
-> | Scenario 1 | MIX_AIC | 4236.944 | 24 | 48 | 3770.16 | 3083.235 | 0.818 | 531.971 | 2520.852 | 3687.839 | 193.933 | 3773.6 | 174.327 | 0.046 | 2.016 | 90.315 | 66.373 |
+> |Scenario|Task Type|Task Duration(μs)|Block Num|Mix Block Num|aicore_time(μs)|aic_mac_time(μs)|aic_mac_ratio|aic_scalar_time(μs)|aic_mte1_time(μs)|aic_mte2_time(μs)|aic_fixpipe_time(μs)|aiv_time(μs)|aiv_vec_time(μs)|aiv_vec_ratio|aiv_scalar_time(μs)|aiv_mte2_time(μs)|aiv_mte3_time(μs)|
+> |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+> |Gelu计算|AI_VECTOR_CORE|369.827|48|0|0|0|0|0|0|0|0|358.91|236.506|0.659|8.293|316.672|150.033|
+> |Matmul计算|AI_CORE|4227.605|24|0|3760.55|3083.197|0.82|338.636|2516.081|3685.713|193.704|0|0|0|0|0|0|
+> |Scenario 1|MIX_AIC|4236.944|24|48|3770.16|3083.235|0.818|531.971|2520.852|3687.839|193.933|3773.6|174.327|0.046|2.016|90.315|66.373|
 >
 > ##### Ascend 950PR芯片
 >
 > - singleCoreM=2048, singleCoreN=1024，32核
 >
-> | Scenario | Task Type | Task Duration(μs) | Block Num | Mix Block Num | aicore_time(μs) | aic_mac_time(μs) | aic_mac_ratio | aiv_vec_time(μs) | aiv_mte2_time(μs) | aiv_mte3_time(μs) |
-> | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-> | Gelu计算(RegBase) | AI_VECTOR_CORE | 348.868 | 64 | 0 | 0 | 0 | 0 | 66.277 | 320.543 | 314.547 |
-> | Matmul计算 | AI_CORE | 2601.311 | 32 | 0 | 2600.55 | 2593.264 | 0.997 | 0 | 0 | 0 |
-> | Scenario 1 | MIX_AIC | 2606.91 | 32 | 64 | 2605.9 | 2597.856 | 0.997 | 59.897 | 57.145 | 50.516 |
+> |Scenario|Task Type|Task Duration(μs)|Block Num|Mix Block Num|aicore_time(μs)|aic_mac_time(μs)|aic_mac_ratio|aiv_vec_time(μs)|aiv_mte2_time(μs)|aiv_mte3_time(μs)|
+> |---|---|---|---|---|---|---|---|---|---|---|
+> |Gelu计算(RegBase)|AI_VECTOR_CORE|348.868|64|0|0|0|0|66.277|320.543|314.547|
+> |Matmul计算|AI_CORE|2601.311|32|0|2600.55|2593.264|0.997|0|0|0|
+> |Scenario 1|MIX_AIC|2606.91|32|64|2605.9|2597.856|0.997|59.897|57.145|50.516|
 
 性能数据解读, verbatim:
 
@@ -3348,10 +3348,10 @@ raw: https://raw.githubusercontent.com/hicann/asc-devkit/master/docs/zh/guide/pr
 >
 > 当前SuperKernel特性通过PyTorch图模式开启，主要有如下两种方式：
 >
-> | 开启方式 | 说明 |
-> | --- | --- |
-> | npugraph_ex后端 | 在`torch.compile`的`options`中传入`super_kernel_optimize=True`开启SuperKernel融合；如需控制融合范围，可通过`torch.npu.super_kernel_scope_begin/end`进行标定。具体请参考[SuperKernel功能](https://gitcode.com/Ascend/torchair/blob/master/docs/zh/npugraph_ex/advanced/superkernel.md)。 |
-> | GE图模式 | 通过`torchair.scope.super_kernel`作用域标定融合范围，配合TorchAir的CompilerConfig开启。具体请参考[图内标定SuperKernel范围](https://gitcode.com/Ascend/torchair/blob/master/docs/zh/ascend_ir/features/advanced/super_kernel_scope.md)。 |
+> |开启方式|说明|
+> |---|---|
+> |npugraph_ex后端|在`torch.compile`的`options`中传入`super_kernel_optimize=True`开启SuperKernel融合；如需控制融合范围，可通过`torch.npu.super_kernel_scope_begin/end`进行标定。具体请参考[SuperKernel功能](https://gitcode.com/Ascend/torchair/blob/master/docs/zh/npugraph_ex/advanced/superkernel.md)。|
+> |GE图模式|通过`torchair.scope.super_kernel`作用域标定融合范围，配合TorchAir的CompilerConfig开启。具体请参考[图内标定SuperKernel范围](https://gitcode.com/Ascend/torchair/blob/master/docs/zh/ascend_ir/features/advanced/super_kernel_scope.md)。|
 >
 > ## 算子适配说明
 >
@@ -3404,10 +3404,10 @@ raw: https://raw.githubusercontent.com/hicann/asc-devkit/master/docs/zh/guide/pr
 >
 > 在SuperKernel场景下，如下Ascend C API在算子编译过程中适配了SuperKernel，子算子需要严格按照Ascend C提供的API进行编程，从而无需感知是否开启SuperKernel。例如在获取核数和索引时，**不能调用`block_idx`、`block_num`等底层变量和相关API**，必须使用下表中的Ascend C API：
 >
-> | API列表 | 功能描述 |
-> | --- | --- |
-> | AscendC::GetBlockIdx() | 获取当前核的index |
-> | AscendC::GetBlockNum() | 获取当前任务配置的核数 |
+> |API列表|功能描述|
+> |---|---|
+> |AscendC::GetBlockIdx()|获取当前核的index|
+> |AscendC::GetBlockNum()|获取当前任务配置的核数|
 >
 > ## TPipe析构约束
 >
@@ -3474,12 +3474,12 @@ raw: https://raw.githubusercontent.com/hicann/asc-devkit/master/docs/zh/api/Util
 >
 > ## 参数说明
 >
-> | 参数名 | 输入/输出 | 描述 |
-> | --- | --- | --- |
-> | GF | 输入 | 核函数（Kernel）签名。 |
-> | cap | 输入 | `uint64_t`类型，用于标记当前算子的SuperKernel特性。SuperKernel框架根据这些信息调整相应的同步和融合策略。各bit位可按位或组合：<br>&bull; 1：early start wait flag，表示算子内使用了WaitPreTaskEnd接口。<br>&bull; 2：early start set flag，表示算子内使用了SetNextTaskStart接口。<br>&bull; 4：disable_dcci，表示当前算子需要SuperKernel框架关闭调用前后的DCCI ALL指令。<br>&bull; 8：disable_batchmode_check，表示跳过当前算子的`__schedmode__`检查，使该算子可继续参与SuperKernel融合。<br>例如，同时配置early start wait flag和early start set flag时，cap取值为3。 <br>&bull; 16：blockdim_scale_up, 表示算子已自行支持核数向上扩展。融合后，SuperKernel会按自身的核数启动该算子；算子需要自行保证在实际启动核数大于其原始核数时仍能正确执行。 |
-> | SK0 | 输入 | SK子函数签名。 |
-> | ... | 输入 | SK1~SK3。可选，可提供额外的SK子函数签名。SuperKernel可以为不同核指定不同的SK子函数缓解同地址访问开销。 |
+> |参数名|输入/输出|描述|
+> |---|---|---|
+> |GF|输入|核函数（Kernel）签名。|
+> |cap|输入|`uint64_t`类型，用于标记当前算子的SuperKernel特性。SuperKernel框架根据这些信息调整相应的同步和融合策略。各bit位可按位或组合：<br>&bull; 1：early start wait flag，表示算子内使用了WaitPreTaskEnd接口。<br>&bull; 2：early start set flag，表示算子内使用了SetNextTaskStart接口。<br>&bull; 4：disable_dcci，表示当前算子需要SuperKernel框架关闭调用前后的DCCI ALL指令。<br>&bull; 8：disable_batchmode_check，表示跳过当前算子的`__schedmode__`检查，使该算子可继续参与SuperKernel融合。<br>例如，同时配置early start wait flag和early start set flag时，cap取值为3。 <br>&bull; 16：blockdim_scale_up, 表示算子已自行支持核数向上扩展。融合后，SuperKernel会按自身的核数启动该算子；算子需要自行保证在实际启动核数大于其原始核数时仍能正确执行。|
+> |SK0|输入|SK子函数签名。|
+> |...|输入|SK1~SK3。可选，可提供额外的SK子函数签名。SuperKernel可以为不同核指定不同的SK子函数缓解同地址访问开销。|
 >
 > ## 约束说明
 >
@@ -3566,11 +3566,11 @@ template<bool FORCE = false>
 __aicore__ inline void WaitPreTaskEnd()
 ```
 
-> | 参数名 | 描述 |
-> | --- | --- |
-> | AIV_PIPE | SetNextTaskStart之后运行的指令，如果位于AIV上的AIV_PIPE流水，可以与后序算子并行。AIV_PIPE的取值范围为PIPE_MTE2、PIPE_MTE3、PIPE_S、PIPE_V。 |
-> | AIC_PIPE | SetNextTaskStart之后运行的指令，如果位于AIC上的AIC_PIPE流水，可以与后序算子并行。AIC_PIPE的取值范围为PIPE_MTE1、PIPE_MTE2、PIPE_MTE3、PIPE_FIX、PIPE_M。 |
-> | FORCE | 离线编译时是否强制启用Early-Start能力，不影响在线编译。<br>false：离线编译时不强制启用Early-Start能力；<br>true：离线编译时启用Early-Start能力，适用于无在线编译流程的算子（如<<<>>>开发的算子）。 |
+> |参数名|描述|
+> |---|---|
+> |AIV_PIPE|SetNextTaskStart之后运行的指令，如果位于AIV上的AIV_PIPE流水，可以与后序算子并行。AIV_PIPE的取值范围为PIPE_MTE2、PIPE_MTE3、PIPE_S、PIPE_V。|
+> |AIC_PIPE|SetNextTaskStart之后运行的指令，如果位于AIC上的AIC_PIPE流水，可以与后序算子并行。AIC_PIPE的取值范围为PIPE_MTE1、PIPE_MTE2、PIPE_MTE3、PIPE_FIX、PIPE_M。|
+> |FORCE|离线编译时是否强制启用Early-Start能力，不影响在线编译。<br>false：离线编译时不强制启用Early-Start能力；<br>true：离线编译时启用Early-Start能力，适用于无在线编译流程的算子（如<<<>>>开发的算子）。|
 
 > ## 约束说明
 >
@@ -3602,9 +3602,9 @@ https://www.hiascend.com/doc_center/source/zh/canncommercial/81RC1/apiref/basicd
 > ge::graphStatus SetScheduleMode(const uint32_t schedule_mode)
 > ```
 >
-> | 参数 | 输入/输出 | 说明 |
-> | --- | --- | --- |
-> | schedule_mode | 输入 | 0：普通模式，默认情况下为普通模式。<br>1：batchmode模式，核间同步算子需要设置该模式。 |
+> |参数|输入/输出|说明|
+> |---|---|---|
+> |schedule_mode|输入|0：普通模式，默认情况下为普通模式。<br>1：batchmode模式，核间同步算子需要设置该模式。|
 
 ```cpp
 ge::graphStatus TilingForAdd(TilingContext *context) {
@@ -3664,27 +3664,27 @@ raw: https://raw.githubusercontent.com/hicann/asc-devkit/master/docs/zh/api/SIMD
 >
 > **表1**  模式0、1、2flagId占用情况
 >
-> | 接口 | 限定条件 | 占用flagId | 各计算核占用情况 | NPU架构版本 |
-> | :--- | :--- | :--- | :--- | :--- |
-> | SyncAll | `isAIVOnly=true` | 14 | AIV：14 | 2201、3510 |
-> | SyncAll | `isAIVOnly=false` | 11、12、13 | AIC：11、12、13；AIV：12、13 | 2201、3510 |
-> | SetNextTaskStart | SuperKernel子核函数（Kernel）中调用 | 11、14 | AIC：11；AIV：14 | 2201、3510 |
-> | WaitPreTaskEnd | SuperKernel子核函数（Kernel）中调用 | 11、12、13、14 | AIC：11、12、13；AIV：12、13、14 | 2201、3510 |
-> | Matmul | 定义N个Matmul对象 | `[0, 2N-1]` | AIV/AIC按对象与subBlock分配 | 2201 |
-> | Matmul | SuperKernel融合场景（GetTaskRatio返回2，即1:2配比） | 15 | AIV：15 | 2201 |
+> |接口|限定条件|占用flagId|各计算核占用情况|NPU架构版本|
+> |:---|:---|:---|:---|:---|
+> |SyncAll|`isAIVOnly=true`|14|AIV：14|2201、3510|
+> |SyncAll|`isAIVOnly=false`|11、12、13|AIC：11、12、13；AIV：12、13|2201、3510|
+> |SetNextTaskStart|SuperKernel子核函数（Kernel）中调用|11、14|AIC：11；AIV：14|2201、3510|
+> |WaitPreTaskEnd|SuperKernel子核函数（Kernel）中调用|11、12、13、14|AIC：11、12、13；AIV：12、13、14|2201、3510|
+> |Matmul|定义N个Matmul对象|`[0, 2N-1]`|AIV/AIC按对象与subBlock分配|2201|
+> |Matmul|SuperKernel融合场景（GetTaskRatio返回2，即1:2配比）|15|AIV：15|2201|
 >
 > ### 模式4的flagId占用
 >
 > **表2**  模式4flagId占用情况
 >
-> | 接口 | 限定条件 | 占用flagId | 各计算核占用情况 | NPU架构版本 |
-> | :--- | :--- | :--- | :--- | :--- |
-> | SyncAll | `isAIVOnly=false`（核函数（Kernel）使用`__mix__(1, 2)`修饰时） | 12、13、28、29 | AIC：12、13、28、29；AIV：12、13 | 3510 |
-> | WaitPreTaskEnd | SuperKernel子核函数（Kernel）中调用 | 12、13、28、29 | AIC：12、13、28、29；AIV：12、13 | 3510 |
-> | Matmul | 定义N个Matmul对象 | `[0, N+17]` | AIC/AIV按对象、eventType、subBlock分配 | 3510 |
-> | Matmul | A矩阵和B矩阵同时开启IBSHARE的场景 | 15 | AIV：15 | 3510 |
-> | TSCM | 从UB发起的L1 Buffer（TSCM）队列 | 0~11（从11向下逐个分配） | AIV | 3510 |
-> | DataCopy（GM→L1） | 无 | 1、17 | AIC：1、17；AIV：1 | 3510 |
+> |接口|限定条件|占用flagId|各计算核占用情况|NPU架构版本|
+> |:---|:---|:---|:---|:---|
+> |SyncAll|`isAIVOnly=false`（核函数（Kernel）使用`__mix__(1, 2)`修饰时）|12、13、28、29|AIC：12、13、28、29；AIV：12、13|3510|
+> |WaitPreTaskEnd|SuperKernel子核函数（Kernel）中调用|12、13、28、29|AIC：12、13、28、29；AIV：12、13|3510|
+> |Matmul|定义N个Matmul对象|`[0, N+17]`|AIC/AIV按对象、eventType、subBlock分配|3510|
+> |Matmul|A矩阵和B矩阵同时开启IBSHARE的场景|15|AIV：15|3510|
+> |TSCM|从UB发起的L1 Buffer（TSCM）队列|0~11（从11向下逐个分配）|AIV|3510|
+> |DataCopy（GM→L1）|无|1、17|AIC：1、17；AIV：1|3510|
 >
 > ### 各接口限定条件说明
 >
@@ -3894,22 +3894,22 @@ __sk__ __vector__ void func_sk(const ArgsStruct *args, sk::SkSystemArgs *sysArgs
 > SK_BIND(original_func, 4, sk_func<0>, sk_func<1>, sk_func<2>, sk_func<3>);
 > ```
 >
-> | 参数 | 说明 |
-> | --- | --- |
-> | `original_func` | 原global函数，如果是模板函数需要手动实例化 |
-> | `4` | 掩码参数（uint64_t类型），用于配置SuperKernel特性 |
-> | `sk_func<0>` ~ `sk_func<3>` | 最多4个SK子函数，如果是模板函数需要手动实例化 |
+> |参数|说明|
+> |---|---|
+> |`original_func`|原global函数，如果是模板函数需要手动实例化|
+> |`4`|掩码参数（uint64_t类型），用于配置SuperKernel特性|
+> |`sk_func<0>` ~ `sk_func<3>`|最多4个SK子函数，如果是模板函数需要手动实例化|
 >
 > **掩码参数取值**：
 > 1/2/4/8/16分别代表不同bit位上置值的结果，比如8为第4bit置值的结果
 >
-> | 值 | 含义 |
-> | --- | --- |
-> | 1 | early start wait flag |
-> | 2 | early start set flag |
-> | 4 | disable_dcci |
-> | 8 | disable_batchmode_check |
-> | 16 | blockdim_scale_up |
+> |值|含义|
+> |---|---|
+> |1|early start wait flag|
+> |2|early start set flag|
+> |4|disable_dcci|
+> |8|disable_batchmode_check|
+> |16|blockdim_scale_up|
 
 適配步骤总结, verbatim:
 
@@ -4017,32 +4017,32 @@ opt_model = torch.compile(model, backend="npugraph_ex", options={"static_kernel_
 
 > **表 1**  参数说明
 >
-> | **参数名** | **参数说明** |
-> | -- | -- |
-> | super_kernel_optimize | 布尔类型，是否开启SuperKernel融合优化。<br>•False（默认值）：默认关闭。<br>•True：开启SuperKernel融合优化。 |
-> | super_kernel_optimize_options | 字典类型，SuperKernel融合优化参数。 |
-> | super_kernel_debug_options | 字典类型，SuperKernel融合调试参数。<br>**说明：super_kernel_debug_options中的选项均会影响SuperKernel融合效果或运行性能，建议仅在功能调试时使用。** |
+> |**参数名**|**参数说明**|
+> |---|---|
+> |super_kernel_optimize|布尔类型，是否开启SuperKernel融合优化。<br>•False（默认值）：默认关闭。<br>•True：开启SuperKernel融合优化。|
+> |super_kernel_optimize_options|字典类型，SuperKernel融合优化参数。|
+> |super_kernel_debug_options|字典类型，SuperKernel融合调试参数。<br>**说明：super_kernel_debug_options中的选项均会影响SuperKernel融合效果或运行性能，建议仅在功能调试时使用。**|
 
 表 2 `super_kernel_optimize_options`, verbatim:
 
-> | **参数名** | **参数说明** |
-> | -- | -- |
-> | dcci_before_kernel_start | 通过本选项指定的算子，其内部调用GlobalTensor的GetValue/SetValue时不会自动插入缓存刷新指令，**而在SuperKernel调用该算子前**，会插入DataCacheCleanAndInvalid指令刷新ENTIRE_DATA_CACHE。<br>•当dcci_before_kernel_start、dcci_after_kernel_end和dcci_disable_on_kernel均未配置时，子算子内部调用GlobalTensor的GetValue/SetValue时默认不自动插入缓存刷新指令，SuperKernel默认会在所有子算子调用后插入DataCacheCleanAndInvalid指令刷新ENTIRE_DATA_CACHE。<br>•配置格式形如：`{"dcci_before_kernel_start": [".*op1_type.*", ".*op2_type.*"]}`。仅支持匹配算子符号名而不是op_type，算子符号名为xx_op_type_xxx，带有前缀及后缀，仅支持`.*`格式的正则表达。<br>•若本选项指定的算子为<<<>>>算子或通信类算子，将无法去除算子内部调用GlobalTensor的GetValue/SetValue时插入的缓存刷新指令，仅支持控制SuperKernel调用算子前是否插入。<br>•本选项指定的算子op_type可通过Profiling查看，例如：`{"dcci_before_kernel_start": [".*GroupedMatmul.*", ".*MoeGatingTopK.*"]}`。 |
-> | dcci_after_kernel_end | 通过本选项指定的算子，其内部调用GlobalTensor的GetValue/SetValue时不会自动插入缓存刷新指令，**而在SuperKernel调用该算子后**，会插入DataCacheCleanAndInvalid指令刷新ENTIRE_DATA_CACHE。<br>•配置格式形如：`{"dcci_after_kernel_end": [".*op1_type.*", ".*op2_type.*"]}`。 |
-> | dcci_disable_on_kernel | 通过本选项指定的算子，其内部调用GlobalTensor的GetValue/SetValue会默认自动插入缓存刷新指令，**而在SuperKernel调用该算子前后**，不会插入任何DataCacheCleanAndInvalid指令。<br>•当某个算子同时配置了dcci_disable_on_kernel及dcci_before_kernel_start、dcci_after_kernel_end时，dcci_disable_on_kernel优先级低于其余两者，其余两者的功能将生效。 |
-> | ubuf_lock_ignore_kernel | 通过本选项声明指定算子不依赖UB Buffer的加锁、解锁机制保证数据访问顺序，自动优化融合策略。<br>•仅在Ascend 950PR/Ascend 950DT上生效。默认值为空列表。 |
-> | auto_op_parallel | 多流融合场景下，SuperKernel默认按照算子下发顺序执行，相比单算子执行，可能无法达到最大化算子并行度。配置该选项后，在确保算子间依赖关系不变的前提下，可以将多条流上的算子按照Cube/Vector类型并行排布，获得相对较优的算子执行流水。<br>•0（默认值）：不使能多流自动Cube/Vector自动并行排布。<br>•1：使能多流自动Cube/Vector自动并行排布。 |
-> | early_start | 配置是否启用SuperKernel Early-Start优化。<br>•0：关闭本功能（默认值）。<br>•1：开启本功能。<br>开启后，SuperKernel会识别并生效算子内适配的AscendC::SetNextTaskStart()/AscendC::WaitPreTaskEnd()任务间同步接口，达到算子头部Scalar指令提前执行的优化效果。 |
-> | aggressive_opt_strategies | 字典类型，为保证功能正确性，SuperKernel默认采用保守融合策略，通过本选项可按需开启激进融合策略，实现更深度的优化。配置格式形如：`{"aggressive_opt_strategies": {"task_breaker_bypass": 0, "value_breaker_bypass": 0b00}}`，各子项说明如下：<br>1. task_breaker_bypass：<br>•0（默认值）：SuperKernel融合过程中，遇到非AICore类型Task（如AICPU算子）会自动断开；<br>•1：SuperKernel融合范围内遇到了非AICore类型Task，且该流范围内没有其他AICore算子，则不做断开处理，仅将非AICore算子从融合范围内剔除。<br>2. value_breaker_bypass，比特位组合控制ValueWait节点的融合策略，各比特位含义如下：<br>•bit0（0b01）：已配对的ValueWait节点（存在对应的ValueWrite节点且满足Flag匹配规则），在通过死锁检测后可进行融合。<br>•bit1（0b10）：未配对的ValueWait节点（不存在对应的ValueWrite节点），允许进行融合。<br>取值示例：<br>•0b00（默认值）：ValueWait节点不进行融合；<br>•0b01：仅允许已配对的ValueWait节点融合；<br>•0b10：仅允许未配对的ValueWait节点融合；<br>•0b11：同时允许已配对和未配对的ValueWait节点融合。<br>说明：若ValueWait节点被多个ValueWrite匹配，则将会触发SuperKernel报错，整体网络融合失败。 |
+> |**参数名**|**参数说明**|
+> |---|---|
+> |dcci_before_kernel_start|通过本选项指定的算子，其内部调用GlobalTensor的GetValue/SetValue时不会自动插入缓存刷新指令，**而在SuperKernel调用该算子前**，会插入DataCacheCleanAndInvalid指令刷新ENTIRE_DATA_CACHE。<br>•当dcci_before_kernel_start、dcci_after_kernel_end和dcci_disable_on_kernel均未配置时，子算子内部调用GlobalTensor的GetValue/SetValue时默认不自动插入缓存刷新指令，SuperKernel默认会在所有子算子调用后插入DataCacheCleanAndInvalid指令刷新ENTIRE_DATA_CACHE。<br>•配置格式形如：`{"dcci_before_kernel_start": [".*op1_type.*", ".*op2_type.*"]}`。仅支持匹配算子符号名而不是op_type，算子符号名为xx_op_type_xxx，带有前缀及后缀，仅支持`.*`格式的正则表达。<br>•若本选项指定的算子为<<<>>>算子或通信类算子，将无法去除算子内部调用GlobalTensor的GetValue/SetValue时插入的缓存刷新指令，仅支持控制SuperKernel调用算子前是否插入。<br>•本选项指定的算子op_type可通过Profiling查看，例如：`{"dcci_before_kernel_start": [".*GroupedMatmul.*", ".*MoeGatingTopK.*"]}`。|
+> |dcci_after_kernel_end|通过本选项指定的算子，其内部调用GlobalTensor的GetValue/SetValue时不会自动插入缓存刷新指令，**而在SuperKernel调用该算子后**，会插入DataCacheCleanAndInvalid指令刷新ENTIRE_DATA_CACHE。<br>•配置格式形如：`{"dcci_after_kernel_end": [".*op1_type.*", ".*op2_type.*"]}`。|
+> |dcci_disable_on_kernel|通过本选项指定的算子，其内部调用GlobalTensor的GetValue/SetValue会默认自动插入缓存刷新指令，**而在SuperKernel调用该算子前后**，不会插入任何DataCacheCleanAndInvalid指令。<br>•当某个算子同时配置了dcci_disable_on_kernel及dcci_before_kernel_start、dcci_after_kernel_end时，dcci_disable_on_kernel优先级低于其余两者，其余两者的功能将生效。|
+> |ubuf_lock_ignore_kernel|通过本选项声明指定算子不依赖UB Buffer的加锁、解锁机制保证数据访问顺序，自动优化融合策略。<br>•仅在Ascend 950PR/Ascend 950DT上生效。默认值为空列表。|
+> |auto_op_parallel|多流融合场景下，SuperKernel默认按照算子下发顺序执行，相比单算子执行，可能无法达到最大化算子并行度。配置该选项后，在确保算子间依赖关系不变的前提下，可以将多条流上的算子按照Cube/Vector类型并行排布，获得相对较优的算子执行流水。<br>•0（默认值）：不使能多流自动Cube/Vector自动并行排布。<br>•1：使能多流自动Cube/Vector自动并行排布。|
+> |early_start|配置是否启用SuperKernel Early-Start优化。<br>•0：关闭本功能（默认值）。<br>•1：开启本功能。<br>开启后，SuperKernel会识别并生效算子内适配的AscendC::SetNextTaskStart()/AscendC::WaitPreTaskEnd()任务间同步接口，达到算子头部Scalar指令提前执行的优化效果。|
+> |aggressive_opt_strategies|字典类型，为保证功能正确性，SuperKernel默认采用保守融合策略，通过本选项可按需开启激进融合策略，实现更深度的优化。配置格式形如：`{"aggressive_opt_strategies": {"task_breaker_bypass": 0, "value_breaker_bypass": 0b00}}`，各子项说明如下：<br>1. task_breaker_bypass：<br>•0（默认值）：SuperKernel融合过程中，遇到非AICore类型Task（如AICPU算子）会自动断开；<br>•1：SuperKernel融合范围内遇到了非AICore类型Task，且该流范围内没有其他AICore算子，则不做断开处理，仅将非AICore算子从融合范围内剔除。<br>2. value_breaker_bypass，比特位组合控制ValueWait节点的融合策略，各比特位含义如下：<br>•bit0（0b01）：已配对的ValueWait节点（存在对应的ValueWrite节点且满足Flag匹配规则），在通过死锁检测后可进行融合。<br>•bit1（0b10）：未配对的ValueWait节点（不存在对应的ValueWrite节点），允许进行融合。<br>取值示例：<br>•0b00（默认值）：ValueWait节点不进行融合；<br>•0b01：仅允许已配对的ValueWait节点融合；<br>•0b10：仅允许未配对的ValueWait节点融合；<br>•0b11：同时允许已配对和未配对的ValueWait节点融合。<br>说明：若ValueWait节点被多个ValueWrite匹配，则将会触发SuperKernel报错，整体网络融合失败。|
 
 表 3 `super_kernel_debug_options`, verbatim:
 
-> | **参数名** | **参数说明** |
-> | -- | -- |
-> | debug_sync_all | 配置本选项后，SuperKernel内每个算子间会自动插入SyncAll全核同步指令，可辅助定界SuperKernel机制中的算子间同步问题。<br>•0：关闭本功能（默认值），SuperKernel子算子调用后不插入SyncAll全核同步。<br>•1：开启本功能。 |
-> | debug_op_exec_trace | 配置本选项后，启用算子执行轨迹追踪功能。该功能会在Kernel侧记录每个子算子的执行状态（包括SK入口启动、子算子启动、子算子完成、SK入口完成），在异常发生时会在plog中打印所有核的算子执行进度信息（含当前执行到的算子ID及符号信息），辅助定位算子级执行异常。 |
-> | debug_cross_core_sync_check | 配置本选项后，启用子算子Cube&Vector核间同步（参见CrossCoreSetFlag接口mode 2介绍）校验功能，检测同步数量不匹配的问题。开启本功能时会隐式启用debug_op_exec_trace选项，用于辅助定位出错子算子。 |
-> | debug_per_op_max_core_num | 配置本选项后，启用单算子满核验证模式，用于在SuperKernel融合场景下单独验证每个算子在满核条件下的功能正确性。开启后，融合范围内的每个算子将独立成为一个SuperKernel，并以设备最大核数启动运行（Cube&Vector均启动最大核数），从而覆盖核数相关的边界场景。开启本功能时会隐式启用debug_cross_core_sync_check选项。 |
+> |**参数名**|**参数说明**|
+> |---|---|
+> |debug_sync_all|配置本选项后，SuperKernel内每个算子间会自动插入SyncAll全核同步指令，可辅助定界SuperKernel机制中的算子间同步问题。<br>•0：关闭本功能（默认值），SuperKernel子算子调用后不插入SyncAll全核同步。<br>•1：开启本功能。|
+> |debug_op_exec_trace|配置本选项后，启用算子执行轨迹追踪功能。该功能会在Kernel侧记录每个子算子的执行状态（包括SK入口启动、子算子启动、子算子完成、SK入口完成），在异常发生时会在plog中打印所有核的算子执行进度信息（含当前执行到的算子ID及符号信息），辅助定位算子级执行异常。|
+> |debug_cross_core_sync_check|配置本选项后，启用子算子Cube&Vector核间同步（参见CrossCoreSetFlag接口mode 2介绍）校验功能，检测同步数量不匹配的问题。开启本功能时会隐式启用debug_op_exec_trace选项，用于辅助定位出错子算子。|
+> |debug_per_op_max_core_num|配置本选项后，启用单算子满核验证模式，用于在SuperKernel融合场景下单独验证每个算子在满核条件下的功能正确性。开启后，融合范围内的每个算子将独立成为一个SuperKernel，并以设备最大核数启动运行（Cube&Vector均启动最大核数），从而覆盖核数相关的边界场景。开启本功能时会隐式启用debug_cross_core_sync_check选项。|
 
 Working example, verbatim:
 
@@ -4114,13 +4114,13 @@ with torchair.scope.super_kernel(scope: str, options: str = ''):
 
 表 1 编译选项说明, verbatim (the three most load-bearing for us):
 
-> | 选项参数 | 说明 |
-> | -- | -- |
-> | feed-sync-all | 当子算子启动核数小于SuperKernel启动核数且使用了SyncAll全核同步指令，若出现算子执行卡住或超时，可尝试配置本选项解决此问题。<br>0：关闭本功能（默认值），若子算子使用SyncAll全核同步指令，用户需自行保证子算子与SuperKernel启动核数相同。<br>1：开启本功能，系统自动识别SuperKernel内算子是否调用SyncAll全核同步指令，同时判断子算子启动核数是否小于SuperKernel启动核数。若小于SuperKernel启动核数，会在SuperKernel内子算子的其余核中插入SyncAll指令，保证与子算子内调用SyncAll次数匹配，防止卡住超时。<br>SuperKernel启动核数为子算子的最大启动核数。假设SuperKernel包括算子a（启动核数为4）和算子b（启动核数为2），此时SuperKernel启动核数为4。<br>启动核数可通过Profiling采集的性能数据获取，即"kernel_details.csv"文件中"Block Dim"字段<br>子算子启动核数：非SuperKernel场景下开启Profiling，"Block Dim"字段表示每个算子的启动核数。<br>SuperKernel启动核数：SuperKernel场景下开启Profiling，"Block Dim"字段表示SuperKernel的启动核数。 |
-> | stream-fusion | 控制SuperKernel内是否启用多流融合，从而提升算子运行效率，选项取值如下：<br>0（默认值）：关闭多流融合。当标定范围内存在算子分布在多条流上的场景时，将触发编译报错，无法完成融合。<br>1：启用多流融合，表示SuperKernel融合范围的算子可分布在多条流上。<br>多流融合的收益来自减少各流上算子的调度开销，而非增加并行度，融合前后跨流并行能力不变。SuperKernel内部因同步约束可能引入串行化，实际收益取决于算子排布，通常Cube算子和Vector算子多流并行融合可以获得较好收益。 |
-> | strict-scope-check | 本选项用于检查SuperKernel融合的范围是否符合预期。对于断开的SuperKernel、不支持融合的算子可通过本功能查询：<br>bypass：打印C++侧Warning级别日志，忽略该范围的SuperKernel生成。<br>abort：打印C++侧Error级别日志，对该范围的SuperKernel直接报错退出。<br>Warning或Error级别日志信息可在plog文件（文件名为plog-*pid_**.log）中查看，搜索关键字"super_kernel_scope"即可。<br>本功能暂不支持检查SuperKernel融合范围内的集合通信算子，如AllGather、AlltoAll等。 |
-> | dcci-before-kernel-start | 通过本选项指定的算子，其内部调用GlobalTensor的GetValue/SetValue时不会自动插入缓存刷新指令，**而在SuperKernel调用该算子前**会插入DataCacheCleanAndInvalid指令，刷新整个DCache（数据缓存）...配置格式形如：dcci-before-kernel-start=<op1_type>,<op2_type>...若本选项指定的算子为支持Tiling下沉的算子或通信类算子，功能将不生效。...本选项指定的算子op_type可通过Profiling查看，例如：dcci-before-kernel-start=GroupedMatmul,MoeGatingTopK。 |
-> | dcci-after-kernel-end | 通过本选项指定的算子，其内部调用GlobalTensor的GetValue/SetValue时不会自动插入缓存刷新指令，**而在SuperKernel调用该算子后**，会插入DataCacheCleanAndInvalid指令，刷新整个DCache（数据缓存），保证该算子内的数据缓存不会影响后续的算子。<br>配置格式形如：dcci-after-kernel-end=<op1_type>,<op2_type>。<br>其他要求与dcci-before-kernel-start一样。 |
+> |选项参数|说明|
+> |---|---|
+> |feed-sync-all|当子算子启动核数小于SuperKernel启动核数且使用了SyncAll全核同步指令，若出现算子执行卡住或超时，可尝试配置本选项解决此问题。<br>0：关闭本功能（默认值），若子算子使用SyncAll全核同步指令，用户需自行保证子算子与SuperKernel启动核数相同。<br>1：开启本功能，系统自动识别SuperKernel内算子是否调用SyncAll全核同步指令，同时判断子算子启动核数是否小于SuperKernel启动核数。若小于SuperKernel启动核数，会在SuperKernel内子算子的其余核中插入SyncAll指令，保证与子算子内调用SyncAll次数匹配，防止卡住超时。<br>SuperKernel启动核数为子算子的最大启动核数。假设SuperKernel包括算子a（启动核数为4）和算子b（启动核数为2），此时SuperKernel启动核数为4。<br>启动核数可通过Profiling采集的性能数据获取，即"kernel_details.csv"文件中"Block Dim"字段<br>子算子启动核数：非SuperKernel场景下开启Profiling，"Block Dim"字段表示每个算子的启动核数。<br>SuperKernel启动核数：SuperKernel场景下开启Profiling，"Block Dim"字段表示SuperKernel的启动核数。|
+> |stream-fusion|控制SuperKernel内是否启用多流融合，从而提升算子运行效率，选项取值如下：<br>0（默认值）：关闭多流融合。当标定范围内存在算子分布在多条流上的场景时，将触发编译报错，无法完成融合。<br>1：启用多流融合，表示SuperKernel融合范围的算子可分布在多条流上。<br>多流融合的收益来自减少各流上算子的调度开销，而非增加并行度，融合前后跨流并行能力不变。SuperKernel内部因同步约束可能引入串行化，实际收益取决于算子排布，通常Cube算子和Vector算子多流并行融合可以获得较好收益。|
+> |strict-scope-check|本选项用于检查SuperKernel融合的范围是否符合预期。对于断开的SuperKernel、不支持融合的算子可通过本功能查询：<br>bypass：打印C++侧Warning级别日志，忽略该范围的SuperKernel生成。<br>abort：打印C++侧Error级别日志，对该范围的SuperKernel直接报错退出。<br>Warning或Error级别日志信息可在plog文件（文件名为plog-*pid_**.log）中查看，搜索关键字"super_kernel_scope"即可。<br>本功能暂不支持检查SuperKernel融合范围内的集合通信算子，如AllGather、AlltoAll等。|
+> |dcci-before-kernel-start|通过本选项指定的算子，其内部调用GlobalTensor的GetValue/SetValue时不会自动插入缓存刷新指令，**而在SuperKernel调用该算子前**会插入DataCacheCleanAndInvalid指令，刷新整个DCache（数据缓存）...配置格式形如：dcci-before-kernel-start=<op1_type>,<op2_type>...若本选项指定的算子为支持Tiling下沉的算子或通信类算子，功能将不生效。...本选项指定的算子op_type可通过Profiling查看，例如：dcci-before-kernel-start=GroupedMatmul,MoeGatingTopK。|
+> |dcci-after-kernel-end|通过本选项指定的算子，其内部调用GlobalTensor的GetValue/SetValue时不会自动插入缓存刷新指令，**而在SuperKernel调用该算子后**，会插入DataCacheCleanAndInvalid指令，刷新整个DCache（数据缓存），保证该算子内的数据缓存不会影响后续的算子。<br>配置格式形如：dcci-after-kernel-end=<op1_type>,<op2_type>。<br>其他要求与dcci-before-kernel-start一样。|
 
 ## Relevance
 Operationally decisive for us.
@@ -4463,11 +4463,11 @@ https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/900/API/ascen
 > GET_TILING_DATA_WITH_STRUCT(struct_name, tiling_data, tiling_arg)
 > ```
 >
-> | 参数 | 输入/输出 | 说明 |
-> | --- | --- | --- |
-> | struct_name | 输入 | 指定的结构体名称。 |
-> | tiling_data | 输出 | 返回指定Tiling结构体变量。 |
-> | tiling_arg | 输入 | 此参数为算子入口函数处传入的tiling参数。 |
+> |参数|输入/输出|说明|
+> |---|---|---|
+> |struct_name|输入|指定的结构体名称。|
+> |tiling_data|输出|返回指定Tiling结构体变量。|
+> |tiling_arg|输入|此参数为算子入口函数处传入的tiling参数。|
 >
 > 约束说明
 >
@@ -4500,12 +4500,12 @@ https://www.hiascend.com/doc_center/source/zh/CANNCommunityEdition/900/API/ascen
 > GET_TILING_DATA_MEMBER(struct_name, mem_name, tiling_data, tiling_arg)
 > ```
 >
-> | 参数 | 输入/输出 | 说明 |
-> | --- | --- | --- |
-> | struct_name | 输入 | 指定的结构体名称。 |
-> | mem_name | 输入 | 指定的成员变量名称。 |
-> | tiling_data | 输出 | 返回指定Tiling结构体的成员变量。 |
-> | tiling_arg | 输入 | 此参数为算子入口函数处传入的tiling参数。 |
+> |参数|输入/输出|说明|
+> |---|---|---|
+> |struct_name|输入|指定的结构体名称。|
+> |mem_name|输入|指定的成员变量名称。|
+> |tiling_data|输出|返回指定Tiling结构体的成员变量。|
+> |tiling_arg|输入|此参数为算子入口函数处传入的tiling参数。|
 >
 > 约束说明
 >
@@ -4745,10 +4745,10 @@ options = {"static_kernel_compile": True, "disable_static_kernel_compile_cache":
 opt_model = torch.compile(model, backend="npugraph_ex", options=options, dynamic=False, fullgraph=True)
 ```
 
-> | **参数名** | **参数说明** |
-> | -- | -- |
-> | static_kernel_compile | 布尔类型，是否开启静态Kernel编译。False（默认值）：默认关闭。True：开启静态Kernel编译。编译产物路径默认为当前执行脚本的同级目录，当同时启用了模型编译缓存功能但未启用force_eager功能时，编译产物路径为模型缓存文件所在目录。请确保该路径用户具有读、写操作权限。 |
-> | disable_static_kernel_compile_cache | 布尔类型，是否禁用静态Kernel缓存功能。<br>False（默认）：使用缓存功能。二次运行且缓存命中时，将直接复用编译好的kernel run包。<br>True：禁用缓存功能。每次运行都会触发静态Kernel编译过程。<br>仅在 `static_kernel_compile` 为 `True` 时生效。缓存映射关系记录于静态编译产物路径下的 `static_kernel_cache` 目录中。 |
+> |**参数名**|**参数说明**|
+> |---|---|
+> |static_kernel_compile|布尔类型，是否开启静态Kernel编译。False（默认值）：默认关闭。True：开启静态Kernel编译。编译产物路径默认为当前执行脚本的同级目录，当同时启用了模型编译缓存功能但未启用force_eager功能时，编译产物路径为模型缓存文件所在目录。请确保该路径用户具有读、写操作权限。|
+> |disable_static_kernel_compile_cache|布尔类型，是否禁用静态Kernel缓存功能。<br>False（默认）：使用缓存功能。二次运行且缓存命中时，将直接复用编译好的kernel run包。<br>True：禁用缓存功能。每次运行都会触发静态Kernel编译过程。<br>仅在 `static_kernel_compile` 为 `True` 时生效。缓存映射关系记录于静态编译产物路径下的 `static_kernel_cache` 目录中。|
 
 > > [!NOTE]说明
 > > 在使用静态Kernel缓存功能时，系统会对比当前运行特征与缓存记录。只有当以下所有条件全部满足且缓存中对应的kernel run包存在时，才会判定为缓存命中，跳过静态Kernel编译过程：
@@ -4960,40 +4960,40 @@ Repo `cann/graph-autofusion`, branch `master`. Sample script `superkernel_compar
 > ```
 > 分别从两份op_statistic.csv表中得到如下数据
 >
-> | OP_Type | Core Type | Total Time(us) |
-> | -- | -- | -- |
-> | GroupedMatmul | MIX_AIC | 126.26 |
-> | Transpose | AI_VECTOR_CORE | 90.02 |
-> | MoeGatingTopK | AI_VECTOR_CORE | 68.32 |
-> | Tile | AI_VECTOR_CORE | 24.96 |
-> | DequantSwigluQuant | AI_VECTOR_CORE | 24.18 |
-> | ReduceMeanD | MIX_AIV | 16.36 |
-> | ConcatV2D | AI_VECTOR_CORE | 14.9 |
-> | ReduceMeanD | AI_VECTOR_CORE | 14.14 |
-> | SplitVD | AI_VECTOR_CORE | 10.04 |
-> | MatMul | AI_CORE | 6.26 |
-> | Cast | AI_VECTOR_CORE | 3.96 |
-> | Data | AI_VECTOR_CORE | 3.3 |
-> | StridedSliceD | AI_VECTOR_CORE | 3.18 |
-> | AutomaticBufferFusionOp | AI_VECTOR_CORE | 1.66 |
-> | no_sk_model | 总耗时 | 407.54 |
+> |OP_Type|Core Type|Total Time(us)|
+> |---|---|---|
+> |GroupedMatmul|MIX_AIC|126.26|
+> |Transpose|AI_VECTOR_CORE|90.02|
+> |MoeGatingTopK|AI_VECTOR_CORE|68.32|
+> |Tile|AI_VECTOR_CORE|24.96|
+> |DequantSwigluQuant|AI_VECTOR_CORE|24.18|
+> |ReduceMeanD|MIX_AIV|16.36|
+> |ConcatV2D|AI_VECTOR_CORE|14.9|
+> |ReduceMeanD|AI_VECTOR_CORE|14.14|
+> |SplitVD|AI_VECTOR_CORE|10.04|
+> |MatMul|AI_CORE|6.26|
+> |Cast|AI_VECTOR_CORE|3.96|
+> |Data|AI_VECTOR_CORE|3.3|
+> |StridedSliceD|AI_VECTOR_CORE|3.18|
+> |AutomaticBufferFusionOp|AI_VECTOR_CORE|1.66|
+> |no_sk_model|总耗时|407.54|
 >
-> | OP_Type | Core Type | Total Time(us) |
-> | -- | -- | -- |
-> | SuperKernel | MIX_AIC | 172.4 |
-> | Transpose | AI_VECTOR_CORE | 92.42 |
-> | Tile | AI_VECTOR_CORE | 24.66 |
-> | SuperKernel | MIX_AIV | 18.48 |
-> | ReduceMeanD | MIX_AIV | 16.34 |
-> | ConcatV2D | AI_VECTOR_CORE | 14.74 |
-> | ReduceMeanD | AI_VECTOR_CORE | 14.24 |
-> | SplitVD | AI_VECTOR_CORE | 10.12 |
-> | MatMul | AI_CORE | 8.6 |
-> | Cast | AI_VECTOR_CORE | 4.08 |
-> | Data | AI_VECTOR_CORE | 3.72 |
-> | StridedSliceD | AI_VECTOR_CORE | 3.1 |
-> | AutomaticBufferFusionOp | AI_VECTOR_CORE | 1.76 |
-> | sk_model | 总耗时 | 384.66 |
+> |OP_Type|Core Type|Total Time(us)|
+> |---|---|---|
+> |SuperKernel|MIX_AIC|172.4|
+> |Transpose|AI_VECTOR_CORE|92.42|
+> |Tile|AI_VECTOR_CORE|24.66|
+> |SuperKernel|MIX_AIV|18.48|
+> |ReduceMeanD|MIX_AIV|16.34|
+> |ConcatV2D|AI_VECTOR_CORE|14.74|
+> |ReduceMeanD|AI_VECTOR_CORE|14.24|
+> |SplitVD|AI_VECTOR_CORE|10.12|
+> |MatMul|AI_CORE|8.6|
+> |Cast|AI_VECTOR_CORE|4.08|
+> |Data|AI_VECTOR_CORE|3.72|
+> |StridedSliceD|AI_VECTOR_CORE|3.1|
+> |AutomaticBufferFusionOp|AI_VECTOR_CORE|1.76|
+> |sk_model|总耗时|384.66|
 >
 > 对比获得使用super_kernel融合算子的收益是5.61%
 
@@ -5029,11 +5029,11 @@ Parent topic 「Matmul Kernel侧接口」.
 
 表1 MatmulCallBackFunc回调函数接口及参数说明, verbatim:
 
-> | 回调函数功能 | 回调函数接口 | 参数说明 |
-> | --- | --- | --- |
-> | 可自定义设置不同的搬出数据片段数目等参数，实现将Matmul计算结果从CO1搬出到GM的功能 | `void DataCopyOut(const __gm__ void *gm, const LocalTensor<int8_t> &co1Local, const void *dataCopyOutParams, const uint64_t tilingPtr, const uint64_t dataPtr)` | gm：输出的GM地址。<br>co1Local: CO1上的计算结果。<br>dataCopyOutParams：Matmul定义的DataCopyOutParams结构体指针。<br>tilingPtr: 用户使用SetUserDefInfo设置的tiling参数地址。<br>dataPtr: 用户使用SetSelfDefineData设置的计算数据地址。 |
-> | 可自定义左矩阵搬入首地址、搬运块位置、搬运块大小，实现左矩阵从GM搬入L1的功能 | `void CopyA1(const LocalTensor<int8_t> &aMatrix, const __gm__ void *gm, int row, int col, int useM, int useK, const uint64_t tilingPtr, const uint64_t dataPtr)` | aMatrix: 目标L1Buffer地址。<br>gm：左矩阵GM首地址。<br>row、col：搬运块在M、K方向的索引，即在M、K方向上搬运块的序号，序号从0开始。<br>useM、useK：搬运块M、K方向大小，单位为元素个数。通过row、col和useM、useK计算出该搬运块左上角在左矩阵中的地址偏移。 |
-> | 可自定义右矩阵搬入首地址、搬运块位置、搬运块大小，实现右矩阵从GM搬入L1的功能 | `void CopyB1(const LocalTensor<int8_t> &bMatrix, const __gm__ void *gm, int row, int col, int useK, int useN, const uint64_t tilingPtr, const uint64_t dataPtr)` | bMatrix: 目标L1Buffer地址。<br>gm：右矩阵GM首地址。<br>row、col：搬运块在K、N方向的索引。<br>useK、useN：搬运块K、N方向大小，单位为元素个数。 |
+> |回调函数功能|回调函数接口|参数说明|
+> |---|---|---|
+> |可自定义设置不同的搬出数据片段数目等参数，实现将Matmul计算结果从CO1搬出到GM的功能|`void DataCopyOut(const __gm__ void *gm, const LocalTensor<int8_t> &co1Local, const void *dataCopyOutParams, const uint64_t tilingPtr, const uint64_t dataPtr)`|gm：输出的GM地址。<br>co1Local: CO1上的计算结果。<br>dataCopyOutParams：Matmul定义的DataCopyOutParams结构体指针。<br>tilingPtr: 用户使用SetUserDefInfo设置的tiling参数地址。<br>dataPtr: 用户使用SetSelfDefineData设置的计算数据地址。|
+> |可自定义左矩阵搬入首地址、搬运块位置、搬运块大小，实现左矩阵从GM搬入L1的功能|`void CopyA1(const LocalTensor<int8_t> &aMatrix, const __gm__ void *gm, int row, int col, int useM, int useK, const uint64_t tilingPtr, const uint64_t dataPtr)`|aMatrix: 目标L1Buffer地址。<br>gm：左矩阵GM首地址。<br>row、col：搬运块在M、K方向的索引，即在M、K方向上搬运块的序号，序号从0开始。<br>useM、useK：搬运块M、K方向大小，单位为元素个数。通过row、col和useM、useK计算出该搬运块左上角在左矩阵中的地址偏移。|
+> |可自定义右矩阵搬入首地址、搬运块位置、搬运块大小，实现右矩阵从GM搬入L1的功能|`void CopyB1(const LocalTensor<int8_t> &bMatrix, const __gm__ void *gm, int row, int col, int useK, int useN, const uint64_t tilingPtr, const uint64_t dataPtr)`|bMatrix: 目标L1Buffer地址。<br>gm：右矩阵GM首地址。<br>row、col：搬运块在K、N方向的索引。<br>useK、useN：搬运块K、N方向大小，单位为元素个数。|
 
 ```cpp
 struct DataCopyOutParams {
@@ -18400,11 +18400,11 @@ quoted:
 
 > Across 6,292 CANN production kernels, 6,289 came back SAFE and 3 were flagged (0.048%).
 
-| Kernel | Unit Pair | Violations | Missing Coverage |
-| --- | --- | --- | --- |
-| cross_v2 | VPU→scalar | 27 | V-to-S sync |
-| quest_block_select_paged | MTE→VPU | 10 | MTE2-to-V sync |
-| unique_consecutive_apt | scalar→VPU | 6 | "sync coverage under review" |
+|Kernel|Unit Pair|Violations|Missing Coverage|
+|---|---|---|---|
+|cross_v2|VPU→scalar|27|V-to-S sync|
+|quest_block_select_paged|MTE→VPU|10|MTE2-to-V sync|
+|unique_consecutive_apt|scalar→VPU|6|"sync coverage under review"|
 
 Corpus statistics: 5,618 kernels (89.3%) have at least one cross-unit write-read pair; 14,827 pairs checked;
 4,291 (68.2%) use explicit pipe-drain APIs. Separately: 23/120 LLM-generated kernels unsafe (19.2%, CI
@@ -18925,14 +18925,14 @@ and the reproduction's own calibration note, verbatim:
 
 The PR's results table, verbatim:
 
-> | 验证项 | 结果 |
-> | --- | --- |
-> | Issue 复现（1024³，quant + matmul 端到端） | **通过**（0 mismatch，原为 99.6%） |
-> | 新示例 `examples/w4a4_matmul/`（默认 1024³） | 通过 |
-> | 新增 10 个 int4 回归测试 | 10/10 |
-> | 既有 gemm_v0 套件（fp16 precision/transpose、int8 kL0split、n_tiling、n_actual） | 48/48（含 int4 共 58） |
-> | 既有 l1_to_l0 + gm_to_ub + cast_on_copy | 263/263 |
-> | 既有 elementwise | 492/492 + 2 xfailed |
+> |验证项|结果|
+> |---|---|
+> |Issue 复现（1024³，quant + matmul 端到端）|**通过**（0 mismatch，原为 99.6%）|
+> |新示例 `examples/w4a4_matmul/`（默认 1024³）|通过|
+> |新增 10 个 int4 回归测试|10/10|
+> |既有 gemm_v0 套件（fp16 precision/transpose、int8 kL0split、n_tiling、n_actual）|48/48（含 int4 共 58）|
+> |既有 l1_to_l0 + gm_to_ub + cast_on_copy|263/263|
+> |既有 elementwise|492/492 + 2 xfailed|
 
 ### 45.10 Two sibling sub-byte defects, for the pattern
 
@@ -19123,20 +19123,20 @@ __aicore__ constexpr HardEvent GetQueEvt(TPosition src, TPosition dst, bool fwdD
 consumer→producer direction (the `FreeTensor`/`DeQue`, "the buffer may be refilled"). **Both halves of a reused
 staging buffer need a row.**
 
-| Movement | ready (fwd) | buffer-free (rev) |
-| --- | --- | --- |
-| GM → UB (`DataCopy` in) | `MTE2_V` | `V_MTE2` |
-| GM → L1 | `MTE2_MTE1` | `MTE1_MTE2` |
-| GM → L0A / GM → L0B | `MTE2_M` | `M_MTE2` |
-| **UB → GM** (`DataCopy` out) | **`V_MTE3`** | **`MTE3_V`** |
-| UB → L1 | `MTE3_MTE1` | `MTE1_MTE3` |
-| UB → UB | `MTE2_MTE3` | `MTE3_MTE2` |
-| L1 → UB | `MTE1_V` | `V_MTE1` |
-| L1 → L0A / L1 → L0B / L1 → BiasTable | `MTE1_M` | `M_MTE1` |
-| L1 → FIXBUF | `MTE1_FIX` | `FIX_MTE1` |
-| L0A → L0C / L0B → L0C (`Mmad`) | `M_V` | `V_M` |
-| **L0C → GM (Fixpipe), on 2201** | **`M_FIX`** | **`FIX_M`** |
-| UB → L0C | `V_V` (a no-op) | `HardEvent::MAX` (a no-op) |
+|Movement|ready (fwd)|buffer-free (rev)|
+|---|---|---|
+|GM → UB (`DataCopy` in)|`MTE2_V`|`V_MTE2`|
+|GM → L1|`MTE2_MTE1`|`MTE1_MTE2`|
+|GM → L0A / GM → L0B|`MTE2_M`|`M_MTE2`|
+|**UB → GM** (`DataCopy` out)|**`V_MTE3`**|**`MTE3_V`**|
+|UB → L1|`MTE3_MTE1`|`MTE1_MTE3`|
+|UB → UB|`MTE2_MTE3`|`MTE3_MTE2`|
+|L1 → UB|`MTE1_V`|`V_MTE1`|
+|L1 → L0A / L1 → L0B / L1 → BiasTable|`MTE1_M`|`M_MTE1`|
+|L1 → FIXBUF|`MTE1_FIX`|`FIX_MTE1`|
+|L0A → L0C / L0B → L0C (`Mmad`)|`M_V`|`V_M`|
+|**L0C → GM (Fixpipe), on 2201**|**`M_FIX`**|**`FIX_M`**|
+|UB → L0C|`V_V` (a no-op)|`HardEvent::MAX` (a no-op)|
 
 ### 46.3 ★ Three things the table says that are not obvious
 
@@ -19391,10 +19391,10 @@ has a bare `DataCopy(cGlobal, bufferC, sizeC / sizeof(cType));` at line 179 insi
 So the macro partitions the halves by **returning out of the kernel**, and which half it kills depends on
 `ASCENDC_CUBE_ONLY`:
 
-| build | cube half (`SPLIT_CORE_CUBE`) | vector half (`SPLIT_CORE_VEC`) |
-| --- | --- | --- |
-| MIX (no `ASCENDC_CUBE_ONLY`) | runs the KFC server loop, then **`return`** — never reaches the user body | falls through as a KFC *client*; runs the user body |
-| `ASCENDC_CUBE_ONLY` | `InitCurObj`, falls through — **runs the user body** | **`return`** — never reaches the user body |
+|build|cube half (`SPLIT_CORE_CUBE`)|vector half (`SPLIT_CORE_VEC`)|
+|---|---|---|
+|MIX (no `ASCENDC_CUBE_ONLY`)|runs the KFC server loop, then **`return`** — never reaches the user body|falls through as a KFC *client*; runs the user body|
+|`ASCENDC_CUBE_ONLY`|`InitCurObj`, falls through — **runs the user body**|**`return`** — never reaches the user body|
 
 Two consequences, and the second is the one that matters to us.
 
@@ -19486,25 +19486,25 @@ an antipattern:
 
 Verbatim (HTML stripped), 「**表3** 针对Atlas A3 训练系列产品/Atlas A3 推理系列产品，支持的API范围」:
 
-| 接口分类 | 接口名称 | 备注 |
-| --- | --- | --- |
-| 基础API > 标量计算 | `GetBitCount`、`CountLeadingZero`、`CountBitsCntSameAsSignBit`、`GetSFFValue`、`Cast`（float转half、int32_t）、`Cast`（float转bfloat16_t）、`Cast`（多类型转float） | - |
-| 基础API > 矢量计算 > 基础算术 | `Exp`、`Ln`、`Abs`、`Reciprocal`、`Sqrt`、`Rsqrt`、`Relu`、`Add`、`Sub`、`Mul`、`Div`、`Max`、`Min`、`BilinearInterpolation`、`Adds`、`Muls`、`Maxs`、`Mins`、`LeakyRelu` | - |
-| 基础API > 矢量计算 > 逻辑计算 | `Not`、`And`、`Or`、`ShiftLeft`、`ShiftRight` | - |
-| 基础API > 矢量计算 > 复合计算 | `Axpy`、`CastDequant`、`AddRelu`、`AddReluCast`、`SubRelu`、`SubReluCast`、`MulAddDst`、`MulCast`、`FusedMulAdd`、`FusedMulAddRelu` | - |
-| 基础API > 矢量计算 > 比较与选择 | `Compare`、`Compare`（结果存入寄存器）、`Compares`、`GetCmpMask`、`SetCmpMask`、`GatherMask` | - |
-| 基础API > 矢量计算 > 类型转换 | `Cast` | - |
-| 基础API > 矢量计算 > 归约计算 | `WholeReduceMax`、`WholeReduceMin`、`WholeReduceSum`、`BlockReduceMax`、`BlockReduceMin`、`BlockReduceSum`、`PairReduceSum`、`RepeatReduceSum`、`GetReduceRepeatSumSpr`、`GetReduceRepeatMaxMinSpr` | - |
-| 基础API > 矢量计算 > 数据转换 | `Transpose`、`TransDataTo5HD` | `TransDataTo5HD`（不支持dst与src类型为uint64_t的LocalTensor的场景） |
-| 基础API > 矢量计算 > 数据填充 | `Duplicate`、`Brcb` | - |
-| 基础API > 矢量计算 > 排序组合 | `Sort32`、`MrgSort`、`GetMrgSortResult` | - |
-| 基础API > 矢量计算 > 离散与聚合 | `Gather`、`Gatherb` | - |
-| 基础API > 矢量计算 > 掩码操作 | `SetMaskCount`、`SetMaskNorm`、`SetVectorMask`、`ResetMask` | - |
-| 基础API > 矢量计算 > 量化设置 | `SetDeqScale` | - |
-| 基础API > 数据搬运 > DataCopy | 基础数据搬运 | 不支持UB（VECIN/VECCALC/VECOUT）->L1 Buffer（TSCM）通路的数据搬运。 |
-| 基础API > 数据搬运 | 增强数据搬运 / 切片数据搬运 / 随路转换ND2NZ搬运 / 随路转换NZ2ND搬运 / 随路量化激活搬运 | 增强数据搬运、随路转换ND2NZ搬运 不支持UB（VECIN/VECCALC/VECOUT）->L1 Buffer（TSCM）通路的数据搬运。 |
-| 基础API > 数据搬运 | `Copy`、`DataCopyPad`、`SetPadValue` | `DataCopyPad`不支持UB（VECIN/VECCALC/VECOUT）->L1 Buffer（TSCM）通路的数据搬运。 |
-| 基础API > 同步控制 > 核内同步 | `SetFlag/WaitFlag`、`PipeBarrier`、`DataSyncBarrier` | - |
+|接口分类|接口名称|备注|
+|---|---|---|
+|基础API > 标量计算|`GetBitCount`、`CountLeadingZero`、`CountBitsCntSameAsSignBit`、`GetSFFValue`、`Cast`（float转half、int32_t）、`Cast`（float转bfloat16_t）、`Cast`（多类型转float）|-|
+|基础API > 矢量计算 > 基础算术|`Exp`、`Ln`、`Abs`、`Reciprocal`、`Sqrt`、`Rsqrt`、`Relu`、`Add`、`Sub`、`Mul`、`Div`、`Max`、`Min`、`BilinearInterpolation`、`Adds`、`Muls`、`Maxs`、`Mins`、`LeakyRelu`|-|
+|基础API > 矢量计算 > 逻辑计算|`Not`、`And`、`Or`、`ShiftLeft`、`ShiftRight`|-|
+|基础API > 矢量计算 > 复合计算|`Axpy`、`CastDequant`、`AddRelu`、`AddReluCast`、`SubRelu`、`SubReluCast`、`MulAddDst`、`MulCast`、`FusedMulAdd`、`FusedMulAddRelu`|-|
+|基础API > 矢量计算 > 比较与选择|`Compare`、`Compare`（结果存入寄存器）、`Compares`、`GetCmpMask`、`SetCmpMask`、`GatherMask`|-|
+|基础API > 矢量计算 > 类型转换|`Cast`|-|
+|基础API > 矢量计算 > 归约计算|`WholeReduceMax`、`WholeReduceMin`、`WholeReduceSum`、`BlockReduceMax`、`BlockReduceMin`、`BlockReduceSum`、`PairReduceSum`、`RepeatReduceSum`、`GetReduceRepeatSumSpr`、`GetReduceRepeatMaxMinSpr`|-|
+|基础API > 矢量计算 > 数据转换|`Transpose`、`TransDataTo5HD`|`TransDataTo5HD`（不支持dst与src类型为uint64_t的LocalTensor的场景）|
+|基础API > 矢量计算 > 数据填充|`Duplicate`、`Brcb`|-|
+|基础API > 矢量计算 > 排序组合|`Sort32`、`MrgSort`、`GetMrgSortResult`|-|
+|基础API > 矢量计算 > 离散与聚合|`Gather`、`Gatherb`|-|
+|基础API > 矢量计算 > 掩码操作|`SetMaskCount`、`SetMaskNorm`、`SetVectorMask`、`ResetMask`|-|
+|基础API > 矢量计算 > 量化设置|`SetDeqScale`|-|
+|基础API > 数据搬运 > DataCopy|基础数据搬运|不支持UB（VECIN/VECCALC/VECOUT）->L1 Buffer（TSCM）通路的数据搬运。|
+|基础API > 数据搬运|增强数据搬运 / 切片数据搬运 / 随路转换ND2NZ搬运 / 随路转换NZ2ND搬运 / 随路量化激活搬运|增强数据搬运、随路转换ND2NZ搬运 不支持UB（VECIN/VECCALC/VECOUT）->L1 Buffer（TSCM）通路的数据搬运。|
+|基础API > 数据搬运|`Copy`、`DataCopyPad`、`SetPadValue`|`DataCopyPad`不支持UB（VECIN/VECCALC/VECOUT）->L1 Buffer（TSCM）通路的数据搬运。|
+|基础API > 同步控制 > 核内同步|`SetFlag/WaitFlag`、`PipeBarrier`、`DataSyncBarrier`|-|
 
 Two things to read off it. **`Cast`, `DataCopy`, `DataCopyPad`, `SetFlag`/`WaitFlag`, `PipeBarrier` and
 `DataSyncBarrier` are all on the list** — so the `Cast → Cast → DataCopy` chain of §47 is permitted alongside
@@ -19526,10 +19526,10 @@ Verbatim:
  同一接口若提供多个重载原型，可能只有部分原型会使用UB预留空间。
 ```
 
-| API类别 | API名 |
-| --- | --- |
-| 基础API | `AddDeqRelu`、`Select` |
-| 高阶API | `Digamma`、`Lgamma`、`Power`、`Sign`、`LayerNorm`、`DropOut`、`SelectWithBytesMask` |
+|API类别|API名|
+|---|---|
+|基础API|`AddDeqRelu`、`Select`|
+|高阶API|`Digamma`、`Lgamma`、`Power`、`Sign`、`LayerNorm`、`DropOut`、`SelectWithBytesMask`|
 
 (表6 is the 3510 list, where the reserve is 2 KB and `Exp` is among the users.)
 
@@ -20044,9 +20044,9 @@ Sources, all in the shipped devkit, read 2026-10-20:
 
 The case spec, verbatim — note how skinny it is:
 
-> | 输入 | Shape | Data type | Format |
-> | a | 16, 1024 | float16 | ND |
-> | b | 1024, 16 | float16 | ND |
+> |输入|Shape|Data type|Format|
+> |a|16, 1024|float16|ND|
+> |b|1024, 16|float16|ND|
 >
 > 当前案例使用的AI处理器共24个核，算子中开启高阶API Matmul的纯Cube模式。Tiling参数如下：
 > - 原始shape：M=16, N= 16, K=1024。
@@ -20836,10 +20836,10 @@ __aicore__ inline int64_t GetTaskRatio()
 
 > 针对分离模式，不同核函数（Kernel）类型下（通过设置核函数（Kernel）类型接口设置），在AIC和AIV上调用该接口的返回值如下：
 >
-> | 核函数（Kernel）类型 | KERNEL_TYPE_AIV_ONLY | KERNEL_TYPE_AIC_ONLY | KERNEL_TYPE_MIX_AIC_1_2 | KERNEL_TYPE_MIX_AIC_1_1 | KERNEL_TYPE_MIX_AIC_1_0 | KERNEL_TYPE_MIX_AIV_1_0 |
-> | --- | --- | --- | --- | --- | --- | --- |
-> | AIV | 1 | - | 2 | 1 | - | 1 |
-> | AIC | - | 1 | 1 | 1 | 1 | - |
+> |核函数（Kernel）类型|KERNEL_TYPE_AIV_ONLY|KERNEL_TYPE_AIC_ONLY|KERNEL_TYPE_MIX_AIC_1_2|KERNEL_TYPE_MIX_AIC_1_1|KERNEL_TYPE_MIX_AIC_1_0|KERNEL_TYPE_MIX_AIV_1_0|
+> |---|---|---|---|---|---|---|
+> |AIV|1|-|2|1|-|1|
+> |AIC|-|1|1|1|1|-|
 
 ## Relevance
 
@@ -20884,12 +20884,12 @@ whose version is CANN 9.2.0 (`version.cmake:11`). All paths below are relative t
 
 表1, 指令流水类型和相关说明, the first and the two DMA rows verbatim (`:47-53`):
 
-> | 流水类型 | 含义 |
-> | --- | --- |
-> | PIPE_S | 标量流水线，使用GlobalTensor/LocalTensor的GetValue函数时为此流水 |
-> | PIPE_V | 矢量计算流水及部分硬件架构下的L0C Buffer->UB数据搬运流水 |
-> | PIPE_MTE2 | GM->L1 Buffer、GM->UB等数据搬运流水 |
-> | PIPE_MTE3 | UB->GM、L1 Buffer->GM等数据搬运流水 |
+> |流水类型|含义|
+> |---|---|
+> |PIPE_S|标量流水线，使用GlobalTensor/LocalTensor的GetValue函数时为此流水|
+> |PIPE_V|矢量计算流水及部分硬件架构下的L0C Buffer->UB数据搬运流水|
+> |PIPE_MTE2|GM->L1 Buffer、GM->UB等数据搬运流水|
+> |PIPE_MTE3|UB->GM、L1 Buffer->GM等数据搬运流水|
 
 `GetValue` is named in the PIPE_S row of the official pipe table. It is not a vector access that happens to be
 scalar-ish; it is the canonical PIPE_S access. The declarations carry the compiler's marker for it —
@@ -20912,12 +20912,12 @@ and the body is a bare dereference with no implicit wait, `impl/basic_api/kernel
 
 Same file, 表3 「AIV中所有合法的核内同步组合」, `:91-96`, complete and unaltered:
 
-> | 源流水 | PIPE_S | PIPE_V | PIPE_MTE2 | PIPE_MTE3 |
-> | --- | --- | --- | --- | --- |
-> | PIPE_S | 不涉及 | SetFlag\<S_V\>(0)<br>WaitFlag\<S_V\>(0) | SetFlag\<S_MTE2\>(0)<br>WaitFlag\<S_MTE2\>(0) | SetFlag\<S_MTE3\>(0)<br>WaitFlag\<S_MTE3\>(0) |
-> | PIPE_V | SetFlag\<V_S\>(0)<br>WaitFlag\<V_S\>(0) | PipeBarrier\<PIPE_V\>() | SetFlag\<V_MTE2\>(0)<br>WaitFlag\<V_MTE2\>(0) | SetFlag\<V_MTE3\>(0)<br>WaitFlag\<V_MTE3\>(0) |
-> | PIPE_MTE2 | SetFlag\<MTE2_S\>(0)<br>WaitFlag\<MTE2_S\>(0) | SetFlag\<MTE2_V\>(0)<br>WaitFlag\<MTE2_V\>(0) | PipeBarrier\<PIPE_MTE2\>() | SetFlag\<MTE2_MTE3\>(0)<br>WaitFlag\<MTE2_MTE3\>(0) |
-> | PIPE_MTE3 | SetFlag\<MTE3_S\>(0)<br>WaitFlag\<MTE3_S\>(0) | SetFlag\<MTE3_V\>(0)<br>WaitFlag\<MTE3_V\>(0) | SetFlag\<MTE3_MTE2\>(0)<br>WaitFlag\<MTE3_MTE2\>(0) | PipeBarrier\<PIPE_MTE3\>() |
+> |源流水|PIPE_S|PIPE_V|PIPE_MTE2|PIPE_MTE3|
+> |---|---|---|---|---|
+> |PIPE_S|不涉及|SetFlag\<S_V\>(0)<br>WaitFlag\<S_V\>(0)|SetFlag\<S_MTE2\>(0)<br>WaitFlag\<S_MTE2\>(0)|SetFlag\<S_MTE3\>(0)<br>WaitFlag\<S_MTE3\>(0)|
+> |PIPE_V|SetFlag\<V_S\>(0)<br>WaitFlag\<V_S\>(0)|PipeBarrier\<PIPE_V\>()|SetFlag\<V_MTE2\>(0)<br>WaitFlag\<V_MTE2\>(0)|SetFlag\<V_MTE3\>(0)<br>WaitFlag\<V_MTE3\>(0)|
+> |PIPE_MTE2|SetFlag\<MTE2_S\>(0)<br>WaitFlag\<MTE2_S\>(0)|SetFlag\<MTE2_V\>(0)<br>WaitFlag\<MTE2_V\>(0)|PipeBarrier\<PIPE_MTE2\>()|SetFlag\<MTE2_MTE3\>(0)<br>WaitFlag\<MTE2_MTE3\>(0)|
+> |PIPE_MTE3|SetFlag\<MTE3_S\>(0)<br>WaitFlag\<MTE3_S\>(0)|SetFlag\<MTE3_V\>(0)<br>WaitFlag\<MTE3_V\>(0)|SetFlag\<MTE3_MTE2\>(0)<br>WaitFlag\<MTE3_MTE2\>(0)|PipeBarrier\<PIPE_MTE3\>()|
 
 and its preamble, `:76`, which is what makes this table a *closed* list rather than a set of examples:
 
@@ -20931,7 +20931,7 @@ same-pipe dependency and a named event pair is for every other dependency.**
 
 `docs/zh/api/SIMD-API/basic_api/sync_control/intra_core_sync/PipeBarrier_ISASI.md`, 参数说明 (`:55`):
 
-> | pipe | 模板参数，表示阻塞的流水类别。<br>支持的流水参考硬件流水类型，其中**不支持PIPE_S**。<br>如果不关注流水类别，希望阻塞所有流水，可以传入PIPE_ALL。 |
+> |pipe|模板参数，表示阻塞的流水类别。<br>支持的流水参考硬件流水类型，其中**不支持PIPE_S**。<br>如果不关注流水类别，希望阻塞所有流水，可以传入PIPE_ALL。|
 
 约束说明, same file, the first three bullets verbatim:
 
@@ -21020,7 +21020,7 @@ Read as "a `<<<>>>` kernel has auto-sync", that sentence is wrong. 「已默认�
 templates*, not about the compiler. The option is listed as optional and opt-in in the compile-option table,
 `docs/zh/guide/programming_guide/compilation_and_execution/operator_compilation/ai_core_operator_compilation.md:119`:
 
-> | --cce-auto-sync | 否 | 开启毕昇编译器自动同步。AI Core内部的执行单元是异步并行的，Tensor的读写可能存在数据依赖，开启后可由毕昇编译器自动插入部分同步。 |
+> |--cce-auto-sync|否|开启毕昇编译器自动同步。AI Core内部的执行单元是异步并行的，Tensor的读写可能存在数据依赖，开启后可由毕昇编译器自动插入部分同步。|
 
 and the build system is what appends it — `tools/build/asc_op_compile_base/asc_op_compiler/compile_op.py:1100-1108`:
 
@@ -21055,12 +21055,12 @@ PIPE_V↔PIPE_V edges.
 
 What the option would have covered, had it been on — 表3 of the same file, `:171-176`:
 
-> | 源流水\目的流水 | PIPE_S | PIPE_V | PIPE_MTE2 | PIPE_MTE3 |
-> | --- | --- | --- | --- | --- |
-> | PIPE_S | - | 支持 | 支持 | 支持 |
-> | PIPE_V | 支持 | 支持 | - | - |
-> | PIPE_MTE2 | 支持 | - | - | - |
-> | PIPE_MTE3 | 支持 | - | - | - |
+> |源流水\目的流水|PIPE_S|PIPE_V|PIPE_MTE2|PIPE_MTE3|
+> |---|---|---|---|---|
+> |PIPE_S|-|支持|支持|支持|
+> |PIPE_V|支持|支持|-|-|
+> |PIPE_MTE2|支持|-|-|-|
+> |PIPE_MTE3|支持|-|-|-|
 
 i.e. every edge touching PIPE_S, in both directions, plus V→V — and **none** of V↔MTE2, V↔MTE3. Note the shape of
 that coverage: the compiler takes exactly the edges a `PipeBarrier` cannot express, and leaves the ones it can. The
@@ -21398,8 +21398,8 @@ of its outputs. Paths below are relative to `/home/shanshan/repo/cann/asc-devkit
 取到…所能表示的数 against 取整. Input 0.5, mode `CAST_RINT`: `float → half` yields 0.5, `float → float` yields 0.0.
 The enum's own wording says the same thing in bit terms — `:19-20`:
 
-> | CAST_NONE | 当转换过程存在精度损失时，按CAST_RINT模式处理；当不存在精度损失时，不进行舍入。 |
-> | CAST_RINT | 向最近的偶数舍入。<br>• 若待舍入部分的首位为0，则不进位。<br>• 若待舍入部分的首位为1且后续位不全为0，则进位。<br>• 若待舍入部分的首位为1且后续位全为0：当非舍入部分的末位为0，则不进位；当非舍入部分的末位为1，则进位。 |
+> |CAST_NONE|当转换过程存在精度损失时，按CAST_RINT模式处理；当不存在精度损失时，不进行舍入。|
+> |CAST_RINT|向最近的偶数舍入。<br>• 若待舍入部分的首位为0，则不进位。<br>• 若待舍入部分的首位为1且后续位不全为0，则进位。<br>• 若待舍入部分的首位为1且后续位全为0：当非舍入部分的末位为0，则不进位；当非舍入部分的末位为1，则进位。|
 
 待舍入部分 is "the part that cannot be kept", which is the mantissa tail for a narrowing float conversion and the
 fractional part for an integral one. The mode is a tie-break rule over the destination's grid, nothing more.
@@ -21434,13 +21434,13 @@ documentary rather than pinned in repo code.
 The type-specific confirmation is 表32 in
 `docs/zh/api/appendix/memory_vector_compute_interface_boundary_value_summary.md:1365-1370`:
 
-> | src数据类型/dst数据类型 | src输入数据 | dst输出数据（INF/NAN模式） | dst输出数据（饱和模式…） |
-> | half/int4b_t | MAX | 7 | 7 |
-> | half/int4b_t | MIN | -8 | -8 |
-> | half/int4b_t | +0/-0 | 0 | 0 |
-> | half/int4b_t | nan | 0 | 0 |
-> | half/int4b_t | +inf | 7 | 7 |
-> | half/int4b_t | -inf | -8 | -8 |
+> |src数据类型/dst数据类型|src输入数据|dst输出数据（INF/NAN模式）|dst输出数据（饱和模式…）|
+> |half/int4b_t|MAX|7|7|
+> |half/int4b_t|MIN|-8|-8|
+> |half/int4b_t|+0/-0|0|0|
+> |half/int4b_t|nan|0|0|
+> |half/int4b_t|+inf|7|7|
+> |half/int4b_t|-inf|-8|-8|
 
 The `+inf → 7` and `-inf → -8` rows discriminate saturation from wrapping outright rather than being merely
 consistent with it: an infinity has no modular residue, so a wrapping implementation could not produce 7. Both

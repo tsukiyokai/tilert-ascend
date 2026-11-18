@@ -6,19 +6,19 @@ TileRT-Ascend 是 Ascend 上的专用低时延 decode 后端。它接收成熟�
 
 单请求下，计算可能很短，发起、搬运、同步和交接仍需付出完整成本。项目从 token 的关键路径出发，让静态权重提前到位，让结果在可用时交给后继，让通信与计算按数据依赖推进。每接管一段执行，都检查完整请求收益与维护成本，再决定是否扩大到相邻算子、层或设备。
 
-[开始验证](#%E5%BC%80%E5%A7%8B%E9%AA%8C%E8%AF%81) · [实施计划](plan.md) · [工程教训](lesson.md) · [实验记录](probe.md) · [沿途下蛋](eggs.md)
+[开始验证](#%E5%BC%80%E5%A7%8B%E9%AA%8C%E8%AF%81) · [实施计划](plan.md) · [投机路线](speculative-decoding.md) · [工程教训](lesson.md) · [实验记录](probe.md) · [沿途下蛋](eggs.md)
 
 当前 TP8+EP8 Megakernel 子任务、候选验收状态与源码、产物管理入口见 [当前计划](plan.md#当前验收)及[实验登记](experiments.json)。
 
 ## 谁可以采用
 
-首条路径面向已有 Ascend 服务栈、能提供常驻资源的团队，优先验证低并发且 decode 占主要等待时间的请求。使用真实 GLM-5.2-W4A8C8 权重，一台 A3 的 16 个 die（计算芯片）做 16 路张量并行（TP16），一次处理一条请求。
+首条路径面向已有 Ascend 服务栈、能提供常驻资源的团队，优先验证低并发且 decode 占主要等待时间的请求。使用真实 GLM-5.2-W4A8C8 权重，一台 A3 上的 8 个 die（计算芯片）做 TP8+EP8，一次处理一条请求。
 
-| 参与者 | 分工 |
-| -- | -- |
-| 服务栈 | 处理请求路由、准入和输入计算（prefill） |
-| Decode 后端 | 生成 token，组织投机验证、提交与回滚 |
-| 执行实现 | 按约定的布局、数值与生命周期完成计算和通信 |
+|参与者|分工|
+|---|---|
+|服务栈|处理请求路由、准入和输入计算（prefill）|
+|Decode 后端|生成 token，组织投机验证、提交与回滚|
+|执行实现|按约定的布局、数值与生命周期完成计算和通信|
 
 当前整模型路径使用 [CannModel][cann-model]，复用 vLLM-Ascend 的模型、量化和 CANN 算子。[CANN P/D 入口][cann-pd] 将它接到 TP 命令循环与 HTTP；[Ascend connector][connector] 和 HIXL 交接历史状态缓存（KV cache）。框架内适配与独立 decode 池计划沿用同一执行核心，按接入需求验证各自的生命周期。
 
@@ -26,14 +26,16 @@ TileRT-Ascend 是 Ascend 上的专用低时延 decode 后端。它接收成熟�
 
 ## 已验证到哪里
 
+当前 coding 8K/1K（[case-01-coding](../tests/glm52/megakernel_tp8_ep8/case-01-coding)）在 DSpine 锥形树 W16 配合 75 层持久 Megakernel 下稳态五次测量中位数为 7.5988 ms/token（最快 7.4716 ms/token，149 轮，8 卡状态与黄金 SHA256 逐位对齐），正朝稳态 TPOT < 3.0 ms 终态推进；终态架构见 [独立解码架构](standalone-decode.md)，投机对照见 [投机路线](speculative-decoding.md)。下表保留早期其他配置的历史证据。
+
 TPOT 表示平均输出 token 间隔；M1、M12 表示目标模型一次处理 1、12 个位置。原始配置与读数汇总在 [probe](probe.md)。
 
-| 路径 | 结果 | 范围 |
-| -- | -- | -- |
-| [功能参考][smoke] | 1,729 项检查 | 四层合成 BF16；CPU / 单 die |
-| [真实 P/D][pd-live] | 8K 输入，HTTP 返回 8 token | 16 路 HIXL WRITE，CANN M1 |
-| [冻结前缀 decode][width32] | TPOT 中位数 12.413 ms | 同一 8K 前缀，1024 输出，TP16 |
-| [原生全层组合][native-tree] | 变化输入与树规约检查通过 | 三个设备 rank，M1 / M12 |
+|路径|结果|范围|
+|---|---|---|
+|[功能参考][smoke]|1,729 项检查|四层合成 BF16；CPU / 单 die|
+|[真实 P/D][pd-live]|8K 输入，HTTP 返回 8 token|16 路 HIXL WRITE，CANN M1|
+|[冻结前缀 decode][width32]|TPOT 中位数 12.413 ms|同一 8K 前缀，1024 输出，TP16|
+|[原生全层组合][native-tree]|变化输入与树规约检查通过|三个设备 rank，M1 / M12|
 
 功能参考的 NPU 路径使用 TileLang RMSNorm，真实 W4A8C8 与 TP16 另行验收。P/D 记录先停止 prefill，再加载 decode，验证了活设备 KV 交接；常驻服务尚待验收。
 
@@ -60,12 +62,12 @@ PYTHONPATH=. python3 tests/glm52/check_ascend_layout.py --output "$report_dir/as
 
 准备完整 GLM-5.2-W4A8C8 checkpoint、tokenizer、MTP 权重和 8K prefill 快照。[统一启动脚本][launcher] 使用 CANN 9.2、NNAL/ATB、配套的 torch/torch_npu、成对固定的 vLLM/vLLM-Ascend 源码树，以及 `custom_transformer` 算子 overlay。P/D 另需可用的 HIXL bridge。依赖身份和参数随结果保存。
 
-| 要验证的内容 | 入口 |
-| -- | -- |
-| 前缀恢复后的 M1 数值与状态 | [bench_cann_decode.py][bench-decode] |
-| 投机、图模式和内部 decode 时延 | [bench_cann_mtp.py][bench-mtp] |
-| Prefill、KV 交接与 HTTP 输出 | [prefill 启动][prefill]、[CANN P/D][cann-pd] |
-| 原生片段的算术与图回放 | [TP layer 契约][tp-layer]、[三 rank 图检查][native-tree] |
+|要验证的内容|入口|
+|---|---|
+|前缀恢复后的 M1 数值与状态|[bench_cann_decode.py][bench-decode]|
+|投机、图模式和内部 decode 时延|[bench_cann_mtp.py][bench-mtp]|
+|Prefill、KV 交接与 HTTP 输出|[prefill 启动][prefill]、[CANN P/D][cann-pd]|
+|原生片段的算术与图回放|[TP layer 契约][tp-layer]、[三 rank 图检查][native-tree]|
 
 每次实验使用新的 `TAG` 和独立输出目录，启动脚本会清空同名结果与编译缓存。按 [测量协议][measurement] 先检查恢复后的状态与输出，再测时延。冻结的是历史前缀，生成期间 KV 仍追加。P/D 按 [状态协议][pd-state] 验收；在线入口只开放已实现并验证的选项。构建与排错见 [调试入口](lesson.md#%E8%B0%83%E8%AF%95%E5%85%A5%E5%8F%A3)。
 
@@ -73,16 +75,16 @@ PYTHONPATH=. python3 tests/glm52/check_ascend_layout.py --output "$report_dir/as
 
 执行片段可以跨算子，也可以包含通信；它须明确生产、发布、消费与存储复用的次序。工具链按实际 shape、生成代码和完整路径测量选择，可使用 TileLang-Ascend、AscendC 或 PTO。
 
-| 接入部分 | 先读取的约定 |
-| -- | -- |
-| 服务框架或传输 | [KV 布局][layout]、[P/D 状态][pd-state]、[MTP parent][mtp-parent] |
-| Attention | [indexed attention][attention] |
-| MoE | [W4A8 routed][routed]、[routed/shared 适配][routed-shared] |
-| 跨卡执行 | [通信协议][communication] |
+|接入部分|先读取的约定|
+|---|---|
+|服务框架或传输|[KV 布局][layout]、[P/D 状态][pd-state]、[MTP parent][mtp-parent]|
+|Attention|[indexed attention][attention]|
+|MoE|[W4A8 routed][routed]、[routed/shared 适配][routed-shared]|
+|跨卡执行|[通信协议][communication]|
 
 服务接入核对版本、rank、完成回执、pending token、取消和槽位复用。Attention 核对稀疏选择、main/indexer 页映射、当前 stream、scratch 与图捕获生命周期。MoE 核对真实权重布局、原 top-8 slot、量化、combine 和 TP finalize 的归属。跨卡实现核对算术树、数据可见性、设备 epoch、窗口独占和驻留条件。
 
-每次替换依次检查局部数值、变化输入图回放、实际 TP16、整模型输出和服务请求。比较完整被替换路径的耗时，同时记录资源占用与失败行为；收益成立后再扩大执行范围。
+每次替换依次检查局部数值、变化输入图回放、目标 TP8+EP8、整模型输出和有效状态。比较完整被替换路径的耗时，同时记录资源占用与失败行为；收益成立后再扩大执行范围。
 
 ## 证据与参考
 

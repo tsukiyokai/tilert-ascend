@@ -16,7 +16,7 @@
 
 `w115-discrete-control` 在相同 9392 主机的新流程中复现六次 223 轮、黄金 SHA，三次测量 TPOT 为 8.835/8.846/8.858 ms。源码快照 `refs/snapshots/control-v7-20261105`，原始代码只读挂载，缓存按实验隔离，归档包含 71 个文件及编译产物；真实 Git commit、镜像与通信库哈希均已保存。该对照通过轨迹验收，HF 精度门禁仍未覆盖。
 
-两次实验均在 `7.150.8.208` 的 Ascend910_9392 上执行，八 rank 内部状态一致；该一致性不等于复现黄金轨迹。原始收据位于 `evidence/test-w114-max-fusion-v3x{9,10}-formal/`，独立验收位于对应 validation 目录，并复制到 `.artifacts/runs/` 后按 manifest 校验。v3x10 的四次 223 轮请求仍在 token 443 出现输出差异，不能按轮数判定通过。离散计算路径已复现，下一步在相同真实输入上保存首个 attention 边界差异；未开始性能收益归因。
+两次实验均在 `7.150.8.208` 的 Ascend910_9392 上执行，八 rank 内部状态一致；该一致性不等于复现黄金轨迹。原始收据位于 `evidence/test-w114-max-fusion-v3x{9,10}-formal/`，独立验收位于对应 validation 目录，并复制到 `tests/.artifacts/runs/` 后按 manifest 校验。v3x10 的四次 223 轮请求仍在 token 443 出现输出差异，不能按轮数判定通过。离散计算路径已复现，下一步在相同真实输入上保存首个 attention 边界差异；未开始性能收益归因。
 
 
 单 die 诊断新增的组件收据，均登记在 `docs/experiments.json`：WK 的 ND/NZ 布局对照三个种子逐位一致；TP8 输出 `[M,N,K]=[32,6144,2048]` 的 ND 量化乘法在三个全范围 INT8 种子、两种 scale dtype 下支持 `CombinedScales`；原版 Triton RoPE 与 FP32 LayerNorm 的 M32 前端对照通过 14 项逐位检查；layer-0 真实前端权重、原始 FP32 scale 与合成激活也通过 14 项。生产编译收据中的 WQ/O 实际为 BF16 scale 和 affinity NZ 权重；补测三个 BF16+NZ 输出矩阵乘种子仍支持 `CombinedScales`，真实前端权重配 BF16 scale 的 ND 对照通过 14 项。组件结果不替代黄金轨迹。
@@ -127,11 +127,11 @@
 11. 结构积木适配层契约测试全量通过：在 194 节点容器环境中驱动 [test_attention_native_adapter.py](tests/glm52/test_attention_native_adapter.py)（25 passed, 3 skipped）、[test_routed_adapter.py](tests/glm52/test_routed_adapter.py)（35 passed）、[test_routed_shared_adapter.py](tests/glm52/test_routed_shared_adapter.py)（19 passed）与 [test_fused_workspaces.py](tests/glm52/test_fused_workspaces.py)（5 passed），全量验证注意力宏积木与 MoE 宏积木适配层的显存预分配、多宽度分桶与前向上下文契约，为层级双宏积木静态图组装筑牢确定性基座。
 12. Attention 宏积木（whole_layer_full_attention.so）A3 硬件实机 100% 位级零分歧与执行压降验证：通过对齐 ops-transformer 源码树 29 个官方与打补丁头文件（sha256 100% 吻合），成功在 194 节点（Ascend910_9392）完成 [whole_layer_full_attention.so](file:///work/source-opt-v1/tests/glm52/whole_layer/attention_full_build/whole_layer_full_attention.so) 编译。实机驱动 [attention_full_check.py](file:///work/source-opt-v1/tests/glm52/whole_layer/attention_full_check.py)，在 width 1、4、32 且 blocks=24 下全量前向重放（4 轮）验证：全量 latent、output、kv_cache、rope_cache 实测 bitwise_equal: true，最大绝对误差 0.0，均方根误差 0.0，达成绝对精度保真；单个核工作区请求从 106.35 MB 降至 88.49 MB，节省 17.86 MB 片上显存；在 width=32 静态图捕获下，分立发射（whole_layer_attention + mla_tail）耗时中位数 237.75 µs，而单 Launch 宏积木融合（whole_layer_full_attention）降至 209.03 µs，单层净提速 12.08%（节省 28.72 µs），全模型 78 层外推单轮净削减 2.24 ms，确立了 Attention 宏积木在物理芯片上的绝对优势。详情见 [attention-full-a3-20261103/summary.json](evidence/ascend-decode/attention-full-a3-20261103/summary.json)。
 13. 155 节点单边 AllReduce+RMSNorm+Quant 全融合 `v6` 位级对齐与 `active=1` `28.50 ms` 突破：在 [tp_push_kernel.cpp](tests/glm52/shmem/tp_push_kernel.cpp) 中定位并拔除了 `TpPushInUbRmsNormQuant` 在 `one_hop`（`active <= 4`）下仅主核持有 UB 归约和导致第 1..3 行未初始化的精度根因，重构 48 核无争用两级树状屏障与双缓存行并行 Scale 写回。实测 [test-w111-fuse-ar-norm-v6-formal](docs/evidence/ascend-decode/test-w111-fuse-ar-norm-v6-formal.json) 与 [test-w111-fuse-ar-norm-v6-idx0-formal](docs/evidence/ascend-decode/test-w111-fuse-ar-norm-v6-idx0-formal.json) 在 1024 词元全轨迹下与离散基线达成 100% 逐位一致，`active=1` 单轮耗时从离散 `30.19 ms` 压至 `28.50 ms`（净降 `-1.69 ms/round`），81 节点 Attention 融合 [test-w111-fuse-attn-only-v6-idx0-formal](docs/evidence/ascend-decode/test-w111-fuse-attn-only-v6-idx0-formal.json) 中位 TPOT 降至 `9.655 ms`（稳态 `9.12 ms`），超越同环境离散基线（`9.688 ms`）。同时在 `--native-attention` 全层大核中合入四套算子补丁与 `-DINDEXER_FRONT_PARALLEL_PROJECTIONS`（[test-w111-native-attn-v3-fast](docs/evidence/ascend-decode/test-w111-native-attn-v3-fast.json)），达成 100% 位级等价且 `active=1` 单轮直降 `-3.20 ms`（`35.61 -> 32.41 ms`）。
-14. 新容器环境与 `w107`（`8.322 ms`）基线差值的完整归因：排查定位到新容器镜像 `glm5-tp8-bench` 内 `/usr/local/Ascend/cann-9.1.0` 未打入 [patches/](patches/) 下全部 5 套内置算子补丁，且 `/mnt/sfs_turbo_new/trt-sync-tmp/sdk/cann-9.2.0` 遗漏了 [patches/cann-grouped-matmul/](patches/cann-grouped-matmul/)（`gmm2-active-groups.patch` + `gmm2-adaptive-tiles.patch`，造成 `+2.6 ms/round` 退化）；同时定位到 [`AscendRankEngine.start_mtp`](tilert/pd_vllm/ascend_cache.py) 在首词回调计时开始后重复构建 8192 词元基数树并在第 5、6 请求触发 Python Gen-2 GC（单次停顿 `634–1930 ms`，抬高中位 TPOT `+0.60 ms`）。
+14. 新容器环境与 `w107`（`8.322 ms`）基线差值的完整归因：排查定位到新容器镜像 `glm5-tp8-bench` 内 `/usr/local/Ascend/cann-9.1.0` 未打入 [scripts/patches/](../scripts/patches/) 下全部 5 套内置算子补丁，且 `/mnt/sfs_turbo_new/trt-sync-tmp/sdk/cann-9.2.0` 遗漏了 [scripts/patches/cann-grouped-matmul/](../scripts/patches/cann-grouped-matmul/)（`gmm2-active-groups.patch` + `gmm2-adaptive-tiles.patch`，造成 `+2.6 ms/round` 退化）；同时定位到 [`AscendRankEngine.start_mtp`](tilert/pd_vllm/ascend_cache.py) 在首词回调计时开始后重复构建 8192 词元基数树并在第 5、6 请求触发 Python Gen-2 GC（单次停顿 `634–1930 ms`，抬高中位 TPOT `+0.60 ms`）。
 15. 单阶段片上直通融合算子 `v7`（`TpPushRsAgBf16` 内联 RMSNorm+Quant）实机正向加速闭合：在 [tp_push_kernel.cpp](tests/glm52/shmem/tp_push_kernel.cpp) 中移除 `TpPushInUbRmsNormQuant` 的第二阶段二次 `WaitSignal` 与 GM 重读，直接在 `TpPushRsAgBf16` 的 `one_hop`（`active <= 4`）与 `ReduceScatter + AllGather`（`active > 4`）归约出片前，由本核在 UB 内执行残差相加、FP32 树状归约 RMSNorm 与 INT8 动态量化；同步在 [`ascend_cache.py`](tilert/pd_vllm/ascend_cache.py) 缓存前缀基数树并在计时前执行 `gc.collect()`。在 `a3-84` 同机配对 1024 词元正式测试中，155 节点全融合 [test-w112-fuse-ar-norm-v7-formal](docs/evidence/ascend-decode/test-w112-fuse-ar-norm-v7-formal/summary.json) 将单轮 `host_tokens` 从同机离散对照 [test-w112-discrete-clean-formal](docs/evidence/ascend-decode/test-w112-discrete-clean-formal/summary.json) 的 `40.618 ms` 压至 `39.483 ms`（净削减 `-1.135 ms/round`），中位 TPOT 从 `9.035 ms` 降至 `8.863 ms`（叠加恢复 Oct 31 SFA 后 [test-w112-sfa-restored-v7-formal](docs/evidence/ascend-decode/test-w112-sfa-restored-v7-formal/summary.json) 进一步降至中位 `8.808 ms`、最小 `8.779 ms`），3 次测量请求极差从 `1.15 ms` 收敛至 `0.031 ms`，输出序列与离散对照 100% 逐位一致（SHA `4fb8be2df58a`）。
 16. 当前最大融合颗粒度（`--native-attention` 全层注意力大核 + 155 节点 `v7` 全融合）1024 词元端到端实测基线：在 `a3-84` 执行 [test-w112-max-fusion-formal](docs/evidence/ascend-decode/test-w112-max-fusion-formal/summary.json)，将 21 层 Indexed Attention 全融合大核（[`whole_layer_indexed_attention_tp8.so`](tests/glm52/whole_layer/attention_indexed_native.h)）、57 层 Shared Attention 全融合大核（[`whole_layer_full_attention_tp8.so`](tests/glm52/whole_layer/attention_full_kernel.cpp)）与 155 个跨层单边 `TpPushRsAgBf16`（`AllReduce + RoutedScaleAdd + Residual + RMSNorm + DynamicQuant`）全部贯通（`produced_norms=155, consumed_dq=155, remaining_unconsumed=0`）。实测 8 卡状态一致（`all_rank_state_agreement: true`），单轮 `host_tokens = 44.622 ms`，轮数 `261`（`E[accept]=3.923 tok/round`），1024 词元正式 TPOT 中位数 `11.592 ms`（最小 `11.592 ms`，最大 `11.599 ms`，按 223 轮分母折算为 `9.78 ms`）。
 17. 全层注意力大核微架构深耕与屏障消减（`v3 -> v3o`，单轮 `44.622 -> 40.415 ms`，净降 `-4.207 ms/round`）：在 `7.150.11.149`（`9392` 8 dies TP8+EP8）上对 [`attention_indexed_native.h`](tests/glm52/whole_layer/attention_indexed_native.h)、[`attention_full_native.h`](tests/glm52/whole_layer/attention_full_native.h)、[`indexer_front_native.h`](tests/glm52/whole_layer/indexer_front_native.h) 与 [`mla_tail_native.h`](tests/glm52/mla_tail/mla_tail_native.h) 实施逐阶段算子深耕：（a）接入动态 `query_lengths` 与 `capacity=16/32` 双槽位 `TCubeTiling`（`v3`：`43.202 ms/round`）；（b）将 `WriteQuantizedKeyCache` 内联至 `indexer_front::Quantize` 并消除独立 `WriteCache` 阶段与 `SyncAll` 屏障（`v3e`：`42.266 ms/round`）；（c）`DequantizeOutputRows` 16 行批处理、`QuantizeValues` 与 `QuantizeBatch` 采用 `Max + WholeReduceMax + Div + Muls` 向量化归约并消除循环末次 `Fence<HardEvent::MTE3_MTE2>()` 停顿（`v3g..v3m`：`40.926 ms/round`）；（d）利用 `Matmul::SetOrgShape` 跨步直读 `latent`（`orgKa = kHeads * kLatent = 4096`）与跨步直写 `values`（`orgKc = kProjectionInput = 2048`），彻底拔除 `StageHeads` 阶段、1 道全片 `SyncAll<false>()` 屏障及 `QuantizeValues` 16 段跨步 `gather`，同步重编全量 21 层 Indexed 与 57 层 Shared 大核（[test-w114-max-fusion-v3o-fast](evidence/test-w114-max-fusion-v3o-fast/summary.json)），在 213 轮冻结轨迹下将 `host_tokens` 压至 `40.415 ms/round`（384 词元 `fast` TPOT `22.890 ms`，折合 220 轮 1024 词元标准分母 TPOT `~8.678 ms`）。
-18. 单卡算子微基准驱动 `v3r -> v3w -> v3x3` 闭环（384 词元 `fast` TPOT `14.299 ms`，`q=1` 单轮破 `28.987 ms`）：构建单 die NPUGraph 微基准 [`microbench_tp8.py`](tests/glm52/whole_layer/microbench_tp8.py)，在 `15s` 内完成 `M in [1,6,8,12,16,24,32]` 的 `uint16` 逐位校验与静态图重放计时。（a）在 `v3r` 中将 `SfaPhase` 的 `actS1Size/actS2Size` 接入真实 `query_lengths/key_lengths`，100% 恢复 133 轮黄金轨迹（`SHA 8715ed79f0cb5600`，TPOT 从 `22.890 ms` 直降至 `14.471 ms`）；（b）在 `v3w`（[`patches/cann-sfa-v3x3/sparse_flash_attention_service_vector_mla.h`](patches/cann-sfa-v3x3/sparse_flash_attention_service_vector_mla.h)）中将 TP8（`kHeads=8`）下的 `ProcessVD` 重构为单遍 16 行（`16 * 512`）批处理 `Muls` 并提升 `MergeKv` 预计算常量，将 `M=32` 压降 `-19..23 us/layer`（端到端 `q=32` 降至 `55.871 ms/round`）；（c）在 `v3x3`（[`patches/cann-sfa-v3x3/sparse_flash_attention_kernel_mla.h`](patches/cann-sfa-v3x3/sparse_flash_attention_kernel_mla.h)）中将闲置核协同 KV 预取从 `M=1` 扩展至全量 `1 <= M <= 16`（`M<=6` 启用 18 个辅助核做 3 块/token 预取，`7<=M<=12` 做 1 块/token 预取，`13<=M<=16` 启用 8 个辅助核），直接写回工作核原生 `kvMergeGm_[s2Idx]` 槽位（`kvSlot = 4*c + s2Idx`）消除 `useCoopKv` 分支，并用定点乘法移位 `(k * 11U) >> 5U` 消除 `/ 3U` 软除法 `__udivsi3` 引发的寄存器溢出。微基准实测 `v3x3` 在 `M=1..32` 全分桶较 `v3r` 净降 `-9.9..28.0 us/layer`，端到端 [test-w114-max-fusion-v3x3-fast](evidence/test-w114-max-fusion-v3x3-fast/summary.json) TPOT 降至 `14.299 ms`（较离散 `--mla-tail` 基线 `15.555 ms` 净降 `-1.256 ms/token`，`host_tokens` 从 `44.385 ms` 降至 `40.325 ms`，`q=1` 从 `35.470 ms` 降至 `28.987 ms`）；1024 词元正式评测 [test-w114-max-fusion-v3x3-formal](evidence/test-w114-max-fusion-v3x3-formal/summary.json) 中位 TPOT 降至 `19.978 ms`（最小 `19.973 ms`）。1024 词元评测在第 166 轮出现分岔。此前将其归因于 `QLIPreload::SplitCore` 的解释已证伪：此配置的 `actualSeqLengthsQ` 非空，实际读取 `indexer_metadata[3]=32`。最新干预及未闭合差异见本页 2026-11-05 记录。
+18. 单卡算子微基准驱动 `v3r -> v3w -> v3x3` 闭环（384 词元 `fast` TPOT `14.299 ms`，`q=1` 单轮破 `28.987 ms`）：构建单 die NPUGraph 微基准 [`microbench_tp8.py`](tests/glm52/whole_layer/microbench_tp8.py)，在 `15s` 内完成 `M in [1,6,8,12,16,24,32]` 的 `uint16` 逐位校验与静态图重放计时。（a）在 `v3r` 中将 `SfaPhase` 的 `actS1Size/actS2Size` 接入真实 `query_lengths/key_lengths`，100% 恢复 133 轮黄金轨迹（`SHA 8715ed79f0cb5600`，TPOT 从 `22.890 ms` 直降至 `14.471 ms`）；（b）在 `v3w`（[`scripts/patches/cann-sfa-v3x3/sparse_flash_attention_service_vector_mla.h`](../scripts/patches/cann-sfa-v3x3/sparse_flash_attention_service_vector_mla.h)）中将 TP8（`kHeads=8`）下的 `ProcessVD` 重构为单遍 16 行（`16 * 512`）批处理 `Muls` 并提升 `MergeKv` 预计算常量，将 `M=32` 压降 `-19..23 us/layer`（端到端 `q=32` 降至 `55.871 ms/round`）；（c）在 `v3x3`（[`scripts/patches/cann-sfa-v3x3/sparse_flash_attention_kernel_mla.h`](../scripts/patches/cann-sfa-v3x3/sparse_flash_attention_kernel_mla.h)）中将闲置核协同 KV 预取从 `M=1` 扩展至全量 `1 <= M <= 16`（`M<=6` 启用 18 个辅助核做 3 块/token 预取，`7<=M<=12` 做 1 块/token 预取，`13<=M<=16` 启用 8 个辅助核），直接写回工作核原生 `kvMergeGm_[s2Idx]` 槽位（`kvSlot = 4*c + s2Idx`）消除 `useCoopKv` 分支，并用定点乘法移位 `(k * 11U) >> 5U` 消除 `/ 3U` 软除法 `__udivsi3` 引发的寄存器溢出。微基准实测 `v3x3` 在 `M=1..32` 全分桶较 `v3r` 净降 `-9.9..28.0 us/layer`，端到端 [test-w114-max-fusion-v3x3-fast](evidence/test-w114-max-fusion-v3x3-fast/summary.json) TPOT 降至 `14.299 ms`（较离散 `--mla-tail` 基线 `15.555 ms` 净降 `-1.256 ms/token`，`host_tokens` 从 `44.385 ms` 降至 `40.325 ms`，`q=1` 从 `35.470 ms` 降至 `28.987 ms`）；1024 词元正式评测 [test-w114-max-fusion-v3x3-formal](evidence/test-w114-max-fusion-v3x3-formal/summary.json) 中位 TPOT 降至 `19.978 ms`（最小 `19.973 ms`）。1024 词元评测在第 166 轮出现分岔。此前将其归因于 `QLIPreload::SplitCore` 的解释已证伪：此配置的 `actualSeqLengthsQ` 非空，实际读取 `indexer_metadata[3]=32`。最新干预及未闭合差异见本页 2026-11-05 记录。
 
 ---
 
@@ -143,7 +143,7 @@
 |---|---|---|---|---|---|---|---|---|---|
 |[test-w107-133](evidence/test-w107-133/summary.json)|9392 8卡|离散算子基线（`TRT_FUSE_AR_NORM=0`）|18.337|133|2.887|52.178|51.833|6500 / 73|8-rank一致(passed)|
 |[test-ubnorm-fix2](evidence/test-ubnorm-fix2/summary.json)|9392 8卡|单边 AllReduce + RMSNorm + Quant 原位融合（`TRT_FUSE_AR_NORM=1`）|42.228|375|1.024|42.607|42.326|6500 / 334|8-rank一致(passed)|
-|[test-arnorm-only](evidence/test-arnorm-only/summary.json)|9392 8卡|单边 AllReduce + RMSNorm 原位融合（剥离量化）|--|--|--|--|--|6500 / 10(坍缩)|未达门槛(fail)|
+|[test-arnorm-only](evidence/test-arnorm-only/summary.json)|9392 8卡|单边 AllReduce + RMSNorm 原位融合（剥离量化）|---|---|---|---|---|6500 / 10(坍缩)|未达门槛(fail)|
 
 ### 关键微架构突破与根因修正清单
 
@@ -212,7 +212,7 @@
 
 PR后续SDK重构的新增测试曾在collection提前初始化NPU，造成827项bad-fork失败；`233047cb`将导入延至测试执行，根线程CPU收集反例和断言AST对照通过。[当前CI记录](evidence/ascend-decode/carver-ci-20261029/README.md)：AscendC-PTO与原生NPU CI均通过，新增六项全过，主集1352项通过、3项跳过，示例153项通过；旧JIT证据保留原版本范围。
 
-真实HF参考首次构造被Transformers5.19的RoPE构造接口拒绝；[显式CPU上下文修复](evidence/ascend-decode/hf-rope-constructor-20261028/readback.json)已过实际构造。完整32行+reset正在CPU执行；[CANN一例入口](../experiments/cann-precision/README.md)已有12项CPU检查及显式仅采集权限分离。[真实9382首跑](evidence/ascend-decode/cann-precision-a3-20261028/README.md)的16rank均在加载阶段因未知`rot`模块失败，前向帧为0。实际双进程注册表与加载方法对照确认遗漏`ascend_model`插件；补齐后，新9382完成109文件SHA、模型类解析、输入准入及96/96分片加载，随后首次前向前被采集器库哈希的`str`/`Path`类型错误中断。该错误已用真实映射ELF复现并修复；模型前向与严格HF比较另验。
+真实HF参考首次构造被Transformers5.19的RoPE构造接口拒绝；[显式CPU上下文修复](evidence/ascend-decode/hf-rope-constructor-20261028/readback.json)已过实际构造。完整32行+reset正在CPU执行；[CANN一例入口](../tests/experiments/cann-precision/README.md)已有12项CPU检查及显式仅采集权限分离。[真实9382首跑](evidence/ascend-decode/cann-precision-a3-20261028/README.md)的16rank均在加载阶段因未知`rot`模块失败，前向帧为0。实际双进程注册表与加载方法对照确认遗漏`ascend_model`插件；补齐后，新9382完成109文件SHA、模型类解析、输入准入及96/96分片加载，随后首次前向前被采集器库哈希的`str`/`Path`类型错误中断。该错误已用真实映射ELF复现并修复；模型前向与严格HF比较另验。
 
 [线性接受数修复](evidence/ascend-decode/linear-acceptance-20261028/README.md)从实际候选/预测的首次mismatch独立重算接受和预算裁剪，拒绝字段彼此一致却虚报全接受的收据；28项CPU检查通过，未构成设备数值或TPOT结果。
 
@@ -358,11 +358,11 @@ chain width8 为 14.743 ms、仅 32 种 token；chain width32 为 29.148 ms、18
 
 实验比较加宽验证后的每 token 耗时。三组均为完整 78 层、同一冻结 8K 前缀、lookup 起草器、SFA、`--target-graph --compile-target --super-kernel --fp32-head`；各用新容器，3 次预热、3 次测量，每请求输出 1024 token。记录于 10 月 23 日产生，24 日取回。
 
-| 验证宽度 | 输出数/轮数 | TPOT 中位数 |
-| -- | -- | -- |
-| 16 | 3.483 | 17.132 ms |
-| 24 | 3.180 | 20.108 ms |
-| 32 | 5.721 | 12.413 ms |
+|验证宽度|输出数/轮数|TPOT 中位数|
+|---|---|---|
+|16|3.483|17.132 ms|
+|24|3.180|20.108 ms|
+|32|5.721|12.413 ms|
 
 width16/24/32 每请求分别运行 294/322/179 轮。用 TPOT × 输出数/轮数估算，轮成本分别约为 59.67/63.95/71.01 ms。
 
@@ -378,19 +378,19 @@ width24 的平均接受数较低，原因待查。该组使用线性 `LookupDraf
 
 同一输入、SFA、1024 输出，3 次测量：
 
-| 配置 | TPOT 范围 | 输出数/轮数 |
-| -- | -- | -- |
-| width12 + automaton | 23.799–23.864 ms | 2.570 |
-| width12 + lookup | 22.148–22.162 ms | 2.590 |
-| width4 + automaton | 23.960–24.022 ms | 2.325 |
+|配置|TPOT 范围|输出数/轮数|
+|---|---|---|
+|width12 + automaton|23.799–23.864 ms|2.570|
+|width12 + lookup|22.148–22.162 ms|2.590|
+|width4 + automaton|23.960–24.022 ms|2.325|
 
 同三组请求的输出记录：
 
-| 配置 | 输出摘要前缀 | 不同 token 数 |
-| -- | -- | -- |
-| width12 + automaton | `2cb99464d9a4` | 139 |
-| width12 + lookup | `2cb99464d9a4` | 139 |
-| width4 + automaton | `f06b1373167f` | 136 |
+|配置|输出摘要前缀|不同 token 数|
+|---|---|---|
+|width12 + automaton|`2cb99464d9a4`|139|
+|width12 + lookup|`2cb99464d9a4`|139|
+|width4 + automaton|`f06b1373167f`|136|
 
 原始记录：[w12 automaton][w12-auto-rank-0]、[w12 lookup][w12-lookup-rank-0]、[w4 automaton][w4-auto-rank-0]。固定 width12 时输出相同，lookup 的整请求更快，说明比较起草器还须计入草拟代价。换宽度后输出不同，待定位设备算术、状态和掩码的影响。token 多样性相近只描述输出分布；输出摘要相同只覆盖这次起草器对照。任务质量、正确性和其他输入的未来行泄漏仍需各自检查。
 

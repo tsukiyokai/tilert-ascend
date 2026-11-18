@@ -65,12 +65,12 @@ void Process(){
 
 ### 1.2 The measured table — overhead vs execute vs E2E by core count (us)
 
-> | # AIC Cores | 2 | | 4 | | 8 | | 16【业务场景】 | |
-> | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-> | | 量化 | 非量化 | 量化 | 非量化 | 量化 | 非量化 | 量化 | 非量化 |
-> | overhead | 4.14 | 1.08 | 4.48 | 1.42 | 5.64 | 1.42 | 9.24 | 2.16 |
-> | execute | 11.7 | 24.24 | 6.78 | 13.16 | 4.76 | 8.44 | 3.34 | 5.28 |
-> | E2E | 15.84 | 25.32 | 11.26 | 14.58 | 10.4 | 9.86 | 12.58 | 7.44 |
+> |# AIC Cores|2||4||8||16【业务场景】||
+> |---|---|---|---|---|---|---|---|---|
+> ||量化|非量化|量化|非量化|量化|非量化|量化|非量化|
+> |overhead|4.14|1.08|4.48|1.42|5.64|1.42|9.24|2.16|
+> |execute|11.7|24.24|6.78|13.16|4.76|8.44|3.34|5.28|
+> |E2E|15.84|25.32|11.26|14.58|10.4|9.86|12.58|7.44|
 >
 > ### 结论一：执行时间上量化算子收益符合预期
 >
@@ -102,41 +102,41 @@ void Process(){
 
 > Const场景
 >
-> | | 调度开销 | 硬件启动开销 | kernel args预取 | Tiling拷贝 | 其他软件开销 | 硬件总开销 | 软件总开销 | 总开销 |
-> | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-> | 1 | 1.150555556 | 0.823333333 | 0.585 | 0.040555556 | 0.836111111 | 1.973888889 | 1.461666667 | 3.435555556 |
-> | 4 | 1.150555556 | 1.106666667 | 0.853888889 | 0.038333333 | 0.751666667 | 2.257222222 | 1.643888889 | 3.901111111 |
-> | 8 | 1.150555556 | 1.427777778 | 1.068333333 | 0.038333333 | 0.832777778 | 2.578333333 | 1.939444444 | 4.517777778 |
-> | 16 | 1.150555556 | 2.155555556 | 1.61 | 0.038333333 | 0.780555556 | 3.306111111 | 2.428888889 | 5.735 |
-> | 24 | 1.150555556 | 2.833888889 | 2.269444444 | 0.037222222 | 1.098333333 | 3.984444444 | 3.405 | 7.389444444 |
+> ||调度开销|硬件启动开销|kernel args预取|Tiling拷贝|其他软件开销|硬件总开销|软件总开销|总开销|
+> |---|---|---|---|---|---|---|---|---|
+> |1|1.150555556|0.823333333|0.585|0.040555556|0.836111111|1.973888889|1.461666667|3.435555556|
+> |4|1.150555556|1.106666667|0.853888889|0.038333333|0.751666667|2.257222222|1.643888889|3.901111111|
+> |8|1.150555556|1.427777778|1.068333333|0.038333333|0.832777778|2.578333333|1.939444444|4.517777778|
+> |16|1.150555556|2.155555556|1.61|0.038333333|0.780555556|3.306111111|2.428888889|5.735|
+> |24|1.150555556|2.833888889|2.269444444|0.037222222|1.098333333|3.984444444|3.405|7.389444444|
 
 ### 1.5 Dynamic-shape scenario (us) — tiling copy explodes
 
 > Dyn场景
 >
-> | | 调度开销 | 硬件启动开销 | kernel args预取 | Tiling拷贝 | 其他软件开销 | 硬件总开销 | 软件总开销 | 总开销 |
-> | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-> | 1 | 1.150555556 | 0.836111111 | 0.575 | 0.422777778 | 1.330555556 | 1.986666667 | 2.328333333 | 4.315 |
-> | 4 | 1.150555556 | 1.129444444 | 0.771666667 | 0.528333333 | 1.330555556 | 2.28 | 2.630555556 | 4.910555556 |
-> | 8 | 1.150555556 | 1.450555556 | 1.238333333 | 1.529444444 | 1.31 | 2.601111111 | 4.077777778 | 6.678888889 |
-> | 16 | 1.150555556 | 2.181111111 | 2.27 | 2.845 | 1.311666667 | 3.331666667 | 6.426666667 | 9.758333333 |
-> | 24 | 1.150555556 | 2.846666667 | 2.461111111 | 2.293333333 | 1.312222222 | 3.997222222 | 6.066666667 | 10.06388889 |
+> ||调度开销|硬件启动开销|kernel args预取|Tiling拷贝|其他软件开销|硬件总开销|软件总开销|总开销|
+> |---|---|---|---|---|---|---|---|---|
+> |1|1.150555556|0.836111111|0.575|0.422777778|1.330555556|1.986666667|2.328333333|4.315|
+> |4|1.150555556|1.129444444|0.771666667|0.528333333|1.330555556|2.28|2.630555556|4.910555556|
+> |8|1.150555556|1.450555556|1.238333333|1.529444444|1.31|2.601111111|4.077777778|6.678888889|
+> |16|1.150555556|2.181111111|2.27|2.845|1.311666667|3.331666667|6.426666667|9.758333333|
+> |24|1.150555556|2.846666667|2.461111111|2.293333333|1.312222222|3.997222222|6.066666667|10.06388889|
 
 ### 1.6 ESL simulation vs real measurement for the 16-core business case (us)
 
 > ESL 仿真 16core 业务场景
 >
-> | | 调度开销 | 硬件启动开销 | kernel args预取 | Tiling拷贝 | 其他软件开销 | 硬件总开销 | 软件总开销 | 总开销 |
-> | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-> | 量化 | 1.150555556 | 2.181111111 | 2.27 | 2.845 | 1.311666667 | 3.331666667 | 6.426666667 | 9.758333333 |
-> | 非量化 | 1.150555556 | 1.972777444 | 0.885315648 | | | 3.123333 | 0.885315648 | 4.008648648 |
+> ||调度开销|硬件启动开销|kernel args预取|Tiling拷贝|其他软件开销|硬件总开销|软件总开销|总开销|
+> |---|---|---|---|---|---|---|---|---|
+> |量化|1.150555556|2.181111111|2.27|2.845|1.311666667|3.331666667|6.426666667|9.758333333|
+> |非量化|1.150555556|1.972777444|0.885315648|||3.123333|0.885315648|4.008648648|
 >
 > 业务实测
 >
-> | | 调度开销 | 硬件启动开销 | kernel args预取 | Tiling拷贝 | 其他软件开销 | 总开销 |
-> | --- | --- | --- | --- | --- | --- | --- |
-> | 量化 | 6.18 | | | 3.38 | 0.5 | 10.06 |
-> | 非量化 | 1.84 | | | 0.22 | 0.1 | 2.16 |
+> ||调度开销|硬件启动开销|kernel args预取|Tiling拷贝|其他软件开销|总开销|
+> |---|---|---|---|---|---|---|
+> |量化|6.18|||3.38|0.5|10.06|
+> |非量化|1.84|||0.22|0.1|2.16|
 >
 > 当代可能的业务优化方向：
 >
@@ -628,16 +628,16 @@ constexpr uint8_t CROSS_CORE_FLAG_ID_MAX = 16;  // ❌ 偏移量过大，导致�
 
 > ## 3. 各流水线对的event_id使用分析
 >
-> | 流水线对 | 当前event_id | 是否超出 | 原因 | 修改建议 |
-> | ---------- | -------------- | ---------- | ------ | ---------- |
-> | **PIPE_FIX → PIPE_MTE2** | `FLAG_MTE2_VEC_ID = 9` | ❌ 超出 | 超过最大值7 | **改为 0** |
-> | **PIPE_FIX → PIPE_V** | `FLAG_MTE2_VEC_ID = 9` | ❌ 超出 | 超过最大值7 | **改为 0** |
-> | **PIPE_MTE3 → PIPE_FIX** | `FLAG_FIXP_ID = 8` | ❌ 超出 | 超过最大值7 | **改为 0** |
-> | **PIPE_MTE3 → PIPE_MTE1** | `FLAG_MTE1_ID_1 = 6` | ✅ 正常 | 在0-7范围内 | 保持不变 |
-> | **PIPE_MTE3 → PIPE_MTE1** | `FLAG_MTE1_ID_1 + 16 = 22` | ❌ 超出 | C04双buffer场景 | **改为 0** |
-> | **PIPE_MTE1 → PIPE_V** | `FLAG_MTE1_ID_2 = 7` | ✅ 正常 | 在0-7范围内 | 保持不变 |
-> | **PIPE_MTE1 → PIPE_MTE3** | `FLAG_MTE1_ID_2 = 7` | ✅ 正常 | 在0-7范围内 | 保持不变 |
-> | **PIPE_MTE1 → PIPE_MTE3** | `FLAG_MTE1_ID_2 + 16 = 23` | ❌ 超出 | C04双buffer场景 | **改为 0** |
+> |流水线对|当前event_id|是否超出|原因|修改建议|
+> |---|---|---|---|---|
+> |**PIPE_FIX → PIPE_MTE2**|`FLAG_MTE2_VEC_ID = 9`|❌ 超出|超过最大值7|**改为 0**|
+> |**PIPE_FIX → PIPE_V**|`FLAG_MTE2_VEC_ID = 9`|❌ 超出|超过最大值7|**改为 0**|
+> |**PIPE_MTE3 → PIPE_FIX**|`FLAG_FIXP_ID = 8`|❌ 超出|超过最大值7|**改为 0**|
+> |**PIPE_MTE3 → PIPE_MTE1**|`FLAG_MTE1_ID_1 = 6`|✅ 正常|在0-7范围内|保持不变|
+> |**PIPE_MTE3 → PIPE_MTE1**|`FLAG_MTE1_ID_1 + 16 = 22`|❌ 超出|C04双buffer场景|**改为 0**|
+> |**PIPE_MTE1 → PIPE_V**|`FLAG_MTE1_ID_2 = 7`|✅ 正常|在0-7范围内|保持不变|
+> |**PIPE_MTE1 → PIPE_MTE3**|`FLAG_MTE1_ID_2 = 7`|✅ 正常|在0-7范围内|保持不变|
+> |**PIPE_MTE1 → PIPE_MTE3**|`FLAG_MTE1_ID_2 + 16 = 23`|❌ 超出|C04双buffer场景|**改为 0**|
 
 > ## 6. 流水线独立性说明
 >
@@ -741,13 +741,13 @@ The five annotated changes on the same slide, verbatim:
 
 Key architectural deltas listed in the same document, verbatim:
 
-> | 5    | **UB到L1 Buffer通路**：支持数据直接从UB搬运到L1 Buffer，无需经GM中转 |
-> | 6    | **L0C到UB通路**：支持数据直接从L0C Buffer搬运到UB，无需经GM中转 |
-> | 13   | **UB互连/bank结构变化**：3510架构UB从16个bank group（各3个4KB bank）变为8个bank group（各2个16KB bank） |
+> |5|**UB到L1 Buffer通路**：支持数据直接从UB搬运到L1 Buffer，无需经GM中转|
+> |6|**L0C到UB通路**：支持数据直接从L0C Buffer搬运到UB，无需经GM中转|
+> |13|**UB互连/bank结构变化**：3510架构UB从16个bank group（各3个4KB bank）变为8个bank group（各2个16KB bank）|
 
 > **A5 相比 A2 的最大架构变化在 AIV 部分**，A2 的 AIV 是UB + Vector 向量计算单元 + MTE 搬运引擎；而 A5 的 AIV 升级为 **SIMD + SIMT 混合执行结构**，新增了 ==**Warp Scheduler、SIMT Register File、SIMT DCache、Aux Scalar、SIMT VF 指令队列、SIMD VF 指令队列、ND-DMA Cache**== 等模块。这引入了更接近 GPU 线程束调度的 SIMT 执行能力。
 
-> | 2    | **SIMT编程模型**：新增SIMT硬件单元（DCache、Warp Scheduler、128KB Register File），支持线程级并行编程 |
+> |2|**SIMT编程模型**：新增SIMT硬件单元（DCache、Warp Scheduler、128KB Register File），支持线程级并行编程|
 
 > A2&A3 ：优先从外部存储Global Memory和L2 Cache（先尝试从缓存中取）中搬运数据到AI Core的内部存储（L1 Buffer、L0 Buffer、Unified Buffer）中，数据搬运和传输用的是MTE（Memory Transfer Engine，数据传递引擎）搬运单元，在搬运过程中可执行随路数据格式/类型转换。
 
@@ -756,9 +756,9 @@ Key architectural deltas listed in the same document, verbatim:
 > * **主要增大**：L0C Buffer、UB、Bias Buffer和Fix pipe Parameter Buffer的容量均有显著提升，可减少对HBM（高带宽内存）的访问次数，提升片上数据处理效率。
 > * **L2调整**：L2 Cache容量有所降低，但同时HBM带宽大幅提升，并引入了128B Sector Cache等优化，以更好地平衡片上缓存和片外内存的性能。
 
-> | FixPipe | Cube 输出后处理/搬运单元 | 从 L0C 搬出矩阵结果到 GM 或 L1，**并在搬运过程中做量化、激活等随路处理**。 |
+> |FixPipe|Cube 输出后处理/搬运单元|从 L0C 搬出矩阵结果到 GM 或 L1，**并在搬运过程中做量化、激活等随路处理**。|
 
-> | 向量计算 | Vector Unit | 执行向量运算，算力低于 Cube，但灵活性高；**输入输出通常在 UB，且有对齐要求。** |
+> |向量计算|Vector Unit|执行向量运算，算力低于 Cube，但灵活性高；**输入输出通常在 UB，且有对齐要求。**|
 
 ## Relevance
 
@@ -784,18 +784,18 @@ Knowledge base: Runtime 架构重构, domain 141223, kanban 353225.
 This KB contains an entire internal program on exactly our problem. Index of documents found
 by search (all URLs under `https://wiki.huawei.com/domains/141223/wiki/353225/`):
 
-| Title | Doc ID |
-| --- | --- |
-| MegaKernel | WIKI2026052311196839 |
-| MegaKernel 术语 | WIKI2026071711900818 |
-| Persistent Engine Kernel | WIKI2026052311196879 |
-| pk性能优化 | WIKI2026061011411068 |
-| 跨卡间的 In-Kernel 传输 | WIKI2026052311197023 |
-| 跨多卡维度的异构 Worker 架构 | WIKI2026052311197004 |
-| TileRT MTP | WIKI2026052311198034 |
-| DeepSeek V4 应用 | WIKI2026052311198077 |
-| 性能测试 | WIKI2026070611734983 |
-| JD | WIKI2026062411586930 |
+|Title|Doc ID|
+|---|---|
+|MegaKernel|WIKI2026052311196839|
+|MegaKernel 术语|WIKI2026071711900818|
+|Persistent Engine Kernel|WIKI2026052311196879|
+|pk性能优化|WIKI2026061011411068|
+|跨卡间的 In-Kernel 传输|WIKI2026052311197023|
+|跨多卡维度的异构 Worker 架构|WIKI2026052311197004|
+|TileRT MTP|WIKI2026052311198034|
+|DeepSeek V4 应用|WIKI2026052311198077|
+|性能测试|WIKI2026070611734983|
+|JD|WIKI2026062411586930|
 
 > CAVEAT ON SOURCE QUALITY: the three documents quoted below read as LLM-authored analyses of
 > TileRT's public blog and repo, not as primary Huawei engineering measurements. They carry no
@@ -857,13 +857,13 @@ The stated bottleneck framing:
 
 URL: https://wiki.huawei.com/domains/141223/wiki/353225/WIKI2026052311196879 (Persistent Engine Kernel)
 
-> | 维度 | CUDA Graph + MegaKernel | 静态 AOT 编译 (TileRT Persistent Kernel) |
-> | :--- | :--- | :--- |
-> | **执行流与生命周期** | **串行分步推进 (Coarse-Grained Sequential)**<br>GPU 内部仍然是**按顺序**一个 Kernel 接着一个 Kernel 地加载、同步、执行、卸载。每个节点是一个独立的 Grid。 | **常驻流水线 (Continuous Pipeline)**<br>整个模型的各层、计算、通信在一个 Kernel 内**并发常驻（Persistent）**。整个推理生命周期 GPU 只 Launch 一次。 |
-> | **内存与数据流向** | **跨算子显存同步 (HBM Spill & Barrier)**<br>即便有 MegaKernel，不同节点间仍需将中间结果写入全局显存（HBM），并在节点间进行硬件级的全网格同步（Global Barrier）。 | **片上直传 (On-Chip Memory Flow)**<br>由于是在单个 Persistent Kernel 内，算子（Tile 任务）的中间数据直接通过 **寄存器、Shared Memory 和 L2 Cache** 流向下一步，彻底省去写回 HBM 的带宽损耗。 |
-> | **调度与控制流** | **CPU 侧静态录制 (Host-Driven DAG)**<br>调度逻辑在 CPU 侧录制为静态 DAG。当模型存在动态分支（如 MoE 路由、MTP 的接收/拒绝、采样）时，CUDA Graph 容易遇到 Graph Break 导致重新录制或退回 eager 模式。 | **GPU 侧自主调度 (Device-Driven Tile Flow)**<br>调度控制流完全下沉到 GPU 内部。编译出的常驻内核自带静态/动态 Tile 任务路由，通过 Warp/Block 级别的自主协作来应对复杂的动态控制流。 |
-> | **线程角色与协作** | **同构并行 (Homogeneous)**<br>在单个 Kernel 运行时，GPU 的所有线程（Blocks）都在执行完全相同的计算步骤。遇到负载不均（如 MoE 稀疏计算）会产生严重的尾部等待。 | **角色特化 (Heterogeneous Specialization)**<br>通过 **Warp/Block Specialization** 将不同线程束特化为：负责数据搬运（IO Worker）、负责计算（Compute Worker）、负责通信（Comm Worker）等，各司其职。 |
-> | **多卡通信集成度** | **节点级同步（NCCL Nodes in Graph）**<br>跨卡通信（如 AllReduce）是 Graph 中独立的、顺序执行的节点（通过 NCCL 等）。计算和通信通常是"计算完才能开始通信"的粗粒度顺序关系。 | **内核通信下沉 (In-Kernel Communication)**<br>跨卡通信直接下沉到 Persistent Kernel 内部。多卡数据直接在 Tile 任务流推进时，由特化通信 Warp 异步发起，实现计算与通信在微秒（Tile）级别的重叠。 |
+> |维度|CUDA Graph + MegaKernel|静态 AOT 编译 (TileRT Persistent Kernel)|
+> |:---|:---|:---|
+> |**执行流与生命周期**|**串行分步推进 (Coarse-Grained Sequential)**<br>GPU 内部仍然是**按顺序**一个 Kernel 接着一个 Kernel 地加载、同步、执行、卸载。每个节点是一个独立的 Grid。|**常驻流水线 (Continuous Pipeline)**<br>整个模型的各层、计算、通信在一个 Kernel 内**并发常驻（Persistent）**。整个推理生命周期 GPU 只 Launch 一次。|
+> |**内存与数据流向**|**跨算子显存同步 (HBM Spill & Barrier)**<br>即便有 MegaKernel，不同节点间仍需将中间结果写入全局显存（HBM），并在节点间进行硬件级的全网格同步（Global Barrier）。|**片上直传 (On-Chip Memory Flow)**<br>由于是在单个 Persistent Kernel 内，算子（Tile 任务）的中间数据直接通过 **寄存器、Shared Memory 和 L2 Cache** 流向下一步，彻底省去写回 HBM 的带宽损耗。|
+> |**调度与控制流**|**CPU 侧静态录制 (Host-Driven DAG)**<br>调度逻辑在 CPU 侧录制为静态 DAG。当模型存在动态分支（如 MoE 路由、MTP 的接收/拒绝、采样）时，CUDA Graph 容易遇到 Graph Break 导致重新录制或退回 eager 模式。|**GPU 侧自主调度 (Device-Driven Tile Flow)**<br>调度控制流完全下沉到 GPU 内部。编译出的常驻内核自带静态/动态 Tile 任务路由，通过 Warp/Block 级别的自主协作来应对复杂的动态控制流。|
+> |**线程角色与协作**|**同构并行 (Homogeneous)**<br>在单个 Kernel 运行时，GPU 的所有线程（Blocks）都在执行完全相同的计算步骤。遇到负载不均（如 MoE 稀疏计算）会产生严重的尾部等待。|**角色特化 (Heterogeneous Specialization)**<br>通过 **Warp/Block Specialization** 将不同线程束特化为：负责数据搬运（IO Worker）、负责计算（Compute Worker）、负责通信（Comm Worker）等，各司其职。|
+> |**多卡通信集成度**|**节点级同步（NCCL Nodes in Graph）**<br>跨卡通信（如 AllReduce）是 Graph 中独立的、顺序执行的节点（通过 NCCL 等）。计算和通信通常是"计算完才能开始通信"的粗粒度顺序关系。|**内核通信下沉 (In-Kernel Communication)**<br>跨卡通信直接下沉到 Persistent Kernel 内部。多卡数据直接在 Tile 任务流推进时，由特化通信 Warp 异步发起，实现计算与通信在微秒（Tile）级别的重叠。|
 
 The hardware argument for why a CUDA-Graph-of-MegaKernels cannot reach the same floor:
 
@@ -875,23 +875,23 @@ The hardware argument for why a CUDA-Graph-of-MegaKernels cannot reach the same 
 
 And the generational table:
 
-> | 代际 | 核心代表 | 优化边界 | 数据流与调度控制机制 | 局限性与代际痛点 |
-> | :--- | :--- | :--- | :--- | :--- |
-> | **第一代：经典算子库时代** | cuBLAS, cuDNN, 专家纯手写 CUDA | **单算子（Intra-op）** | 手工管理共享内存与寄存器，实现单算子内的无写回。 | 极度依赖顶级硬件专家用汇编（SASS）编写，无法跨模型、跨形状复用，开发周期以月/年计。 |
-> | **第二代：算子级编译器/JIT时代** | Triton, TVM, TorchInductor | **局部融合算子（Fused Kernels）** | 编译器在图层做局部算子合并（如 Linear + ReLU），生成更粗粒度的单 Kernel。 | **依然受制于 Kernel 边界**。大算子（如 Attn 和 FFN）之间仍然必须进行 HBM 写回，且受制于 PyTorch 运行时的 Launch 延迟。 |
-> | **第三代：图形录制与宏优化时代** | CUDA Graph + MegaKernel | **静态计算图调度** | 依然存在算子间写回 HBM。主要通过在 CPU 侧录制 DAG 消除启动开销（Launch Overhead）。 | **无法高效应对动态控制流**。在 Speculative Decoding (MTP) 或 MoE 等具有动态选择、分支预测的场景中，容易发生 "Graph Break"，导致重录延迟。 |
-> | **第四代：整图级空间流化编译时代** | **TileRT**, **TileLang** | **跨算子/全图级空间流水线 (Inter-op Spatio-temporal Pipeline)** | **彻底消除大算子间 HBM 交换。** 整个模型静态编译为单个 Persistent Kernel，通过 **Warp 级特化** 在 GPU 硬件级别实现去中心化自主调度。 | AOT 编译机制对编译器的静态依赖分析、多卡异构调度设计要求极高，是当前大模型极致推理的最前沿壁垒。 |
+> |代际|核心代表|优化边界|数据流与调度控制机制|局限性与代际痛点|
+> |:---|:---|:---|:---|:---|
+> |**第一代：经典算子库时代**|cuBLAS, cuDNN, 专家纯手写 CUDA|**单算子（Intra-op）**|手工管理共享内存与寄存器，实现单算子内的无写回。|极度依赖顶级硬件专家用汇编（SASS）编写，无法跨模型、跨形状复用，开发周期以月/年计。|
+> |**第二代：算子级编译器/JIT时代**|Triton, TVM, TorchInductor|**局部融合算子（Fused Kernels）**|编译器在图层做局部算子合并（如 Linear + ReLU），生成更粗粒度的单 Kernel。|**依然受制于 Kernel 边界**。大算子（如 Attn 和 FFN）之间仍然必须进行 HBM 写回，且受制于 PyTorch 运行时的 Launch 延迟。|
+> |**第三代：图形录制与宏优化时代**|CUDA Graph + MegaKernel|**静态计算图调度**|依然存在算子间写回 HBM。主要通过在 CPU 侧录制 DAG 消除启动开销（Launch Overhead）。|**无法高效应对动态控制流**。在 Speculative Decoding (MTP) 或 MoE 等具有动态选择、分支预测的场景中，容易发生 "Graph Break"，导致重录延迟。|
+> |**第四代：整图级空间流化编译时代**|**TileRT**, **TileLang**|**跨算子/全图级空间流水线 (Inter-op Spatio-temporal Pipeline)**|**彻底消除大算子间 HBM 交换。** 整个模型静态编译为单个 Persistent Kernel，通过 **Warp 级特化** 在 GPU 硬件级别实现去中心化自主调度。|AOT 编译机制对编译器的静态依赖分析、多卡异构调度设计要求极高，是当前大模型极致推理的最前沿壁垒。|
 
 ### 6.3 In-kernel cross-card transfer — four axes versus conventional GPU-initiated comms
 
 URL: https://wiki.huawei.com/domains/141223/wiki/353225/WIKI2026052311197023 (跨卡间的 In-Kernel 传输)
 
-> | 维度 | 传统 GPU 直驱 MoE 通信 (如 NVSHMEM/Custom MoE Kernel) | TileRT 跨卡 In-Kernel 传输技术 |
-> | :--- | :--- | :--- |
-> | **流控生命周期** | 算子生命周期（仅在 Routing/All-to-All 算子内部直传，算子结束必须返回 Host） | **整层甚至整网生命周期**（通过 Persistent Kernel 彻底消除了整个 Transformer 层的 Host 调度） |
-> | **重叠粒度** | **Bulk-synchronous**（块同步，局部粗粒度重叠） | **Tile-level**（利用 Warp Specialization 将计算和跨卡通信在 Tile 级极致压实和异步重叠） |
-> | **节点协作模式** | **对称同构**（各卡对等执行，做对称的 All-to-All 握手） | **异构特化（Heterogeneous Worker）**（将 GPU 特化为控制节点/计算节点，非对称地进行数据流转） |
-> | **动态路由调度** | **刚性执行**（负载不均或路径突变时，往往需要 Host 辅助或面临严重长尾） | **核内自主流控**（调度 Warp 监控核内状态，通过跨卡 Flag 在核内直接调整流水线，保持不中断） |
+> |维度|传统 GPU 直驱 MoE 通信 (如 NVSHMEM/Custom MoE Kernel)|TileRT 跨卡 In-Kernel 传输技术|
+> |:---|:---|:---|
+> |**流控生命周期**|算子生命周期（仅在 Routing/All-to-All 算子内部直传，算子结束必须返回 Host）|**整层甚至整网生命周期**（通过 Persistent Kernel 彻底消除了整个 Transformer 层的 Host 调度）|
+> |**重叠粒度**|**Bulk-synchronous**（块同步，局部粗粒度重叠）|**Tile-level**（利用 Warp Specialization 将计算和跨卡通信在 Tile 级极致压实和异步重叠）|
+> |**节点协作模式**|**对称同构**（各卡对等执行，做对称的 All-to-All 握手）|**异构特化（Heterogeneous Worker）**（将 GPU 特化为控制节点/计算节点，非对称地进行数据流转）|
+> |**动态路由调度**|**刚性执行**（负载不均或路径突变时，往往需要 Host 辅助或面临严重长尾）|**核内自主流控**（调度 Warp 监控核内状态，通过跨卡 Flag 在核内直接调整流水线，保持不中断）|
 
 > * **TileRT 的 In-Kernel 传输**：
 >   * **优势**：
@@ -1387,95 +1387,95 @@ sequenceDiagram
 
 ### 10.3 The five critical paths and their latency characteristics
 
-> | 路径 | 机制 | 延迟特性 |
-> | ------ | ------ | ---------- |
-> | **AICPU→AICore 下发** | CPU 写 HBM ring + `dc civac` cache flush + `stnp` 写 MMIO 寄存器 (DMB) | 数百 ns (cache flush + 寄存器写) |
-> | **AICore 取任务** | 轮询 DATA_MAIN_BASE 寄存器 → `dcci` cache invalidate → 读 ring | 数十 ns (寄存器轮询周期) |
-> | **AICore→AICPU 完成上报** | `set_cond` 更新 COND 寄存器 → AICPU `getReg` 轮询 | 数百 ns (MMIO 读) |
-> | **AICPU→Host 回调** | `checkComplete` 聚合 → `cb(cbCtx, opCode, tileIds, tileCnt)` | 取决于批量大小 |
-> | **MIX op 同步** | `g_mix_counter[hindex]` 计数器等待 AIC+AIV 均完成 | 取决于负载均衡度 |
+> |路径|机制|延迟特性|
+> |---|---|---|
+> |**AICPU→AICore 下发**|CPU 写 HBM ring + `dc civac` cache flush + `stnp` 写 MMIO 寄存器 (DMB)|数百 ns (cache flush + 寄存器写)|
+> |**AICore 取任务**|轮询 DATA_MAIN_BASE 寄存器 → `dcci` cache invalidate → 读 ring|数十 ns (寄存器轮询周期)|
+> |**AICore→AICPU 完成上报**|`set_cond` 更新 COND 寄存器 → AICPU `getReg` 轮询|数百 ns (MMIO 读)|
+> |**AICPU→Host 回调**|`checkComplete` 聚合 → `cb(cbCtx, opCode, tileIds, tileCnt)`|取决于批量大小|
+> |**MIX op 同步**|`g_mix_counter[hindex]` 计数器等待 AIC+AIV 均完成|取决于负载均衡度|
 
 ### 10.4 Hotspot table — the ten known bottlenecks, with file:line
 
-> | # | 热点 | 位置 (文件:行) | 机理 | 影响程度 |
-> | --- | ------ | --------------- | ------ | --------- |
-> | **H1** | `get_op_addr` 调用 `popen("nm -C ...")` | megakernel.cpp:239 | fork+exec 子进程解析符号偏移，首次注册每个算子触发 | **严重**: 首调延迟数十 ms 级，opMap 缓存后可消除 |
-> | **H2** | `setRegStnpLow` 内的 `dsb sy` + `stnp` | aicpu_manager.cpp:324-355 | 每次 `doLaunch` 执行全量内存屏障 + 非临时存储，per-tile 开销 | **严重**: 是 tile 下发的最主要开销 |
-> | **H3** | `dc civac` 缓存刷写 | aicpu_manager.cpp:589 | `doLaunch` 写 TaskEle 到 ring 后刷 CPU cache 至 HBM | **中等**: per-tile cache flush |
-> | **H4** | AICore 轮询 `DATA_MAIN_BASE` | aicore.cpp:127-128 | tight loop 连续读 MMIO 寄存器 | **低**: 仅空闲时耗能，不影响延迟 |
-> | **H5** | `getCIDToLaunch` 线性扫描 | aicpu_manager.cpp:526-549 | O(cores) 遍历所有核找 runningTaskCnt 最小者 | **低**: 核数多时逐渐显现 |
-> | **H6** | `checkComplete` 逐核读 COND | aicpu_manager.cpp:772 | 每核每次循环 1 次 MMIO 读 COND 寄存器 | **中等**: 随核数线性增长 |
-> | **H7** | `mega_init_ctx` memcpy 打包 | megakernel.cpp:399-428 | per-op 拷贝 `io[32]` + `tilingData` | **低**: 一次性开销 |
-> | **H8** | 全局锁 `g_mutex` | megakernel.cpp:479 | `aclrtLaunchMega` 全程持锁，多流串行 | **中等**: 多流并发时成瓶颈 |
-> | **H9** | lazy 批量阈值硬编码 | aicpu_manager.cpp:614-619 | `LAZY_AIC_ENQUEUE_MIN=10` / `LAZY_AIV_ENQUEUE_MIN=10` | **低**: 阈值不适配所有 workload |
-> | **H10** | `g_mix_counter` hash 冲突 | aicpu_manager.cpp:760-762 | `opId<<6 + tileId`，>16 op 或 >4096 tile 时冲突 | **低**: 仅大规模图触发 |
+> |#|热点|位置 (文件:行)|机理|影响程度|
+> |---|---|---|---|---|
+> |**H1**|`get_op_addr` 调用 `popen("nm -C ...")`|megakernel.cpp:239|fork+exec 子进程解析符号偏移，首次注册每个算子触发|**严重**: 首调延迟数十 ms 级，opMap 缓存后可消除|
+> |**H2**|`setRegStnpLow` 内的 `dsb sy` + `stnp`|aicpu_manager.cpp:324-355|每次 `doLaunch` 执行全量内存屏障 + 非临时存储，per-tile 开销|**严重**: 是 tile 下发的最主要开销|
+> |**H3**|`dc civac` 缓存刷写|aicpu_manager.cpp:589|`doLaunch` 写 TaskEle 到 ring 后刷 CPU cache 至 HBM|**中等**: per-tile cache flush|
+> |**H4**|AICore 轮询 `DATA_MAIN_BASE`|aicore.cpp:127-128|tight loop 连续读 MMIO 寄存器|**低**: 仅空闲时耗能，不影响延迟|
+> |**H5**|`getCIDToLaunch` 线性扫描|aicpu_manager.cpp:526-549|O(cores) 遍历所有核找 runningTaskCnt 最小者|**低**: 核数多时逐渐显现|
+> |**H6**|`checkComplete` 逐核读 COND|aicpu_manager.cpp:772|每核每次循环 1 次 MMIO 读 COND 寄存器|**中等**: 随核数线性增长|
+> |**H7**|`mega_init_ctx` memcpy 打包|megakernel.cpp:399-428|per-op 拷贝 `io[32]` + `tilingData`|**低**: 一次性开销|
+> |**H8**|全局锁 `g_mutex`|megakernel.cpp:479|`aclrtLaunchMega` 全程持锁，多流串行|**中等**: 多流并发时成瓶颈|
+> |**H9**|lazy 批量阈值硬编码|aicpu_manager.cpp:614-619|`LAZY_AIC_ENQUEUE_MIN=10` / `LAZY_AIV_ENQUEUE_MIN=10`|**低**: 阈值不适配所有 workload|
+> |**H10**|`g_mix_counter` hash 冲突|aicpu_manager.cpp:760-762|`opId<<6 + tileId`，>16 op 或 >4096 tile 时冲突|**低**: 仅大规模图触发|
 
 ### 10.5 Latency metric definitions L1–L12 (the instrumentation plan)
 
-> | ID | 指标 | 定义 | 采集点 (文件:行) | 单位 |
-> | ---- | ------ | ------ | ----------------- | ------ |
-> | **L1** | Host launch 端到端延迟 | `aclrtLaunchMega` 入口 → 返回 | megakernel.cpp:474→523 | µs |
-> | **L2** | Kernel 注册延迟 (冷) | 首次 `get_op_addr` (popen+nm+register) | megakernel.cpp:339-353 | ms |
-> | **L3** | Kernel 注册延迟 (热) | `opMap` 命中后直接返回 | megakernel.cpp:402-405 | µs |
-> | **L4** | Ctx 打包延迟 | `mega_init_ctx` 全程 (memcpy io+tilingData+cb load) | megakernel.cpp:355-472 | µs |
-> | **L5** | AICore launch 延迟 | `rtKernelLaunchWithHandleV2` 调用耗时 | megakernel.cpp:185-198 | µs |
-> | **L6** | AICPU launch 延迟 | `rtAicpuKernelLaunchExWithArgs` 调用耗时 | megakernel.cpp:158-183 | µs |
-> | **L7** | Tile 调度下发延迟 | callback tile ready → `doLaunch` 写 ring + DMB 完成 | aicpu_manager.cpp:553-603 | ns |
-> | **L8** | AICore 取任务延迟 | AICore 检测到 DMB 变化 → 算子 kernel 开始 | aicore.cpp:125-179 | ns |
-> | **L9** | AICore 执行延迟 | 算子 kernel 开始 → `set_cond` | aicore.cpp:148-183 | µs |
-> | **L10** | 完成检测延迟 | AICore `set_cond` → AICPU `checkComplete` 读到 COND | aicore.cpp:183 → aicpu_manager.cpp:772 | ns |
-> | **L11** | Callback 派发延迟 | `checkComplete` 内 `cb(cbCtx,...)` 调用耗时 | aicpu_manager.cpp:808-814 | ns |
-> | **L12** | Tile 端到端延迟 | ready → doLaunch → execute → set_cond → checkComplete 全链路 | = L7 + L8 + L9 + L10 | µs |
+> |ID|指标|定义|采集点 (文件:行)|单位|
+> |---|---|---|---|---|
+> |**L1**|Host launch 端到端延迟|`aclrtLaunchMega` 入口 → 返回|megakernel.cpp:474→523|µs|
+> |**L2**|Kernel 注册延迟 (冷)|首次 `get_op_addr` (popen+nm+register)|megakernel.cpp:339-353|ms|
+> |**L3**|Kernel 注册延迟 (热)|`opMap` 命中后直接返回|megakernel.cpp:402-405|µs|
+> |**L4**|Ctx 打包延迟|`mega_init_ctx` 全程 (memcpy io+tilingData+cb load)|megakernel.cpp:355-472|µs|
+> |**L5**|AICore launch 延迟|`rtKernelLaunchWithHandleV2` 调用耗时|megakernel.cpp:185-198|µs|
+> |**L6**|AICPU launch 延迟|`rtAicpuKernelLaunchExWithArgs` 调用耗时|megakernel.cpp:158-183|µs|
+> |**L7**|Tile 调度下发延迟|callback tile ready → `doLaunch` 写 ring + DMB 完成|aicpu_manager.cpp:553-603|ns|
+> |**L8**|AICore 取任务延迟|AICore 检测到 DMB 变化 → 算子 kernel 开始|aicore.cpp:125-179|ns|
+> |**L9**|AICore 执行延迟|算子 kernel 开始 → `set_cond`|aicore.cpp:148-183|µs|
+> |**L10**|完成检测延迟|AICore `set_cond` → AICPU `checkComplete` 读到 COND|aicore.cpp:183 → aicpu_manager.cpp:772|ns|
+> |**L11**|Callback 派发延迟|`checkComplete` 内 `cb(cbCtx,...)` 调用耗时|aicpu_manager.cpp:808-814|ns|
+> |**L12**|Tile 端到端延迟|ready → doLaunch → execute → set_cond → checkComplete 全链路|= L7 + L8 + L9 + L10|µs|
 
 ### 10.6 Utilization and overhead targets (the acceptance criteria they set themselves)
 
-> | ID | 指标 | 定义 | 公式 | 目标 |
-> | ---- | ------ | ------ | ------ | ------ |
-> | **U1** | AICore 忙碌率 | 执行算子时间占比 | `Σ(execEnd-execStart) / (wall × N_cores)` | > 85% |
-> | **U2** | AICore 空闲率 | 轮询等任务时间占比 | `1 - U1` | < 15% |
-> | **U3** | AICPU 调度率 | work loop 时间占比 | `work_duration / total` | > 90% |
-> | **U4** | 核心负载均衡度 | 各核 runningTaskCnt 变异系数 | `CoV = σ(N_tiles_per_core) / μ(N_tiles_per_core)` | < 0.10 |
-> | **U5** | AIC/AIV 利用比 | Cube 与 Vector 核的忙闲比 | `Σaic_busy / Σaiv_busy` | 接近 1.0 (MIX op) |
+> |ID|指标|定义|公式|目标|
+> |---|---|---|---|---|
+> |**U1**|AICore 忙碌率|执行算子时间占比|`Σ(execEnd-execStart) / (wall × N_cores)`|> 85%|
+> |**U2**|AICore 空闲率|轮询等任务时间占比|`1 - U1`|< 15%|
+> |**U3**|AICPU 调度率|work loop 时间占比|`work_duration / total`|> 90%|
+> |**U4**|核心负载均衡度|各核 runningTaskCnt 变异系数|`CoV = σ(N_tiles_per_core) / μ(N_tiles_per_core)`|< 0.10|
+> |**U5**|AIC/AIV 利用比|Cube 与 Vector 核的忙闲比|`Σaic_busy / Σaiv_busy`|接近 1.0 (MIX op)|
 
-> | ID | 指标 | 定义 | 采集点 | 目标 |
-> | ---- | ------ | ------ | -------- | ------ |
-> | **O1** | 每 tile 调度开销比 | `(L7 + L10 + L11) / L12` | 延迟组合 | < 10% |
-> | **O2** | MMIO 写次数/tile | `setRegStnpLow` 调用数 / tile 数 | 插桩计数 | ≤ 1 |
-> | **O3** | Cache flush 次数/tile | `dc civac` 调用数 / tile 数 | 插桩计数 | ≤ 1 |
-> | **O4** | 屏障开销占比 | `dsb sy` 累计耗时 / work 时间 | `setRegStnpLow` 内计时 | < 5% |
-> | **O5** | Callback 开销占比 | cb 累计时间 / work loop 时间 | PROFILE_BEGIN/END | < 3% |
-> | **O6** | 串行锁等待占比 | `g_mutex` 等待时间 / L1 | lock 前后 rdtsc | < 1% |
+> |ID|指标|定义|采集点|目标|
+> |---|---|---|---|---|
+> |**O1**|每 tile 调度开销比|`(L7 + L10 + L11) / L12`|延迟组合|< 10%|
+> |**O2**|MMIO 写次数/tile|`setRegStnpLow` 调用数 / tile 数|插桩计数|≤ 1|
+> |**O3**|Cache flush 次数/tile|`dc civac` 调用数 / tile 数|插桩计数|≤ 1|
+> |**O4**|屏障开销占比|`dsb sy` 累计耗时 / work 时间|`setRegStnpLow` 内计时|< 5%|
+> |**O5**|Callback 开销占比|cb 累计时间 / work loop 时间|PROFILE_BEGIN/END|< 3%|
+> |**O6**|串行锁等待占比|`g_mutex` 等待时间 / L1|lock 前后 rdtsc|< 1%|
 
-> | ID | 指标 | 定义 | 采集点 | 目标 |
-> | ---- | ------ | ------ | -------- | ------ |
-> | **Q1** | 任务队列深度 | `g_taskQueueAic/Aiv` 中待处理任务数 | `rte_ring_count` 采样 | 无持续打满 |
-> | **Q2** | Lazy 批量效率 | `lazyTileEnque` 实际批量大小分布 | `indexAic/Aiv.size()` 直方图 | 接近 LAZY_MIN |
-> | **Q3** | 预取命中率 | preload 队列消费 / 生产 | `g_taskPrefetchQueueAic/Aiv` 统计 | > 80% |
-> | **Q4** | 队列满率 | enqueue 失败次数 / 总次数 | `rte_ring_enqueue` 返回值 | 0% |
-> | **Q5** | ring 槽位利用率 | `AicLocal::ring[128]` 占用深度 | `lastDMB - finishedIdx` | < 50% |
+> |ID|指标|定义|采集点|目标|
+> |---|---|---|---|---|
+> |**Q1**|任务队列深度|`g_taskQueueAic/Aiv` 中待处理任务数|`rte_ring_count` 采样|无持续打满|
+> |**Q2**|Lazy 批量效率|`lazyTileEnque` 实际批量大小分布|`indexAic/Aiv.size()` 直方图|接近 LAZY_MIN|
+> |**Q3**|预取命中率|preload 队列消费 / 生产|`g_taskPrefetchQueueAic/Aiv` 统计|> 80%|
+> |**Q4**|队列满率|enqueue 失败次数 / 总次数|`rte_ring_enqueue` 返回值|0%|
+> |**Q5**|ring 槽位利用率|`AicLocal::ring[128]` 占用深度|`lastDMB - finishedIdx`|< 50%|
 
 ### 10.7 Terminology list — the project's own vocabulary
 
 URL: https://wiki.huawei.com/domains/141223/wiki/353225/WIKI2026071711900818 (MegaKernel 术语)
 
-> | 术语/缩略语 | 全称 | 说明 |
-> | --- | --- | --- |
-> | **MK** | MegaKernel | 项目命名空间前缀，贯穿整个代码库 |
-> | **Megakernel** | Mega Kernel | 项目名称，一种面向 Tile 粒度的运行时系统，将多个算子聚合为单个巨型 Kernel |
-> | **PK** | Persistent Kernel | Megakernel 的语义等价名称，持续驻留的 Kernel |
-> | **Blade** | — | 构建器（Builder）子系统目录名，负责图构建、Tile 划分、LaunchPlan 生成等 Host 侧编译工作 |
-> | **ACL** | Ascend Computing Language | 昇腾计算语言/运行时 API（如 `aclrtMalloc`、`aclrtLaunchMega` 等） |
-> | **AICPU** | AI CPU | 昇腾 AI 处理器上的通用 CPU 核心，负责调度和任务管理 |
-> | **Mix** | Mixed | 混合计算类型（Cube+Vector），对应 `TileOpTypeMix` |
-> | **DMB** | Device Memory Barrier | 设备内存屏障 |
-> | **Triton** | — | Triton 推理服务框架集成（`TRITON_FLAG` 标识） |
-> | **DFX** | Design for eXcellence | 可测试性/可调试性设计框架（`AicDfxSts`、`DFX_AIV_FLAG` 等） |
-> | **OpGraph** | Operator Graph | 算子级计算图，描述算子间拓扑结构及输入输出关系 |
-> | **TileGraph** | Tile Graph | Tile 级依赖图，描述 Tile 之间的依赖关系 |
-> | **TileGraphBuilder** | — | Tile 图构建器，基于依赖语义和 Tiling 信息构建 Tile 间精确依赖边 |
-> | **GraphCache** | — | 图缓存，缓存已构建的 LaunchPlan |
-> | **FusionGroup** | — | 融合组，将多个算子融合为一个 Kernel 执行的算子集合 |
-> | **KernelFusion** | — | Kernel 融合，将多个算子编译为单个 Kernel 的技术 |
+> |术语/缩略语|全称|说明|
+> |---|---|---|
+> |**MK**|MegaKernel|项目命名空间前缀，贯穿整个代码库|
+> |**Megakernel**|Mega Kernel|项目名称，一种面向 Tile 粒度的运行时系统，将多个算子聚合为单个巨型 Kernel|
+> |**PK**|Persistent Kernel|Megakernel 的语义等价名称，持续驻留的 Kernel|
+> |**Blade**|—|构建器（Builder）子系统目录名，负责图构建、Tile 划分、LaunchPlan 生成等 Host 侧编译工作|
+> |**ACL**|Ascend Computing Language|昇腾计算语言/运行时 API（如 `aclrtMalloc`、`aclrtLaunchMega` 等）|
+> |**AICPU**|AI CPU|昇腾 AI 处理器上的通用 CPU 核心，负责调度和任务管理|
+> |**Mix**|Mixed|混合计算类型（Cube+Vector），对应 `TileOpTypeMix`|
+> |**DMB**|Device Memory Barrier|设备内存屏障|
+> |**Triton**|—|Triton 推理服务框架集成（`TRITON_FLAG` 标识）|
+> |**DFX**|Design for eXcellence|可测试性/可调试性设计框架（`AicDfxSts`、`DFX_AIV_FLAG` 等）|
+> |**OpGraph**|Operator Graph|算子级计算图，描述算子间拓扑结构及输入输出关系|
+> |**TileGraph**|Tile Graph|Tile 级依赖图，描述 Tile 之间的依赖关系|
+> |**TileGraphBuilder**|—|Tile 图构建器，基于依赖语义和 Tiling 信息构建 Tile 间精确依赖边|
+> |**GraphCache**|—|图缓存，缓存已构建的 LaunchPlan|
+> |**FusionGroup**|—|融合组，将多个算子融合为一个 Kernel 执行的算子集合|
+> |**KernelFusion**|—|Kernel 融合，将多个算子编译为单个 Kernel 的技术|
 
 Also noted: `TileOpTypeCube` / `TileOpTypeVector` / `TileOpTypeMix` as the per-tile op-type
 enum, and `CCEC` (`__CCE_AICORE__` macro) as the device-side compilation environment.
@@ -1972,11 +1972,11 @@ with dequant + activation + cast in one `__mix__` kernel, `<<<>>>`-invoked, A3 a
 https://gitcode.com/cann/asc-devkit/blob/master/examples/01_simd_cpp_api/05_best_practices/03_fusion_compute/quant_group_matmul_high_performance/README.md
 raw: https://raw.gitcode.com/cann/asc-devkit/raw/master/examples/01_simd_cpp_api/05_best_practices/03_fusion_compute/quant_group_matmul_high_performance/README.md
 
-> | 产品 | CANN软件版本 |
-> | ------ | ------------- |
-> | Ascend 950PR&950DT系列产品 | >= CANN 9.2.0 |
-> | Atlas A3系列产品 | >= CANN 9.2.0 |
-> | Atlas A2系列产品 | >= CANN 9.2.0 |
+> |产品|CANN软件版本|
+> |---|---|
+> |Ascend 950PR&950DT系列产品|>= CANN 9.2.0|
+> |Atlas A3系列产品|>= CANN 9.2.0|
+> |Atlas A2系列产品|>= CANN 9.2.0|
 
 ```cpp
 constexpr uint32_t scenarioNum = SCENARIO_NUM;
@@ -2096,9 +2096,9 @@ does not recognise on this path — see D.4.
 The value `1` is correct. `SetScheduleMode`'s parameter table, verbatim
 (https://www.hiascend.com/doc_center/source/zh/canncommercial/81RC1/apiref/basicdataapi/atlasopapi_07_00248.html):
 
-> | 参数 | 输入/输出 | 说明 |
-> | --- | --- | --- |
-> | schedule_mode | 输入 | 0：普通模式，默认情况下为普通模式。<br>1：batchmode模式，**核间同步算子需要设置该模式**。 |
+> |参数|输入/输出|说明|
+> |---|---|---|
+> |schedule_mode|输入|0：普通模式，默认情况下为普通模式。<br>1：batchmode模式，**核间同步算子需要设置该模式**。|
 
 And the attribute is the documented lever for exactly this project type — CANN 9.0, verbatim:
 

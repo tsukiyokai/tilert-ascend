@@ -12,8 +12,8 @@ if [[ -e "$output" ]]; then
     exit 1
 fi
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-patch_file="$script_dir/../../patches/cann-grouped-matmul/gmm2-active-groups.patch"
-tile_patch="$script_dir/../../patches/cann-grouped-matmul/gmm2-adaptive-tiles.patch"
+patch_file="$script_dir/../../scripts/patches/cann-grouped-matmul/gmm2-active-groups.patch"
+tile_patch="$script_dir/../../scripts/patches/cann-grouped-matmul/gmm2-adaptive-tiles.patch"
 builtin="$ASCEND_OPP_PATH/built-in/op_impl/ai_core/tbe"
 variant=GroupedMatmul_a0be48d01b162435398ed52e1b6182d4
 original="$builtin/kernel/ascend910_93/ops_transformer/grouped_matmul/$variant.json"

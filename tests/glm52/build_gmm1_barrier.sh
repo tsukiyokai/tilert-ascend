@@ -17,16 +17,16 @@ script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 # same branch, and the two cannot both apply.
 patches=(
     "$script_dir/patches/gmm1-swiglu-barrier.patch"
-    "$script_dir/../../patches/cann-gmm-swiglu-v2/gmm1-straight-line.patch"
-    "$script_dir/../../patches/cann-gmm-swiglu-v2/gmm1-chunk-span.patch"
-    "$script_dir/../../patches/cann-gmm-swiglu-v2/gmm1-tiling-rowcount.patch"
+    "$script_dir/../../scripts/patches/cann-gmm-swiglu-v2/gmm1-straight-line.patch"
+    "$script_dir/../../scripts/patches/cann-gmm-swiglu-v2/gmm1-chunk-span.patch"
+    "$script_dir/../../scripts/patches/cann-gmm-swiglu-v2/gmm1-tiling-rowcount.patch"
 )
 op=grouped_matmul_swiglu_quant_v2
 kernel_header="gmm/$op/op_kernel/${op}_a8w4_msd_post.h"
 pipeline_header="gmm/$op/op_kernel/${op}_a8w4_msd_pipeline.h"
 headers=("$kernel_header" "$pipeline_header")
 if [[ ${3:-} == --compact-experts ]]; then
-    patches+=("$script_dir/../../patches/cann-gmm-swiglu-v2/gmm1-active-groups.patch")
+    patches+=("$script_dir/../../scripts/patches/cann-gmm-swiglu-v2/gmm1-active-groups.patch")
     headers+=("gmm/$op/op_kernel/${op}_a8w4_msd_mid.h"
               "gmm/$op/op_kernel/${op}_utils.h")
 fi

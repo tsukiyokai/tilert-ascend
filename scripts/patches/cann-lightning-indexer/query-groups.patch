@@ -1,0 +1,24 @@
+--- a/attention/lightning_indexer/op_kernel/arch22/lightning_indexer_kernel_arch22.h
++++ b/attention/lightning_indexer/op_kernel/arch22/lightning_indexer_kernel_arch22.h
+@@ -284,6 +284,21 @@
+ __aicore__ void inline LightningIndexerKernel<LIT>::SplitCore(uint32_t curCoreIdx, uint32_t& coreNum,
+                                                               LICommon::SplitCoreInfo& info)
+ {
++    if (constInfo.batchSize == 1 && constInfo.kHeadNum == 1 &&
++        constInfo.attenMaskFlag && coreNum == 24 && constInfo.s1BaseSize == 8 &&
++        constInfo.s2BaseSize == 512) {
++        uint32_t querySize, keySize;
++        GetS1S2ActualSeqLen(0, querySize, keySize);
++        if (querySize == 32 && GetS2BaseBlockNumOnMask(0, querySize, keySize) == 17 &&
++            GetS2BaseBlockNumOnMask(3, querySize, keySize) == 17) {
++            info.bN2Start = info.bN2End = 0;
++            info.gS1Start = info.gS1End = curCoreIdx / 6;
++            info.s2Start = (curCoreIdx % 6) * 3;
++            info.s2End = Min(info.s2Start + 2, 16U);
++            info.isLD = curCoreIdx % 6 == 0;
++            return;
++        }
++    }
+     // 计算每个核最少处理的块数, 剩余的部分前面的核每个核多处理一块
+     uint32_t totalBlockNum = GetTotalBaseBlockNum();
+     uint32_t minBlockPerCore = totalBlockNum / coreNum;

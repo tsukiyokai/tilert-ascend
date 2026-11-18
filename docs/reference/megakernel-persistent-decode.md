@@ -343,11 +343,11 @@ Figure 5 caption, verbatim:
 
 > Table 1: MPK configuration in our evaluation.
 >
-> | GPU | # SMs | # Workers | # Schedulers |
-> | --- | --- | --- | --- |
-> | A100 | 108 | 104 | 16 |
-> | H100 | 132 | 128 | 16 |
-> | B200 | 148 | 144 | 16 |
+> |GPU|# SMs|# Workers|# Schedulers|
+> |---|---|---|---|
+> |A100|108|104|16|
+> |H100|132|128|16|
+> |B200|148|144|16|
 
 > We evaluate MPK across five widely deployed LLMs that span a range of parameter scales and architectural families, as well as three generations of NVIDIA GPUs: A100, H100, and B200. Table 1 summarizes the MPK configuration for each GPU type. For all experiments, we reserve four SMs for schedulers, allocating a total of 16 scheduler warps (each SM accommodates up to four concurrently active warps). The remaining SMs are allocated to workers. We fix the shared-memory page size to 32KB on all GPUs. This configuration yields 5, 7, and 7 shared-memory pages per SM on A100, H100, and B200, respectively.
 
@@ -437,14 +437,14 @@ communication — into one persistent kernel. Actor model with warp specializati
 
 ### 3.2 Kernel-count table — the single most quotable number
 
-> | MoE Implementation | GPU Ops |
-> | --- | --- |
-> | FlashMoE (this work) | 1 |
-> | COMET [12] | 33 |
-> | Megatron-LM CUTLASS [13, 16] | 85 |
-> | Megatron-LM TE [13, 16] | 261 |
-> | Megatron-LM + DeepEP [1] | 432 |
-> | DeepSpeedMoE [11] | 550 |
+> |MoE Implementation|GPU Ops|
+> |---|---|
+> |FlashMoE (this work)|1|
+> |COMET [12]|33|
+> |Megatron-LM CUTLASS [13, 16]|85|
+> |Megatron-LM TE [13, 16]|261|
+> |Megatron-LM + DeepEP [1]|432|
+> |DeepSpeedMoE [11]|550|
 >
 > Table 1: We report number of GPU operations launched by MoE implementations by profiling with Nsight Systems [17]. We count operations in a single MoE layer (Gate → Dispatch → Expert → Combine) on 2 A100 GPUs, where each GPU has 32 experts. FlashMoE is the first to fully fuse the distributed MoE layer into a single GPU kernel.
 
@@ -1198,11 +1198,11 @@ From the internal 串讲 notes (Wiki `WIKI2026022410189615`, 学习笔记):
 
 > ## 八、重要技术决策
 >
-> | 决策 | 说明 |
-> | ------ | ------ |
-> | **串行调度** | 第一版采用纯串行调度，暂不支持 Cube/Vector 并行 |
-> | **Mix1:2 强制提升** | 混合算子检测 Mix1:2 后强制提升模式 |
-> | **待确定功能** | DFX 调试能力、双流并行调度、ACLGraph 正式接口集成 |
+> |决策|说明|
+> |---|---|
+> |**串行调度**|第一版采用纯串行调度，暂不支持 Cube/Vector 并行|
+> |**Mix1:2 强制提升**|混合算子检测 Mix1:2 后强制提升模式|
+> |**待确定功能**|DFX 调试能力、双流并行调度、ACLGraph 正式接口集成|
 
 > **Mix1:1 → Mix1:2 自适应**：
 >
@@ -1324,11 +1324,11 @@ Same attention mechanism family as our MLA + SparseFlashAttention.
 
 ### 5.5 The full results table, verbatim
 
-> | Kernel | B 1, Seq 64k, Q 1 | B 64, Seq 256-1024 (random), Q 4 | B 64, Seq 512 Q 2 | B 132, Seq 4k, Q 4 |
-> | --- | --- | --- | --- | --- |
-> | FlashMLA (μs, TFLOPs, GB/s) | 55.0, 42, 1378 | 47.0, 124, 1212 | 39.0, 59, 1092 | 226.0, 333, 2839 |
-> | ThunderMLA (μs, TFLOPs, GB/s) | 44.5, 52, 1700 | 39.5, 147, 2022 | 28.6, 80, 1489 | 210.0, 358, 3055 |
-> | Speedup (%) | 23.6% | 19.0% | 36.3% | 7.6% |
+> |Kernel|B 1, Seq 64k, Q 1|B 64, Seq 256-1024 (random), Q 4|B 64, Seq 512 Q 2|B 132, Seq 4k, Q 4|
+> |---|---|---|---|---|
+> |FlashMLA (μs, TFLOPs, GB/s)|55.0, 42, 1378|47.0, 124, 1212|39.0, 59, 1092|226.0, 333, 2839|
+> |ThunderMLA (μs, TFLOPs, GB/s)|44.5, 52, 1700|39.5, 147, 2022|28.6, 80, 1489|210.0, 358, 3055|
+> |Speedup (%)|23.6%|19.0%|36.3%|7.6%|
 
 ### 5.6 The two schedulers — static heap, and makespan-backwards
 
@@ -1605,18 +1605,18 @@ kernel launch typically incurs 5–10 μs of latency, while the fastest kernels 
 
 Assembled from the quotes above. Every cell is sourced from the corresponding section.
 
-| | Hazy Megakernel (§1) | ThunderMLA (§5) | MPK (§2) | FlashMoE (§3) | ETC / Event Tensor (§6) | CANN SuperKernel (§4) |
-| --- | --- | --- | --- | --- | --- | --- |
-| Hardware | H100 / B200 | H100 | A100/H100/B200 | 8x H100 | NVIDIA | Ascend (Ascend910_9391; DAV_2201, DAV_3510) |
-| Scope | whole Llama-1B fwd | MLA decode only | whole model, multi-GPU | one distributed MoE layer | whole model, multi-GPU | arbitrary AscendC subgraph |
-| Work unit | instruction (7 types) | opcode + instruction tensor | task + event (ttGraph) | tile + task descriptor | task + Event Tensor element | `TaskInfo` in a `TaskQue` |
-| Scheduling | AOT in Python, reused | AOT, static heap or makespan-backwards | hybrid JIT (scheduler warps) / AOT (round-robin) | fully dynamic, 1 scheduler warp | static + dynamic transforms, symbolic shapes | AOT on host, serial |
-| Dependency mechanism | GM counters, incremented on completion | global tensor as semaphore | device-memory semaphores, atomicAdd queues | shared mem (sched↔sub), GM (sched↔proc), NVSHMEM signal | Event Tensor, `notify()`/`wait()`, einsum edges | `CrossCoreSetFlag/WaitFlag` + GM `SkMemoryWaitFlag` spin w/ `dcci` |
-| On-chip buffer mgmt | 13 x 16 KiB pages of 213 kB | — | pages, 32 KB each (5/7/7 per SM) | tiles (128, 64), 128 thr/block | — | not managed; sub-kernels own UB/L1 |
-| Cross-stage prefetch | interpreter hands freed pages to next instruction | async instruction fetch, deep pipelines | pre-loading phase + compute phase | — | — | `TYPE_PRELOAD` + `preload()`/`dc_preload()` |
-| Collectives in-kernel | no | no | yes, `nvshmem_signal_wait_until` | yes, one-sided NVSHMEM (R)DMA | yes, `multimem_ld_reduce_cta` | `TYPE_EVENT_NOTIFY/WAIT` (AICPU/SDMA, not inter-device) |
-| Data-dependent routing | no | variable seq len via scheduler | hybrid MoE balancer w/ meta-tensor | expert capacity C, in-place padding | `topk` event init + `exp_indptr` triggering | no |
-| Headline number | 78% of H100 BW; <1 ms H100, <680 us B200 | 20–35% over FlashMLA; 41 us vs 52 us | up to 1.7x; 14.5 → 12.5 ms/token Qwen3-8B A100 | 1 vs 550 GPU ops; 93.17% vs 14% util | 1.40x GEMM+RS; 1.23x MoE; 3.5x less warmup | "调用收益可达15%以上" |
+||Hazy Megakernel (§1)|ThunderMLA (§5)|MPK (§2)|FlashMoE (§3)|ETC / Event Tensor (§6)|CANN SuperKernel (§4)|
+|---|---|---|---|---|---|---|
+|Hardware|H100 / B200|H100|A100/H100/B200|8x H100|NVIDIA|Ascend (Ascend910_9391; DAV_2201, DAV_3510)|
+|Scope|whole Llama-1B fwd|MLA decode only|whole model, multi-GPU|one distributed MoE layer|whole model, multi-GPU|arbitrary AscendC subgraph|
+|Work unit|instruction (7 types)|opcode + instruction tensor|task + event (ttGraph)|tile + task descriptor|task + Event Tensor element|`TaskInfo` in a `TaskQue`|
+|Scheduling|AOT in Python, reused|AOT, static heap or makespan-backwards|hybrid JIT (scheduler warps) / AOT (round-robin)|fully dynamic, 1 scheduler warp|static + dynamic transforms, symbolic shapes|AOT on host, serial|
+|Dependency mechanism|GM counters, incremented on completion|global tensor as semaphore|device-memory semaphores, atomicAdd queues|shared mem (sched↔sub), GM (sched↔proc), NVSHMEM signal|Event Tensor, `notify()`/`wait()`, einsum edges|`CrossCoreSetFlag/WaitFlag` + GM `SkMemoryWaitFlag` spin w/ `dcci`|
+|On-chip buffer mgmt|13 x 16 KiB pages of 213 kB|—|pages, 32 KB each (5/7/7 per SM)|tiles (128, 64), 128 thr/block|—|not managed; sub-kernels own UB/L1|
+|Cross-stage prefetch|interpreter hands freed pages to next instruction|async instruction fetch, deep pipelines|pre-loading phase + compute phase|—|—|`TYPE_PRELOAD` + `preload()`/`dc_preload()`|
+|Collectives in-kernel|no|no|yes, `nvshmem_signal_wait_until`|yes, one-sided NVSHMEM (R)DMA|yes, `multimem_ld_reduce_cta`|`TYPE_EVENT_NOTIFY/WAIT` (AICPU/SDMA, not inter-device)|
+|Data-dependent routing|no|variable seq len via scheduler|hybrid MoE balancer w/ meta-tensor|expert capacity C, in-place padding|`topk` event init + `exp_indptr` triggering|no|
+|Headline number|78% of H100 BW; <1 ms H100, <680 us B200|20–35% over FlashMLA; 41 us vs 52 us|up to 1.7x; 14.5 → 12.5 ms/token Qwen3-8B A100|1 vs 550 GPU ops; 93.17% vs 14% util|1.40x GEMM+RS; 1.23x MoE; 3.5x less warmup|"调用收益可达15%以上"|
 
 ---
 
@@ -3124,10 +3124,10 @@ literally `1` in the launch — one AIC + its two AIVs.
 
 Parameter defaults, for the shape of the measurement they do:
 
-> | `-pes` | PE 数量；baseline 支持 2、4、8、16，tailcut 支持 4、8、16 | 未指定时 baseline 为 2、tailcut 为 4 |
-> | `-elements` | 每个 PE 输入 Tensor 的元素数量 | 1024 |
-> | `-type` | 数据类型，支持 `int32_t`、`float16_t` | `float16_t` |
-> | `-aiv` | Kernel 使用的 AIV Core 数量；tailcut 至少为 3，且不能超过设备的 Vector Core 数量 | 未指定时 baseline 为 1、tailcut 为 3 |
+> |`-pes`|PE 数量；baseline 支持 2、4、8、16，tailcut 支持 4、8、16|未指定时 baseline 为 2、tailcut 为 4|
+> |`-elements`|每个 PE 输入 Tensor 的元素数量|1024|
+> |`-type`|数据类型，支持 `int32_t`、`float16_t`|`float16_t`|
+> |`-aiv`|Kernel 使用的 AIV Core 数量；tailcut 至少为 3，且不能超过设备的 Vector Core 数量|未指定时 baseline 为 1、tailcut 为 3|
 
 ### 10.6 `docs/api/sync_barrier_api_usage.md` — the sanctioned in-kernel ordering recipes
 
@@ -3275,10 +3275,10 @@ cross-rank barrier over symmetric memory, and it writes remote results with a **
 
 > ## AIC/AIV 分工与同步
 >
-> | 处理单元 | 主要工作 |
-> | --- | --- |
-> | AIC | 两次 Catlass MXFP8 GEMM、矩阵分块调度 |
-> | AIV | 路由掩码生成、Token 量化、路由数据搬运、SwiGLU、再量化和最终 Combine |
+> |处理单元|主要工作|
+> |---|---|
+> |AIC|两次 Catlass MXFP8 GEMM、矩阵分块调度|
+> |AIV|路由掩码生成、Token 量化、路由数据搬运、SwiGLU、再量化和最终 Combine|
 >
 > 每个局部专家对应一组计算资源。运行时会查询设备上的 AIC/AIV 数量，并将结果写入 Tiling；
 > 也可以通过环境变量覆盖核数。AIC 和 AIV 使用以下机制协调：
@@ -3299,19 +3299,19 @@ And the MIX-ratio constraint, from the 参数说明 section:
 
 Symmetric-memory regions:
 
-> | 区域 | 用途 |
-> | --- | --- |
-> | 控制与同步区 | 保存跨 Rank 屏障、标志位等控制信息 |
-> | `inboundMask` | 接收其他 Rank 写入的 Token 路由位图和计数 |
-> | `quantizedTokens` | 保存本 Rank 已量化的 Token，供目标 Rank 远端读取 |
-> | `combinedTokens` | 接收远端专家返回的、尚未按权重累加的 Token 结果 |
+> |区域|用途|
+> |---|---|
+> |控制与同步区|保存跨 Rank 屏障、标志位等控制信息|
+> |`inboundMask`|接收其他 Rank 写入的 Token 路由位图和计数|
+> |`quantizedTokens`|保存本 Rank 已量化的 Token，供目标 Rank 远端读取|
+> |`combinedTokens`|接收远端专家返回的、尚未按权重累加的 Token 结果|
 >
 > 主要缓冲区按 512 字节对齐，以满足搬运和矩阵计算要求。样例默认申请 1 GiB 对称内存。
 
 Workspace flag regions:
 
-> | `inputReadyFlags` | 路由输入分波次就绪标志 |
-> | `activationReadyFlags` | SwiGLU 激活分块就绪标志 |
+> |`inputReadyFlags`|路由输入分波次就绪标志|
+> |`activationReadyFlags`|SwiGLU 激活分块就绪标志|
 
 ### 11.2 THE EPOCH-TAGGED CROSS-RANK BARRIER — `SynchronizeRanks()`, verbatim
 
@@ -3843,35 +3843,35 @@ The other MTE atomics all carry `Supported hardware platform: Ascend950.` in the
 >
 > ### 2.1 接口清单
 >
-> | 接口完整名 | 返回值 | 支持类型 | 硬件平台 |
-> | --- | --- | --- | --- |
-> | `aclshmemx_mte_atomic_fetch` | T | int32, uint32, float, int64, uint64 | 950 |
-> | `aclshmemx_mte_atomic_set` | void | uint32, uint64 | 950 |
-> | `aclshmemx_mte_atomic_swap` | T | uint32, uint64 | 950 |
-> | `aclshmemx_mte_atomic_compare_swap` | T | uint32, uint64 | 950 |
-> | `aclshmemx_mte_atomic_inc` | void | int32, uint32, float, int64, uint64 | 950 |
-> | `aclshmemx_mte_atomic_add` | void | int8, int16, bf16, half, int32, float (A2/A3/950) + uint32, uint64, int64 (950) | A2/A3/950 |
-> | `aclshmemx_mte_atomic_fetch_inc` | T | int32, uint32, float, int64, uint64 | 950 |
-> | `aclshmemx_mte_atomic_fetch_add` | T | int32, uint32, float, int64, uint64 | 950 |
+> |接口完整名|返回值|支持类型|硬件平台|
+> |---|---|---|---|
+> |`aclshmemx_mte_atomic_fetch`|T|int32, uint32, float, int64, uint64|950|
+> |`aclshmemx_mte_atomic_set`|void|uint32, uint64|950|
+> |`aclshmemx_mte_atomic_swap`|T|uint32, uint64|950|
+> |`aclshmemx_mte_atomic_compare_swap`|T|uint32, uint64|950|
+> |`aclshmemx_mte_atomic_inc`|void|int32, uint32, float, int64, uint64|950|
+> |`aclshmemx_mte_atomic_add`|void|int8, int16, bf16, half, int32, float (A2/A3/950) + uint32, uint64, int64 (950)|A2/A3/950|
+> |`aclshmemx_mte_atomic_fetch_inc`|T|int32, uint32, float, int64, uint64|950|
+> |`aclshmemx_mte_atomic_fetch_add`|T|int32, uint32, float, int64, uint64|950|
 >
 > ### 2.2 同步要求
 >
 > 所有 MTE 后端接口调用后，如果存在**标量计算单元（Scalar）与搬运单元（MTE2/MTE3）之间的数据依赖**，开发者需根据实际数据流插入同步：
 >
-> | 时机 | 场景 | 同步方式 |
-> | --- | --- | --- |
-> | 调用前 | 其他单元（如 MTE2）正在写同一 UB 区域 | `SetFlag/WaitFlag` on `MTE2_S` |
-> | 调用后 | 后续操作依赖原子操作在 GM 中的结果 | `SetFlag/WaitFlag` on `MTE3_MTE2` |
-> | 调用后 | 需要复用同一 UB 区域写入新数据 | `SetFlag/WaitFlag` on `MTE3_S` |
+> |时机|场景|同步方式|
+> |---|---|---|
+> |调用前|其他单元（如 MTE2）正在写同一 UB 区域|`SetFlag/WaitFlag` on `MTE2_S`|
+> |调用后|后续操作依赖原子操作在 GM 中的结果|`SetFlag/WaitFlag` on `MTE3_MTE2`|
+> |调用后|需要复用同一 UB 区域写入新数据|`SetFlag/WaitFlag` on `MTE3_S`|
 >
 > ### 2.3 `aclshmemx_mte_atomic_add` 的类型差异（重要）
 >
 > `aclshmemx_mte_atomic_add` 在 Ascend950 上按类型有两种实现路径：
 >
-> | 类型组 | 支持类型 | 实现方式 | 同步要点 |
-> | --- | --- | --- | --- |
-> | UB + MTE3 路径 | int8, int16, bf16, half, int32, float | Scalar 写操作数到 UB → MTE3 读 UB → MTE3 atomic add 写 GM | 需关注 UB 相关 fence（MTE2_S、MTE3_S）和 GM fence（MTE3_MTE2） |
-> | Scalar AtomicAdd 路径 | uint32, uint64, int64 | Scalar 单元直接执行标量 AtomicAdd 写 GM，不经过 UB 和 MTE3 | 不需要 UB/MTE3 相关 fence；仅在 Scalar↔MTE2/MTE3 有 GM 数据依赖时按通用规则同步 |
+> |类型组|支持类型|实现方式|同步要点|
+> |---|---|---|---|
+> |UB + MTE3 路径|int8, int16, bf16, half, int32, float|Scalar 写操作数到 UB → MTE3 读 UB → MTE3 atomic add 写 GM|需关注 UB 相关 fence（MTE2_S、MTE3_S）和 GM fence（MTE3_MTE2）|
+> |Scalar AtomicAdd 路径|uint32, uint64, int64|Scalar 单元直接执行标量 AtomicAdd 写 GM，不经过 UB 和 MTE3|不需要 UB/MTE3 相关 fence；仅在 Scalar↔MTE2/MTE3 有 GM 数据依赖时按通用规则同步|
 
 And on the standard-interface layer, the note that symmetric memory is an *interface* convention,
 not an engine restriction:
@@ -4509,14 +4509,14 @@ syntactic surprise worth more than the rest of the page: a kernel declared
 
 > AI CPU与CCU路径的主要差异如下：
 >
-> | 项目 | AI CPU路径 | CCU路径 |
-> | --- | --- | --- |
-> | commEngine取值 | **2，AICPU_TS**，表示AI CPU通信服务端 | **5，CCU_MS；或6，CCU_SCHED，推荐使用6** |
-> | 服务端启动stream | 必须传入独立的aclrtStream | 传入nullptr，launch stream由资源上下文内部携带 |
-> | AI Core侧初始化 | hccl.InitV2(contextGM) | hccl.InitV2(contextGM) |
-> | HCCL模板参数 | HCCL_SERVER_TYPE_AICPU | HCCL_SERVER_TYPE_CCU |
-> | 退出机制 | AI Core侧调用Finalize后服务端退出 | AI Core侧调用Finalize后服务端退出 |
-> | rank数 | 必须大于1 | 必须大于1 |
+> |项目|AI CPU路径|CCU路径|
+> |---|---|---|
+> |commEngine取值|**2，AICPU_TS**，表示AI CPU通信服务端|**5，CCU_MS；或6，CCU_SCHED，推荐使用6**|
+> |服务端启动stream|必须传入独立的aclrtStream|传入nullptr，launch stream由资源上下文内部携带|
+> |AI Core侧初始化|hccl.InitV2(contextGM)|hccl.InitV2(contextGM)|
+> |HCCL模板参数|HCCL_SERVER_TYPE_AICPU|HCCL_SERVER_TYPE_CCU|
+> |退出机制|AI Core侧调用Finalize后服务端退出|AI Core侧调用Finalize后服务端退出|
+> |rank数|必须大于1|必须大于1|
 
 ### 14.3 The CCU (A5) host sequence, verbatim
 
@@ -4637,22 +4637,22 @@ every number: **these are dav-3510 results.**
 >
 > 面向昇腾 950（Ascend950PR）的 mega kernel 开发：在单卡 950PR + CANN 9.1.0 上探索大算子融合与持久化 kernel 技术，目标是对 Qwen3.8-Flash-Next-MXFP4 做高性能推理。
 
-> | `m0/` | M0 bring-up：mix(1,2) 全核启动 + BufferID/CrossCore 最小验证。核间屏障为**只有 AIV 的 mode 0** `CrossCoreSetFlag<0,PIPE_MTE3>`/`CrossCoreWaitFlag<0>`（非 `SyncAll`；AIC 不参与）；56 AIV 真机 13/13 `ALL PASS` | ✅ |
-> | `m1_mxfp4_gemm/` | 单核 MXFP4 GEMM（basic API 全链路，10 用例逐位 PASS） | ✅ |
-> | `m2_mxfp4_quant/` | MXFP4 激活量化 AIV kernel（对 quant_ref.py 三层链逐字节一致） | ✅ |
-> | `m3_grouped_gemm/` | 多核 grouped MXFP4 GEMM（28 AIC 专家槽位×N 切分，**mode2+mode0+mode2**） | ✅ |
-> | `m4_gdn_recurrent/` | GDN decode 递推核（48 head，寄存器 VF，state 预取流水） | ✅ |
-> | `m5_swiglu_quant/` | SwiGLU + MXFP4 量化融合 epilogue | ✅ |
-> | `m7_router_topk/` | Router softmax+top-10 核（Sort32+2路MrgSort，**m=1 实测 0.066ms**） | ✅ |
-> | `m8_permute/` | MoE permute/unpermute 核（专家槽位重排，golden 逐位一致） | ✅ |
-> | `m9_gdn_prolog/` | GDN conv1d+l2norm+gating 融合预处理核 | ✅ |
-> | `m11_bf16_gemm/` | bf16 GEMM（GDN in/out_proj 用，非 MX 路径） | ✅ |
-> | `m12_rmsnorm_gated/` | RMSNormGated（GDN 输出门控+归一化，per-head 128 维） | ✅ |
-> | `m13_moe_layer/` | **MoE block 整层 kernel**（mix(1,2) 单次启动跑全链 S1-S10，682 判据 + 118 项 numpy 独立校验全 PASS） | ✅（层界 I/O 待改） |
-> | `m14_gdn_layer/` | **GDN 整层 kernel**（S1-S7 单次 mix 启动，114 kernel 判据 + 103 numpy 校验 PASS） | ✅（层界 I/O 待改） |
-> | `m15_layer_loop/` | **48 层循环骨架**（host 循环，每层一次 `__mix__(1,2)` 启动）：36 层 GDN 直接复用 m14 整层 kernel，12 层 full attention 暂为**占位直通**；层间只经 GM bf16 残差流交接，conv/ssm state 常驻 GM | ✅ |
-> | `probe_sync_quirks/` | 同步/sort/下标类问题常备复现器（MrgSort 26 变体 + VF idx 矩阵 + 证据归档） | ✅ |
-> | `m0_syncall_probe/` | **最小探针：只测全核同步**（两个独立可执行文件，无环境变量）：`m0sk_mix` = AIC+AIV 双边 `SyncAll<false>`（官方"融合算子"形态）；`m0sk_aiv` = 仅 AIV `SyncAll<true>`（官方"纯 Vector"形态，**负控**）。判据 = 56 个 AIV 的"屏障前/后"标记 + kernel 能返回 | **已关闭（2026-10-05）** |
+> |`m0/`|M0 bring-up：mix(1,2) 全核启动 + BufferID/CrossCore 最小验证。核间屏障为**只有 AIV 的 mode 0** `CrossCoreSetFlag<0,PIPE_MTE3>`/`CrossCoreWaitFlag<0>`（非 `SyncAll`；AIC 不参与）；56 AIV 真机 13/13 `ALL PASS`|✅|
+> |`m1_mxfp4_gemm/`|单核 MXFP4 GEMM（basic API 全链路，10 用例逐位 PASS）|✅|
+> |`m2_mxfp4_quant/`|MXFP4 激活量化 AIV kernel（对 quant_ref.py 三层链逐字节一致）|✅|
+> |`m3_grouped_gemm/`|多核 grouped MXFP4 GEMM（28 AIC 专家槽位×N 切分，**mode2+mode0+mode2**）|✅|
+> |`m4_gdn_recurrent/`|GDN decode 递推核（48 head，寄存器 VF，state 预取流水）|✅|
+> |`m5_swiglu_quant/`|SwiGLU + MXFP4 量化融合 epilogue|✅|
+> |`m7_router_topk/`|Router softmax+top-10 核（Sort32+2路MrgSort，**m=1 实测 0.066ms**）|✅|
+> |`m8_permute/`|MoE permute/unpermute 核（专家槽位重排，golden 逐位一致）|✅|
+> |`m9_gdn_prolog/`|GDN conv1d+l2norm+gating 融合预处理核|✅|
+> |`m11_bf16_gemm/`|bf16 GEMM（GDN in/out_proj 用，非 MX 路径）|✅|
+> |`m12_rmsnorm_gated/`|RMSNormGated（GDN 输出门控+归一化，per-head 128 维）|✅|
+> |`m13_moe_layer/`|**MoE block 整层 kernel**（mix(1,2) 单次启动跑全链 S1-S10，682 判据 + 118 项 numpy 独立校验全 PASS）|✅（层界 I/O 待改）|
+> |`m14_gdn_layer/`|**GDN 整层 kernel**（S1-S7 单次 mix 启动，114 kernel 判据 + 103 numpy 校验 PASS）|✅（层界 I/O 待改）|
+> |`m15_layer_loop/`|**48 层循环骨架**（host 循环，每层一次 `__mix__(1,2)` 启动）：36 层 GDN 直接复用 m14 整层 kernel，12 层 full attention 暂为**占位直通**；层间只经 GM bf16 残差流交接，conv/ssm state 常驻 GM|✅|
+> |`probe_sync_quirks/`|同步/sort/下标类问题常备复现器（MrgSort 26 变体 + VF idx 矩阵 + 证据归档）|✅|
+> |`m0_syncall_probe/`|**最小探针：只测全核同步**（两个独立可执行文件，无环境变量）：`m0sk_mix` = AIC+AIV 双边 `SyncAll<false>`（官方"融合算子"形态）；`m0sk_aiv` = 仅 AIV `SyncAll<true>`（官方"纯 Vector"形态，**负控**）。判据 = 56 个 AIV 的"屏障前/后"标记 + kernel 能返回|**已关闭（2026-10-05）**|
 
 The probe/evidence directories, which are the unusual part of this repo:
 
@@ -4695,14 +4695,14 @@ And the design's own in-kernel-sync policy, which is worth reading as an argumen
 
 ### 15.3 `docs/05` §4.1 — THE RESOURCE TABLE, including the flagId budget
 
-> | CrossCore flagId | **每核 16 个（0-15），模式 4 下 AIC 侧 0-31**；"每 id 计数 15 次" = 每（核,flagId) 一个 **4bit 计数器**（0-15），未配平累计超 15 报错。**SyncAll 占 11-14(+28/29)、Matmul 高阶 API 占 0-7**；**本项目不用 SyncAll/高阶 API → 0-15 全可用**（早期资料"0-10"是保守窗口，已修正） | 层内多处同步需规划复用；相邻同步点必须用不同 flagId |
-> | BufferID | **每核用户可用 0-27**（MAX_TBUFID=31，28-31 保留给框架）；token 初始全部空闲；release 的 mode：`false` = CANN `ASC_LOCK_BLOCK`（默认，「阻塞」）、`true` = `ASC_LOCK_NON_BLOCK`；**两种模式都等本 pipe 已发射指令落地**（不是「立即生效」），`true` 额外等此前同 id 的释放 ⇒ `true` 更保守；**全项目 release 一律 `false`**；不可重入 | AIC 与 AIV 的 token 空间独立，pipe 不命名空间——不同 pipe 并发用同一 id 会互踩 |
-> | SSBuf | 3KB，AIC↔AIV 核间通信 | 小控制信息传递 |
-> | UB / AIV | **256 KB 物理 / 248 KB 总量 / 216 KB 可用**（`aclrtGetDeviceInfo(0, ACL_DEV_ATTR_UBUF_PER_VECTOR_CORE)` = **221,184 B**，2026-10-17 本机实测）。差额 32 KB 是编译期保留区（`__ASC_USE_RESERVED_UBUF__` / `--cce-disable-asc-reserved-ubuf` 相关）⇒ **UB 预算按 216 KB 算**，按 248 KB 排布会静默越界（表现为跨窗互相覆盖、数值"整数倍"错且不可复现） |
-> | L1 Buffer / AIC | 512KB（1 AIC + 2 AIV 共享） |
-> | L0A/L0B / AIC | 64KB + 4KB MX |
-> | L0C / AIC | 256KB（256×256 tile） |
-> | Scalar I-cache | AIC 32KB / AIV 16KB |
+> |CrossCore flagId|**每核 16 个（0-15），模式 4 下 AIC 侧 0-31**；"每 id 计数 15 次" = 每（核,flagId) 一个 **4bit 计数器**（0-15），未配平累计超 15 报错。**SyncAll 占 11-14(+28/29)、Matmul 高阶 API 占 0-7**；**本项目不用 SyncAll/高阶 API → 0-15 全可用**（早期资料"0-10"是保守窗口，已修正）|层内多处同步需规划复用；相邻同步点必须用不同 flagId|
+> |BufferID|**每核用户可用 0-27**（MAX_TBUFID=31，28-31 保留给框架）；token 初始全部空闲；release 的 mode：`false` = CANN `ASC_LOCK_BLOCK`（默认，「阻塞」）、`true` = `ASC_LOCK_NON_BLOCK`；**两种模式都等本 pipe 已发射指令落地**（不是「立即生效」），`true` 额外等此前同 id 的释放 ⇒ `true` 更保守；**全项目 release 一律 `false`**；不可重入|AIC 与 AIV 的 token 空间独立，pipe 不命名空间——不同 pipe 并发用同一 id 会互踩|
+> |SSBuf|3KB，AIC↔AIV 核间通信|小控制信息传递|
+> |UB / AIV|**256 KB 物理 / 248 KB 总量 / 216 KB 可用**（`aclrtGetDeviceInfo(0, ACL_DEV_ATTR_UBUF_PER_VECTOR_CORE)` = **221,184 B**，2026-10-17 本机实测）。差额 32 KB 是编译期保留区（`__ASC_USE_RESERVED_UBUF__` / `--cce-disable-asc-reserved-ubuf` 相关）⇒ **UB 预算按 216 KB 算**，按 248 KB 排布会静默越界（表现为跨窗互相覆盖、数值"整数倍"错且不可复现）|
+> |L1 Buffer / AIC|512KB（1 AIC + 2 AIV 共享）|
+> |L0A/L0B / AIC|64KB + 4KB MX|
+> |L0C / AIC|256KB（256×256 tile）|
+> |Scalar I-cache|AIC 32KB / AIV 16KB|
 
 and the hardware basis line:
 
@@ -4712,20 +4712,20 @@ and the hardware basis line:
 
 ### 15.4 `docs/05` §6 — THE KERNEL-TYPE CONSTRAINT, one line, our §4 answered
 
-> | **核函数类型约束**：AIC_ONLY/AIV_ONLY **不开启调度模块、CrossCore 不可用**——layer kernel 必须 MIX 类型（本设计满足） |
+> |**核函数类型约束**：AIC_ONLY/AIV_ONLY **不开启调度模块、CrossCore 不可用**——layer kernel 必须 MIX 类型（本设计满足）|
 
 ### 15.5 `docs/05` §6.1 — the pipe/core-type matching rule that makes a wrong flag a SILENT no-op
 
-> | **CrossCore `SetFlag/WaitFlag<mode, pipe>` 必须 pipe 类与核型匹配**（M24 实测；M17 挂死根因） | 实现只在 pipe 类与核型匹配时**发射指令**：`IsSplitVectorPipe={S,V,MTE2,MTE3}` 仅 AIV 发射、`IsSplitCubePipe={S,MTE1,MTE2,FIX,M}` 仅 AIC 发射 ⇒ **不匹配时是静默空操作（不报错），对侧 wait 永久挂死**。**用户澄清**：这里的原始错误是用法本身错——**AIC 侧写 GM 用的是 FIXP，不可能用 MTE3**（**根因：AIC 不能「直接」访问 UB ⇒ UB→GM 对 AIC 不可路由**）；pipe 类匹配规则只是让这类误用表现为静默挂死而不是编译报错 | **AIC 侧 set/wait 只能 `PIPE_S/MTE1/MTE2/FIX/M`；AIV 侧只能 `PIPE_S/V/MTE2/MTE3`**。写同步前先问"这个核型的这条 pipe 到底存不存在"；**flagId 8-11 无保留冲突，pipe 类才是雷** |
+> |**CrossCore `SetFlag/WaitFlag<mode, pipe>` 必须 pipe 类与核型匹配**（M24 实测；M17 挂死根因）|实现只在 pipe 类与核型匹配时**发射指令**：`IsSplitVectorPipe={S,V,MTE2,MTE3}` 仅 AIV 发射、`IsSplitCubePipe={S,MTE1,MTE2,FIX,M}` 仅 AIC 发射 ⇒ **不匹配时是静默空操作（不报错），对侧 wait 永久挂死**。**用户澄清**：这里的原始错误是用法本身错——**AIC 侧写 GM 用的是 FIXP，不可能用 MTE3**（**根因：AIC 不能「直接」访问 UB ⇒ UB→GM 对 AIC 不可路由**）；pipe 类匹配规则只是让这类误用表现为静默挂死而不是编译报错|**AIC 侧 set/wait 只能 `PIPE_S/MTE1/MTE2/FIX/M`；AIV 侧只能 `PIPE_S/V/MTE2/MTE3`**。写同步前先问"这个核型的这条 pipe 到底存不存在"；**flagId 8-11 无保留冲突，pipe 类才是雷**|
 
-> | **硬规则：AIC 写 GM 必须走 `Fixpipe`，不能走 MTE3 DMA；配套：AIC 上的同步事件不得挂 `PIPE_MTE3`**（M24 + M35 + 用户裁定，2026-09-26） | **三次独立撞到同一根**：① **同步类**（M24 实测；M17 全 kernel 挂死根因）：`CrossCoreSetFlag/WaitFlag<…, PIPE_MTE3>` 在 AIC 上是**静默空操作**——`IsSplitCubePipe={S,MTE1,MTE2,FIX,M}` 不含 MTE3 ⇒ 指令根本不发射，对侧 wait 永久挂死；② **数据类**（M35 `probe_aic_blockidx.asc` 实测）：AIC 用「标量写 UB → MTE3 DMA 写 GM」**全部读回哨兵**；③ **用户裁定原话**："**AIC 写 GM 用的是 FIXP，而不是 MTE3**，所以你这个同步本来就是错的" | **后果＝静默失效**：不报错、不挂死（同步类表现为对侧永久等待，数据类表现为 GM 里仍是旧值/哨兵）——属**最难查的一类错**。 |
+> |**硬规则：AIC 写 GM 必须走 `Fixpipe`，不能走 MTE3 DMA；配套：AIC 上的同步事件不得挂 `PIPE_MTE3`**（M24 + M35 + 用户裁定，2026-09-26）|**三次独立撞到同一根**：① **同步类**（M24 实测；M17 全 kernel 挂死根因）：`CrossCoreSetFlag/WaitFlag<…, PIPE_MTE3>` 在 AIC 上是**静默空操作**——`IsSplitCubePipe={S,MTE1,MTE2,FIX,M}` 不含 MTE3 ⇒ 指令根本不发射，对侧 wait 永久挂死；② **数据类**（M35 `probe_aic_blockidx.asc` 实测）：AIC 用「标量写 UB → MTE3 DMA 写 GM」**全部读回哨兵**；③ **用户裁定原话**："**AIC 写 GM 用的是 FIXP，而不是 MTE3**，所以你这个同步本来就是错的"|**后果＝静默失效**：不报错、不挂死（同步类表现为对侧永久等待，数据类表现为 GM 里仍是旧值/哨兵）——属**最难查的一类错**。|
 
 Two more rows worth having:
 
-> | `GetBlockNum()` 在 mix kernel 内的语义（M22 实测） | **`__mix__(1,2)` 下 AIV 视角 `GetBlockNum()` 返回 AIC 数（28），不是 AIV 数**——AIV 侧要用核数需 `×2`（或在 host 用 `GetCoreNumAiv()` 传入） |
-> | **同 pipe MTE2 背靠背复用同一 buffer** | 完成序无保证；**`get_buf/rls_buf` 对同 pipe 无效**（mode 0 与 drain 均实测不保序，**60/60 错 vs PipeBarrier 0/60**）。`PipeBarrier<PIPE_MTE2>` 是同 pipe 内部同步的正确且唯一有效指令……**官方口径同**：`asc-devkit/docs/zh/api/SIMD-API/basic_api/sync_control/intra_core_sync/Lock.md:93` 逐字「连续调用的、具有相同id与pipe的两对Lock与Unlock**不能实现单流水（参数pipe指定）内不同指令之间的同步，单流水内多个指令之间的同步请使用PipeBarrier接口**」；旗标侧 `.../SetFlag_WaitFlag_ISASI.md:99` 逐字「**相同流水、相同eventID下，连续使用SetFlag会引发未定义行为，此时再执行PipeBarrier<PIPE_ALL>会出现卡死现象**」 |
+> |`GetBlockNum()` 在 mix kernel 内的语义（M22 实测）|**`__mix__(1,2)` 下 AIV 视角 `GetBlockNum()` 返回 AIC 数（28），不是 AIV 数**——AIV 侧要用核数需 `×2`（或在 host 用 `GetCoreNumAiv()` 传入）|
+> |**同 pipe MTE2 背靠背复用同一 buffer**|完成序无保证；**`get_buf/rls_buf` 对同 pipe 无效**（mode 0 与 drain 均实测不保序，**60/60 错 vs PipeBarrier 0/60**）。`PipeBarrier<PIPE_MTE2>` 是同 pipe 内部同步的正确且唯一有效指令……**官方口径同**：`asc-devkit/docs/zh/api/SIMD-API/basic_api/sync_control/intra_core_sync/Lock.md:93` 逐字「连续调用的、具有相同id与pipe的两对Lock与Unlock**不能实现单流水（参数pipe指定）内不同指令之间的同步，单流水内多个指令之间的同步请使用PipeBarrier接口**」；旗标侧 `.../SetFlag_WaitFlag_ISASI.md:99` 逐字「**相同流水、相同eventID下，连续使用SetFlag会引发未定义行为，此时再执行PipeBarrier<PIPE_ALL>会出现卡死现象**」|
 
-> | **BufferID 只覆盖核内**（用户澄清，2026-09-26） | **BufferID（get/rls）是核内 token，管不了跨核可见性**。凡"AIV 产出 → AIC 消费"的交接……**必须用 CrossCore 同步**（AIV 侧在拷贝完成后 set、AIC 侧 wait），漏了就会"AIC 读太早、数据不在"（表现为下游恒 0，且难以从数值上定位） |
+> |**BufferID 只覆盖核内**（用户澄清，2026-09-26）|**BufferID（get/rls）是核内 token，管不了跨核可见性**。凡"AIV 产出 → AIC 消费"的交接……**必须用 CrossCore 同步**（AIV 侧在拷贝完成后 set、AIC 侧 wait），漏了就会"AIC 读太早、数据不在"（表现为下游恒 0，且难以从数值上定位）|
 
 And the one honest unknown about graph capture, which is also ours:
 
@@ -4777,10 +4777,10 @@ __schedmode__(1) __global__ __mix__(1, 2) void aiv_syncall_kernel()
 
 Measured table:
 
-> | 程序 | 全核 28 AIC / 56 AIV | 半机 16 AIC / 32 AIV |
-> | --- | --- | --- |
-> | `aiv_syncall` | **PASS**（`rc=0`） | **PASS**（`rc=0`） |
-> | `aiv_mode0_sync` | **PASS**（`rc=0`） | **PASS**（`rc=0`） |
+> |程序|全核 28 AIC / 56 AIV|半机 16 AIC / 32 AIV|
+> |---|---|---|
+> |`aiv_syncall`|**PASS**（`rc=0`）|**PASS**（`rc=0`）|
+> |`aiv_mode0_sync`|**PASS**（`rc=0`）|**PASS**（`rc=0`）|
 >
 > - 负控（只让 AIV block 0 set）确认会挂死：说明 PASS 不是"自己 set 满足自己 wait"。
 
@@ -4807,12 +4807,12 @@ Timeout discipline worth copying:
 
 > ## 5. 新卡复现：52/54 悬崖**不复现**（2026-10-05）
 >
-> | blocks | AIV 数 | 结果 | 输出自证 |
-> | --- | --- | --- | --- |
-> | 16 | 32 | **通过** rc=0（~7–8 s） | `output[0]`=496=Σ(0..31) |
-> | 26 | 52 | **通过** rc=0（~7–8 s） | `output[0]`=1326=Σ(0..51) |
-> | 27 | 54 | **通过** rc=0（~7–8 s，3/3 复现） | `output[0]`=1431=Σ(0..53) |
-> | 28 | 56（满核） | **通过** rc=0（~7–8 s） | `output[0]`=1540=Σ(0..55) |
+> |blocks|AIV 数|结果|输出自证|
+> |---|---|---|---|
+> |16|32|**通过** rc=0（~7–8 s）|`output[0]`=496=Σ(0..31)|
+> |26|52|**通过** rc=0（~7–8 s）|`output[0]`=1326=Σ(0..51)|
+> |27|54|**通过** rc=0（~7–8 s，3/3 复现）|`output[0]`=1431=Σ(0..53)|
+> |28|56（满核）|**通过** rc=0（~7–8 s）|`output[0]`=1540=Σ(0..55)|
 >
 > - 四发各编出**不同 md5** 的 demo；`output[0]` 恰等于 `NB*(2*NB-1)`（全体 AIV 的 `blockIdx` 之和）
 >   ⇒ 54/56 个 AIV **全部**到达 mode-0 屏障并返回。
@@ -4972,16 +4972,16 @@ __aicore__ inline void CrossCoreSetFlag(uint16_t flagId)
 
 表1 模板参数说明 — VERBATIM:
 
-| 参数名 | 描述 |
-| --- | --- |
-| modeId | 核间同步的模式，不同产品对同步模式的支持情况请参见[modeId支持的取值说明](#modeId支持的取值说明)。<br>各个模式支持的对应核函数（Kernel）类型请参照[表3](#table3)。 |
-| pipe | 标识在哪条流水的前序指令完成后，CrossCoreSetFlag才向调度模块发送通知。支持的流水类型为PIPE_V、PIPE_M、PIPE_MTE1、PIPE_MTE2、PIPE_MTE3、PIPE_FIX，不支持PIPE_S和PIPE_ALL。不同产品对流水类型的支持情况请参见[pipe支持的流水类型说明](#pipe支持的流水类型说明)。 |
+|参数名|描述|
+|---|---|
+|modeId|核间同步的模式，不同产品对同步模式的支持情况请参见[modeId支持的取值说明](#modeId支持的取值说明)。<br>各个模式支持的对应核函数（Kernel）类型请参照[表3](#table3)。|
+|pipe|标识在哪条流水的前序指令完成后，CrossCoreSetFlag才向调度模块发送通知。支持的流水类型为PIPE_V、PIPE_M、PIPE_MTE1、PIPE_MTE2、PIPE_MTE3、PIPE_FIX，不支持PIPE_S和PIPE_ALL。不同产品对流水类型的支持情况请参见[pipe支持的流水类型说明](#pipe支持的流水类型说明)。|
 
 表2 参数说明 — VERBATIM:
 
-| 参数名 | 输入/输出 | 描述 |
-| --- | --- | --- |
-| flagId | 输入 | 核间同步的标记。不同产品对flagId的取值范围说明请参见[flagId取值范围说明](#flagId取值范围说明)。 |
+|参数名|输入/输出|描述|
+|---|---|---|
+|flagId|输入|核间同步的标记。不同产品对flagId的取值范围说明请参见[flagId取值范围说明](#flagId取值范围说明)。|
 
 ### 16.5 WHICH ARCH SUPPORTS WHICH MODE — VERBATIM
 
@@ -5090,11 +5090,11 @@ Reading for A3: the SET pipe may be any of `PIPE_V | PIPE_M | PIPE_MTE1 | PIPE_M
 
 表4 样例描述:
 
-| SCENARIO_NUM取值 | 业务场景 | 使用的同步模式 |
-| --- | --- | --- |
-| 0 | 纯Vector计算场景（16个AIV） | mode0（AIV全核同步） |
-| 1 | 纯Vector计算场景（2个AIV） | mode1 |
-| 2 | Cube与Vector融合计算场景 | mode2（AIC等AIV）、mode2（AIV等AIC）、mode0（AIC全核同步） |
+|SCENARIO_NUM取值|业务场景|使用的同步模式|
+|---|---|---|
+|0|纯Vector计算场景（16个AIV）|mode0（AIV全核同步）|
+|1|纯Vector计算场景（2个AIV）|mode1|
+|2|Cube与Vector融合计算场景|mode2（AIC等AIV）、mode2（AIV等AIC）、mode0（AIC全核同步）|
 
 ```cpp
     AscendC::Muls(xLocal, xLocal, float(AscendC::GetBlockIdx()), this->blockLength);
@@ -5171,10 +5171,10 @@ __aicore__ inline void CrossCoreWaitFlag(uint16_t flagId)
 
 表1 模板参数说明 — VERBATIM:
 
-| 参数名 | 描述 |
-| --- | --- |
-| modeId | 核间同步的模式，默认值为0。不同产品对该参数的生效情况及支持的流水类型请参见[模板参数默认值及生效情况](#template-parameter-defaults)。<br>不同产品对同步模式的支持情况请参见[modeId支持的取值说明](#modeId支持的取值说明)。<br>各个模式支持的对应核函数（Kernel）类型请参照[表3](#table3)。 |
-| pipe | 设置该接口阻塞的流水类型，默认值为PIPE_S。不同产品对该参数的生效情况及支持的流水类型请参见[模板参数默认值及生效情况](#template-parameter-defaults)。 |
+|参数名|描述|
+|---|---|
+|modeId|核间同步的模式，默认值为0。不同产品对该参数的生效情况及支持的流水类型请参见[模板参数默认值及生效情况](#template-parameter-defaults)。<br>不同产品对同步模式的支持情况请参见[modeId支持的取值说明](#modeId支持的取值说明)。<br>各个模式支持的对应核函数（Kernel）类型请参照[表3](#table3)。|
+|pipe|设置该接口阻塞的流水类型，默认值为PIPE_S。不同产品对该参数的生效情况及支持的流水类型请参见[模板参数默认值及生效情况](#template-parameter-defaults)。|
 
 ### 17.3 ★「模板参数默认值及生效情况」 — THE MOST IMPORTANT BLOCK — VERBATIM
 
@@ -5285,25 +5285,25 @@ Date: fetched 2026-10-20
 
 ### 18.2 ★ 表1 模式0、1、2 flagId占用情况 — VERBATIM (NPU架构版本 column names 2201 explicitly)
 
-| 接口 | 限定条件 | 占用flagId | 各计算核占用情况 | NPU架构版本 |
-| --- | --- | --- | --- | --- |
-| SyncAll | isAIVOnly=true | 14 | AIV：14 | 2201、3510 |
-| SyncAll | isAIVOnly=false | 11、12、13 | AIC：11、12、13；AIV：12、13 | 2201、3510 |
-| SetNextTaskStart | SuperKernel子核函数（Kernel）中调用 | 11、14 | AIC：11；AIV：14 | 2201、3510 |
-| WaitPreTaskEnd | SuperKernel子核函数（Kernel）中调用 | 11、12、13、14 | AIC：11、12、13；AIV：12、13、14 | 2201、3510 |
-| Matmul | 定义N个Matmul对象 | [0, 2N-1] | AIV/AIC按对象与subBlock分配 | 2201 |
-| Matmul | SuperKernel融合场景（GetTaskRatio返回2，即1:2配比） | 15 | AIV：15 | 2201 |
+|接口|限定条件|占用flagId|各计算核占用情况|NPU架构版本|
+|---|---|---|---|---|
+|SyncAll|isAIVOnly=true|14|AIV：14|2201、3510|
+|SyncAll|isAIVOnly=false|11、12、13|AIC：11、12、13；AIV：12、13|2201、3510|
+|SetNextTaskStart|SuperKernel子核函数（Kernel）中调用|11、14|AIC：11；AIV：14|2201、3510|
+|WaitPreTaskEnd|SuperKernel子核函数（Kernel）中调用|11、12、13、14|AIC：11、12、13；AIV：12、13、14|2201、3510|
+|Matmul|定义N个Matmul对象|[0, 2N-1]|AIV/AIC按对象与subBlock分配|2201|
+|Matmul|SuperKernel融合场景（GetTaskRatio返回2，即1:2配比）|15|AIV：15|2201|
 
 ### 18.3 表2 模式4 flagId占用情况 — VERBATIM (all rows are 3510-only; NONE apply to 2201/A3)
 
-| 接口 | 限定条件 | 占用flagId | 各计算核占用情况 | NPU架构版本 |
-| --- | --- | --- | --- | --- |
-| SyncAll | isAIVOnly=false（核函数（Kernel）使用__mix__(1, 2)修饰时） | 12、13、28、29 | AIC：12、13、28、29；AIV：12、13 | 3510 |
-| WaitPreTaskEnd | SuperKernel子核函数（Kernel）中调用 | 12、13、28、29 | AIC：12、13、28、29；AIV：12、13 | 3510 |
-| Matmul | 定义N个Matmul对象 | [0, N+17] | AIC/AIV按对象、eventType、subBlock分配 | 3510 |
-| Matmul | A矩阵和B矩阵同时开启IBSHARE的场景 | 15 | AIV：15 | 3510 |
-| TSCM | 从UB发起的L1 Buffer（TSCM）队列 | 0~11（从11向下逐个分配） | AIV | 3510 |
-| DataCopy（GM→L1） | 无 | 1、17 | AIC：1、17；AIV：1 | 3510 |
+|接口|限定条件|占用flagId|各计算核占用情况|NPU架构版本|
+|---|---|---|---|---|
+|SyncAll|isAIVOnly=false（核函数（Kernel）使用__mix__(1, 2)修饰时）|12、13、28、29|AIC：12、13、28、29；AIV：12、13|3510|
+|WaitPreTaskEnd|SuperKernel子核函数（Kernel）中调用|12、13、28、29|AIC：12、13、28、29；AIV：12、13|3510|
+|Matmul|定义N个Matmul对象|[0, N+17]|AIC/AIV按对象、eventType、subBlock分配|3510|
+|Matmul|A矩阵和B矩阵同时开启IBSHARE的场景|15|AIV：15|3510|
+|TSCM|从UB发起的L1 Buffer（TSCM）队列|0~11（从11向下逐个分配）|AIV|3510|
+|DataCopy（GM→L1）|无|1、17|AIC：1、17；AIV：1|3510|
 
 ### 18.4 各接口限定条件说明 — VERBATIM
 
@@ -5862,7 +5862,7 @@ constexpr SyncAllConfig DEFAULT_SYNC_ALL_CONFIG = {PIPE_ALL, PIPE_ALL};
 
 表1 isAIVOnly — VERBATIM:
 
-> | isAIVOnly | 控制SyncAll作用于纯Vector算子或Mix（包含Cube和Vector计算）算子。可选值：<br>• **true**（默认值）：纯Vector算子的全核同步，仅执行Vector核的全核同步。<br>• **false**：Mix（包含Cube和Vector计算）算子的全核同步，先分别完成Vector核和Cube核的全核同步，再执行两者之间的同步（软同步接口不支持此功能）。 |
+> |isAIVOnly|控制SyncAll作用于纯Vector算子或Mix（包含Cube和Vector计算）算子。可选值：<br>• **true**（默认值）：纯Vector算子的全核同步，仅执行Vector核的全核同步。<br>• **false**：Mix（包含Cube和Vector计算）算子的全核同步，先分别完成Vector核和Cube核的全核同步，再执行两者之间的同步（软同步接口不支持此功能）。|
 
 ### 20.4 硬件同步接口约束 — VERBATIM
 
@@ -5905,25 +5905,25 @@ Date: fetched 2026-10-20
 
 ### 21.1 ★ 表2 支持的核间同步场景 — THE MODE->NAME->SCOPE TABLE — VERBATIM
 
-| 接口名称 | 同步范围 | 对应模式 | 功能简述 |
-| --- | --- | --- | --- |
-| [asc_sync_inter_arrive](asc_sync_inter_arrive.md)/[asc_sync_inter_wait](asc_sync_inter_wait.md) | 组间同步，即不同group之间所有block（所有AIC或所有AIV）之间的同步。 | 模式0（同步等待全部AIC或全部AIV执行结束） | `asc_sync_inter_arrive`为生产者，负责发送通知；`asc_sync_inter_wait`为消费者，负责阻塞等待通知到达。 |
-| [asc_sync_subblock_arrive](asc_sync_subblock_arrive.md)/[asc_sync_subblock_wait](asc_sync_subblock_wait.md) | 组内subblock间的同步，即同一group内不同subblock（AIV）之间的同步。 | 模式1（单个AI Core内，全部AIV之间的同步） | `asc_sync_subblock_arrive`为生产者，负责发送通知；`asc_sync_subblock_wait`为消费者，负责阻塞等待通知到达。 |
-| [asc_sync_block_arrive](asc_sync_block_arrive.md)/[asc_sync_block_wait](asc_sync_block_wait.md) | 同一group内block（AIC）与所有subblock（AIV）之间的同步。 | 模式2（单个AI Core内，AIC与全部AIV之间的同步） | `asc_sync_block_arrive`为生产者，负责发送通知；`asc_sync_block_wait`为消费者，负责阻塞等待通知到达。 |
-| [asc_sync_intra_arrive](asc_sync_intra_arrive.md)/[asc_sync_intra_wait](asc_sync_intra_wait.md) | 同一group内block（AIC）与单个subblock（AIV）之间的同步。 | 模式4（单个AI Core内，AIC核与单个AIV之间同步） | `asc_sync_intra_arrive`为生产者，负责发送通知；`asc_sync_intra_wait`为消费者，负责阻塞等待通知到达。 |
+|接口名称|同步范围|对应模式|功能简述|
+|---|---|---|---|
+|[asc_sync_inter_arrive](asc_sync_inter_arrive.md)/[asc_sync_inter_wait](asc_sync_inter_wait.md)|组间同步，即不同group之间所有block（所有AIC或所有AIV）之间的同步。|模式0（同步等待全部AIC或全部AIV执行结束）|`asc_sync_inter_arrive`为生产者，负责发送通知；`asc_sync_inter_wait`为消费者，负责阻塞等待通知到达。|
+|[asc_sync_subblock_arrive](asc_sync_subblock_arrive.md)/[asc_sync_subblock_wait](asc_sync_subblock_wait.md)|组内subblock间的同步，即同一group内不同subblock（AIV）之间的同步。|模式1（单个AI Core内，全部AIV之间的同步）|`asc_sync_subblock_arrive`为生产者，负责发送通知；`asc_sync_subblock_wait`为消费者，负责阻塞等待通知到达。|
+|[asc_sync_block_arrive](asc_sync_block_arrive.md)/[asc_sync_block_wait](asc_sync_block_wait.md)|同一group内block（AIC）与所有subblock（AIV）之间的同步。|模式2（单个AI Core内，AIC与全部AIV之间的同步）|`asc_sync_block_arrive`为生产者，负责发送通知；`asc_sync_block_wait`为消费者，负责阻塞等待通知到达。|
+|[asc_sync_intra_arrive](asc_sync_intra_arrive.md)/[asc_sync_intra_wait](asc_sync_intra_wait.md)|同一group内block（AIC）与单个subblock（AIV）之间的同步。|模式4（单个AI Core内，AIC核与单个AIV之间同步）|`asc_sync_intra_arrive`为生产者，负责发送通知；`asc_sync_intra_wait`为消费者，负责阻塞等待通知到达。|
 
 Every one of these pages says 「[四种核间同步模式](../system_sync_overview.md#fig_sync_control_mode)」 — FOUR modes, named 0/1/2/4. The word 「四种」 is Huawei's; it is a closed enumeration and mode 3 is not in it.
 
 表1 group配置 — VERBATIM (the block/subblock mapping that decides which mode is even legal):
 
-| 算子类型 | 函数执行空间限定符 | 核函数（Kernel）类型 | block/subblock | 1：N |
-| --- | --- | --- | --- | --- |
-| Cube算子 | `__cube__` | `KERNEL_TYPE_AIC_ONLY` | AIC为block，无subblock | 不涉及 |
-| Vector算子 | `__vector__` | `KERNEL_TYPE_AIV_ONLY` | AIV为block，无subblock | 不涉及 |
-| Mix算子 | `__mix__(1, 0)` | `KERNEL_TYPE_MIX_AIC_1_0` | AIC为block，无subblock | 不涉及 |
-| Mix算子 | `__mix__(0, 1)` | `KERNEL_TYPE_MIX_AIV_1_0` | AIV为block，无subblock | 不涉及 |
-| Mix算子 | `__mix__(1, 1)` | `KERNEL_TYPE_MIX_AIC_1_1` | AIC为block，AIV为subblock | 1：1 |
-| Mix算子 | `__mix__(1, 2)` | `KERNEL_TYPE_MIX_AIC_1_2` | AIC为block，AIV为subblock | 1：2 |
+|算子类型|函数执行空间限定符|核函数（Kernel）类型|block/subblock|1：N|
+|---|---|---|---|---|
+|Cube算子|`__cube__`|`KERNEL_TYPE_AIC_ONLY`|AIC为block，无subblock|不涉及|
+|Vector算子|`__vector__`|`KERNEL_TYPE_AIV_ONLY`|AIV为block，无subblock|不涉及|
+|Mix算子|`__mix__(1, 0)`|`KERNEL_TYPE_MIX_AIC_1_0`|AIC为block，无subblock|不涉及|
+|Mix算子|`__mix__(0, 1)`|`KERNEL_TYPE_MIX_AIV_1_0`|AIV为block，无subblock|不涉及|
+|Mix算子|`__mix__(1, 1)`|`KERNEL_TYPE_MIX_AIC_1_1`|AIC为block，AIV为subblock|1：1|
+|Mix算子|`__mix__(1, 2)`|`KERNEL_TYPE_MIX_AIC_1_2`|AIC为block，AIV为subblock|1：2|
 
 > AIC/AIV多核结构如下图2所示，AIC/AIV按group划分。一个group内包含1个block和N个subblock（N≥1），其中block表示"主核"，每个subblock表示一个"从核"。
 > ... AIV为block且AIC为subblock的配置（即Vector核为主、Cube核为辅的模式）当前不支持。
@@ -5942,7 +5942,7 @@ Header for all of them: `"c_api/sync/sync.h"`. 流水类型 for all of them: `PI
 
 ### 21.3 ★★★ THE flagId COUNTER WIDTH, STATED EXPLICITLY — VERBATIM
 
-> | flag_id | 输入 | 核间同步的标记，用于标识同一组同步信号。取值范围为[0, 15]，每个`flag_id`各自拥有独立的**4位计数器**。 |
+> |flag_id|输入|核间同步的标记，用于标识同一组同步信号。取值范围为[0, 15]，每个`flag_id`各自拥有独立的**4位计数器**。|
 
 And:
 
@@ -6024,7 +6024,7 @@ Both directions, ONE mode (mode 2), with the SAME function. There is no separate
 
 ### 21.7 Mode 4 (3510-only) `sync_id` semantics and the cross-core ID MAPPING — VERBATIM, for contrast
 
-> | sync_id | 输入 | 核间同步的标记，用于标识同一组同步信号。每个`sync_id`各自拥有独立的4位计数器。一个AI Core由1个AIC与2个AIV构成，AIC侧拥有32个`sync_id`（0~31），每个AIV侧各拥有16个`sync_id`（0~15）。 |
+> |sync_id|输入|核间同步的标记，用于标识同一组同步信号。每个`sync_id`各自拥有独立的4位计数器。一个AI Core由1个AIC与2个AIV构成，AIC侧拥有32个`sync_id`（0~31），每个AIV侧各拥有16个`sync_id`（0~15）。|
 
 > - 与其它核间同步模式不同，本接口与`asc_sync_intra_wait`配对使用时，**不要求**`arrive`与`wait`传入的`sync_id`相同，而是要求二者符合如下跨核ID映射关系，否则会出现未定义行为。
 >     - AIV0中调用的`asc_sync_intra_arrive`接口的`sync_id`取值为0~15，分别与AIC中调用的`asc_sync_intra_wait`接口的`sync_id`取值0~15对应。
@@ -6038,10 +6038,10 @@ Both directions, ONE mode (mode 2), with the SAME function. There is no separate
 
 表2 AIC和AIV支持的`pipe`取值 (mode 4, 3510 only) — VERBATIM:
 
-| 核类型 | 支持的pipe取值 |
-| :--- | :--- |
-| AIC | `PIPE_S`、`PIPE_M`、`PIPE_MTE1`、`PIPE_MTE2`、`PIPE_FIX` |
-| AIV | `PIPE_S`、`PIPE_MTE2`、`PIPE_MTE3`、`PIPE_V` |
+|核类型|支持的pipe取值|
+|:---|:---|
+|AIC|`PIPE_S`、`PIPE_M`、`PIPE_MTE1`、`PIPE_MTE2`、`PIPE_FIX`|
+|AIV|`PIPE_S`、`PIPE_MTE2`、`PIPE_MTE3`、`PIPE_V`|
 
 And the mode-4 worked timing narrative, VERBATIM:
 
@@ -6164,7 +6164,7 @@ __aicore__ inline void asc_set_ffts_base_addr(uint64_t config)
 __aicore__ inline int64_t asc_get_ffts_base_addr()
 ```
 
-> | config | 输入 | 核间同步的基地址。取值范围[0, 2^48-1]。 |
+> |config|输入|核间同步的基地址。取值范围[0, 2^48-1]。|
 
 流水类型 for both: `PIPE_S`.
 
@@ -6237,28 +6237,28 @@ Date: fetched 2026-10-20
 
 > ## 本样例支持的产品及CANN软件版本
 >
-> | 产品 | CANN软件版本 |
-> | ------ | ------------- |
-> | Ascend 950PR&950DT系列产品 | >= CANN 9.2.0 |
-> | Atlas A3系列产品 | >= CANN 9.2.0 |
-> | Atlas A2系列产品 | >= CANN 9.2.0 |
+> |产品|CANN软件版本|
+> |---|---|
+> |Ascend 950PR&950DT系列产品|>= CANN 9.2.0|
+> |Atlas A3系列产品|>= CANN 9.2.0|
+> |Atlas A2系列产品|>= CANN 9.2.0|
 
 > 本样例介绍核间同步接口CrossCoreSetFlag和CrossCoreWaitFlag的模式0、模式1、模式2和模式4，并通过纯Vector计算以及Cube与Vector融合计算场景说明各模式的使用方法。**其中模式4仅支持Ascend 950PR/Ascend 950DT。**
 
 README mode table — VERBATIM (HTML table, transcribed):
 
-| 同步控制模式 | 说明 |
-| --- | --- |
-| mode 0 | 对于AIC场景，同步所有的AIC核，直到所有的AIC核都执行到`CrossCoreSetFlag`时，`CrossCoreWaitFlag`后续的指令才会执行。 |
-| mode 0 | 对于AIV场景，同步所有的AIV核，直到所有的AIV核都执行到`CrossCoreSetFlag`时，`CrossCoreWaitFlag`后续的指令才会执行。 |
-| mode 1 | 单个AI Core内部，AIV核之间的同步控制。如果两个AIV核都运行了`CrossCoreSetFlag`，`CrossCoreWaitFlag`后续的指令才会执行。 |
-| mode 2 | 在AIC核执行`CrossCoreSetFlag`之后，两个AIV上`CrossCoreWaitFlag`后续的指令才会继续执行。 |
-| mode 2 | 两个AIV都执行`CrossCoreSetFlag`后，AIC上`CrossCoreWaitFlag`后续的指令才能执行。 |
-| mode 4 | 单个AI Core内部，AIC与指定的单个AIV之间进行同步控制。AIV0和AIV1通过不同的`flagId`映射分别与AIC同步。 |
+|同步控制模式|说明|
+|---|---|
+|mode 0|对于AIC场景，同步所有的AIC核，直到所有的AIC核都执行到`CrossCoreSetFlag`时，`CrossCoreWaitFlag`后续的指令才会执行。|
+|mode 0|对于AIV场景，同步所有的AIV核，直到所有的AIV核都执行到`CrossCoreSetFlag`时，`CrossCoreWaitFlag`后续的指令才会执行。|
+|mode 1|单个AI Core内部，AIV核之间的同步控制。如果两个AIV核都运行了`CrossCoreSetFlag`，`CrossCoreWaitFlag`后续的指令才会执行。|
+|mode 2|在AIC核执行`CrossCoreSetFlag`之后，两个AIV上`CrossCoreWaitFlag`后续的指令才会继续执行。|
+|mode 2|两个AIV都执行`CrossCoreSetFlag`后，AIC上`CrossCoreWaitFlag`后续的指令才能执行。|
+|mode 4|单个AI Core内部，AIC与指定的单个AIV之间进行同步控制。AIV0和AIV1通过不同的`flagId`映射分别与AIC同步。|
 
 Scenario map — VERBATIM:
 
-> | `SCENARIO_NUM` | `0`（默认）、`1`、`2`、`3` | 场景编号：0（纯Vector模式0）、1（纯Vector模式1）、2（Cube+Vector模式0/2）、3（Cube+Vector模式4，仅NPU架构`dav-3510`） |
+> |`SCENARIO_NUM`|`0`（默认）、`1`、`2`、`3`|场景编号：0（纯Vector模式0）、1（纯Vector模式1）、2（Cube+Vector模式0/2）、3（Cube+Vector模式4，仅NPU架构`dav-3510`）|
 
 ### 23.2 ★ The sample's flagId constant block — VERBATIM (note: it DELIBERATELY collides with SyncAll's 11/12/13/14)
 
@@ -6480,15 +6480,15 @@ Date: fetched 2026-10-20. NOTE: this is an OLDER doc generation than asc.gitcode
 
 ### 25.1 产品支持情况 table — VERBATIM (this generation uses the "Atlas 350 加速卡" name, not "Ascend 950PR&950DT")
 
-| 产品 | 是否支持 |
-| --- | --- |
-| Atlas 350 加速卡 | √ |
-| Atlas A3 训练系列产品 / Atlas A3 推理系列产品 | √ |
-| Atlas A2 训练系列产品 / Atlas A2 推理系列产品 | √ |
-| Atlas 200I/500 A2 推理产品 | x |
-| Atlas 推理系列产品 AI Core | x |
-| Atlas 推理系列产品 Vector Core | x |
-| Atlas 训练系列产品 | x |
+|产品|是否支持|
+|---|---|
+|Atlas 350 加速卡|√|
+|Atlas A3 训练系列产品 / Atlas A3 推理系列产品|√|
+|Atlas A2 训练系列产品 / Atlas A2 推理系列产品|√|
+|Atlas 200I/500 A2 推理产品|x|
+|Atlas 推理系列产品 AI Core|x|
+|Atlas 推理系列产品 Vector Core|x|
+|Atlas 训练系列产品|x|
 
 ### 25.2 功能说明 — note "面向分离模式的核间同步控制接口" — VERBATIM
 
@@ -6512,8 +6512,8 @@ Same closed set {0, 1, 2, 4}. Again NO mode 3, in a doc generation two releases 
 
 ### 25.3 表1 模板参数说明 — VERBATIM (note the PIPE_S statement)
 
-> | modeId | 核间同步的模式，取值如下：<br>模式0：AI Core核间的同步控制。<br>模式1：AI Core内部，Vector核（AIV）之间的同步控制。<br>模式2：AI Core内部，Cube核（AIC）与Vector核（AIV）之间的同步控制。<br>模式4：AI Core内部，AIC与AIV之间的同步控制。AIV0与AIV1可单独触发AIC等待。 |
-> | pipe | 设置这条指令所在的流水类型，流水类型可参考硬件流水类型。<br>**特别地，PIPE_S流水类型仅Atlas 350 加速卡支持。** |
+> |modeId|核间同步的模式，取值如下：<br>模式0：AI Core核间的同步控制。<br>模式1：AI Core内部，Vector核（AIV）之间的同步控制。<br>模式2：AI Core内部，Cube核（AIC）与Vector核（AIV）之间的同步控制。<br>模式4：AI Core内部，AIC与AIV之间的同步控制。AIV0与AIV1可单独触发AIC等待。|
+> |pipe|设置这条指令所在的流水类型，流水类型可参考硬件流水类型。<br>**特别地，PIPE_S流水类型仅Atlas 350 加速卡支持。**|
 
 ### 25.4 ★★★ 表2 参数说明 — THE flagId RANGE DISAGREEMENT — VERBATIM
 
@@ -6598,11 +6598,11 @@ Date: fetched 2026-10-20. The issue itself cites `https://www.hiascend.com/docum
 
 > 当前客户项目 向用户暴露了 XXX_cross_core_set_flag(mode_id, pipe, flag_id) 和 XXX_cross_core_wait_flag(mode_id, pipe, flag_id) 两个跨核同步原语，三个参数的含义如下：
 >
-> | 参数 | 类型 | 说明 |
-> | --- | --- | --- |
-> | mode_id | int | 同步模式，取值 0/1/2/4，控制信号传播范围（跨 block 全核同步 / AIV 间同步 / CV 广播汇聚 / CV 逐子核 1:1） |
-> | pipe | str | 流水线类型，如 PIPE_FIX / PIPE_MTE3 / PIPE_V / PIPE_M 等，指定信号发射或等待的流水线 |
-> | flag_id | int 或 PrimExpr | 信号量编号，A5 平台范围 0-31（0-15 对应 AIV0，16-31 对应 AIV1） |
+> |参数|类型|说明|
+> |---|---|---|
+> |mode_id|int|同步模式，取值 0/1/2/4，控制信号传播范围（跨 block 全核同步 / AIV 间同步 / CV 广播汇聚 / CV 逐子核 1:1）|
+> |pipe|str|流水线类型，如 PIPE_FIX / PIPE_MTE3 / PIPE_V / PIPE_M 等，指定信号发射或等待的流水线|
+> |flag_id|int 或 PrimExpr|信号量编号，A5 平台范围 0-31（0-15 对应 AIV0，16-31 对应 AIV1）|
 >
 > 在 AscendC codegen 中，这三个参数直接透传为 CrossCoreSetFlag<mode_id, pipe>(flag_id) / CrossCoreWaitFlag<mode_id, pipe>(flag_id)，功能完整。
 
@@ -6610,12 +6610,12 @@ Date: fetched 2026-10-20. The issue itself cites `https://www.hiascend.com/docum
 
 > mode_id 的四种模式
 >
-> | mode_id | 含义 | 典型场景 |
-> | --- | --- | --- |
-> | 0 | 跨 block 同类型核同步（所有 AIC↔AIC 或所有 AIV↔AIV） | 多个 block 分担计算，需要所有同类型核到达屏障 |
-> | 1 | block 内 AIV 子核间同步（AIV0 ↔ AIV1） | 两个 AIV 子核协作处理数据，需要互相通知 |
-> | 2 | block 内 AIC↔AIV 同步，广播+汇聚（一次 set 到达两个 AIV，一次 wait 等到两个 AIV 都完成） | AIC 算完 GEMM 一次性通知两个 AIV 来搬数据 |
-> | 4 | block 内 AIC↔AIV 同步，1:1 逐子核（AIV0 和 AIV1 可单独触发） | AIC 分别通知 AIV0 和 AIV1，用不同 flag_id 区分目标子核 |
+> |mode_id|含义|典型场景|
+> |---|---|---|
+> |0|跨 block 同类型核同步（所有 AIC↔AIC 或所有 AIV↔AIV）|多个 block 分担计算，需要所有同类型核到达屏障|
+> |1|block 内 AIV 子核间同步（AIV0 ↔ AIV1）|两个 AIV 子核协作处理数据，需要互相通知|
+> |2|block 内 AIC↔AIV 同步，广播+汇聚（一次 set 到达两个 AIV，一次 wait 等到两个 AIV 都完成）|AIC 算完 GEMM 一次性通知两个 AIV 来搬数据|
+> |4|block 内 AIC↔AIV 同步，1:1 逐子核（AIV0 和 AIV1 可单独触发）|AIC 分别通知 AIV0 和 AIV1，用不同 flag_id 区分目标子核|
 
 Note the mode-2 gloss: 「广播+汇聚（一次 set 到达两个 AIV，一次 wait 等到两个 AIV 都完成）」 — broadcast AND gather, one mode, both directions. Independent of Huawei's own wording in sections 9.3/14.6, same conclusion.
 
@@ -6659,15 +6659,15 @@ Date: fetched 2026-10-20
 
 ### 27.1 表1 指令流水类型和相关说明 — VERBATIM
 
-| 流水类型 | 含义 |
-| --- | --- |
-| PIPE_S | 标量流水线，使用Tensor GetValue函数时为此流水 |
-| PIPE_V | 矢量计算流水及L0C->UB数据搬运流水 |
-| PIPE_M | 矩阵计算流水 |
-| PIPE_MTE1 | L1->L0A、L1->L0B数据搬运流水 |
-| PIPE_MTE2 | GM->L1、GM->L0A、GM->L0B、GM->UB数据搬运流水 |
-| PIPE_MTE3 | UB->GM、UB->L1数据搬运流水 |
-| PIPE_FIX | L0C->GM、L0C->L1数据搬运流水，当前版本暂不支持该流水类型。 |
+|流水类型|含义|
+|---|---|
+|PIPE_S|标量流水线，使用Tensor GetValue函数时为此流水|
+|PIPE_V|矢量计算流水及L0C->UB数据搬运流水|
+|PIPE_M|矩阵计算流水|
+|PIPE_MTE1|L1->L0A、L1->L0B数据搬运流水|
+|PIPE_MTE2|GM->L1、GM->L0A、GM->L0B、GM->UB数据搬运流水|
+|PIPE_MTE3|UB->GM、UB->L1数据搬运流水|
+|PIPE_FIX|L0C->GM、L0C->L1数据搬运流水，当前版本暂不支持该流水类型。|
 
 (The trailing 「当前版本暂不支持该流水类型」 on PIPE_FIX is a CANN-8.0.RC2.2-era caveat about PIPE_FIX in the *intra-core* SetFlag/WaitFlag table; PIPE_FIX IS supported as a CrossCoreSetFlag set pipe on 2201 per sections 9.6 / 14.4 / 16.4 / 17.1.)
 
@@ -6690,15 +6690,15 @@ Date: fetched 2026-10-20
 
 Cross-referencing 20.1 against the per-core-type pipe tables of section 14.4 for arch 2201:
 
-| pipe | 数据通路 | legal as SET pipe on 2201 AIC | legal as SET pipe on 2201 AIV |
-| --- | --- | --- | --- |
-| PIPE_S | 标量流水线 | NO | NO |
-| PIPE_V | 矢量计算流水及 L0C->UB 搬运 | NO | YES |
-| PIPE_M | 矩阵计算流水 | YES | NO |
-| PIPE_MTE1 | L1->L0A、L1->L0B | YES | NO |
-| PIPE_MTE2 | GM->L1、GM->L0A/L0B、GM->UB | YES | YES |
-| PIPE_MTE3 | UB->GM、UB->L1 | YES (2201 only; dropped on 3510) | YES |
-| PIPE_FIX | L0C->GM、L0C->L1 | YES | NO |
+|pipe|数据通路|legal as SET pipe on 2201 AIC|legal as SET pipe on 2201 AIV|
+|---|---|---|---|
+|PIPE_S|标量流水线|NO|NO|
+|PIPE_V|矢量计算流水及 L0C->UB 搬运|NO|YES|
+|PIPE_M|矩阵计算流水|YES|NO|
+|PIPE_MTE1|L1->L0A、L1->L0B|YES|NO|
+|PIPE_MTE2|GM->L1、GM->L0A/L0B、GM->UB|YES|YES|
+|PIPE_MTE3|UB->GM、UB->L1|YES (2201 only; dropped on 3510)|YES|
+|PIPE_FIX|L0C->GM、L0C->L1|YES|NO|
 
 So the AIC's natural "I have published my matmul result" set pipe is `PIPE_FIX` (its L0C->GM/L1 drain), and the AIV's natural "I have published my vector result" set pipe is `PIPE_MTE3` (its UB->GM/L1 drain). `PIPE_S` is never a legal CrossCoreSetFlag pipe on 2201 — which is exactly why `CrossCoreWaitFlag`'s default of `PIPE_S` is harmless (it is inert on 2201, section 10.3) but `CrossCoreSetFlag` has NO default and must be given an explicit, core-appropriate pipe.
 
@@ -7116,10 +7116,10 @@ Only mode 0 crosses AI Cores, and it crosses only between cores of the SAME TYPE
 
 The C-API overview puts it in group terms, VERBATIM (表2, section 14.1):
 
-> | asc_sync_inter_arrive/asc_sync_inter_wait | **组间同步**，即不同group之间所有block（所有AIC或所有AIV）之间的同步。 | 模式0 |
-> | asc_sync_subblock_arrive/asc_sync_subblock_wait | **组内subblock间的同步**，即同一group内不同subblock（AIV）之间的同步。 | 模式1 |
-> | asc_sync_block_arrive/asc_sync_block_wait | **同一group内**block（AIC）与所有subblock（AIV）之间的同步。 | 模式2 |
-> | asc_sync_intra_arrive/asc_sync_intra_wait | **同一group内**block（AIC）与单个subblock（AIV）之间的同步。 | 模式4 |
+> |asc_sync_inter_arrive/asc_sync_inter_wait|**组间同步**，即不同group之间所有block（所有AIC或所有AIV）之间的同步。|模式0|
+> |asc_sync_subblock_arrive/asc_sync_subblock_wait|**组内subblock间的同步**，即同一group内不同subblock（AIV）之间的同步。|模式1|
+> |asc_sync_block_arrive/asc_sync_block_wait|**同一group内**block（AIC）与所有subblock（AIV）之间的同步。|模式2|
+> |asc_sync_intra_arrive/asc_sync_intra_wait|**同一group内**block（AIC）与单个subblock（AIV）之间的同步。|模式4|
 
 And the mode-1 CAUTION, VERBATIM (section 24.2):
 
@@ -7155,23 +7155,23 @@ This section is DERIVED (my cross-reference of the quoted material above), not a
 
 ### 33.1 Against the four measured claims
 
-| Measured claim | Verdict | Evidence |
-| --- | --- | --- |
-| "16 flags per core on dav-2201" | **CONFIRMED, three independent ways** | Doc: 「对于模式0、1、2，每个AIC和每个AIV都各自有16个flagId，支持的取值范围为0-15」 (§16.8). Source: `(flagId & 0xf)` — a 4-bit field (§19.4). Compiler team: 「event IDs 0–15」 (§28.2). C-API: 「取值范围为[0, 15]，每个`flag_id`各自拥有独立的4位计数器」 (§21.3). |
-| "`AscendC::SyncAll` consumes 11-13 of them" | **CONFIRMED for the Mix form, INCOMPLETE overall** | `SyncAll<false>` consumes exactly {11, 12, 13} — official table (§18.2) and source (§19.6). BUT `SyncAll<true>` (AIV-only, the DEFAULT template argument) consumes {14} and NOT 11-13. And `SetNextTaskStart`/`WaitPreTaskEnd` claim {11,14} / {11,12,13,14}, and SuperKernel-fused Matmul claims {15}. So the full reserved band is 11-15, not 11-13. (§18.2, §18.4, §19.6) |
-| "sync mode 2 is cube->vector" | **CONTRADICTED — mode 2 is BIDIRECTIONAL** | Doc: 「在AIC核执行CrossCoreSetFlag之后，两个AIV上CrossCoreWaitFlag后续的指令才会继续执行；**两个AIV都执行CrossCoreSetFlag后，AIC上CrossCoreWaitFlag后续的指令才能执行**」 (§16.3). Library source, Huawei's own comments: `GetffstMsg(0x02, SYNC_AIC_AIV_FLAG) // SET: C--->V` and `GetffstMsg(0x02, SYNC_AIV_FLAG) // SET: V--->C` (§19.7). Huawei's CANN 9.2.0 A3 sample uses mode 2 in both directions in one kernel (§23.4). C-API spells out both scenarios (§21.6). Direction comes from WHICH CORE ISSUES the set, kept apart by flagId — not from the mode. |
-| "mode 3 is the only reverse (vector->cube) mode that works in all set/wait patterns" | **CONTRADICTED on both halves** | (a) Mode 3 is NOT a documented mode. The mode space is the closed set {0,1,2,4} in CANN 9.2.0 (§16.3), CANN 9.0.0 (§25.2), the arch-2201 spec page (§30.1), the C-API 「四种核间同步模式」 (§21.1), and a third-party DSL spec (§26.2). Mode 3 appears in ZERO call sites, constants, branches or comments across ALL arch impls (§29.1). (b) No "reverse mode" is needed: mode 2 already carries AIV->AIC (rows above). (c) Why mode 3 can LOOK like it works: `mode & 0x3` makes 3 a reachable distinct encoding (§19.4), AND on 2201 `WaitEventImpl` does `(void)modeId; wait_flag_dev(flagId);` so the WAIT CANNOT DISTINGUISH ANY MODE (§19.5, §17.3, §30.3). Any set-mode that bumps the right counter will appear to "work in all set/wait patterns" — including, trivially, mode 3 if its hardware semantics happen to overlap mode 2's. The observation is real; the inference that mode 3 is the only working reverse mode is not supported. |
+|Measured claim|Verdict|Evidence|
+|---|---|---|
+|"16 flags per core on dav-2201"|**CONFIRMED, three independent ways**|Doc: 「对于模式0、1、2，每个AIC和每个AIV都各自有16个flagId，支持的取值范围为0-15」 (§16.8). Source: `(flagId & 0xf)` — a 4-bit field (§19.4). Compiler team: 「event IDs 0–15」 (§28.2). C-API: 「取值范围为[0, 15]，每个`flag_id`各自拥有独立的4位计数器」 (§21.3).|
+|"`AscendC::SyncAll` consumes 11-13 of them"|**CONFIRMED for the Mix form, INCOMPLETE overall**|`SyncAll<false>` consumes exactly {11, 12, 13} — official table (§18.2) and source (§19.6). BUT `SyncAll<true>` (AIV-only, the DEFAULT template argument) consumes {14} and NOT 11-13. And `SetNextTaskStart`/`WaitPreTaskEnd` claim {11,14} / {11,12,13,14}, and SuperKernel-fused Matmul claims {15}. So the full reserved band is 11-15, not 11-13. (§18.2, §18.4, §19.6)|
+|"sync mode 2 is cube->vector"|**CONTRADICTED — mode 2 is BIDIRECTIONAL**|Doc: 「在AIC核执行CrossCoreSetFlag之后，两个AIV上CrossCoreWaitFlag后续的指令才会继续执行；**两个AIV都执行CrossCoreSetFlag后，AIC上CrossCoreWaitFlag后续的指令才能执行**」 (§16.3). Library source, Huawei's own comments: `GetffstMsg(0x02, SYNC_AIC_AIV_FLAG) // SET: C--->V` and `GetffstMsg(0x02, SYNC_AIV_FLAG) // SET: V--->C` (§19.7). Huawei's CANN 9.2.0 A3 sample uses mode 2 in both directions in one kernel (§23.4). C-API spells out both scenarios (§21.6). Direction comes from WHICH CORE ISSUES the set, kept apart by flagId — not from the mode.|
+|"mode 3 is the only reverse (vector->cube) mode that works in all set/wait patterns"|**CONTRADICTED on both halves**|(a) Mode 3 is NOT a documented mode. The mode space is the closed set {0,1,2,4} in CANN 9.2.0 (§16.3), CANN 9.0.0 (§25.2), the arch-2201 spec page (§30.1), the C-API 「四种核间同步模式」 (§21.1), and a third-party DSL spec (§26.2). Mode 3 appears in ZERO call sites, constants, branches or comments across ALL arch impls (§29.1). (b) No "reverse mode" is needed: mode 2 already carries AIV->AIC (rows above). (c) Why mode 3 can LOOK like it works: `mode & 0x3` makes 3 a reachable distinct encoding (§19.4), AND on 2201 `WaitEventImpl` does `(void)modeId; wait_flag_dev(flagId);` so the WAIT CANNOT DISTINGUISH ANY MODE (§19.5, §17.3, §30.3). Any set-mode that bumps the right counter will appear to "work in all set/wait patterns" — including, trivially, mode 3 if its hardware semantics happen to overlap mode 2's. The observation is real; the inference that mode 3 is the only working reverse mode is not supported.|
 
 ### 33.2 Contradictions BETWEEN sources (all verbatim-sourced above)
 
-| Topic | Source A | Source B | Resolution |
-| --- | --- | --- | --- |
-| flagId range on A3 | CANN 9.0.0 hiascend: 「Atlas A3 ... 取值范围是0-10」 (§25.4) | CANN 9.2.0 asc-devkit: 「支持的取值范围为0-15」 + 「各自有16个flagId」 (§16.7, §16.8) | Hardware range is 0-15 (`& 0xf` is dispositive, §19.4). `0-10` is the old doc's conservative bound carving out the library-reserved 11-15. Every blog repeating "0-10" is reciting CANN 9.0.0. |
-| Counter depth usability | API ref: 「每一个计数器计数范围为0-15。如果调用CrossCoreSetFlag的次数超过15次 ... 异常报错」 (§16.8) | arch-2201 spec: 「**不允许连续设置同一个flagId**，以防止计数器状态混乱」 (§30.3) | Both hold. The counter physically holds 0-15 and traps on overflow, but Huawei does not sanction consecutive sets on one flagId. Pipeline depth must come from DISTINCT flagIds. The arch pages carry this rule; the API pages do not. |
-| `PIPE_S` as SET pipe | C++ page: modes 0/1/2 「不支持的流水类型为PIPE_ALL、PIPE_S」 (§16.6) | C-API 2201 tables omit PIPE_S from BOTH the AIC and AIV rows (§21.4); CANN 9.0.0: 「PIPE_S流水类型仅Atlas 350 加速卡支持」 (§25.3) | Agreement: PIPE_S is never a legal set pipe on 2201. |
-| Set pipe legality, per core type | C++ page lists one flat set {PIPE_V, PIPE_M, PIPE_MTE1, PIPE_MTE2, PIPE_MTE3, PIPE_FIX} for modes 0/1/2 (§16.6) | C-API splits it: 2201 AIC {M, MTE1, MTE2, MTE3, FIX}, AIV {MTE2, MTE3, V} (§21.4) | The C-API is SHARPER and correct: the flat C++ list is the UNION. PIPE_FIX is AIC-only, PIPE_V is AIV-only. Use the per-core-type table. |
-| `PIPE_S` on WAIT side, 950/3510 | CrossCoreWaitFlag page: for 950 「模式0、模式1、模式2和模式4支持`PIPE_S`、...」 (§17.3) | asc-devkit sample + its README: 「NPU架构`dav-3510`的模式0、模式1和模式2**不支持默认的`PIPE_S`**」 (§23.3) | Unresolved doc-vs-sample conflict; 3510-only, irrelevant on A3 where the parameter is inert. Trust the sample. |
-| `PIPE_FIX` support | CANN 8.0.RC2.2 intra-core pipe table: 「PIPE_FIX | L0C->GM、L0C->L1数据搬运流水，**当前版本暂不支持该流水类型**」 (§27.1) | PIPE_FIX is the canonical AIC CrossCoreSetFlag pipe in CANN 9.x docs, samples and shipped operators (§16.6, §21.4, §23.4, §24.1, §30.2) | The 8.0.RC2.2 caveat is about intra-core `SetFlag`/`WaitFlag` HardEvents, not about CrossCoreSetFlag. PIPE_FIX IS a valid cross-core set pipe on 2201. |
+|Topic|Source A|Source B|Resolution|
+|---|---|---|---|
+|flagId range on A3|CANN 9.0.0 hiascend: 「Atlas A3 ... 取值范围是0-10」 (§25.4)|CANN 9.2.0 asc-devkit: 「支持的取值范围为0-15」 + 「各自有16个flagId」 (§16.7, §16.8)|Hardware range is 0-15 (`& 0xf` is dispositive, §19.4). `0-10` is the old doc's conservative bound carving out the library-reserved 11-15. Every blog repeating "0-10" is reciting CANN 9.0.0.|
+|Counter depth usability|API ref: 「每一个计数器计数范围为0-15。如果调用CrossCoreSetFlag的次数超过15次 ... 异常报错」 (§16.8)|arch-2201 spec: 「**不允许连续设置同一个flagId**，以防止计数器状态混乱」 (§30.3)|Both hold. The counter physically holds 0-15 and traps on overflow, but Huawei does not sanction consecutive sets on one flagId. Pipeline depth must come from DISTINCT flagIds. The arch pages carry this rule; the API pages do not.|
+|`PIPE_S` as SET pipe|C++ page: modes 0/1/2 「不支持的流水类型为PIPE_ALL、PIPE_S」 (§16.6)|C-API 2201 tables omit PIPE_S from BOTH the AIC and AIV rows (§21.4); CANN 9.0.0: 「PIPE_S流水类型仅Atlas 350 加速卡支持」 (§25.3)|Agreement: PIPE_S is never a legal set pipe on 2201.|
+|Set pipe legality, per core type|C++ page lists one flat set {PIPE_V, PIPE_M, PIPE_MTE1, PIPE_MTE2, PIPE_MTE3, PIPE_FIX} for modes 0/1/2 (§16.6)|C-API splits it: 2201 AIC {M, MTE1, MTE2, MTE3, FIX}, AIV {MTE2, MTE3, V} (§21.4)|The C-API is SHARPER and correct: the flat C++ list is the UNION. PIPE_FIX is AIC-only, PIPE_V is AIV-only. Use the per-core-type table.|
+|`PIPE_S` on WAIT side, 950/3510|CrossCoreWaitFlag page: for 950 「模式0、模式1、模式2和模式4支持`PIPE_S`、...」 (§17.3)|asc-devkit sample + its README: 「NPU架构`dav-3510`的模式0、模式1和模式2**不支持默认的`PIPE_S`**」 (§23.3)|Unresolved doc-vs-sample conflict; 3510-only, irrelevant on A3 where the parameter is inert. Trust the sample.|
+|`PIPE_FIX` support|CANN 8.0.RC2.2 intra-core pipe table: 「PIPE_FIX|L0C->GM、L0C->L1数据搬运流水，**当前版本暂不支持该流水类型**」 (§27.1)|PIPE_FIX is the canonical AIC CrossCoreSetFlag pipe in CANN 9.x docs, samples and shipped operators (§16.6, §21.4, §23.4, §24.1, §30.2)|The 8.0.RC2.2 caveat is about intra-core `SetFlag`/`WaitFlag` HardEvents, not about CrossCoreSetFlag. PIPE_FIX IS a valid cross-core set pipe on 2201.|
 
 ### 33.3 Facts no single source states but that follow from the above
 
@@ -11012,12 +11012,12 @@ __aicore__ inline void SyncAllImpl()
 
 Read it line by line:
 
-| what | mode | flagId | set pipe | issuing core |
-| --- | --- | --- | --- | --- |
-| `SyncAll<true>` whole barrier | 0 | **14** | `PIPE_MTE3` | AIV |
-| `SyncAll<false>` step 1: V→C gather | **2** | **12** | `PIPE_MTE3` | **AIV** |
-| `SyncAll<false>` step 2: all-AIC barrier | 0 | **11** | `PIPE_FIX` | AIC |
-| `SyncAll<false>` step 3: C→V release | **2** | **13** | **`PIPE_MTE3`** | **AIC** |
+|what|mode|flagId|set pipe|issuing core|
+|---|---|---|---|---|
+|`SyncAll<true>` whole barrier|0|**14**|`PIPE_MTE3`|AIV|
+|`SyncAll<false>` step 1: V→C gather|**2**|**12**|`PIPE_MTE3`|**AIV**|
+|`SyncAll<false>` step 2: all-AIC barrier|0|**11**|`PIPE_FIX`|AIC|
+|`SyncAll<false>` step 3: C→V release|**2**|**13**|**`PIPE_MTE3`**|**AIC**|
 
 ### 52.3 `SoftSyncAllImpl` — lines 63–114, the ZERO-flagId barrier, verbatim
 
@@ -11205,29 +11205,29 @@ names the two AscendC APIs that §52.4 showed burning flagIds 11 and 14.
 >
 > 纯 device 耗时，单位 μs：
 >
-> | history / batch | sk=0 min | sk=0 mean | sk=0 max | sk=1 min | sk=1 mean | sk=1 max | 收益(mean) |
-> | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-> | 128K / B4 | 927.22 | 1002.68 | 1134.20 | 795.89 | 850.18 | 914.52 | **15.21%** |
-> | 128K / B8 | 923.95 | 930.21 | 971.02 | 856.61 | 860.10 | 864.71 | **7.54%** |
-> | 128K / B16 | 1217.71 | 1223.75 | 1230.43 | 1144.26 | 1150.18 | 1157.05 | **6.01%** |
-> | 128K / B24 | 1400.50 | 1408.32 | 1419.78 | 1276.96 | 1289.71 | 1296.77 | **8.42%** |
-> | 8K / B16 | 1031.78 | 1070.23 | 1167.88 | 914.63 | 953.20 | 1005.21 | **10.93%** |
-> | 8K / B24 | 1179.19 | 1198.65 | 1253.34 | 1094.69 | 1119.64 | 1177.53 | **6.59%** |
-> | 8K / B32 | 1302.34 | 1323.32 | 1365.85 | 1178.36 | 1208.52 | 1362.42 | **8.67%** |
+> |history / batch|sk=0 min|sk=0 mean|sk=0 max|sk=1 min|sk=1 mean|sk=1 max|收益(mean)|
+> |---|---:|---:|---:|---:|---:|---:|---:|
+> |128K / B4|927.22|1002.68|1134.20|795.89|850.18|914.52|**15.21%**|
+> |128K / B8|923.95|930.21|971.02|856.61|860.10|864.71|**7.54%**|
+> |128K / B16|1217.71|1223.75|1230.43|1144.26|1150.18|1157.05|**6.01%**|
+> |128K / B24|1400.50|1408.32|1419.78|1276.96|1289.71|1296.77|**8.42%**|
+> |8K / B16|1031.78|1070.23|1167.88|914.63|953.20|1005.21|**10.93%**|
+> |8K / B24|1179.19|1198.65|1253.34|1094.69|1119.64|1177.53|**6.59%**|
+> |8K / B32|1302.34|1323.32|1365.85|1178.36|1208.52|1362.42|**8.67%**|
 >
 > 128K 平均 9.29%、8K 平均 8.73%，按 128K:8K = 8:2 加权 **9.18%**。
 >
 > 判噪声的依据（同侧两槽的 mean 之差 vs 该档收益的绝对值，μs）：
 >
-> | history / batch | sk=0 两槽漂移 | sk=1 两槽漂移 | 收益绝对值 |
-> | --- | ---: | ---: | ---: |
-> | 128K / B4 | 45.2 | 75.3 | **152.5** |
-> | 128K / B8 | 19.1 | 3.9 | **70.1** |
-> | 128K / B16 | 15.0 | 20.4 | **73.6** |
-> | 128K / B24 | 12.6 | 3.1 | **118.6** |
-> | 8K / B16 | 40.7 | 50.7 | **117.0** |
-> | 8K / B24 | 7.7 | 75.8 | **79.0** |
-> | 8K / B32 | 1.7 | 13.7 | **114.8** |
+> |history / batch|sk=0 两槽漂移|sk=1 两槽漂移|收益绝对值|
+> |---|---:|---:|---:|
+> |128K / B4|45.2|75.3|**152.5**|
+> |128K / B8|19.1|3.9|**70.1**|
+> |128K / B16|15.0|20.4|**73.6**|
+> |128K / B24|12.6|3.1|**118.6**|
+> |8K / B16|40.7|50.7|**117.0**|
+> |8K / B24|7.7|75.8|**79.0**|
+> |8K / B32|1.7|13.7|**114.8**|
 >
 > 每一档的收益都大于该档自身的漂移，最紧的一档（8K/B24）也有 79.0 vs 75.8。
 >
@@ -11269,13 +11269,13 @@ names the two AscendC APIs that §52.4 showed burning flagIds 11 and 14.
 
 > ### 3.3 三家的对应关系
 >
-> | 概念 | CUDA PDL | CANN SuperKernel `early_start` | PyPTO 现状 |
-> | --- | --- | --- | --- |
-> | 前驱放行后继 | `cudaTriggerProgrammaticLaunchCompletion()` | `AscendC::SetNextTaskStart()` | 无 |
-> | 后继真正取数据时才阻塞 | `cudaGridDependencySynchronize()` | `AscendC::WaitPreTaskEnd()` | 无（整个 task 串行） |
-> | 开关 | `cudaLaunchAttributeProgrammaticStreamSerialization` | `early_start: 1` | 无 |
-> | 被重叠掉的东西 | kernel preamble + launch latency | 算子头部 Scalar 指令 | task 头部 Scalar + AICPU 派发 |
-> | 硬件门槛 | sm_90+ | **A2/A3** | —— |
+> |概念|CUDA PDL|CANN SuperKernel `early_start`|PyPTO 现状|
+> |---|---|---|---|
+> |前驱放行后继|`cudaTriggerProgrammaticLaunchCompletion()`|`AscendC::SetNextTaskStart()`|无|
+> |后继真正取数据时才阻塞|`cudaGridDependencySynchronize()`|`AscendC::WaitPreTaskEnd()`|无（整个 task 串行）|
+> |开关|`cudaLaunchAttributeProgrammaticStreamSerialization`|`early_start: 1`|无|
+> |被重叠掉的东西|kernel preamble + launch latency|算子头部 Scalar 指令|task 头部 Scalar + AICPU 派发|
+> |硬件门槛|sm_90+|**A2/A3**|——|
 >
 > **两家独立做到了同一件事**，这说明它不是某个后端的实现细节，而是这类
 > "多任务顺序下发到同一批核"的架构上的通用优化点。
@@ -11354,8 +11354,8 @@ names the two AscendC APIs that §52.4 showed burning flagIds 11 and 14.
   `ascend_mega_kernel` doc flags it as taken from search snippets, 「细节未全文核验」.
 - `ascend_mega_kernel`'s `docs/03` §3.3 verdict on whether AscendC can do a CUDA-style
   persistent kernel, verbatim:
-  > | 任务常驻物理核、绑核 | **社区实践存在**（绑核 + 核内循环），无独立公开 API 名称 | hiascend 论坛 MegaKernel 帖 |
-  > | CUDA 式 persistent kernel（kernel 常驻 + device 侧全局 barrier + host 仅投喂工作） | **无公开的一等公民 API/官方范式**；最接近的是 SuperKernel + SyncAll 全核同步 + UB Memory/URMA 的 device 侧 load/store/atomic（950 提供硬件原语） | 综合白皮书 §4.1.6/§4.6 与 CANN 文档，未发现官方 "persistent kernel" 条目 |
+  > |任务常驻物理核、绑核|**社区实践存在**（绑核 + 核内循环），无独立公开 API 名称|hiascend 论坛 MegaKernel 帖|
+  > |CUDA 式 persistent kernel（kernel 常驻 + device 侧全局 barrier + host 仅投喂工作）|**无公开的一等公民 API/官方范式**；最接近的是 SuperKernel + SyncAll 全核同步 + UB Memory/URMA 的 device 侧 load/store/atomic（950 提供硬件原语）|综合白皮书 §4.1.6/§4.6 与 CANN 文档，未发现官方 "persistent kernel" 条目|
   >
   > 即：**"一次启动、核内长驻循环、tile/层间无重启"在单算子粒度上是 AscendC 原生能力；"整网一个 megakernel"在昇腾上的官方路径是 SuperKernel（图级、二进制融合），而非手写常驻 kernel**。
 
@@ -11496,13 +11496,13 @@ From mindspore-ai/hyper-parallel#658, verbatim:
 >
 > 当前待补齐的能力：
 >
-> | 能力 | PyTorch | MindSpore |
-> | ------ | --------- | ----------- |
-> | 对称内存基础原语（put/get/signal/wait/put_with_signal） | ✅ | ✅ |
-> | `shmem_allgather` | ✅ | ✅ |
-> | `shmem_alltoall` | ✅ | ❌ |
-> | MC2 融合算子（AG+MatMul / MatMul+RS） | ✅ | ❌ |
-> | 内存分配（empty / Manager.malloc / MemPool） | ✅ | ✅ |
+> |能力|PyTorch|MindSpore|
+> |---|---|---|
+> |对称内存基础原语（put/get/signal/wait/put_with_signal）|✅|✅|
+> |`shmem_allgather`|✅|✅|
+> |`shmem_alltoall`|✅|❌|
+> |MC2 融合算子（AG+MatMul / MatMul+RS）|✅|❌|
+> |内存分配（empty / Manager.malloc / MemPool）|✅|✅|
 
 > ### 1.2 现状与问题
 >
@@ -11540,19 +11540,19 @@ symm.shmem_recv(tensor, src_rank, group=None)
 
 The target scenarios, verbatim — note the first one:
 
-> | 场景 | 说明 |
-> | ------ | ------ |
-> | **MoE 通算掩盖** | TP/EP group 内对称内存替代 Hccl，减少同步开销，与多核并行协同 |
-> | **FSDP/HSDP 梯度同步** | DP group 内用 `shmem_reduce_scatter` / `shmem_allreduce`，降低延迟 |
-> | **序列并行 / Context Parallel** | CP group 内用对称内存通信，与计算流水线重叠 |
-> | **张量并行 MC2** | 子 Group MC2，通算掩盖效率进一步提升 |
-> | **参数 Broadcast** | `shmem_send` / `shmem_recv` 点对点通信，无 barrier |
+> |场景|说明|
+> |---|---|
+> |**MoE 通算掩盖**|TP/EP group 内对称内存替代 Hccl，减少同步开销，与多核并行协同|
+> |**FSDP/HSDP 梯度同步**|DP group 内用 `shmem_reduce_scatter` / `shmem_allreduce`，降低延迟|
+> |**序列并行 / Context Parallel**|CP group 内用对称内存通信，与计算流水线重叠|
+> |**张量并行 MC2**|子 Group MC2，通算掩盖效率进一步提升|
+> |**参数 Broadcast**|`shmem_send` / `shmem_recv` 点对点通信，无 barrier|
 
 Design goals including the precision one:
 
-> | **低精度通信高精累加** | AllReduce / ReduceScatter 支持低精度数据传输 + 高精度本地累加 |
-> | **Hccl 混用互操作** | 同一训练任务中 Hccl 集合通信与对称内存通信可安全混用 |
-> | **DFX 可观测性** | 内存用量监控、日志分级、**signal 超时检测**、性能 Profiling 集成 |
+> |**低精度通信高精累加**|AllReduce / ReduceScatter 支持低精度数据传输 + 高精度本地累加|
+> |**Hccl 混用互操作**|同一训练任务中 Hccl 集合通信与对称内存通信可安全混用|
+> |**DFX 可观测性**|内存用量监控、日志分级、**signal 超时检测**、性能 Profiling 集成|
 
 ### 54.3 `DocsAndTests` — the three-layer bridge, and ★ `task type 105`
 
@@ -11566,11 +11566,11 @@ Design goals including the precision one:
 >
 > HP 的三层能力通过**三种不同的桥接方式**接入，**均不产生编译依赖**：
 >
-> | 层 | 能力 | 桥接方式 | 对 HP 编译依赖 |
-> | --- | ------ | --------- | :---: |
-> | 第 1 层 | 通信原语（put_mem_signal 等 5 个） | `SymmMemBridge` 双向注入（函数指针）；推荐由 HP 独立 bridge .so 暴露 C ABI | 零 |
-> | 第 2 层 | 融合算子（fused_all_gather_matmul 等） | 运行时 `from hyper_parallel import` | 零 |
-> | 第 3 层 | **Mega Kernel（moe_ffn_fwd/bwd）** | `torch::ops::hyper_parallel::*` dispatch | 零 |
+> |层|能力|桥接方式|对 HP 编译依赖|
+> |---|---|---|:---:|
+> |第 1 层|通信原语（put_mem_signal 等 5 个）|`SymmMemBridge` 双向注入（函数指针）；推荐由 HP 独立 bridge .so 暴露 C ABI|零|
+> |第 2 层|融合算子（fused_all_gather_matmul 等）|运行时 `from hyper_parallel import`|零|
+> |第 3 层|**Mega Kernel（moe_ffn_fwd/bwd）**|`torch::ops::hyper_parallel::*` dispatch|零|
 >
 > 核心设计是一个独立接口合约 `symm_mem_ops.h`，定义 `SymmMemBridge` 结构体——torch_npu 填入 `memory_ops`（分配/释放），HP 填入 `comm_ops`（通信原语函数指针），双方通过单一 `extern "C"` 入口 `hpshmem_register_ops(&bridge)` 完成握手。
 
@@ -12810,15 +12810,15 @@ pos=48: stream_id=32771, task_id=48, sqe_type=3, post_p=0
 
 ### SQE-type values therefore publicly attested
 
-| sqe_type | printed name | source |
-| --- | --- | --- |
-| 0 | `FFTS` / `(ffts)` | §59 doc dump + `sqe_type=0(ffts)` error line |
-| 1 | `aicpu` | `sqe_type=1(aicpu)` form seen in runtime logs |
-| 3 | *(no name printed — only `post_p=0`)*, and always on `stream_id=32771` (= 0x8003, a logic/model-maintenance stream), bracketing the model body at `pos=39` and `pos=48` | §59 doc dump |
-| 4 | `Event Record`, with `event_id=N, isSync=N` | §59 doc dump |
-| 5 | `Event Wait`, with `event_id=N` | §59 doc dump |
-| 7 | *(no name printed)* — the type carrying `errType=0x20(sq sw status error)` in §58 | §58 |
-| 11 | SDMA — `sqeType:11 cqeErrorCode:9 (sdma move COMPERR ERROR)` | vllm-ascend issue #15194 |
+|sqe_type|printed name|source|
+|---|---|---|
+|0|`FFTS` / `(ffts)`|§59 doc dump + `sqe_type=0(ffts)` error line|
+|1|`aicpu`|`sqe_type=1(aicpu)` form seen in runtime logs|
+|3|*(no name printed — only `post_p=0`)*, and always on `stream_id=32771` (= 0x8003, a logic/model-maintenance stream), bracketing the model body at `pos=39` and `pos=48`|§59 doc dump|
+|4|`Event Record`, with `event_id=N, isSync=N`|§59 doc dump|
+|5|`Event Wait`, with `event_id=N`|§59 doc dump|
+|7|*(no name printed)* — the type carrying `errType=0x20(sq sw status error)` in §58|§58|
+|11|SDMA — `sqeType:11 cqeErrorCode:9 (sdma move COMPERR ERROR)`|vllm-ascend issue #15194|
 
 Note the trace dump also names "notify wait" as a possible first-error `sqe_type` in prose but does not give it a number.
 
@@ -13321,15 +13321,15 @@ Date: CANN 9.0.0 (Community Edition "900"). Retrieved 2026-10-20.
 
 ### Applicability table, VERBATIM
 
-> | Product | Supported |
+> |Product|Supported|
 > |---|---|
-> | Atlas 350 Accelerator Card | √ |
-> | Atlas A3 training product / Atlas A3 inference product | **√** |
-> | Atlas A2 training product / Atlas A2 inference product | √ |
-> | Atlas 200I/500 A2 inference product | x |
-> | Atlas inference product AI Core | √ |
-> | Atlas inference product Vector Core | x |
-> | Atlas training product | x |
+> |Atlas 350 Accelerator Card|√|
+> |Atlas A3 training product / Atlas A3 inference product|**√**|
+> |Atlas A2 training product / Atlas A2 inference product|√|
+> |Atlas 200I/500 A2 inference product|x|
+> |Atlas inference product AI Core|√|
+> |Atlas inference product Vector Core|x|
+> |Atlas training product|x|
 
 ### Restrictions on kernel types, VERBATIM
 
@@ -15218,15 +15218,15 @@ const std::vector<std::string> StarsEngine::StarsCqeErrorDesc_ = {
 
 Index = count-trailing-zeros of `errType`. So the complete decode is:
 
-| errType | bit | enum | printed string |
-| --- | --- | --- | --- |
-| 0x01 | 0 | `RT_STARS_CQE_ERR_TYPE_EXCEPTION` | `task exception` |
-| 0x02 | 1 | `RT_STARS_CQE_ERR_TYPE_TRAP` | `task trap` |
-| 0x04 | 2 | `RT_STARS_CQE_ERR_TYPE_TASK_TIMEOUT` | `task timeout` |
-| 0x08 | 3 | `RT_STARS_CQE_ERR_TYPE_SQE_ERROR` | `sqe error` |
-| 0x10 | 4 | `RT_STARS_CQE_ERR_TYPE_RES_CONFLICT` | `resource conflict error` |
-| **0x20** | **5** | **`RT_STARS_CQE_ERR_TYPE_SW_STATUS`** | **`sq sw status error`** |
-| 0x40 | 6 | — | `warning` |
+|errType|bit|enum|printed string|
+|---|---|---|---|
+|0x01|0|`RT_STARS_CQE_ERR_TYPE_EXCEPTION`|`task exception`|
+|0x02|1|`RT_STARS_CQE_ERR_TYPE_TRAP`|`task trap`|
+|0x04|2|`RT_STARS_CQE_ERR_TYPE_TASK_TIMEOUT`|`task timeout`|
+|0x08|3|`RT_STARS_CQE_ERR_TYPE_SQE_ERROR`|`sqe error`|
+|0x10|4|`RT_STARS_CQE_ERR_TYPE_RES_CONFLICT`|`resource conflict error`|
+|**0x20**|**5**|**`RT_STARS_CQE_ERR_TYPE_SW_STATUS`**|**`sq sw status error`**|
+|0x40|6|—|`warning`|
 
 ### (d) The exact emission site of our error message
 
@@ -15659,12 +15659,12 @@ And `tsTaskType_t`, whose value 3 is reported in the wild as `EVENT_WAIT` (from 
 
 ### The collision table for the value 3
 
-| field | value 3 means |
-| --- | --- |
-| `sqe_type` (`rtDavidStarsSqeType`) | `RT_DAVID_SQE_TYPE_PLACE_HOLDER` |
-| `task_type` (`tsTaskType_t`) | reported as `EVENT_WAIT` |
-| `CodeMode` (asc-devkit host stub) | `NORMAL` |
-| `KernelMetaType` ordinal | `KERNEL_TYPE_MIX_AIC_1_0` |
+|field|value 3 means|
+|---|---|
+|`sqe_type` (`rtDavidStarsSqeType`)|`RT_DAVID_SQE_TYPE_PLACE_HOLDER`|
+|`task_type` (`tsTaskType_t`)|reported as `EVENT_WAIT`|
+|`CodeMode` (asc-devkit host stub)|`NORMAL`|
+|`KernelMetaType` ordinal|`KERNEL_TYPE_MIX_AIC_1_0`|
 
 ## Relevance
 ★★ Guard rail for reading our own measurement. `sqe_type=3, errType=0x20` is unambiguous ONLY because the string `sqe_type=` pins the field to `rtDavidStarsSqeType` (printed by `StarsEngine::ProcLogicCqReport`), so it is `PLACE_HOLDER`. If the log we actually captured says `task_type=3` rather than `sqe_type=3` it is `EVENT_WAIT` and the whole reading changes; and `KernelMetaType` ordinal 3 happens to be `KERNEL_TYPE_MIX_AIC_1_0`, which makes a tempting but WRONG coincidence. Verify the exact field name in the plog line before acting.
