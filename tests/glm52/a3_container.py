@@ -41,6 +41,7 @@ from tests.glm52.e2e_tp8_ep8.hygiene_gate import (
 
 DEFAULT_IMAGE = "0d182d9cae98"
 DEFAULT_PRESTAGE_ROOT = "/dev/shm/tilert_prestage"
+SHARED_RO_PRESTAGE_ROOT = "/dev/shm/glm52_shared_ro"
 DEFAULT_IFNAME = "enp23s0f3"
 SFS_MODEL_DIR = "/mnt/sfs_turbo_new/shanshan/GLM-5.2-w4a8c8"
 SFS_CKPT_PATH = (
@@ -404,6 +405,8 @@ def build_container_env_script(
         "/opt/ascend/cann-9.2.0/toolkit/tools/tikicpulib/lib/cmake:"
         "/opt/ascend/cann-9.2.0/lib64/cmake"
     )
+    host_vis = iso_env["ASCEND_RT_VISIBLE_DEVICES"]
+    logical_vis = ",".join(str(idx) for idx in range(len(host_vis.split(","))))
     exports: list[tuple[str, str]] = [
         ("TRANSFORMERS_OFFLINE", "1"),
         ("HF_HUB_OFFLINE", "1"),
@@ -422,7 +425,8 @@ def build_container_env_script(
         ("TILERT_WHOLE_LAYER_ENDPOINT", iso_env["TILERT_WHOLE_LAYER_ENDPOINT"]),
         ("TILERT_ONESIDED_ENDPOINT", iso_env["TILERT_ONESIDED_ENDPOINT"]),
         ("HCCL_NPU_SOCKET_PORT_RANGE", iso_env["HCCL_NPU_SOCKET_PORT_RANGE"]),
-        ("ASCEND_RT_VISIBLE_DEVICES", iso_env["ASCEND_RT_VISIBLE_DEVICES"]),
+        ("ASCEND_RT_VISIBLE_DEVICES", logical_vis),
+        ("TILERT_HOST_VISIBLE_DEVICES", host_vis),
         ("ATB_OPSRUNNER_KERNEL_CACHE_LOCAL_COUNT", "1"),
         ("ATB_OPSRUNNER_KERNEL_CACHE_GLOABL_COUNT", "5"),
         ("ATB_STREAM_SYNC_EVERY_RUNNER_ENABLE", "0"),
@@ -463,6 +467,15 @@ def build_container_env_script(
         exports.append(("TILERT_TARGET_HOST", iso_env["TILERT_TARGET_HOST"]))
     lines = ["unset PROFILER_SAMPLECONFIG PROFILING_MODE ASCEND_LAUNCH_BLOCKING"]
     lines.extend(f"export {k}={shlex.quote(v)}" for k, v in exports)
+    lines.extend(
+        [
+            'if [ -f "${TILERT_BUILD_DIR}/shmem/tilert_shmem_bf16.so" ] '
+            '&& [ -f "${TILERT_BUILD_DIR}/shmem/libtp_push_kernel.so" ]; then',
+            '  export TILERT_SHMEM_LIB_DIR="${TILERT_BUILD_DIR}/shmem"',
+            '  export LD_LIBRARY_PATH="${TILERT_SHMEM_LIB_DIR}:${LD_LIBRARY_PATH}"',
+            "fi",
+        ]
+    )
     return "\n".join(lines) + "\n"
 
 
@@ -861,29 +874,59 @@ def prestage_host(
 def _detect_remote_prestage_mounts(
     host: str,
     prestage_root: str = DEFAULT_PRESTAGE_ROOT,
+    shared_ro_root: str = SHARED_RO_PRESTAGE_ROOT,
 ) -> tuple[str | None, list[tuple[str, str]]]:
-    model_dst = f"{prestage_root.rstrip('/')}/{PRESTAGE_SPECS['model-raw'][1]}"
-    model_marker = f"{model_dst}.prestage_complete.json"
-    has_model = (
-        remote_ssh(
-            host,
-            f"test -d {shlex.quote(model_dst)} && test -f {shlex.quote(model_marker)}",
-            check=False,
-        ).returncode
-        == 0
+    p_root = prestage_root.rstrip("/")
+    s_root = shared_ro_root.rstrip("/")
+    py_probe = (
+        "import json, pathlib; "
+        "ok_m = lambda p: ("
+        "pathlib.Path(p).is_file() "
+        "and isinstance((d := json.loads(pathlib.Path(p).read_text())), dict) "
+        "and d.get('status') not in ('failed', 'error')"
+        "); "
+        f"pr, sr = pathlib.Path({p_root!r}), pathlib.Path({s_root!r}); "
+        "out = {'model': None, 'mounts': []}; "
+        "m_p, m_s = pr / 'GLM-5.2-w4a8c8', sr / 'GLM-5.2-w4a8c8'; "
+        "out['model'] = str(m_p) if (m_p.is_dir() and ok_m(str(m_p) + '.prestage_complete.json')) "
+        "else (str(m_s) if (m_s.is_dir() and ok_m(str(m_s) + '.prestage_complete.json')) "
+        "else None); "
+        "cands = ["
+        "(pr / 'cal_l78_v3_hybrid_best.pt', "
+        "str(pr / 'cal_l78_v3_hybrid_best.pt') + '.prestage_complete.json', "
+        "sr / 'dspine-glm52/checkpoints/cal_l78_v3_hybrid_best.pt', "
+        "str(sr / 'dspine-glm52.prestage_complete.json'), "
+        "'/prestage/cal_l78_v3_hybrid_best.pt'), "
+        "(pr / 'case-01-coding', "
+        "str(pr / 'case-01-coding') + '.prestage_complete.json', "
+        "sr / 'cases-8k1k/case-01-coding', "
+        "str(sr / 'cases-8k1k.prestage_complete.json'), "
+        "'/prestage/case-01-coding'), "
+        "(pr / 'mtp-prefix-rank-0.pt', "
+        "str(pr / 'mtp-prefix-rank-0.pt') + '.prestage_complete.json', "
+        "sr / 'dspine-glm52/runtime_bundle_v5/agy_tp8/mtp-prefix-rank-0.pt', "
+        "str(sr / 'dspine-glm52.prestage_complete.json'), "
+        "'/prestage/mtp-prefix-rank-0.pt'), "
+        "(sr / 'cases-8k1k', str(sr / 'cases-8k1k.prestage_complete.json'), "
+        "sr / 'cases-8k1k', str(sr / 'cases-8k1k.prestage_complete.json'), "
+        "'/prestage/cases-8k1k')"
+        "]; "
+        "out['mounts'] = ["
+        "[str(a), dst] if (a.exists() and ok_m(am)) else [str(b), dst] "
+        "for a, am, b, bm, dst in cands "
+        "if (a.exists() and ok_m(am)) or (b.exists() and ok_m(bm))"
+        "]; "
+        "print(json.dumps(out))"
     )
-    model_override = model_dst if has_model else None
-    extra_mounts: list[tuple[str, str]] = []
-    for item in ("ckpt", "case01", "mtp-prefix"):
-        dst = f"{prestage_root.rstrip('/')}/{PRESTAGE_SPECS[item][1]}"
-        marker = f"{dst}.prestage_complete.json"
-        chk = remote_ssh(
-            host,
-            f"test -e {shlex.quote(dst)} && test -f {shlex.quote(marker)}",
-            check=False,
-        )
-        if chk.returncode == 0:
-            extra_mounts.append((dst, f"/prestage/{PRESTAGE_SPECS[item][1]}"))
+    res = remote_ssh(host, f"python3 -c {shlex.quote(py_probe)}", check=False)
+    if res.returncode != 0:
+        return None, []
+    try:
+        parsed = json.loads(res.stdout.decode("utf-8", errors="replace").strip())
+    except json.JSONDecodeError:
+        return None, []
+    model_override = parsed.get("model")
+    extra_mounts = [(str(src), str(dst)) for src, dst in parsed.get("mounts", ())]
     return model_override, extra_mounts
 
 
@@ -1002,7 +1045,94 @@ def up_container(
         "port_base": int(iso_env["MASTER_PORT"]),
         "shm_dir": shm_dir,
         "prestage_model": model_override,
+        "prestage_ckpt": any(dst == PRESTAGE_CKPT_PATH for _, dst in extra_ro),
+        "prestage_mounts": [dst for _, dst in extra_ro],
     }
+
+
+def build_shmem_libs_script(
+    out_dir: str | None = None,
+    src_dir: str = "/work/source/tests/glm52/shmem",
+) -> str:
+    target = '"${TILERT_BUILD_DIR}/shmem"' if out_dir is None else shlex.quote(out_dir)
+    q_src = shlex.quote(src_dir)
+    lines = [
+        "set -euo pipefail",
+        f"OUT={target}",
+        f"SRC={q_src}",
+        'CANN="${ASCEND_HOME_PATH:-/opt/ascend/cann-9.2.0}"',
+        'mkdir -p "$OUT"',
+        (
+            'DIGEST=$(python3 -c "import hashlib, pathlib; '
+            "s = pathlib.Path('$SRC'); h = hashlib.sha256(); "
+            "[h.update((s / n).read_bytes()) for n in "
+            "('tp_push_kernel.cpp', 'tp_push_kernel.h', 'tilert_shmem_bf16.cpp') "
+            'if (s / n).is_file()]; print(h.hexdigest())")'
+        ),
+        'MAN="$OUT/shmem.manifest.json"',
+        'for base_so in libshmem.so libshmem_utils.so aclshmem_torch.so '
+        'libkv_shuffle_kernel.so liballgather_kernel.so; do',
+        '  if [ ! -e "$OUT/$base_so" ]; then',
+        '    if [ -e "/assets/shmem-capacity/$base_so" ]; then',
+        '      ln -sfn "/assets/shmem-capacity/$base_so" "$OUT/$base_so"',
+        '    elif [ -e "/assets/shmem-lib/lib/$base_so" ]; then',
+        '      ln -sfn "/assets/shmem-lib/lib/$base_so" "$OUT/$base_so"',
+        "    fi",
+        "  fi",
+        "done",
+        'CUR=$(python3 -c "import json, pathlib; p = pathlib.Path(\'$MAN\'); '
+        'print(json.loads(p.read_text()).get(\'source_sha256\', \'\') if p.is_file() else \'\')" '
+        "|| true)",
+        'if [ "$CUR" = "$DIGEST" ] && [ -f "$OUT/libtp_push_kernel.so" ] '
+        '&& [ -f "$OUT/tilert_shmem_bf16.so" ]; then',
+        '  echo "SHMEM_BUILD_CACHED $OUT $DIGEST"',
+        "else",
+        (
+            '  SITE=$(python3 -c "import importlib.util, pathlib; '
+            'print(pathlib.Path(importlib.util.find_spec(\'torch\').origin).resolve().parents[1])")'
+        ),
+        (
+            '  bisheng -xcce --npu-arch=dav-2201 -std=c++17 -O2 -w -fPIC '
+            '-Daclshmemx_sync_vec_all=aclshmemx_barrier_all_vec '
+            '-I"$SRC" -I/assets/shmem-lib/include -I/assets/shmem-lib/src/device '
+            '-I/assets/shmem-lib/src/host_device -I"$CANN/include" '
+            '-I"$CANN/aarch64-linux/asc/include" -I"$CANN/aarch64-linux/tikcpp/tikcfw" '
+            '-I"$CANN/aarch64-linux/tikcpp/tikcfw/impl" '
+            '-I"$CANN/aarch64-linux/tikcpp/tikcfw/interface" '
+            '-I"$CANN/aarch64-linux/tikcpp/tikcfw/lib" '
+            '-c "$SRC/tp_push_kernel.cpp" -o "$OUT/tp_push_kernel.o"'
+        ),
+        (
+            '  bisheng --cce-fatobj-link -shared "$OUT/tp_push_kernel.o" '
+            '-o "$OUT/libtp_push_kernel.so.tmp" '
+            '-L/assets/shmem-lib/lib -lshmem -lshmem_utils '
+            '-L"$CANN/aarch64-linux/lib64" -L"$CANN/lib64" '
+            '-lascendcl -lruntime -lunified_dlog -lc_sec -lregister -lprofapi -lplatform'
+        ),
+        '  mv -f "$OUT/libtp_push_kernel.so.tmp" "$OUT/libtp_push_kernel.so"',
+        (
+            '  c++ -std=c++17 -O2 -fPIC -shared -D_GLIBCXX_USE_CXX11_ABI=1 '
+            '-I"$SITE/torch/include" -I"$SITE/torch/include/torch/csrc/api/include" '
+            '-I"$SITE/torch_npu/include" -I"$CANN/include" '
+            '"$SRC/tilert_shmem_bf16.cpp" -o "$OUT/tilert_shmem_bf16.so.tmp" '
+            '-L"$OUT" -ltp_push_kernel -L/assets/shmem-lib/lib -lshmem '
+            '-L"$CANN/aarch64-linux/lib64" -lruntime '
+            '-L"$SITE/torch/lib" -L"$SITE/torch_npu/lib" -ltorch -ltorch_cpu -lc10 -ltorch_npu'
+        ),
+        '  mv -f "$OUT/tilert_shmem_bf16.so.tmp" "$OUT/tilert_shmem_bf16.so"',
+        '  printf \'{"source_sha256":"%s"}\\n\' "$DIGEST" > "$MAN"',
+        '  echo "SHMEM_BUILD_OK $OUT $DIGEST"',
+        "fi",
+    ]
+    return "\n".join(lines)
+
+
+def build_shmem_in_container(
+    host: str,
+    run_id: str,
+    out_dir: str | None = None,
+) -> int:
+    return exec_in_container(host, run_id, build_shmem_libs_script(out_dir=out_dir), stream=True)
 
 
 def exec_in_container(
@@ -1091,6 +1221,7 @@ def dspine_unit_digest(repo_root: Path = REPO_ROOT) -> str:
             if cand.is_file() and "__pycache__" not in cand.parts and cand.suffix != ".pyc":
                 files.append(cand)
     for rel in (
+        "tilert/models/glm_5_2_ascend/weights.py",
         "tilert/models/glm_5_2_ascend/mla_tail.py",
         "tilert/models/glm_5_2_ascend/routed_shared.py",
         "tests/glm52/test_dspine_unit.py",
@@ -1358,6 +1489,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_dspine.add_argument("--force", action="store_true")
     p_dspine.add_argument("--stamp-path", default=None)
 
+    p_shmem = sub.add_parser("build-shmem")
+    p_shmem.add_argument("--host", required=True)
+    p_shmem.add_argument("--run-id", required=True)
+    p_shmem.add_argument("--out-dir", default=None)
+
     p_run = sub.add_parser("run")
     p_run.add_argument("--host", default=None)
     p_run.add_argument("--run-id", default=None)
@@ -1456,6 +1592,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         print(json.dumps(out, indent=2))
         return int(out["returncode"])
+    if args.subcmd == "build-shmem":
+        return build_shmem_in_container(
+            args.host,
+            args.run_id,
+            out_dir=args.out_dir,
+        )
     if args.subcmd == "run":
         out = run_ephemeral(
             host=args.host,

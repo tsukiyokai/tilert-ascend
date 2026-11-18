@@ -1430,58 +1430,11 @@ def test_t2_m21_fast_parity_rejected_by_formal_gate_and_protocol_helper(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     import importlib
-    from types import ModuleType, SimpleNamespace
     from .cli import main as cli_main
 
     monkeypatch.syspath_prepend(str(repo_root))
-    if "torch" not in sys.modules:
-        fake_torch = ModuleType("torch")
-        fake_torch.__file__ = "/opt/fake/torch/__init__.py"
-        fake_torch.Tensor = object
-        fake_torch.bfloat16 = "bf16"
-        fake_torch.float16 = "f16"
-        fake_torch.float32 = "f32"
-        fake_torch.int8 = "i8"
-        fake_torch.int32 = "i32"
-        fake_torch.int64 = "i64"
-        fake_torch.uint8 = "u8"
-        fake_torch.nn = SimpleNamespace(Module=object)
-        monkeypatch.setitem(sys.modules, "torch", fake_torch)
-    if "vllm" not in sys.modules:
-        fake_vllm = ModuleType("vllm")
-        fake_vllm_dist = ModuleType("vllm.distributed")
-        fake_vllm_dist.get_world_group = lambda: None
-        fake_vllm.distributed = fake_vllm_dist
-        monkeypatch.setitem(sys.modules, "vllm", fake_vllm)
-        monkeypatch.setitem(sys.modules, "vllm.distributed", fake_vllm_dist)
-    if "tilert.pd_vllm.ascend_cache" not in sys.modules:
-        fake_pd = ModuleType("tilert.pd_vllm")
-        fake_pd.__path__ = []
-        fake_ac = ModuleType("tilert.pd_vllm.ascend_cache")
-        fake_ac.FullRankPrefix = object
-        fake_al = ModuleType("tilert.pd_vllm.ascend_layout")
-        fake_al.FULL_INDEX_LAYERS = 0
-        fake_al.INT8_INDEX_LAYERS = 0
-        fake_al.PAGE_SIZE = 128
-        fake_al.cache_layout = lambda *_a, **_kw: None
-        fake_cap = ModuleType("tilert.pd_vllm.capabilities")
-        fake_cap.CapabilityUnavailable = Exception
-        fake_cap.InvalidParameter = ValueError
-        fake_cap.engine_capabilities = lambda *_a, **_kw: {}
-        fake_cap.validate_generation_request = lambda *_a, **_kw: None
-        fake_gs = ModuleType("tilert.pd_vllm.grammar_spec")
-        fake_gs.GrammarUnsupported = Exception
-        fake_pd.ascend_cache = fake_ac
-        fake_pd.ascend_layout = fake_al
-        fake_pd.capabilities = fake_cap
-        fake_pd.grammar_spec = fake_gs
-        monkeypatch.setitem(sys.modules, "tilert.pd_vllm", fake_pd)
-        monkeypatch.setitem(sys.modules, "tilert.pd_vllm.ascend_cache", fake_ac)
-        monkeypatch.setitem(sys.modules, "tilert.pd_vllm.ascend_layout", fake_al)
-        monkeypatch.setitem(sys.modules, "tilert.pd_vllm.capabilities", fake_cap)
-        monkeypatch.setitem(sys.modules, "tilert.pd_vllm.grammar_spec", fake_gs)
-
-    runner_mod = importlib.import_module("tests.glm52.run_m1_case01")
+    runner_mod = importlib.import_module("tests.glm52.run_m2_case01")
+    assert runner_mod.loaded_modules_has_vllm() is False
     assert runner_mod.resolve_trial_protocol(None, None, True, False) == (0, 1, True)
     assert runner_mod.resolve_trial_protocol(None, None, False, False) == (2, 5, False)
     assert runner_mod.resolve_trial_protocol(1, 2, True, False) == (1, 2, True)
@@ -1621,6 +1574,7 @@ def test_t2_m21_a3_container_isolation_fleet_prestage_and_hygiene(
         [
             repo_root / "tests/glm52/a3_container.py",
             repo_root / "tests/glm52/run_m1_case01.py",
+            repo_root / "tests/glm52/run_m2_case01.py",
             Path(__file__),
         ],
         max_line_length=100,

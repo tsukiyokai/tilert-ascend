@@ -15,7 +15,7 @@ MAIN_SOURCES = tuple(MODEL + name for name in (
     "config.py", "weights.py", "ops/indexer.py",
 ))
 REFERENCE_SOURCES = tuple(MODEL + name for name in (
-    "reference.py", "reference_weights.py", "ops/indexer.py",
+    "reference.py", "ops/indexer.py",
 ))
 HF_SOURCES = REFERENCE_SOURCES + (
     "tests/glm52/run_hf_reference.py", "tests/glm52/run_native_decode.py",
@@ -104,7 +104,7 @@ def validate_precision(
         return report
 
     math_sources = MAIN_SOURCES + (
-        (MODEL + "routed_shared.py",) if expert_backend == "bank" else ()
+        (MODEL + "weights.py",) if expert_backend == "bank" else ()
     )
     for rank in range(16):
         main = load("main", rank, {"pass"} if rank == 0
@@ -159,7 +159,7 @@ def validate_precision(
                 "Native and HF precision consume different teacher tokens")
         if mtp_width == 1:
             continue
-        mtp_sources = math_sources + (MODEL + "cann_mtp.py",)
+        mtp_sources = math_sources + (MODEL + "end2end.py",)
         for stage, parent, position, width, external in (
             ("mtp_seed", "target_final_norm", 8191, 1, False),
             ("mtp_chain", "mtp_recycle_norm", 8192, 1, True),
@@ -191,7 +191,7 @@ def validate_precision(
                     and oracle.get("position_convention") == "parent",
                     f"MTP precision lacks its numerical HF oracle: {stage}")
             check_sources(oracle, REFERENCE_SOURCES + (
-                MODEL + "mtp_reference.py", "tests/glm52/run_mtp_reference.py",
+                "tests/glm52/run_mtp_reference.py",
                 "tests/glm52/prefix_io.py",
             ))
             tensor = directory / stage / f"rank-{rank}.pt"
@@ -200,8 +200,7 @@ def validate_precision(
             if stage == "mtp_seed":
                 prefix_hashes[str(rank)]["mtp"] = report.get("prefix_sha256")
         control = tuple(MODEL + name for name in (
-            "mtp_round.py", "mtp_state.py", "mtp_session.py", "session.py",
-            "tp_runtime.py",
+            "spec.py", "abi.py", "end2end.py",
         )) + ("tilert/pd_vllm/ascend_cache.py",
               "tilert/pd_vllm/ascend_server.py")
         session = load("session", rank, {"capture_replay"},

@@ -9,11 +9,9 @@ from pathlib import Path
 import re
 import shutil
 import signal
-import statistics
 import subprocess
 import sys
 import time
-import types
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -40,6 +38,13 @@ CORE_BOOT_FILES: tuple[str, ...] = (
     "attention_native.py",
     "routed_shared.py",
     "tp_runtime.py",
+)
+M2_BOOT_FILES: tuple[str, ...] = (
+    "end2end.py",
+    "abi.py",
+    "weights.py",
+    "config.py",
+    "spec.py",
 )
 DSPINE_HOT_FILES: tuple[str, ...] = (
     "__init__.py",
@@ -113,15 +118,8 @@ def compute_boot_fingerprint(
     wl_path = Path(whole_layer_base)
     if wl_path.is_file():
         h.update(wl_path.read_bytes())
-    manifest_p = Path(build_dir) / "chain.manifest.json"
-    if manifest_p.is_file():
-        try:
-            manifest = json.loads(manifest_p.read_text(encoding="utf-8"))
-            h.update(json.dumps(manifest.get("flags", []), sort_keys=True).encode("utf-8"))
-        except (OSError, json.JSONDecodeError):
-            h.update(b"bad_manifest")
     model_pkg = Path(repo_root) / "tilert/models/glm_5_2_ascend"
-    for name in CORE_BOOT_FILES:
+    for name in (*CORE_BOOT_FILES, *M2_BOOT_FILES):
         fp = model_pkg / name
         h.update(name.encode("utf-8"))
         h.update(_file_sha256(fp).encode("utf-8"))
@@ -334,25 +332,19 @@ def _manifest_has_kernel_prof(build_dir: Path | None) -> bool:
 
 
 def _run_worker(args: argparse.Namespace) -> int:
+    from datetime import timedelta
     import torch
-    from vllm.distributed import get_world_group
-    from cache_digest import cache_digest
-    from run_m1_case01 import (
-        GOLDEN_SHA256,
-        _apply_l78_chunked_gemm,
-        _prepare_whole_layer_json,
-        _serial_draft_digest,
-        resolve_trial_protocol,
+    from run_m2_case01 import _prepare_build_artifacts, resolve_trial_protocol
+    from tilert.models.glm_5_2_ascend.abi import (
+        PreparedChain,
+        SHMEM_HEAP_BYTES,
+        TreeLibrary,
+        Window,
     )
-    from tilert.models.glm_5_2_ascend.cann_model import CannModel
-    from tilert.models.glm_5_2_ascend.cann_mtp import CannMtp
+    from tilert.models.glm_5_2_ascend.config import RuntimeConfig
     import tilert.models.glm_5_2_ascend.dspine.calibrated_l78 as cal_mod
     import tilert.models.glm_5_2_ascend.dspine.tp_drafter as tp_mod
-    from tilert.models.glm_5_2_ascend.ops.build_megakernel import build_chain, default_build_dir
-    from tilert.models.glm_5_2_ascend.tp_runtime import TorchControlChannel
-    import tilert.models.glm_5_2_ascend.whole_layer as wl
-    from tilert.models.glm_5_2_ascend.whole_layer_abi import TreeLibrary
-    from tilert.pd_vllm.ascend_cache import FullRankPrefix
+    from tilert.models.glm_5_2_ascend.end2end import Glm52AscendShowHands, MAIN_LAYERS, WIDTHS
 
     rank = int(os.environ["RANK"])
     world_size = int(os.environ["WORLD_SIZE"])
@@ -366,14 +358,8 @@ def _run_worker(args: argparse.Namespace) -> int:
     ack_dir.mkdir(parents=True, exist_ok=True)
     torch.npu.set_device(rank)
     torch.npu.config.allow_internal_format = True
-
-    orig_install = CannModel._install_tp_sum
-
-    def synced_install(self_m):
-        torch.distributed.barrier(get_world_group().cpu_group)
-        return orig_install(self_m)
-
-    CannModel._install_tp_sum = synced_install
+    torch.distributed.init_process_group(backend="gloo", timeout=timedelta(hours=24))
+    tp_group = torch.distributed.group.WORLD
 
     raw_build_dir = Path(args.build_dir) if args.build_dir else None
     enable_kernel_prof = (
@@ -381,92 +367,47 @@ def _run_worker(args: argparse.Namespace) -> int:
         or _manifest_has_kernel_prof(raw_build_dir)
     )
     args.enable_kernel_prof = enable_kernel_prof
-    wl_json, ops_dir, l78_dir, _ = _prepare_whole_layer_json(args, rank)
-    build_dir = wl_json.parent
+    if not hasattr(args, "whole_layer_json"):
+        args.whole_layer_json = None
+    build_dir, wl_json, ops_dir, l78_dir = _prepare_build_artifacts(args, rank)
     args.build_dir = str(build_dir)
-    target = CannModel(
-        Path(args.model_dir),
-        f"npu:{rank}",
-        rank,
-        capacity=9344,
-        gpu_memory_utilization=0.80,
-        compile_target=False,
-        super_kernel=False,
-        attention_kernel="sfa",
-        fp32_head=True,
-        index_topk=None,
-        expert_parallel=True,
-        onesided_reduce=os.environ.get("TILERT_ONESIDED_ENDPOINT", "tcp://127.0.0.1:29797"),
-        routed_kernel=False,
-        routed_shared_kernel=False,
-        mla_tail=False,
-        native_attention=True,
-        whole_layer=wl_json,
-        aiv_collectives=True,
-        rope_graph=True,
-        gather_fia_max_width=None,
-        mtp_tokens=0,
-        layers=None,
-        plain_moe_combine=False,
-        graph_width=32,
-        hoist_metadata=True,
-        hoist_forward_context=True,
-        packed_host_inputs=True,
-    )
-    channel = TorchControlChannel(get_world_group().cpu_group)
-    ops_so, _ = tp_mod.load_dspine_ops(rank, out_dir=ops_dir)
-    if rank == 0:
-        cal_mod.build_draft_l78_k110419(out_dir=l78_dir, k_sfa=args.k_sfa)
-    torch.distributed.barrier(group=channel.group)
 
     case_dir = Path(args.case_dir)
-    pf_blob = torch.load(case_dir / "main-prefix/rank-0.pt", map_location="cpu", weights_only=False)
-    mtp_blob = torch.load(args.mtp_prefix, map_location="cpu", weights_only=False)
-    bench_meta = json.loads((case_dir / "bench_result.json").read_text())
-    ref_state = json.loads((case_dir / "reference-state" / f"rank-{rank}.json").read_text())
-    prompt = list(pf_blob["prompt_token_ids"])
-    first_tok = int(pf_blob["first_token_id"])
-    parent = pf_blob["parent_hidden"].to(target.device)
-    prefix = FullRankPrefix(pf_blob["layers"], mtp_blob, parent, 8192, tuple(prompt))
-
-    with torch.inference_mode():
-        torch.ops.tilert.set_active_tokens_ptr(target._dyn_lens_dev[32], False, False)
-    draft = CannMtp(target, shard_projections=True)
-    draft._dynamic_mc2_mask = False
-    draft._dynamic_sfa_len = False
-    draft._dynamic_idx_max = 0
-    _apply_l78_chunked_gemm(draft)
-    wl.reclaim_hbm(target=target, draft=draft, mgr=target._whole_layer)
-
-    dev = target.device
-    raw_mask = torch.zeros(192, dtype=torch.uint8, device=dev)
-    mask_off = (-int(raw_mask.data_ptr())) % 64
-    tree_mask_i32 = raw_mask[mask_off : mask_off + 128].view(torch.int32)
-    tree_mask_i32.zero_()
-    torch.npu.synchronize()
-
-    case_b = {
-        "slug": "case-01-coding",
-        "prefix": prefix,
-        "mtp": mtp_blob,
-        "first": first_tok,
-        "prompt": prompt,
-        "golden": bench_meta["output_token_ids"],
-        "ref_sha": GOLDEN_SHA256,
-        "ref_state": ref_state,
-        "digest_fn": cache_digest,
+    main_pf = case_dir / "main-prefix/rank-0.pt"
+    cfg = RuntimeConfig(
+        model_dir=Path(args.model_dir),
+        cal_l78_path=Path(args.ckpt),
+        whole_layer_json=wl_json,
+        rank=rank,
+        world_size=world_size,
+        device=f"npu:{rank}",
+    )
+    runner = Glm52AscendShowHands(
+        cfg,
+        case_dir,
+        Path(args.mtp_prefix),
+        build_dir,
+        k_sfa=int(args.k_sfa),
+        width=16,
+        main_prefix_path=main_pf,
+        rank=rank,
+        tp_group=tp_group,
+    )
+    runner.load()
+    dev = runner.device
+    tree_reload_idx = 0
+    default_b_scheds = [
+        [4, 4, 4, 4, 4, 2, 2],
+        [4, 4, 4, 4, 2, 2, 2, 2, 1, 1],
+        [4, 4, 4, 4, 2, 2, 2, 2, 1, 1, 1],
+    ]
+    cur_cfg = {
+        "b_scheds": default_b_scheds,
+        "min_w_act": 10,
+        "t_base_ms": 41.5,
+        "c_w_ms": 0.68,
+        "narrow_topk": False,
     }
-    shared_tgt = tp_mod.capture_shared_target_for_width(
-        target, draft, 16, prefix.main, mtp_blob, case_b["golden"], tree_mask_i32, channel.group
-    )
-    cal_wt = cal_mod.TpCalibratedL78Weights.from_file(
-        args.ckpt, rank=rank, dev=dev, ops_so_path=ops_so
-    )
-    hctrl = cal_mod.ZeroLagHorizonController()
-    mgr = target._whole_layer
-    mgr.set_tree_mask_ptr(0)
-    tree_mask_i32.zero_()
-    torch.npu.synchronize()
 
     boot_sha = compute_boot_fingerprint(
         Path(args.whole_layer_base), args.model_dir, build_dir, REPO_ROOT
@@ -531,14 +472,20 @@ def _run_worker(args: argparse.Namespace) -> int:
             else:
                 while ack_f.exists():
                     time.sleep(0.02)
-            target.shutdown()
-            gc.collect()
-            torch.npu.empty_cache()
+            runner.close()
             return 0
 
         req_args = cmd.get("args", {})
-        req_k_sfa = int(req_args.get("k_sfa", state["k_sfa"]))
-        req_ckpt = str(req_args.get("ckpt", state["ckpt"]))
+        req_k_sfa = int(req_args.get("k_sfa") or state["k_sfa"])
+        req_ckpt = str(req_args.get("ckpt") or state["ckpt"])
+        req_union = bool(req_args.get("union_sfa", args.union_sfa))
+        req_cfg = {
+            "b_scheds": req_args.get("b_scheds", cur_cfg["b_scheds"]),
+            "min_w_act": int(req_args.get("min_w_act", cur_cfg["min_w_act"])),
+            "t_base_ms": float(req_args.get("t_base_ms", cur_cfg["t_base_ms"])),
+            "c_w_ms": float(req_args.get("c_w_ms", cur_cfg["c_w_ms"])),
+            "narrow_topk": bool(req_args.get("narrow_topk", cur_cfg["narrow_topk"])),
+        }
         default_run_dir = Path(os.environ.get("TILERT_RUN_DIR", str(job_dir.parent)))
         req_out = str(req_args.get("out_json", str(default_run_dir / f"warm_epoch_{epoch}.json")))
         warmups, formals, serial_parity = resolve_trial_protocol(
@@ -548,7 +495,6 @@ def _run_worker(args: argparse.Namespace) -> int:
             bool(req_args.get("serial_draft_parity", True)),
         )
         rank_payload: dict[str, Any] = {"epoch": epoch, "rank": rank, "status": "OK"}
-        runner = None
         try:
             cur_boot = compute_boot_fingerprint(
                 Path(args.whole_layer_base), args.model_dir, build_dir, REPO_ROOT
@@ -559,165 +505,191 @@ def _run_worker(args: argparse.Namespace) -> int:
                 rank_payload["reload_tier"] = "reboot"
             else:
                 if rank == 0:
-                    build_chain(
+                    import tilert.models.glm_5_2_ascend.ops.build_megakernel as bm_mod
+
+                    bm_mod = importlib.reload(bm_mod)
+                    bm_mod.build_chain(
                         out_dir=build_dir,
-                        union_sfa=bool(args.union_sfa),
+                        union_sfa=req_union,
                         enable_kernel_prof=enable_kernel_prof,
                     )
                     cal_mod.build_draft_l78_k110419(out_dir=l78_dir, k_sfa=req_k_sfa)
-                torch.distributed.barrier(group=channel.group)
-                cur_hot = compute_hot_fingerprints(build_dir, Path(req_ckpt), REPO_ROOT, req_k_sfa)
+                torch.distributed.barrier(group=tp_group)
+                cur_hot = compute_hot_fingerprints(
+                    build_dir, Path(req_ckpt), REPO_ROOT, req_k_sfa
+                )
                 cur_state = {"boot_sha": cur_boot, **cur_hot}
                 tier = classify_reload_tier(state, cur_state)
+                cfg_changed = req_cfg != cur_cfg or req_k_sfa != state["k_sfa"]
+                if tier == "none" and cfg_changed:
+                    tier = "dspine"
                 rank_payload["reload_tier"] = tier
                 if tier == "chain_and_dspine":
-                    reset_all_graphs(target, draft, mgr)
-                    for win in reversed(tuple(mgr.windows.values())):
-                        win.close()
-                    mgr.windows.clear()
-                    if mgr.initialized:
-                        mgr.tree.finalize()
+                    torch.npu.synchronize(dev)
+                    torch.ops.tilert.set_active_tokens_ptr(runner.dyn_w, False, False)
+                    if runner.g_round is not None:
+                        runner.g_round.reset()
+                        runner.g_round = None
+                    if runner.drafter is not None:
+                        runner.drafter.close()
+                        runner.drafter = None
+                    if runner.target_win is not None and runner.target_win.handle != 0:
+                        runner.target_win.close()
+                        runner.target_win = None
+                    if runner.l78_win is not None and runner.l78_win.handle != 0:
+                        runner.l78_win.close()
+                        runner.l78_win = None
+                    if runner.tree_lib is not None:
+                        runner.tree_lib.finalize()
+                        runner.tree_lib = None
+                    runner.prepared_chain = None
+                    runner._arena_pool.clear()
+                    gc.collect()
                     ver_chain = stage_versioned_so(build_dir / "chain.so")
-                    mgr.tree = TreeLibrary(ver_chain, None)
-                    mgr.tree.initialize(
-                        mgr.device.index, mgr.rank, mgr.ranks, mgr.endpoint, mgr.heap_bytes
+                    runner.tree_lib = TreeLibrary(ver_chain, None)
+                    tree_reload_idx += 1
+                    whole_ep = os.environ.get(
+                        "TILERT_WHOLE_LAYER_ENDPOINT", "tcp://127.0.0.1:29590"
                     )
-                    mgr.window(torch.npu.current_stream(mgr.device), False)
-                    shared_tgt = tp_mod.capture_shared_target_for_width(
-                        target,
-                        draft,
-                        16,
-                        prefix.main,
-                        mtp_blob,
-                        case_b["golden"],
-                        tree_mask_i32,
-                        channel.group,
+                    ep_host, ep_port = whole_ep.rsplit(":", 1)
+                    runner.tree_lib.initialize(
+                        runner.device.index,
+                        runner.rank,
+                        runner.world_size,
+                        f"{ep_host}:{int(ep_port) + 20 + tree_reload_idx}",
+                        SHMEM_HEAP_BYTES,
+                    )
+                    with torch.npu.stream(runner.cap_stream):
+                        runner.target_win = Window(runner.tree_lib, max(WIDTHS))
+                        runner.l78_win = Window(runner.tree_lib, 32)
+                    steps_layers = runner._build_chain_steps(runner.l0_normed, runner.t_emb_out)
+                    chain_steps_buf = runner.arena.bind_chain_step_buffers(MAIN_LAYERS)
+                    runner.prepared_chain = PreparedChain(
+                        steps_layers,
+                        chain_steps_buf,
+                        copy_stream=None,
+                        mask_ptr=int(runner.arena.tree_mask_i32.data_ptr()),
+                        peer_weights_ptr=int(runner.arena.peer_weights_ptr),
                     )
                     state["chain_sha"] = cur_hot["chain_sha"]
-                if cur_hot["dspine_py_sha"] != state["dspine_py_sha"]:
-                    cal_mod = importlib.reload(cal_mod)
-                    tp_mod = importlib.reload(tp_mod)
-                    hctrl = cal_mod.ZeroLagHorizonController()
-                    state["dspine_py_sha"] = cur_hot["dspine_py_sha"]
-                if cur_hot["dspine_ops_sha"] != state["dspine_ops_sha"]:
-                    ops_so, ops_cdll = tp_mod.load_dspine_ops(rank, out_dir=ops_dir)
-                else:
-                    ops_cdll = None
-                if cur_hot["ckpt_sha"] != state["ckpt_sha"]:
-                    cal_wt = cal_mod.TpCalibratedL78Weights.from_file(
-                        req_ckpt, rank=rank, dev=dev, ops_so_path=ops_so
-                    )
-                    state["ckpt_sha"] = cur_hot["ckpt_sha"]
-                    state["ckpt"] = req_ckpt
-                    state["dspine_ops_sha"] = cur_hot["dspine_ops_sha"]
-                elif ops_cdll is not None:
-                    cal_wt.ops = ops_cdll
-                    state["dspine_ops_sha"] = cur_hot["dspine_ops_sha"]
-                if cur_hot["l78_klib_sha"] != state["l78_klib_sha"] or req_k_sfa != state["k_sfa"]:
-                    if hasattr(cal_wt, "_p2_klibs_by_ver"):
-                        cal_wt._p2_klibs_by_ver.clear()
-                    if hasattr(cal_wt, "_p2_klibs"):
-                        delattr(cal_wt, "_p2_klibs")
+
+                need_drafter_rebuild = (
+                    tier in ("chain_and_dspine", "dspine")
+                    or cfg_changed
+                    or runner.g_round is None
+                )
+                if need_drafter_rebuild:
+                    if runner.g_round is not None:
+                        torch.npu.synchronize(dev)
+                        torch.ops.tilert.set_active_tokens_ptr(runner.dyn_w, False, False)
+                        runner.g_round.reset()
+                        runner.g_round = None
+                    if runner.drafter is not None:
+                        runner.drafter.close()
+                        runner.drafter = None
+                    if cur_hot["dspine_py_sha"] != state["dspine_py_sha"]:
+                        cal_mod = importlib.reload(cal_mod)
+                        tp_mod = importlib.reload(tp_mod)
+                        state["dspine_py_sha"] = cur_hot["dspine_py_sha"]
+                    if cur_hot["dspine_ops_sha"] != state["dspine_ops_sha"]:
+                        _, runner.ops_cdll = tp_mod.load_dspine_ops(rank, out_dir=ops_dir)
+                        if runner.arena.draft is not None:
+                            runner.arena.draft.cal_wt.ops = runner.ops_cdll
+                        state["dspine_ops_sha"] = cur_hot["dspine_ops_sha"]
+                    if cur_hot["ckpt_sha"] != state["ckpt_sha"]:
+                        cal_wt = cal_mod.TpCalibratedL78Weights.from_file(
+                            req_ckpt,
+                            rank=rank,
+                            dev=dev,
+                            ops_so_path=str(ops_dir / "tilert_dspine_ops.so"),
+                        )
+                        if runner.arena.draft is not None:
+                            runner.arena.draft.cal_wt = cal_wt
+                        state["ckpt_sha"] = cur_hot["ckpt_sha"]
+                        state["ckpt"] = req_ckpt
+                    runner.k_sfa = req_k_sfa
                     state["l78_klib_sha"] = cur_hot["l78_klib_sha"]
                     state["k_sfa"] = req_k_sfa
+                    cur_cfg = dict(req_cfg)
+                    runner.hctrl = cal_mod.ZeroLagHorizonController()
+                    runner.drafter = tp_mod.CalibratedL78V3Runner(
+                        runner.arena,
+                        runner.prefix,
+                        runner.metadata_lib,
+                        runner.ffn_ops,
+                        runner.l78_win,
+                        runner.target_ctx,
+                        runner.tp_group,
+                        runner.prefix.first_token_id,
+                        b_scheds=cur_cfg["b_scheds"],
+                        horizon_ctrl=runner.hctrl,
+                        inv_temp=runner.cfg.inv_temp,
+                        beta_margin=0.0,
+                        beta_depth=0.0,
+                        k_sfa=req_k_sfa,
+                        min_w_act=cur_cfg["min_w_act"],
+                        t_base_ms=cur_cfg["t_base_ms"],
+                        c_w_ms=cur_cfg["c_w_ms"],
+                        narrow_topk=cur_cfg["narrow_topk"],
+                        l78_build_dir=l78_dir,
+                    )
+                    runner._capture_g_round()
 
-                mgr.set_tree_mask_ptr(int(tree_mask_i32.data_ptr()))
-                tree_mask_i32.zero_()
-                runner = tp_mod.CalibratedL78V3Runner(
-                    target,
-                    draft,
-                    shared_tgt,
-                    cal_wt,
-                    rank=rank,
-                    channel_group=channel.group,
-                    first_token=first_tok,
-                    prefix_parent_hidden=parent,
-                    b_scheds=[
-                        [4, 4, 4, 4, 4, 2, 2],
-                        [4, 4, 4, 4, 2, 2, 2, 2, 1, 1],
-                        [4, 4, 4, 4, 2, 2, 2, 2, 1, 1, 1],
-                    ],
-                    horizon_ctrl=hctrl,
-                    inv_temp=0.95,
-                    beta_margin=0.0,
-                    beta_depth=0.0,
-                    k_sfa=req_k_sfa,
-                    min_w_act=10,
-                    t_base_ms=41.5,
-                    c_w_ms=0.68,
-                    p2_commit=True,
-                    narrow_topk=False,
-                    l78_build_dir=l78_dir,
+                report = runner.warmup_and_run(
+                    warmups=warmups,
+                    formals=formals,
+                    max_steps=1023,
+                    check_serial=serial_parity,
                 )
-                samples = []
-                total_runs = warmups + formals
-                for idx in range(total_runs):
-                    res = runner.decode_full(
-                        case_b, "m21-warm-worker", check_digests=(idx == total_runs - 1)
-                    )
-                    samples.append(res)
-                last = samples[-1]
-                formal_tpots = [s["max_tpot_ms"] for s in samples[warmups:]]
-                median_tpot = round(statistics.median(formal_tpots), 4)
-                s_match = None
-                s_diffs = None
-                ekv_diffs = None
-                if serial_parity:
-                    runner.close()
-                    runner = None
-                    s_dig, s_diffs, ekv_diffs = _serial_draft_digest(
-                        draft,
-                        target,
-                        case_b,
-                        last["draft_committed_pos"],
-                        last["seed_positions"],
-                        cal_wt=cal_wt,
-                        tree_mask_i32=tree_mask_i32,
-                    )
-                    s_match = s_dig == last["draft_digest"]
+                last_trial = report["trials"][-1]
                 summary = {
                     "epoch": epoch,
                     "reload_tier": tier,
-                    "median_tpot_ms": median_tpot,
-                    "formal_tpots_ms": formal_tpots,
-                    "output_sha256": last["output_sha256"],
-                    "sum_accepted": last["sum_accepted"],
-                    "rounds": last["rounds"],
-                    "draft_committed_pos": last["draft_committed_pos"],
-                    "all_ranks_target_exact": last["all_ranks_target_exact"],
-                    "all_ranks_cache_parity": last["all_ranks_cache_parity"],
-                    "serial_draft_match": s_match,
-                    "serial_draft_diffs": s_diffs,
-                    "ekv_serial_diffs": ekv_diffs,
+                    "median_tpot_ms": round(float(report["median_tpot_ms"]), 4),
+                    "formal_tpots_ms": [round(float(x), 4) for x in report["formal_ms"]],
+                    "output_sha256": last_trial["output_sha256"],
+                    "sum_accepted": report["sum_accepted"],
+                    "mean_accepted": report["mean_accepted"],
+                    "rounds": last_trial["rounds"],
+                    "draft_committed_pos": report["draft_committed_pos"],
+                    "all_ranks_target_exact": report["all_ranks_target_exact"],
+                    "all_ranks_cache_parity": report["all_ranks_cache_parity"],
+                    "serial_draft_match": report["serial_draft_match"],
+                    "serial_draft_diffs": report["serial_draft_diffs"],
+                    "ekv_serial_diffs": report["ekv_serial_diffs"],
+                    "loaded_modules_has_vllm": report["loaded_modules_has_vllm"],
                     "fast_parity": bool(req_args.get("fast_parity", True)),
+                    "cfg": cur_cfg,
                 }
                 if rank == 0:
                     atomic_write_json(Path(req_out), summary)
                     print("WARM_EPOCH_SUMMARY", json.dumps(summary), flush=True)
                 parity_ok = (
-                    (not serial_parity or s_match is True)
-                    and not ekv_diffs
-                    and bool(last["all_ranks_target_exact"])
-                    and bool(last["all_ranks_cache_parity"])
+                    (not serial_parity or report["serial_draft_match"] is True)
+                    and not report["ekv_serial_diffs"]
+                    and bool(report["all_ranks_target_exact"])
+                    and bool(report["all_ranks_cache_parity"])
+                    and not bool(report["loaded_modules_has_vllm"])
                 )
                 if not parity_ok:
                     rank_payload["status"] = "FAIL"
-                    rank_payload["error"] = f"Parity mismatch: ekv={ekv_diffs} match={s_match}"
+                    rank_payload["error"] = (
+                        f"Parity mismatch: ekv={report['ekv_serial_diffs']} "
+                        f"match={report['serial_draft_match']}"
+                    )
                 rank_payload["summary_path"] = req_out
-                rank_payload["output_sha256"] = last["output_sha256"]
-                rank_payload["serial_draft_match"] = s_match
-                rank_payload["ekv_serial_diffs"] = ekv_diffs
-                rank_payload["median_tpot_ms"] = median_tpot
+                rank_payload["output_sha256"] = last_trial["output_sha256"]
+                rank_payload["serial_draft_match"] = report["serial_draft_match"]
+                rank_payload["ekv_serial_diffs"] = report["ekv_serial_diffs"]
+                rank_payload["median_tpot_ms"] = round(float(report["median_tpot_ms"]), 4)
         except Exception as exc:
             rank_payload["status"] = "FAIL"
             rank_payload["error"] = f"{type(exc).__name__}: {exc}"
             sys.last_traceback = None
-            reset_all_graphs(target, draft, mgr)
+            if runner.g_round is not None:
+                runner.g_round.reset()
+                runner.g_round = None
         finally:
-            if runner is not None:
-                runner.close()
-            mgr.set_tree_mask_ptr(0)
-            tree_mask_i32.zero_()
             gc.collect()
             torch.npu.empty_cache()
 

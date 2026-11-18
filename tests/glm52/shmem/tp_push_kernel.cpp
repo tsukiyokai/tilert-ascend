@@ -1,20 +1,3 @@
-/**
- * One-sided TP all-reduce: push-to-all, one cross-PE sync, ordered local sum.
- *
- * Every rank pushes its whole partial into the slot it owns in every peer's
- * window, so after one synchronization each rank holds all pe_size partials
- * locally. Each core then sums its own stripe over those slots in rank order,
- * which keeps the result bit-reproducible.
- *
- * There are no flags and no polling. A reduction needs no producer/consumer
- * core split: the split exists in examples/allgather because its consumers must
- * pull peers' payloads through a staging window, whereas here the push already
- * delivered every payload before the sync released anyone.
- *
- * Two planes alternate, which bounds how far a rank may run ahead with a single
- * sync per round: reaching round r+2 requires passing the sync of round r+1,
- * which every peer reaches only after finishing its round-r reduction.
- */
 #include "tp_push_kernel.h"
 #include "kernel_operator.h"
 #include "acl/acl.h"
@@ -24,13 +7,9 @@ using namespace AscendC;
 
 constexpr int64_t ALIGN_BYTES = 32;
 constexpr int64_t PLANES = 8;
-// The window head keeps the region the host still reserves for flags; the
-// payload planes follow it.
 constexpr int64_t SIGNAL_SLOT_INT32 = 16;
 constexpr int64_t MAX_SLICES = 32;
 
-// UB comes from a TPipe so the three buffers cannot overlap each other: the
-// staging area for the push, and the accumulator and addend for the sum.
 constexpr int64_t STAGE_UB_BYTES = 16 * 1024;
 constexpr int64_t REDUCE_UB_BYTES = 32 * 1024;
 
@@ -55,20 +34,17 @@ ACLSHMEM_DEVICE TpPushLayout TpPushPlane(__gm__ uint8_t* window, int rows, int h
     return layout;
 }
 
-/** Core `core` sends the whole partial to one peer, so a fan-out of pe_size costs one put per core. */
 ACLSHMEM_DEVICE void TpPushPublish(const TpPushLayout& layout, __gm__ float* partial, int64_t core, int64_t my_pe,
                                    int64_t pe_size, __ubuf__ float* stage)
 {
     if (core >= pe_size) {
         return;
     }
-    // Staggering the start spreads the first writes of different ranks over distinct links.
     const int64_t peer = (my_pe + core) % pe_size;
     aclshmemx_mte_put_nbi(layout.data + my_pe * layout.stride, partial, stage, STAGE_UB_BYTES, layout.elements, peer,
                           EVENT_ID0);
 }
 
-/** Sum every rank's slot in rank order over this core's stripe. */
 ACLSHMEM_DEVICE void TpPushReduce(const TpPushLayout& layout, __gm__ float* out, int64_t core, int64_t cores,
                                   int64_t pe_size, const LocalTensor<float>& acc, const LocalTensor<float>& term)
 {
@@ -100,14 +76,6 @@ ACLSHMEM_DEVICE void TpPushReduce(const TpPushLayout& layout, __gm__ float* out,
     }
 }
 
-/**
- * Publish by storing straight into the peer's address.
- *
- * aclshmem_ptr maps our symmetric pointer to the same offset in the peer's
- * window, after which a remote write is an ordinary MTE store. This is how the
- * shmem_mega_moe example communicates, and it skips the library's staging
- * protocol and its trailing quiet.
- */
 ACLSHMEM_DEVICE void TpPushPublishDirect(const TpPushLayout& layout, __gm__ float* partial, int64_t core,
                                          int64_t my_pe, int64_t pe_size, const LocalTensor<float>& stage_tensor)
 {
@@ -131,13 +99,6 @@ ACLSHMEM_DEVICE void TpPushPublishDirect(const TpPushLayout& layout, __gm__ floa
     }
 }
 
-/**
- * Publish with the dependency named rather than a whole-pipeline barrier.
- *
- * Two staging buffers and two events: MTE2 fills one while MTE3 drains the
- * other, which is how QuantizeLocalTokens in examples/shmem_mega_moe keeps the
- * load and store units both busy.
- */
 ACLSHMEM_DEVICE void TpPushPublishPipelined(const TpPushLayout& layout, __gm__ float* partial, int64_t core,
                                             int64_t my_pe, int64_t pe_size, const LocalTensor<float>& first,
                                             const LocalTensor<float>& second)
@@ -176,13 +137,6 @@ ACLSHMEM_DEVICE void TpPushPublishPipelined(const TpPushLayout& layout, __gm__ f
     WaitFlag<AscendC::HardEvent::MTE3_MTE2>(events[1]);
 }
 
-/**
- * Sum every rank's slot over this core's stripe with the loads pipelined.
- *
- * The addend is double buffered so peer p+1's load is in flight while peer p
- * is being added, and the order of the additions is still ascending rank, so
- * the result stays bit-reproducible.
- */
 ACLSHMEM_DEVICE void TpPushReducePipelined(const TpPushLayout& layout, __gm__ float* out, int64_t core, int64_t cores,
                                            int64_t pe_size, const LocalTensor<float>& acc,
                                            const LocalTensor<float>& first, const LocalTensor<float>& second)
@@ -204,8 +158,6 @@ ACLSHMEM_DEVICE void TpPushReducePipelined(const TpPushLayout& layout, __gm__ fl
         SetFlag<AscendC::HardEvent::MTE2_V>(events[0]);
         WaitFlag<AscendC::HardEvent::MTE2_V>(events[0]);
 
-        // Prime the pipeline with the first peer; each iteration then issues
-        // the next load before waiting on the current one.
         SetFlag<AscendC::HardEvent::V_MTE2>(events[1]);
         source.SetGlobalBuffer(layout.data + layout.stride + begin + offset, count);
         DataCopy(first, source, count);
@@ -245,13 +197,6 @@ ACLSHMEM_DEVICE __gm__ int32_t* TpPushFlags(__gm__ uint8_t* window, int64_t plan
     return (__gm__ int32_t*)window + plane * MAX_SLICES * SIGNAL_SLOT_INT32;
 }
 
-/**
- * Tell peer `core` that our slot in its window is complete.
- *
- * The flag must not become visible before the data it describes, so the store
- * pipeline is drained first -- a fence on one queue rather than a barrier over
- * every core and rank.
- */
 ACLSHMEM_DEVICE void TpPushSignal(__gm__ uint8_t* window, int64_t core, int64_t my_pe, int64_t pe_size,
                                   int64_t plane, int32_t token)
 {
@@ -263,13 +208,6 @@ ACLSHMEM_DEVICE void TpPushSignal(__gm__ uint8_t* window, int64_t core, int64_t 
                         (int)peer);
 }
 
-/**
- * Sum every rank's slot, each add gated only by its own producer's flag.
- *
- * The additions stay in ascending rank order so the result is bit-reproducible,
- * but the wait for peer p happens immediately before peer p's add rather than
- * after every peer has arrived.
- */
 ACLSHMEM_DEVICE void TpPushReduceSignalled(const TpPushLayout& layout, __gm__ float* out, __gm__ uint8_t* window,
                                            int64_t core, int64_t cores, int64_t pe_size, int64_t plane, int32_t token,
                                            const LocalTensor<float>& acc, const LocalTensor<float>& term)
@@ -314,13 +252,6 @@ ACLSHMEM_DEVICE void TpPushReduceSignalled(const TpPushLayout& layout, __gm__ fl
     }
 }
 
-/**
- * Check one element of this core's stripe and count a mismatch.
- *
- * The position rotates with the round so 400 rounds cover 400 offsets, which
- * the host's single end-of-run comparison cannot do: with two planes it only
- * ever sees the last round of each.
- */
 ACLSHMEM_DEVICE void TpPushProbe(__gm__ float* out, __gm__ int32_t* errors, int64_t core, int64_t cores,
                                  int64_t elements, int64_t round, float expected)
 {
@@ -341,12 +272,6 @@ ACLSHMEM_DEVICE void TpPushProbe(__gm__ float* out, __gm__ int32_t* errors, int6
     }
 }
 
-/**
- * Publish a bf16 partial, pipelined, straight into the peer's window.
- *
- * Half the bytes of the float32 path for the same values, since the sum is
- * accumulated in float inside the reduction rather than on the wire.
- */
 ACLSHMEM_DEVICE void TpPushPublishBf16(const TpPushLayout& layout, __gm__ bfloat16_t* partial, int64_t core,
                                        int64_t cores, int64_t my_pe, int64_t pe_size,
                                        const LocalTensor<bfloat16_t>& first,
@@ -429,12 +354,6 @@ ACLSHMEM_DEVICE void TpPushPublishBf16(const TpPushLayout& layout, __gm__ bfloat
     WaitFlag<AscendC::HardEvent::MTE3_MTE2>(events[1]);
 }
 
-/**
- * Sum every rank's bf16 slot in float, in rank order, and store bf16.
- *
- * The widening and narrowing happen in UB around work the reduction already
- * does, so the host no longer needs a Cast on either side.
- */
 ACLSHMEM_DEVICE void TpPushReduceBf16(const TpPushLayout& layout, __gm__ bfloat16_t* out, int64_t core, int64_t cores,
                                       int64_t pe_size, const LocalTensor<float>& acc, const LocalTensor<float>& term,
                                       const LocalTensor<bfloat16_t>& narrow, __gm__ bfloat16_t* routed = nullptr,
@@ -1350,25 +1269,77 @@ ACLSHMEM_DEVICE void tp_push_once(__gm__ float* partial, __gm__ float* out, __gm
     const int64_t my_pe = aclshmem_my_pe();
     const int64_t pe_size = aclshmem_n_pes();
     const int64_t plane = (stage == 9) ? 0 : round % PLANES;
-    const TpPushLayout layout = TpPushPlane(window, (stage == 14) ? 1 : rows,
-                                            (stage == 14) ? 196608 : hidden, pe_size, plane);
+    const TpPushLayout layout = TpPushPlane(
+        window, (stage == 14 || stage == 18) ? 1 : rows,
+        (stage == 14 || stage == 18) ? 196608 : hidden, pe_size, plane);
 
-    // stage 1 is the push half alone and stage 2 the sum half alone; neither waits on a peer, so
-    // isolating a half can expose a cost but can no longer deadlock.
-    // stage 3 moves nothing and only synchronises, which measures the floor the
-    // 17.5 us push half is sitting on: it decides whether reduce-scatter plus
-    // all-gather, eight times fewer bytes for a second sync, can win.
     if (stage == 3) {
         aclshmem_quiet();
         aclshmemx_sync_vec_all();
         return;
     }
+    if (stage == 18) {
+        if (active_ptr != nullptr) {
+            dcci((__gm__ uint64_t*)active_ptr, SINGLE_CACHE_LINE, CACHELINE_OUT);
+            if (*active_ptr <= 0) {
+                return;
+            }
+        }
+        if (core < pe_size) {
+            GlobalTensor<float> src;
+            src.SetGlobalBuffer((__gm__ float*)partial + my_pe * 64, 64);
+            DataCopy(stage_tensor, src, 64);
+            SetFlag<AscendC::HardEvent::MTE2_MTE3>(EVENT_ID0);
+            WaitFlag<AscendC::HardEvent::MTE2_MTE3>(EVENT_ID0);
+            const int64_t peer = (my_pe + core) % pe_size;
+            __gm__ float* remote = (__gm__ float*)aclshmem_ptr(layout.data + my_pe * 64, (int)peer);
+            GlobalTensor<float> sink;
+            sink.SetGlobalBuffer(remote, 64);
+            DataCopy(sink, stage_tensor, 64);
+            SetFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
+            WaitFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
+        }
+        aclshmem_quiet();
+        const int64_t workers = (cores >= pe_size) ? (cores / pe_size) : 1;
+        __gm__ int32_t* pool_base = (__gm__ int32_t*)aclshmemi_get_team_sync_pool(1);
+        __gm__ int32_t* flag_base = nullptr;
+        int32_t count = 0;
+        if (core < pe_size * workers) {
+            auto counter_slot = (__gm__ int32_t*)aclshmemi_get_team_sync_counter(1 + core);
+            count = aclshmemi_load(counter_slot) + 1;
+            aclshmemi_store(counter_slot, count);
+            const int64_t worker = core / pe_size;
+            const int64_t peer = (my_pe + (core % pe_size)) % pe_size;
+            flag_base = pool_base + worker * pe_size * SIGNAL_SLOT_INT32;
+            aclshmemi_signal_set(flag_base + my_pe * SIGNAL_SLOT_INT32, (int)peer, count);
+        }
+        if (core == 0) {
+            for (int64_t pe = 0; pe < pe_size; ++pe) {
+                aclshmem_signal_wait_until(
+                    flag_base + pe * SIGNAL_SLOT_INT32, ACLSHMEM_CMP_GE, count);
+            }
+            GlobalTensor<float> source;
+            source.SetGlobalBuffer(layout.data, pe_size * 64);
+            DataCopy(term, source, pe_size * 64);
+            SetFlag<AscendC::HardEvent::MTE2_MTE3>(EVENT_ID0);
+            WaitFlag<AscendC::HardEvent::MTE2_MTE3>(EVENT_ID0);
+            GlobalTensor<float> dst;
+            dst.SetGlobalBuffer((__gm__ float*)out, pe_size * 64);
+            DataCopy(dst, term, pe_size * 64);
+            SetFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
+            WaitFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
+        }
+        return;
+    }
     if (stage == 14) {
         int active_rows = rows;
-        if (active_ptr != nullptr && rows == 32 && (core < pe_size || core == 0)) {
+        if (active_ptr != nullptr && (rows == 32 || rows == 16)) {
             dcci((__gm__ uint64_t*)active_ptr, SINGLE_CACHE_LINE, CACHELINE_OUT);
             const int a = *active_ptr;
-            if (a >= 1 && a <= rows) {
+            if (a <= 0) {
+                return;
+            }
+            if (a <= rows) {
                 active_rows = a;
             }
         }
@@ -1408,7 +1379,8 @@ ACLSHMEM_DEVICE void tp_push_once(__gm__ float* partial, __gm__ float* out, __gm
         }
         if (core == 0) {
             for (int64_t pe = 0; pe < pe_size; ++pe) {
-                aclshmem_signal_wait_until(flag_base + pe * SIGNAL_SLOT_INT32, ACLSHMEM_CMP_GE, count);
+                aclshmem_signal_wait_until(
+                    flag_base + pe * SIGNAL_SLOT_INT32, ACLSHMEM_CMP_GE, count);
             }
             GlobalTensor<float> source;
             source.SetGlobalBuffer(layout.data, pe_size * 128);
@@ -1438,24 +1410,24 @@ ACLSHMEM_DEVICE void tp_push_once(__gm__ float* partial, __gm__ float* out, __gm
         }
         return;
     }
-    // Stages 10 and 11 run one protocol -- pipelined push, one quiet, one
-    // cross-PE sync, pipelined ordered sum -- over bf16 and over float32, so
-    // the pair prices the element type and nothing else. The reduction's
-    // staging tensor is the addend's buffer rather than the push's, so the
-    // narrowed slot never shares UB with a store that may still be in flight.
     if (stage == 10 || stage == 13 || stage == 15 || stage == 16 || stage == 17) {
+        int64_t active_elements = layout.elements;
+        if (active_ptr != nullptr &&
+            (layout.elements == 196608 || layout.elements == 98304 || hidden == 6144)) {
+            dcci((__gm__ uint64_t*)active_ptr, SINGLE_CACHE_LINE, CACHELINE_OUT);
+            const int a = *active_ptr;
+            if (a <= 0) {
+                return;
+            }
+            const int64_t max_rows = layout.elements / 6144;
+            if (a <= max_rows) {
+                active_elements = static_cast<int64_t>(a) * 6144;
+            }
+        }
         const int64_t workers = (cores >= pe_size) ? (cores / pe_size) : 1;
         if (cores >= pe_size &&
             layout.elements % (pe_size * workers * 16) == 0 &&
             (layout.elements / (pe_size * workers)) <= (STAGE_UB_BYTES / static_cast<int64_t>(sizeof(bfloat16_t)))) {
-            int64_t active_elements = layout.elements;
-            if (active_ptr != nullptr && layout.elements == 196608) {
-                dcci((__gm__ uint64_t*)active_ptr, SINGLE_CACHE_LINE, CACHELINE_OUT);
-                const int a = *active_ptr;
-                if (a >= 1 && a <= 32) {
-                    active_elements = static_cast<int64_t>(a) * 6144;
-                }
-            }
             __gm__ bfloat16_t* routed_full = (stage == 13) ? (__gm__ bfloat16_t*)errors : nullptr;
             __gm__ bfloat16_t* routed_slice = (stage == 15 || stage == 16 || stage == 17) ? (__gm__ bfloat16_t*)errors : nullptr;
             TpPushRsAgBf16(layout, (__gm__ bfloat16_t*)partial, (__gm__ bfloat16_t*)out,
@@ -1501,10 +1473,6 @@ ACLSHMEM_DEVICE void tp_push_once(__gm__ float* partial, __gm__ float* out, __gm
         TpPushReducePipelined(layout, out, core, cores, pe_size, acc, term, term_second);
         return;
     }
-    // Stage 12 drops the sync from stage 10 exactly as stage 7 drops it from
-    // stage 11, so the four stages price the element type at both protocol
-    // levels. A sum taken without the sync may read a slot its peer has not
-    // written, so stages 7 and 12 are timing probes and not reductions.
     if (stage == 12) {
         TpPushPublishBf16(layout, (__gm__ bfloat16_t*)partial, core, cores, my_pe, pe_size,
                           stage_tensor.ReinterpretCast<bfloat16_t>(), stage_second.ReinterpretCast<bfloat16_t>());
@@ -1518,15 +1486,12 @@ ACLSHMEM_DEVICE void tp_push_once(__gm__ float* partial, __gm__ float* out, __gm
         TpPushPublishPipelined(layout, partial, core, my_pe, pe_size, stage_tensor, stage_second);
     } else if (stage != 2) {
         TpPushPublish(layout, partial, core, my_pe, pe_size, stage_ub);
-        // Drain this core's remote stores before anything claims they landed.
         if (stage >= 4) {
             SetFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
             WaitFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
         }
         if (stage == 9) {
         TpPushReducePipelined(layout, out, core, cores, pe_size, acc, term, term_second);
-        // No peer may begin its next push until every peer has finished
-        // reading, which is what makes a single plane safe.
         aclshmemx_sync_vec_all();
     } else if (stage == 8) {
             TpPushSignal(window, core, my_pe, pe_size, round % PLANES, (int32_t)round + 1);
@@ -1552,7 +1517,6 @@ extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__ void tp_push_kern
     int rows, int hidden, int rounds, int round_base, int stage, const __gm__ int32_t* active_ptr)
 {
     util_set_ffts_config(fftsAddr);
-    // One carve-up of UB for the whole launch; a TPipe inside the round loop would redo it every round.
     TPipe pipe;
     TBuf<TPosition::VECCALC> staging;
     TBuf<TPosition::VECCALC> accumulator;
@@ -1571,7 +1535,10 @@ extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__ void tp_push_kern
     LocalTensor<float> term = addend.Get<float>();
     __ubuf__ float* stage_ub = (__ubuf__ float*)stage_tensor.GetPhyAddr();
 
-    const int actual_rounds = (stage == 13 || stage == 14 || stage == 15 || stage == 16 || stage == 17) ? 1 : rounds;
+    const int actual_rounds =
+        (stage == 13 || stage == 14 || stage == 15 || stage == 16 || stage == 17 || stage == 18)
+            ? 1
+            : rounds;
     union {
         int32_t i;
         float f;
@@ -1638,10 +1605,14 @@ extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__ void tp_push_rmsn
     const TpPushLayout layout = TpPushPlane(window, 1, numel, pe_size, plane);
 
     int64_t active_elements = layout.elements;
-    if (active_ptr != nullptr && layout.elements == 196608) {
+    if (active_ptr != nullptr && (layout.elements == 196608 || layout.elements == 98304)) {
         dcci((__gm__ uint64_t*)active_ptr, SINGLE_CACHE_LINE, CACHELINE_OUT);
         const int a = *active_ptr;
-        if (a >= 1 && a <= 32) {
+        if (a <= 0) {
+            return;
+        }
+        const int64_t max_rows = layout.elements / 6144;
+        if (a <= max_rows) {
             active_elements = static_cast<int64_t>(a) * 6144;
         }
     }

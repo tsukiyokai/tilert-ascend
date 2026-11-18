@@ -12,9 +12,15 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+import tilert.models.glm_5_2_ascend.abi as abi_mod
+from tilert.models.glm_5_2_ascend.abi import (
+    Libraries,
+    PreparedChain,
+    capture_prof_acc,
+    extract_prof_acc,
+    kernel_prof_enabled,
+)
 import tilert.models.glm_5_2_ascend.ops.build_megakernel as bm
-import tilert.models.glm_5_2_ascend.whole_layer as wl_mod
-from tilert.models.glm_5_2_ascend.whole_layer import Libraries, WholeLayerManager
 from tests.glm52.e2e_tp8_ep8.hygiene_gate import verify_python_source_hygiene
 
 
@@ -32,7 +38,10 @@ def dspine_mods(monkeypatch: pytest.MonkeyPatch):
         fake_torch.int64 = "i64"
         fake_torch.uint8 = "u8"
         fake_torch.nn = SimpleNamespace(Module=object)
-        fake_torch.distributed = SimpleNamespace(barrier=lambda **_kw: None)
+        fake_torch.distributed = SimpleNamespace(
+            barrier=lambda **_kw: None,
+            is_initialized=lambda: False,
+        )
         fake_torch.npu = SimpleNamespace(
             device=lambda *_a, **_kw: None,
             synchronize=lambda *_a, **_kw: None,
@@ -188,13 +197,9 @@ def test_tp_drafter_ensure_l78_klibs_single_variant_binding(
         return Path(out_dir) / "chain_K110419.so", Path(out_dir) / "chain_K110420.so"
 
     monkeypatch.setattr(cal, "build_draft_l78_k110419", fake_build)
+    monkeypatch.setattr(tp_mod, "build_draft_l78_k110419", fake_build)
+    monkeypatch.setattr(tp_mod, "torch_dist_ready", lambda: False)
     monkeypatch.setattr(tp_mod.ctypes, "CDLL", _FakeLib)
-    monkeypatch.setattr(
-        tp_mod.torch,
-        "distributed",
-        SimpleNamespace(barrier=lambda **_kw: None),
-        raising=False,
-    )
     runner_stub = SimpleNamespace(
         k_sfa=1024,
         rank=0,
@@ -293,12 +298,9 @@ def test_chain_decoupling_stripper_and_safety_negatives(
         dummy.write_bytes(b"x")
         return Libraries(dummy, dummy, dummy, dummy, so_p)
 
-    lib_hashes_backup = None
-    import tilert.models.glm_5_2_ascend.whole_layer as wl_mod
-
-    lib_hashes_backup = wl_mod.LIBRARY_HASHES
+    lib_hashes_backup = abi_mod.LIBRARY_HASHES
     monkeypatch.setattr(
-        wl_mod,
+        abi_mod,
         "LIBRARY_HASHES",
         {
             **lib_hashes_backup,
@@ -386,13 +388,11 @@ def test_stripper_fail_closed_and_legacy_manifest(
         ),
         encoding="utf-8",
     )
-    import tilert.models.glm_5_2_ascend.whole_layer as wl_mod
-
     monkeypatch.setattr(
-        wl_mod,
+        abi_mod,
         "LIBRARY_HASHES",
         {
-            **wl_mod.LIBRARY_HASHES,
+            **abi_mod.LIBRARY_HASHES,
             "indexed": hashlib.sha256(b"x").hexdigest(),
             "shared": hashlib.sha256(b"x").hexdigest(),
             "ffn": hashlib.sha256(b"x").hexdigest(),
@@ -449,10 +449,10 @@ def test_build_chain_enable_kernel_prof_and_libraries_verify(
     assert len(calls) == 4
 
     monkeypatch.setattr(
-        wl_mod,
+        abi_mod,
         "LIBRARY_HASHES",
         {
-            **wl_mod.LIBRARY_HASHES,
+            **abi_mod.LIBRARY_HASHES,
             "indexed": hashlib.sha256(b"x").hexdigest(),
             "shared": hashlib.sha256(b"x").hexdigest(),
             "ffn": hashlib.sha256(b"x").hexdigest(),
@@ -471,7 +471,7 @@ def test_build_chain_enable_kernel_prof_and_libraries_verify(
         libs.verify()
 
 
-def test_whole_layer_manager_capture_prof_acc_stream_disambiguation(
+def test_prepared_chain_capture_prof_acc_and_kernel_prof_enabled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     sync_calls: list[object] = []
@@ -570,68 +570,41 @@ def test_whole_layer_manager_capture_prof_acc_stream_disambiguation(
             buf[(40 + idx) * 8 : (41 + idx) * 8] = int(val).to_bytes(8, "little", signed=True)
         return [None] * 6 + [_FakeTensor(list(buf), dtype="u8", dev_type=dev_type, elem_size=1)]
 
-    mgr = WholeLayerManager.__new__(WholeLayerManager)
-    mgr.device = "npu:0"
-    mgr.target_width = 32
-    mgr.capture_stream = SimpleNamespace(npu_stream=2002)
-    mgr.capture_history = [{"rows": 16, "layers": ("l0", "l77")}]
-    mgr.layer_order = ("l0", "l77")
-    mgr.tree_manifest = {"enable_kernel_prof": True, "flags": ["-DENABLE_KERNEL_PROF=1"]}
-    caller_arena = SimpleNamespace(body=make_body6_bytes([0] * 24))
-    capture_arena = SimpleNamespace(body=make_body6_bytes(list(range(100, 124))))
-    w32_arena = SimpleNamespace(body=make_body6_bytes(list(range(200, 224))))
-    mgr.layers = {
-        "l0": SimpleNamespace(name="l0", entries={}),
-        "l77": SimpleNamespace(
-            name="l77",
-            entries={
-                (1001, 16, "g0"): caller_arena,
-                (2002, 16, "g0"): capture_arena,
-                (2002, 32, "g0"): w32_arena,
-            },
-        ),
-    }
-    assert mgr.kernel_prof_enabled is True
-    got = mgr.capture_prof_acc(16)
+    assert kernel_prof_enabled(None) is False
+    assert kernel_prof_enabled({"enable_kernel_prof": True, "flags": []}) is True
+    assert kernel_prof_enabled({"enable_kernel_prof": False, "flags": ["-DENABLE_KERNEL_PROF=1"]})
+    assert kernel_prof_enabled({"enable_kernel_prof": False, "flags": []}) is False
+
+    chain = PreparedChain.__new__(PreparedChain)
+    chain.device = 0
+    chain.steps = (
+        SimpleNamespace(local=SimpleNamespace(body=make_body6_bytes([0] * 24))),
+        SimpleNamespace(local=SimpleNamespace(body=make_body6_bytes(list(range(100, 124))))),
+    )
+
+    got = capture_prof_acc(chain)
     assert got.values == list(range(100, 124))
     assert got.detached and got.cpu_called and got.cloned
-    assert sync_calls == ["npu:0"]
+    assert sync_calls == [0]
 
-    got_default = mgr.capture_prof_acc(sync=False, cpu=False)
+    got_default = chain.capture_prof_acc(sync=False, cpu=False)
     assert got_default.values == list(range(100, 124))
     assert not got_default.cpu_called
-    assert sync_calls == ["npu:0"]
+    assert sync_calls == [0]
 
-    mgr.tree_manifest = {"enable_kernel_prof": False, "flags": []}
-    assert mgr.kernel_prof_enabled is False
-
-    mgr.layers["l77"].entries[(2002, 16, "g0")] = SimpleNamespace(
-        body=[None] * 6 + [_FakeTensor([0] * 128, dtype="u8", elem_size=1)]
-    )
     with pytest.raises(RuntimeError, match="smaller than 512 bytes"):
-        mgr.capture_prof_acc(16)
+        extract_prof_acc(_FakeTensor([0] * 128, dtype="u8", elem_size=1))
 
-    with pytest.raises(RuntimeError, match="No capture-stream arena"):
-        mgr.capture_prof_acc(8)
-
-    mgr.layers["l77"].entries[(2002, 16, "g0")] = SimpleNamespace(body=[None] * 6)
-    with pytest.raises(RuntimeError, match="missing body\\[6\\]"):
-        mgr.capture_prof_acc(16)
-
-    mgr.layers["l77"].entries[(2002, 16, "g0")] = SimpleNamespace(body=[None] * 7)
-    with pytest.raises(RuntimeError, match="missing body\\[6\\]"):
-        mgr.capture_prof_acc(16)
-
-    mgr.layers["l77"].entries[(2002, 16, "g0")] = SimpleNamespace(
-        body=[None] * 6 + [_FakeTensor([0] * 513, dtype="u8", elem_size=1)]
-    )
     with pytest.raises(RuntimeError, match="8-byte aligned"):
-        mgr.capture_prof_acc(16)
+        extract_prof_acc(_FakeTensor([0] * 513, dtype="u8", elem_size=1))
 
-    mgr.layers["l77"].entries[(2002, 16, "g0")] = capture_arena
-    mgr.layers["l77"].entries[(2002, 16, "g1")] = w32_arena
-    with pytest.raises(RuntimeError, match="Ambiguous capture-stream arenas"):
-        mgr.capture_prof_acc(16)
+    chain.steps = (SimpleNamespace(local=SimpleNamespace(body=[None] * 6)),)
+    with pytest.raises(RuntimeError, match="missing body\\[6\\]"):
+        chain.capture_prof_acc()
+
+    chain.steps = (SimpleNamespace(local=SimpleNamespace(body=[None] * 7)),)
+    with pytest.raises(RuntimeError, match="missing body\\[6\\]"):
+        chain.capture_prof_acc()
 
 
 def test_stripper_cross_file_define_raw_define_and_ident_r(
@@ -674,55 +647,32 @@ def test_prepare_whole_layer_json_prof_isolation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    for mod_name in (
-        "torch",
-        "vllm",
-        "vllm.distributed",
-        "cache_digest",
-        "tilert.models.glm_5_2_ascend.cann_model",
-        "tilert.models.glm_5_2_ascend.cann_mtp",
-        "tilert.models.glm_5_2_ascend.dspine",
-        "tilert.models.glm_5_2_ascend.dspine.tp_drafter",
-        "tilert.models.glm_5_2_ascend.tp_runtime",
-        "tilert.pd_vllm.ascend_cache",
-    ):
-        mod = ModuleType(mod_name)
-        if mod_name == "vllm.distributed":
-            mod.get_world_group = lambda: None
-        elif mod_name == "cache_digest":
-            mod.cache_digest = lambda *_a, **_k: {}
-        elif mod_name == "tilert.models.glm_5_2_ascend.cann_model":
-            mod.CannModel = object
-        elif mod_name == "tilert.models.glm_5_2_ascend.cann_mtp":
-            mod.CannMtp = object
-            mod.MAIN_CACHE = "main"
-        elif mod_name == "tilert.models.glm_5_2_ascend.dspine":
-            for attr in (
-                "CalibratedL78V3Runner",
-                "TpCalibratedL78Weights",
-                "ZeroLagHorizonController",
-                "build_draft_l78_k110419",
-                "load_dspine_ops",
-            ):
-                setattr(mod, attr, object)
-        elif mod_name == "tilert.models.glm_5_2_ascend.dspine.tp_drafter":
-            mod.capture_shared_target_for_width = lambda *_a, **_k: None
-        elif mod_name == "tilert.models.glm_5_2_ascend.tp_runtime":
-            mod.TorchControlChannel = object
-        elif mod_name == "tilert.pd_vllm.ascend_cache":
-            mod.FullRankPrefix = object
-        monkeypatch.setitem(sys.modules, mod_name, mod)
+    if "torch" not in sys.modules:
+        fake_torch = ModuleType("torch")
+        fake_torch.__file__ = "/opt/fake_site/torch/__init__.py"
+        fake_torch.Tensor = object
+        fake_torch.bfloat16 = "bf16"
+        fake_torch.float16 = "f16"
+        fake_torch.float32 = "f32"
+        fake_torch.int8 = "i8"
+        fake_torch.int32 = "i32"
+        fake_torch.int64 = "i64"
+        fake_torch.uint8 = "u8"
+        fake_torch.nn = SimpleNamespace(Module=object)
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
 
-    run_m1 = importlib.import_module("tests.glm52.run_m1_case01")
-    run_m1 = importlib.reload(run_m1)
+    run_m2 = importlib.import_module("tests.glm52.run_m2_case01")
+    assert run_m2.loaded_modules_has_vllm() is False
     default_dir = tmp_path / "default_builds"
     monkeypatch.setenv("TILERT_BUILD_DIR", str(default_dir))
     calls: list[tuple[object, bool, bool]] = []
 
     def fake_build_chain(*, out_dir=None, union_sfa=False, enable_kernel_prof=False):
         calls.append((out_dir, union_sfa, enable_kernel_prof))
-        target_dir = default_dir / "prof" if (out_dir is None and enable_kernel_prof) else (
-            default_dir if out_dir is None else Path(out_dir)
+        target_dir = (
+            default_dir / "prof"
+            if (out_dir is None and enable_kernel_prof)
+            else (default_dir if out_dir is None else Path(out_dir))
         )
         target_dir.mkdir(parents=True, exist_ok=True)
         so_p = target_dir / "chain.so"
@@ -731,21 +681,33 @@ def test_prepare_whole_layer_json_prof_isolation(
         man_p.write_text("{}", encoding="utf-8")
         return so_p, man_p
 
-    monkeypatch.setattr(run_m1, "build_chain", fake_build_chain)
+    dspine_pkg = importlib.import_module("tilert.models.glm_5_2_ascend.dspine")
+    ops_mod = importlib.import_module("tilert.models.glm_5_2_ascend.dspine.build_dspine_ops")
+    monkeypatch.setattr(bm, "build_chain", fake_build_chain)
+    monkeypatch.setattr(ops_mod, "build_dspine_ops", lambda out: (Path(out) / "op.so", None))
+    monkeypatch.setattr(
+        dspine_pkg,
+        "build_draft_l78_k110419",
+        lambda out_dir=None, k_sfa=1024: (Path(out_dir) / "k19.so", Path(out_dir) / "k20.so"),
+    )
+
     wl_base = tmp_path / "base.json"
     wl_base.write_text(json.dumps({"tree": "orig"}) + "\n", encoding="utf-8")
     args = SimpleNamespace(
         build_dir=None,
         union_sfa=False,
         enable_kernel_prof=True,
+        whole_layer_json=None,
         whole_layer_base=str(wl_base),
+        k_sfa=1024,
     )
-    wl_json, ops_dir, l78_dir, ready = run_m1._prepare_whole_layer_json(args, rank=0)
+    build_dir, wl_json, ops_dir, l78_dir = run_m2._prepare_build_artifacts(args, rank=0)
     assert calls == [(None, False, True)]
+    assert build_dir == default_dir / "prof"
     assert wl_json == default_dir / "prof" / "whole_layer.json"
     assert ops_dir == default_dir / "prof" / "dspine_ops"
     assert l78_dir == default_dir / "prof" / "dspine_l78"
-    assert ready.exists()
+    assert (build_dir / "whole_layer.ready").exists()
     assert not (default_dir / "chain.so").exists()
     assert json.loads(wl_json.read_text(encoding="utf-8"))["tree"] == str(
         default_dir / "prof" / "chain.so"
@@ -756,10 +718,149 @@ def test_m21_build_decoupling_python_hygiene() -> None:
     verify_python_source_hygiene(
         [
             REPO_ROOT / "tilert/models/glm_5_2_ascend/ops/build_megakernel.py",
-            REPO_ROOT / "tilert/models/glm_5_2_ascend/whole_layer.py",
+            REPO_ROOT / "tilert/models/glm_5_2_ascend/abi.py",
             REPO_ROOT / "tilert/models/glm_5_2_ascend/dspine/calibrated_l78.py",
             REPO_ROOT / "tilert/models/glm_5_2_ascend/dspine/tp_drafter.py",
+            REPO_ROOT / "tests/glm52/run_m2_case01.py",
             Path(__file__),
         ],
         max_line_length=100,
     )
+
+
+def test_run_m2_case01_emits_valid_m2_report_schema(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from tests.glm52.e2e_tp8_ep8.a3_runner import (
+        _accepted_schedule_for_case,
+        _build_round_traces,
+        build_synthetic_cache_state,
+    )
+    from tests.glm52.e2e_tp8_ep8.contracts import GOLDEN_CASES
+    from tests.glm52.e2e_tp8_ep8.hygiene_gate import allocate_isolation_env
+    from tests.glm52.e2e_tp8_ep8.parity_gate import verify_e2e_run
+
+    run_m2 = importlib.import_module("tests.glm52.run_m2_case01")
+    spec = GOLDEN_CASES["case-01-coding"]
+    case_dir = REPO_ROOT / "tests/glm52/megakernel_tp8_ep8/case-01-coding"
+    bench_tokens = json.loads((case_dir / "bench_result.json").read_text())["output_token_ids"]
+    acc = _accepted_schedule_for_case("case-01-coding")
+    traces, w_hist = _build_round_traces("case-01-coding", acc, width=16, min_w_act=10)
+    main_state = build_synthetic_cache_state("case-01-coding", 78, "main")
+    draft_state = build_synthetic_cache_state("case-01-coding", 1, "draft")
+
+    run_id = "m22_unit_case01"
+    iso = allocate_isolation_env(run_id, port_base=31300)
+    for key, val in iso.items():
+        monkeypatch.setenv(key, val)
+    monkeypatch.setenv("HCCL_DETERMINISTIC", "true")
+    monkeypatch.setenv("HCCL_OP_EXPANSION_MODE", "AIV")
+
+    report_dir = tmp_path / "m2_report"
+    report_dir.mkdir()
+    trials = []
+    for idx in range(7):
+        rdts = [5.5 * 1023.0 - r * 2.0 for r in range(8)]
+        trials.append(
+            {
+                "trial_idx": idx,
+                "is_warmup": idx < 2,
+                "arm": "candidate",
+                "rank_dt_ms": rdts,
+                "max_tpot_ms": max(rdts) / 1023.0,
+                "rounds": len(acc),
+                "accepted_per_round": list(acc),
+                "mean_accepted": 1023.0 / len(acc),
+                "first_token_id": spec.first_token_id,
+                "output_token_ids": list(bench_tokens),
+                "output_sha256": spec.output_sha256,
+                "eos_drained_cleanly": True,
+            }
+        )
+
+    ranks_manifest = []
+    last_res = None
+    for rank in range(8):
+        dt = float(trials[-1]["rank_dt_ms"][rank])
+        res = {
+            "rank": rank,
+            "world_size": 8,
+            "case_id": "case-01-coding",
+            "prompt_sha256": spec.prompt_sha256,
+            "first_token_id": spec.first_token_id,
+            "output_token_ids": list(bench_tokens),
+            "output_sha256": spec.output_sha256,
+            "rounds": len(acc),
+            "accepted_per_round": list(acc),
+            "horizon_levels": [int(t["horizon_level"]) for t in traces],
+            "dt_ms": dt,
+            "tpot_ms": dt / 1023.0,
+            "main_state": main_state,
+            "draft_state": draft_state,
+            "serial_draft_match": True,
+            "runtime_invariants": {
+                "w_act_min": 10,
+                "w_act_max": max(w_hist),
+                "w_act_history": w_hist,
+                "collective_split_max_rows": 16,
+                "l78_gemm_chunk_max_rows": 8,
+                "in_flight_depth": 2,
+                "draft_sfa_topk": 1024,
+                "target_sfa_topk": 2048,
+            },
+            "round_traces": traces,
+            "trials": trials,
+            "warmups_ms": [t["max_tpot_ms"] for t in trials[:2]],
+            "formal_ms": [t["max_tpot_ms"] for t in trials[2:]],
+            "median_tpot_ms": trials[-1]["max_tpot_ms"],
+            "min_tpot_ms": trials[-1]["max_tpot_ms"],
+            "p90_tpot_ms": trials[-1]["max_tpot_ms"],
+            "all_ranks_target_exact": True,
+            "all_ranks_cache_parity": True,
+            "loaded_modules_has_vllm": False,
+            "compiled_so_dir": f"/dev/shm/{run_id}/builds",
+            "head_warmed": True,
+            "head_execution_before_timing": {
+                "wrapped": False,
+                "active_graph_width": 16,
+                "graph_widths": [16],
+            },
+            "draft_head_distinct_from_lm_head": True,
+        }
+        if rank == 0:
+            last_res = res
+        rf = report_dir / f"rank-{rank}.json"
+        rf.write_text(
+            json.dumps(run_m2.build_rank_report(res, "case-01-coding")) + "\n",
+            encoding="utf-8",
+        )
+        ranks_manifest.append(
+            {
+                "rank": rank,
+                "report_path": rf.name,
+                "report_sha256": hashlib.sha256(rf.read_bytes()).hexdigest(),
+            }
+        )
+
+    assert last_res is not None
+    e2e = run_m2.build_e2e_report(
+        last_res,
+        case_id="case-01-coding",
+        milestone="M2",
+        width=16,
+        warmups=2,
+        formals=5,
+        ranks_manifest=ranks_manifest,
+        run_id=run_id,
+    )
+    (report_dir / "e2e_result.json").write_text(json.dumps(e2e, indent=2) + "\n", encoding="utf-8")
+    verified = verify_e2e_run(
+        report_dir,
+        case_dir,
+        max_tpot_ms=6.0,
+        require_warm_head=True,
+        milestone="M2",
+    )
+    assert verified["milestone"] == "M2"
+    assert verified["median_tpot_ms"] < 6.0

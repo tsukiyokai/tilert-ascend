@@ -438,6 +438,7 @@ def test_formal_e2e_package_intact() -> None:
             REPO_ROOT / "tests/glm52/a3_container.py",
             REPO_ROOT / "tests/glm52/warm_worker.py",
             REPO_ROOT / "tests/glm52/run_m1_case01.py",
+            REPO_ROOT / "tests/glm52/run_m2_case01.py",
             Path(__file__),
         ],
         max_line_length=100,
@@ -621,3 +622,50 @@ def test_a3_container_exclude_forbidden_and_ssh_key_fallback(
     pw_cmd, pw_env = ac._ssh_base_cmd("7.150.10.158")
     assert pw_cmd[0] == "sshpass"
     assert pw_env is not None and pw_env["SSHPASS"] == "pw"
+
+
+def test_a3_container_8_15_logical_devices_prestage_and_shmem_helper(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from tests.glm52.e2e_tp8_ep8.hygiene_gate import allocate_isolation_env
+
+    iso_8_15 = allocate_isolation_env(
+        "run_test_815",
+        port_base=31000,
+        target_host="7.150.9.184",
+        visible_devices=range(8, 16),
+    )
+    assert iso_8_15["ASCEND_RT_VISIBLE_DEVICES"] == "8,9,10,11,12,13,14,15"
+    env_sh = ac.build_container_env_script(iso_8_15)
+    assert "export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3,4,5,6,7" in env_sh
+    assert "export TILERT_HOST_VISIBLE_DEVICES=8,9,10,11,12,13,14,15" in env_sh
+
+    shmem_script = ac.build_shmem_libs_script()
+    assert "libtp_push_kernel.so" in shmem_script
+    assert "tilert_shmem_bf16.so" in shmem_script
+    assert "-Daclshmemx_sync_vec_all=aclshmemx_barrier_all_vec" in shmem_script
+
+    fake_out = json.dumps(
+        {
+            "model": "/dev/shm/glm52_shared_ro/GLM-5.2-w4a8c8",
+            "mounts": [
+                [
+                    "/dev/shm/glm52_shared_ro/dspine-glm52/checkpoints/cal_l78_v3_hybrid_best.pt",
+                    "/prestage/cal_l78_v3_hybrid_best.pt",
+                ]
+            ],
+        }
+    ).encode("utf-8")
+    monkeypatch.setattr(
+        ac,
+        "remote_ssh",
+        lambda *_a, **_kw: SimpleNamespace(returncode=0, stdout=fake_out, stderr=b""),
+    )
+    model_path, mounts = ac._detect_remote_prestage_mounts("7.150.9.184")
+    assert model_path == "/dev/shm/glm52_shared_ro/GLM-5.2-w4a8c8"
+    assert mounts == [
+        (
+            "/dev/shm/glm52_shared_ro/dspine-glm52/checkpoints/cal_l78_v3_hybrid_best.pt",
+            "/prestage/cal_l78_v3_hybrid_best.pt",
+        )
+    ]

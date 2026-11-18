@@ -116,7 +116,7 @@ at::Tensor OneSidedAllReduceOut(const at::Tensor& partial, at::Tensor& out) {
     const int stage = (dtype == at::kBFloat16) ? 10 : 0;
     const int round = state.round++;
     const int32_t* act_ptr =
-        (numel == 196608) ? state.active_shmem_ptr : nullptr;
+        (numel == 196608 || numel == 98304) ? state.active_shmem_ptr : nullptr;
     tp_push_demo(kDefaultBlocks, stream, state.ffts,
                  reinterpret_cast<float*>(partial.data_ptr()),
                  reinterpret_cast<float*>(out.data_ptr()), state.window,
@@ -127,6 +127,73 @@ at::Tensor OneSidedAllReduceOut(const at::Tensor& partial, at::Tensor& out) {
 
 at::Tensor OneSidedAllReduceOutMeta(const at::Tensor& partial,
                                     at::Tensor& out) {
+    return out;
+}
+
+at::Tensor OneSidedAllReduceOutGuarded(const at::Tensor& partial,
+                                       at::Tensor& out,
+                                       const at::Tensor& active_rows) {
+    TORCH_CHECK(partial.device().type() == c10::DeviceType::PrivateUse1 &&
+                    out.device().type() == c10::DeviceType::PrivateUse1 &&
+                    active_rows.device().type() == c10::DeviceType::PrivateUse1,
+                "onesided_all_reduce_out_guarded requires NPU tensors");
+    TORCH_CHECK(partial.is_contiguous() && out.is_contiguous() && active_rows.is_contiguous(),
+                "onesided_all_reduce_out_guarded requires contiguous tensors");
+    const auto dtype = partial.scalar_type();
+    TORCH_CHECK(dtype == at::kBFloat16 && out.scalar_type() == dtype &&
+                    out.numel() == partial.numel(),
+                "onesided_all_reduce_out_guarded requires matching BFloat16 tensors");
+    const int64_t numel = partial.numel();
+    TORCH_CHECK(numel > 0 && numel % 6144 == 0,
+                "onesided_all_reduce_out_guarded requires numel % 6144 == 0");
+    const c10::OptionalDeviceGuard device_guard(partial.device());
+    auto& state = GetState();
+    state.Ensure(numel);
+    void* stream = c10_npu::getCurrentNPUStream().stream(true);
+    const int round = state.round++;
+    const int rows = static_cast<int>(numel / 6144);
+    tp_push_demo(kDefaultBlocks, stream, state.ffts,
+                 reinterpret_cast<float*>(partial.data_ptr()),
+                 reinterpret_cast<float*>(out.data_ptr()), state.window,
+                 state.errors, rows, 6144, 1, round, 10,
+                 reinterpret_cast<const int32_t*>(active_rows.data_ptr()));
+    return out;
+}
+
+at::Tensor OneSidedAllReduceOutGuardedMeta(const at::Tensor& partial,
+                                           at::Tensor& out,
+                                           const at::Tensor& active_rows) {
+    return out;
+}
+
+at::Tensor OneSidedGatherF32Guarded(const at::Tensor& partial,
+                                    at::Tensor& out,
+                                    const at::Tensor& active_rows) {
+    TORCH_CHECK(partial.device().type() == c10::DeviceType::PrivateUse1 &&
+                    out.device().type() == c10::DeviceType::PrivateUse1 &&
+                    active_rows.device().type() == c10::DeviceType::PrivateUse1,
+                "onesided_gather_f32_guarded requires NPU tensors");
+    TORCH_CHECK(partial.is_contiguous() && out.is_contiguous() && active_rows.is_contiguous(),
+                "onesided_gather_f32_guarded requires contiguous tensors");
+    TORCH_CHECK(partial.scalar_type() == at::kFloat && out.scalar_type() == at::kFloat &&
+                    partial.numel() == 512 && out.numel() == 512,
+                "onesided_gather_f32_guarded requires 512 float32 tensors");
+    const c10::OptionalDeviceGuard device_guard(partial.device());
+    auto& state = GetState();
+    state.Ensure(196608);
+    void* stream = c10_npu::getCurrentNPUStream().stream(true);
+    const int round = state.round++;
+    tp_push_demo(kDefaultBlocks, stream, state.ffts,
+                 reinterpret_cast<float*>(partial.data_ptr()),
+                 reinterpret_cast<float*>(out.data_ptr()), state.window,
+                 state.errors, 8, 64, 1, round, 18,
+                 reinterpret_cast<const int32_t*>(active_rows.data_ptr()));
+    return out;
+}
+
+at::Tensor OneSidedGatherF32GuardedMeta(const at::Tensor& partial,
+                                        at::Tensor& out,
+                                        const at::Tensor& active_rows) {
     return out;
 }
 
@@ -169,7 +236,7 @@ at::Tensor OneSidedAllReduceScaleAdd(const at::Tensor& partial,
         ? 17
         : ((routed_numel == numel) ? 16 : 15);
     const int32_t* act_ptr =
-        (numel == 196608) ? state.active_shmem_ptr : nullptr;
+        (numel == 196608 || numel == 98304) ? state.active_shmem_ptr : nullptr;
     tp_push_demo(kDefaultBlocks, stream, state.ffts,
                  reinterpret_cast<float*>(partial.data_ptr()),
                  reinterpret_cast<float*>(out.data_ptr()), state.window,
@@ -204,7 +271,7 @@ at::Tensor OneSidedTopTokens(const at::Tensor& local_max,
     auto out = at::empty_like(local_idx);
     void* stream = c10_npu::getCurrentNPUStream().stream(true);
     const int round = state.round++;
-    const int32_t* act_ptr = (rows == 32) ? state.active_shmem_ptr : nullptr;
+    const int32_t* act_ptr = (rows == 32 || rows == 16) ? state.active_shmem_ptr : nullptr;
     tp_push_demo(kDefaultBlocks, stream, state.ffts,
                  reinterpret_cast<float*>(local_max.data_ptr()),
                  reinterpret_cast<float*>(out.data_ptr()), state.window,
@@ -418,7 +485,7 @@ OneSidedAllReduceRmsNormQuant(const at::Tensor& partial, at::Tensor& out,
         routed_ptr = reinterpret_cast<int32_t*>(routed->data_ptr());
     }
     const int32_t* act_ptr =
-        (numel == 196608) ? state.active_shmem_ptr : nullptr;
+        (numel == 196608 || numel == 98304) ? state.active_shmem_ptr : nullptr;
     at::Tensor norm_out = at::empty_like(residual);
     at::Tensor res_out = at::empty_like(residual);
     at::Tensor quant_out = need_quant
@@ -464,11 +531,17 @@ OneSidedAllReduceRmsNormQuantMeta(const at::Tensor& partial, at::Tensor& out,
     return {norm_out, res_out, quant_out, scale_out};
 }
 
-}  // namespace
+}
 
 TORCH_LIBRARY_FRAGMENT(tilert, m) {
     m.def("onesided_all_reduce(Tensor partial) -> Tensor");
     m.def("onesided_all_reduce_out(Tensor partial, Tensor(a!) out) -> Tensor(a!)");
+    m.def(
+        "onesided_all_reduce_out_guarded(Tensor partial, Tensor(a!) out, "
+        "Tensor active_rows) -> Tensor(a!)");
+    m.def(
+        "onesided_gather_f32_guarded(Tensor partial, Tensor(a!) out, "
+        "Tensor active_rows) -> Tensor(a!)");
     m.def(
         "onesided_all_reduce_scale_add(Tensor partial, Tensor routed, float scale) -> Tensor");
     m.def(
@@ -490,6 +563,8 @@ TORCH_LIBRARY_FRAGMENT(tilert, m) {
 TORCH_LIBRARY_IMPL(tilert, PrivateUse1, m) {
     m.impl("onesided_all_reduce", &OneSidedAllReduce);
     m.impl("onesided_all_reduce_out", &OneSidedAllReduceOut);
+    m.impl("onesided_all_reduce_out_guarded", &OneSidedAllReduceOutGuarded);
+    m.impl("onesided_gather_f32_guarded", &OneSidedGatherF32Guarded);
     m.impl("onesided_all_reduce_scale_add", &OneSidedAllReduceScaleAdd);
     m.impl("onesided_all_reduce_rmsnorm_quant", &OneSidedAllReduceRmsNormQuant);
     m.impl("onesided_top_tokens", &OneSidedTopTokens);
@@ -503,6 +578,8 @@ TORCH_LIBRARY_IMPL(tilert, PrivateUse1, m) {
 TORCH_LIBRARY_IMPL(tilert, Meta, m) {
     m.impl("onesided_all_reduce", &OneSidedAllReduceMeta);
     m.impl("onesided_all_reduce_out", &OneSidedAllReduceOutMeta);
+    m.impl("onesided_all_reduce_out_guarded", &OneSidedAllReduceOutGuardedMeta);
+    m.impl("onesided_gather_f32_guarded", &OneSidedGatherF32GuardedMeta);
     m.impl("onesided_all_reduce_scale_add", &OneSidedAllReduceScaleAddMeta);
     m.impl("onesided_all_reduce_rmsnorm_quant", &OneSidedAllReduceRmsNormQuantMeta);
     m.impl("onesided_top_tokens", &OneSidedTopTokensMeta);
