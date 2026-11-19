@@ -195,6 +195,19 @@ class Glm52AscendShowHands:
         self.head_warmed = False
         self.head_execution_before_timing: dict[str, Any] = {}
 
+    @property
+    def kernel_prof_enabled(self) -> bool:
+        from .abi import kernel_prof_enabled
+
+        if self.libraries is None:
+            return False
+        return kernel_prof_enabled(self.libraries.tree_manifest())
+
+    def capture_prof_acc(self, *, sync: bool = True, cpu: bool = True):
+        if self.prepared_chain is None:
+            raise RuntimeError("Call load() before capture_prof_acc()")
+        return self.prepared_chain.capture_prof_acc(sync=sync, cpu=cpu)
+
     def _resolve_libraries(self):
         from .abi import Libraries
 
@@ -847,6 +860,9 @@ class Glm52AscendShowHands:
             )
 
         last = samples[-1]
+        kernel_prof_acc = (
+            self.capture_prof_acc().tolist() if self.kernel_prof_enabled else None
+        )
         warm_ms = [t["max_tpot_ms"] for t in trials[:warmups]]
         form_raw = [t["max_tpot_ms"] for t in trials[warmups:]]
         form_sorted = sorted(form_raw)
@@ -938,6 +954,12 @@ class Glm52AscendShowHands:
             or m.startswith("tilert.pd_vllm.")
             for m in sys.modules
         )
+        draft_head_distinct = bool(
+            self.arena is not None
+            and self.arena.draft is not None
+            and self.arena.draft.head_w_shard.data_ptr() != self.arena.lm_head_w.data_ptr()
+            and not torch.equal(self.arena.draft.head_w_shard, self.arena.lm_head_w)
+        )
         return {
             "rank": self.rank,
             "world_size": self.world_size,
@@ -975,7 +997,8 @@ class Glm52AscendShowHands:
             "head_warmed": bool(self.head_warmed),
             "head_execution_before_timing": dict(self.head_execution_before_timing),
             "eos_drained_cleanly": bool(last["eos_drained_cleanly"]),
-            "draft_head_distinct_from_lm_head": True,
+            "draft_head_distinct_from_lm_head": draft_head_distinct,
+            "kernel_prof_acc": kernel_prof_acc,
         }
 
     def close(self) -> None:

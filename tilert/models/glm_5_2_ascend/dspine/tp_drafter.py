@@ -475,6 +475,9 @@ class CalibratedL78V3Runner:
             dtype=torch.int64,
         )
         self.step_qlen_ptrs_dev[: self.max_steps].copy_(sqp_cpu.to(dev))
+        self.compact_stream = torch.npu.Stream(device=dev)
+        self._ev_cmp_fork = torch.npu.Event(enable_timing=False)
+        self._ev_cmp_join = torch.npu.Event(enable_timing=False)
 
     def _alloc_bytes(self, nbytes: int, align: int, *, zero: bool = True):
         raw, view = _alloc_aligned(nbytes, align, self.dev, zero=zero)
@@ -1033,20 +1036,26 @@ class CalibratedL78V3Runner:
         cm = self.COMMIT_M
         ekv = self.entry_kv_commit
         e1 = self.entry_cal_idx_1
-        stream_ptr = ctypes.c_void_p(torch.npu.current_stream(self.dev).npu_stream)
+        main_stream = torch.npu.current_stream(self.dev)
+        stream_ptr = ctypes.c_void_p(main_stream.npu_stream)
         flushed = self.wt.ops.tilert_get_flushed_stream
         sin_ptr = self.arena.sin_cache.data_ptr()
         cos_ptr = self.arena.cos_cache.data_ptr()
 
         if include_compact:
-            st = self.wt.ops.tilert_kv_compact_launch(
-                stream_ptr,
-                self.prefix.descs_dev.data_ptr(),
-                self.compact_ctrl_dev.data_ptr(),
-                self.prefix.num_cache_tensors,
-            )
+            self._ev_cmp_fork.record(main_stream)
+            self.compact_stream.wait_event(self._ev_cmp_fork)
+            with torch.npu.stream(self.compact_stream):
+                cmp_ptr = ctypes.c_void_p(self.compact_stream.npu_stream)
+                st = self.wt.ops.tilert_kv_compact_launch(
+                    cmp_ptr,
+                    self.prefix.descs_dev.data_ptr(),
+                    self.compact_ctrl_dev.data_ptr(),
+                    self.prefix.num_cache_tensors,
+                )
             if st != 0:
                 raise RuntimeError(f"kv_compact failed: {st}")
+            self._ev_cmp_join.record(self.compact_stream)
 
         self.commit_ttoks_pad32[: self.w].copy_(self.st["target_tokens"][: self.w])
         row_idx = self.commit_ctrl_dev[3 : 3 + cm]
@@ -1120,6 +1129,8 @@ class CalibratedL78V3Runner:
         if st != 0:
             raise RuntimeError(f"prep_commit_seed_v3 failed: {st}")
 
+        if include_compact:
+            main_stream.wait_event(self._ev_cmp_join)
         st_ekv = ekv.fn(
             flushed(),
             ctypes.c_uint64(ekv.local.sync),

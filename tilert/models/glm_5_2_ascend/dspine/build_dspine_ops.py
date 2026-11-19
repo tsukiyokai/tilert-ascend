@@ -30,7 +30,10 @@ ASC_SUBDIRS = (
     "tikcpp/tikcfw/interface",
 )
 
-KERNEL_CPP = """#include "kernel_operator.h"
+KERNEL_CPP = """#if defined(__CCE_AICORE__) && !defined(__NPU_DEVICE__)
+#define __NPU_DEVICE__ 1
+#endif
+#include "kernel_operator.h"
 
 namespace dspine_ops {
 using namespace AscendC;
@@ -1846,6 +1849,7 @@ __aicore__ inline void RunPrologPrepareMeta(
         for (int32_t s = 0; s < max_steps; ++s) {
             if (step_qlen_gm != 0ULL) {
                 s_ql[s] = 0;
+                s_ql[16 + s] = 0;
             }
             if (step_qlen_ptrs_gm != 0ULL && s_ptrs[s] != 0ULL) {
                 *reinterpret_cast<__gm__ int32_t*>(s_ptrs[s]) = 0;
@@ -1909,6 +1913,7 @@ __aicore__ inline void RunPrologPrepareMeta(
                     ? static_cast<int32_t>(s_tbl[tbl_off + 2 + s]) : 0;
                 if (step_qlen_gm != 0ULL) {
                     s_ql[s] = val;
+                    s_ql[16 + s] = val * 2;
                 }
                 if (step_qlen_ptrs_gm != 0ULL && s_ptrs[s] != 0ULL) {
                     *reinterpret_cast<__gm__ int32_t*>(s_ptrs[s]) = val;
@@ -1937,7 +1942,7 @@ __aicore__ inline void RunPrologPrepareMeta(
         DcciRange(mc2_mask_gm, width);
     }
     if (step_qlen_gm != 0ULL && max_steps > 0) {
-        DcciRange(step_qlen_gm, max_steps * 4);
+        DcciRange(step_qlen_gm, (16 + max_steps) * 4);
     }
     if (receipt_ring_gm != 0ULL) {
         DcciRange(receipt_ring_gm, 256);
@@ -2826,13 +2831,13 @@ __aicore__ inline void RunPrologPackCompact(
 
 }
 
-extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
 void dspine_prolog_pack_k(
     uint64_t ctrl_gm, uint64_t target_toks_gm, uint64_t emb_w_gm,
     uint64_t rot_part_gm, uint64_t comm_in_gm,
     int32_t m_max, int32_t vocab_start, int32_t vocab_end, int32_t rank)
 {
-    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
     AscendC::InitSocState();
     AscendC::TPipe pipe;
     dspine_ops::RunPrologPack(
@@ -2840,7 +2845,7 @@ void dspine_prolog_pack_k(
         m_max, vocab_start, vocab_end, rank);
 }
 
-extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
 void dspine_prep_commit_seed_v3_k(
     uint64_t ctrl_gm,
     uint64_t hs_all_gm,
@@ -2860,7 +2865,7 @@ void dspine_prep_commit_seed_v3_k(
     uint64_t seed_kvlen_gm,
     int32_t kv_m_cap)
 {
-    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
     AscendC::InitSocState();
     AscendC::TPipe pipe;
     dspine_ops::RunPrepCommitSeedV3(
@@ -2870,7 +2875,7 @@ void dspine_prep_commit_seed_v3_k(
         kv_m_cap);
 }
 
-extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
 void dspine_beam_step_v3_k(
     uint64_t sync_base,
     int32_t step,
@@ -2910,7 +2915,7 @@ void dspine_beam_step_v3_k(
     uint64_t eshr_kvlen_gm,
     uint64_t work_gm)
 {
-    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
     AscendC::InitSocState();
     AscendC::SetSyncBaseAddr(sync_base);
     AscendC::TPipe pipe;
@@ -2926,7 +2931,7 @@ void dspine_beam_step_v3_k(
         work_gm);
 }
 
-extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
 void dspine_build_tree_v3_k(
     uint64_t sync_base,
     int32_t width,
@@ -2959,7 +2964,7 @@ void dspine_build_tree_v3_k(
     uint64_t rope_dsts_gm,
     uint64_t work_gm)
 {
-    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
     AscendC::InitSocState();
     AscendC::SetSyncBaseAddr(sync_base);
     AscendC::TPipe pipe;
@@ -2977,7 +2982,7 @@ extern "C" int tilert_dspine_prolog_pack_raw(
     uint64_t rot_part_gm, uint64_t comm_in_gm,
     int32_t m_max, int32_t vocab_start, int32_t vocab_end, int32_t rank)
 {
-    dspine_prolog_pack_k<<<24, nullptr, stream>>>(
+    dspine_prolog_pack_k<<<48, nullptr, stream>>>(
         ctrl_gm, target_toks_gm, emb_w_gm, rot_part_gm, comm_in_gm,
         m_max, vocab_start, vocab_end, rank);
     return 0;
@@ -3003,7 +3008,7 @@ extern "C" int tilert_dspine_prep_commit_seed_v3_raw(
     uint64_t seed_kvlen_gm,
     int32_t kv_m_cap)
 {
-    dspine_prep_commit_seed_v3_k<<<24, nullptr, stream>>>(
+    dspine_prep_commit_seed_v3_k<<<48, nullptr, stream>>>(
         ctrl_gm, hs_all_gm, sin_cache_gm, cos_cache_gm,
         kv_hs_gm, kv_sin_gm, kv_cos_gm, kv_slot_gm, kv_qlen_gm, kv_kvlen_gm,
         seed_hs_gm, seed_sin_gm, seed_cos_gm, seed_slot_gm, seed_qlen_gm, seed_kvlen_gm,
@@ -3051,7 +3056,7 @@ extern "C" int tilert_dspine_beam_step_v3_raw(
     uint64_t eshr_kvlen_gm,
     uint64_t work_gm)
 {
-    dspine_beam_step_v3_k<<<24, nullptr, stream>>>(
+    dspine_beam_step_v3_k<<<48, nullptr, stream>>>(
         sync_base, step, b_cur, k_expand, k_topk, b_next, pool_off, k_sfa, next_slot_cur,
         beta_margin, beta_depth,
         gather_out_gm, draft_ctrl_gm, seed_top_i_gm, seed_top_lp_gm, seed_rec_gm,
@@ -3097,7 +3102,7 @@ extern "C" int tilert_dspine_build_tree_v3_raw(
     uint64_t rope_dsts_gm,
     uint64_t work_gm)
 {
-    dspine_build_tree_v3_k<<<24, nullptr, stream>>>(
+    dspine_build_tree_v3_k<<<48, nullptr, stream>>>(
         sync_base, width, min_w_act, pool_size, num_seq_ptrs, num_q_ptrs, num_rope_dsts,
         t_base_ms, c_w_ms, draft_ctrl_gm,
         pool_scores_gm, pool_raw_lp_gm, pool_tokens_gm, pool_parents_gm, pool_depths_gm,
@@ -3107,22 +3112,22 @@ extern "C" int tilert_dspine_build_tree_v3_raw(
     return 0;
 }
 
-extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
 void step3c_kv_compact_k(uint64_t descs_gm, uint64_t ctrl_gm, int32_t num_tensors)
 {
-    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
     AscendC::InitSocState();
     AscendC::TPipe pipe;
     dspine_ops::RunKvCompact(pipe, descs_gm, ctrl_gm, num_tensors);
 }
 
-extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
 void step3c_prolog_pack_k(
     uint64_t active_toks_gm, uint64_t emb_w_gm, uint64_t rot_part_gm,
     uint64_t rot_bias_gm, uint64_t comm_in_gm,
     int32_t b_rows, int32_t vocab_start, int32_t vocab_end, int32_t rank)
 {
-    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
     AscendC::InitSocState();
     AscendC::TPipe pipe;
     dspine_ops::RunStep3cPrologPack(
@@ -3130,25 +3135,25 @@ void step3c_prolog_pack_k(
         b_rows, vocab_start, vocab_end, rank);
 }
 
-extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
 void step3c_dual_rmsnorm_slice_k(
     uint64_t comm_out_gm, uint64_t enorm_w_gm, uint64_t hnorm_w_gm,
     uint64_t eh_in_gm, int32_t b_rows, int32_t rank, float eps)
 {
-    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
     AscendC::InitSocState();
     AscendC::TPipe pipe;
     dspine_ops::RunStep3cDualRmsNormSlice(
         pipe, comm_out_gm, enorm_w_gm, hnorm_w_gm, eh_in_gm, b_rows, rank, eps);
 }
 
-extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
 void step3c_logits_topk_lse_bf16_k(
     uint64_t sync_base, uint64_t logits_gm, uint64_t work_gm, uint64_t gather_in_gm,
     int32_t m_rows, int32_t row_stride, int32_t valid_vocab, int32_t vocab_start,
     int32_t k, int32_t rank)
 {
-    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
     AscendC::InitSocState();
     AscendC::SetSyncBaseAddr(sync_base);
     AscendC::TPipe pipe;
@@ -3160,7 +3165,7 @@ void step3c_logits_topk_lse_bf16_k(
 extern "C" int tilert_kv_compact_raw(
     void* stream, uint64_t descs_gm, uint64_t ctrl_gm, int32_t num_tensors)
 {
-    step3c_kv_compact_k<<<24, nullptr, stream>>>(descs_gm, ctrl_gm, num_tensors);
+    step3c_kv_compact_k<<<48, nullptr, stream>>>(descs_gm, ctrl_gm, num_tensors);
     return 0;
 }
 
@@ -3169,7 +3174,7 @@ extern "C" int tilert_prolog_pack_raw(
     uint64_t rot_bias_gm, uint64_t comm_in_gm,
     int32_t b_rows, int32_t vocab_start, int32_t vocab_end, int32_t rank)
 {
-    step3c_prolog_pack_k<<<24, nullptr, stream>>>(
+    step3c_prolog_pack_k<<<48, nullptr, stream>>>(
         active_toks_gm, emb_w_gm, rot_part_gm, rot_bias_gm, comm_in_gm,
         b_rows, vocab_start, vocab_end, rank);
     return 0;
@@ -3179,7 +3184,7 @@ extern "C" int tilert_dual_rmsnorm_slice_raw(
     void* stream, uint64_t comm_out_gm, uint64_t enorm_w_gm, uint64_t hnorm_w_gm,
     uint64_t eh_in_gm, int32_t b_rows, int32_t rank, float eps)
 {
-    step3c_dual_rmsnorm_slice_k<<<24, nullptr, stream>>>(
+    step3c_dual_rmsnorm_slice_k<<<48, nullptr, stream>>>(
         comm_out_gm, enorm_w_gm, hnorm_w_gm, eh_in_gm, b_rows, rank, eps);
     return 0;
 }
@@ -3189,13 +3194,13 @@ extern "C" int tilert_logits_topk_lse_bf16_raw(
     int32_t m_rows, int32_t row_stride, int32_t valid_vocab, int32_t vocab_start,
     int32_t k, int32_t rank)
 {
-    step3c_logits_topk_lse_bf16_k<<<24, nullptr, stream>>>(
+    step3c_logits_topk_lse_bf16_k<<<48, nullptr, stream>>>(
         sync_base, logits_gm, work_gm, gather_in_gm,
         m_rows, row_stride, valid_vocab, vocab_start, k, rank);
     return 0;
 }
 
-extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
 void dspine_prolog_prepare_meta_k(
     uint64_t state_gm,
     uint64_t draft_ctrl_gm,
@@ -3211,7 +3216,7 @@ void dspine_prolog_prepare_meta_k(
     int32_t width,
     int32_t max_steps)
 {
-    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
     AscendC::InitSocState();
     dspine_ops::RunPrologPrepareMeta(
         state_gm, draft_ctrl_gm, compact_ctrl_gm, commit_ctrl_gm,
@@ -3219,7 +3224,7 @@ void dspine_prolog_prepare_meta_k(
         step_table_gm, receipt_ring_gm, commit_qlen_ptrs_gm, width, max_steps);
 }
 
-extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
 void dspine_resolve_and_advance_k(
     uint64_t state_gm,
     uint64_t dyn_w_gm,
@@ -3244,7 +3249,7 @@ void dspine_resolve_and_advance_k(
     int32_t jump_acc,
     int32_t num_levels)
 {
-    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
     AscendC::InitSocState();
     dspine_ops::RunResolveAndAdvance(
         state_gm, dyn_w_gm, tree_tokens_gm, tree_parents_gm, target_tokens_gm,
@@ -3254,7 +3259,7 @@ void dspine_resolve_and_advance_k(
         streak_acc, drop_acc, jump_acc, num_levels);
 }
 
-extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
 void dspine_embed_lookup_k(
     uint64_t t_ids_gm,
     uint64_t q_len_gm,
@@ -3265,7 +3270,7 @@ void dspine_embed_lookup_k(
     int32_t vocab_start,
     int32_t vocab_end)
 {
-    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
     AscendC::InitSocState();
     AscendC::TPipe pipe;
     dspine_ops::RunEmbedLookup(
@@ -3300,7 +3305,7 @@ void dspine_exact_index_keys_k(
         rows_cap, eps, is_neox);
 }
 
-extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
 void dspine_step3c_prolog_pack_guarded_k(
     uint64_t q_len_gm,
     uint64_t active_toks_gm,
@@ -3313,7 +3318,7 @@ void dspine_step3c_prolog_pack_guarded_k(
     int32_t vocab_end,
     int32_t rank)
 {
-    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
     AscendC::InitSocState();
     AscendC::TPipe pipe;
     dspine_ops::RunStep3cPrologPackGuarded(
@@ -3321,7 +3326,7 @@ void dspine_step3c_prolog_pack_guarded_k(
         b_rows, vocab_start, vocab_end, rank);
 }
 
-extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
 void dspine_step3c_dual_rmsnorm_slice_guarded_k(
     uint64_t q_len_gm,
     uint64_t comm_out_gm,
@@ -3332,14 +3337,14 @@ void dspine_step3c_dual_rmsnorm_slice_guarded_k(
     int32_t rank,
     float eps)
 {
-    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
     AscendC::InitSocState();
     AscendC::TPipe pipe;
     dspine_ops::RunStep3cDualRmsNormSliceGuarded(
         pipe, q_len_gm, comm_out_gm, enorm_w_gm, hnorm_w_gm, eh_in_gm, b_rows, rank, eps);
 }
 
-extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
 void dspine_logits_topk_lse_bf16_guarded_k(
     uint64_t sync_base,
     uint64_t q_len_gm,
@@ -3353,7 +3358,7 @@ void dspine_logits_topk_lse_bf16_guarded_k(
     int32_t k,
     int32_t rank)
 {
-    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
     AscendC::InitSocState();
     AscendC::SetSyncBaseAddr(sync_base);
     AscendC::TPipe pipe;
@@ -3362,7 +3367,7 @@ void dspine_logits_topk_lse_bf16_guarded_k(
         m_rows, row_stride, valid_vocab, vocab_start, k, rank);
 }
 
-extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
 void dspine_add_rmsnorm_quant_k(
     uint64_t x_gm,
     uint64_t res_gm,
@@ -3375,7 +3380,7 @@ void dspine_add_rmsnorm_quant_k(
     int32_t hidden_dim,
     float eps)
 {
-    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
     AscendC::InitSocState();
     AscendC::TPipe pipe;
     dspine_ops::RunAddRmsNormQuant(
@@ -3419,7 +3424,7 @@ extern "C" int tilert_dspine_embed_lookup_raw(
     uint64_t partial_out_gm, int32_t width, int32_t hidden_dim,
     int32_t vocab_start, int32_t vocab_end)
 {
-    dspine_embed_lookup_k<<<24, nullptr, stream>>>(
+    dspine_embed_lookup_k<<<48, nullptr, stream>>>(
         t_ids_gm, q_len_gm, emb_w_gm, partial_out_gm,
         width, hidden_dim, vocab_start, vocab_end);
     return 0;
@@ -3443,7 +3448,7 @@ extern "C" int tilert_step3c_prolog_pack_guarded_raw(
     uint64_t rot_part_gm, uint64_t rot_bias_gm, uint64_t comm_in_gm,
     int32_t b_rows, int32_t vocab_start, int32_t vocab_end, int32_t rank)
 {
-    dspine_step3c_prolog_pack_guarded_k<<<24, nullptr, stream>>>(
+    dspine_step3c_prolog_pack_guarded_k<<<48, nullptr, stream>>>(
         q_len_gm, active_toks_gm, emb_w_gm, rot_part_gm, rot_bias_gm, comm_in_gm,
         b_rows, vocab_start, vocab_end, rank);
     return 0;
@@ -3453,7 +3458,7 @@ extern "C" int tilert_step3c_dual_rmsnorm_slice_guarded_raw(
     void* stream, uint64_t q_len_gm, uint64_t comm_out_gm, uint64_t enorm_w_gm,
     uint64_t hnorm_w_gm, uint64_t eh_in_gm, int32_t b_rows, int32_t rank, float eps)
 {
-    dspine_step3c_dual_rmsnorm_slice_guarded_k<<<24, nullptr, stream>>>(
+    dspine_step3c_dual_rmsnorm_slice_guarded_k<<<48, nullptr, stream>>>(
         q_len_gm, comm_out_gm, enorm_w_gm, hnorm_w_gm, eh_in_gm, b_rows, rank, eps);
     return 0;
 }
@@ -3463,7 +3468,7 @@ extern "C" int tilert_logits_topk_lse_bf16_guarded_raw(
     uint64_t work_gm, uint64_t gather_in_gm, int32_t m_rows, int32_t row_stride,
     int32_t valid_vocab, int32_t vocab_start, int32_t k, int32_t rank)
 {
-    dspine_logits_topk_lse_bf16_guarded_k<<<24, nullptr, stream>>>(
+    dspine_logits_topk_lse_bf16_guarded_k<<<48, nullptr, stream>>>(
         sync_base, q_len_gm, logits_gm, work_gm, gather_in_gm,
         m_rows, row_stride, valid_vocab, vocab_start, k, rank);
     return 0;
@@ -3474,19 +3479,19 @@ extern "C" int tilert_dspine_add_rmsnorm_quant_raw(
     uint64_t q8_out_gm, uint64_t scale_out_gm, uint64_t q_len_gm,
     int32_t rows_cap, int32_t hidden_dim, float eps)
 {
-    dspine_add_rmsnorm_quant_k<<<24, nullptr, stream>>>(
+    dspine_add_rmsnorm_quant_k<<<48, nullptr, stream>>>(
         x_gm, res_gm, norm_w_gm, y_out_gm, q8_out_gm, scale_out_gm,
         q_len_gm, rows_cap, hidden_dim, eps);
     return 0;
 }
 
-extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
 void dspine_prolog_pack_compact_k(
     uint64_t ctrl_gm, uint64_t target_toks_gm, uint64_t emb_w_gm,
     uint64_t rot_part_gm, uint64_t comm_in_gm,
     int32_t m_max, int32_t vocab_start, int32_t vocab_end, int32_t rank)
 {
-    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
     AscendC::InitSocState();
     AscendC::TPipe pipe;
     dspine_ops::RunPrologPackCompact(
@@ -3499,7 +3504,7 @@ extern "C" int tilert_dspine_prolog_pack_compact_raw(
     uint64_t rot_part_gm, uint64_t comm_in_gm,
     int32_t m_max, int32_t vocab_start, int32_t vocab_end, int32_t rank)
 {
-    dspine_prolog_pack_compact_k<<<24, nullptr, stream>>>(
+    dspine_prolog_pack_compact_k<<<48, nullptr, stream>>>(
         ctrl_gm, target_toks_gm, emb_w_gm, rot_part_gm, comm_in_gm,
         m_max, vocab_start, vocab_end, rank);
     return 0;
@@ -3923,6 +3928,7 @@ def build_dspine_ops(out_dir: str | Path | None = None) -> Path:
     k_cmd = [
         str(cann / "bin/bisheng"), "-xcce", "--npu-arch=dav-2201",
         "-std=c++17", "-O2", "-w", "-ffp-contract=off", "-fPIC",
+        "-DL2_CACHE_HINT=1", "-DASCENDC_DUMP=0",
         *inc, "-c", str(out / "dspine_ops.cpp"), "-o", str(out / "dspine_ops.o"),
     ]
     h_cmd = [

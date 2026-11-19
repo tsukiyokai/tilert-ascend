@@ -394,7 +394,13 @@ class TpCalibratedL78Weights:
 
         self.cal_w_uk_t = sh["cal_w_uk_t"].to(device=dev, dtype=torch.bfloat16).contiguous()
         self.cal_w_uv = sh["cal_w_uv"].to(device=dev, dtype=torch.bfloat16).contiguous()
-        w_uv_packed_cpu = pack_value_weights(sh["cal_w_uv"].to(torch.bfloat16).cpu())
+        w_uv_packed_cpu = (
+            pack_value_weights(sh["cal_w_uv"].to(torch.bfloat16).cpu())
+            .view(16, 512, 8, 16)
+            .permute(0, 2, 1, 3)
+            .contiguous()
+            .view(16, 512, 128)
+        )
         self.cal_w_uv_packed = w_uv_packed_cpu.to(device=dev, dtype=torch.bfloat16).contiguous()
 
         self.cal_uq_qr_q8_nz = None
@@ -414,7 +420,14 @@ class TpCalibratedL78Weights:
         self.cal_w_o_scale = None
         if "cal_w_o" in sh:
             wo_q8_cpu, wo_s_cpu = quantize_linear_col_i8(sh["cal_w_o"].to(torch.float32))
-            self.cal_w_o_packed = pack_output_weights(wo_q8_cpu).to(device=dev).contiguous()
+            wo_p = (
+                pack_output_weights(wo_q8_cpu)
+                .view(24, 2048, 8, 32)
+                .permute(0, 2, 1, 3)
+                .contiguous()
+                .view(24, 2048, 256)
+            )
+            self.cal_w_o_packed = wo_p.to(device=dev).contiguous()
             self.cal_w_o_scale = wo_s_cpu.to(device=dev, dtype=torch.float32).contiguous()
 
         self.cal_shared_packed = None
@@ -422,6 +435,18 @@ class TpCalibratedL78Weights:
             gu_q8_cpu, gu_s_cpu = quantize_linear_col_i8(sh["cal_shared_gu"].to(torch.float32))
             dn_q8_cpu, dn_s_cpu = quantize_linear_col_i8(sh["cal_shared_down"].to(torch.float32))
             p_gu_cpu, p_dn_cpu = pack_shared_weights(gu_q8_cpu, dn_q8_cpu)
+            p_gu_cpu = (
+                p_gu_cpu.view(24, 2, 512, 4, 32)
+                .permute(0, 1, 3, 2, 4)
+                .contiguous()
+                .view(24, 1024, 128)
+            )
+            p_dn_cpu = (
+                p_dn_cpu.view(24, 2, 128, 8, 32)
+                .permute(0, 1, 3, 2, 4)
+                .contiguous()
+                .view(24, 256, 256)
+            )
             self.cal_shared_packed = [
                 p_gu_cpu.to(device=dev).contiguous(),
                 gu_s_cpu.to(device=dev, dtype=torch.float32).contiguous(),
@@ -684,6 +709,61 @@ L78_BASE_DEFS: tuple[str, ...] = (
     "-DL78_EXACT_INDEXER=1",
     "-DK11040_F0_NZ=1",
     "-DK11040_GU_FAST128=1",
+    "-DK11083_RED2_OPT=1",
+    "-DK11090_FAST_SFA_VEC=1",
+    "-DK11110_SFA_PIPE=1",
+    "-DK11120_SFA_GATHER_OPT=1",
+    "-DK11120_SKIP_DUP_PUB=1",
+    "-DK11150_SIP_RELAY_RED2=1",
+    "-DK11180_QUAD4_SIP_ALL=1",
+    "-DK11180_TOK_OUT_BAL=1",
+    "-DK11180_NORM_OPT=1",
+    "-DK112110_SIP_RED1=1",
+    "-DK112120_CLEAN_DCCI=1",
+    "-DK112140_PIPE_KEY_ONLY=1",
+    "-DK112120_SFA_COMPACT_WS=1",
+    "-DK112166_SFA_QV_L1=1",
+    "-DK112188_SFA_QVL1_ALL=1",
+    "-DK112170_DEC_SIP_ATT=1",
+    "-DK112174_FAST_MERGE_KV=1",
+    "-DK112176_PHASE_DSB_OPT=1",
+    "-DK112194_PROLOG_CUBE_BAL=1",
+    "-DK112512_PROLOG_48AIV_V2=1",
+    "-DK112702_NO_DDR_INTRADIE=1",
+    "-DK112722_NO_DDR_EXTRA=1",
+    "-DK112824_NO_R2_END_DSB=1",
+    "-DK112830_FAST_POLL_RED2=1",
+    "-DK112612_TRIM_BARRIERS=1",
+    "-DK112600_EXACT48_RED2_OPT=1",
+    "-DK112514_IDX_PIPE_V2=1",
+    "-DK11050_AIC_PREFETCH=1",
+    "-DK11040_TAIL_NZ=1",
+    "-DK11140_DIRECT_MLA_TAIL=1",
+    "-DK11150_MLA_TAIL_M32=1",
+    "-DK112168_MLA_TAIL_OVERLAP=1",
+    "-DK112510_MLA_TAIL_XCORE_V2=1",
+    "-DK11150_SHARED_W8_NZ=1",
+    "-DK11080_DIRECT_W4A8=1",
+    "-DK11088_GATE_CONTIG=1",
+    "-DK11220_DOWN_CONTIG_256=1",
+    "-DK11220_MULTI_M16=1",
+    "-DK11220_XTASK_B=1",
+    "-DK11220_FAST_TOK_OUT=1",
+    "-DK11220_FAST_ACT_P3=1",
+    "-DK11220_BITMASK_OWN_P1=1",
+    "-DK11220_SH_ROW_1D=1",
+    "-DK11220_LOCAL_SH_RED2=1",
+    "-DK11220_PF_RED2_FULL=1",
+    "-DK11220_FAST_P1_V3=1",
+    "-DK11220_MULTI_M32=1",
+    "-DK112612_BRIDGE_FAST=1",
+    "-DK112612_DOWN_PIPE2=1",
+    "-DK112726_BRIDGE_PRELOAD_GATE=1",
+    "-DL2_CACHE_HINT=1",
+    "-DASCENDC_DUMP=0",
+    "-DK112612_DEFER_SH_SIG=1",
+    "-DK112600_PIPE_C2V=1",
+    "-DK112612_NO_FLAG9=1",
 )
 
 

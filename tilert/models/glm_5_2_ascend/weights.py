@@ -1176,7 +1176,7 @@ def build_model_arena(
             q_hadamard,
             q_hadamard_zero,
             f0_nz=True,
-            tail_nz=False,
+            tail_nz=True,
         )
         l78_post, l78_shared, l78_routed = _load_moe_body(
             ckpt,
@@ -1191,10 +1191,10 @@ def build_model_arena(
             w2_cpu,
             tmp_contig,
             acl,
-            shared_nz=False,
-            gate_contig=False,
-            down_contig=False,
-            preload_gate=False,
+            shared_nz=True,
+            gate_contig=True,
+            down_contig=True,
+            preload_gate=True,
         )
         p78 = f"model.layers.{DRAFT_LAYER}"
         col_dim = HIDDEN // world_size
