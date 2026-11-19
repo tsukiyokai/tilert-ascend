@@ -1,5 +1,6 @@
 import argparse
 from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
 import gc
 import hashlib
 import importlib
@@ -209,14 +210,24 @@ def _kill_process_group(pgid: int, grace_s: float = 2.0) -> None:
     deadline = time.monotonic() + grace_s
     while time.monotonic() < deadline:
         try:
+            while os.waitpid(-pgid, os.WNOHANG)[0] > 0:
+                pass
+        except ChildProcessError:
+            pass
+        try:
             os.killpg(pgid, 0)
         except ProcessLookupError:
             return
-        time.sleep(0.05)
+        time.sleep(0.02)
     try:
         os.killpg(pgid, signal.SIGKILL)
     except ProcessLookupError:
         return
+    try:
+        while os.waitpid(-pgid, os.WNOHANG)[0] > 0:
+            pass
+    except ChildProcessError:
+        pass
 
 
 def _next_epoch(job_dir: Path) -> int:
@@ -346,12 +357,14 @@ def _run_worker(args: argparse.Namespace) -> int:
     import torch
     from run_m2_case01 import _prepare_build_artifacts, resolve_trial_protocol
     from tilert.models.glm_5_2_ascend.abi import (
+        FrozenPrefixArena,
         PreparedChain,
         SHMEM_HEAP_BYTES,
         TreeLibrary,
         Window,
     )
     from tilert.models.glm_5_2_ascend.config import RuntimeConfig
+    import tilert.models.glm_5_2_ascend.dspine.build_dspine_ops as dops_mod
     import tilert.models.glm_5_2_ascend.dspine.calibrated_l78 as cal_mod
     import tilert.models.glm_5_2_ascend.dspine.tp_drafter as tp_mod
     from tilert.models.glm_5_2_ascend.end2end import Glm52AscendShowHands, MAIN_LAYERS, WIDTHS
@@ -408,6 +421,8 @@ def _run_worker(args: argparse.Namespace) -> int:
     dev = runner.device
     tree_reload_idx = 0
     cur_cfg = default_worker_cfg()
+    cur_case_dir = str(case_dir)
+    cur_mtp_prefix = str(args.mtp_prefix)
 
     boot_sha = compute_boot_fingerprint(
         Path(args.whole_layer_base), args.model_dir, build_dir, REPO_ROOT
@@ -479,6 +494,9 @@ def _run_worker(args: argparse.Namespace) -> int:
         req_k_sfa = int(req_args.get("k_sfa") or state["k_sfa"])
         req_ckpt = str(req_args.get("ckpt") or state["ckpt"])
         req_union = bool(req_args.get("union_sfa", args.union_sfa))
+        req_case_dir = str(req_args.get("case_dir") or cur_case_dir)
+        req_mtp_prefix = str(req_args.get("mtp_prefix") or cur_mtp_prefix)
+        req_skip_build = bool(req_args.get("skip_build", False))
         req_cfg = {
             "b_scheds": req_args.get("b_scheds", cur_cfg["b_scheds"]),
             "min_w_act": int(req_args.get("min_w_act", cur_cfg["min_w_act"])),
@@ -488,13 +506,18 @@ def _run_worker(args: argparse.Namespace) -> int:
         }
         default_run_dir = Path(os.environ.get("TILERT_RUN_DIR", str(job_dir.parent)))
         req_out = str(req_args.get("out_json", str(default_run_dir / f"warm_epoch_{epoch}.json")))
+        req_fast = bool(req_args.get("fast_parity", True))
+        req_sdp = req_args.get("serial_draft_parity", True)
         warmups, formals, serial_parity = resolve_trial_protocol(
             req_args.get("warmups"),
             req_args.get("formals"),
-            bool(req_args.get("fast_parity", True)),
-            bool(req_args.get("serial_draft_parity", True)),
+            req_fast,
+            bool(req_sdp),
         )
+        if req_sdp is False:
+            serial_parity = False
         rank_payload: dict[str, Any] = {"epoch": epoch, "rank": rank, "status": "OK"}
+        tier = "none"
         try:
             cur_boot = compute_boot_fingerprint(
                 Path(args.whole_layer_base), args.model_dir, build_dir, REPO_ROOT
@@ -504,27 +527,89 @@ def _run_worker(args: argparse.Namespace) -> int:
                 rank_payload["reboot_required"] = True
                 rank_payload["reload_tier"] = "reboot"
             else:
-                if rank == 0:
-                    import tilert.models.glm_5_2_ascend.ops.build_megakernel as bm_mod
+                if not req_skip_build:
+                    if rank == 0:
+                        import tilert.models.glm_5_2_ascend.ops.build_megakernel as bm_mod
 
-                    bm_mod = importlib.reload(bm_mod)
-                    bm_mod.build_chain(
-                        out_dir=build_dir,
-                        union_sfa=req_union,
-                        enable_kernel_prof=enable_kernel_prof,
+                        bm_mod = importlib.reload(bm_mod)
+                        dops_mod = importlib.reload(dops_mod)
+                        cal_mod = importlib.reload(cal_mod)
+                        with ThreadPoolExecutor(max_workers=3) as pool:
+                            f_chain = pool.submit(
+                                bm_mod.build_chain,
+                                out_dir=build_dir,
+                                union_sfa=req_union,
+                                enable_kernel_prof=enable_kernel_prof,
+                            )
+                            f_ops = pool.submit(dops_mod.build_dspine_ops, ops_dir)
+                            f_l78 = pool.submit(
+                                cal_mod.build_draft_l78_k110419,
+                                out_dir=l78_dir,
+                                k_sfa=req_k_sfa,
+                            )
+                            f_chain.result()
+                            f_ops.result()
+                            f_l78.result()
+                    torch.distributed.barrier(group=tp_group)
+                hot_keys = (
+                    "chain_sha",
+                    "dspine_ops_sha",
+                    "l78_klib_sha",
+                    "dspine_py_sha",
+                    "ckpt_sha",
+                )
+                cur_hot = (
+                    {k: state[k] for k in hot_keys}
+                    if req_skip_build
+                    else compute_hot_fingerprints(
+                        build_dir, Path(req_ckpt), REPO_ROOT, req_k_sfa
                     )
-                    cal_mod = importlib.reload(cal_mod)
-                    cal_mod.build_draft_l78_k110419(out_dir=l78_dir, k_sfa=req_k_sfa)
-                torch.distributed.barrier(group=tp_group)
-                cur_hot = compute_hot_fingerprints(
-                    build_dir, Path(req_ckpt), REPO_ROOT, req_k_sfa
                 )
                 cur_state = {"boot_sha": cur_boot, **cur_hot}
                 tier = classify_reload_tier(state, cur_state)
+                case_changed = req_case_dir != cur_case_dir or req_mtp_prefix != cur_mtp_prefix
                 cfg_changed = req_cfg != cur_cfg or req_k_sfa != state["k_sfa"]
-                if tier == "none" and cfg_changed:
+                if tier == "none" and case_changed:
+                    tier = "prefix"
+                elif tier == "none" and cfg_changed:
                     tier = "dspine"
                 rank_payload["reload_tier"] = tier
+                if case_changed and tier != "chain_and_dspine":
+                    torch.npu.synchronize(dev)
+                    torch.ops.tilert.set_active_tokens_ptr(runner.dyn_w, False, False)
+                    if runner.g_round is not None:
+                        runner.g_round.reset()
+                        runner.g_round = None
+                    if runner.drafter is not None:
+                        runner.drafter.close()
+                        runner.drafter = None
+                    new_case = Path(req_case_dir)
+                    new_main_pf = new_case / "main-prefix/rank-0.pt"
+                    if not new_main_pf.is_file():
+                        pre_pf = Path(f"/prestage/cases-8k1k/{new_case.name}/main-prefix/rank-0.pt")
+                        new_main_pf = pre_pf if pre_pf.is_file() else None
+                    runner.case_dir = new_case
+                    runner.mtp_prefix_path = Path(req_mtp_prefix)
+                    runner.main_prefix_path = new_main_pf
+                    runner.prefix = FrozenPrefixArena.from_case(
+                        new_case,
+                        runner.mtp_prefix_path,
+                        dev,
+                        capacity_tokens=runner.cfg.capacity_tokens,
+                        main_prefix_path=new_main_pf,
+                    )
+                    runner.full_seq_len.fill_(runner.prefix.prefix_len + runner.width)
+                    steps_layers = runner._build_chain_steps(runner.l0_normed, runner.t_emb_out)
+                    chain_steps_buf = runner.arena.bind_chain_step_buffers(MAIN_LAYERS)
+                    runner.prepared_chain = PreparedChain(
+                        steps_layers,
+                        chain_steps_buf,
+                        copy_stream=None,
+                        mask_ptr=int(runner.arena.tree_mask_i32.data_ptr()),
+                        peer_weights_ptr=int(runner.arena.peer_weights_ptr),
+                    )
+                    cur_case_dir = req_case_dir
+                    cur_mtp_prefix = req_mtp_prefix
                 if tier == "chain_and_dspine":
                     torch.npu.synchronize(dev)
                     torch.ops.tilert.set_active_tokens_ptr(runner.dyn_w, False, False)
@@ -546,6 +631,27 @@ def _run_worker(args: argparse.Namespace) -> int:
                     runner.prepared_chain = None
                     runner._arena_pool.clear()
                     gc.collect()
+                    if case_changed:
+                        new_case = Path(req_case_dir)
+                        new_main_pf = new_case / "main-prefix/rank-0.pt"
+                        if not new_main_pf.is_file():
+                            pre_pf = Path(
+                                f"/prestage/cases-8k1k/{new_case.name}/main-prefix/rank-0.pt"
+                            )
+                            new_main_pf = pre_pf if pre_pf.is_file() else None
+                        runner.case_dir = new_case
+                        runner.mtp_prefix_path = Path(req_mtp_prefix)
+                        runner.main_prefix_path = new_main_pf
+                        runner.prefix = FrozenPrefixArena.from_case(
+                            new_case,
+                            runner.mtp_prefix_path,
+                            dev,
+                            capacity_tokens=runner.cfg.capacity_tokens,
+                            main_prefix_path=new_main_pf,
+                        )
+                        runner.full_seq_len.fill_(runner.prefix.prefix_len + runner.width)
+                        cur_case_dir = req_case_dir
+                        cur_mtp_prefix = req_mtp_prefix
                     ver_chain = stage_versioned_so(build_dir / "chain.so")
                     runner.tree_lib = TreeLibrary(ver_chain, None)
                     tree_reload_idx += 1
@@ -575,8 +681,9 @@ def _run_worker(args: argparse.Namespace) -> int:
                     state["chain_sha"] = cur_hot["chain_sha"]
 
                 need_drafter_rebuild = (
-                    tier in ("chain_and_dspine", "dspine")
+                    tier in ("chain_and_dspine", "dspine", "prefix")
                     or cfg_changed
+                    or case_changed
                     or runner.g_round is None
                 )
                 if need_drafter_rebuild:
@@ -708,8 +815,9 @@ def _run_worker(args: argparse.Namespace) -> int:
                 runner.g_round.reset()
                 runner.g_round = None
         finally:
-            gc.collect()
-            torch.npu.empty_cache()
+            if tier != "none" or rank_payload.get("status") != "OK":
+                gc.collect()
+                torch.npu.empty_cache()
 
         rank_payload["elapsed_seconds"] = round(time.perf_counter() - t0, 4)
         atomic_write_json(job_dir / f"epoch-{epoch}-rank-{rank}.json", rank_payload)
@@ -907,6 +1015,34 @@ def daemon_status(job_dir: Path) -> dict[str, Any]:
     }
 
 
+def build_eval_cmd_args(args: argparse.Namespace, out_json: str) -> dict[str, Any]:
+    cmd_args: dict[str, Any] = {
+        "k_sfa": args.k_sfa,
+        "ckpt": args.ckpt,
+        "warmups": args.warmups,
+        "formals": args.formals,
+        "fast_parity": bool(args.fast_parity),
+        "serial_draft_parity": bool(args.serial_draft_parity),
+        "skip_build": bool(getattr(args, "skip_build", False)),
+        "out_json": out_json,
+    }
+    if getattr(args, "case_dir", ""):
+        cmd_args["case_dir"] = args.case_dir
+    if getattr(args, "mtp_prefix", ""):
+        cmd_args["mtp_prefix"] = args.mtp_prefix
+    if getattr(args, "b_scheds", None):
+        cmd_args["b_scheds"] = json.loads(args.b_scheds)
+    if getattr(args, "min_w_act", None) is not None:
+        cmd_args["min_w_act"] = int(args.min_w_act)
+    if getattr(args, "t_base_ms", None) is not None:
+        cmd_args["t_base_ms"] = float(args.t_base_ms)
+    if getattr(args, "c_w_ms", None) is not None:
+        cmd_args["c_w_ms"] = float(args.c_w_ms)
+    if getattr(args, "narrow_topk", None) is not None:
+        cmd_args["narrow_topk"] = bool(args.narrow_topk)
+    return cmd_args
+
+
 def boot_or_submit(args: argparse.Namespace) -> dict[str, Any]:
     job_dir = validate_job_dir(
         args.job_dir or os.environ["TILERT_JOB_DIR"],
@@ -942,15 +1078,7 @@ def boot_or_submit(args: argparse.Namespace) -> dict[str, Any]:
             boot_timeout_s=args.boot_timeout,
         )
     out_json = args.out_json or str(job_dir.parent / "warm_epoch_summary.json")
-    cmd_args = {
-        "k_sfa": args.k_sfa,
-        "ckpt": args.ckpt,
-        "warmups": args.warmups,
-        "formals": args.formals,
-        "fast_parity": bool(args.fast_parity),
-        "serial_draft_parity": bool(args.serial_draft_parity),
-        "out_json": out_json,
-    }
+    cmd_args = build_eval_cmd_args(args, out_json)
     res = submit_epoch(
         job_dir,
         action="eval",
@@ -1001,6 +1129,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--fast-parity", action="store_true", default=True)
     parser.add_argument("--no-fast-parity", dest="fast_parity", action="store_false")
     parser.add_argument("--serial-draft-parity", action="store_true", default=True)
+    parser.add_argument(
+        "--no-serial-draft-parity",
+        dest="serial_draft_parity",
+        action="store_false",
+    )
+    parser.add_argument("--skip-build", action="store_true")
+    parser.add_argument("--b-scheds", default=None)
+    parser.add_argument("--min-w-act", type=int, default=None)
+    parser.add_argument("--t-base-ms", type=float, default=None)
+    parser.add_argument("--c-w-ms", type=float, default=None)
+    parser.add_argument("--narrow-topk", dest="narrow_topk", action="store_true", default=None)
+    parser.add_argument("--no-narrow-topk", dest="narrow_topk", action="store_false")
     parser.add_argument("--boot-timeout", type=float, default=600.0)
     parser.add_argument("--epoch-timeout", type=float, default=600.0)
     args = parser.parse_args(argv)
@@ -1019,15 +1159,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         res = submit_epoch(
             job_dir,
             action="eval",
-            cmd_args={
-                "k_sfa": args.k_sfa,
-                "ckpt": args.ckpt,
-                "warmups": args.warmups,
-                "formals": args.formals,
-                "fast_parity": bool(args.fast_parity),
-                "serial_draft_parity": bool(args.serial_draft_parity),
-                "out_json": out_json,
-            },
+            cmd_args=build_eval_cmd_args(args, out_json),
             epoch_timeout_s=args.epoch_timeout,
         )
         print(json.dumps(res, indent=2))

@@ -24,6 +24,7 @@ from tests.glm52.warm_worker import (
     aggregate_epoch_ranks,
     atomic_write_json,
     boot_daemon,
+    build_eval_cmd_args,
     classify_reload_tier,
     compute_boot_fingerprint,
     compute_hot_fingerprints,
@@ -682,3 +683,57 @@ def test_warm_worker_default_cfg_matches_end2end() -> None:
     assert cfg["min_w_act"] == 10
     assert cfg["t_base_ms"] == 41.5
     assert cfg["c_w_ms"] == 0.68
+
+
+def test_rig_streamlining_ssh_cache_eval_args_and_parallel_shmem(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ac._SSH_BATCH_CACHE.clear()
+    ssh_dir = tmp_path / ".ssh"
+    ssh_dir.mkdir()
+    key_path = ssh_dir / "id_ed25519_a3_a5_codex"
+    key_path.write_text("dummy-key\n", encoding="utf-8")
+    monkeypatch.setattr(ac.Path, "home", lambda: tmp_path)
+    monkeypatch.delenv("TILERT_SSH_FORCE_PASSWORD", raising=False)
+
+    probes: list[list[str]] = []
+
+    def fake_run(cmd: list[str], **_kw: object) -> SimpleNamespace:
+        probes.append(list(cmd))
+        return SimpleNamespace(returncode=0 if str(key_path) in cmd else 255)
+
+    monkeypatch.setattr(ac.subprocess, "run", fake_run)
+    c1, e1 = ac._ssh_base_cmd("7.150.10.78")
+    c2, e2 = ac._ssh_base_cmd("7.150.10.78")
+    assert c1 == c2 and e1 is None and e2 is None
+    assert len(probes) == 2
+
+    args = SimpleNamespace(
+        k_sfa=1024,
+        ckpt="/prestage/cal.pt",
+        warmups=0,
+        formals=1,
+        fast_parity=True,
+        serial_draft_parity=False,
+        skip_build=True,
+        case_dir="/prestage/cases-8k1k/case-02-review",
+        mtp_prefix="/prestage/mtp.pt",
+        b_scheds="[[4,4,2],[4,2,1]]",
+        min_w_act=6,
+        t_base_ms=35.0,
+        c_w_ms=0.55,
+        narrow_topk=False,
+    )
+    payload = build_eval_cmd_args(args, "/tmp/out.json")
+    assert payload["serial_draft_parity"] is False
+    assert payload["skip_build"] is True
+    assert payload["case_dir"] == "/prestage/cases-8k1k/case-02-review"
+    assert payload["b_scheds"] == [[4, 4, 2], [4, 2, 1]]
+    assert payload["min_w_act"] == 6
+    assert payload["narrow_topk"] is False
+
+    shmem_script = ac.build_shmem_libs_script()
+    assert '-o "$OUT/tp_push_kernel.o" &' in shmem_script
+    assert '-o "$OUT/tilert_shmem_bf16.o" &' in shmem_script
+    assert "\n  wait\n" in shmem_script

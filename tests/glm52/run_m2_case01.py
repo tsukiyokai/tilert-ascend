@@ -1,4 +1,5 @@
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 import hashlib
 import json
@@ -131,16 +132,21 @@ def _prepare_build_artifacts(
         build_dir.mkdir(parents=True, exist_ok=True)
         if ready.exists():
             ready.unlink()
-        chain_so, _ = build_chain(
-            out_dir=chain_out_dir,
-            union_sfa=bool(args.union_sfa),
-            enable_kernel_prof=enable_prof,
-        )
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            f_chain = pool.submit(
+                build_chain,
+                out_dir=chain_out_dir,
+                union_sfa=bool(args.union_sfa),
+                enable_kernel_prof=enable_prof,
+            )
+            f_ops = pool.submit(build_dspine_ops, ops_dir)
+            f_l78 = pool.submit(build_draft_l78_k110419, out_dir=l78_dir, k_sfa=int(args.k_sfa))
+            chain_so, _ = f_chain.result()
+            f_ops.result()
+            f_l78.result()
         base_wl = _resolve_base_whole_layer(args)
         base_wl["tree"] = str(chain_so)
         wl_json.write_text(json.dumps(base_wl, indent=2) + "\n", encoding="utf-8")
-        build_dspine_ops(ops_dir)
-        build_draft_l78_k110419(out_dir=l78_dir, k_sfa=int(args.k_sfa))
         ready.write_text("ok\n", encoding="utf-8")
     else:
         while not ready.exists():

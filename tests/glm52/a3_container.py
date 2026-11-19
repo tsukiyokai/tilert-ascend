@@ -628,7 +628,16 @@ def _load_ssh_passwords() -> dict[str, str]:
     return creds
 
 
+_SSH_BATCH_CACHE: dict[tuple[str, bool, str], list[str] | None] = {}
+
+
 def _ssh_batch_opts(host: str) -> list[str] | None:
+    force_pw = os.environ.get("TILERT_SSH_FORCE_PASSWORD", "").lower() in ("1", "true")
+    codex_key = Path.home() / ".ssh/id_ed25519_a3_a5_codex"
+    cache_key = (host, force_pw, str(codex_key))
+    if cache_key in _SSH_BATCH_CACHE:
+        cached = _SSH_BATCH_CACHE[cache_key]
+        return list(cached) if cached is not None else None
     base_opts = ["-o", "BatchMode=yes"]
     probe = subprocess.run(
         ["ssh", *base_opts, "-o", "ConnectTimeout=5", f"root@{host}", "true"],
@@ -637,9 +646,8 @@ def _ssh_batch_opts(host: str) -> list[str] | None:
         check=False,
     )
     if probe.returncode == 0:
-        return base_opts
-    force_pw = os.environ.get("TILERT_SSH_FORCE_PASSWORD", "").lower() in ("1", "true")
-    codex_key = Path.home() / ".ssh/id_ed25519_a3_a5_codex"
+        _SSH_BATCH_CACHE[cache_key] = base_opts
+        return list(base_opts)
     if not force_pw and codex_key.is_file():
         key_opts = [
             "-i",
@@ -658,7 +666,9 @@ def _ssh_batch_opts(host: str) -> list[str] | None:
             check=False,
         )
         if probe_key.returncode == 0:
-            return key_opts
+            _SSH_BATCH_CACHE[cache_key] = key_opts
+            return list(key_opts)
+    _SSH_BATCH_CACHE[cache_key] = None
     return None
 
 
@@ -999,8 +1009,6 @@ def up_container(
     ifname = ifname_res.stdout.decode("utf-8").strip() or DEFAULT_IFNAME
     shm_dir = iso_env["TILERT_RUN_DIR"]
     dirs_cmd = "mkdir -p " + " ".join(shlex.quote(f"{shm_dir}/{sub}") for sub in RUN_SUBDIRS)
-    remote_ssh(selected.ip, dirs_cmd)
-
     tar_proc = subprocess.run(
         build_up_source_tar_cmd(REPO_ROOT),
         capture_output=True,
@@ -1008,22 +1016,19 @@ def up_container(
     )
     remote_ssh(
         selected.ip,
-        f"tar -xzf - -C {shlex.quote(shm_dir)}/source",
+        f"{dirs_cmd} && tar -xzf - -C {shlex.quote(shm_dir)}/source",
         input_bytes=tar_proc.stdout,
     )
 
     env_txt = build_container_env_script(iso_env, host_ifname=ifname)
     wl_txt = build_whole_layer_base_json(clean_id)
-    remote_ssh(
-        selected.ip,
-        f"cat > {shlex.quote(shm_dir)}/env.sh",
-        input_bytes=env_txt.encode("utf-8"),
+    cfg_cmd = (
+        f"cat <<'__TILERT_ENV__' > {shlex.quote(shm_dir)}/env.sh\n"
+        f"{env_txt}\n__TILERT_ENV__\n"
+        f"cat <<'__TILERT_WL__' > {shlex.quote(shm_dir)}/whole_layer_base.json\n"
+        f"{wl_txt}\n__TILERT_WL__"
     )
-    remote_ssh(
-        selected.ip,
-        f"cat > {shlex.quote(shm_dir)}/whole_layer_base.json",
-        input_bytes=wl_txt.encode("utf-8"),
-    )
+    remote_ssh(selected.ip, cfg_cmd)
 
     model_override = None
     extra_ro: list[tuple[str, str]] = []
@@ -1101,8 +1106,15 @@ def build_shmem_libs_script(
             '-I"$CANN/aarch64-linux/tikcpp/tikcfw/impl" '
             '-I"$CANN/aarch64-linux/tikcpp/tikcfw/interface" '
             '-I"$CANN/aarch64-linux/tikcpp/tikcfw/lib" '
-            '-c "$SRC/tp_push_kernel.cpp" -o "$OUT/tp_push_kernel.o"'
+            '-c "$SRC/tp_push_kernel.cpp" -o "$OUT/tp_push_kernel.o" &'
         ),
+        (
+            '  c++ -std=c++17 -O2 -fPIC -D_GLIBCXX_USE_CXX11_ABI=1 '
+            '-I"$SITE/torch/include" -I"$SITE/torch/include/torch/csrc/api/include" '
+            '-I"$SITE/torch_npu/include" -I"$CANN/include" '
+            '-c "$SRC/tilert_shmem_bf16.cpp" -o "$OUT/tilert_shmem_bf16.o" &'
+        ),
+        "  wait",
         (
             '  bisheng --cce-fatobj-link -shared "$OUT/tp_push_kernel.o" '
             '-o "$OUT/libtp_push_kernel.so.tmp" '
@@ -1112,10 +1124,7 @@ def build_shmem_libs_script(
         ),
         '  mv -f "$OUT/libtp_push_kernel.so.tmp" "$OUT/libtp_push_kernel.so"',
         (
-            '  c++ -std=c++17 -O2 -fPIC -shared -D_GLIBCXX_USE_CXX11_ABI=1 '
-            '-I"$SITE/torch/include" -I"$SITE/torch/include/torch/csrc/api/include" '
-            '-I"$SITE/torch_npu/include" -I"$CANN/include" '
-            '"$SRC/tilert_shmem_bf16.cpp" -o "$OUT/tilert_shmem_bf16.so.tmp" '
+            '  c++ -shared "$OUT/tilert_shmem_bf16.o" -o "$OUT/tilert_shmem_bf16.so.tmp" '
             '-L"$OUT" -ltp_push_kernel -L/assets/shmem-lib/lib -lshmem '
             '-L"$CANN/aarch64-linux/lib64" -lruntime '
             '-L"$SITE/torch/lib" -L"$SITE/torch_npu/lib" -ltorch -ltorch_cpu -lc10 -ltorch_npu'
