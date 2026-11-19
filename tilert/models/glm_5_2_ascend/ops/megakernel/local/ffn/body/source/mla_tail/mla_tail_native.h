@@ -324,6 +324,7 @@ __aicore__ inline void RunProjectValues(TPipe& pipe, __gm__ bfloat16_t* latent, 
 }
 
 #if defined(K11140_DIRECT_MLA_TAIL) && defined(K11040_TAIL_NZ)
+template <int64_t kHeads = mla_tail::kHeads>
 __aicore__ inline void DirectProjectValues24Aic(
     TPipe& pipe, __gm__ bfloat16_t* latent, __gm__ bfloat16_t* weights,
     __gm__ float* values, int64_t capacity, int64_t proj_rows)
@@ -336,10 +337,23 @@ __aicore__ inline void DirectProjectValues24Aic(
     const uint16_t m0 = dual_m ? 16U : static_cast<uint16_t>(proj_rows);
     const uint16_t m1 = dual_m ? static_cast<uint16_t>(proj_rows - 16) : 0U;
     const uint32_t m_cap = dual_m ? 32U : 16U;
-    const uint32_t head = (cid * 683U) >> 11U;
-    const uint32_t sub = cid - head * 3U;
-    const uint32_t strip_off = sub * 6U;
-    const uint32_t n1 = (sub < 2U) ? 6U : 4U;
+    uint32_t head = 0U;
+    uint32_t sub = 0U;
+    uint32_t strip_off = 0U;
+    uint32_t n1 = 0U;
+    if constexpr (kHeads == 4) {
+        head = cid / 6U;
+        sub = cid - head * 6U;
+        strip_off = (sub < 4U) ? (sub * 3U) : (12U + (sub - 4U) * 2U);
+        n1 = (sub < 4U) ? 3U : 2U;
+    } else {
+        head = (cid * 683U) >> 11U;
+        sub = cid - head * 3U;
+        strip_off = sub * 6U;
+        n1 = (sub < 2U) ? 6U : 4U;
+    }
+    constexpr uint32_t kStrideLat = static_cast<uint32_t>(kHeads) * 512U;
+    constexpr uint32_t kStrideVal = static_cast<uint32_t>(kHeads) * 256U;
     const uint16_t n_cols = static_cast<uint16_t>(n1 * 16U);
     const uint32_t col_off = strip_off * 16U;
 
@@ -364,21 +378,21 @@ __aicore__ inline void DirectProjectValues24Aic(
 
     GlobalTensor<bfloat16_t> a_gm, b_gm;
     GlobalTensor<float> c_gm;
-    a_gm.SetGlobalBuffer(latent + static_cast<uint64_t>(head) * 512ULL, static_cast<uint64_t>(capacity) * 4096ULL);
+    a_gm.SetGlobalBuffer(latent + static_cast<uint64_t>(head) * 512ULL, static_cast<uint64_t>(capacity) * kStrideLat);
     b_gm.SetGlobalBuffer(weights + static_cast<uint64_t>(head * 16U + strip_off) * 8192ULL, static_cast<uint64_t>(n1) * 8192ULL);
-    c_gm.SetGlobalBuffer(values + static_cast<uint64_t>(head * 256U + col_off), static_cast<uint64_t>(capacity) * 2048ULL);
+    c_gm.SetGlobalBuffer(values + static_cast<uint64_t>(head * 256U + col_off), static_cast<uint64_t>(capacity) * kStrideVal);
 
     Nd2NzParams copy_a{};
     copy_a.ndNum = 1;
     copy_a.nValue = m0;
     copy_a.dValue = 512;
-    copy_a.srcDValue = 4096;
+    copy_a.srcDValue = static_cast<uint16_t>(kStrideLat);
     copy_a.dstNzC0Stride = 16;
     copy_a.dstNzNStride = 1;
     DataCopy(a1, a_gm, copy_a);
     if (dual_m) {
         copy_a.nValue = m1;
-        DataCopy(a1[8192U], a_gm[16U * 4096U], copy_a);
+        DataCopy(a1[8192U], a_gm[16U * kStrideLat], copy_a);
     }
     SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
 
@@ -451,25 +465,25 @@ __aicore__ inline void DirectProjectValues24Aic(
     fix.nSize = n_cols;
     fix.mSize = m0;
     fix.srcStride = 16;
-    fix.dstStride = 2048;
+    fix.dstStride = static_cast<uint16_t>(kStrideVal);
     fix.ndNum = 1;
 #ifdef K112186_MLA_TAIL_FAST
     GlobalTensor<bfloat16_t> c_bf16_gm;
     c_bf16_gm.SetGlobalBuffer(
         reinterpret_cast<__gm__ bfloat16_t*>(values) + static_cast<uint64_t>(head * 256U + col_off),
-        static_cast<uint64_t>(capacity) * 2048ULL);
+        static_cast<uint64_t>(capacity) * kStrideVal);
     fix.quantPre = QuantMode_t::F322BF16;
     Fixpipe<bfloat16_t, float, CFG_ROW_MAJOR>(c_bf16_gm, l0c, fix);
     if (dual_m) {
         fix.mSize = m1;
-        Fixpipe<bfloat16_t, float, CFG_ROW_MAJOR>(c_bf16_gm[16U * 2048U], l0c[1536U], fix);
+        Fixpipe<bfloat16_t, float, CFG_ROW_MAJOR>(c_bf16_gm[16U * kStrideVal], l0c[1536U], fix);
     }
 #else
     fix.quantPre = QuantMode_t::NoQuant;
     Fixpipe<float, float, CFG_ROW_MAJOR>(c_gm, l0c, fix);
     if (dual_m) {
         fix.mSize = m1;
-        Fixpipe<float, float, CFG_ROW_MAJOR>(c_gm[16U * 2048U], l0c[1536U], fix);
+        Fixpipe<float, float, CFG_ROW_MAJOR>(c_gm[16U * kStrideVal], l0c[1536U], fix);
     }
 #endif
     SetFlag<HardEvent::FIX_M>(EVENT_ID0);
@@ -488,13 +502,13 @@ __aicore__ inline void ProjectValues(TPipe& pipe,
 {
     const int64_t active_rows = rows > 0 ? rows : capacity;
 #if defined(K11140_DIRECT_MLA_TAIL) && defined(K11040_TAIL_NZ)
-    if constexpr (kHeads == 8) {
+    if constexpr (kHeads == 8 || kHeads == 4) {
 #ifdef K11150_MLA_TAIL_M32
         if (active_rows <= 32 && blocks >= 24) {
 #else
         if (active_rows <= 16 && blocks >= 24) {
 #endif
-            DirectProjectValues24Aic(pipe, latent, weights, values, capacity, active_rows);
+            DirectProjectValues24Aic<kHeads>(pipe, latent, weights, values, capacity, active_rows);
             return;
         }
     }
@@ -531,7 +545,7 @@ __aicore__ inline void QuantizeValues(VectorWorkspace<kHeads>& held,
     SetDeqScale(static_cast<half>(1.0F));
     for (int64_t row = vector_index; row < active_rows; row += vectors) {
 #if defined(K112186_MLA_TAIL_FAST) && defined(K11140_DIRECT_MLA_TAIL) && defined(K11040_TAIL_NZ) && defined(K11150_MLA_TAIL_M32)
-        if (kHeads == 8 && active_rows <= 32 && vectors >= 48) {
+        if ((kHeads == 8 || kHeads == 4) && active_rows <= 32 && vectors >= 48) {
             GlobalTensor<bfloat16_t> src_bf16;
             src_bf16.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(values), capacity * kProjectionInput);
             DataCopy(held.bf16, src_bf16[row * kProjectionInput], kProjectionInput);
@@ -636,6 +650,7 @@ struct DirectOutPrefetchState {
     bool active = false;
 };
 
+template <int64_t kHeads = mla_tail::kHeads>
 __aicore__ inline void PrefetchDirectProjectOutput24Aic(
     TPipe& pipe, DirectOutPrefetchState& st, __gm__ int8_t* weights, int64_t proj_rows)
 {
@@ -643,15 +658,20 @@ __aicore__ inline void PrefetchDirectProjectOutput24Aic(
     if (cid >= 24U) {
         return;
     }
+    constexpr uint32_t kInCols = static_cast<uint32_t>(kHeads) * 256U;
+    constexpr uint32_t kKcSteps = kInCols / 512U;
+    constexpr uint64_t kWeightBytes = static_cast<uint64_t>(kInCols) * 256ULL;
     const bool dual_m = (proj_rows > 16);
     const uint32_t m_cap = dual_m ? 32U : 16U;
     pipe.InitBuffer(st.b1_buf0, 512 * 256);
     pipe.InitBuffer(st.b1_buf1, 512 * 256);
 #if defined(K112186_MLA_TAIL_FAST) || defined(K112724_TAIL_OUT_3BUF)
-    pipe.InitBuffer(st.b1_buf2, 512 * 256);
+    if constexpr (kKcSteps > 2U) {
+        pipe.InitBuffer(st.b1_buf2, 512 * 256);
+    }
 #endif
-    pipe.InitBuffer(st.a1_buf, m_cap * 2048U);
-    pipe.InitBuffer(st.l0a_buf, m_cap * 2048U);
+    pipe.InitBuffer(st.a1_buf, m_cap * kInCols);
+    pipe.InitBuffer(st.l0a_buf, m_cap * kInCols);
     pipe.InitBuffer(st.l0b_buf0, 128 * 256);
     pipe.InitBuffer(st.l0b_buf1, 128 * 256);
     pipe.InitBuffer(st.l0c_buf, m_cap * 256U * sizeof(int32_t));
@@ -659,24 +679,29 @@ __aicore__ inline void PrefetchDirectProjectOutput24Aic(
     st.b1[0] = st.b1_buf0.Get<int8_t>();
     st.b1[1] = st.b1_buf1.Get<int8_t>();
 #if defined(K112186_MLA_TAIL_FAST) || defined(K112724_TAIL_OUT_3BUF)
-    st.b1[2] = st.b1_buf2.Get<int8_t>();
+    if constexpr (kKcSteps > 2U) {
+        st.b1[2] = st.b1_buf2.Get<int8_t>();
+    }
 #endif
     st.l0a = st.l0a_buf.Get<int8_t>();
     st.l0b[0] = st.l0b_buf0.Get<int8_t>();
     st.l0b[1] = st.l0b_buf1.Get<int8_t>();
     st.l0c = st.l0c_buf.Get<int32_t>();
-    st.b_gm.SetGlobalBuffer(weights + static_cast<uint64_t>(cid) * 524288ULL, 524288ULL);
-    DataCopy(st.b1[0], st.b_gm[0], DataCopyParams{8, 512, 1536, 0});
+    st.b_gm.SetGlobalBuffer(weights + static_cast<uint64_t>(cid) * kWeightBytes, kWeightBytes);
+    DataCopy(st.b1[0], st.b_gm[0], DataCopyParams{8, 512, static_cast<uint16_t>(kInCols - 512U), 0});
     SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID0);
-    DataCopy(st.b1[1], st.b_gm[16384U], DataCopyParams{8, 512, 1536, 0});
+    DataCopy(st.b1[1], st.b_gm[16384U], DataCopyParams{8, 512, static_cast<uint16_t>(kInCols - 512U), 0});
     SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID1);
 #ifdef K112724_TAIL_OUT_3BUF
-    DataCopy(st.b1[2], st.b_gm[2U * 16384U], DataCopyParams{8, 512, 1536, 0});
-    SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID5);
+    if constexpr (kKcSteps > 2U) {
+        DataCopy(st.b1[2], st.b_gm[2U * 16384U], DataCopyParams{8, 512, static_cast<uint16_t>(kInCols - 512U), 0});
+        SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID5);
+    }
 #endif
     st.active = true;
 }
 
+template <int64_t kHeads = mla_tail::kHeads>
 __aicore__ inline void RunPrefetchedDirectProjectOutput24Aic(
     DirectOutPrefetchState& st, __gm__ int8_t* quantized,
     __gm__ int32_t* accumulators, int64_t capacity, int64_t proj_rows)
@@ -684,20 +709,23 @@ __aicore__ inline void RunPrefetchedDirectProjectOutput24Aic(
     if (!st.active) {
         return;
     }
+    constexpr uint32_t kInCols = static_cast<uint32_t>(kHeads) * 256U;
+    constexpr uint32_t kKcSteps = kInCols / 512U;
+    constexpr uint32_t kDualOff = 16U * kInCols;
     const uint32_t cid = static_cast<uint32_t>(GetBlockIdx());
     const bool dual_m = (proj_rows > 16);
     const uint16_t m0 = dual_m ? 16U : static_cast<uint16_t>(proj_rows);
     const uint16_t m1 = dual_m ? static_cast<uint16_t>(proj_rows - 16) : 0U;
     GlobalTensor<int8_t> a_gm;
     GlobalTensor<int32_t> c_gm;
-    a_gm.SetGlobalBuffer(quantized, static_cast<uint64_t>(capacity) * 2048ULL);
+    a_gm.SetGlobalBuffer(quantized, static_cast<uint64_t>(capacity) * kInCols);
     c_gm.SetGlobalBuffer(accumulators + static_cast<uint64_t>(cid) * static_cast<uint64_t>(capacity) * 256ULL,
                          static_cast<uint64_t>(capacity) * 256ULL);
     Nd2NzParams copy_a{};
     copy_a.ndNum = 1;
     copy_a.nValue = m0;
-    copy_a.dValue = 2048;
-    copy_a.srcDValue = 2048;
+    copy_a.dValue = static_cast<uint16_t>(kInCols);
+    copy_a.srcDValue = static_cast<uint16_t>(kInCols);
     copy_a.dstNzC0Stride = 16;
     copy_a.dstNzNStride = 1;
 #ifdef K112510_MLA_TAIL_XCORE_V2
@@ -706,16 +734,18 @@ __aicore__ inline void RunPrefetchedDirectProjectOutput24Aic(
     DataCopy(st.a1, a_gm, copy_a);
     if (dual_m) {
         copy_a.nValue = m1;
-        DataCopy(st.a1[32768U], a_gm[32768U], copy_a);
+        DataCopy(st.a1[kDualOff], a_gm[kDualOff], copy_a);
     }
     SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
 #ifdef K112186_MLA_TAIL_FAST
-    DataCopy(st.b1[2], st.b_gm[2U * 16384U], DataCopyParams{8, 512, 1536, 0});
-    SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID5);
+    if constexpr (kKcSteps > 2U) {
+        DataCopy(st.b1[2], st.b_gm[2U * 16384U], DataCopyParams{8, 512, static_cast<uint16_t>(kInCols - 512U), 0});
+        SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID5);
+    }
 #endif
     WaitFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
     LoadData2DParams load_a{};
-    load_a.repeatTimes = dual_m ? 128 : 64;
+    load_a.repeatTimes = dual_m ? (kKcSteps * 32U) : (kKcSteps * 16U);
     load_a.srcStride = 1;
     load_a.ifTranspose = false;
     LoadData(st.l0a, st.a1, load_a);
@@ -724,18 +754,18 @@ __aicore__ inline void RunPrefetchedDirectProjectOutput24Aic(
     LoadData2dTransposeParams trans(0, 8, 16, 1, 0, inc);
     SetFlag<HardEvent::M_MTE1>(EVENT_ID3);
     SetFlag<HardEvent::M_MTE1>(EVENT_ID4);
-    for (uint32_t kc = 0U; kc < 4U; ++kc) {
+    for (uint32_t kc = 0U; kc < kKcSteps; ++kc) {
 #if defined(K112186_MLA_TAIL_FAST) || defined(K112724_TAIL_OUT_3BUF)
         const uint32_t bi = (kc == 2U) ? 2U : ((kc == 1U) ? 1U : 0U);
         const event_t b_evt = (kc == 2U) ? EVENT_ID5 : ((kc == 1U) ? EVENT_ID1 : EVENT_ID0);
 #else
         const uint32_t bi = kc & 1U;
         const event_t b_evt = bi ? EVENT_ID1 : EVENT_ID0;
-        if (kc >= 1U && kc + 1U < 4U) {
+        if (kc >= 1U && kc + 1U < kKcSteps) {
             const uint32_t nbi = (kc + 1U) & 1U;
             const event_t nb_evt = nbi ? EVENT_ID1 : EVENT_ID0;
             WaitFlag<HardEvent::MTE1_MTE2>(nb_evt);
-            DataCopy(st.b1[nbi], st.b_gm[(kc + 1U) * 16384U], DataCopyParams{8, 512, 1536, 0});
+            DataCopy(st.b1[nbi], st.b_gm[(kc + 1U) * 16384U], DataCopyParams{8, 512, static_cast<uint16_t>(kInCols - 512U), 0});
             SetFlag<HardEvent::MTE2_MTE1>(nb_evt);
         }
 #endif
@@ -750,14 +780,16 @@ __aicore__ inline void RunPrefetchedDirectProjectOutput24Aic(
                 LoadDataWithTranspose(st.l0b[lbi][i * 8192U], st.b1[bi][k_sub_off + i * 1024U], trans);
             }
 #if defined(K112186_MLA_TAIL_FAST) || defined(K112724_TAIL_OUT_3BUF)
-            if (sub == 3U && kc == 0U) {
-                SetFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
-                WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
-                DataCopy(st.b1[0], st.b_gm[3U * 16384U], DataCopyParams{8, 512, 1536, 0});
-                SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID0);
+            if constexpr (kKcSteps > 3U) {
+                if (sub == 3U && kc == 0U) {
+                    SetFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
+                    WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
+                    DataCopy(st.b1[0], st.b_gm[3U * 16384U], DataCopyParams{8, 512, static_cast<uint16_t>(kInCols - 512U), 0});
+                    SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID0);
+                }
             }
 #else
-            if (sub == 3U && kc < 2U) {
+            if (sub == 3U && kc + 2U < kKcSteps) {
                 SetFlag<HardEvent::MTE1_MTE2>(b_evt);
             }
 #endif
@@ -771,9 +803,9 @@ __aicore__ inline void RunPrefetchedDirectProjectOutput24Aic(
             mad.cmatrixInitVal = (step == 0U);
             Mmad(st.l0c, st.l0a[step * 2048U], st.l0b[lbi], mad);
             if (dual_m) {
-                Mmad(st.l0c[4096U], st.l0a[32768U + step * 2048U], st.l0b[lbi], mad);
+                Mmad(st.l0c[4096U], st.l0a[kDualOff + step * 2048U], st.l0b[lbi], mad);
             }
-            if (step == 15U) {
+            if (step == kKcSteps * 4U - 1U) {
                 PipeBarrier<PIPE_M>();
             }
             SetFlag<HardEvent::M_MTE1>(lb_evt);
@@ -803,6 +835,7 @@ __aicore__ inline void RunPrefetchedDirectProjectOutput24Aic(
 #endif
 }
 #endif
+template <int64_t kHeads = mla_tail::kHeads>
 __aicore__ inline void DirectProjectOutput24Aic(
     TPipe& pipe, __gm__ int8_t* quantized, __gm__ int8_t* weights,
     __gm__ int32_t* accumulators, int64_t capacity, int64_t proj_rows)
@@ -811,6 +844,10 @@ __aicore__ inline void DirectProjectOutput24Aic(
     if (cid >= 24U) {
         return;
     }
+    constexpr uint32_t kInCols = static_cast<uint32_t>(kHeads) * 256U;
+    constexpr uint32_t kKcSteps = kInCols / 512U;
+    constexpr uint32_t kDualOff = 16U * kInCols;
+    constexpr uint64_t kWeightBytes = static_cast<uint64_t>(kInCols) * 256ULL;
     const bool dual_m = (proj_rows > 16);
     const uint16_t m0 = dual_m ? 16U : static_cast<uint16_t>(proj_rows);
     const uint16_t m1 = dual_m ? static_cast<uint16_t>(proj_rows - 16) : 0U;
@@ -823,8 +860,8 @@ __aicore__ inline void DirectProjectOutput24Aic(
     TBuf<TPosition::CO1> l0c_buf;
     pipe.InitBuffer(b1_buf0, 512 * 256);
     pipe.InitBuffer(b1_buf1, 512 * 256);
-    pipe.InitBuffer(a1_buf, m_cap * 2048U);
-    pipe.InitBuffer(l0a_buf, m_cap * 2048U);
+    pipe.InitBuffer(a1_buf, m_cap * kInCols);
+    pipe.InitBuffer(l0a_buf, m_cap * kInCols);
     pipe.InitBuffer(l0b_buf0, 128 * 256);
     pipe.InitBuffer(l0b_buf1, 128 * 256);
     pipe.InitBuffer(l0c_buf, m_cap * 256U * sizeof(int32_t));
@@ -837,31 +874,31 @@ __aicore__ inline void DirectProjectOutput24Aic(
 
     GlobalTensor<int8_t> a_gm, b_gm;
     GlobalTensor<int32_t> c_gm;
-    a_gm.SetGlobalBuffer(quantized, static_cast<uint64_t>(capacity) * 2048ULL);
-    b_gm.SetGlobalBuffer(weights + static_cast<uint64_t>(cid) * 524288ULL, 524288ULL);
+    a_gm.SetGlobalBuffer(quantized, static_cast<uint64_t>(capacity) * kInCols);
+    b_gm.SetGlobalBuffer(weights + static_cast<uint64_t>(cid) * kWeightBytes, kWeightBytes);
     c_gm.SetGlobalBuffer(accumulators + static_cast<uint64_t>(cid) * static_cast<uint64_t>(capacity) * 256ULL,
                          static_cast<uint64_t>(capacity) * 256ULL);
 
     Nd2NzParams copy_a{};
     copy_a.ndNum = 1;
     copy_a.nValue = m0;
-    copy_a.dValue = 2048;
-    copy_a.srcDValue = 2048;
+    copy_a.dValue = static_cast<uint16_t>(kInCols);
+    copy_a.srcDValue = static_cast<uint16_t>(kInCols);
     copy_a.dstNzC0Stride = 16;
     copy_a.dstNzNStride = 1;
     DataCopy(a1, a_gm, copy_a);
     if (dual_m) {
         copy_a.nValue = m1;
-        DataCopy(a1[32768U], a_gm[32768U], copy_a);
+        DataCopy(a1[kDualOff], a_gm[kDualOff], copy_a);
     }
     SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
 
-    DataCopy(b1[0], b_gm[0], DataCopyParams{8, 512, 1536, 0});
+    DataCopy(b1[0], b_gm[0], DataCopyParams{8, 512, static_cast<uint16_t>(kInCols - 512U), 0});
     SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID0);
 
     WaitFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
     LoadData2DParams load_a{};
-    load_a.repeatTimes = dual_m ? 128 : 64;
+    load_a.repeatTimes = dual_m ? (kKcSteps * 32U) : (kKcSteps * 16U);
     load_a.srcStride = 1;
     load_a.ifTranspose = false;
     LoadData(l0a, a1, load_a);
@@ -871,16 +908,16 @@ __aicore__ inline void DirectProjectOutput24Aic(
     LoadData2dTransposeParams trans(0, 8, 16, 1, 0, inc);
     SetFlag<HardEvent::M_MTE1>(EVENT_ID3);
     SetFlag<HardEvent::M_MTE1>(EVENT_ID4);
-    for (uint32_t kc = 0U; kc < 4U; ++kc) {
+    for (uint32_t kc = 0U; kc < kKcSteps; ++kc) {
         const uint32_t bi = kc & 1U;
         const event_t b_evt = bi ? EVENT_ID1 : EVENT_ID0;
-        if (kc + 1U < 4U) {
+        if (kc + 1U < kKcSteps) {
             const uint32_t nbi = (kc + 1U) & 1U;
             const event_t nb_evt = nbi ? EVENT_ID1 : EVENT_ID0;
             if (kc + 1U >= 2U) {
                 WaitFlag<HardEvent::MTE1_MTE2>(nb_evt);
             }
-            DataCopy(b1[nbi], b_gm[(kc + 1U) * 16384U], DataCopyParams{8, 512, 1536, 0});
+            DataCopy(b1[nbi], b_gm[(kc + 1U) * 16384U], DataCopyParams{8, 512, static_cast<uint16_t>(kInCols - 512U), 0});
             SetFlag<HardEvent::MTE2_MTE1>(nb_evt);
         }
         WaitFlag<HardEvent::MTE2_MTE1>(b_evt);
@@ -894,7 +931,7 @@ __aicore__ inline void DirectProjectOutput24Aic(
             for (uint32_t i = 0U; i < 4U; ++i) {
                 LoadDataWithTranspose(l0b[lbi][i * 8192U], b1[bi][k_sub_off + i * 1024U], trans);
             }
-            if (sub == 3U && kc < 2U) {
+            if (sub == 3U && kc + 2U < kKcSteps) {
                 SetFlag<HardEvent::MTE1_MTE2>(b_evt);
             }
             SetFlag<HardEvent::MTE1_M>(lb_evt);
@@ -907,9 +944,9 @@ __aicore__ inline void DirectProjectOutput24Aic(
             mad.cmatrixInitVal = (step == 0U);
             Mmad(l0c, l0a[step * 2048U], l0b[lbi], mad);
             if (dual_m) {
-                Mmad(l0c[4096U], l0a[32768U + step * 2048U], l0b[lbi], mad);
+                Mmad(l0c[4096U], l0a[kDualOff + step * 2048U], l0b[lbi], mad);
             }
-            if (step == 15U) {
+            if (step == kKcSteps * 4U - 1U) {
                 PipeBarrier<PIPE_M>();
             }
             SetFlag<HardEvent::M_MTE1>(lb_evt);
@@ -947,13 +984,13 @@ __aicore__ inline void ProjectOutput(TPipe& pipe,
 {
     const int64_t active_rows = rows > 0 ? rows : capacity;
 #if defined(K11140_DIRECT_MLA_TAIL) && defined(K11040_TAIL_NZ)
-    if constexpr (kHeads == 8) {
+    if constexpr (kHeads == 8 || kHeads == 4) {
 #ifdef K11150_MLA_TAIL_M32
         if (active_rows <= 32 && blocks >= 24) {
 #else
         if (active_rows <= 16 && blocks >= 24) {
 #endif
-            DirectProjectOutput24Aic(pipe, quantized, weights, accumulators, capacity, active_rows);
+            DirectProjectOutput24Aic<kHeads>(pipe, quantized, weights, accumulators, capacity, active_rows);
             return;
         }
     }
@@ -1154,9 +1191,10 @@ __aicore__ inline void FinishOutputRows(
                     GlobalTensor<bfloat16_t> self_sh;
                     self_sh.SetGlobalBuffer(shmem_dst_base + pkt_off, total);
                     DataCopy(self_sh, held.output, total);
-                    for (uint32_t p = 0U; p < 3U; ++p) {
-                        const uint32_t step2 = (((static_cast<uint32_t>(vector_index) + p) % 3U) + 1U) << 1U;
-                        const int32_t peer = (comm_rank + static_cast<int32_t>(step2)) & 7;
+                    const uint32_t even_peers = static_cast<uint32_t>((comm_ranks >> 1) - 1);
+                    for (uint32_t p = 0U; p < even_peers; ++p) {
+                        const uint32_t step2 = (((static_cast<uint32_t>(vector_index) + p) % even_peers) + 1U) << 1U;
+                        const int32_t peer = (comm_rank + static_cast<int32_t>(step2)) & (comm_ranks - 1);
                         __gm__ bfloat16_t* peer_ptr = reinterpret_cast<__gm__ bfloat16_t*>(
                             aclshmem_ptr(shmem_dst_base + pkt_off, peer));
                         GlobalTensor<bfloat16_t> peer_dst;
@@ -1165,9 +1203,10 @@ __aicore__ inline void FinishOutputRows(
                     }
                 } else {
                     DataCopy(destination[pkt_off], held.output, total);
-                    for (uint32_t p = 0U; p < 7U; ++p) {
-                        const uint32_t off = ((static_cast<uint32_t>(vector_index) + p) % 7U) + 1U;
-                        const int32_t peer = (comm_rank + static_cast<int32_t>(off)) & 7;
+                    const uint32_t all_peers = static_cast<uint32_t>(comm_ranks - 1);
+                    for (uint32_t p = 0U; p < all_peers; ++p) {
+                        const uint32_t off = ((static_cast<uint32_t>(vector_index) + p) % all_peers) + 1U;
+                        const int32_t peer = (comm_rank + static_cast<int32_t>(off)) & (comm_ranks - 1);
                         __gm__ bfloat16_t* peer_ptr = reinterpret_cast<__gm__ bfloat16_t*>(
                             aclshmem_ptr(shmem_dst_base + pkt_off, peer));
                         GlobalTensor<bfloat16_t> peer_dst;
@@ -1199,9 +1238,10 @@ __aicore__ inline void FinishOutputRows(
                 GlobalTensor<bfloat16_t> self_sh;
                 self_sh.SetGlobalBuffer(shmem_dst_base + dst_off, rows * kHidden);
                 DataCopy(self_sh, held.output, copy);
-                for (uint32_t p = 0U; p < 3U; ++p) {
-                    const uint32_t step2 = (((static_cast<uint32_t>(vector_index) + p) % 3U) + 1U) << 1U;
-                    const int32_t peer = (comm_rank + static_cast<int32_t>(step2)) & 7;
+                const uint32_t even_peers = static_cast<uint32_t>((comm_ranks >> 1) - 1);
+                for (uint32_t p = 0U; p < even_peers; ++p) {
+                    const uint32_t step2 = (((static_cast<uint32_t>(vector_index) + p) % even_peers) + 1U) << 1U;
+                    const int32_t peer = (comm_rank + static_cast<int32_t>(step2)) & (comm_ranks - 1);
                     __gm__ bfloat16_t* peer_ptr = reinterpret_cast<__gm__ bfloat16_t*>(
                         aclshmem_ptr(shmem_dst_base + dst_off, peer));
                     GlobalTensor<bfloat16_t> peer_dst;
@@ -1213,9 +1253,10 @@ __aicore__ inline void FinishOutputRows(
                           held.output, copy);
                 if (shmem_dst_base != nullptr) {
                     const int64_t dst_off = begin * kHidden + tile * kOutputTile;
-                    for (uint32_t p = 0U; p < 7U; ++p) {
-                        const uint32_t off = ((static_cast<uint32_t>(vector_index) + p) % 7U) + 1U;
-                        const int32_t peer = (comm_rank + static_cast<int32_t>(off)) & 7;
+                    const uint32_t all_peers = static_cast<uint32_t>(comm_ranks - 1);
+                    for (uint32_t p = 0U; p < all_peers; ++p) {
+                        const uint32_t off = ((static_cast<uint32_t>(vector_index) + p) % all_peers) + 1U;
+                        const int32_t peer = (comm_rank + static_cast<int32_t>(off)) & (comm_ranks - 1);
                         __gm__ bfloat16_t* peer_ptr = reinterpret_cast<__gm__ bfloat16_t*>(
                             aclshmem_ptr(shmem_dst_base + dst_off, peer));
                         GlobalTensor<bfloat16_t> peer_dst;
@@ -1330,7 +1371,7 @@ __aicore__ inline void FinishPreloadedOutputRow(
     const PreloadedDeqTask& t, OutputWorkspace& held, LocalTensor<float>& combined,
     __gm__ int32_t* accumulators, int bias_kind, __gm__ bfloat16_t* output,
     int64_t rows, int64_t capacity, int64_t vector_index,
-    __gm__ bfloat16_t* shmem_dst_base, int32_t comm_rank, bool sip_relay)
+    __gm__ bfloat16_t* shmem_dst_base, int32_t comm_rank, int32_t comm_ranks, bool sip_relay)
 {
     if (!t.valid) {
         return;
@@ -1369,9 +1410,10 @@ __aicore__ inline void FinishPreloadedOutputRow(
             GlobalTensor<bfloat16_t> self_sh;
             self_sh.SetGlobalBuffer(shmem_dst_base + pkt_off, t.total);
             DataCopy(self_sh, held.output, t.total);
-            for (uint32_t p = 0U; p < 3U; ++p) {
-                const uint32_t step2 = (((static_cast<uint32_t>(vector_index) + p) % 3U) + 1U) << 1U;
-                const int32_t peer = (comm_rank + static_cast<int32_t>(step2)) & 7;
+            const uint32_t even_peers = static_cast<uint32_t>((comm_ranks >> 1) - 1);
+            for (uint32_t p = 0U; p < even_peers; ++p) {
+                const uint32_t step2 = (((static_cast<uint32_t>(vector_index) + p) % even_peers) + 1U) << 1U;
+                const int32_t peer = (comm_rank + static_cast<int32_t>(step2)) & (comm_ranks - 1);
                 __gm__ bfloat16_t* peer_ptr = reinterpret_cast<__gm__ bfloat16_t*>(
                     aclshmem_ptr(shmem_dst_base + pkt_off, peer));
                 GlobalTensor<bfloat16_t> peer_dst;
@@ -1380,9 +1422,10 @@ __aicore__ inline void FinishPreloadedOutputRow(
             }
         } else {
             DataCopy(destination[pkt_off], held.output, t.total);
-            for (uint32_t p = 0U; p < 7U; ++p) {
-                const uint32_t off = ((static_cast<uint32_t>(vector_index) + p) % 7U) + 1U;
-                const int32_t peer = (comm_rank + static_cast<int32_t>(off)) & 7;
+            const uint32_t all_peers = static_cast<uint32_t>(comm_ranks - 1);
+            for (uint32_t p = 0U; p < all_peers; ++p) {
+                const uint32_t off = ((static_cast<uint32_t>(vector_index) + p) % all_peers) + 1U;
+                const int32_t peer = (comm_rank + static_cast<int32_t>(off)) & (comm_ranks - 1);
                 __gm__ bfloat16_t* peer_ptr = reinterpret_cast<__gm__ bfloat16_t*>(
                     aclshmem_ptr(shmem_dst_base + pkt_off, peer));
                 GlobalTensor<bfloat16_t> peer_dst;
@@ -1416,9 +1459,9 @@ __aicore__ inline uint32_t Forward(
 {
 #if defined(K11140_DIRECT_MLA_TAIL) && defined(K11040_TAIL_NZ)
 #ifdef K11150_MLA_TAIL_M32
-    if (!(kHeads == 8 && (rows > 0 ? rows : capacity) <= 32 && blocks >= 24)) {
+    if (!((kHeads == 8 || kHeads == 4) && (rows > 0 ? rows : capacity) <= 32 && blocks >= 24)) {
 #else
-    if (!(kHeads == 8 && (rows > 0 ? rows : capacity) <= 16 && blocks >= 24)) {
+    if (!((kHeads == 8 || kHeads == 4) && (rows > 0 ? rows : capacity) <= 16 && blocks >= 24)) {
 #endif
         SetSysWorkspace(scratch + layout.system);
     }
@@ -1454,14 +1497,14 @@ __aicore__ inline uint32_t Forward(
     SyncAll<false>();
 #if defined(K112168_MLA_TAIL_OVERLAP) && defined(K11140_DIRECT_MLA_TAIL) && defined(K11040_TAIL_NZ) && defined(K11150_MLA_TAIL_M32)
     DirectOutPrefetchState out_pf;
-    const bool use_pf_out = (kHeads == 8) && (active_rows >= 1) && (active_rows <= 32) && (blocks == 24);
+    const bool use_pf_out = (kHeads == 8 || kHeads == 4) && (active_rows >= 1) && (active_rows <= 32) && (blocks == 24);
 #endif
 #if defined(K112510_MLA_TAIL_XCORE_V2) && defined(K112168_MLA_TAIL_OVERLAP) && defined(K11140_DIRECT_MLA_TAIL) && defined(K11040_TAIL_NZ) && defined(K11150_MLA_TAIL_M32)
     if (use_pf_out) {
         if ASCEND_IS_AIC {
             pipe.Reset();
-            PrefetchDirectProjectOutput24Aic(pipe, out_pf, output_weight, active_rows);
-            RunPrefetchedDirectProjectOutput24Aic(out_pf, quantized, accumulators, capacity, active_rows);
+            PrefetchDirectProjectOutput24Aic<kHeads>(pipe, out_pf, output_weight, active_rows);
+            RunPrefetchedDirectProjectOutput24Aic<kHeads>(out_pf, quantized, accumulators, capacity, active_rows);
             pipe.Reset();
         }
         if ASCEND_IS_AIV {
@@ -1523,7 +1566,7 @@ __aicore__ inline uint32_t Forward(
                 FinishPreloadedOutputRow(
                     pre_xc, deq_held_xc, combined_xc, accumulators, bias_kind,
                     output, active_rows, capacity, GetBlockIdx(),
-                    xc_dst_base, comm_rank, sip_r1_xc);
+                    xc_dst_base, comm_rank, comm_ranks, sip_r1_xc);
             }
             if (publish_end) {
                 Publish();
@@ -1536,7 +1579,7 @@ __aicore__ inline uint32_t Forward(
         pipe.Reset();
 #if defined(K112168_MLA_TAIL_OVERLAP) && defined(K11140_DIRECT_MLA_TAIL) && defined(K11040_TAIL_NZ) && defined(K11150_MLA_TAIL_M32)
         if (use_pf_out) {
-            PrefetchDirectProjectOutput24Aic(pipe, out_pf, output_weight, active_rows);
+            PrefetchDirectProjectOutput24Aic<kHeads>(pipe, out_pf, output_weight, active_rows);
         }
 #endif
     }
@@ -1552,7 +1595,7 @@ __aicore__ inline uint32_t Forward(
     if ASCEND_IS_AIC {
 #if defined(K112168_MLA_TAIL_OVERLAP) && defined(K11140_DIRECT_MLA_TAIL) && defined(K11040_TAIL_NZ) && defined(K11150_MLA_TAIL_M32)
         if (use_pf_out) {
-            RunPrefetchedDirectProjectOutput24Aic(out_pf, quantized, accumulators, capacity, active_rows);
+            RunPrefetchedDirectProjectOutput24Aic<kHeads>(out_pf, quantized, accumulators, capacity, active_rows);
         } else
 #endif
         {
@@ -1627,7 +1670,7 @@ __aicore__ inline uint32_t Forward(
                 FinishPreloadedOutputRow(
                     pre_deq, deq_held, combined, accumulators, bias_kind,
                     output, active_rows, capacity, GetBlockIdx(),
-                    red1_dst_base, comm_rank, sip_r1);
+                    red1_dst_base, comm_rank, comm_ranks, sip_r1);
             } else
 #endif
             {

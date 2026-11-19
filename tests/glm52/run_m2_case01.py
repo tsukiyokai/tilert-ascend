@@ -128,19 +128,38 @@ def _prepare_build_artifacts(
     ready = build_dir / "whole_layer.ready"
     ops_dir = build_dir / "dspine_ops"
     l78_dir = build_dir / "dspine_l78"
+    world_size = int(os.environ.get("WORLD_SIZE", "8"))
     if rank == 0:
         build_dir.mkdir(parents=True, exist_ok=True)
         if ready.exists():
             ready.unlink()
         with ThreadPoolExecutor(max_workers=3) as pool:
-            f_chain = pool.submit(
-                build_chain,
-                out_dir=chain_out_dir,
-                union_sfa=bool(args.union_sfa),
-                enable_kernel_prof=enable_prof,
-            )
-            f_ops = pool.submit(build_dspine_ops, ops_dir)
-            f_l78 = pool.submit(build_draft_l78_k110419, out_dir=l78_dir, k_sfa=int(args.k_sfa))
+            if world_size == 8:
+                f_chain = pool.submit(
+                    build_chain,
+                    out_dir=chain_out_dir,
+                    union_sfa=bool(args.union_sfa),
+                    enable_kernel_prof=enable_prof,
+                )
+                f_ops = pool.submit(build_dspine_ops, ops_dir)
+                f_l78 = pool.submit(
+                    build_draft_l78_k110419, out_dir=l78_dir, k_sfa=int(args.k_sfa)
+                )
+            else:
+                f_chain = pool.submit(
+                    build_chain,
+                    out_dir=chain_out_dir,
+                    union_sfa=bool(args.union_sfa),
+                    enable_kernel_prof=enable_prof,
+                    world_size=world_size,
+                )
+                f_ops = pool.submit(build_dspine_ops, ops_dir, world_size=world_size)
+                f_l78 = pool.submit(
+                    build_draft_l78_k110419,
+                    out_dir=l78_dir,
+                    k_sfa=int(args.k_sfa),
+                    world_size=world_size,
+                )
             chain_so, _ = f_chain.result()
             f_ops.result()
             f_l78.result()

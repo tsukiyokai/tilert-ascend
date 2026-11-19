@@ -371,6 +371,7 @@ class Glm52AscendShowHands:
                 lw.scalars,
                 sync,
                 lw.mode != "shared",
+                prepare_fn=getattr(self.tree_lib, "prepare_records", None),
             )
             if li == 0:
                 local.indexed = 1 | 2 | 4
@@ -436,7 +437,7 @@ class Glm52AscendShowHands:
         )
 
         ops_dir = self.build_dir / "dspine_ops"
-        _, self.ops_cdll = load_dspine_ops(self.rank, out_dir=ops_dir)
+        _, self.ops_cdll = load_dspine_ops(self.rank, out_dir=ops_dir, world_size=self.world_size)
 
         self.prefix = FrozenPrefixArena.from_case(
             self.case_dir,

@@ -42,7 +42,7 @@ __aicore__ inline void ReduceCommunicationPayloadTiled(
     __gm__ bfloat16_t* att_twin_plane = nullptr;
 #endif
     const int64_t rank_stride = layout.rank_bytes / sizeof(bfloat16_t);
-    uint32_t unready = 0xFFU;
+    uint32_t unready = (ranks >= 32) ? 0xFFFFFFFFU : ((1U << static_cast<uint32_t>(ranks)) - 1U);
     for (int64_t task = vector_index; task < total_tasks; task += vectors) {
         if (task != vector_index) {
             CommunicationFence<AscendC::HardEvent::MTE3_MTE2>();
@@ -59,7 +59,7 @@ __aicore__ inline void ReduceCommunicationPayloadTiled(
         const int64_t chunk = count * kOutTile;
         const int64_t pkt_off = begin * kCommunicationHidden + tile * chunk;
         uint32_t pending = unready;
-        for (int32_t leaf = 0; leaf < 8; ++leaf) {
+        for (int32_t leaf = 0; leaf < ranks; ++leaf) {
             const TreeStep step = GetTreeStep(plan, leaf);
             if (static_cast<int32_t>(step.rank) == rank) {
                 AscendC::GlobalTensor<bfloat16_t> source;
@@ -82,7 +82,7 @@ __aicore__ inline void ReduceCommunicationPayloadTiled(
         if (pending != 0U) {
             constexpr uint32_t kReadyIntsPerRank =
                 static_cast<uint32_t>(kCommunicationCacheLine / sizeof(int32_t));
-            constexpr int32_t kReadyPollInts = 8 * static_cast<int32_t>(kReadyIntsPerRank);
+            const int32_t kReadyPollInts = ranks * static_cast<int32_t>(kReadyIntsPerRank);
             AscendC::GlobalTensor<int32_t> ready_gm;
             ready_gm.SetGlobalBuffer(
                 reinterpret_cast<__gm__ int32_t*>(window + layout.ready), kReadyPollInts);
@@ -91,8 +91,8 @@ __aicore__ inline void ReduceCommunicationPayloadTiled(
             while (pending != 0U) {
                 AscendC::DataCopy(sig_ub, ready_gm, kReadyPollInts);
                 CommunicationFence<AscendC::HardEvent::MTE2_S>();
-                for (int32_t l = 0; l < 8; ++l) {
-                    const int32_t leaf = (l + static_cast<int32_t>(vector_index)) & 7;
+                for (int32_t l = 0; l < ranks; ++l) {
+                    const int32_t leaf = (l + static_cast<int32_t>(vector_index)) & (ranks - 1);
                     if ((pending & (1U << leaf)) == 0U) {
                         continue;
                     }
@@ -115,14 +115,14 @@ __aicore__ inline void ReduceCommunicationPayloadTiled(
         }
 #else
         while (pending != 0U) {
-            for (int32_t l = 0; l < 8; ++l) {
-                const int32_t leaf = (l + static_cast<int32_t>(vector_index)) & 7;
+            for (int32_t l = 0; l < ranks; ++l) {
+                const int32_t leaf = (l + static_cast<int32_t>(vector_index)) & (ranks - 1);
                 if ((pending & (1U << leaf)) == 0U) {
                     continue;
                 }
                 const TreeStep step = GetTreeStep(plan, leaf);
                 __gm__ volatile int32_t* sig_addr =
-                    CommunicationReady(window, layout, 8, epoch, step.rank);
+                    CommunicationReady(window, layout, ranks, epoch, step.rank);
                 dcci_cacheline((__gm__ uint8_t*)sig_addr);
                 if (*sig_addr == signal) {
                     AscendC::GlobalTensor<bfloat16_t> source;
@@ -138,25 +138,16 @@ __aicore__ inline void ReduceCommunicationPayloadTiled(
         unready = 0U;
         CommunicationFence<AscendC::HardEvent::MTE2_V>();
         AscendC::Cast(buffers.accumulator[0], buffers.narrow[0],
-                      AscendC::RoundMode::CAST_NONE, 8 * chunk);
+                      AscendC::RoundMode::CAST_NONE, ranks * chunk);
         AscendC::PipeBarrier<PIPE_V>();
-        for (int32_t pair = 0; pair < 4; ++pair) {
-            AscendC::Add(buffers.accumulator[pair * 2 * chunk],
-                         buffers.accumulator[pair * 2 * chunk],
-                         buffers.accumulator[(pair * 2 + 1) * chunk], chunk);
+        for (int32_t stride = 1; stride < ranks; stride <<= 1) {
+            for (int32_t i = 0; i + stride < ranks; i += (stride << 1)) {
+                AscendC::Add(buffers.accumulator[i * chunk],
+                             buffers.accumulator[i * chunk],
+                             buffers.accumulator[(i + stride) * chunk], chunk);
+            }
+            AscendC::PipeBarrier<PIPE_V>();
         }
-        AscendC::PipeBarrier<PIPE_V>();
-        AscendC::Add(buffers.accumulator[0 * chunk],
-                     buffers.accumulator[0 * chunk],
-                     buffers.accumulator[2 * chunk], chunk);
-        AscendC::Add(buffers.accumulator[4 * chunk],
-                     buffers.accumulator[4 * chunk],
-                     buffers.accumulator[6 * chunk], chunk);
-        AscendC::PipeBarrier<PIPE_V>();
-        AscendC::Add(buffers.accumulator[0],
-                     buffers.accumulator[0],
-                     buffers.accumulator[4 * chunk], chunk);
-        AscendC::PipeBarrier<PIPE_V>();
         AscendC::Cast(buffers.narrow, buffers.accumulator,
                       AscendC::RoundMode::CAST_RINT, chunk);
         CommunicationFence<AscendC::HardEvent::V_MTE3>();
@@ -197,6 +188,8 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
     int64_t local_tok = static_cast<int64_t>((tid * 171U) >> 9U);
     int64_t tok_step = 16;
     int64_t col = static_cast<int64_t>(tid - static_cast<uint32_t>(local_tok) * 3U) * 2048;
+    const int64_t wave_cap = (ranks > 8) ? 8 : 16;
+    int64_t wave_base = 0;
 #ifdef K112600_EXACT48_RED2_OPT
     auto map_red2_wave = [&](int64_t w_rows, int64_t& r_tok, int64_t& r_col, int64_t& r_chunk) __aicore__ {
         if (w_rows <= 1) {
@@ -221,7 +214,7 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
             r_tok = static_cast<int64_t>(q); r_col = static_cast<int64_t>(tid - q * 3U) * 2048;
         }
     };
-    const int64_t w0_rows = (rows > 16) ? 16 : rows;
+    const int64_t w0_rows = (rows > wave_cap) ? wave_cap : rows;
     map_red2_wave(w0_rows, local_tok, col, chunk);
     if (local_tok >= w0_rows) {
         return;
@@ -232,7 +225,7 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
         local_tok = static_cast<int64_t>((tid * 683U) >> 13U);
         tok_step = 4;
         col = static_cast<int64_t>(tid - static_cast<uint32_t>(local_tok) * 12U) * 512;
-    } else if (rows >= 5 && rows <= 8) {
+    } else if ((rows >= 5 && rows <= 8) || (ranks > 8 && rows > 8)) {
         chunk = 1024;
         local_tok = static_cast<int64_t>((tid * 683U) >> 12U);
         tok_step = 8;
@@ -284,13 +277,13 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
 
     const int64_t rank_stride = layout.rank_bytes / sizeof(bfloat16_t);
     auto rt_narrow = buffers.narrow[16384];
-    uint32_t unready = 0xFFU;
-    uint32_t rt_unready = 0xFFU & ~(1U << rank);
+    uint32_t unready = (ranks >= 32) ? 0xFFFFFFFFU : ((1U << static_cast<uint32_t>(ranks)) - 1U);
+    uint32_t rt_unready = unready & ~(1U << static_cast<uint32_t>(rank));
     uint8_t owner_of_exp[256];
 #ifdef K112830_FAST_POLL_RED2
     constexpr uint32_t kReadyIntsPerRank =
         static_cast<uint32_t>(kCommunicationCacheLine / sizeof(int32_t));
-    constexpr int32_t kReadyPollInts = 8 * static_cast<int32_t>(kReadyIntsPerRank);
+    const int32_t kReadyPollInts = ranks * static_cast<int32_t>(kReadyIntsPerRank);
     AscendC::GlobalTensor<int32_t> ready_gm;
     ready_gm.SetGlobalBuffer(
         reinterpret_cast<__gm__ int32_t*>(window + layout.ready), kReadyPollInts);
@@ -299,7 +292,7 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
         AscendC::DataCopy(sig_ub, ready_gm, kReadyPollInts);
         CommunicationFence<AscendC::HardEvent::MTE2_S>();
         const uint32_t ep_slot = ep & 3U;
-        for (uint32_t r = 0U; r < 8U; ++r) {
+        for (uint32_t r = 0U; r < static_cast<uint32_t>(ranks); ++r) {
             if ((mask & (1U << r)) != 0U) {
                 if (sig_ub.GetValue(r * kReadyIntsPerRank + ep_slot) == sig_val) {
                     mask &= ~(1U << r);
@@ -312,17 +305,22 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
     for (bool first_tile = true; ; first_tile = false) {
         if (!first_tile) {
 #ifdef K112600_EXACT48_RED2_OPT
-            if (rows <= 16 || local_tok >= 16) {
+            wave_base += wave_cap;
+            if (wave_base >= rows) {
                 break;
             }
+            const int64_t rem_rows = rows - wave_base;
+            const int64_t w_rows = (rem_rows > wave_cap) ? wave_cap : rem_rows;
             int64_t rel1 = 0;
-            map_red2_wave(rows - 16, rel1, col, chunk);
-            if (rel1 >= rows - 16) {
+            map_red2_wave(w_rows, rel1, col, chunk);
+            if (rel1 >= w_rows) {
                 break;
             }
-            local_tok = 16 + rel1;
+            local_tok = wave_base + rel1;
 #else
-            if (rows == 24) {
+            if (ranks > 8 && rows > 8) {
+                local_tok += tok_step;
+            } else if (rows == 24) {
                 if (chunk == 1024) {
                     break;
                 }
@@ -362,7 +360,7 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
             refresh_sigs(rmask, sh_epoch, sh_signal);
             const uint32_t sh_s_ep = sh_epoch & 3U;
             const uint32_t rt_s_ep = rt_epoch & 3U;
-            for (uint32_t r = 0U; r < 8U; ++r) {
+            for (uint32_t r = 0U; r < static_cast<uint32_t>(ranks); ++r) {
                 const uint32_t rt_s_idx = r * kReadyIntsPerRank + rt_s_ep;
                 if ((rt_unready & (1U << r)) != 0U && sig_ub.GetValue(rt_s_idx) == signal) {
                     rt_unready &= ~(1U << r);
@@ -373,7 +371,7 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
             }
             unready = rmask;
         }
-        for (int32_t leaf = 0; leaf < 8; ++leaf) {
+        for (int32_t leaf = 0; leaf < ranks; ++leaf) {
             const TreeStep step = GetTreeStep(plan, leaf);
             AscendC::GlobalTensor<bfloat16_t> sh_src;
             if (static_cast<int32_t>(step.rank) == rank) {
@@ -398,7 +396,7 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
         }
 #else
         uint32_t pending = unready;
-        for (int32_t leaf = 0; leaf < 8; ++leaf) {
+        for (int32_t leaf = 0; leaf < ranks; ++leaf) {
             const TreeStep step = GetTreeStep(plan, leaf);
             if (static_cast<int32_t>(step.rank) == rank) {
                 AscendC::GlobalTensor<bfloat16_t> sh_src;
@@ -429,8 +427,8 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
             }
         }
         while (pending != 0U) {
-            for (int32_t l = 0; l < 8; ++l) {
-                const int32_t leaf = (l + static_cast<int32_t>(vector_index)) & 7;
+            for (int32_t l = 0; l < ranks; ++l) {
+                const int32_t leaf = (l + static_cast<int32_t>(vector_index)) & (ranks - 1);
                 if ((pending & (1U << leaf)) == 0U) {
                     continue;
                 }
@@ -483,7 +481,7 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
                 const uint32_t ow32 = owner_ub.GetValue(ge >> 2U);
                 owner = static_cast<int32_t>((ow32 >> ((ge & 3U) << 3U)) & 0xFFU);
             } else {
-                owner = static_cast<int32_t>(ge >> 5U);
+                owner = static_cast<int32_t>(ge >> kExpertShift);
             }
             slot_owner[slot] = static_cast<int8_t>(owner);
             const uint32_t obit = 1U << static_cast<uint32_t>(owner);
@@ -518,25 +516,16 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
 #endif
         {
             AscendC::Cast(buffers.accumulator[0], buffers.narrow[0],
-                          AscendC::RoundMode::CAST_NONE, 8 * chunk);
+                          AscendC::RoundMode::CAST_NONE, ranks * chunk);
             AscendC::PipeBarrier<PIPE_V>();
-            for (int32_t pair = 0; pair < 4; ++pair) {
-                AscendC::Add(buffers.accumulator[pair * 2 * chunk],
-                             buffers.accumulator[pair * 2 * chunk],
-                             buffers.accumulator[(pair * 2 + 1) * chunk], chunk);
+            for (int32_t stride = 1; stride < ranks; stride <<= 1) {
+                for (int32_t i = 0; i + stride < ranks; i += (stride << 1)) {
+                    AscendC::Add(buffers.accumulator[i * chunk],
+                                 buffers.accumulator[i * chunk],
+                                 buffers.accumulator[(i + stride) * chunk], chunk);
+                }
+                AscendC::PipeBarrier<PIPE_V>();
             }
-            AscendC::PipeBarrier<PIPE_V>();
-            AscendC::Add(buffers.accumulator[0 * chunk],
-                         buffers.accumulator[0 * chunk],
-                         buffers.accumulator[2 * chunk], chunk);
-            AscendC::Add(buffers.accumulator[4 * chunk],
-                         buffers.accumulator[4 * chunk],
-                         buffers.accumulator[6 * chunk], chunk);
-            AscendC::PipeBarrier<PIPE_V>();
-            AscendC::Add(buffers.accumulator[0],
-                         buffers.accumulator[0],
-                         buffers.accumulator[4 * chunk], chunk);
-            AscendC::PipeBarrier<PIPE_V>();
             AscendC::Cast(buffers.narrow[0], buffers.accumulator[0],
                           AscendC::RoundMode::CAST_RINT, chunk);
             AscendC::PipeBarrier<PIPE_V>();
@@ -577,8 +566,8 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
         }
 #else
         while (wait_owners != 0U) {
-            for (int32_t o = 0; o < 8; ++o) {
-                const int32_t owner = (o + static_cast<int32_t>(tid)) & 7;
+            for (int32_t o = 0; o < ranks; ++o) {
+                const int32_t owner = (o + static_cast<int32_t>(tid)) & (ranks - 1);
                 const uint32_t obit = 1U << static_cast<uint32_t>(owner);
                 if ((wait_owners & obit) == 0U) {
                     continue;
@@ -647,7 +636,7 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
             const uint32_t ge = static_cast<uint32_t>(signed_eid) & 255U;
             const int32_t owner = (owner_gm != nullptr)
                 ? static_cast<int32_t>(owner_of_exp[ge])
-                : static_cast<int32_t>(ge >> 5U);
+                : static_cast<int32_t>(ge >> kExpertShift);
             const int64_t elem_off = orig * kCommunicationHidden + col;
 #ifdef K112808_PULL_RED2
             if ((rt_unready & (1U << owner)) == 0U) {
@@ -682,25 +671,16 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
 #endif
         }
         AscendC::Cast(buffers.accumulator[0], buffers.narrow[0],
-                      AscendC::RoundMode::CAST_NONE, 8 * chunk);
+                      AscendC::RoundMode::CAST_NONE, ranks * chunk);
         AscendC::PipeBarrier<PIPE_V>();
-        for (int32_t pair = 0; pair < 4; ++pair) {
-            AscendC::Add(buffers.accumulator[pair * 2 * chunk],
-                         buffers.accumulator[pair * 2 * chunk],
-                         buffers.accumulator[(pair * 2 + 1) * chunk], chunk);
+        for (int32_t stride = 1; stride < ranks; stride <<= 1) {
+            for (int32_t i = 0; i + stride < ranks; i += (stride << 1)) {
+                AscendC::Add(buffers.accumulator[i * chunk],
+                             buffers.accumulator[i * chunk],
+                             buffers.accumulator[(i + stride) * chunk], chunk);
+            }
+            AscendC::PipeBarrier<PIPE_V>();
         }
-        AscendC::PipeBarrier<PIPE_V>();
-        AscendC::Add(buffers.accumulator[0 * chunk],
-                     buffers.accumulator[0 * chunk],
-                     buffers.accumulator[2 * chunk], chunk);
-        AscendC::Add(buffers.accumulator[4 * chunk],
-                     buffers.accumulator[4 * chunk],
-                     buffers.accumulator[6 * chunk], chunk);
-        AscendC::PipeBarrier<PIPE_V>();
-        AscendC::Add(buffers.accumulator[0],
-                     buffers.accumulator[0],
-                     buffers.accumulator[4 * chunk], chunk);
-        AscendC::PipeBarrier<PIPE_V>();
         AscendC::Cast(buffers.narrow[0], buffers.accumulator[0],
                       AscendC::RoundMode::CAST_RINT, chunk);
         AscendC::PipeBarrier<PIPE_V>();
@@ -716,7 +696,7 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
                 const uint32_t ge = static_cast<uint32_t>(eids_ub.GetValue(orig)) & 255U;
                 const int32_t owner = (owner_gm != nullptr)
                     ? static_cast<int32_t>(owner_of_exp[ge])
-                    : static_cast<int32_t>(ge >> 5U);
+                    : static_cast<int32_t>(ge >> kExpertShift);
                 if ((rt_unready & (1U << owner)) != 0U) {
                     __gm__ volatile int32_t* sig_addr =
                         CommunicationReady(window, layout, ranks, rt_epoch, owner);
@@ -971,7 +951,7 @@ __aicore__ inline void ReduceScatterSlots768_Push(
                 const uint32_t ow32 = owner_ub.GetValue(ge >> 2U);
                 owner = (ow32 >> ((ge & 3U) << 3U)) & 0xFFU;
             } else {
-                owner = ge >> 5U;
+                owner = ge >> kExpertShift;
             }
             slot_owner[slot] = static_cast<int8_t>(owner);
             const uint32_t obit = 1U << owner;
@@ -986,25 +966,16 @@ __aicore__ inline void ReduceScatterSlots768_Push(
         }
 
         AscendC::Cast(buffers.accumulator[0], buffers.narrow[0],
-                      AscendC::RoundMode::CAST_NONE, 8 * chunk);
+                      AscendC::RoundMode::CAST_NONE, ranks * chunk);
         AscendC::PipeBarrier<PIPE_V>();
-        for (int32_t pair = 0; pair < 4; ++pair) {
-            AscendC::Add(buffers.accumulator[pair * 2 * chunk],
-                         buffers.accumulator[pair * 2 * chunk],
-                         buffers.accumulator[(pair * 2 + 1) * chunk], chunk);
+        for (int32_t stride = 1; stride < ranks; stride <<= 1) {
+            for (int32_t i = 0; i + stride < ranks; i += (stride << 1)) {
+                AscendC::Add(buffers.accumulator[i * chunk],
+                             buffers.accumulator[i * chunk],
+                             buffers.accumulator[(i + stride) * chunk], chunk);
+            }
+            AscendC::PipeBarrier<PIPE_V>();
         }
-        AscendC::PipeBarrier<PIPE_V>();
-        AscendC::Add(buffers.accumulator[0 * chunk],
-                     buffers.accumulator[0 * chunk],
-                     buffers.accumulator[2 * chunk], chunk);
-        AscendC::Add(buffers.accumulator[4 * chunk],
-                     buffers.accumulator[4 * chunk],
-                     buffers.accumulator[6 * chunk], chunk);
-        AscendC::PipeBarrier<PIPE_V>();
-        AscendC::Add(buffers.accumulator[0],
-                     buffers.accumulator[0],
-                     buffers.accumulator[4 * chunk], chunk);
-        AscendC::PipeBarrier<PIPE_V>();
         AscendC::Cast(buffers.narrow[0], buffers.accumulator[0],
                       AscendC::RoundMode::CAST_RINT, chunk);
         AscendC::PipeBarrier<PIPE_V>();

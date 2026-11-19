@@ -372,15 +372,17 @@ __aicore__ inline void TokenOutputs(
 #if defined(K112110_SIP_RED1) && defined(TESTS_GLM52_COMMUNICATION_TREE_COMMUNICATION_DEVICE_H)
             if (rt_plane != nullptr && need_r1_wait) {
                 const auto r1_layout = whole_layer_tree::MakeCommunicationLayout(comm_capacity, comm_ranks);
-                uint32_t pend = 0xFFU & ~(1U << static_cast<uint32_t>(comm_rank));
+                const uint32_t rank_mask = (comm_ranks >= 32) ? 0xFFFFFFFFU : ((1U << static_cast<uint32_t>(comm_ranks)) - 1U);
+                const uint32_t all_peers = static_cast<uint32_t>(comm_ranks - 1);
+                uint32_t pend = rank_mask & ~(1U << static_cast<uint32_t>(comm_rank));
                 while (pend != 0U) {
-                    for (uint32_t sp = 0U; sp < 7U; ++sp) {
-                        const int32_t p = (comm_rank + static_cast<int32_t>(((tid_u + sp) % 7U) + 1U)) & 7;
+                    for (uint32_t sp = 0U; sp < all_peers; ++sp) {
+                        const int32_t p = (comm_rank + static_cast<int32_t>(((tid_u + sp) % all_peers) + 1U)) & (comm_ranks - 1);
                         if ((pend & (1U << p)) == 0U) {
                             continue;
                         }
                         __gm__ volatile int32_t* ack_addr =
-                            whole_layer_tree::CommunicationR1Done(comm_window, r1_layout, p);
+                            whole_layer_tree::CommunicationR1Done(comm_window, r1_layout, comm_ranks, p);
                         dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(
                             const_cast<__gm__ int32_t*>(ack_addr)));
                         if (static_cast<int32_t>(static_cast<uint32_t>(*ack_addr) - comm_base_epoch) >= 0) {
@@ -429,9 +431,10 @@ __aicore__ inline void TokenOutputs(
                 self_rt.SetGlobalBuffer(dst_addr, span);
                 DataCopy(self_rt, dst_ub, span);
 #ifndef K112808_PULL_RED2
-                for (uint32_t p = 0U; p < 3U; ++p) {
-                    const uint32_t step2 = (((tid_u + p) % 3U) + 1U) << 1U;
-                    const int32_t peer = (comm_rank + static_cast<int32_t>(step2)) & 7;
+                const uint32_t even_peers = static_cast<uint32_t>((comm_ranks >> 1) - 1);
+                for (uint32_t p = 0U; p < even_peers; ++p) {
+                    const uint32_t step2 = (((tid_u + p) % even_peers) + 1U) << 1U;
+                    const int32_t peer = (comm_rank + static_cast<int32_t>(step2)) & (comm_ranks - 1);
                     GlobalTensor<bfloat16_t> peer_dst;
                     peer_dst.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(
                         aclshmem_ptr(dst_addr, peer)), span);
@@ -448,9 +451,10 @@ __aicore__ inline void TokenOutputs(
                 self_rt.SetGlobalBuffer(dst_addr, span);
                 DataCopy(self_rt, dst_ub, span);
 #ifndef K112808_PULL_RED2
-                for (uint32_t p = 0U; p < 3U; ++p) {
-                    const uint32_t step2 = (((tid_u + p) % 3U) + 1U) << 1U;
-                    const int32_t peer = (comm_rank + static_cast<int32_t>(step2)) & 7;
+                const uint32_t even_peers = static_cast<uint32_t>((comm_ranks >> 1) - 1);
+                for (uint32_t p = 0U; p < even_peers; ++p) {
+                    const uint32_t step2 = (((tid_u + p) % even_peers) + 1U) << 1U;
+                    const int32_t peer = (comm_rank + static_cast<int32_t>(step2)) & (comm_ranks - 1);
                     GlobalTensor<bfloat16_t> peer_dst;
                     peer_dst.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(
                         aclshmem_ptr(dst_addr, peer)), span);
@@ -465,9 +469,10 @@ __aicore__ inline void TokenOutputs(
 #ifdef TESTS_GLM52_COMMUNICATION_TREE_COMMUNICATION_DEVICE_H
             if (rt_plane != nullptr) {
                 __gm__ bfloat16_t* dst_addr = rt_plane + original * kHidden + column;
-                for (uint32_t p = 0U; p < 7U; ++p) {
-                    const uint32_t off = ((tid_u + p) % 7U) + 1U;
-                    const int32_t peer = (comm_rank + static_cast<int32_t>(off)) & 7;
+                const uint32_t all_peers = static_cast<uint32_t>(comm_ranks - 1);
+                for (uint32_t p = 0U; p < all_peers; ++p) {
+                    const uint32_t off = ((tid_u + p) % all_peers) + 1U;
+                    const int32_t peer = (comm_rank + static_cast<int32_t>(off)) & (comm_ranks - 1);
                     GlobalTensor<bfloat16_t> peer_dst;
                     peer_dst.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(
                         aclshmem_ptr(dst_addr, peer)), span);
@@ -557,9 +562,10 @@ __aicore__ inline void TokenOutputs(
                 GlobalTensor<bfloat16_t> self_rt;
                 self_rt.SetGlobalBuffer(dst_addr, span);
                 DataCopy(self_rt, narrow, span);
-                for (uint32_t p = 0U; p < 3U; ++p) {
-                    const uint32_t step2 = (((tid_u + p) % 3U) + 1U) << 1U;
-                    const int32_t peer = (comm_rank + static_cast<int32_t>(step2)) & 7;
+                const uint32_t even_peers = static_cast<uint32_t>((comm_ranks >> 1) - 1);
+                for (uint32_t p = 0U; p < even_peers; ++p) {
+                    const uint32_t step2 = (((tid_u + p) % even_peers) + 1U) << 1U;
+                    const int32_t peer = (comm_rank + static_cast<int32_t>(step2)) & (comm_ranks - 1);
                     GlobalTensor<bfloat16_t> peer_dst;
                     peer_dst.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(
                         aclshmem_ptr(dst_addr, peer)), span);
@@ -574,9 +580,10 @@ __aicore__ inline void TokenOutputs(
                 GlobalTensor<bfloat16_t> self_rt;
                 self_rt.SetGlobalBuffer(dst_addr, span);
                 DataCopy(self_rt, narrow, span);
-                for (uint32_t p = 0U; p < 3U; ++p) {
-                    const uint32_t step2 = (((tid_u + p) % 3U) + 1U) << 1U;
-                    const int32_t peer = (comm_rank + static_cast<int32_t>(step2)) & 7;
+                const uint32_t even_peers = static_cast<uint32_t>((comm_ranks >> 1) - 1);
+                for (uint32_t p = 0U; p < even_peers; ++p) {
+                    const uint32_t step2 = (((tid_u + p) % even_peers) + 1U) << 1U;
+                    const int32_t peer = (comm_rank + static_cast<int32_t>(step2)) & (comm_ranks - 1);
                     GlobalTensor<bfloat16_t> peer_dst;
                     peer_dst.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(
                         aclshmem_ptr(dst_addr, peer)), span);
@@ -590,9 +597,10 @@ __aicore__ inline void TokenOutputs(
 #ifdef TESTS_GLM52_COMMUNICATION_TREE_COMMUNICATION_DEVICE_H
             if (rt_plane != nullptr) {
                 __gm__ bfloat16_t* dst_addr = rt_plane + original * kHidden + column;
-                for (uint32_t p = 0U; p < 7U; ++p) {
-                    const uint32_t off = ((tid_u + p) % 7U) + 1U;
-                    const int32_t peer = (comm_rank + static_cast<int32_t>(off)) & 7;
+                const uint32_t all_peers = static_cast<uint32_t>(comm_ranks - 1);
+                for (uint32_t p = 0U; p < all_peers; ++p) {
+                    const uint32_t off = ((tid_u + p) % all_peers) + 1U;
+                    const int32_t peer = (comm_rank + static_cast<int32_t>(off)) & (comm_ranks - 1);
                     GlobalTensor<bfloat16_t> peer_dst;
                     peer_dst.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(
                         aclshmem_ptr(dst_addr, peer)), span);

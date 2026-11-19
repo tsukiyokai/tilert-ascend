@@ -4,7 +4,16 @@
 #include <cstddef>
 #include <cstdint>
 
+#ifndef kCommunicationMaximumRanks_DEF
+#ifndef WORLD_SIZE
+#define WORLD_SIZE 8
+#endif
+#endif
+
 namespace whole_layer_tree {
+
+constexpr int32_t kDefaultWorldSize = WORLD_SIZE;
+constexpr uint32_t kExpertShift = (WORLD_SIZE == 16) ? 4U : 5U;
 
 #if defined(__CCE_AICORE__) || defined(__CCE_KT_TEST__)
 #define WHOLE_LAYER_COMMUNICATION_DEVICE __aicore__

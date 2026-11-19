@@ -325,32 +325,38 @@ def _pack_dense_mlp_weights(
     s_gu: torch.Tensor,
     w_dn: torch.Tensor,
     s_dn: torch.Tensor,
+    world_size: int = 8,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     import torch
 
-    if w_gu.shape != (HIDDEN, 3072) or w_gu.dtype != torch.int8:
+    d_dim = 12288 // int(world_size)
+    gu_cols = 2 * d_dim
+    gu_aic_cols = gu_cols // 24
+    gu_g32 = gu_aic_cols // 32
+    dn_kc = d_dim // 256
+    if w_gu.shape != (HIDDEN, gu_cols) or w_gu.dtype != torch.int8:
         raise ValueError(f"Dense gate_up shape/dtype mismatch: {w_gu.shape} {w_gu.dtype}")
-    if w_dn.shape != (1536, HIDDEN) or w_dn.dtype != torch.int8:
+    if w_dn.shape != (d_dim, HIDDEN) or w_dn.dtype != torch.int8:
         raise ValueError(f"Dense down shape/dtype mismatch: {w_dn.shape} {w_dn.dtype}")
     p_gu = (
-        w_gu.reshape(6, 1024, 24, 128)
+        w_gu.reshape(6, 1024, 24, gu_aic_cols)
         .permute(2, 0, 1, 3)
         .contiguous()
-        .view(24, 6, 2, 512, 4, 32)
+        .view(24, 6, 2, 512, gu_g32, 32)
         .permute(0, 1, 2, 4, 3, 5)
         .contiguous()
     )
     p_dn = (
-        w_dn.reshape(6, 256, 24, 256)
+        w_dn.reshape(dn_kc, 256, 24, 256)
         .permute(2, 0, 1, 3)
         .contiguous()
-        .view(24, 6, 2, 128, 8, 32)
+        .view(24, dn_kc, 2, 128, 8, 32)
         .permute(0, 1, 2, 4, 3, 5)
         .contiguous()
     )
     s_gu_f = s_gu.detach().float().reshape(-1).contiguous()
     s_dn_f = s_dn.detach().float().reshape(-1).contiguous()
-    if s_gu_f.shape != (3072,) or s_dn_f.shape != (HIDDEN,):
+    if s_gu_f.shape != (gu_cols,) or s_dn_f.shape != (HIDDEN,):
         raise ValueError(f"Dense scale shapes mismatch: {s_gu_f.shape} {s_dn_f.shape}")
     return p_gu, s_gu_f, p_dn, s_dn_f
 
@@ -567,19 +573,22 @@ def _load_attention_weights(
     w_uk_t = w_uk.permute(1, 2, 0).contiguous()
     w_uv_p = pack_value_weights(w_uv.transpose(0, 1).contiguous())
     if tail_nz:
+        uv_tile = (heads * VALUE) // 16
+        uv_n16 = uv_tile // 16
         w_uv_p = (
-            w_uv_p.view(16, 512, 8, 16)
+            w_uv_p.view(16, 512, uv_n16, 16)
             .permute(0, 2, 1, 3)
             .contiguous()
-            .view(16, 512, 128)
+            .view(16, 512, uv_tile)
         )
     w_o_p = pack_output_weights(loaded[attn + ".o_proj.weight"].t().contiguous())
     if tail_nz:
+        o_in = heads * VALUE
         w_o_p = (
-            w_o_p.view(24, 2048, 8, 32)
+            w_o_p.view(24, o_in, 8, 32)
             .permute(0, 2, 1, 3)
             .contiguous()
-            .view(24, 2048, 256)
+            .view(24, o_in, 256)
         )
 
     pfx = f"l{layer}"
@@ -746,17 +755,20 @@ def _load_moe_body(
     sh_dn_w = loaded[sh_p + ".down_proj.weight"].t().contiguous()
     sh_p_gu, sh_p_dn = pack_shared_weights(sh_gu_w, sh_dn_w)
     if shared_nz:
+        sh_gu_tile = sh_dim // 2
+        sh_gu_g32 = sh_gu_tile // 32
+        sh_dn_k128 = sh_dim // 128
         sh_p_gu = (
-            sh_p_gu.view(24, 2, 512, 4, 32)
+            sh_p_gu.view(24, 2, 512, sh_gu_g32, 32)
             .permute(0, 1, 3, 2, 4)
             .contiguous()
-            .view(24, 1024, 128)
+            .view(24, 1024, sh_gu_tile)
         )
         sh_p_dn = (
-            sh_p_dn.view(24, 2, 128, 8, 32)
+            sh_p_dn.view(24, sh_dn_k128, 128, 8, 32)
             .permute(0, 1, 3, 2, 4)
             .contiguous()
-            .view(24, 256, 256)
+            .view(24, sh_dim, 256)
         )
     sh_s_gu = torch.cat(
         (
@@ -1036,10 +1048,16 @@ def _reserve_model_nd_slots(
     local_vocab: int,
     max_rope_positions: int,
     local_experts: int,
+    world_size: int = 8,
     *,
     load_draft: bool,
 ) -> None:
     import torch
+
+    heads = 64 // int(world_size)
+    d_dim = 12288 // int(world_size)
+    sh_dim = 2048 // int(world_size)
+    col_dim = HIDDEN // int(world_size)
 
     builder.reserve("embed_w", (local_vocab, HIDDEN), torch.bfloat16)
     builder.reserve("norm_w", (HIDDEN,), torch.bfloat16)
@@ -1053,14 +1071,14 @@ def _reserve_model_nd_slots(
     for layer in range(layer_limit):
         pfx = f"l{layer}"
         builder.reserve(f"{pfx}.input_gamma", (HIDDEN,), torch.bfloat16)
-        builder.reserve(f"{pfx}.w_uk_t", (HEADS, 192, LATENT), torch.bfloat16)
+        builder.reserve(f"{pfx}.w_uk_t", (heads, 192, LATENT), torch.bfloat16)
         builder.reserve(f"{pfx}.s_dq", (1, 2048), torch.float32)
-        builder.reserve(f"{pfx}.s_uq_qr", (1, 2048), torch.float32)
+        builder.reserve(f"{pfx}.s_uq_qr", (1, heads * 256), torch.float32)
         builder.reserve(f"{pfx}.s_dkv_kr", (1, 576), torch.float32)
         builder.reserve(f"{pfx}.q_a_norm", (2048,), torch.bfloat16)
         builder.reserve(f"{pfx}.kv_a_norm", (LATENT,), torch.bfloat16)
-        builder.reserve(f"{pfx}.tail_uv", (16, LATENT, 128), torch.bfloat16)
-        builder.reserve(f"{pfx}.tail_o", (24, 2048, VALUE), torch.int8)
+        builder.reserve(f"{pfx}.tail_uv", (16, LATENT, (heads * VALUE) // 16), torch.bfloat16)
+        builder.reserve(f"{pfx}.tail_o", (24, heads * VALUE, VALUE), torch.int8)
         builder.reserve(f"{pfx}.tail_s", (HIDDEN,), torch.float32)
         if layer in FULL_INDEX_LAYERS:
             builder.reserve(f"{pfx}.front_q", (16, 2048, 256), torch.int8)
@@ -1070,17 +1088,18 @@ def _reserve_model_nd_slots(
             builder.reserve(f"{pfx}.front_knb", (128,), torch.float32)
         if layer < 3:
             builder.reserve(f"{pfx}.post_gamma", (HIDDEN,), torch.bfloat16)
-            builder.reserve(f"{pfx}.dense_p_gu", (24, 6, 2, 4, 512, 32), torch.int8)
-            builder.reserve(f"{pfx}.dense_s_gu", (3072,), torch.float32)
-            builder.reserve(f"{pfx}.dense_p_dn", (24, 6, 2, 8, 128, 32), torch.int8)
+            gu_n32 = (2 * d_dim) // (24 * 32)
+            builder.reserve(f"{pfx}.dense_p_gu", (24, 6, 2, gu_n32, 512, 32), torch.int8)
+            builder.reserve(f"{pfx}.dense_s_gu", (2 * d_dim,), torch.float32)
+            builder.reserve(f"{pfx}.dense_p_dn", (24, d_dim // 256, 2, 8, 128, 32), torch.int8)
             builder.reserve(f"{pfx}.dense_s_dn", (HIDDEN,), torch.float32)
         else:
             builder.reserve(f"{pfx}.post_gamma", (HIDDEN,), torch.bfloat16)
             builder.reserve(f"{pfx}.router_w", (HIDDEN, 256), torch.bfloat16)
             builder.reserve(f"{pfx}.router_b", (256,), torch.float32)
-            builder.reserve(f"{pfx}.sh_gu", (24, 1024, 128), torch.int8)
-            builder.reserve(f"{pfx}.sh_s_gu", (512,), torch.float32)
-            builder.reserve(f"{pfx}.sh_dn", (24, VALUE, VALUE), torch.int8)
+            builder.reserve(f"{pfx}.sh_gu", (24, 1024, sh_dim // 2), torch.int8)
+            builder.reserve(f"{pfx}.sh_s_gu", (2 * sh_dim,), torch.float32)
+            builder.reserve(f"{pfx}.sh_dn", (24, sh_dim, VALUE), torch.int8)
             builder.reserve(f"{pfx}.sh_s_dn", (HIDDEN,), torch.float32)
             builder.reserve(f"{pfx}.r1", (local_experts, 4096), torch.float32)
             builder.reserve(f"{pfx}.r2", (local_experts, 4096), torch.float32)
@@ -1089,8 +1108,8 @@ def _reserve_model_nd_slots(
 
     if load_draft:
         builder.reserve("l78.head_w_shard", (local_vocab, HIDDEN), torch.bfloat16)
-        builder.reserve("l78.rot_w_shard", (HIDDEN, HIDDEN // 8), torch.bfloat16)
-        builder.reserve("l78.w_eh_shard", (2 * HIDDEN, HIDDEN // 8), torch.bfloat16)
+        builder.reserve("l78.rot_w_shard", (HIDDEN, col_dim), torch.bfloat16)
+        builder.reserve("l78.w_eh_shard", (2 * HIDDEN, col_dim), torch.bfloat16)
         builder.reserve("l78.enorm_w", (HIDDEN,), torch.bfloat16)
         builder.reserve("l78.hnorm_w", (HIDDEN,), torch.bfloat16)
         builder.reserve("l78.shared_head_norm_w", (HIDDEN,), torch.bfloat16)
@@ -1159,6 +1178,7 @@ def build_model_arena(
         local_vocab,
         cfg.max_rope_positions,
         local_experts,
+        world_size=world_size,
         load_draft=load_draft,
     )
     nd_raw, nd_arena, nd_views = builder.allocate(device)
@@ -1294,7 +1314,9 @@ def build_model_arena(
             )
             w_dn = d_loaded[prefix + ".mlp.down_proj.weight"].t().contiguous()
             s_dn = d_loaded[prefix + ".mlp.down_proj.weight_scale"].reshape(-1)
-            p_gu, s_gu_f, p_dn, s_dn_f = _pack_dense_mlp_weights(w_gu, s_gu, w_dn, s_dn)
+            p_gu, s_gu_f, p_dn, s_dn_f = _pack_dense_mlp_weights(
+                w_gu, s_gu, w_dn, s_dn, world_size=world_size
+            )
             nd_views[f"l{layer}.dense_p_gu"].copy_(p_gu)
             nd_views[f"l{layer}.dense_s_gu"].copy_(s_gu_f)
             nd_views[f"l{layer}.dense_p_dn"].copy_(p_dn)
@@ -1488,7 +1510,9 @@ def build_model_arena(
         nd_views["l78.rot_w_shard"].copy_(load_rot_shard(rot_src, rank, world_size))
         del d_extra
 
-        cal_wt = TpCalibratedL78Weights.from_file(cfg.cal_l78_path, rank=rank, dev=device)
+        cal_wt = TpCalibratedL78Weights.from_file(
+            cfg.cal_l78_path, rank=rank, dev=device, world_size=world_size
+        )
         head_q8_nz, head_scale = cal_wt.quantize_head_q8_nz(
             nd_views["l78.head_w_shard"], valid_vocab=local_vocab, inv_temp=cfg.inv_temp
         )

@@ -74,8 +74,11 @@ __aicore__ __attribute__((noinline)) void PrefetchSpansAic(
             uint32_t cur_base = 0U;
             int32_t s_idx = 0;
 #ifdef K11100_OPP_PREFETCH
+            const uint32_t pf_rank_mask = (comm != nullptr && comm->ranks >= 32)
+                ? 0xFFFFFFFFU
+                : ((comm != nullptr) ? ((1U << static_cast<uint32_t>(comm->ranks)) - 1U) : 0U);
             uint32_t pending_peers = (comm != nullptr && rt_epoch_pf != 0U)
-                ? (0xFFU & ~(1U << static_cast<uint32_t>(comm->rank)))
+                ? (pf_rank_mask & ~(1U << static_cast<uint32_t>(comm->rank)))
                 : 0U;
             const auto layout = (comm != nullptr)
                 ? whole_layer_tree::MakeCommunicationLayout(comm->capacity, comm->ranks)
@@ -97,11 +100,11 @@ __aicore__ __attribute__((noinline)) void PrefetchSpansAic(
 #if defined(K11220_RS768_PUSH) || defined(K112600_RS768_HIW)
                         __gm__ volatile int32_t* sig_addr = poll_ag768
                             ? whole_layer_tree::AgReady768((__gm__ uint8_t*)comm->window, layout, rt_epoch_pf, p)
-                            : whole_layer_tree::CommunicationReady((__gm__ uint8_t*)comm->window, layout, 8, rt_epoch_pf, p);
+                            : whole_layer_tree::CommunicationReady((__gm__ uint8_t*)comm->window, layout, comm->ranks, rt_epoch_pf, p);
 #else
                         (void)poll_ag768;
                         __gm__ volatile int32_t* sig_addr = whole_layer_tree::CommunicationReady(
-                            (__gm__ uint8_t*)comm->window, layout, 8, rt_epoch_pf, p);
+                            (__gm__ uint8_t*)comm->window, layout, comm->ranks, rt_epoch_pf, p);
 #endif
                         dcci_cacheline((__gm__ uint8_t*)sig_addr);
                         if (*sig_addr != static_cast<int32_t>(rt_epoch_pf)) {
@@ -172,7 +175,7 @@ __aicore__ __attribute__((noinline)) void ReducePhase(TPipe& pipe,
                 (__gm__ uint8_t*)communication.window,
                 (__gm__ bfloat16_t*)partial, (__gm__ bfloat16_t*)output,
                 rows, communication.capacity, communication.rank,
-                8, GetBlockIdx(), 48,
+                communication.ranks, GetBlockIdx(), 48,
                 (__gm__ bfloat16_t*)topk_src,
                 (__gm__ const int32_t*)expert_ids,
                 (__gm__ const float*)probabilities,
@@ -183,7 +186,7 @@ __aicore__ __attribute__((noinline)) void ReducePhase(TPipe& pipe,
                 (__gm__ uint8_t*)communication.window,
                 (__gm__ bfloat16_t*)partial, (__gm__ bfloat16_t*)output,
                 rows, communication.capacity, communication.rank,
-                8, GetBlockIdx(), 48,
+                communication.ranks, GetBlockIdx(), 48,
                 nullptr);
         }
         pipe.Reset();
@@ -388,19 +391,19 @@ __aicore__ inline void RunLayer(
 #ifdef K112802_MAIN_R2_PF
             const PrefetchSpan r2_spans[4] = {
                 {na.main_weights[0], 12582912U},
-                {na.main_weights[1], 4194304U},
-                {na.main_weights[2], 1572864U},
+                {na.main_weights[1], whole_layer_attention::kHeads * 524288U},
+                {na.main_weights[2], whole_layer_attention::kHeads * 196608U},
                 {na.main_weights[3], 3538944U},
             };
             PrefetchSpansAic(pipe, r2_spans, 4, &communication, rt_epoch_pf, false, red2_done_gm);
 #else
             const PrefetchSpan r2_spans[8] = {
                 {na.main_weights[0], 12582912U},
-                {na.main_weights[1], 4194304U},
-                {na.main_weights[2], 1572864U},
+                {na.main_weights[1], whole_layer_attention::kHeads * 524288U},
+                {na.main_weights[2], whole_layer_attention::kHeads * 196608U},
                 {na.main_weights[3], 3538944U},
-                {na.tail_weights[0], 2097152U},
-                {na.tail_weights[1], 12582912U},
+                {na.tail_weights[0], whole_layer_attention::kHeads * 262144U},
+                {na.tail_weights[1], whole_layer_attention::kHeads * 1572864U},
                 {n_idx ? na.front_weights[0] : 0ULL, 8388608U},
                 {n_idx ? na.front_weights[2] : 0ULL, 1966080U},
             };
@@ -693,18 +696,26 @@ __aicore__ inline void DirectDenseGateUp24Aic(
     const uint16_t m1 = dual_m ? static_cast<uint16_t>(proj_rows - 16) : 0U;
     const uint32_t m_cap = dual_m ? 32U : 16U;
 
+    constexpr uint32_t kDenseMid = 12288U / static_cast<uint32_t>(whole_layer_tree::kDefaultWorldSize);
+    constexpr uint32_t kDenseGuCols = 2U * kDenseMid;
+    constexpr uint32_t kGuAicCols = kDenseGuCols / 24U;
+    constexpr uint32_t kGuReps = kGuAicCols / 32U;
+    constexpr uint32_t kGuKpBytes = 1024U * kGuAicCols;
+    constexpr uint32_t kGuHalfBytes = kGuKpBytes / 2U;
+    constexpr uint64_t kGuBBytes = static_cast<uint64_t>(6U * kGuKpBytes);
+
     TBuf<TPosition::B1> b1_buf0, b1_buf1;
     TBuf<TPosition::A1> a1_buf;
     TBuf<TPosition::A2> l0a_buf;
     TBuf<TPosition::B2> l0b_buf0, l0b_buf1;
     TBuf<TPosition::CO1> l0c_buf;
-    pipe.InitBuffer(b1_buf0, 65536);
-    pipe.InitBuffer(b1_buf1, 65536);
+    pipe.InitBuffer(b1_buf0, kGuHalfBytes);
+    pipe.InitBuffer(b1_buf1, kGuHalfBytes);
     pipe.InitBuffer(a1_buf, m_cap * 1024U);
     pipe.InitBuffer(l0a_buf, m_cap * 1024U);
-    pipe.InitBuffer(l0b_buf0, 256 * 128);
-    pipe.InitBuffer(l0b_buf1, 256 * 128);
-    pipe.InitBuffer(l0c_buf, m_cap * 128U * sizeof(int32_t));
+    pipe.InitBuffer(l0b_buf0, 256U * kGuAicCols);
+    pipe.InitBuffer(l0b_buf1, 256U * kGuAicCols);
+    pipe.InitBuffer(l0c_buf, m_cap * kGuAicCols * sizeof(int32_t));
 
     LocalTensor<int8_t> a1 = a1_buf.Get<int8_t>();
     LocalTensor<int8_t> b1[2] = {b1_buf0.Get<int8_t>(), b1_buf1.Get<int8_t>()};
@@ -715,9 +726,10 @@ __aicore__ inline void DirectDenseGateUp24Aic(
     GlobalTensor<int8_t> a_gm, b_gm;
     GlobalTensor<int32_t> c_gm;
     a_gm.SetGlobalBuffer(input, static_cast<uint64_t>(proj_rows) * 6144ULL);
-    b_gm.SetGlobalBuffer(weights + static_cast<uint64_t>(cid) * 786432ULL, 786432ULL);
+    b_gm.SetGlobalBuffer(weights + static_cast<uint64_t>(cid) * kGuBBytes, kGuBBytes);
     b_gm.SetL2CacheHint(CacheMode::CACHE_MODE_DISABLE);
-    c_gm.SetGlobalBuffer(output + static_cast<uint64_t>(cid) * 128ULL, static_cast<uint64_t>(proj_rows) * 3072ULL);
+    c_gm.SetGlobalBuffer(output + static_cast<uint64_t>(cid) * kGuAicCols,
+                         static_cast<uint64_t>(proj_rows) * kDenseGuCols);
 
     SetFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
     SetFlag<HardEvent::MTE1_MTE2>(EVENT_ID1);
@@ -730,7 +742,7 @@ __aicore__ inline void DirectDenseGateUp24Aic(
     load_a.repeatTimes = dual_m ? 64 : 32;
     load_a.srcStride = 1;
     load_a.ifTranspose = false;
-    LoadData2dTransposeParams trans(0, 4, 16, 1, 0, inc);
+    LoadData2dTransposeParams trans(0, static_cast<uint8_t>(kGuReps), 16, 1, 0, inc);
 
     for (uint32_t kp = 0U; kp < 6U; ++kp) {
         WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID2);
@@ -749,11 +761,11 @@ __aicore__ inline void DirectDenseGateUp24Aic(
         SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
 
         WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
-        DataCopy(b1[0], b_gm[kp * 131072ULL], 65536);
+        DataCopy(b1[0], b_gm[kp * kGuKpBytes], kGuHalfBytes);
         SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID0);
 
         WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID1);
-        DataCopy(b1[1], b_gm[kp * 131072ULL + 65536ULL], 65536);
+        DataCopy(b1[1], b_gm[kp * kGuKpBytes + kGuHalfBytes], kGuHalfBytes);
         SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID1);
 
         WaitFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
@@ -776,7 +788,7 @@ __aicore__ inline void DirectDenseGateUp24Aic(
             WaitFlag<HardEvent::M_MTE1>(lb_evt);
             #pragma unroll
             for (uint32_t i = 0U; i < 8U; ++i) {
-                LoadDataWithTranspose(l0b[lbi][i * 4096U], b1[bi][k_sub_off + i * 1024U], trans);
+                LoadDataWithTranspose(l0b[lbi][i * (kGuReps * 1024U)], b1[bi][k_sub_off + i * 1024U], trans);
             }
             if (step == 1U) {
                 SetFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
@@ -787,13 +799,13 @@ __aicore__ inline void DirectDenseGateUp24Aic(
             WaitFlag<HardEvent::MTE1_M>(lb_evt);
             MmadParams mad{};
             mad.m = 16;
-            mad.n = 128;
+            mad.n = static_cast<uint16_t>(kGuAicCols);
             mad.k = 256;
             mad.cmatrixSource = false;
             mad.cmatrixInitVal = (kp == 0U && step == 0U);
             Mmad(l0c, l0a[step * 4096U], l0b[lbi], mad);
             if (dual_m) {
-                Mmad(l0c[2048U], l0a[16384U + step * 4096U], l0b[lbi], mad);
+                Mmad(l0c[kGuAicCols * 16U], l0a[16384U + step * 4096U], l0b[lbi], mad);
             }
             PipeBarrier<PIPE_M>();
             SetFlag<HardEvent::M_MTE1>(lb_evt);
@@ -810,16 +822,16 @@ __aicore__ inline void DirectDenseGateUp24Aic(
     SetFlag<HardEvent::M_FIX>(EVENT_ID0);
     WaitFlag<HardEvent::M_FIX>(EVENT_ID0);
     FixpipeParamsV220 fix{};
-    fix.nSize = 128;
+    fix.nSize = static_cast<uint16_t>(kGuAicCols);
     fix.mSize = m0;
     fix.srcStride = 16;
-    fix.dstStride = 3072;
+    fix.dstStride = static_cast<uint16_t>(kDenseGuCols);
     fix.ndNum = 1;
     fix.quantPre = QuantMode_t::NoQuant;
     Fixpipe<int32_t, int32_t, CFG_ROW_MAJOR>(c_gm, l0c, fix);
     if (dual_m) {
         fix.mSize = m1;
-        Fixpipe<int32_t, int32_t, CFG_ROW_MAJOR>(c_gm[16ULL * 3072ULL], l0c[2048U], fix);
+        Fixpipe<int32_t, int32_t, CFG_ROW_MAJOR>(c_gm[16ULL * kDenseGuCols], l0c[kGuAicCols * 16U], fix);
     }
     SetFlag<HardEvent::FIX_M>(EVENT_ID0);
     WaitFlag<HardEvent::FIX_M>(EVENT_ID0);
@@ -836,15 +848,17 @@ __aicore__ inline void ActivateDenseSwigluQuant(
     if (row >= active_rows) {
         return;
     }
+    constexpr int64_t kDenseMid = 12288 / whole_layer_tree::kDefaultWorldSize;
+    constexpr int64_t kDenseGuCols = 2 * kDenseMid;
     TBuf<TPosition::VECCALC> acc_buf, wsc_buf, val_buf, wrk_buf, oth_buf, bf16_buf, sc_buf, cod_buf;
-    pipe.InitBuffer(acc_buf, 3072 * sizeof(int32_t));
-    pipe.InitBuffer(wsc_buf, (3072 + 8) * sizeof(float));
-    pipe.InitBuffer(val_buf, 3072 * sizeof(float));
-    pipe.InitBuffer(wrk_buf, 3072 * sizeof(float));
-    pipe.InitBuffer(oth_buf, 1536 * sizeof(float));
-    pipe.InitBuffer(bf16_buf, 3072 * sizeof(bfloat16_t));
+    pipe.InitBuffer(acc_buf, kDenseGuCols * sizeof(int32_t));
+    pipe.InitBuffer(wsc_buf, (kDenseGuCols + 8) * sizeof(float));
+    pipe.InitBuffer(val_buf, kDenseGuCols * sizeof(float));
+    pipe.InitBuffer(wrk_buf, kDenseGuCols * sizeof(float));
+    pipe.InitBuffer(oth_buf, kDenseMid * sizeof(float));
+    pipe.InitBuffer(bf16_buf, kDenseGuCols * sizeof(bfloat16_t));
     pipe.InitBuffer(sc_buf, 8 * sizeof(float));
-    pipe.InitBuffer(cod_buf, 1536);
+    pipe.InitBuffer(cod_buf, kDenseMid);
 
     auto acc = acc_buf.Get<int32_t>();
     auto wsc = wsc_buf.Get<float>();
@@ -858,54 +872,54 @@ __aicore__ inline void ActivateDenseSwigluQuant(
     GlobalTensor<int32_t> acc_gm;
     GlobalTensor<float> wsc_gm, tsc_gm, msc_gm;
     GlobalTensor<int8_t> mid_gm;
-    acc_gm.SetGlobalBuffer(gu_accum + row * 3072, 3072);
-    wsc_gm.SetGlobalBuffer(gu_scale, 3072);
+    acc_gm.SetGlobalBuffer(gu_accum + row * kDenseGuCols, kDenseGuCols);
+    wsc_gm.SetGlobalBuffer(gu_scale, kDenseGuCols);
     tsc_gm.SetGlobalBuffer(tok_scales + row, 1);
-    mid_gm.SetGlobalBuffer(mid_i8, capacity * 1536);
+    mid_gm.SetGlobalBuffer(mid_i8, capacity * kDenseMid);
     msc_gm.SetGlobalBuffer(mid_scale, capacity * 8);
 
-    DataCopy(acc, acc_gm, 3072);
-    DataCopy(wsc, wsc_gm, 3072);
-    DataCopyPad(wsc[3072], tsc_gm, DataCopyExtParams{1, sizeof(float), 0, 0, 0},
+    DataCopy(acc, acc_gm, kDenseGuCols);
+    DataCopy(wsc, wsc_gm, kDenseGuCols);
+    DataCopyPad(wsc[kDenseGuCols], tsc_gm, DataCopyExtParams{1, sizeof(float), 0, 0, 0},
                 DataCopyPadExtParams<float>{false, 0, 0, 0});
     SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
     WaitFlag<HardEvent::MTE2_V>(EVENT_ID0);
     SetFlag<HardEvent::MTE2_S>(EVENT_ID0);
     WaitFlag<HardEvent::MTE2_S>(EVENT_ID0);
 
-    const float tok_s = wsc.GetValue(3072);
+    const float tok_s = wsc.GetValue(kDenseGuCols);
     SetFlag<HardEvent::S_V>(EVENT_ID0);
     WaitFlag<HardEvent::S_V>(EVENT_ID0);
 
-    Cast(val, acc, RoundMode::CAST_RINT, 3072);
-    Muls(wrk, wsc, tok_s, 3072);
+    Cast(val, acc, RoundMode::CAST_RINT, kDenseGuCols);
+    Muls(wrk, wsc, tok_s, kDenseGuCols);
     PipeBarrier<PIPE_V>();
-    Mul(val, val, wrk, 3072);
+    Mul(val, val, wrk, kDenseGuCols);
     PipeBarrier<PIPE_V>();
-    Cast(bf16, val, RoundMode::CAST_RINT, 3072);
-    PipeBarrier<PIPE_V>();
-
-    Cast(val, bf16, RoundMode::CAST_NONE, 3072);
-    PipeBarrier<PIPE_V>();
-    Muls(wrk, val, -1.0F, 1536);
-    PipeBarrier<PIPE_V>();
-    Exp(wrk, wrk, 1536);
-    PipeBarrier<PIPE_V>();
-    Adds(wrk, wrk, 1.0F, 1536);
-    PipeBarrier<PIPE_V>();
-    Div(val, val, wrk, 1536);
-    PipeBarrier<PIPE_V>();
-    Mul(val, val, val[1536], 1536);
-    PipeBarrier<PIPE_V>();
-    Cast(bf16, val, RoundMode::CAST_RINT, 1536);
+    Cast(bf16, val, RoundMode::CAST_RINT, kDenseGuCols);
     PipeBarrier<PIPE_V>();
 
-    Cast(val, bf16, RoundMode::CAST_NONE, 1536);
+    Cast(val, bf16, RoundMode::CAST_NONE, kDenseGuCols);
     PipeBarrier<PIPE_V>();
-    Abs(oth, val, 1536);
+    Muls(wrk, val, -1.0F, kDenseMid);
+    PipeBarrier<PIPE_V>();
+    Exp(wrk, wrk, kDenseMid);
+    PipeBarrier<PIPE_V>();
+    Adds(wrk, wrk, 1.0F, kDenseMid);
+    PipeBarrier<PIPE_V>();
+    Div(val, val, wrk, kDenseMid);
+    PipeBarrier<PIPE_V>();
+    Mul(val, val, val[kDenseMid], kDenseMid);
+    PipeBarrier<PIPE_V>();
+    Cast(bf16, val, RoundMode::CAST_RINT, kDenseMid);
+    PipeBarrier<PIPE_V>();
+
+    Cast(val, bf16, RoundMode::CAST_NONE, kDenseMid);
+    PipeBarrier<PIPE_V>();
+    Abs(oth, val, kDenseMid);
     Duplicate(scalar, 0.0F, 8);
     PipeBarrier<PIPE_V>();
-    ReduceMax(scalar, oth, wrk, 1536, false);
+    ReduceMax(scalar, oth, wrk, kDenseMid, false);
     SetFlag<HardEvent::V_S>(EVENT_ID0);
     WaitFlag<HardEvent::V_S>(EVENT_ID0);
     const float maximum = scalar.GetValue(0);
@@ -916,24 +930,24 @@ __aicore__ inline void ActivateDenseSwigluQuant(
     PipeBarrier<PIPE_V>();
     Div(oth, oth, wrk, 64);
     PipeBarrier<PIPE_V>();
-    Mul(val, val, oth, 64, 24, BinaryRepeatParams{1, 1, 0, 8, 8, 0});
+    Mul(val, val, oth, 64, static_cast<uint8_t>(kDenseMid / 64), BinaryRepeatParams{1, 1, 0, 8, 8, 0});
     Muls(scalar, scalar, 1.0F / 127.0F, 8);
     PipeBarrier<PIPE_V>();
-    Mins(val, val, 127.0F, 1536);
+    Mins(val, val, 127.0F, kDenseMid);
     PipeBarrier<PIPE_V>();
-    Maxs(val, val, -127.0F, 1536);
+    Maxs(val, val, -127.0F, kDenseMid);
     PipeBarrier<PIPE_V>();
-    Cast(acc, val, RoundMode::CAST_RINT, 1536);
+    Cast(acc, val, RoundMode::CAST_RINT, kDenseMid);
     PipeBarrier<PIPE_V>();
     SetDeqScale(static_cast<half>(1.0F));
     PipeBarrier<PIPE_V>();
     auto fp16 = bf16.ReinterpretCast<half>();
-    Cast(fp16, acc, RoundMode::CAST_ROUND, 1536);
+    Cast(fp16, acc, RoundMode::CAST_ROUND, kDenseMid);
     PipeBarrier<PIPE_V>();
-    Cast(codes, fp16, RoundMode::CAST_TRUNC, 1536);
+    Cast(codes, fp16, RoundMode::CAST_TRUNC, kDenseMid);
     SetFlag<HardEvent::V_MTE3>(EVENT_ID0);
     WaitFlag<HardEvent::V_MTE3>(EVENT_ID0);
-    DataCopy(mid_gm[row * 1536], codes, 1536);
+    DataCopy(mid_gm[row * kDenseMid], codes, kDenseMid);
     DataCopy(msc_gm[row * 8], scalar, 8);
     PipeBarrier<PIPE_ALL>();
     pipe.Reset();
@@ -953,6 +967,10 @@ __aicore__ inline void DirectDenseDown24Aic(
     const uint16_t m1 = dual_m ? static_cast<uint16_t>(proj_rows - 16) : 0U;
     const uint32_t m_cap = dual_m ? 32U : 16U;
 
+    constexpr uint32_t kDenseMid = 12288U / static_cast<uint32_t>(whole_layer_tree::kDefaultWorldSize);
+    constexpr uint32_t kDnKcSteps = kDenseMid / 256U;
+    constexpr uint64_t kDnBBytes = static_cast<uint64_t>(kDenseMid) * 256ULL;
+
     TBuf<TPosition::B1> b1_buf0, b1_buf1;
     TBuf<TPosition::A1> a1_buf;
     TBuf<TPosition::A2> l0a_buf;
@@ -960,8 +978,8 @@ __aicore__ inline void DirectDenseDown24Aic(
     TBuf<TPosition::CO1> l0c_buf;
     pipe.InitBuffer(b1_buf0, 32768);
     pipe.InitBuffer(b1_buf1, 32768);
-    pipe.InitBuffer(a1_buf, m_cap * 1536U);
-    pipe.InitBuffer(l0a_buf, m_cap * 1536U);
+    pipe.InitBuffer(a1_buf, m_cap * kDenseMid);
+    pipe.InitBuffer(l0a_buf, m_cap * kDenseMid);
     pipe.InitBuffer(l0b_buf0, 128 * 256);
     pipe.InitBuffer(l0b_buf1, 128 * 256);
     pipe.InitBuffer(l0c_buf, m_cap * 256U * sizeof(int32_t));
@@ -974,8 +992,8 @@ __aicore__ inline void DirectDenseDown24Aic(
 
     GlobalTensor<int8_t> a_gm, b_gm;
     GlobalTensor<int32_t> c_gm;
-    a_gm.SetGlobalBuffer(input, static_cast<uint64_t>(proj_rows) * 1536ULL);
-    b_gm.SetGlobalBuffer(weights + static_cast<uint64_t>(cid) * 393216ULL, 393216ULL);
+    a_gm.SetGlobalBuffer(input, static_cast<uint64_t>(proj_rows) * kDenseMid);
+    b_gm.SetGlobalBuffer(weights + static_cast<uint64_t>(cid) * kDnBBytes, kDnBBytes);
     b_gm.SetL2CacheHint(CacheMode::CACHE_MODE_DISABLE);
     c_gm.SetGlobalBuffer(output + static_cast<uint64_t>(cid) * static_cast<uint64_t>(capacity) * 256ULL,
                          static_cast<uint64_t>(capacity) * 256ULL);
@@ -983,20 +1001,20 @@ __aicore__ inline void DirectDenseDown24Aic(
     Nd2NzParams copy_a{};
     copy_a.ndNum = 1;
     copy_a.nValue = m0;
-    copy_a.dValue = 1536;
-    copy_a.srcDValue = 1536;
+    copy_a.dValue = static_cast<uint16_t>(kDenseMid);
+    copy_a.srcDValue = static_cast<uint16_t>(kDenseMid);
     copy_a.dstNzC0Stride = 16;
     copy_a.dstNzNStride = 1;
     DataCopy(a1, a_gm, copy_a);
     if (dual_m) {
         copy_a.nValue = m1;
-        DataCopy(a1[24576U], a_gm[24576U], copy_a);
+        DataCopy(a1[16U * kDenseMid], a_gm[16U * kDenseMid], copy_a);
     }
     SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
     WaitFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
 
     LoadData2DParams load_a{};
-    load_a.repeatTimes = dual_m ? 96 : 48;
+    load_a.repeatTimes = dual_m ? (kDnKcSteps * 16U) : (kDnKcSteps * 8U);
     load_a.srcStride = 1;
     load_a.ifTranspose = false;
     LoadData(l0a, a1, load_a);
@@ -1009,7 +1027,7 @@ __aicore__ inline void DirectDenseDown24Aic(
     SetFlag<HardEvent::M_MTE1>(EVENT_ID4);
     LoadData2dTransposeParams trans(0, 8, 4, 1, 0, inc);
 
-    for (uint32_t kc = 0U; kc < 6U; ++kc) {
+    for (uint32_t kc = 0U; kc < kDnKcSteps; ++kc) {
         WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
         DataCopy(b1[0], b_gm[kc * 65536ULL], 32768);
         SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID0);
@@ -1039,7 +1057,7 @@ __aicore__ inline void DirectDenseDown24Aic(
             const uint32_t a_off = (kc * 2U + step) * 2048U;
             Mmad(l0c, l0a[a_off], l0b[step], mad);
             if (dual_m) {
-                Mmad(l0c[4096U], l0a[24576U + a_off], l0b[step], mad);
+                Mmad(l0c[4096U], l0a[16U * kDenseMid + a_off], l0b[step], mad);
             }
             PipeBarrier<PIPE_M>();
             SetFlag<HardEvent::M_MTE1>(lb_evt);
@@ -1199,9 +1217,10 @@ __aicore__ __attribute__((noinline)) void RunDenseLayer(
 
 #ifdef K11050_AIC_PREFETCH
     if ASCEND_IS_AIC {
+        constexpr uint32_t kDenseMid = 12288U / static_cast<uint32_t>(whole_layer_tree::kDefaultWorldSize);
         const PrefetchSpan r1_dense[2] = {
-            {gu_w_ptr, 18874368U},
-            {dn_w_ptr, 9437184U},
+            {gu_w_ptr, 2U * kDenseMid * 6144U},
+            {dn_w_ptr, kDenseMid * 6144U},
         };
         PrefetchSpansAic(pipe, r1_dense, 2);
     }
@@ -1296,18 +1315,33 @@ __aicore__ __attribute__((noinline)) void RunDenseLayer(
             deq_held.Init(pipe);
             pipe.InitBuffer(comb_buf, 16 * 256 * sizeof(float));
             LocalTensor<float> comb = comb_buf.Get<float>();
+            const bool dense_sip_r1 =
+#ifdef K112110_SIP_RED1
+#if defined(K112170_DEC_SIP_ATT) && defined(K112140_SIP_RED1_MIN_ROWS)
+                (dense_dst_base != nullptr)
+                && (active_rows >= static_cast<int64_t>(K112140_SIP_RED1_MIN_ROWS));
+#elif defined(K112140_SIP_RED1_MIN_ROWS)
+                (dense_dst_base != nullptr)
+                && (dense_quad4
+                    || active_rows >= static_cast<int64_t>(K112140_SIP_RED1_MIN_ROWS));
+#else
+                (dense_dst_base != nullptr);
+#endif
+#else
+                dense_quad4 && (dense_dst_base != nullptr);
+#endif
             mla_tail::device::FinishOutputRows<mla_tail::device::ScaleOrder::CombinedScales, 16, true>(
                 deq_held, comb, dn_accum, (__gm__ float*)dn_s_ptr, mid_scale, nullptr, 0,
                 dense_partial, active_rows, dense_cap, GetBlockIdx(), 2 * blocks,
                 dense_dst_base, communication.rank, communication.ranks,
-                dense_quad4 && (dense_dst_base != nullptr));
+                dense_sip_r1);
         }
         PipeBarrier<PIPE_ALL>();
         DataSyncBarrier<MemDsbT::DDR>();
         SyncAll<true>();
         const int32_t sig_off = static_cast<int32_t>(GetBlockIdx());
         if (sig_off > 0 && sig_off < communication.ranks) {
-            const int32_t peer = (communication.rank + sig_off) & 7;
+            const int32_t peer = (communication.rank + sig_off) & (communication.ranks - 1);
             whole_layer_tree::SignalPeerReady(
                 (__gm__ uint8_t*)communication.window, comm_layout,
                 communication.ranks, dense_epoch, communication.rank, peer);
@@ -1321,13 +1355,14 @@ __aicore__ __attribute__((noinline)) void RunDenseLayer(
         if (next_step != nullptr) {
             const auto& na = next_step->addresses.attention;
             const bool n_idx = ((next_step->indexed & 1ULL) != 0ULL);
+            constexpr uint32_t kAttnHeads = whole_layer_attention::kHeads;
             const PrefetchSpan r2_spans[8] = {
                 {na.main_weights[0], 12582912U},
-                {na.main_weights[1], 4194304U},
-                {na.main_weights[2], 1572864U},
+                {na.main_weights[1], kAttnHeads * 524288U},
+                {na.main_weights[2], kAttnHeads * 196608U},
                 {na.main_weights[3], 3538944U},
-                {na.tail_weights[0], 2097152U},
-                {na.tail_weights[1], 12582912U},
+                {na.tail_weights[0], kAttnHeads * 262144U},
+                {na.tail_weights[1], kAttnHeads * 1572864U},
                 {n_idx ? na.front_weights[0] : 0ULL, 8388608U},
                 {n_idx ? na.front_weights[2] : 0ULL, 1966080U},
             };

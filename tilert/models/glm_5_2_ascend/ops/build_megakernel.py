@@ -142,9 +142,12 @@ R4_FLAGS = (
 )
 
 
-def default_build_dir() -> Path:
+def default_build_dir(world_size: int = 8) -> Path:
     env_dir = os.environ.get("TILERT_BUILD_DIR")
-    return Path(env_dir) if env_dir else DEFAULT_OUT
+    if env_dir:
+        return Path(env_dir)
+    suffix = "megakernel_tp16_ep16" if int(world_size) == 16 else "megakernel_tp8_ep8"
+    return REPO / f"tests/.artifacts/builds/{suffix}"
 
 
 def _cann_root() -> Path:
@@ -645,8 +648,9 @@ def _strip_inactive_branches(
     )
 
 
-def effective_source_digest(flags: Sequence[str] = ()) -> str:
-    eff_flags = (f"-DKERNEL_VER={112830}", *BASE_FLAGS, *R4_FLAGS) if not flags else tuple(flags)
+def effective_source_digest(flags: Sequence[str] = (), world_size: int = 8) -> str:
+    base = _topology_flags(world_size) if not flags else ()
+    eff_flags = (f"-DKERNEL_VER={112830}", *base, *R4_FLAGS) if not flags else tuple(flags)
     defined_macros = _extract_defined_macros(eff_flags)
     entries: list[tuple[str, bytes, list[tuple[str, bool, str]] | None]] = []
     for p in sorted(ROOT.rglob("*")):
@@ -706,22 +710,38 @@ def effective_source_digest(flags: Sequence[str] = ()) -> str:
     return h.hexdigest()
 
 
+def _topology_flags(world_size: int = 8) -> tuple[str, ...]:
+    ws = int(world_size)
+    if ws not in (8, 16):
+        raise ValueError(f"Unsupported world_size={world_size!r}; expected 8 or 16")
+    heads = 64 // ws
+    local_exp = 256 // ws
+    return (
+        *(f for f in BASE_FLAGS if not f.startswith("-DATTENTION_HEADS=")),
+        f"-DATTENTION_HEADS={heads}",
+        f"-DWORLD_SIZE={ws}",
+        f"-DROUTED_LOCAL_EXPERTS={local_exp}",
+    )
+
+
 def build_chain(
     out_dir: Path | None = None,
     ver: int = 112830,
     union_sfa: bool = False,
     force: bool = False,
     enable_kernel_prof: bool = False,
+    world_size: int = 8,
 ) -> tuple[Path, Path]:
+    ws = int(world_size)
     if out_dir is None:
-        base_dir = default_build_dir()
+        base_dir = default_build_dir(ws)
         out = base_dir / "prof" if enable_kernel_prof else base_dir
     else:
         out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     cann = _cann_root()
     site = _site_root()
-    defs = [f"-DKERNEL_VER={ver}", *BASE_FLAGS, *R4_FLAGS]
+    defs = [f"-DKERNEL_VER={ver}", *_topology_flags(ws), *R4_FLAGS]
     if union_sfa:
         defs.append("-DK112840_UNION_SFA=1")
     if enable_kernel_prof:
@@ -832,6 +852,7 @@ def main(argv=None):
     parser.add_argument("--union-sfa", action="store_true")
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--enable-kernel-prof", action="store_true")
+    parser.add_argument("--world-size", type=int, default=8)
     args = parser.parse_args(argv)
     out_dir = Path(args.out) if args.out else None
     so_path, manifest_path = build_chain(
@@ -840,6 +861,7 @@ def main(argv=None):
         union_sfa=args.union_sfa,
         force=args.force,
         enable_kernel_prof=args.enable_kernel_prof,
+        world_size=args.world_size,
     )
     print(f"built={so_path} manifest={manifest_path}")
 

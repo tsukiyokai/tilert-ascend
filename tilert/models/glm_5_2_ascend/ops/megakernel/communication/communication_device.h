@@ -69,10 +69,10 @@ __aicore__ inline __gm__ int32_t* CommunicationReady(
 }
 
 __aicore__ inline __gm__ int32_t* CommunicationR1Done(
-    __gm__ uint8_t* window, const CommunicationLayout& layout, int32_t sender)
+    __gm__ uint8_t* window, const CommunicationLayout& layout, int32_t ranks, int32_t sender)
 {
     return reinterpret_cast<__gm__ int32_t*>(
-        window + layout.ready + static_cast<uint64_t>(8 + sender) * kCommunicationCacheLine);
+        window + layout.ready + static_cast<uint64_t>(ranks + sender) * kCommunicationCacheLine);
 }
 
 __aicore__ inline void SignalPeerReady(
@@ -152,15 +152,17 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV4(
     for (uint32_t w = 0U; w < 32U; ++w) {
         cnt_u64[w] = 0ULL;
     }
-    uint32_t r_ecnt[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
-    uint32_t r_rcnt[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
-    uint32_t r_blk[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
-    uint32_t r_extra[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
+    constexpr uint32_t kRanks = static_cast<uint32_t>(kDefaultWorldSize);
+    constexpr uint32_t kMaxLocalExp = 256U / kRanks;
+    uint32_t r_ecnt[kRanks] = {};
+    uint32_t r_rcnt[kRanks] = {};
+    uint32_t r_blk[kRanks] = {};
+    uint32_t r_extra[kRanks] = {};
     for (int32_t i = 0; i < routes; ++i) {
         const int32_t r_val = raw_r[i];
         if (r_val >= 0) {
             const uint32_t ge = static_cast<uint32_t>(r_val) & 255U;
-            const uint32_t hr = ge >> 5U;
+            const uint32_t hr = ge >> kExpertShift;
             const uint32_t old = exp_cnt[ge];
             exp_cnt[ge] = static_cast<uint8_t>(old + 1U);
             r_rcnt[hr]++;
@@ -187,14 +189,14 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV4(
     uint8_t act_c[32];
     uint8_t act_b[32];
     uint8_t act_dm[32];
-    uint32_t r_mov[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
+    uint32_t r_mov[kRanks] = {};
     uint32_t n_act = 0U;
     for (uint32_t idx = 0U; idx < num_cands; ++idx) {
         const uint32_t sh = (idx & 7U) << 3U;
         const uint32_t ge = static_cast<uint32_t>((cand_ge_u64[idx >> 3U] >> sh) & 0xFFULL);
         const uint32_t c = exp_cnt[ge];
         if (c > 0U) {
-            const uint32_t hr = ge >> 5U;
+            const uint32_t hr = ge >> kExpertShift;
             const uint32_t mk = static_cast<uint32_t>((cand_mask_u64[idx >> 3U] >> sh) & 0xFFULL);
             act_ge[n_act] = static_cast<uint8_t>(ge);
             act_mk[n_act] = static_cast<uint8_t>(mk);
@@ -216,15 +218,15 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV4(
     if (n_act == 0U) {
         return 0U;
     }
-    uint32_t r_cost[8];
-    for (uint32_t r = 0U; r < 8U; ++r) {
+    uint32_t r_cost[kRanks];
+    for (uint32_t r = 0U; r < kRanks; ++r) {
         r_cost[r] = RankWaveCost(r_blk[r], r_extra[r]);
     }
     for (uint32_t step = 0U; step < 12U; ++step) {
         uint32_t max_b = r_blk[0];
         uint32_t max_cost = r_cost[0];
         uint32_t min_cost = max_cost;
-        for (uint32_t r = 1U; r < 8U; ++r) {
+        for (uint32_t r = 1U; r < kRanks; ++r) {
             const uint32_t rb = r_blk[r];
             const uint32_t rc = r_cost[r];
             if (rb > max_b) {
@@ -241,7 +243,7 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV4(
             break;
         }
         uint32_t cand_set = 0U;
-        for (uint32_t r = 0U; r < 8U; ++r) {
+        for (uint32_t r = 0U; r < kRanks; ++r) {
             if (r_blk[r] == max_b) {
                 cand_set |= r_mov[r];
             }
@@ -261,12 +263,12 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV4(
             const uint32_t c = act_c[idx];
             const uint32_t b = act_b[idx];
             const uint32_t dm = act_dm[idx];
-            const uint32_t home = ge >> 5U;
+            const uint32_t home = ge >> kExpertShift;
             uint32_t m = static_cast<uint32_t>(act_mk[idx]) & ~(1U << hi);
             while (m != 0U) {
                 const uint32_t lo = static_cast<uint32_t>(__builtin_ctz(m));
                 m &= (m - 1U);
-                if (r_ecnt[lo] >= 32U || r_rcnt[lo] + c > 256U) {
+                if (r_ecnt[lo] >= kMaxLocalExp || r_rcnt[lo] + c > 256U) {
                     continue;
                 }
                 const uint32_t new_lo_blk = r_blk[lo] + b;
@@ -290,7 +292,7 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV4(
         }
         const uint32_t uidx = static_cast<uint32_t>(best_idx);
         const uint32_t move_ge = act_ge[uidx];
-        const uint32_t home = move_ge >> 5U;
+        const uint32_t home = move_ge >> kExpertShift;
         const uint32_t c = act_c[uidx];
         const uint32_t b = act_b[uidx];
         const uint32_t dm = act_dm[uidx];
@@ -323,15 +325,17 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV5(
     for (uint32_t w = 0U; w < 32U; ++w) {
         cnt_u64[w] = 0ULL;
     }
-    uint32_t r_ecnt[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
-    uint32_t r_rcnt[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
-    uint32_t r_blk[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
-    uint32_t r_extra[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
+    constexpr uint32_t kRanks = static_cast<uint32_t>(kDefaultWorldSize);
+    constexpr uint32_t kMaxLocalExp = 256U / kRanks;
+    uint32_t r_ecnt[kRanks] = {};
+    uint32_t r_rcnt[kRanks] = {};
+    uint32_t r_blk[kRanks] = {};
+    uint32_t r_extra[kRanks] = {};
     for (int32_t i = 0; i < routes; ++i) {
         const int32_t r_val = raw_r[i];
         if (r_val >= 0) {
             const uint32_t ge = static_cast<uint32_t>(r_val) & 255U;
-            const uint32_t hr = ge >> 5U;
+            const uint32_t hr = ge >> kExpertShift;
             const uint32_t old = exp_cnt[ge];
             exp_cnt[ge] = static_cast<uint8_t>(old + 1U);
             r_rcnt[hr]++;
@@ -367,14 +371,14 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV5(
     uint8_t act_c[48];
     uint8_t act_b[48];
     uint8_t act_dm[48];
-    uint64_t r_mov[8] = {0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL};
+    uint64_t r_mov[kRanks] = {};
     uint32_t n_act = 0U;
     for (uint32_t idx = 0U; idx < num_cands; ++idx) {
         const uint32_t sh = (idx & 7U) << 3U;
         const uint32_t ge = static_cast<uint32_t>((cand_ge_u64[idx >> 3U] >> sh) & 0xFFULL);
         const uint32_t c = exp_cnt[ge];
         if (c > 0U) {
-            const uint32_t hr = ge >> 5U;
+            const uint32_t hr = ge >> kExpertShift;
             const uint32_t mk = static_cast<uint32_t>((cand_mask_u64[idx >> 3U] >> sh) & 0xFFULL);
             act_ge[n_act] = static_cast<uint8_t>(ge);
             act_mk[n_act] = static_cast<uint8_t>(mk);
@@ -399,15 +403,15 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV5(
     if (n_act == 0U) {
         return 0U;
     }
-    uint32_t r_cost[8];
-    for (uint32_t r = 0U; r < 8U; ++r) {
+    uint32_t r_cost[kRanks];
+    for (uint32_t r = 0U; r < kRanks; ++r) {
         r_cost[r] = RankWaveCost(r_blk[r], r_extra[r]);
     }
     for (uint32_t step = 0U; step < 16U; ++step) {
         uint32_t max_b = r_blk[0];
         uint32_t max_cost = r_cost[0];
         uint32_t min_cost = max_cost;
-        for (uint32_t r = 1U; r < 8U; ++r) {
+        for (uint32_t r = 1U; r < kRanks; ++r) {
             const uint32_t rb = r_blk[r];
             const uint32_t rc = r_cost[r];
             if (rb > max_b) {
@@ -424,13 +428,13 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV5(
             break;
         }
         uint64_t cand_set = 0ULL;
-        for (uint32_t r = 0U; r < 8U; ++r) {
+        for (uint32_t r = 0U; r < kRanks; ++r) {
             if (r_cost[r] == max_cost) {
                 cand_set |= r_mov[r];
             }
         }
         if (cand_set == 0ULL) {
-            for (uint32_t r = 0U; r < 8U; ++r) {
+            for (uint32_t r = 0U; r < kRanks; ++r) {
                 if (r_blk[r] == max_b) {
                     cand_set |= r_mov[r];
                 }
@@ -451,12 +455,12 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV5(
             const uint32_t c = act_c[idx];
             const uint32_t b = act_b[idx];
             const uint32_t dm = act_dm[idx];
-            const uint32_t home = ge >> 5U;
+            const uint32_t home = ge >> kExpertShift;
             uint32_t m = static_cast<uint32_t>(act_mk[idx]) & ~(1U << hi);
             while (m != 0U) {
                 const uint32_t lo = static_cast<uint32_t>(__builtin_ctz(m));
                 m &= (m - 1U);
-                if (r_ecnt[lo] >= 32U || r_rcnt[lo] + c > 256U) {
+                if (r_ecnt[lo] >= kMaxLocalExp || r_rcnt[lo] + c > 256U) {
                     continue;
                 }
                 const uint32_t new_lo_blk = r_blk[lo] + b;
@@ -480,7 +484,7 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV5(
         }
         const uint32_t uidx = static_cast<uint32_t>(best_idx);
         const uint32_t move_ge = act_ge[uidx];
-        const uint32_t home = move_ge >> 5U;
+        const uint32_t home = move_ge >> kExpertShift;
         const uint32_t c = act_c[uidx];
         const uint32_t b = act_b[uidx];
         const uint32_t dm = act_dm[uidx];
@@ -514,15 +518,17 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV6(
     for (uint32_t w = 0U; w < 32U; ++w) {
         cnt_u64[w] = 0ULL;
     }
-    uint32_t r_ecnt[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
-    uint32_t r_rcnt[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
-    uint32_t r_blk[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
-    uint32_t r_extra[8] = {0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U};
+    constexpr uint32_t kRanks = static_cast<uint32_t>(kDefaultWorldSize);
+    constexpr uint32_t kMaxLocalExp = 256U / kRanks;
+    uint32_t r_ecnt[kRanks] = {};
+    uint32_t r_rcnt[kRanks] = {};
+    uint32_t r_blk[kRanks] = {};
+    uint32_t r_extra[kRanks] = {};
     for (int32_t i = 0; i < routes; ++i) {
         const int32_t r_val = raw_r[i];
         if (r_val >= 0) {
             const uint32_t ge = static_cast<uint32_t>(r_val) & 255U;
-            const uint32_t hr = ge >> 5U;
+            const uint32_t hr = ge >> kExpertShift;
             const uint32_t old = exp_cnt[ge];
             exp_cnt[ge] = static_cast<uint8_t>(old + 1U);
             r_rcnt[hr]++;
@@ -558,7 +564,7 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV6(
     uint8_t act_c[64];
     uint8_t act_b[64];
     uint8_t act_dm[64];
-    uint64_t r_mov[8] = {0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL};
+    uint64_t r_mov[kRanks] = {};
     uint32_t n_act = 0U;
     const uint32_t lim_cands = (num_cands > 64U) ? 64U : num_cands;
     for (uint32_t idx = 0U; idx < lim_cands; ++idx) {
@@ -566,7 +572,7 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV6(
         const uint32_t ge = static_cast<uint32_t>((cand_ge_u64[idx >> 3U] >> sh) & 0xFFULL);
         const uint32_t c = exp_cnt[ge];
         if (c > 0U) {
-            const uint32_t hr = ge >> 5U;
+            const uint32_t hr = ge >> kExpertShift;
             const uint32_t mk = static_cast<uint32_t>((cand_mask_u64[idx >> 3U] >> sh) & 0xFFULL);
             act_ge[n_act] = static_cast<uint8_t>(ge);
             act_mk[n_act] = static_cast<uint8_t>(mk);
@@ -591,15 +597,15 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV6(
     if (n_act == 0U) {
         return 0U;
     }
-    uint32_t r_cost[8];
-    for (uint32_t r = 0U; r < 8U; ++r) {
+    uint32_t r_cost[kRanks];
+    for (uint32_t r = 0U; r < kRanks; ++r) {
         r_cost[r] = RankWaveCost(r_blk[r], r_extra[r]);
     }
     for (uint32_t step = 0U; step < 20U; ++step) {
         uint32_t max_b = r_blk[0];
         uint32_t max_cost = r_cost[0];
         uint32_t min_cost = max_cost;
-        for (uint32_t r = 1U; r < 8U; ++r) {
+        for (uint32_t r = 1U; r < kRanks; ++r) {
             const uint32_t rb = r_blk[r];
             const uint32_t rc = r_cost[r];
             if (rb > max_b) {
@@ -616,13 +622,13 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV6(
             break;
         }
         uint64_t cand_set = 0ULL;
-        for (uint32_t r = 0U; r < 8U; ++r) {
+        for (uint32_t r = 0U; r < kRanks; ++r) {
             if (r_cost[r] == max_cost) {
                 cand_set |= r_mov[r];
             }
         }
         if (cand_set == 0ULL) {
-            for (uint32_t r = 0U; r < 8U; ++r) {
+            for (uint32_t r = 0U; r < kRanks; ++r) {
                 if (r_blk[r] == max_b) {
                     cand_set |= r_mov[r];
                 }
@@ -643,12 +649,12 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV6(
             const uint32_t c = act_c[idx];
             const uint32_t b = act_b[idx];
             const uint32_t dm = act_dm[idx];
-            const uint32_t home = ge >> 5U;
+            const uint32_t home = ge >> kExpertShift;
             uint32_t m = static_cast<uint32_t>(act_mk[idx]) & ~(1U << hi);
             while (m != 0U) {
                 const uint32_t lo = static_cast<uint32_t>(__builtin_ctz(m));
                 m &= (m - 1U);
-                if (r_ecnt[lo] >= 32U || r_rcnt[lo] + c > 256U) {
+                if (r_ecnt[lo] >= kMaxLocalExp || r_rcnt[lo] + c > 256U) {
                     continue;
                 }
                 const uint32_t new_lo_blk = r_blk[lo] + b;
@@ -676,7 +682,7 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV6(
             uint32_t b_mid = 0U;
             uint32_t b_lo2 = 0U;
             uint64_t cs1 = 0ULL;
-            for (uint32_t r = 0U; r < 8U; ++r) {
+            for (uint32_t r = 0U; r < kRanks; ++r) {
                 if (r_cost[r] == max_cost) {
                     cs1 |= r_mov[r];
                 }
@@ -689,7 +695,7 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV6(
                 const uint32_t c1 = act_c[i1];
                 const uint32_t b1 = act_b[i1];
                 const uint32_t dm1 = act_dm[i1];
-                const uint32_t hm1 = ge1 >> 5U;
+                const uint32_t hm1 = ge1 >> kExpertShift;
                 uint32_t m1_mask = static_cast<uint32_t>(act_mk[i1]) & ~(1U << hi1);
                 while (m1_mask != 0U) {
                     const uint32_t mid = static_cast<uint32_t>(__builtin_ctz(m1_mask));
@@ -702,7 +708,7 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV6(
                         const uint32_t c2 = act_c[i2];
                         const uint32_t b2 = act_b[i2];
                         const uint32_t dm2 = act_dm[i2];
-                        const uint32_t hm2 = ge2 >> 5U;
+                        const uint32_t hm2 = ge2 >> kExpertShift;
                         if (r_rcnt[mid] + c1 > 256U + c2) {
                             continue;
                         }
@@ -718,7 +724,7 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV6(
                         while (m2_mask != 0U) {
                             const uint32_t lo2 = static_cast<uint32_t>(__builtin_ctz(m2_mask));
                             m2_mask &= (m2_mask - 1U);
-                            if (r_ecnt[lo2] >= 32U || r_rcnt[lo2] + c2 > 256U) {
+                            if (r_ecnt[lo2] >= kMaxLocalExp || r_rcnt[lo2] + c2 > 256U) {
                                 continue;
                             }
                             const uint32_t lo2_blk = r_blk[lo2] + b2;
@@ -743,7 +749,7 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV6(
             }
             if (b_i1 >= 0) {
                 const uint32_t u2 = static_cast<uint32_t>(b_i2);
-                const uint32_t hm2 = act_ge[u2] >> 5U;
+                const uint32_t hm2 = act_ge[u2] >> kExpertShift;
                 const uint32_t c2 = act_c[u2];
                 const uint32_t b2 = act_b[u2];
                 const uint32_t dm2 = act_dm[u2];
@@ -763,7 +769,7 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV6(
                 r_cost[b_lo2] = RankWaveCost(r_blk[b_lo2], r_extra[b_lo2]);
 
                 const uint32_t u1 = static_cast<uint32_t>(b_i1);
-                const uint32_t hm1 = act_ge[u1] >> 5U;
+                const uint32_t hm1 = act_ge[u1] >> kExpertShift;
                 const uint32_t c1 = act_c[u1];
                 const uint32_t b1 = act_b[u1];
                 const uint32_t dm1 = act_dm[u1];
@@ -785,7 +791,7 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV6(
                 continue;
             }
             uint64_t sec_set = 0ULL;
-            for (uint32_t r = 0U; r < 8U; ++r) {
+            for (uint32_t r = 0U; r < kRanks; ++r) {
                 if (r_cost[r] > min_cost + 32U && r_cost[r] < max_cost) {
                     sec_set |= r_mov[r];
                 }
@@ -798,12 +804,12 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV6(
                 const uint32_t c = act_c[idx];
                 const uint32_t b = act_b[idx];
                 const uint32_t dm = act_dm[idx];
-                const uint32_t home = ge >> 5U;
+                const uint32_t home = ge >> kExpertShift;
                 uint32_t m = static_cast<uint32_t>(act_mk[idx]) & ~(1U << hi);
                 while (m != 0U) {
                     const uint32_t lo = static_cast<uint32_t>(__builtin_ctz(m));
                     m &= (m - 1U);
-                    if (r_ecnt[lo] >= 32U || r_rcnt[lo] + c > 256U) {
+                    if (r_ecnt[lo] >= kMaxLocalExp || r_rcnt[lo] + c > 256U) {
                         continue;
                     }
                     const uint32_t new_lo_blk = r_blk[lo] + b;
@@ -833,7 +839,7 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV6(
 #endif
         const uint32_t uidx = static_cast<uint32_t>(best_idx);
         const uint32_t move_ge = act_ge[uidx];
-        const uint32_t home = move_ge >> 5U;
+        const uint32_t home = move_ge >> kExpertShift;
         const uint32_t c = act_c[uidx];
         const uint32_t b = act_b[uidx];
         const uint32_t dm = act_dm[uidx];
@@ -981,9 +987,9 @@ __aicore__ inline uint32_t AllReduceBf16(
             const bool sip_r1_ack = !quad4;
 #endif
             if (sip_r1_ack && vector_index > 0 && vector_index < ranks) {
-                const int32_t peer = (rank + static_cast<int32_t>(vector_index)) & 7;
+                const int32_t peer = (rank + static_cast<int32_t>(vector_index)) & (ranks - 1);
                 __gm__ int32_t* remote_ack = reinterpret_cast<__gm__ int32_t*>(
-                    aclshmem_ptr(CommunicationR1Done(window, layout, rank), peer));
+                    aclshmem_ptr(CommunicationR1Done(window, layout, ranks, rank), peer));
                 *remote_ack = static_cast<int32_t>(epoch);
                 dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(remote_ack));
             }
@@ -1016,14 +1022,14 @@ __aicore__ inline void AllReduceSlotsToBf16(
             if (off == 0) {
                 continue;
             }
-            const int32_t peer = (rank + static_cast<int32_t>(off)) & 7;
+            const int32_t peer = (rank + static_cast<int32_t>(off)) & (ranks - 1);
             SignalPeerReady(window, layout, ranks, rt_epoch, rank, peer);
         }
 #if defined(K11220_RS768_PUSH) || defined(K112600_RS768_HIW)
 #ifdef K11220_RS768_PUSH
-        const bool use_rs768 = true;
+        const bool use_rs768 = (ranks == 8);
 #else
-        const bool use_rs768 = (rows > 16);
+        const bool use_rs768 = (ranks == 8) && (rows > 16);
 #endif
         if (use_rs768) {
             const int64_t rs_qcap = RsQCap(capacity, rows, quad4);

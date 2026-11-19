@@ -4,11 +4,15 @@
 #include <cstddef>
 #include <cstdint>
 
+#ifndef ROUTED_LOCAL_EXPERTS
+#define ROUTED_LOCAL_EXPERTS 32
+#endif
+
 namespace routed_int4 {
 
 constexpr int64_t kHidden = 6144;
 constexpr int64_t kIntermediate = 2048;
-constexpr int64_t kLocalExperts = 32;
+constexpr int64_t kLocalExperts = ROUTED_LOCAL_EXPERTS;
 constexpr int64_t kGateUp = 2 * kIntermediate;
 constexpr int64_t kGateTile = 256;
 constexpr int64_t kGateTiles = kGateUp / kGateTile;

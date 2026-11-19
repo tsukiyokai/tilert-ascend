@@ -238,8 +238,9 @@ struct Stages {
                         GlobalTensor<bfloat16_t> self_sh;
                         self_sh.SetGlobalBuffer(shmem_dst_base + dst_off, span);
                         DataCopy(self_sh, out_bf16, span);
-                        for (uint32_t p = 0U; p < 3U; ++p) {
-                            const int32_t peer = (comm_rank + static_cast<int32_t>((((tid + p) % 3U) + 1U) << 1U)) & 7;
+                        const uint32_t even_peers = static_cast<uint32_t>((comm_ranks >> 1) - 1);
+                        for (uint32_t p = 0U; p < even_peers; ++p) {
+                            const int32_t peer = (comm_rank + static_cast<int32_t>((((tid + p) % even_peers) + 1U) << 1U)) & (comm_ranks - 1);
                             GlobalTensor<bfloat16_t> peer_dst;
                             peer_dst.SetGlobalBuffer(
                                 reinterpret_cast<__gm__ bfloat16_t*>(aclshmem_ptr(shmem_dst_base + dst_off, peer)), span);
@@ -253,8 +254,9 @@ struct Stages {
                         } else {
                             DataCopy(destination[dst_off], out_bf16, span);
                         }
-                        for (uint32_t p = 0U; p < 7U; ++p) {
-                            const int32_t peer = (comm_rank + static_cast<int32_t>(((tid + p) % 7U) + 1U)) & 7;
+                        const uint32_t all_peers = static_cast<uint32_t>(comm_ranks - 1);
+                        for (uint32_t p = 0U; p < all_peers; ++p) {
+                            const int32_t peer = (comm_rank + static_cast<int32_t>(((tid + p) % all_peers) + 1U)) & (comm_ranks - 1);
                             GlobalTensor<bfloat16_t> peer_dst;
                             peer_dst.SetGlobalBuffer(
                                 reinterpret_cast<__gm__ bfloat16_t*>(aclshmem_ptr(shmem_dst_base + dst_off, peer)), span);
@@ -268,8 +270,9 @@ struct Stages {
                         GlobalTensor<bfloat16_t> self_sh;
                         self_sh.SetGlobalBuffer(shmem_dst_base + dst_off, span);
                         DataCopy(self_sh, out_bf16, span);
-                        for (uint32_t p = 0U; p < 3U; ++p) {
-                            const int32_t peer = (comm_rank + static_cast<int32_t>((((tid + p) % 3U) + 1U) << 1U)) & 7;
+                        const uint32_t even_peers = static_cast<uint32_t>((comm_ranks >> 1) - 1);
+                        for (uint32_t p = 0U; p < even_peers; ++p) {
+                            const int32_t peer = (comm_rank + static_cast<int32_t>((((tid + p) % even_peers) + 1U) << 1U)) & (comm_ranks - 1);
                             GlobalTensor<bfloat16_t> peer_dst;
                             peer_dst.SetGlobalBuffer(
                                 reinterpret_cast<__gm__ bfloat16_t*>(aclshmem_ptr(shmem_dst_base + dst_off, peer)), span);
@@ -278,8 +281,9 @@ struct Stages {
                     } else {
                         DataCopy(destination[dst_off], out_bf16, span);
                         if (shmem_dst_base != nullptr) {
-                            for (uint32_t p = 0U; p < 7U; ++p) {
-                                const int32_t peer = (comm_rank + static_cast<int32_t>(((tid + p) % 7U) + 1U)) & 7;
+                            const uint32_t all_peers = static_cast<uint32_t>(comm_ranks - 1);
+                            for (uint32_t p = 0U; p < all_peers; ++p) {
+                                const int32_t peer = (comm_rank + static_cast<int32_t>(((tid + p) % all_peers) + 1U)) & (comm_ranks - 1);
                                 GlobalTensor<bfloat16_t> peer_dst;
                                 peer_dst.SetGlobalBuffer(
                                     reinterpret_cast<__gm__ bfloat16_t*>(aclshmem_ptr(shmem_dst_base + dst_off, peer)), span);

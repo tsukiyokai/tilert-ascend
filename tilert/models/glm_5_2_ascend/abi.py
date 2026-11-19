@@ -244,6 +244,7 @@ class LocalRecords:
         scalars,
         sync,
         indexed,
+        prepare_fn=None,
     ):
         groups = (norm, attention, post, routed, bridge, body, shared)
         if tuple(map(len, groups)) != (8, 41, 3, 6, 12, 21, 4):
@@ -301,7 +302,12 @@ class LocalRecords:
         self.config = ctypes.create_string_buffer(library.config_bytes)
         self.addresses = ctypes.create_string_buffer(library.address_bytes)
         arrays = [(ctypes.c_uint64 * len(group))(*pointers(group)) for group in groups]
-        status = library.handle.layer_local_prepare_records(
+        fn = (
+            prepare_fn
+            if prepare_fn is not None
+            else library.handle.layer_local_prepare_records
+        )
+        status = fn(
             self.config,
             len(self.config),
             self.addresses,
@@ -313,7 +319,11 @@ class LocalRecords:
             0 if shared_topk is None else shared_topk.data_ptr(),
             *arrays[2:],
         )
-        library.check(status)
+        if prepare_fn is not None:
+            if status != 0:
+                raise RuntimeError(f"TP-chain prepare_records status {status}")
+        else:
+            library.check(status)
 
     def launch(self):
         if pointers(self.owners) != self.owner_pointers:
@@ -451,6 +461,27 @@ class TreeLibrary:
         self._set_peer_weights_ptr = getattr(
             self.handle, "layer_tp_tree_set_peer_weights_ptr", None
         )
+        self.prepare_records = getattr(
+            self.handle, "layer_tp_tree_prepare_records", None
+        )
+        if self.prepare_records is not None:
+            self.prepare_records.argtypes = [
+                ctypes.c_void_p,
+                ctypes.c_size_t,
+                ctypes.c_void_p,
+                ctypes.c_size_t,
+                ctypes.POINTER(ctypes.c_int64),
+                ctypes.POINTER(ctypes.c_float),
+                U64_POINTER,
+                U64_POINTER,
+                ctypes.c_uint64,
+                U64_POINTER,
+                U64_POINTER,
+                U64_POINTER,
+                U64_POINTER,
+                U64_POINTER,
+            ]
+            self.prepare_records.restype = ctypes.c_int
         if self.has_chain:
             submit_chain = self.handle.layer_tp_tree_submit_chain
             submit_chain.argtypes = [

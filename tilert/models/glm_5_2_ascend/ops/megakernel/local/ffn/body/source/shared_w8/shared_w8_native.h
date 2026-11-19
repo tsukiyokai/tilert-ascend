@@ -134,18 +134,22 @@ __aicore__ inline void DirectSharedW8Nz24Aic(
     GlobalTensor<int8_t> a, b;
     GlobalTensor<int32_t> c;
     if (gate) {
+        constexpr uint32_t kGateHalfBytes = static_cast<uint32_t>(kGateTile) * 512U;
+        constexpr uint32_t kGateBBytes = kGateHalfBytes * 2U;
+        constexpr uint32_t kGateRepeats = static_cast<uint32_t>(kGateTile) / 32U;
+        constexpr uint32_t kL0bStep = kGateRepeats * 1024U;
         TBuf<TPosition::B1> b1_buf0, b1_buf1;
         TBuf<TPosition::A1> a1_buf;
         TBuf<TPosition::A2> l0a_buf;
         TBuf<TPosition::B2> l0b_buf0, l0b_buf1;
         TBuf<TPosition::CO1> l0c_buf;
-        pipe.InitBuffer(b1_buf0, 65536);
-        pipe.InitBuffer(b1_buf1, 65536);
+        pipe.InitBuffer(b1_buf0, kGateHalfBytes);
+        pipe.InitBuffer(b1_buf1, kGateHalfBytes);
         pipe.InitBuffer(a1_buf, m_cap * 1024U);
         pipe.InitBuffer(l0a_buf, m_cap * 1024U);
-        pipe.InitBuffer(l0b_buf0, 256 * 128);
-        pipe.InitBuffer(l0b_buf1, 256 * 128);
-        pipe.InitBuffer(l0c_buf, m_cap * 128U * sizeof(int32_t));
+        pipe.InitBuffer(l0b_buf0, 256U * static_cast<uint32_t>(kGateTile));
+        pipe.InitBuffer(l0b_buf1, 256U * static_cast<uint32_t>(kGateTile));
+        pipe.InitBuffer(l0c_buf, m_cap * static_cast<uint32_t>(kGateTile) * sizeof(int32_t));
 
         LocalTensor<int8_t> a1 = a1_buf.Get<int8_t>();
         LocalTensor<int8_t> b1[2] = {b1_buf0.Get<int8_t>(), b1_buf1.Get<int8_t>()};
@@ -155,9 +159,9 @@ __aicore__ inline void DirectSharedW8Nz24Aic(
 
         a.SetGlobalBuffer(input + static_cast<uint64_t>(cid >> 2U) * static_cast<uint64_t>(capacity) * 1024ULL,
                           static_cast<uint64_t>(capacity) * 1024ULL);
-        b.SetGlobalBuffer(weights + static_cast<uint64_t>(cid) * 131072ULL, 131072ULL);
-        c.SetGlobalBuffer(output + static_cast<uint64_t>(cid) * static_cast<uint64_t>(capacity) * 128ULL,
-                          static_cast<uint64_t>(capacity) * 128ULL);
+        b.SetGlobalBuffer(weights + static_cast<uint64_t>(cid) * kGateBBytes, kGateBBytes);
+        c.SetGlobalBuffer(output + static_cast<uint64_t>(cid) * static_cast<uint64_t>(capacity) * kGateTile,
+                          static_cast<uint64_t>(capacity) * kGateTile);
 
         Nd2NzParams copy_a{};
         copy_a.ndNum = 1;
@@ -173,9 +177,9 @@ __aicore__ inline void DirectSharedW8Nz24Aic(
         }
         SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
 
-        DataCopy(b1[0], b[0], 65536);
+        DataCopy(b1[0], b[0], kGateHalfBytes);
         SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID0);
-        DataCopy(b1[1], b[65536], 65536);
+        DataCopy(b1[1], b[kGateHalfBytes], kGateHalfBytes);
         SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID1);
 
         WaitFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
@@ -187,7 +191,7 @@ __aicore__ inline void DirectSharedW8Nz24Aic(
         SetFlag<HardEvent::MTE1_M>(EVENT_ID2);
         WaitFlag<HardEvent::MTE1_M>(EVENT_ID2);
 
-        LoadData2dTransposeParams trans(0, 4, 16, 1, 0, inc);
+        LoadData2dTransposeParams trans(0, static_cast<uint8_t>(kGateRepeats), 16, 1, 0, inc);
         SetFlag<HardEvent::M_MTE1>(EVENT_ID3);
         SetFlag<HardEvent::M_MTE1>(EVENT_ID4);
         for (uint32_t step = 0U; step < 4U; ++step) {
@@ -203,19 +207,19 @@ __aicore__ inline void DirectSharedW8Nz24Aic(
             WaitFlag<HardEvent::M_MTE1>(lb_evt);
             #pragma unroll
             for (uint32_t i = 0U; i < 8U; ++i) {
-                LoadDataWithTranspose(l0b[lbi][i * 4096U], b1[bi][k_sub_off + i * 1024U], trans);
+                LoadDataWithTranspose(l0b[lbi][i * kL0bStep], b1[bi][k_sub_off + i * 1024U], trans);
             }
             SetFlag<HardEvent::MTE1_M>(lb_evt);
             WaitFlag<HardEvent::MTE1_M>(lb_evt);
             MmadParams mad{};
             mad.m = 16;
-            mad.n = 128;
+            mad.n = static_cast<uint16_t>(kGateTile);
             mad.k = 256;
             mad.cmatrixSource = false;
             mad.cmatrixInitVal = (step == 0U);
             Mmad(l0c, l0a[step * 4096U], l0b[lbi], mad);
             if (dual_m) {
-                Mmad(l0c[2048U], l0a[16384U + step * 4096U], l0b[lbi], mad);
+                Mmad(l0c[kGateTile * 16U], l0a[16384U + step * 4096U], l0b[lbi], mad);
             }
             PipeBarrier<PIPE_M>();
             SetFlag<HardEvent::M_MTE1>(lb_evt);
@@ -225,21 +229,24 @@ __aicore__ inline void DirectSharedW8Nz24Aic(
         SetFlag<HardEvent::M_FIX>(EVENT_ID0);
         WaitFlag<HardEvent::M_FIX>(EVENT_ID0);
         FixpipeParamsV220 fix{};
-        fix.nSize = 128;
+        fix.nSize = static_cast<uint16_t>(kGateTile);
         fix.mSize = m0;
         fix.srcStride = 16;
-        fix.dstStride = 128;
+        fix.dstStride = static_cast<uint16_t>(kGateTile);
         fix.ndNum = 1;
         fix.quantPre = QuantMode_t::NoQuant;
         Fixpipe<int32_t, int32_t, CFG_ROW_MAJOR>(c, l0c, fix);
         if (dual_m) {
             fix.mSize = m1;
-            Fixpipe<int32_t, int32_t, CFG_ROW_MAJOR>(c[2048U], l0c[2048U], fix);
+            Fixpipe<int32_t, int32_t, CFG_ROW_MAJOR>(c[kGateTile * 16U], l0c[kGateTile * 16U], fix);
         }
         SetFlag<HardEvent::FIX_M>(EVENT_ID0);
         WaitFlag<HardEvent::FIX_M>(EVENT_ID0);
         pipe.Reset();
     } else {
+        constexpr uint32_t kDnK = static_cast<uint32_t>(kIntermediate);
+        constexpr uint32_t kDnSteps = kDnK / 128U;
+        constexpr uint64_t kDnBBytes = static_cast<uint64_t>(kDnK) * 256ULL;
         TBuf<TPosition::B1> b1_buf0, b1_buf1;
         TBuf<TPosition::A1> a1_buf;
         TBuf<TPosition::A2> l0a_buf;
@@ -247,8 +254,8 @@ __aicore__ inline void DirectSharedW8Nz24Aic(
         TBuf<TPosition::CO1> l0c_buf;
         pipe.InitBuffer(b1_buf0, 32768);
         pipe.InitBuffer(b1_buf1, 32768);
-        pipe.InitBuffer(a1_buf, m_cap * 256U);
-        pipe.InitBuffer(l0a_buf, m_cap * 256U);
+        pipe.InitBuffer(a1_buf, m_cap * kDnK);
+        pipe.InitBuffer(l0a_buf, m_cap * kDnK);
         pipe.InitBuffer(l0b_buf0, 128 * 256);
         pipe.InitBuffer(l0b_buf1, 128 * 256);
         pipe.InitBuffer(l0c_buf, m_cap * 256U * sizeof(int32_t));
@@ -259,33 +266,35 @@ __aicore__ inline void DirectSharedW8Nz24Aic(
         LocalTensor<int8_t> l0b[2] = {l0b_buf0.Get<int8_t>(), l0b_buf1.Get<int8_t>()};
         LocalTensor<int32_t> l0c = l0c_buf.Get<int32_t>();
 
-        a.SetGlobalBuffer(input, static_cast<uint64_t>(capacity) * 256ULL);
-        b.SetGlobalBuffer(weights + static_cast<uint64_t>(cid) * 65536ULL, 65536ULL);
+        a.SetGlobalBuffer(input, static_cast<uint64_t>(capacity) * kDnK);
+        b.SetGlobalBuffer(weights + static_cast<uint64_t>(cid) * kDnBBytes, kDnBBytes);
         c.SetGlobalBuffer(output + static_cast<uint64_t>(cid) * static_cast<uint64_t>(capacity) * 256ULL,
                           static_cast<uint64_t>(capacity) * 256ULL);
 
         Nd2NzParams copy_a{};
         copy_a.ndNum = 1;
         copy_a.nValue = m0;
-        copy_a.dValue = 256;
-        copy_a.srcDValue = 256;
+        copy_a.dValue = static_cast<uint16_t>(kDnK);
+        copy_a.srcDValue = static_cast<uint16_t>(kDnK);
         copy_a.dstNzC0Stride = 16;
         copy_a.dstNzNStride = 1;
         DataCopy(a1, a, copy_a);
         if (dual_m) {
             copy_a.nValue = m1;
-            DataCopy(a1[4096U], a[4096U], copy_a);
+            DataCopy(a1[16U * kDnK], a[16U * kDnK], copy_a);
         }
         SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
 
         DataCopy(b1[0], b[0], 32768);
         SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID0);
-        DataCopy(b1[1], b[32768], 32768);
-        SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID1);
+        if constexpr (kDnSteps > 1U) {
+            DataCopy(b1[1], b[32768], 32768);
+            SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID1);
+        }
 
         WaitFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
         LoadData2DParams load_a{};
-        load_a.repeatTimes = dual_m ? 16 : 8;
+        load_a.repeatTimes = dual_m ? (kDnSteps * 8U) : (kDnSteps * 4U);
         load_a.srcStride = 1;
         load_a.ifTranspose = false;
         LoadData(l0a, a1, load_a);
@@ -295,7 +304,7 @@ __aicore__ inline void DirectSharedW8Nz24Aic(
         LoadData2dTransposeParams trans(0, 8, 4, 1, 0, inc);
         SetFlag<HardEvent::M_MTE1>(EVENT_ID3);
         SetFlag<HardEvent::M_MTE1>(EVENT_ID4);
-        for (uint32_t step = 0U; step < 2U; ++step) {
+        for (uint32_t step = 0U; step < kDnSteps; ++step) {
             const event_t b_evt = step ? EVENT_ID1 : EVENT_ID0;
             const event_t lb_evt = step ? EVENT_ID4 : EVENT_ID3;
             WaitFlag<HardEvent::MTE2_MTE1>(b_evt);
@@ -314,7 +323,7 @@ __aicore__ inline void DirectSharedW8Nz24Aic(
             mad.cmatrixInitVal = (step == 0U);
             Mmad(l0c, l0a[step * 2048U], l0b[step], mad);
             if (dual_m) {
-                Mmad(l0c[4096U], l0a[4096U + step * 2048U], l0b[step], mad);
+                Mmad(l0c[4096U], l0a[16U * kDnK + step * 2048U], l0b[step], mad);
             }
             PipeBarrier<PIPE_M>();
             SetFlag<HardEvent::M_MTE1>(lb_evt);

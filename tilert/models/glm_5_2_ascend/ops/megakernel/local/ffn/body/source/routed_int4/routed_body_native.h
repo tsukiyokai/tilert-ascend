@@ -1924,9 +1924,9 @@ __aicore__ inline void Forward(
                     g2e_u64[w] = 0xFFFFFFFFFFFFFFFFULL;
                 }
                 const uint32_t u_rank = static_cast<uint32_t>(comm_rank);
-                const uint32_t home_base = u_rank << 5U;
+                const uint32_t home_base = u_rank * static_cast<uint32_t>(kLocalExperts);
                 uint32_t my_home_active = 0U;
-                for (uint32_t le = 0U; le < 32U; ++le) {
+                for (uint32_t le = 0U; le < static_cast<uint32_t>(kLocalExperts); ++le) {
                     if (exp_cnt[home_base | le] > 0U) {
                         my_home_active |= (1U << le);
                     }
@@ -1937,14 +1937,14 @@ __aicore__ inline void Forward(
                 for (uint32_t idx = 0U; idx < n_act; ++idx) {
                     const uint32_t ge = act_ge[idx];
                     const uint32_t own = act_own[idx];
-                    const uint32_t home = ge >> 5U;
+                    const uint32_t home = ge >> whole_layer_tree::kExpertShift;
                     if (home == u_rank && own != u_rank) {
-                        my_home_active &= ~(1U << (ge & 31U));
+                        my_home_active &= ~(1U << (ge & static_cast<uint32_t>(kLocalExperts - 1)));
                     } else if (own == u_rank && home != u_rank) {
                         for (uint32_t ms = 0U; ms < my_mslots; ++ms) {
                             if (((my_ge_pack >> (ms * 8U)) & 0xFFULL) == ge) {
                                 mir_ge[n_mir] = static_cast<uint8_t>(ge);
-                                mir_lslot[n_mir] = static_cast<uint8_t>(32U + ms);
+                                mir_lslot[n_mir] = static_cast<uint8_t>(static_cast<uint32_t>(kLocalExperts) + ms);
                                 ++n_mir;
                                 break;
                             }
@@ -1962,12 +1962,12 @@ __aicore__ inline void Forward(
                     gexp_to_eidx[mir_ge[k]] = static_cast<int8_t>(my_ecnt);
                     my_gexp[my_ecnt++] = mir_lslot[k];
                 }
-                for (uint32_t r = 0U; r < 8U; ++r) {
+                const uint32_t u64_per_rank = static_cast<uint32_t>(kLocalExperts) >> 3U;
+                for (uint32_t r = 0U; r < static_cast<uint32_t>(comm_ranks); ++r) {
                     const uint64_t v = 0x0101010101010101ULL * r;
-                    own_u64[r * 4U + 0U] = v;
-                    own_u64[r * 4U + 1U] = v;
-                    own_u64[r * 4U + 2U] = v;
-                    own_u64[r * 4U + 3U] = v;
+                    for (uint32_t u = 0U; u < u64_per_rank; ++u) {
+                        own_u64[r * u64_per_rank + u] = v;
+                    }
                 }
                 for (uint32_t idx = 0U; idx < n_act; ++idx) {
                     const uint32_t ge = act_ge[idx];
@@ -2104,9 +2104,9 @@ __aicore__ inline void Forward(
                     const uint32_t bit = static_cast<uint32_t>(__builtin_ctzll(m));
                     const uint32_t ge = (w << 6U) | bit;
                     gexp_to_eidx[ge] = static_cast<int8_t>(my_ecnt);
-                    my_gexp[my_ecnt++] = ((ge >> 5U) == static_cast<uint32_t>(comm_rank))
-                        ? static_cast<uint8_t>(ge & 31U)
-                        : 32U;
+                    my_gexp[my_ecnt++] = ((ge >> whole_layer_tree::kExpertShift) == static_cast<uint32_t>(comm_rank))
+                        ? static_cast<uint8_t>(ge & static_cast<uint32_t>(kLocalExperts - 1))
+                        : static_cast<uint8_t>(kLocalExperts);
                     m &= (m - 1ULL);
                 }
             }
@@ -2203,9 +2203,9 @@ __aicore__ inline void Forward(
                 g2e_u64[w] = 0xFFFFFFFFFFFFFFFFULL;
             }
             const uint32_t u_rank = static_cast<uint32_t>(comm_rank);
-            const uint32_t home_base = u_rank << 5U;
+            const uint32_t home_base = u_rank * static_cast<uint32_t>(kLocalExperts);
             uint32_t my_home_active = 0U;
-            for (uint32_t le = 0U; le < 32U; ++le) {
+            for (uint32_t le = 0U; le < static_cast<uint32_t>(kLocalExperts); ++le) {
                 if (exp_cnt[home_base | le] > 0U) {
                     my_home_active |= (1U << le);
                 }
@@ -2216,14 +2216,14 @@ __aicore__ inline void Forward(
             for (uint32_t idx = 0U; idx < n_act; ++idx) {
                 const uint32_t ge = act_ge[idx];
                 const uint32_t own = act_own[idx];
-                const uint32_t home = ge >> 5U;
+                const uint32_t home = ge >> whole_layer_tree::kExpertShift;
                 if (home == u_rank && own != u_rank) {
-                    my_home_active &= ~(1U << (ge & 31U));
+                    my_home_active &= ~(1U << (ge & static_cast<uint32_t>(kLocalExperts - 1)));
                 } else if (own == u_rank && home != u_rank) {
                     for (uint32_t ms = 0U; ms < my_mslots; ++ms) {
                         if (((my_ge_pack >> (ms * 8U)) & 0xFFULL) == ge) {
                             mir_ge[n_mir] = static_cast<uint8_t>(ge);
-                            mir_lslot[n_mir] = static_cast<uint8_t>(32U + ms);
+                            mir_lslot[n_mir] = static_cast<uint8_t>(static_cast<uint32_t>(kLocalExperts) + ms);
                             ++n_mir;
                             break;
                         }
@@ -2242,12 +2242,12 @@ __aicore__ inline void Forward(
                 my_gexp[my_ecnt++] = mir_lslot[k];
             }
             if (GetBlockIdx() == own_writer) {
-                for (uint32_t r = 0U; r < 8U; ++r) {
+                const uint32_t u64_per_rank = static_cast<uint32_t>(kLocalExperts) >> 3U;
+                for (uint32_t r = 0U; r < static_cast<uint32_t>(comm_ranks); ++r) {
                     const uint64_t v = 0x0101010101010101ULL * r;
-                    own_u64[r * 4U + 0U] = v;
-                    own_u64[r * 4U + 1U] = v;
-                    own_u64[r * 4U + 2U] = v;
-                    own_u64[r * 4U + 3U] = v;
+                    for (uint32_t u = 0U; u < u64_per_rank; ++u) {
+                        own_u64[r * u64_per_rank + u] = v;
+                    }
                 }
                 for (uint32_t idx = 0U; idx < n_act; ++idx) {
                     const uint32_t ge = act_ge[idx];
@@ -3181,7 +3181,7 @@ __aicore__ inline void Forward(
                 AscendC::SyncAll<true>();
                 const int32_t off = static_cast<int32_t>(AscendC::GetBlockIdx());
                 if (off > 0 && off < comm_ranks) {
-                    const int32_t peer = (comm_rank + off) & 7;
+                    const int32_t peer = (comm_rank + off) & (comm_ranks - 1);
                     __gm__ int32_t* remote_sig = reinterpret_cast<__gm__ int32_t*>(
                         aclshmem_ptr(whole_layer_tree::CommunicationReady(
                             comm_window, layout, comm_ranks, sh_epoch, comm_rank), peer));
@@ -3422,8 +3422,8 @@ __aicore__ inline void Forward(
                         : sh_pl;
                     __gm__ bfloat16_t* sh_self_out = (__gm__ bfloat16_t*)arguments.shared.output;
                     const auto sh_plan = whole_layer_tree::GetTreePlan(comm_ranks);
-                    uint32_t sh_unr = 0xFFU;
-                    for (int32_t lf = 0; lf < 8; ++lf) {
+                    uint32_t sh_unr = (comm_ranks >= 32) ? 0xFFFFFFFFU : ((1U << static_cast<uint32_t>(comm_ranks)) - 1U);
+                    for (int32_t lf = 0; lf < comm_ranks; ++lf) {
                         if (static_cast<int32_t>(whole_layer_tree::GetTreeStep(sh_plan, lf).rank) == comm_rank) {
                             sh_unr &= ~(1U << lf);
                         }
@@ -3446,8 +3446,9 @@ __aicore__ inline void Forward(
                             r_tok = static_cast<int64_t>(q); r_col = static_cast<int64_t>(tid_sh - q * 6U) * 1024;
                         }
                     };
-                    for (int64_t row_base = 0; row_base < arguments.rows; row_base += 8) {
-                        const int64_t w_rows = (arguments.rows - row_base > 8) ? 8 : (arguments.rows - row_base);
+                    const int64_t sh_wave_step = (comm_ranks > 8) ? 4 : 8;
+                    for (int64_t row_base = 0; row_base < arguments.rows; row_base += sh_wave_step) {
+                        const int64_t w_rows = (arguments.rows - row_base > sh_wave_step) ? sh_wave_step : (arguments.rows - row_base);
                         int64_t rel_t = 0, c_off = 0, chk = 1024;
                         map_sh_wave8(w_rows, rel_t, c_off, chk);
                         if (rel_t >= w_rows) {
@@ -3459,7 +3460,7 @@ __aicore__ inline void Forward(
                         }
                         const int64_t sh_off = (row_base + rel_t) * kHidden + c_off;
                         uint32_t pend = sh_unr;
-                        for (int32_t lf = 0; lf < 8; ++lf) {
+                        for (int32_t lf = 0; lf < comm_ranks; ++lf) {
                             const auto stp = whole_layer_tree::GetTreeStep(sh_plan, lf);
                             if (static_cast<int32_t>(stp.rank) == comm_rank) {
                                 GlobalTensor<bfloat16_t> s_gm;
@@ -3478,8 +3479,8 @@ __aicore__ inline void Forward(
                             }
                         }
                         while (pend != 0U) {
-                            for (int32_t l = 0; l < 8; ++l) {
-                                const int32_t lf = (l + static_cast<int32_t>(tid_sh)) & 7;
+                            for (int32_t l = 0; l < comm_ranks; ++l) {
+                                const int32_t lf = (l + static_cast<int32_t>(tid_sh)) & (comm_ranks - 1);
                                 if ((pend & (1U << lf)) == 0U) {
                                     continue;
                                 }
@@ -3499,17 +3500,14 @@ __aicore__ inline void Forward(
                         }
                         sh_unr = 0U;
                         Fence<HardEvent::MTE2_V>();
-                        Cast(held.sh_red_acc[0], held.sh_red_nar[0], RoundMode::CAST_NONE, 8 * chk);
+                        Cast(held.sh_red_acc[0], held.sh_red_nar[0], RoundMode::CAST_NONE, comm_ranks * chk);
                         PipeBarrier<PIPE_V>();
-                        for (int32_t pr = 0; pr < 4; ++pr) {
-                            Add(held.sh_red_acc[pr * 2 * chk], held.sh_red_acc[pr * 2 * chk], held.sh_red_acc[(pr * 2 + 1) * chk], chk);
+                        for (int32_t stride = 1; stride < comm_ranks; stride <<= 1) {
+                            for (int32_t i = 0; i + stride < comm_ranks; i += (stride << 1)) {
+                                Add(held.sh_red_acc[i * chk], held.sh_red_acc[i * chk], held.sh_red_acc[(i + stride) * chk], chk);
+                            }
+                            PipeBarrier<PIPE_V>();
                         }
-                        PipeBarrier<PIPE_V>();
-                        Add(held.sh_red_acc[0], held.sh_red_acc[0], held.sh_red_acc[2 * chk], chk);
-                        Add(held.sh_red_acc[4 * chk], held.sh_red_acc[4 * chk], held.sh_red_acc[6 * chk], chk);
-                        PipeBarrier<PIPE_V>();
-                        Add(held.sh_red_acc[0], held.sh_red_acc[0], held.sh_red_acc[4 * chk], chk);
-                        PipeBarrier<PIPE_V>();
                         Cast(held.sh_red_nar[0], held.sh_red_acc[0], RoundMode::CAST_RINT, chk);
                         Fence<HardEvent::V_MTE3>();
                         GlobalTensor<bfloat16_t> d_gm;
@@ -3573,7 +3571,7 @@ __aicore__ inline void Forward(
                         ? whole_layer_tree::MakeQuad4Layout(comm_capacity, comm_ranks, arguments.rows)
                         : whole_layer_tree::MakeCommunicationLayout(comm_capacity, comm_ranks);
                     const uint32_t sh_ep_d = comm_base_epoch + 1U;
-                    const int32_t peer = (comm_rank + off) & 7;
+                    const int32_t peer = (comm_rank + off) & (comm_ranks - 1);
                     __gm__ int32_t* remote_sig = reinterpret_cast<__gm__ int32_t*>(
                         aclshmem_ptr(whole_layer_tree::CommunicationReady(
                             comm_window, sh_lay_d, comm_ranks, sh_ep_d, comm_rank), peer));

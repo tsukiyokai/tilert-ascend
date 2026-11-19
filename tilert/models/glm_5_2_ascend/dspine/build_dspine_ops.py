@@ -40,6 +40,15 @@ KERNEL_CPP = """#if defined(__CCE_AICORE__) && !defined(__NPU_DEVICE__)
 namespace dspine_ops {
 using namespace AscendC;
 
+#ifndef WORLD_SIZE
+#define WORLD_SIZE 8
+#endif
+
+constexpr int32_t kDspineWorldSize = WORLD_SIZE;
+constexpr int32_t kDspineShardDim = 6144 / WORLD_SIZE;
+constexpr int32_t kDspineEhIn = 2 * kDspineShardDim;
+constexpr int32_t kDspineVecRanks = (WORLD_SIZE > 8) ? 16 : 8;
+
 template <HardEvent Ev>
 __aicore__ inline void Fence()
 {
@@ -109,7 +118,8 @@ __aicore__ inline void RunPrologPack(
         g_ctrl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(ctrl_gm), 48);
         g_ttoks.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(target_toks_gm), 32);
         g_emb.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(emb_w_gm));
-        g_rot.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(rot_part_gm), m_max * 768);
+        g_rot.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(rot_part_gm), m_max * kDspineShardDim);
         g_out.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(comm_in_gm), 4 * m_max * 6144);
 
         DcciRange(ctrl_gm, 48 * 8);
@@ -141,19 +151,20 @@ __aicore__ inline void RunPrologPack(
             Fence<HardEvent::MTE3_MTE2>();
         }
 
-        for (int32_t task = aiv; task < m_max * 8; task += 48) {
-            const int32_t r_idx = task / 8;
-            const int32_t s_rk = task % 8;
+        for (int32_t task = aiv; task < m_max * kDspineWorldSize; task += 48) {
+            const int32_t r_idx = task / kDspineWorldSize;
+            const int32_t s_rk = task % kDspineWorldSize;
             const int64_t dst_off = static_cast<int64_t>(2 * m_max + r_idx) * 6144
-                + static_cast<int64_t>(s_rk) * 768;
+                + static_cast<int64_t>(s_rk) * kDspineShardDim;
             if (r_idx < count && s_rk == rank) {
-                DataCopy(ub_bf16, g_rot[r_idx * 768], 768);
+                DataCopy(ub_bf16, g_rot[r_idx * kDspineShardDim], kDspineShardDim);
                 Fence<HardEvent::MTE2_MTE3>();
             } else {
-                Duplicate(ub_bf16.ReinterpretCast<int16_t>(), static_cast<int16_t>(0), 768);
+                Duplicate(
+                    ub_bf16.ReinterpretCast<int16_t>(), static_cast<int16_t>(0), kDspineShardDim);
                 Fence<HardEvent::V_MTE3>();
             }
-            DataCopy(g_out[dst_off], ub_bf16, 768);
+            DataCopy(g_out[dst_off], ub_bf16, kDspineShardDim);
             Fence<HardEvent::MTE3_V>();
             Fence<HardEvent::MTE3_MTE2>();
         }
@@ -202,7 +213,7 @@ __aicore__ inline void DecodeGatheredTopKV3(
         float tv0 = -1.0e30F, tv1 = -1.0e30F, tv2 = -1.0e30F, tv3 = -1.0e30F;
         int64_t ti0 = 0, ti1 = 0, ti2 = 0, ti3 = 0;
         float max_all = -1.0e30F;
-        for (int32_t r = 0; r < 8; ++r) {
+        for (int32_t r = 0; r < kDspineWorldSize; ++r) {
             const int32_t base = r * 64 + m * cols;
             const float mr = ub_gat.GetValue(base + 0);
             if (mr > max_all) {
@@ -216,26 +227,26 @@ __aicore__ inline void DecodeGatheredTopKV3(
             }
         }
         Fence<HardEvent::S_V>();
-        Duplicate(ub_mr, -1.0e30F, 8);
-        Duplicate(ub_sr, 0.0F, 8);
+        Duplicate(ub_mr, -1.0e30F, kDspineVecRanks);
+        Duplicate(ub_sr, 0.0F, kDspineVecRanks);
         Fence<HardEvent::V_S>();
-        for (int32_t r = 0; r < 8; ++r) {
+        for (int32_t r = 0; r < kDspineWorldSize; ++r) {
             const int32_t base = r * 64 + m * cols;
             ub_mr.SetValue(r, ub_gat.GetValue(base + 0));
             ub_sr.SetValue(r, ub_gat.GetValue(base + 1));
         }
         Fence<HardEvent::S_V>();
-        Adds(ub_mr, ub_mr, -max_all, 8);
+        Adds(ub_mr, ub_mr, -max_all, kDspineVecRanks);
         PipeBarrier<PIPE_V>();
-        Maxs(ub_mr, ub_mr, -104.0F, 8);
+        Maxs(ub_mr, ub_mr, -104.0F, kDspineVecRanks);
         PipeBarrier<PIPE_V>();
-        Exp(ub_mr, ub_mr, 8);
+        Exp(ub_mr, ub_mr, kDspineVecRanks);
         PipeBarrier<PIPE_V>();
-        Mul(ub_mr, ub_mr, ub_sr, 8);
+        Mul(ub_mr, ub_mr, ub_sr, kDspineVecRanks);
         PipeBarrier<PIPE_V>();
-        ReduceSum(ub_sum, ub_mr, ub_work, 8);
+        ReduceSum(ub_sum, ub_mr, ub_work, kDspineVecRanks);
         PipeBarrier<PIPE_V>();
-        Ln(ub_sum, ub_sum, 8);
+        Ln(ub_sum, ub_sum, kDspineVecRanks);
         Fence<HardEvent::V_S>();
         const float lse = max_all + ub_sum.GetValue(0);
         const float lp0 = (tv0 - lse > -2.0e-4F) ? -2.0e-4F : (tv0 - lse);
@@ -471,7 +482,7 @@ __aicore__ inline void RunBeamStepV3(
         }
         const int32_t aiv = GetBlockIdx();
         TBuf<TPosition::VECCALC> b_gat, b_mr, b_sr, b_sum, b_wk, b_i64, b_f32, b_anc, b_bf16;
-        pipe.InitBuffer(b_gat, 512 * 4);
+        pipe.InitBuffer(b_gat, 1024 * 4);
         pipe.InitBuffer(b_mr, 64);
         pipe.InitBuffer(b_sr, 64);
         pipe.InitBuffer(b_sum, 64);
@@ -506,10 +517,11 @@ __aicore__ inline void RunBeamStepV3(
             if (aiv == 0) {
                 GlobalTensor<float> g_gat, g_slp;
                 GlobalTensor<int64_t> g_si;
-                g_gat.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(gather_out_gm), 512);
+                g_gat.SetGlobalBuffer(
+                    reinterpret_cast<__gm__ float*>(gather_out_gm), kDspineWorldSize * 64);
                 g_si.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(seed_top_i_gm), 8);
                 g_slp.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(seed_top_lp_gm), 8);
-                DataCopy(ub_gat, g_gat, 512);
+                DataCopy(ub_gat, g_gat, kDspineWorldSize * 64);
                 Fence<HardEvent::MTE2_S>();
                 auto ub_dec_i = ub_i64[64];
                 auto ub_dec_lp = ub_f32[64];
@@ -693,7 +705,8 @@ __aicore__ inline void RunBeamStepV3(
             GlobalTensor<int32_t> g_ekv;
 
             g_ctrl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(draft_ctrl_gm), 8);
-            g_gat.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(gather_out_gm), 512);
+            g_gat.SetGlobalBuffer(
+                reinterpret_cast<__gm__ float*>(gather_out_gm), kDspineWorldSize * 64);
             g_atoks.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(active_toks_gm), 8);
             g_ascs.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(active_scores_gm), 8);
             g_arlp.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(active_raw_lp_gm), 8);
@@ -708,7 +721,7 @@ __aicore__ inline void RunBeamStepV3(
             DataCopy(ub_i64[8], g_ctrl, 8);
             DataCopy(ub_f32[0], g_arlp, 8);
             DataCopy(ub_f32[8], g_amgs, 8);
-            DataCopy(ub_gat, g_gat, 512);
+            DataCopy(ub_gat, g_gat, kDspineWorldSize * 64);
             DataCopy(ub_anc[0], g_anc, 128);
             Fence<HardEvent::MTE2_S>();
 
@@ -1375,7 +1388,7 @@ __aicore__ inline void RunStep3cPrologPack(
         g_toks.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(active_toks_gm), 8);
         g_emb.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(emb_w_gm));
         g_rot.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(rot_part_gm));
-        g_rbias.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(rot_bias_gm), 768);
+        g_rbias.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(rot_bias_gm), kDspineShardDim);
         g_out.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(comm_in_gm), 2 * b_rows * 6144);
 
         DataCopy(ub_toks, g_toks, 8);
@@ -1398,28 +1411,31 @@ __aicore__ inline void RunStep3cPrologPack(
             Fence<HardEvent::MTE3_MTE2>();
         }
 
-        if (aiv < b_rows * 8) {
-            const int32_t r_idx = aiv / 8;
-            const int32_t s_rk = aiv % 8;
+        for (int32_t task = aiv; task < b_rows * kDspineWorldSize; task += 48) {
+            const int32_t r_idx = task / kDspineWorldSize;
+            const int32_t s_rk = task % kDspineWorldSize;
             const int64_t dst_off = static_cast<int64_t>(b_rows + r_idx) * 6144
-                + static_cast<int64_t>(s_rk) * 768;
+                + static_cast<int64_t>(s_rk) * kDspineShardDim;
             if (s_rk == rank) {
-                DataCopy(ub_bf16, g_rot[r_idx * 768], 768);
-                DataCopy(ub_bias, g_rbias, 768);
+                DataCopy(ub_bf16, g_rot[r_idx * kDspineShardDim], kDspineShardDim);
+                DataCopy(ub_bias, g_rbias, kDspineShardDim);
                 Fence<HardEvent::MTE2_V>();
-                Cast(ub_f1, ub_bf16, RoundMode::CAST_NONE, 768);
-                Cast(ub_f2, ub_bias, RoundMode::CAST_NONE, 768);
+                Cast(ub_f1, ub_bf16, RoundMode::CAST_NONE, kDspineShardDim);
+                Cast(ub_f2, ub_bias, RoundMode::CAST_NONE, kDspineShardDim);
                 PipeBarrier<PIPE_V>();
-                Add(ub_f1, ub_f1, ub_f2, 768);
+                Add(ub_f1, ub_f1, ub_f2, kDspineShardDim);
                 PipeBarrier<PIPE_V>();
-                Cast(ub_bf16, ub_f1, RoundMode::CAST_RINT, 768);
+                Cast(ub_bf16, ub_f1, RoundMode::CAST_RINT, kDspineShardDim);
                 Fence<HardEvent::V_MTE3>();
-                DataCopy(g_out[dst_off], ub_bf16, 768);
+                DataCopy(g_out[dst_off], ub_bf16, kDspineShardDim);
             } else {
-                Duplicate(ub_bf16.ReinterpretCast<int16_t>(), static_cast<int16_t>(0), 768);
+                Duplicate(
+                    ub_bf16.ReinterpretCast<int16_t>(), static_cast<int16_t>(0), kDspineShardDim);
                 Fence<HardEvent::V_MTE3>();
-                DataCopy(g_out[dst_off], ub_bf16, 768);
+                DataCopy(g_out[dst_off], ub_bf16, kDspineShardDim);
             }
+            Fence<HardEvent::MTE3_V>();
+            Fence<HardEvent::MTE3_MTE2>();
         }
         Publish();
     }
@@ -1455,14 +1471,15 @@ __aicore__ inline void RunStep3cDualRmsNormSlice(
                 reinterpret_cast<__gm__ bfloat16_t*>(comm_out_gm), 2 * b_rows * 6144);
             g_w.SetGlobalBuffer(
                 reinterpret_cast<__gm__ bfloat16_t*>(is_rot ? hnorm_w_gm : enorm_w_gm), 6144);
-            g_out.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(eh_in_gm), b_rows * 1536);
+            g_out.SetGlobalBuffer(
+                reinterpret_cast<__gm__ bfloat16_t*>(eh_in_gm), b_rows * kDspineEhIn);
 
             DataCopy(ub_x, g_in[t * 6144], 6144);
-            DataCopy(ub_g, g_w[rank * 768], 768);
+            DataCopy(ub_g, g_w[rank * kDspineShardDim], kDspineShardDim);
             Fence<HardEvent::MTE2_V>();
 
             Cast(ub_xf, ub_x, RoundMode::CAST_NONE, 6144);
-            Cast(ub_gf, ub_g, RoundMode::CAST_NONE, 768);
+            Cast(ub_gf, ub_g, RoundMode::CAST_NONE, kDspineShardDim);
             PipeBarrier<PIPE_V>();
             Mul(ub_sq, ub_xf, ub_xf, 6144);
             PipeBarrier<PIPE_V>();
@@ -1477,13 +1494,14 @@ __aicore__ inline void RunStep3cDualRmsNormSlice(
             const float rstd = ub_sum.GetValue(0);
             Fence<HardEvent::S_V>();
 
-            Muls(ub_sq, ub_xf[rank * 768], rstd, 768);
+            Muls(ub_sq, ub_xf[rank * kDspineShardDim], rstd, kDspineShardDim);
             PipeBarrier<PIPE_V>();
-            Mul(ub_sq, ub_sq, ub_gf, 768);
+            Mul(ub_sq, ub_sq, ub_gf, kDspineShardDim);
             PipeBarrier<PIPE_V>();
-            Cast(ub_g, ub_sq, RoundMode::CAST_RINT, 768);
+            Cast(ub_g, ub_sq, RoundMode::CAST_RINT, kDspineShardDim);
             Fence<HardEvent::V_MTE3>();
-            DataCopy(g_out[r_idx * 1536 + (is_rot ? 768 : 0)], ub_g, 768);
+            DataCopy(
+                g_out[r_idx * kDspineEhIn + (is_rot ? kDspineShardDim : 0)], ub_g, kDspineShardDim);
         }
         Publish();
     }
@@ -1524,9 +1542,10 @@ __aicore__ inline void RunLogitsTopkLseImpl(
 
         GlobalTensor<float> g_work, g_gather;
         g_work.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(work_gm), 48 * 16);
-        g_gather.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(gather_in_gm), 8 * 64);
+        g_gather.SetGlobalBuffer(
+            reinterpret_cast<__gm__ float*>(gather_in_gm), kDspineWorldSize * 64);
 
-        if (aiv < 8 && aiv != rank) {
+        if (aiv < kDspineWorldSize && aiv != rank) {
             Duplicate(ub_out, 0.0F, 64);
             Fence<HardEvent::V_MTE3>();
             DataCopy(g_gather[aiv * 64], ub_out, 64);
@@ -2779,7 +2798,8 @@ __aicore__ inline void RunPrologPackCompact(
         g_ctrl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(ctrl_gm), 48);
         g_ttoks.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(target_toks_gm), 32);
         g_emb.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(emb_w_gm));
-        g_rot.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(rot_part_gm), m_max * 768);
+        g_rot.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(rot_part_gm), m_max * kDspineShardDim);
         g_out.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(comm_in_gm), 2 * m_max * 6144);
 
         DcciRange(ctrl_gm, 48 * 8);
@@ -2811,19 +2831,20 @@ __aicore__ inline void RunPrologPackCompact(
             Fence<HardEvent::MTE3_MTE2>();
         }
 
-        for (int32_t task = aiv; task < count * 8; task += 48) {
-            const int32_t r_idx = task / 8;
-            const int32_t s_rk = task % 8;
+        for (int32_t task = aiv; task < count * kDspineWorldSize; task += 48) {
+            const int32_t r_idx = task / kDspineWorldSize;
+            const int32_t s_rk = task % kDspineWorldSize;
             const int64_t dst_off = static_cast<int64_t>(m_max + r_idx) * 6144
-                + static_cast<int64_t>(s_rk) * 768;
+                + static_cast<int64_t>(s_rk) * kDspineShardDim;
             if (s_rk == rank) {
-                DataCopy(ub_bf16, g_rot[r_idx * 768], 768);
+                DataCopy(ub_bf16, g_rot[r_idx * kDspineShardDim], kDspineShardDim);
                 Fence<HardEvent::MTE2_MTE3>();
             } else {
-                Duplicate(ub_bf16.ReinterpretCast<int16_t>(), static_cast<int16_t>(0), 768);
+                Duplicate(
+                    ub_bf16.ReinterpretCast<int16_t>(), static_cast<int16_t>(0), kDspineShardDim);
                 Fence<HardEvent::V_MTE3>();
             }
-            DataCopy(g_out[dst_off], ub_bf16, 768);
+            DataCopy(g_out[dst_off], ub_bf16, kDspineShardDim);
             Fence<HardEvent::MTE3_V>();
             Fence<HardEvent::MTE3_MTE2>();
         }
@@ -2833,8 +2854,8 @@ __aicore__ inline void RunPrologPackCompact(
 
 
 constexpr uint64_t kDspineFlagOff = 128ULL;
-constexpr uint64_t kDspineDataOff = 4224ULL;
-constexpr uint64_t kDspineSlotBytes = 65536ULL;
+constexpr uint64_t kDspineDataOff = 8320ULL;
+constexpr uint64_t kDspineSlotBytes = 32768ULL;
 constexpr uint64_t kDspinePlaneBytes = 524288ULL;
 
 __aicore__ inline uint32_t DspineReadSeq(uint64_t win_gm)
@@ -2864,7 +2885,7 @@ __aicore__ inline __gm__ int32_t* DspineFlagPtr(
 {
     return reinterpret_cast<__gm__ int32_t*>(
         win_gm + kDspineFlagOff
-        + (static_cast<uint64_t>(epoch & 7U) * 8ULL + static_cast<uint64_t>(sender)) * 64ULL);
+        + (static_cast<uint64_t>(epoch & 7U) * 16ULL + static_cast<uint64_t>(sender)) * 64ULL);
 }
 
 __aicore__ inline void RunDraftHeadTopk(
@@ -3210,7 +3231,7 @@ __aicore__ inline void RunDraftHeadTopk(
         g_ws8.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(w_s8_gm), vocab_valid);
         g_act_s.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(act_s_ws_gm), eff);
         g_work.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(work_gm), 48 * 16);
-        g_gather.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(gather_in_gm), 8 * 64);
+        g_gather.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(gather_in_gm), ranks * 64);
 
         DcciRange(act_s_ws_gm, eff * 4);
         DataCopyPad(
@@ -3219,7 +3240,7 @@ __aicore__ inline void RunDraftHeadTopk(
             DataCopyPadExtParams<float>{false, 0, 0, 0});
         Fence<HardEvent::MTE2_S>();
 
-        if (aiv < 8 && aiv != rank) {
+        if (aiv < ranks && aiv != rank) {
             Duplicate(ub_out, 0.0F, 64);
             Fence<HardEvent::V_MTE3>();
             DataCopy(g_gather[aiv * 64], ub_out, 64);
@@ -3396,7 +3417,7 @@ __aicore__ inline void RunDraftHeadTopk(
 
         if (aiv == 0) {
             GlobalTensor<float> g_gout;
-            g_gout.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(gather_out_gm), 8 * 64);
+            g_gout.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(gather_out_gm), ranks * 64);
             for (int32_t pe = 0; pe < ranks; ++pe) {
                 __gm__ volatile int32_t* sig = DspineFlagPtr(comm_win_gm, epoch, pe);
                 while (true) {
@@ -4597,11 +4618,14 @@ def _dspine_ops_digest(k_flags: Sequence[str], h_flags: Sequence[str]) -> str:
     return h.hexdigest()
 
 
-def build_dspine_ops(out_dir: str | Path | None = None) -> Path:
+def build_dspine_ops(out_dir: str | Path | None = None, world_size: int = 8) -> Path:
+    ws = int(world_size)
+    if ws not in (8, 16):
+        raise ValueError(f"Unsupported world_size={world_size!r}; expected 8 or 16")
     out = default_build_dir() if out_dir is None else Path(out_dir)
     so_path = out / "tilert_dspine_ops.so"
     manifest_path = out / "dspine_ops.manifest.json"
-    k_flags = ("-DL2_CACHE_HINT=1", "-DASCENDC_DUMP=0")
+    k_flags = ("-DL2_CACHE_HINT=1", "-DASCENDC_DUMP=0", f"-DWORLD_SIZE={ws}")
     h_flags = ("-std=c++17", "-O2", "-fPIC", "-D_GLIBCXX_USE_CXX11_ABI=1")
     src_sha = _dspine_ops_digest(k_flags, h_flags)
     if so_path.is_file() and manifest_path.is_file():
@@ -4649,7 +4673,7 @@ def build_dspine_ops(out_dir: str | Path | None = None) -> Path:
     k_cmd = [
         str(cann / "bin/bisheng"), "-xcce", "--npu-arch=dav-2201",
         "-std=c++17", "-O2", "-w", "-ffp-contract=off", "-fPIC",
-        "-DL2_CACHE_HINT=1", "-DASCENDC_DUMP=0",
+        *k_flags,
         *inc, "-c", str(out / "dspine_ops.cpp"), "-o", str(out / "dspine_ops.o"),
     ]
     h_cmd = [
@@ -4685,5 +4709,6 @@ def build_dspine_ops(out_dir: str | Path | None = None) -> Path:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default=None)
+    parser.add_argument("--world-size", type=int, default=8)
     args = parser.parse_args()
-    build_dspine_ops(args.out)
+    build_dspine_ops(args.out, world_size=args.world_size)

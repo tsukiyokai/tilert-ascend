@@ -221,7 +221,7 @@ __aicore__ __attribute__((noinline)) void Forward(AscendC::TPipe& pipe, const Co
             const int32_t off = static_cast<int32_t>(AscendC::GetBlockIdx());
             if (off > 0 && off < comm_ranks) {
                 whole_layer_tree::SignalPeerReady(
-                    comm_window, comm_layout, comm_ranks, epoch, comm_rank, (comm_rank + off) & 7);
+                    comm_window, comm_layout, comm_ranks, epoch, comm_rank, (comm_rank + off) & (comm_ranks - 1));
             }
         }
 #endif

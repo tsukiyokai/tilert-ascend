@@ -371,8 +371,8 @@ def _run_worker(args: argparse.Namespace) -> int:
 
     rank = int(os.environ["RANK"])
     world_size = int(os.environ["WORLD_SIZE"])
-    if world_size != 8:
-        raise RuntimeError(f"warm_worker requires WORLD_SIZE=8, got {world_size}")
+    if world_size not in (8, 16):
+        raise RuntimeError(f"warm_worker requires WORLD_SIZE in (8, 16), got {world_size}")
     job_dir = validate_job_dir(
         args.job_dir or os.environ["TILERT_JOB_DIR"],
         os.environ.get("TILERT_E2E_RUN_ID"),
@@ -404,6 +404,8 @@ def _run_worker(args: argparse.Namespace) -> int:
         whole_layer_json=wl_json,
         rank=rank,
         world_size=world_size,
+        ep_size=world_size,
+        local_experts=256 // world_size,
         device=f"npu:{rank}",
     )
     runner = Glm52AscendShowHands(
@@ -535,18 +537,36 @@ def _run_worker(args: argparse.Namespace) -> int:
                         dops_mod = importlib.reload(dops_mod)
                         cal_mod = importlib.reload(cal_mod)
                         with ThreadPoolExecutor(max_workers=3) as pool:
-                            f_chain = pool.submit(
-                                bm_mod.build_chain,
-                                out_dir=build_dir,
-                                union_sfa=req_union,
-                                enable_kernel_prof=enable_kernel_prof,
-                            )
-                            f_ops = pool.submit(dops_mod.build_dspine_ops, ops_dir)
-                            f_l78 = pool.submit(
-                                cal_mod.build_draft_l78_k110419,
-                                out_dir=l78_dir,
-                                k_sfa=req_k_sfa,
-                            )
+                            if world_size == 8:
+                                f_chain = pool.submit(
+                                    bm_mod.build_chain,
+                                    out_dir=build_dir,
+                                    union_sfa=req_union,
+                                    enable_kernel_prof=enable_kernel_prof,
+                                )
+                                f_ops = pool.submit(dops_mod.build_dspine_ops, ops_dir)
+                                f_l78 = pool.submit(
+                                    cal_mod.build_draft_l78_k110419,
+                                    out_dir=l78_dir,
+                                    k_sfa=req_k_sfa,
+                                )
+                            else:
+                                f_chain = pool.submit(
+                                    bm_mod.build_chain,
+                                    out_dir=build_dir,
+                                    union_sfa=req_union,
+                                    enable_kernel_prof=enable_kernel_prof,
+                                    world_size=world_size,
+                                )
+                                f_ops = pool.submit(
+                                    dops_mod.build_dspine_ops, ops_dir, world_size=world_size
+                                )
+                                f_l78 = pool.submit(
+                                    cal_mod.build_draft_l78_k110419,
+                                    out_dir=l78_dir,
+                                    k_sfa=req_k_sfa,
+                                    world_size=world_size,
+                                )
                             f_chain.result()
                             f_ops.result()
                             f_l78.result()
@@ -700,7 +720,9 @@ def _run_worker(args: argparse.Namespace) -> int:
                         tp_mod = importlib.reload(tp_mod)
                         state["dspine_py_sha"] = cur_hot["dspine_py_sha"]
                     if cur_hot["dspine_ops_sha"] != state["dspine_ops_sha"]:
-                        _, runner.ops_cdll = tp_mod.load_dspine_ops(rank, out_dir=ops_dir)
+                        _, runner.ops_cdll = tp_mod.load_dspine_ops(
+                            rank, out_dir=ops_dir, world_size=world_size
+                        )
                         if runner.arena.draft is not None:
                             runner.arena.draft.cal_wt.ops = runner.ops_cdll
                         state["dspine_ops_sha"] = cur_hot["dspine_ops_sha"]
@@ -710,6 +732,7 @@ def _run_worker(args: argparse.Namespace) -> int:
                             rank=rank,
                             dev=dev,
                             ops_so_path=str(ops_dir / "tilert_dspine_ops.so"),
+                            world_size=world_size,
                         )
                         if runner.arena.draft is not None:
                             runner.arena.draft.cal_wt = cal_wt
@@ -875,9 +898,10 @@ def boot_daemon(
         cmd = list(worker_cmd_override)
     else:
         master_port = os.environ.get("MASTER_PORT", "29900")
+        nproc = int(os.environ.get("WORLD_SIZE", "8"))
         cmd = [
             "torchrun",
-            "--nproc_per_node=8",
+            f"--nproc_per_node={nproc}",
             "--master_addr=127.0.0.1",
             f"--master_port={master_port}",
             str(Path(__file__).resolve()),

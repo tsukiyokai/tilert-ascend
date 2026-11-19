@@ -7,13 +7,17 @@
 #define SHARED_W8_DYNAMIC_PERFORMANCE_QUANT 0
 #endif
 
+#ifndef WORLD_SIZE
+#define WORLD_SIZE 8
+#endif
+
 namespace shared_w8 {
 constexpr bool kDynamicPerformanceQuant = SHARED_W8_DYNAMIC_PERFORMANCE_QUANT != 0;
 constexpr int64_t kHidden = 6144;
-constexpr int64_t kIntermediate = 256;
+constexpr int64_t kIntermediate = 2048 / WORLD_SIZE;
 constexpr int64_t kGateColumns = 2 * kIntermediate;
 constexpr int64_t kInnerTile = 1024;
-constexpr int64_t kGateTile = 128;
+constexpr int64_t kGateTile = kGateColumns / 4;
 constexpr int64_t kInnerParts = kHidden / kInnerTile;
 constexpr int64_t kGateParts = kGateColumns / kGateTile;
 constexpr int64_t kDownTile = 256;

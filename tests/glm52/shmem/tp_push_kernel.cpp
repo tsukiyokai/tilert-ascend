@@ -1380,7 +1380,8 @@ ACLSHMEM_DEVICE void tp_push_once(__gm__ float* partial, __gm__ float* out, __gm
             aclshmemi_store(counter_slot, count);
             const int64_t worker = core / pe_size;
             const int64_t peer = (my_pe + (core % pe_size)) % pe_size;
-            flag_base = (__gm__ int32_t*)(aclshmemi_get_team_sync_pool(1) + worker * pe_size);
+            __gm__ int32_t* pool_base = (__gm__ int32_t*)aclshmemi_get_team_sync_pool(1);
+            flag_base = pool_base + worker * pe_size * SIGNAL_SLOT_INT32;
             aclshmemi_signal_set(flag_base + my_pe * SIGNAL_SLOT_INT32, (int)peer, count);
         }
         if (core == 0) {

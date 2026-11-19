@@ -2,6 +2,7 @@ import copy
 import ctypes
 import gc
 import hashlib
+import math
 from pathlib import Path
 import shutil
 import struct
@@ -235,14 +236,19 @@ def _load_ops_cdll(so_path: Path, rank: int) -> ctypes.CDLL:
     return lib
 
 
-def load_dspine_ops(rank: int, out_dir: str | Path | None = None) -> tuple[Path, ctypes.CDLL]:
+def load_dspine_ops(
+    rank: int, out_dir: str | Path | None = None, world_size: int = 8
+) -> tuple[Path, ctypes.CDLL]:
     import torch
 
     out = default_build_dir() if out_dir is None else Path(out_dir)
     so_path = out / "tilert_dspine_ops.so"
     if not so_path.exists():
         if rank == 0:
-            build_dspine_ops(out)
+            if int(world_size) == 8:
+                build_dspine_ops(out)
+            else:
+                build_dspine_ops(out, world_size=int(world_size))
         if torch.distributed.is_initialized():
             torch.distributed.barrier()
     return so_path, _load_ops_cdll(so_path, rank)
@@ -276,6 +282,26 @@ def _bind_draft_klib(so_path: Path, ver: int):
             ctypes.c_float,
         ]
         fn_exact.restype = None
+    fn_prep = getattr(lib, f"layer_tp_tree_prepare_records_K{ver}", None)
+    if fn_prep is not None:
+        u64_ptr = ctypes.POINTER(ctypes.c_uint64)
+        fn_prep.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_size_t,
+            ctypes.c_void_p,
+            ctypes.c_size_t,
+            ctypes.POINTER(ctypes.c_int64),
+            ctypes.POINTER(ctypes.c_float),
+            u64_ptr,
+            u64_ptr,
+            ctypes.c_uint64,
+            u64_ptr,
+            u64_ptr,
+            u64_ptr,
+            u64_ptr,
+            u64_ptr,
+        ]
+        fn_prep.restype = ctypes.c_int
     fn_m(0)
     return lib, fn_m, fn_i, fn_s, fn_kvc
 
@@ -432,8 +458,13 @@ class CalibratedL78V3Runner:
         )
         self.exact_idx_work = torch.zeros((self.COMMIT_M, 128), dtype=torch.float32, device=dev)
 
-        self.gather_in = torch.zeros((8, 64), dtype=torch.float32, device=dev)
-        self.gather_out = torch.zeros((8, 64), dtype=torch.float32, device=dev)
+        self.shard_dim = HIDDEN_SIZE // self.world_size
+        self.gather_in = torch.zeros(
+            (max(8, self.world_size), 64), dtype=torch.float32, device=dev
+        )
+        self.gather_out = torch.zeros(
+            (max(8, self.world_size), 64), dtype=torch.float32, device=dev
+        )
         self.logits_work = torch.zeros((1024,), dtype=torch.float32, device=dev)
         self.beam_work = torch.zeros((32,), dtype=torch.int64, device=dev)
         self.tree_work = torch.zeros((32,), dtype=torch.int64, device=dev)
@@ -451,14 +482,14 @@ class CalibratedL78V3Runner:
         self.active_pids = torch.zeros((8,), dtype=torch.int64, device=dev)
         self.active_recs = torch.zeros((self.max_b, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
 
-        self.rot_part = torch.zeros((self.max_b, 768), dtype=torch.bfloat16, device=dev)
+        self.rot_part = torch.zeros((self.max_b, self.shard_dim), dtype=torch.bfloat16, device=dev)
         self.prolog_comm_in = torch.zeros(
             (32, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev
         )
         self.prolog_comm_out = torch.zeros(
             (32, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev
         )
-        self.eh_in = torch.zeros((self.max_b, 1536), dtype=torch.bfloat16, device=dev)
+        self.eh_in = torch.zeros((self.max_b, 2 * self.shard_dim), dtype=torch.bfloat16, device=dev)
         self.eh_comm_in = torch.zeros((32, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
 
         self.pool_scores = torch.zeros((256,), dtype=torch.float32, device=dev)
@@ -484,11 +515,11 @@ class CalibratedL78V3Runner:
         self.commit_ctrl_dev = cmt_u8.view(torch.int64)
         self.commit_acc_i32 = cmt_u8[8:12].view(torch.int32)
         self.commit_2acc_i32 = cmt_u8[47 * 8 : 47 * 8 + 4].view(torch.int32)
-        self.commit_rot_shard = torch.zeros((cm, 768), dtype=torch.bfloat16, device=dev)
+        self.commit_rot_shard = torch.zeros((cm, self.shard_dim), dtype=torch.bfloat16, device=dev)
         self.commit_comm_in = torch.zeros((4 * cm, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
         self.commit_comm_out = torch.zeros((4 * cm, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
         self.commit_eh_in = torch.zeros((cm, 2 * HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
-        self.commit_eh_shard = torch.zeros((cm, 768), dtype=torch.bfloat16, device=dev)
+        self.commit_eh_shard = torch.zeros((cm, self.shard_dim), dtype=torch.bfloat16, device=dev)
         self.commit_eh_comm = torch.zeros((2 * cm, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
         self.commit_hs_all = torch.zeros((2 * cm, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
         self.kv_commit_topk = torch.zeros((cm, 1, 2048), dtype=torch.int32, device=dev)
@@ -537,8 +568,14 @@ class CalibratedL78V3Runner:
         if need_ver in klibs_by_ver and getattr(self.wt, "_p2_klib_tag", None) == tag:
             klibs_by_ver[need_ver][1](0)
             return klibs_by_ver
+        ws = int(getattr(self, "world_size", 8))
         if self.rank == 0:
-            so_19, _ = build_draft_l78_k110419(out_dir=self.l78_build_dir, k_sfa=self.k_sfa)
+            if ws == 8:
+                so_19, _ = build_draft_l78_k110419(out_dir=self.l78_build_dir, k_sfa=self.k_sfa)
+            else:
+                so_19, _ = build_draft_l78_k110419(
+                    out_dir=self.l78_build_dir, k_sfa=self.k_sfa, world_size=ws
+                )
             out_dir = so_19.parent
             src_so = out_dir / f"chain_K{need_ver}.so"
             sha = hashlib.sha256(src_so.read_bytes()).hexdigest()[:10]
@@ -549,7 +586,12 @@ class CalibratedL78V3Runner:
             import torch
 
             torch.distributed.barrier(group=self.channel_group)
-        so_19, _ = build_draft_l78_k110419(out_dir=self.l78_build_dir, k_sfa=self.k_sfa)
+        if ws == 8:
+            so_19, _ = build_draft_l78_k110419(out_dir=self.l78_build_dir, k_sfa=self.k_sfa)
+        else:
+            so_19, _ = build_draft_l78_k110419(
+                out_dir=self.l78_build_dir, k_sfa=self.k_sfa, world_size=ws
+            )
         out_dir = so_19.parent
         src_so = out_dir / f"chain_K{need_ver}.so"
         sha = hashlib.sha256(src_so.read_bytes()).hexdigest()[:10]
@@ -722,6 +764,9 @@ class CalibratedL78V3Runner:
                 dw.scalars,
                 em.sync,
                 indexed,
+                prepare_fn=getattr(
+                    klib, f"layer_tp_tree_prepare_records_K{need_ver}", None
+                ),
             )
             comm_raw = struct.pack(
                 "<QQQQqii",
@@ -1156,8 +1201,8 @@ class CalibratedL78V3Runner:
                 self.w_eh_col_r,
                 out=self.commit_eh_shard[off : off + 8],
             )
-        sl_s = self.rank * 768
-        self.commit_eh_comm[:cm, sl_s : sl_s + 768].copy_(self.commit_eh_shard)
+        sl_s = self.rank * self.shard_dim
+        self.commit_eh_comm[:cm, sl_s : sl_s + self.shard_dim].copy_(self.commit_eh_shard)
         torch.ops.tilert.onesided_all_reduce_out_guarded(
             self.commit_eh_comm, self.commit_hs_all, self.commit_acc_i32
         )
@@ -1343,8 +1388,10 @@ class CalibratedL78V3Runner:
             self.commit_eh_in[:, :HIDDEN_SIZE].copy_(en)
             self.commit_eh_in[:, HIDDEN_SIZE:].copy_(hn)
             torch.mm(self.commit_eh_in[:1], self.w_eh_col_r, out=self.commit_eh_shard[:1])
-            sl_s = self.rank * 768
-            self.commit_eh_comm[:cm, sl_s : sl_s + 768].copy_(self.commit_eh_shard)
+            sl_s = self.rank * self.shard_dim
+            self.commit_eh_comm[:cm, sl_s : sl_s + self.shard_dim].copy_(
+                self.commit_eh_shard
+            )
             torch.ops.tilert.onesided_all_reduce_out(
                 self.commit_eh_comm, self.commit_hs_all
             )
@@ -1373,19 +1420,22 @@ class CalibratedL78V3Runner:
             torch.npu.synchronize(self.dev)
             seed_set = set(seed_positions)
             ekv_idx = [p - 8191 for p in range(8191, pos_limit) if p not in seed_set]
-            ekv_raw = {
-                k: float(
-                    (
-                        v[8191:pos_limit].cpu()[ekv_idx].float()
-                        - prev_tail[k][ekv_idx].float()
+            if ekv_idx:
+                ekv_raw = {
+                    k: float(
+                        (
+                            v[8191:pos_limit].cpu()[ekv_idx].float()
+                            - prev_tail[k][ekv_idx].float()
+                        )
+                        .abs()
+                        .max()
+                        .item()
                     )
-                    .abs()
-                    .max()
-                    .item()
-                )
-                for k, v in self.prefix.draft_cache.items()
-            }
-            ekv_diffs = {k: d for k, d in ekv_raw.items() if d > 0.0}
+                    for k, v in self.prefix.draft_cache.items()
+                }
+                ekv_diffs = {k: d for k, d in ekv_raw.items() if math.isnan(d) or d > 0.0}
+            else:
+                ekv_diffs = {}
             for pos in sorted(seed_set):
                 if not 8191 <= pos < pos_limit:
                     continue
@@ -1402,7 +1452,7 @@ class CalibratedL78V3Runner:
                 )
                 for k, v in self.prefix.draft_cache.items()
             }
-            diffs = {k: d for k, d in diffs_raw.items() if d > 0.0}
+            diffs = {k: d for k, d in diffs_raw.items() if math.isnan(d) or d > 0.0}
             return self.prefix.draft_state(pos_limit), diffs, ekv_diffs
 
     def close(self):

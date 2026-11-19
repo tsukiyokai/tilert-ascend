@@ -339,8 +339,10 @@ class TpCalibratedL78Weights:
         rank: int,
         dev: torch.device,
         ops_so_path: str | Path | None = None,
+        world_size: int = 8,
     ):
         self.rank = int(rank)
+        self.world_size = int(world_size)
         self.dev = dev
         self.version = int(ckpt_blob.get("version", 2))
         self.max_d = int(ckpt_blob["max_d"])
@@ -355,17 +357,48 @@ class TpCalibratedL78Weights:
             so_p = Path(ops_so_path)
             if not so_p.exists():
                 if self.rank == 0:
-                    build_dspine_ops(so_p.parent)
+                    if self.world_size == 8:
+                        build_dspine_ops(so_p.parent)
+                    else:
+                        build_dspine_ops(so_p.parent, world_size=self.world_size)
                 if torch.distributed.is_initialized():
                     torch.distributed.barrier()
             self.ops = _load_ops_cdll(so_p, self.rank)
 
-        sh = ckpt_blob["shards"][self.rank]
-        assert int(sh["tp_rank"]) == self.rank
+        if self.world_size == 16 and len(ckpt_blob["shards"]) == 8:
+            sh = ckpt_blob["shards"][self.rank // 2]
+            sub = self.rank & 1
+        else:
+            sh = ckpt_blob["shards"][self.rank]
+            assert int(sh["tp_rank"]) == self.rank
+            sub = -1
 
-        self.rot_w_step = sh["rot_w_step"].to(device=dev, dtype=torch.bfloat16).contiguous()
-        self.rot_b_step = sh["rot_b_step"].to(device=dev, dtype=torch.bfloat16).contiguous()
-        self.w_eh_step = sh["w_eh_step"].to(device=dev, dtype=torch.bfloat16).contiguous()
+        def _split_eh(t: torch.Tensor) -> torch.Tensor:
+            if sub < 0:
+                return t
+            a = sub * 384
+            b = a + 384
+            return torch.cat((t[:, a:b, :], t[:, 768 + a : 768 + b, :]), dim=1)
+
+        def _split_sh_gu(t: torch.Tensor) -> torch.Tensor:
+            if sub < 0:
+                return t
+            a = sub * 128
+            b = a + 128
+            return torch.cat((t[:, a:b], t[:, 256 + a : 256 + b]), dim=1)
+
+        if sub >= 0:
+            a384 = sub * 384
+            rot_w_raw = sh["rot_w_step"][:, :, a384 : a384 + 384]
+            rot_b_raw = sh["rot_b_step"][:, a384 : a384 + 384]
+        else:
+            rot_w_raw = sh["rot_w_step"]
+            rot_b_raw = sh["rot_b_step"]
+        self.rot_w_step = rot_w_raw.to(device=dev, dtype=torch.bfloat16).contiguous()
+        self.rot_b_step = rot_b_raw.to(device=dev, dtype=torch.bfloat16).contiguous()
+        self.w_eh_step = (
+            _split_eh(sh["w_eh_step"]).to(device=dev, dtype=torch.bfloat16).contiguous()
+        )
         self.enorm_step = ckpt_blob["enorm_step"].to(device=dev, dtype=torch.bfloat16).contiguous()
         self.hnorm_step = ckpt_blob["hnorm_step"].to(device=dev, dtype=torch.bfloat16).contiguous()
         self.logit_norm_step = (
@@ -392,21 +425,32 @@ class TpCalibratedL78Weights:
         )
         self.cal_router_w_packed = pack_router_weight(self.cal_router_w)
 
-        self.cal_w_uk_t = sh["cal_w_uk_t"].to(device=dev, dtype=torch.bfloat16).contiguous()
-        self.cal_w_uv = sh["cal_w_uv"].to(device=dev, dtype=torch.bfloat16).contiguous()
+        heads = 64 // self.world_size
+        sh_dim = 2048 // self.world_size
+        cal_uk_raw = sh["cal_w_uk_t"][sub * 4 : (sub + 1) * 4] if sub >= 0 else sh["cal_w_uk_t"]
+        cal_uv_raw = sh["cal_w_uv"][sub * 4 : (sub + 1) * 4] if sub >= 0 else sh["cal_w_uv"]
+        self.cal_w_uk_t = cal_uk_raw.to(device=dev, dtype=torch.bfloat16).contiguous()
+        self.cal_w_uv = cal_uv_raw.to(device=dev, dtype=torch.bfloat16).contiguous()
+        uv_tile = (heads * 256) // 16
+        uv_n16 = uv_tile // 16
         w_uv_packed_cpu = (
-            pack_value_weights(sh["cal_w_uv"].to(torch.bfloat16).cpu())
-            .view(16, 512, 8, 16)
+            pack_value_weights(cal_uv_raw.to(torch.bfloat16).cpu())
+            .view(16, 512, uv_n16, 16)
             .permute(0, 2, 1, 3)
             .contiguous()
-            .view(16, 512, 128)
+            .view(16, 512, uv_tile)
         )
         self.cal_w_uv_packed = w_uv_packed_cpu.to(device=dev, dtype=torch.bfloat16).contiguous()
 
         self.cal_uq_qr_q8_nz = None
         self.cal_uq_qr_scale = None
         if "cal_w_uq_qr" in sh:
-            uq_q8_cpu, uq_s_cpu = quantize_linear_col_i8(sh["cal_w_uq_qr"].to(torch.float32))
+            cal_uq_raw = (
+                sh["cal_w_uq_qr"][:, sub * 1024 : (sub + 1) * 1024]
+                if sub >= 0
+                else sh["cal_w_uq_qr"]
+            )
+            uq_q8_cpu, uq_s_cpu = quantize_linear_col_i8(cal_uq_raw.to(torch.float32))
             uq_dev = uq_q8_cpu.to(device=dev).contiguous()
             if torch_npu is not None and dev.type == "npu":
                 torch.npu.config.allow_internal_format = True
@@ -419,33 +463,48 @@ class TpCalibratedL78Weights:
         self.cal_w_o_packed = None
         self.cal_w_o_scale = None
         if "cal_w_o" in sh:
-            wo_q8_cpu, wo_s_cpu = quantize_linear_col_i8(sh["cal_w_o"].to(torch.float32))
+            cal_wo_raw = (
+                sh["cal_w_o"][sub * 1024 : (sub + 1) * 1024, :]
+                if sub >= 0
+                else sh["cal_w_o"]
+            )
+            wo_q8_cpu, wo_s_cpu = quantize_linear_col_i8(cal_wo_raw.to(torch.float32))
+            o_in = heads * 256
             wo_p = (
                 pack_output_weights(wo_q8_cpu)
-                .view(24, 2048, 8, 32)
+                .view(24, o_in, 8, 32)
                 .permute(0, 2, 1, 3)
                 .contiguous()
-                .view(24, 2048, 256)
+                .view(24, o_in, 256)
             )
             self.cal_w_o_packed = wo_p.to(device=dev).contiguous()
             self.cal_w_o_scale = wo_s_cpu.to(device=dev, dtype=torch.float32).contiguous()
 
         self.cal_shared_packed = None
         if "cal_shared_gu" in sh and "cal_shared_down" in sh:
-            gu_q8_cpu, gu_s_cpu = quantize_linear_col_i8(sh["cal_shared_gu"].to(torch.float32))
-            dn_q8_cpu, dn_s_cpu = quantize_linear_col_i8(sh["cal_shared_down"].to(torch.float32))
+            cal_sgu_raw = _split_sh_gu(sh["cal_shared_gu"])
+            cal_sdn_raw = (
+                sh["cal_shared_down"][sub * 128 : (sub + 1) * 128, :]
+                if sub >= 0
+                else sh["cal_shared_down"]
+            )
+            gu_q8_cpu, gu_s_cpu = quantize_linear_col_i8(cal_sgu_raw.to(torch.float32))
+            dn_q8_cpu, dn_s_cpu = quantize_linear_col_i8(cal_sdn_raw.to(torch.float32))
             p_gu_cpu, p_dn_cpu = pack_shared_weights(gu_q8_cpu, dn_q8_cpu)
+            sh_gu_tile = sh_dim // 2
+            sh_gu_g32 = sh_gu_tile // 32
+            sh_dn_k128 = sh_dim // 128
             p_gu_cpu = (
-                p_gu_cpu.view(24, 2, 512, 4, 32)
+                p_gu_cpu.view(24, 2, 512, sh_gu_g32, 32)
                 .permute(0, 1, 3, 2, 4)
                 .contiguous()
-                .view(24, 1024, 128)
+                .view(24, 1024, sh_gu_tile)
             )
             p_dn_cpu = (
-                p_dn_cpu.view(24, 2, 128, 8, 32)
+                p_dn_cpu.view(24, sh_dn_k128, 128, 8, 32)
                 .permute(0, 1, 3, 2, 4)
                 .contiguous()
-                .view(24, 256, 256)
+                .view(24, sh_dim, 256)
             )
             self.cal_shared_packed = [
                 p_gu_cpu.to(device=dev).contiguous(),
@@ -454,14 +513,20 @@ class TpCalibratedL78Weights:
                 dn_s_cpu.to(device=dev, dtype=torch.float32).contiguous(),
             ]
 
+        w13_mul = sh["cal_routed_w13_mul"] if "cal_routed_w13_mul" in sh else None
+        if w13_mul is not None and sub >= 0:
+            w13_mul = w13_mul[sub * 16 : (sub + 1) * 16]
         self.cal_routed_w13_mul = (
-            sh["cal_routed_w13_mul"].to(device=dev, dtype=torch.float32).contiguous()
-            if "cal_routed_w13_mul" in sh
+            w13_mul.to(device=dev, dtype=torch.float32).contiguous()
+            if w13_mul is not None
             else None
         )
+        w2_mul = sh["cal_routed_w2_mul"] if "cal_routed_w2_mul" in sh else None
+        if w2_mul is not None and sub >= 0:
+            w2_mul = w2_mul[sub * 16 : (sub + 1) * 16]
         self.cal_routed_w2_mul = (
-            sh["cal_routed_w2_mul"].to(device=dev, dtype=torch.float32).contiguous()
-            if "cal_routed_w2_mul" in sh
+            w2_mul.to(device=dev, dtype=torch.float32).contiguous()
+            if w2_mul is not None
             else None
         )
 
@@ -488,9 +553,10 @@ class TpCalibratedL78Weights:
         rank: int,
         dev: torch.device,
         ops_so_path: str | Path | None = None,
+        world_size: int = 8,
     ):
         blob = torch.load(Path(ckpt_path), map_location="cpu", weights_only=False)
-        return cls(blob, rank, dev, ops_so_path=ops_so_path)
+        return cls(blob, rank, dev, ops_so_path=ops_so_path, world_size=world_size)
 
     def step_idx(self, d_one_based: int) -> int:
         return min(max(d_one_based - 1, 0), self.max_d - 1)
@@ -1172,12 +1238,26 @@ def _resolve_l78_ksfa(
     return (2048, 1024, 512)
 
 
-def _l78_variant_digest(src_digest: str, ver: int, k_val: int) -> str:
+def _l78_defs_for_world(world_size: int = 8) -> tuple[str, ...]:
+    ws = int(world_size)
+    if ws not in (8, 16):
+        raise ValueError(f"Unsupported world_size={world_size!r}; expected 8 or 16")
+    heads = 64 // ws
+    local_exp = 256 // ws
+    return (
+        *(d for d in L78_BASE_DEFS if not d.startswith("-DATTENTION_HEADS=")),
+        f"-DATTENTION_HEADS={heads}",
+        f"-DWORLD_SIZE={ws}",
+        f"-DROUTED_LOCAL_EXPERTS={local_exp}",
+    )
+
+
+def _l78_variant_digest(src_digest: str, ver: int, k_val: int, world_size: int = 8) -> str:
     payload = {
         "source_digest": src_digest,
         "ver": ver,
         "k_sfa": k_val,
-        "defs": list(L78_BASE_DEFS),
+        "defs": list(_l78_defs_for_world(world_size)),
         "patch_version": L78_PATCH_VERSION,
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
@@ -1284,6 +1364,7 @@ def _render_l78_build_script(
     cann: Path,
     site: Path,
     target_ks: tuple[int, ...],
+    world_size: int = 8,
 ) -> str:
     asc_subdirs = (
         "asc", "asc/include", "asc/include/adv_api", "asc/include/basic_api",
@@ -1327,7 +1408,9 @@ def _render_l78_build_script(
             "-ltorch -ltorch_cpu -lc10 -ltorch_npu",
         ]
     )
-    base_defs_block = "\n".join(f"        {shlex.quote(d)}" for d in L78_BASE_DEFS)
+    base_defs_block = "\n".join(
+        f"        {shlex.quote(d)}" for d in _l78_defs_for_world(world_size)
+    )
     compile_lines = ["pids=()"]
     for k_val in target_ks:
         ver, sfx = L78_VARIANT_SPECS[k_val]
@@ -1360,6 +1443,7 @@ compile_variant() {{
         -Dlayer_tp_tree_set_mask_ptr=layer_tp_tree_set_mask_ptr_K$ver
         -Dlayer_tp_tree_set_exact_idx_ptrs=layer_tp_tree_set_exact_idx_ptrs_K$ver
         -Dlayer_tp_tree_set_peer_weights_ptr=layer_tp_tree_set_peer_weights_ptr_K$ver
+        -Dlayer_tp_tree_prepare_records=layer_tp_tree_prepare_records_K$ver
         "$@"
     )
     "$cann/bin/bisheng" -xcce --npu-arch=dav-2201 -std=c++17 -O2 -w \\
@@ -1389,7 +1473,9 @@ def build_draft_l78_k110419(
     out_dir: str | Path | None = None,
     k_sfa: int | None = None,
     variants: tuple[int, ...] | list[int] | None = None,
+    world_size: int = 8,
 ) -> tuple[Path, Path]:
+    ws = int(world_size)
     src = _default_l78_src_dir() if src_dir is None else Path(src_dir)
     out = _default_l78_out_dir() if out_dir is None else Path(out_dir)
     target_ks = _resolve_l78_ksfa(k_sfa, variants)
@@ -1411,7 +1497,7 @@ def build_draft_l78_k110419(
         ver, _ = L78_VARIANT_SPECS[k_val]
         so_p = out / f"chain_K{ver}.so"
         entry = prev_variants.get(str(ver))
-        expected_vdig = _l78_variant_digest(src_digest, ver, k_val)
+        expected_vdig = _l78_variant_digest(src_digest, ver, k_val, ws)
         hit = (
             so_p.is_file()
             and isinstance(entry, dict)
@@ -1433,7 +1519,9 @@ def build_draft_l78_k110419(
         shutil.copytree(src / sub, dst_sub)
 
     _patch_l78_copied_sources(out)
-    build_sh = _render_l78_build_script(out, _cann_root(), _site_root(), tuple(missing_or_stale))
+    build_sh = _render_l78_build_script(
+        out, _cann_root(), _site_root(), tuple(missing_or_stale), ws
+    )
     sh_path = out / "build_p2.sh"
     sh_path.write_text(build_sh, encoding="utf-8")
     subprocess.run(["bash", str(sh_path)], check=True)
@@ -1443,7 +1531,7 @@ def build_draft_l78_k110419(
         so_p = out / f"chain_K{ver}.so"
         if not so_p.is_file():
             continue
-        expected_vdig = _l78_variant_digest(src_digest, ver, k_val)
+        expected_vdig = _l78_variant_digest(src_digest, ver, k_val, ws)
         if k_val in missing_or_stale:
             next_variants[str(ver)] = {
                 "k_sfa": k_val,
