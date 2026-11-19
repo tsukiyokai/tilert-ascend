@@ -823,6 +823,214 @@ def _load_moe_body(
     return post, shared, routed
 
 
+def _static_routing_prior(
+    gate_weight: torch.Tensor,
+    gate_bias: torch.Tensor,
+    post_gamma: torch.Tensor,
+    x_probe: torch.Tensor,
+    world_size: int,
+    local_experts: int,
+) -> torch.Tensor:
+    import torch
+
+    gw = gate_weight.detach().cpu().float()
+    gb = gate_bias.detach().cpu().float().reshape(-1)
+    pg = post_gamma.detach().cpu().float().reshape(1, -1)
+    scores = torch.sigmoid((x_probe * pg) @ gw.t()) + gb
+    g_scores = scores.view(-1, world_size, local_experts)
+    top4_g = torch.topk(torch.topk(g_scores, 2, dim=-1).values.sum(dim=-1), 4, dim=-1).indices
+    mask = torch.zeros_like(g_scores, dtype=torch.bool).scatter_(
+        1, top4_g.unsqueeze(-1).expand(-1, -1, local_experts), True
+    )
+    masked_s = scores.masked_fill(~mask.view(-1, world_size * local_experts), -1e9)
+    idx = torch.topk(masked_s, 8, dim=-1).indices
+    freq = torch.bincount(idx.reshape(-1), minlength=world_size * local_experts).float()
+    return freq / freq.sum().clamp(min=1.0)
+
+
+def _plan_moe_mirrors(
+    ckpt: ModelSlimCheckpoint,
+    rank: int,
+    world_size: int,
+    local_experts: int,
+    *,
+    mirror_64: bool,
+    total_budget: int,
+) -> dict[int, tuple[list[int], list[int], list[int]]]:
+    import torch
+
+    gen = torch.Generator(device="cpu").manual_seed(0)
+    x_probe = torch.randn((1024, HIDDEN), generator=gen, dtype=torch.float32)
+    freqs: dict[int, torch.Tensor] = {}
+    ranked: dict[int, list[list[int]]] = {}
+    for li in range(3, MAIN_LAYERS):
+        p = f"model.layers.{li}"
+        loaded = ckpt.shard_tensors(
+            [
+                f"{p}.mlp.gate.weight",
+                f"{p}.mlp.gate.e_score_correction_bias",
+                f"{p}.post_attention_layernorm.weight",
+            ]
+        )
+        freq = _static_routing_prior(
+            loaded[f"{p}.mlp.gate.weight"],
+            loaded[f"{p}.mlp.gate.e_score_correction_bias"],
+            loaded[f"{p}.post_attention_layernorm.weight"],
+            x_probe,
+            world_size,
+            local_experts,
+        )
+        freqs[li] = freq
+        ranked[li] = [
+            [
+                hr * local_experts + int(le)
+                for le in torch.topk(
+                    freq[hr * local_experts : (hr + 1) * local_experts], local_experts
+                ).indices.tolist()
+            ]
+            for hr in range(world_size)
+        ]
+
+    min_s = 4 if mirror_64 else 6
+    max_s = 8 if mirror_64 else 6
+    slots = {li: min_s for li in range(3, MAIN_LAYERS)}
+    rem = total_budget - sum(slots.values())
+    while rem > 0:
+        best_li = -1
+        best_gain = -1.0
+        for li in range(3, MAIN_LAYERS):
+            s = slots[li]
+            if s < max_s:
+                gain = sum(float(freqs[li][ranked[li][hr][s]]) for hr in range(world_size))
+                if gain > best_gain:
+                    best_gain = gain
+                    best_li = li
+        if best_li < 0:
+            break
+        slots[best_li] += 1
+        rem -= 1
+
+    plan: dict[int, tuple[list[int], list[int], list[int]]] = {}
+    for li in range(3, MAIN_LAYERS):
+        mslots = slots[li]
+        cands: list[int] = []
+        masks: list[int] = []
+        by_rank: list[list[int]] = [[] for _ in range(world_size)]
+        for k in range(mslots):
+            step = 1 + (k % (world_size - 1))
+            for hr in range(world_size):
+                ge = ranked[li][hr][k]
+                mr = (hr + step) % world_size
+                cands.append(ge)
+                masks.append((1 << hr) | (1 << mr))
+                by_rank[mr].append(ge)
+        plan[li] = (cands, masks, by_rank[rank])
+    return plan
+
+
+def _load_moe_mirrors(
+    ckpt: ModelSlimCheckpoint,
+    layer: int,
+    my_hosted: list[int],
+    device: torch.device,
+    m_views: dict[str, torch.Tensor],
+    nz_holders: list[torch.Tensor],
+    mw13_cpu: torch.Tensor,
+    mw2_cpu: torch.Tensor,
+    tmp_contig: torch.Tensor | None,
+    acl,
+    *,
+    gate_contig: bool,
+    down_contig: bool,
+) -> tuple[int, int, int, int, int, int]:
+    import torch
+
+    prefix = f"model.layers.{layer}"
+    names: list[str] = []
+    for e_idx in my_hosted:
+        ep = f"{prefix}.mlp.experts.{e_idx}"
+        for proj in ("gate_proj", "up_proj", "down_proj"):
+            names.extend(
+                [
+                    f"{ep}.{proj}.weight",
+                    f"{ep}.{proj}.weight_scale",
+                    f"{ep}.{proj}.weight_offset",
+                    f"{ep}.{proj}.scale_bias",
+                ]
+            )
+    loaded = ckpt.shard_tensors(names)
+    ms = len(my_hosted)
+    pfx = f"l{layer}"
+    mr1 = torch.empty((ms, 4096), dtype=torch.float32)
+    mr2 = torch.empty((ms, 4096), dtype=torch.float32)
+    mr4 = torch.empty((ms, HIDDEN), dtype=torch.float32)
+    mr5 = torch.empty((ms, HIDDEN), dtype=torch.float32)
+    for mi, e_idx in enumerate(my_hosted):
+        ep = f"{prefix}.mlp.experts.{e_idx}"
+        for proj in ("gate_proj", "up_proj", "down_proj"):
+            _check_zero_offset(loaded, f"{ep}.{proj}.weight_offset")
+        mw13_cpu[mi, :, :1024].copy_(loaded[f"{ep}.gate_proj.weight"].t())
+        mw13_cpu[mi, :, 1024:].copy_(loaded[f"{ep}.up_proj.weight"].t())
+        mw2_cpu[mi].copy_(loaded[f"{ep}.down_proj.weight"].t())
+        mr1[mi, :2048].copy_(loaded[f"{ep}.gate_proj.scale_bias"].float().reshape(-1))
+        mr1[mi, 2048:].copy_(loaded[f"{ep}.up_proj.scale_bias"].float().reshape(-1))
+        mr2[mi, :2048].copy_(loaded[f"{ep}.gate_proj.weight_scale"].float().reshape(-1))
+        mr2[mi, 2048:].copy_(loaded[f"{ep}.up_proj.weight_scale"].float().reshape(-1))
+        mr4[mi].copy_(loaded[f"{ep}.down_proj.scale_bias"].float().sum(dim=1))
+        mr5[mi].copy_(loaded[f"{ep}.down_proj.weight_scale"].float().reshape(-1))
+    del loaded
+    m_views[f"{pfx}.m_r1"].copy_(mr1)
+    m_views[f"{pfx}.m_r2"].copy_(mr2)
+    m_views[f"{pfx}.m_r4"].copy_(mr4)
+    m_views[f"{pfx}.m_r5"].copy_(mr5)
+    del mr1, mr2, mr4, mr5
+    mr0_nz = _to_nz(mw13_cpu[:ms], device).view(torch.int32)
+    if gate_contig and device.type == "npu":
+        _apply_r4_routed_contig(mr0_nz, tmp_contig, 12582912, (16, 4, 4, 49152), acl)
+    mr3_nz = _to_nz(mw2_cpu[:ms], device).view(torch.int32)
+    if down_contig and device.type == "npu":
+        _apply_r4_routed_contig(mr3_nz, tmp_contig, 6291456, (24, 4, 2, 32768), acl)
+    nz_holders.extend((mr0_nz, mr3_nz))
+    return (
+        int(mr0_nz.data_ptr()),
+        int(m_views[f"{pfx}.m_r1"].data_ptr()),
+        int(m_views[f"{pfx}.m_r2"].data_ptr()),
+        int(mr3_nz.data_ptr()),
+        int(m_views[f"{pfx}.m_r4"].data_ptr()),
+        int(m_views[f"{pfx}.m_r5"].data_ptr()),
+    )
+
+
+def _pack_layer_mirror_meta(
+    peer_cpu: bytearray,
+    layer: int,
+    cands: list[int],
+    masks: list[int],
+    mw_ptrs: tuple[int, int, int, int, int, int],
+    my_hosted: list[int],
+    *,
+    mirror_64: bool,
+) -> None:
+    off = layer * 640
+    n_cands = len(cands)
+    n_mslots = len(my_hosted)
+    for idx in range(min(32, n_cands)):
+        peer_cpu[off + idx] = cands[idx]
+        peer_cpu[off + 32 + idx] = masks[idx]
+    struct.pack_into("<6Q", peer_cpu, off + 64, *mw_ptrs)
+    for ms, ge in enumerate(my_hosted[:8]):
+        peer_cpu[off + 112 + ms] = ge
+    ext_flag = (
+        (1 << 17) if (mirror_64 and n_cands > 32) else ((1 << 16) if n_cands > 32 else 0)
+    )
+    hdr = n_cands | (n_mslots << 8) | ext_flag
+    struct.pack_into("<Q", peer_cpu, off + 120, hdr)
+    mask_ext_off = 224 if mirror_64 else 208
+    for idx in range(32, n_cands):
+        peer_cpu[off + 192 + (idx - 32)] = cands[idx]
+        peer_cpu[off + mask_ext_off + (idx - 32)] = masks[idx]
+
+
 def _reserve_model_nd_slots(
     builder: _NdSlabBuilder,
     local_vocab: int,
@@ -923,6 +1131,25 @@ def build_model_arena(
     gate_contig = "-DK11088_GATE_CONTIG=1" in flag_set
     down_contig = "-DK11220_DOWN_CONTIG_256=1" in flag_set
     preload_gate = "-DK112726_BRIDGE_PRELOAD_GATE=1" in flag_set
+    mirror_v4 = "-DK11220_FAST_MIRROR_V4=1" in flag_set
+    mirror_p1_v3 = "-DK11220_FAST_P1_V3=1" in flag_set
+    mirror_64 = "-DK112600_MIRROR_64=1" in flag_set
+    ckpt = ModelSlimCheckpoint(cfg.model_dir)
+    mirror_ok = (
+        mirror_v4 and (mirror_p1_v3 or mirror_64) and world_size == 8 and local_experts == 32
+    )
+    mirror_plan = (
+        _plan_moe_mirrors(
+            ckpt,
+            rank,
+            world_size,
+            local_experts,
+            mirror_64=mirror_64,
+            total_budget=(468 if mirror_64 else 450),
+        )
+        if mirror_ok
+        else {}
+    )
 
     local_vocab = VOCAB_SIZE // world_size
     vocab_slice = slice(rank * local_vocab, (rank + 1) * local_vocab)
@@ -947,7 +1174,6 @@ def build_model_arena(
     q_hadamard = nd_views["q_hadamard"]
     q_hadamard_zero = nd_views["q_hadamard_zero"]
 
-    ckpt = ModelSlimCheckpoint(cfg.model_dir)
     top_tensors = ckpt.shard_tensors(
         ["model.embed_tokens.weight", "model.norm.weight", "lm_head.weight"],
         {
@@ -968,6 +1194,24 @@ def build_model_arena(
     )
     w13_cpu = torch.empty((local_experts, HIDDEN, 2048), dtype=torch.int8)
     w2_cpu = torch.empty((local_experts, 2048, 3072), dtype=torch.int8)
+    m_views: dict[str, torch.Tensor] = {}
+    mw13_cpu = None
+    mw2_cpu = None
+    if mirror_plan:
+        m_builder = _NdSlabBuilder(align=512)
+        max_ms = max(len(v[2]) for v in mirror_plan.values())
+        for ml, (_, _, my_hosted) in mirror_plan.items():
+            mpfx = f"l{ml}"
+            ms_cnt = len(my_hosted)
+            m_builder.reserve(f"{mpfx}.m_r1", (ms_cnt, 4096), torch.float32)
+            m_builder.reserve(f"{mpfx}.m_r2", (ms_cnt, 4096), torch.float32)
+            m_builder.reserve(f"{mpfx}.m_r4", (ms_cnt, HIDDEN), torch.float32)
+            m_builder.reserve(f"{mpfx}.m_r5", (ms_cnt, HIDDEN), torch.float32)
+        m_nd_raw, _, m_views = m_builder.allocate(device)
+        nz_holders.append(m_nd_raw)
+        mw13_cpu = torch.empty((max_ms, HIDDEN, 2048), dtype=torch.int8)
+        mw2_cpu = torch.empty((max_ms, 2048, 3072), dtype=torch.int8)
+    mirror_meta_specs: dict[int, tuple[list[int], list[int], list[int], tuple]] = {}
 
     shared_topk = torch.zeros((32, 2048), dtype=torch.int32, device=device)
     topk_bufs = [shared_topk]
@@ -1090,6 +1334,23 @@ def build_model_arena(
                 down_contig=down_contig,
                 preload_gate=preload_gate,
             )
+            if layer in mirror_plan:
+                cands, masks, my_hosted = mirror_plan[layer]
+                mw_ptrs = _load_moe_mirrors(
+                    ckpt,
+                    layer,
+                    my_hosted,
+                    device,
+                    m_views,
+                    nz_holders,
+                    mw13_cpu,
+                    mw2_cpu,
+                    tmp_contig,
+                    acl,
+                    gate_contig=gate_contig,
+                    down_contig=down_contig,
+                )
+                mirror_meta_specs[layer] = (cands, masks, my_hosted, mw_ptrs)
             owners = (*main, *front, *tail, *routed, *shared, input_gamma, *post, shared_topk)
             layers_out.append(
                 LayerWeights(
@@ -1154,6 +1415,10 @@ def build_model_arena(
             int(s_gu.data_ptr()),
             int(p_dn.data_ptr()),
             int(s_dn.data_ptr()),
+        )
+    for li, (cands, masks, my_hosted, mw_ptrs) in mirror_meta_specs.items():
+        _pack_layer_mirror_meta(
+            peer_cpu, li, cands, masks, mw_ptrs, my_hosted, mirror_64=mirror_64
         )
     peer_sub.copy_(torch.frombuffer(peer_cpu, dtype=torch.uint8))
     peer_weights_ptr = int(peer_sub.data_ptr())
@@ -1252,7 +1517,7 @@ def build_model_arena(
             shared_head_norm_w=nd_views["l78.shared_head_norm_w"],
         )
 
-    del w13_cpu, w2_cpu, tmp_contig
+    del w13_cpu, w2_cpu, mw13_cpu, mw2_cpu, tmp_contig
     gc.collect()
     if device.type == "npu":
         torch.npu.synchronize(device)

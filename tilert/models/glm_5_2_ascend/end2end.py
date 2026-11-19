@@ -543,7 +543,7 @@ class Glm52AscendShowHands:
             b_scheds=[
                 [4, 4, 4, 4, 4, 2, 2],
                 [4, 4, 4, 4, 2, 2, 2, 2, 1, 1],
-                [4, 4, 4, 4, 2, 2, 2, 2, 1, 1, 1],
+                [4, 4, 4, 4, 2, 2, 2, 2, 1, 1],
             ],
             horizon_ctrl=self.hctrl,
             inv_temp=self.cfg.inv_temp,
@@ -553,7 +553,7 @@ class Glm52AscendShowHands:
             min_w_act=10,
             t_base_ms=41.5,
             c_w_ms=0.68,
-            narrow_topk=False,
+            narrow_topk=True,
             l78_build_dir=self.build_dir / "dspine_l78",
         )
         self._capture_g_round()
