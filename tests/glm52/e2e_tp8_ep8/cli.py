@@ -18,9 +18,9 @@ from .contracts import (
     MILESTONES,
     MIN_FORMALS,
     MIN_WARMUPS,
-    TPOT_TARGET_MS,
     WIDTHS,
     VerificationError,
+    milestone_tpot_limit,
 )
 from .hygiene_gate import allocate_free_port_base, verify_root_hygiene
 from .parity_gate import verify_e2e_run
@@ -59,7 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--formals", type=int, default=None)
     parser.add_argument("--ab-ba", action="store_true")
     parser.add_argument("--milestone", choices=MILESTONES, default="M5")
-    parser.add_argument("--max-tpot-ms", type=float, default=TPOT_TARGET_MS)
+    parser.add_argument("--max-tpot-ms", type=float, default=None)
     parser.add_argument("--width", type=int, default=None)
     parser.add_argument("--runner-cmd", type=str, default=None)
     parser.add_argument("--kbenv-bin", type=str, default=DEFAULT_KBENV_BIN)
@@ -81,7 +81,12 @@ def main(argv: list[str] | None = None) -> int:
     repo_root = Path(__file__).resolve().parents[3]
     try:
         cases = _resolve_cases(args.case)
-        max_tpot_ms = _validate_max_tpot(float(args.max_tpot_ms))
+        raw_tpot_ms = (
+            milestone_tpot_limit(args.milestone)
+            if args.max_tpot_ms is None
+            else float(args.max_tpot_ms)
+        )
+        max_tpot_ms = _validate_max_tpot(raw_tpot_ms)
         results: list[dict[str, Any]] = []
 
         if args.mode == "dry-run":

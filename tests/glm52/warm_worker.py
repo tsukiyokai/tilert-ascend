@@ -48,6 +48,20 @@ DSPINE_HOT_FILES: tuple[str, ...] = (
 L78_VER_BY_KSFA: dict[int, int] = {2048: 110415, 1024: 110419, 512: 110420}
 
 
+def default_worker_cfg() -> dict[str, Any]:
+    return {
+        "b_scheds": [
+            [4, 4, 4, 4, 4, 2, 2],
+            [4, 4, 4, 4, 2, 2, 2, 2, 1, 1],
+            [4, 4, 4, 4, 2, 2, 2, 2, 1, 1],
+        ],
+        "min_w_act": 10,
+        "t_base_ms": 41.5,
+        "c_w_ms": 0.68,
+        "narrow_topk": True,
+    }
+
+
 def validate_job_dir(job_dir: Path | str, run_id: str | None = None) -> Path:
     raw = str(job_dir).strip()
     if not raw or ".." in Path(raw).parts or ".." in raw.split("/"):
@@ -393,18 +407,7 @@ def _run_worker(args: argparse.Namespace) -> int:
     runner.load()
     dev = runner.device
     tree_reload_idx = 0
-    default_b_scheds = [
-        [4, 4, 4, 4, 4, 2, 2],
-        [4, 4, 4, 4, 2, 2, 2, 2, 1, 1],
-        [4, 4, 4, 4, 2, 2, 2, 2, 1, 1, 1],
-    ]
-    cur_cfg = {
-        "b_scheds": default_b_scheds,
-        "min_w_act": 10,
-        "t_base_ms": 41.5,
-        "c_w_ms": 0.68,
-        "narrow_topk": False,
-    }
+    cur_cfg = default_worker_cfg()
 
     boot_sha = compute_boot_fingerprint(
         Path(args.whole_layer_base), args.model_dir, build_dir, REPO_ROOT

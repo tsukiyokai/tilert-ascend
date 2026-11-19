@@ -27,6 +27,7 @@ from tests.glm52.warm_worker import (
     classify_reload_tier,
     compute_boot_fingerprint,
     compute_hot_fingerprints,
+    default_worker_cfg,
     reset_all_graphs,
     stage_versioned_so,
     stop_daemon,
@@ -668,3 +669,16 @@ def test_a3_container_8_15_logical_devices_prestage_and_shmem_helper(
             "/prestage/cal_l78_v3_hybrid_best.pt",
         )
     ]
+
+
+def test_warm_worker_default_cfg_matches_end2end() -> None:
+    cfg = default_worker_cfg()
+    assert cfg["b_scheds"] == [
+        [4, 4, 4, 4, 4, 2, 2],
+        [4, 4, 4, 4, 2, 2, 2, 2, 1, 1],
+        [4, 4, 4, 4, 2, 2, 2, 2, 1, 1],
+    ]
+    assert cfg["narrow_topk"] is True
+    assert cfg["min_w_act"] == 10
+    assert cfg["t_base_ms"] == 41.5
+    assert cfg["c_w_ms"] == 0.68

@@ -822,3 +822,64 @@ def test_t4_12_r5_cli_verify_report_flags_and_non_dict_json(
         == 1
     )
     assert _load_json(summary_out)["pass"] is False
+
+
+def test_t4_13_cli_defaults_max_tpot_ms_to_milestone_limit(
+    tmp_path: Path,
+    case_root: Path,
+) -> None:
+    for idx, ms in enumerate(("M1", "M2", "M3", "M4", "M5")):
+        out_dir = tmp_path / f"cli_ms_{ms}"
+        summary_out = out_dir / "summary.json"
+        rc_dry = cli_main(
+            [
+                "--mode",
+                "dry-run",
+                "--case",
+                "case-01-coding",
+                "--case-root",
+                str(case_root),
+                "--milestone",
+                ms,
+                "--port-base",
+                str(41000 + idx * 300),
+                "--output",
+                str(summary_out),
+            ]
+        )
+        assert rc_dry == 0
+        rc_verify = cli_main(
+            [
+                "--mode",
+                "verify-report",
+                "--case",
+                "case-01-coding",
+                "--case-root",
+                str(case_root),
+                "--milestone",
+                ms,
+                "--report-dir",
+                str(out_dir / "case-01-coding"),
+            ]
+        )
+        assert rc_verify == 0
+    m2_bundle = tmp_path / "cli_ms_M2" / "case-01-coding"
+    assert (
+        cli_main(
+            [
+                "--mode",
+                "verify-report",
+                "--case",
+                "case-01-coding",
+                "--case-root",
+                str(case_root),
+                "--milestone",
+                "M2",
+                "--max-tpot-ms",
+                "5.0",
+                "--report-dir",
+                str(m2_bundle),
+            ]
+        )
+        == 1
+    )
