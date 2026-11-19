@@ -315,7 +315,6 @@ __aicore__ inline void QLIVector<QLIT>::ProcessVec1(const QLICommon::RunInfo &in
     }
 
 
-    uint32_t ldS1Offset = (blockId_ % 2 == 0) ? s1BaseSize_ / 2 - cuS1ProcNumPerAiv : 0;
     for (int innerS1Idx = 0; innerS1Idx < cuS1ProcNumPerAiv; innerS1Idx++) {
         if (constInfo_.attenMaskFlag) {
             cuRealAcSeq += 1;
@@ -563,13 +562,12 @@ __aicore__ inline void QLIVector<QLIT>::ProcessVec1(const QLICommon::RunInfo &in
 #endif
                 outQueue_.FreeTensor(idxULocal);
             } else if (needCopyWsGm) {
+                int64_t slotIdx = (cuS1BeginIdxPerAiv % s1BaseSize_) + innerS1Idx;
                 int64_t wsOffset =
                     (blockId_ / 2) * s1BaseSize_ * 2 * BASE_TOPK_VALUE_IDX_SIZE +
-                    (blockId_ % 2) * (s1BaseSize_ / 2) * 2 * BASE_TOPK_VALUE_IDX_SIZE +
-                    (ldS1Offset + innerS1Idx) * 2 * BASE_TOPK_VALUE_IDX_SIZE;
+                    slotIdx * 2 * BASE_TOPK_VALUE_IDX_SIZE;
                 int64_t wsInfoOffset = (blockId_ / 2) * s1BaseSize_ * 2 * paramNum_ +
-                                       (blockId_ % 2) * (s1BaseSize_ / 2) * 2 * paramNum_ +
-                                       (ldS1Offset + innerS1Idx) * 2 * paramNum_;
+                                       slotIdx * 2 * paramNum_;
 
                 LocalTensor<int64_t> tmpiBuff = paramBuf_.Get<int64_t>()[innerS1Idx * LD_PARAM_NUM];
                 SetWaitFlag<HardEvent::MTE3_S>(HardEvent::MTE3_S);
@@ -684,44 +682,71 @@ __aicore__ inline void QLIVector<QLIT>::ProcessLD(int32_t ldCubeId, uint32_t ldI
         outOffset = vec1ParamGm.GetValue(wsInfoOffset + 8);
 
         bool resInTmp = false;
+        bool inTmp = false;
         while (needFd == 1) {
 
             wsOffset = tmpCubeId * s1BaseSize_ * 2 * BASE_TOPK_VALUE_IDX_SIZE +
                        innerS1Idx * 2 * BASE_TOPK_VALUE_IDX_SIZE;
             SetWaitFlag<HardEvent::S_MTE2>(HardEvent::S_MTE2);
-            DataCopy(curValueIdxUb[valueOffset], vec1ResGm[wsOffset], BASE_TOPK_VALUE_IDX_SIZE);
-            valueOffset += BASE_TOPK_VALUE_IDX_SIZE;
+            if (inTmp) {
+                int64_t dstOff = (acc_list_num == 2) ? BASE_TOPK_VALUE_IDX_SIZE : 3 * BASE_TOPK_VALUE_IDX_SIZE;
+                DataCopy(tmpUb[dstOff], vec1ResGm[wsOffset], BASE_TOPK_VALUE_IDX_SIZE);
+            } else {
+                DataCopy(curValueIdxUb[valueOffset], vec1ResGm[wsOffset], BASE_TOPK_VALUE_IDX_SIZE);
+                valueOffset += BASE_TOPK_VALUE_IDX_SIZE;
+            }
             acc_list_num++;
 
 
             if (acc_list_num == mrgListNum_) {
-
-                AscendC::MrgSort4Info params;
-                params.elementLengths[0] = BASE_TOPK;
-                params.elementLengths[1] = BASE_TOPK;
-                params.elementLengths[2] = BASE_TOPK;
-                params.elementLengths[3] = BASE_TOPK;
-                params.ifExhaustedSuspension = true;
-                params.validBit = 0b1111;
-                params.repeatTimes = 1;
-
-                AscendC::MrgSortSrcList<float> srcList;
-                srcList.src1 = curValueIdxUb[0 * BASE_TOPK_VALUE_IDX_SIZE];
-                srcList.src2 = curValueIdxUb[1 * BASE_TOPK_VALUE_IDX_SIZE];
-                srcList.src3 = curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
-                srcList.src4 = curValueIdxUb[3 * BASE_TOPK_VALUE_IDX_SIZE];
+                AscendC::MrgSort4Info params2;
+                params2.elementLengths[0] = BASE_TOPK;
+                params2.elementLengths[1] = BASE_TOPK;
+                params2.elementLengths[2] = BASE_TOPK;
+                params2.elementLengths[3] = BASE_TOPK;
+                params2.ifExhaustedSuspension = false;
+                params2.validBit = 0b0011;
+                params2.repeatTimes = 1;
                 SetWaitFlag<HardEvent::MTE2_V>(HardEvent::MTE2_V);
-                MrgSort(tmpUb, srcList, params);
-                PipeBarrier<PIPE_V>();
-                acc_list_num = 1;
-                valueOffset = BASE_TOPK_VALUE_IDX_SIZE;
-                if (isS2End == 1) {
-                    resInTmp = true;
-                    break;
+                if (!inTmp) {
+                    AscendC::MrgSortSrcList<float> srcA;
+                    srcA.src1 = curValueIdxUb[1 * BASE_TOPK_VALUE_IDX_SIZE];
+                    srcA.src2 = curValueIdxUb[0 * BASE_TOPK_VALUE_IDX_SIZE];
+                    srcA.src3 = curValueIdxUb[0];
+                    srcA.src4 = curValueIdxUb[0];
+                    MrgSort(tmpUb, srcA, params2);
+                    PipeBarrier<PIPE_V>();
+                    AscendC::MrgSortSrcList<float> srcB;
+                    srcB.src1 = curValueIdxUb[3 * BASE_TOPK_VALUE_IDX_SIZE];
+                    srcB.src2 = curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
+                    srcB.src3 = curValueIdxUb[0];
+                    srcB.src4 = curValueIdxUb[0];
+                    MrgSort(tmpUb[2 * BASE_TOPK_VALUE_IDX_SIZE], srcB, params2);
+                    PipeBarrier<PIPE_V>();
+                    inTmp = true;
+                } else {
+                    AscendC::MrgSortSrcList<float> srcA;
+                    srcA.src1 = tmpUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
+                    srcA.src2 = tmpUb[0];
+                    srcA.src3 = tmpUb[0];
+                    srcA.src4 = tmpUb[0];
+                    MrgSort(curValueIdxUb, srcA, params2);
+                    PipeBarrier<PIPE_V>();
+                    AscendC::MrgSortSrcList<float> srcB;
+                    srcB.src1 = tmpUb[3 * BASE_TOPK_VALUE_IDX_SIZE];
+                    srcB.src2 = tmpUb[BASE_TOPK_VALUE_IDX_SIZE];
+                    srcB.src3 = tmpUb[0];
+                    srcB.src4 = tmpUb[0];
+                    MrgSort(curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE], srcB, params2);
+                    PipeBarrier<PIPE_V>();
+                    DataCopy(curValueIdxUb[BASE_TOPK_VALUE_IDX_SIZE],
+                             curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE], BASE_TOPK_VALUE_IDX_SIZE);
+                    PipeBarrier<PIPE_V>();
+                    inTmp = false;
+                    valueOffset = 2 * BASE_TOPK_VALUE_IDX_SIZE;
                 }
-                DataCopy(curValueIdxUb, tmpUb, BASE_TOPK_VALUE_IDX_SIZE);
-                PipeBarrier<PIPE_V>();
                 SetWaitFlag<HardEvent::V_MTE2>(HardEvent::V_MTE2);
+                acc_list_num = 2;
             }
 
 
@@ -753,14 +778,24 @@ __aicore__ inline void QLIVector<QLIT>::ProcessLD(int32_t ldCubeId, uint32_t ldI
             params.repeatTimes = 1;
 
             AscendC::MrgSortSrcList<float> srcList;
-            srcList.src1 = curValueIdxUb[0];
-            srcList.src2 = curValueIdxUb[BASE_TOPK_VALUE_IDX_SIZE];
-            srcList.src3 = curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
-            srcList.src4 = curValueIdxUb[3 * BASE_TOPK_VALUE_IDX_SIZE];
             SetWaitFlag<HardEvent::MTE2_V>(HardEvent::MTE2_V);
-            MrgSort(tmpUb, srcList, params);
-            PipeBarrier<PIPE_V>();
-            resInTmp = true;
+            if (inTmp) {
+                srcList.src1 = tmpUb[0];
+                srcList.src2 = tmpUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
+                srcList.src3 = tmpUb[BASE_TOPK_VALUE_IDX_SIZE];
+                srcList.src4 = tmpUb[3 * BASE_TOPK_VALUE_IDX_SIZE];
+                MrgSort(curValueIdxUb, srcList, params);
+                PipeBarrier<PIPE_V>();
+                resInTmp = false;
+            } else {
+                srcList.src1 = curValueIdxUb[0];
+                srcList.src2 = curValueIdxUb[BASE_TOPK_VALUE_IDX_SIZE];
+                srcList.src3 = curValueIdxUb[2 * BASE_TOPK_VALUE_IDX_SIZE];
+                srcList.src4 = curValueIdxUb[3 * BASE_TOPK_VALUE_IDX_SIZE];
+                MrgSort(tmpUb, srcList, params);
+                PipeBarrier<PIPE_V>();
+                resInTmp = true;
+            }
         }
 
 

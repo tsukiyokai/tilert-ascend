@@ -258,10 +258,22 @@ __aicore__ void inline QLIPreload<QLIT>::SplitCore(uint32_t curCoreIdx, uint32_t
         constInfo.attenMaskFlag && coreNum == 24) {
         uint32_t queryLength, keyLength;
         GetS1S2ActualSeqLen(0, queryLength, keyLength);
-        if ((queryLength == 32 || (QUERY_GROUPS_NARROW && queryLength >= 8 && queryLength <= 32 && (queryLength % 4 == 0))) &&
+        if ((queryLength == 32 || (QUERY_GROUPS_NARROW && queryLength >= 1 && queryLength <= 32)) &&
             GetS2BaseBlockNumOnMask(0, queryLength, keyLength) == 5 &&
             GetS2BaseBlockNumOnMask(CeilDiv(queryLength, constInfo.s1BaseSize) - 1,
                                   queryLength, keyLength) == 5) {
+            if (QUERY_GROUPS_NARROW && queryLength <= 16) {
+                coreNum = 5 * CeilDiv(queryLength, constInfo.s1BaseSize);
+                info.bN2Start = info.bN2End = 0;
+                info.gS1Start = info.gS1End = curCoreIdx / 5;
+                info.s2Start = info.s2End = curCoreIdx % 5;
+                if ASCEND_IS_AIV {
+                    info.isLD = tmpBlockIdx < queryLength;
+                    info.ldCubeId = (tmpBlockIdx / constInfo.s1BaseSize) * 5;
+                    info.ldInnerS1Idx = tmpBlockIdx % constInfo.s1BaseSize;
+                }
+                return;
+            }
             coreNum = 3 * CeilDiv(queryLength, constInfo.s1BaseSize);
             info.bN2Start = info.bN2End = 0;
             info.gS1Start = info.gS1End = curCoreIdx / 3;

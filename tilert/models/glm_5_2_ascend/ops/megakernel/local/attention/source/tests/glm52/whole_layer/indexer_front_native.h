@@ -420,23 +420,19 @@ __aicore__ inline void ProjectKeyKShift32(
     const int32_t rows_m = c.capacity < kTile ? static_cast<int32_t>(c.capacity) : kTile;
     const int32_t r0_valid = (static_cast<int32_t>(c.rows) < rows_m)
         ? static_cast<int32_t>(c.rows) : rows_m;
-    TBuf<TPosition::A1> a1_e0, a1_e1, a1_o0, a1_o1;
+    TBuf<TPosition::A1> a1_buf;
     TBuf<TPosition::B1> b1_buf;
     TBuf<TPosition::A2> a0_b0, a0_b1;
     TBuf<TPosition::B2> b0_b0, b0_b1;
     TBuf<TPosition::CO1> c_b;
-    pipe.InitBuffer(a1_e0, kA1Elems * sizeof(bfloat16_t));
-    pipe.InitBuffer(a1_e1, kA1Elems * sizeof(bfloat16_t));
-    pipe.InitBuffer(a1_o0, kA1Elems * sizeof(bfloat16_t));
-    pipe.InitBuffer(a1_o1, kA1Elems * sizeof(bfloat16_t));
-    pipe.InitBuffer(b1_buf, 12 * kB1Elems * sizeof(bfloat16_t));
+    pipe.InitBuffer(a1_buf, 12 * kA1Elems * sizeof(bfloat16_t));
+    pipe.InitBuffer(b1_buf, 10 * kB1Elems * sizeof(bfloat16_t));
     pipe.InitBuffer(a0_b0, 2 * kL0Elems * sizeof(bfloat16_t));
     pipe.InitBuffer(a0_b1, 2 * kL0Elems * sizeof(bfloat16_t));
     pipe.InitBuffer(b0_b0, 2 * kL0Elems * sizeof(bfloat16_t));
     pipe.InitBuffer(b0_b1, 2 * kL0Elems * sizeof(bfloat16_t));
     pipe.InitBuffer(c_b, 2 * kAccElems * sizeof(float));
-    LocalTensor<bfloat16_t> a1_e[2] = {a1_e0.Get<bfloat16_t>(), a1_e1.Get<bfloat16_t>()};
-    LocalTensor<bfloat16_t> a1_o[2] = {a1_o0.Get<bfloat16_t>(), a1_o1.Get<bfloat16_t>()};
+    LocalTensor<bfloat16_t> a1 = a1_buf.Get<bfloat16_t>();
     LocalTensor<bfloat16_t> b1 = b1_buf.Get<bfloat16_t>();
     LocalTensor<bfloat16_t> a0[2] = {a0_b0.Get<bfloat16_t>(), a0_b1.Get<bfloat16_t>()};
     LocalTensor<bfloat16_t> b0[2] = {b0_b0.Get<bfloat16_t>(), b0_b1.Get<bfloat16_t>()};
@@ -476,16 +472,22 @@ __aicore__ inline void ProjectKeyKShift32(
     auto co_of = [&](int32_t kc) __aicore__ -> int32_t {
         return (11 - kc + rot) % 12;
     };
+    auto be_slot = [&](int32_t kc) __aicore__ -> int32_t {
+        return (kc < 3) ? kc : ((kc >= 9) ? (kc - 6) : (6 + (kc & 1)));
+    };
+    auto bo_slot = [&](int32_t kc) __aicore__ -> int32_t {
+        return (kc < 3) ? (5 - kc) : ((kc >= 9) ? (11 - kc) : (8 + (kc & 1)));
+    };
     {
         const int32_t ce0 = ce_of(0);
         const int32_t co0 = co_of(0);
-        DataCopy(a1_e[0], a_gm[static_cast<int64_t>(ce0) * kChunk], copy_a);
-        DataCopy(a1_o[0], a_gm[static_cast<int64_t>(co0) * kChunk], copy_a);
+        DataCopy(a1[0], a_gm[static_cast<int64_t>(ce0) * kChunk], copy_a);
+        DataCopy(a1[11 * kA1Elems], a_gm[static_cast<int64_t>(co0) * kChunk], copy_a);
         DataCopy(
-            b1[ce0 * kB1Elems],
+            b1[0],
             b_gm[b_base + static_cast<int64_t>(ce0) * kChunk * kCols], copy_b);
         DataCopy(
-            b1[co0 * kB1Elems],
+            b1[5 * kB1Elems],
             b_gm[b_base + static_cast<int64_t>(co0) * kChunk * kCols], copy_b);
         SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID0);
     }
@@ -494,41 +496,44 @@ __aicore__ inline void ProjectKeyKShift32(
     for (int32_t kc = 0; kc < 12; ++kc) {
         const int32_t bi = kc & 1;
         const event_t mte_ev = bi ? EVENT_ID1 : EVENT_ID0;
-        const int32_t ce = ce_of(kc);
-        const int32_t co = co_of(kc);
         if (kc + 1 < 12) {
-            const int32_t nbi = (kc + 1) & 1;
+            const int32_t nkc = kc + 1;
+            const int32_t nbi = nkc & 1;
             const event_t nmte_ev = nbi ? EVENT_ID1 : EVENT_ID0;
-            if (kc + 1 >= 2) {
+            if (nkc >= 2) {
                 WaitFlag<HardEvent::MTE1_MTE2>(nmte_ev);
             }
-            const int32_t nce = ce_of(kc + 1);
-            const int32_t nco = co_of(kc + 1);
-            DataCopy(a1_e[nbi], a_gm[static_cast<int64_t>(nce) * kChunk], copy_a);
-            DataCopy(a1_o[nbi], a_gm[static_cast<int64_t>(nco) * kChunk], copy_a);
-            if (kc + 1 < 6) {
+            const int32_t nce = ce_of(nkc);
+            const int32_t nco = co_of(nkc);
+            if (nkc < 6) {
+                DataCopy(a1[nkc * kA1Elems], a_gm[static_cast<int64_t>(nce) * kChunk], copy_a);
+                DataCopy(a1[(11 - nkc) * kA1Elems], a_gm[static_cast<int64_t>(nco) * kChunk], copy_a);
+            }
+            if (nkc < 9) {
                 DataCopy(
-                    b1[nce * kB1Elems],
+                    b1[be_slot(nkc) * kB1Elems],
                     b_gm[b_base + static_cast<int64_t>(nce) * kChunk * kCols], copy_b);
                 DataCopy(
-                    b1[nco * kB1Elems],
+                    b1[bo_slot(nkc) * kB1Elems],
                     b_gm[b_base + static_cast<int64_t>(nco) * kChunk * kCols], copy_b);
             }
             SetFlag<HardEvent::MTE2_MTE1>(nmte_ev);
         }
         WaitFlag<HardEvent::MTE2_MTE1>(mte_ev);
+        const int32_t b_e = be_slot(kc) * kB1Elems;
+        const int32_t b_o = bo_slot(kc) * kB1Elems;
         for (int32_t sub = 0; sub < 4; ++sub) {
             const int32_t step = kc * 4 + sub;
             const int32_t lbi = step & 1;
             const event_t m_ev = lbi ? EVENT_ID4 : EVENT_ID3;
             const int32_t sub_o = sub ^ 2;
             WaitFlag<HardEvent::M_MTE1>(m_ev);
-            LoadData(a0[lbi], a1_e[bi][sub * kL0Elems], load_a);
-            LoadData(a0[lbi][kL0Elems], a1_o[bi][sub_o * kL0Elems], load_a);
-            LoadData(b0[lbi], b1[ce * kB1Elems + sub * kL0Elems], load_b);
+            LoadData(a0[lbi], a1[kc * kA1Elems + sub * kL0Elems], load_a);
+            LoadData(a0[lbi][kL0Elems], a1[(11 - kc) * kA1Elems + sub_o * kL0Elems], load_a);
+            LoadData(b0[lbi], b1[b_e + sub * kL0Elems], load_b);
             LoadData(
                 b0[lbi][kL0Elems],
-                b1[co * kB1Elems + kChunk * kTile + sub_o * kL0Elems], load_b);
+                b1[b_o + kChunk * kTile + sub_o * kL0Elems], load_b);
             if (sub == 3) {
                 SetFlag<HardEvent::MTE1_MTE2>(mte_ev);
             }
