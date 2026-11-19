@@ -156,6 +156,52 @@ def test_t2_f2_rejects_serial_draft_mismatch(case01_bundle: Path) -> None:
     with pytest.raises(VerificationError):
         verify_8rank_states(ranks)
 
+    ranks_ekv = _load_ranks(case01_bundle)
+    ranks_ekv[0]["ekv_serial_diffs"] = {"layer_78": {"max_abs": 1.0}}
+    with pytest.raises(VerificationError):
+        verify_8rank_states(ranks_ekv)
+
+    ranks_missing_ekv = _load_ranks(case01_bundle)
+    ranks_missing_ekv[2].pop("ekv_serial_diffs")
+    with pytest.raises(VerificationError):
+        verify_8rank_states(ranks_missing_ekv)
+
+
+def test_t2_f2_rejects_nonempty_ekv_serial_diffs_in_e2e_bundle(
+    tmp_path: Path,
+    case_root: Path,
+) -> None:
+    case_dir = case_root / "case-01-coding"
+    bundle = build_dry_run_bundle(
+        case_id="case-01-coding",
+        output_dir=tmp_path / "ekv_nonempty",
+        case_root=case_root,
+        port_base=32700,
+    )
+    rep = _load_json(bundle / "e2e_result.json")
+    r0_path = bundle / "rank-0.json"
+    r0 = _load_json(r0_path)
+    r0["ekv_serial_diffs"] = {"layer_78": {"max_abs": 1.0}}
+    _write_json(r0_path, r0)
+    rep["ranks"][0]["report_sha256"] = file_sha256(r0_path)
+    rep["summary"]["ekv_serial_diffs"] = {"layer_78": {"max_abs": 1.0}}
+    _write_json(bundle / "e2e_result.json", rep)
+    with pytest.raises(VerificationError):
+        verify_e2e_run(bundle, case_dir)
+
+    r0["ekv_serial_diffs"] = {}
+    _write_json(r0_path, r0)
+    rep["ranks"][0]["report_sha256"] = file_sha256(r0_path)
+    _write_json(bundle / "e2e_result.json", rep)
+    with pytest.raises(VerificationError):
+        verify_e2e_run(bundle, case_dir)
+
+    rep["summary"]["ekv_serial_diffs"] = {}
+    rep["ekv_serial_diffs"] = {"layer_78": {"max_abs": 1.0}}
+    _write_json(bundle / "e2e_result.json", rep)
+    with pytest.raises(VerificationError):
+        verify_e2e_run(bundle, case_dir)
+
 
 def test_t2_f2_rejects_shared_draft_and_lm_head(case01_bundle: Path) -> None:
     report = _load_json(case01_bundle / "e2e_result.json")

@@ -116,7 +116,9 @@ at::Tensor OneSidedAllReduceOut(const at::Tensor& partial, at::Tensor& out) {
     const int stage = (dtype == at::kBFloat16) ? 10 : 0;
     const int round = state.round++;
     const int32_t* act_ptr =
-        (numel == 196608 || numel == 98304) ? state.active_shmem_ptr : nullptr;
+        (numel > 0 && (numel % 6144) == 0 && numel <= 196608)
+            ? state.active_shmem_ptr
+            : nullptr;
     tp_push_demo(kDefaultBlocks, stream, state.ffts,
                  reinterpret_cast<float*>(partial.data_ptr()),
                  reinterpret_cast<float*>(out.data_ptr()), state.window,
@@ -236,7 +238,9 @@ at::Tensor OneSidedAllReduceScaleAdd(const at::Tensor& partial,
         ? 17
         : ((routed_numel == numel) ? 16 : 15);
     const int32_t* act_ptr =
-        (numel == 196608 || numel == 98304) ? state.active_shmem_ptr : nullptr;
+        (numel > 0 && (numel % 6144) == 0 && numel <= 196608)
+            ? state.active_shmem_ptr
+            : nullptr;
     tp_push_demo(kDefaultBlocks, stream, state.ffts,
                  reinterpret_cast<float*>(partial.data_ptr()),
                  reinterpret_cast<float*>(out.data_ptr()), state.window,
@@ -271,7 +275,7 @@ at::Tensor OneSidedTopTokens(const at::Tensor& local_max,
     auto out = at::empty_like(local_idx);
     void* stream = c10_npu::getCurrentNPUStream().stream(true);
     const int round = state.round++;
-    const int32_t* act_ptr = (rows == 32 || rows == 16) ? state.active_shmem_ptr : nullptr;
+    const int32_t* act_ptr = (rows <= 32) ? state.active_shmem_ptr : nullptr;
     tp_push_demo(kDefaultBlocks, stream, state.ffts,
                  reinterpret_cast<float*>(local_max.data_ptr()),
                  reinterpret_cast<float*>(out.data_ptr()), state.window,
@@ -485,7 +489,9 @@ OneSidedAllReduceRmsNormQuant(const at::Tensor& partial, at::Tensor& out,
         routed_ptr = reinterpret_cast<int32_t*>(routed->data_ptr());
     }
     const int32_t* act_ptr =
-        (numel == 196608 || numel == 98304) ? state.active_shmem_ptr : nullptr;
+        (numel > 0 && (numel % 6144) == 0 && numel <= 196608)
+            ? state.active_shmem_ptr
+            : nullptr;
     at::Tensor norm_out = at::empty_like(residual);
     at::Tensor res_out = at::empty_like(residual);
     at::Tensor quant_out = need_quant

@@ -181,7 +181,7 @@ def test_boot_and_hot_fingerprints_and_graph_reset(tmp_path: Path) -> None:
     model_dir = repo / "tilert/models/glm_5_2_ascend"
     dspine_dir = model_dir / "dspine"
     dspine_dir.mkdir(parents=True)
-    for name in ("cann_model.py", "whole_layer.py"):
+    for name in ("end2end.py", "abi.py"):
         (model_dir / name).write_text("x = 1\n", encoding="utf-8")
     (dspine_dir / "tp_drafter.py").write_text("y = 1\n", encoding="utf-8")
     bdir = tmp_path / "builds"
@@ -200,7 +200,7 @@ def test_boot_and_hot_fingerprints_and_graph_reset(tmp_path: Path) -> None:
     (dspine_dir / "tp_drafter.py").write_text("y = 2\n", encoding="utf-8")
     boot2 = compute_boot_fingerprint(wl_base, "/work/model-raw", bdir, repo)
     assert boot1 == boot2
-    (model_dir / "cann_model.py").write_text("x = 2\n", encoding="utf-8")
+    (model_dir / "end2end.py").write_text("x = 2\n", encoding="utf-8")
     boot3 = compute_boot_fingerprint(wl_base, "/work/model-raw", bdir, repo)
     assert boot1 != boot3
 
@@ -328,8 +328,7 @@ def test_dspine_unit_digest_and_skip_stamp(
     dspine_dir.mkdir(parents=True)
     tests_dir.mkdir(parents=True)
     (dspine_dir / "tp_drafter.py").write_text("x = 1\n", encoding="utf-8")
-    (repo / "tilert/models/glm_5_2_ascend/mla_tail.py").write_text("m = 1\n", encoding="utf-8")
-    (repo / "tilert/models/glm_5_2_ascend/routed_shared.py").write_text("r = 1\n", encoding="utf-8")
+    (repo / "tilert/models/glm_5_2_ascend/abi.py").write_text("a = 1\n", encoding="utf-8")
     (tests_dir / "test_dspine_unit.py").write_text("def test_ok(): assert True\n", encoding="utf-8")
     stamp_path = tmp_path / "checks/dspine_unit_stamp.json"
 
@@ -393,7 +392,7 @@ def test_a3_container_sync_source_prestage_probe_and_du_timeout(
     repo = tmp_path / "repo"
     (repo / "tilert/models/glm_5_2_ascend").mkdir(parents=True)
     (repo / "tests/glm52").mkdir(parents=True)
-    (repo / "tilert/models/glm_5_2_ascend/whole_layer.py").write_text("wl = 1\n", encoding="utf-8")
+    (repo / "tilert/models/glm_5_2_ascend/end2end.py").write_text("e = 1\n", encoding="utf-8")
     (repo / "tests/glm52/warm_worker.py").write_text("ww = 1\n", encoding="utf-8")
 
     ssh_calls: list[tuple[str, str, bytes | None]] = []
@@ -415,7 +414,7 @@ def test_a3_container_sync_source_prestage_probe_and_du_timeout(
     assert "/dev/shm/run_test_m21/source" in ssh_calls[0][1]
     with tarfile.open(fileobj=io.BytesIO(ssh_calls[0][2]), mode="r:gz") as tf:
         names = set(tf.getnames())
-    assert "tilert/models/glm_5_2_ascend/whole_layer.py" in names
+    assert "tilert/models/glm_5_2_ascend/end2end.py" in names
     assert "tests/glm52/warm_worker.py" in names
 
     auto_cmd = ac.build_docker_exec_cmd("run_test_m21", "echo hi")[5]

@@ -29,15 +29,8 @@ except ModuleNotFoundError:
     from e2e_tp8_ep8.hygiene_gate import validate_run_id, verify_shm_isolation
 
 CORE_BOOT_FILES: tuple[str, ...] = (
-    "cann_model.py",
-    "cann_mtp.py",
-    "cann_graph.py",
-    "whole_layer.py",
-    "whole_layer_abi.py",
-    "onesided_reduce.py",
-    "attention_native.py",
-    "routed_shared.py",
-    "tp_runtime.py",
+    "__init__.py",
+    "reference.py",
 )
 M2_BOOT_FILES: tuple[str, ...] = (
     "end2end.py",
@@ -266,6 +259,9 @@ def aggregate_epoch_ranks(job_dir: Path, epoch: int, world_size: int = 8) -> dic
         "output_sha256": r0.get("output_sha256"),
         "serial_draft_match": r0.get("serial_draft_match"),
         "ekv_serial_diffs": r0.get("ekv_serial_diffs"),
+        "in_flight_depth": r0.get("in_flight_depth"),
+        "drain_q_len": r0.get("drain_q_len"),
+        "eos_drained_cleanly": r0.get("eos_drained_cleanly"),
         "median_tpot_ms": r0.get("median_tpot_ms"),
     }
 
@@ -370,6 +366,7 @@ def _run_worker(args: argparse.Namespace) -> int:
     if not hasattr(args, "whole_layer_json"):
         args.whole_layer_json = None
     build_dir, wl_json, ops_dir, l78_dir = _prepare_build_artifacts(args, rank)
+    torch.distributed.barrier(group=tp_group)
     args.build_dir = str(build_dir)
 
     case_dir = Path(args.case_dir)
@@ -513,6 +510,7 @@ def _run_worker(args: argparse.Namespace) -> int:
                         union_sfa=req_union,
                         enable_kernel_prof=enable_kernel_prof,
                     )
+                    cal_mod = importlib.reload(cal_mod)
                     cal_mod.build_draft_l78_k110419(out_dir=l78_dir, k_sfa=req_k_sfa)
                 torch.distributed.barrier(group=tp_group)
                 cur_hot = compute_hot_fingerprints(
@@ -642,6 +640,12 @@ def _run_worker(args: argparse.Namespace) -> int:
                     check_serial=serial_parity,
                 )
                 last_trial = report["trials"][-1]
+                traces = report.get("round_traces") or []
+                drain_q_len = traces[-1].get("drain_q_len") if traces else None
+                in_flight_depth = report.get("runtime_invariants", {}).get("in_flight_depth")
+                eos_drained = bool(report.get("eos_drained_cleanly", False)) and bool(
+                    last_trial.get("eos_drained_cleanly", False)
+                )
                 summary = {
                     "epoch": epoch,
                     "reload_tier": tier,
@@ -658,7 +662,11 @@ def _run_worker(args: argparse.Namespace) -> int:
                     "serial_draft_diffs": report["serial_draft_diffs"],
                     "ekv_serial_diffs": report["ekv_serial_diffs"],
                     "loaded_modules_has_vllm": report["loaded_modules_has_vllm"],
+                    "in_flight_depth": in_flight_depth,
+                    "drain_q_len": drain_q_len,
+                    "eos_drained_cleanly": eos_drained,
                     "fast_parity": bool(req_args.get("fast_parity", True)),
+                    "kernel_prof_acc": report.get("kernel_prof_acc"),
                     "cfg": cur_cfg,
                 }
                 if rank == 0:
@@ -670,17 +678,24 @@ def _run_worker(args: argparse.Namespace) -> int:
                     and bool(report["all_ranks_target_exact"])
                     and bool(report["all_ranks_cache_parity"])
                     and not bool(report["loaded_modules_has_vllm"])
+                    and in_flight_depth == 2
+                    and drain_q_len == 0
+                    and eos_drained is True
                 )
                 if not parity_ok:
                     rank_payload["status"] = "FAIL"
                     rank_payload["error"] = (
                         f"Parity mismatch: ekv={report['ekv_serial_diffs']} "
-                        f"match={report['serial_draft_match']}"
+                        f"match={report['serial_draft_match']} "
+                        f"depth={in_flight_depth} drain={drain_q_len} eos={eos_drained}"
                     )
                 rank_payload["summary_path"] = req_out
                 rank_payload["output_sha256"] = last_trial["output_sha256"]
                 rank_payload["serial_draft_match"] = report["serial_draft_match"]
                 rank_payload["ekv_serial_diffs"] = report["ekv_serial_diffs"]
+                rank_payload["in_flight_depth"] = in_flight_depth
+                rank_payload["drain_q_len"] = drain_q_len
+                rank_payload["eos_drained_cleanly"] = eos_drained
                 rank_payload["median_tpot_ms"] = round(float(report["median_tpot_ms"]), 4)
         except Exception as exc:
             rank_payload["status"] = "FAIL"
@@ -742,6 +757,8 @@ def boot_daemon(
     job_dir = validate_job_dir(job_dir, os.environ.get("TILERT_E2E_RUN_ID"))
     job_dir.mkdir(parents=True, exist_ok=True)
     _clean_stale_ipc(job_dir)
+    if build_dir:
+        (Path(build_dir) / "whole_layer.ready").unlink(missing_ok=True)
     log_path = job_dir / "daemon.log"
     if worker_cmd_override is not None:
         cmd = list(worker_cmd_override)

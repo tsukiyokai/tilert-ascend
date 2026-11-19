@@ -308,6 +308,7 @@ def _write_dry_run_ranks(
             "main_state": main_state,
             "draft_state": draft_state,
             "serial_draft_match": True,
+            "ekv_serial_diffs": {},
             "runtime_invariants": runtime_invariants,
         }
         rank_file = output_dir / f"rank-{rank}.json"
@@ -447,6 +448,7 @@ def build_dry_run_bundle(
             "p90_tpot_ms": compute_p90(formal_ms),
             "output_sha256": spec.output_sha256,
             "all_ranks_exact": True,
+            "ekv_serial_diffs": {},
             "ab_ba_delta_ms": ab_ba_delta,
         },
         "ranks": ranks_manifest,

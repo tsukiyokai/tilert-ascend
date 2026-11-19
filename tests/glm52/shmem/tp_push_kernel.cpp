@@ -719,10 +719,12 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
     const int64_t worker = fast_8x48 ? (core >> 3) : (core / pe_size);
     const int64_t peer = fast_8x48 ? ((my_pe + (core & 7)) & 7) : ((my_pe + (core % pe_size)) % pe_size);
     const bool one_hop = (fast_8x48 && active_elements <= 24576);
-    const int64_t slice_elems =
-        (!one_hop && routed_slice == nullptr && routed_full == nullptr && fast_8x48 && (active_elements % 768) == 0)
-            ? (active_elements >> 3)
-            : (layout.elements / pe_size);
+    const bool fast_div8 =
+        (!one_hop && routed_slice == nullptr && routed_full == nullptr &&
+         fast_8x48 && (active_elements % 768) == 0);
+    const int64_t slice_elems = one_hop
+        ? active_elements
+        : (fast_div8 ? (active_elements >> 3) : (layout.elements / pe_size));
 
     const int64_t peer_rem = one_hop ? active_elements : (active_elements - peer * slice_elems);
     const int64_t peer_slice_active =
@@ -745,24 +747,28 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
         return;
     }
 
+    const int64_t win_off =
+        (one_hop && pe_size * slice_elems > layout.elements)
+            ? (pe_size * slice_elems)
+            : layout.elements;
     __gm__ bfloat16_t* local_rs_win = (__gm__ bfloat16_t*)layout.data;
-    __gm__ bfloat16_t* local_rs_win_routed = local_rs_win + layout.elements;
-    __gm__ float* local_rs_win_routed_fp32 = (__gm__ float*)(local_rs_win + layout.elements);
+    __gm__ bfloat16_t* local_rs_win_routed = local_rs_win + win_off;
+    __gm__ float* local_rs_win_routed_fp32 = (__gm__ float*)(local_rs_win + win_off);
     __gm__ bfloat16_t* local_ag_win = (stage == 17)
-        ? (local_rs_win + layout.elements * 3)
-        : ((stage == 16) ? (local_rs_win + layout.elements * 2) : (local_rs_win + layout.elements));
-    __gm__ bfloat16_t* remote_rs_win =
-        (peer != my_pe) ? (__gm__ bfloat16_t*)aclshmem_ptr((__gm__ void*)local_rs_win, peer) : nullptr;
+        ? (local_rs_win + win_off * 3)
+        : ((stage == 16) ? (local_rs_win + win_off * 2) : (local_rs_win + win_off));
+    __gm__ bfloat16_t* remote_rs_win = (peer != my_pe)
+        ? (__gm__ bfloat16_t*)aclshmem_ptr((__gm__ void*)local_rs_win, peer)
+        : nullptr;
     __gm__ bfloat16_t* remote_rs_win_routed =
-        (peer != my_pe) ? (remote_rs_win + layout.elements) : nullptr;
+        (peer != my_pe) ? (remote_rs_win + win_off) : nullptr;
     __gm__ float* remote_rs_win_routed_fp32 =
-        (peer != my_pe) ? (__gm__ float*)(remote_rs_win + layout.elements) : nullptr;
-    __gm__ bfloat16_t* remote_ag_win =
-        (peer != my_pe)
-            ? ((stage == 17)
-                   ? (remote_rs_win + layout.elements * 3)
-                   : ((stage == 16) ? (remote_rs_win + layout.elements * 2) : (remote_rs_win + layout.elements)))
-            : nullptr;
+        (peer != my_pe) ? (__gm__ float*)(remote_rs_win + win_off) : nullptr;
+    __gm__ bfloat16_t* remote_ag_win = (peer != my_pe)
+        ? ((stage == 17)
+               ? (remote_rs_win + win_off * 3)
+               : ((stage == 16) ? (remote_rs_win + win_off * 2) : (remote_rs_win + win_off)))
+        : nullptr;
     __gm__ float* routed_fp32 = (stage == 17) ? (__gm__ float*)routed_slice : nullptr;
 
     __gm__ int32_t* pool_base = (__gm__ int32_t*)aclshmemi_get_team_sync_pool(1);
@@ -1333,7 +1339,7 @@ ACLSHMEM_DEVICE void tp_push_once(__gm__ float* partial, __gm__ float* out, __gm
     }
     if (stage == 14) {
         int active_rows = rows;
-        if (active_ptr != nullptr && (rows == 32 || rows == 16)) {
+        if (active_ptr != nullptr && rows <= 32) {
             dcci((__gm__ uint64_t*)active_ptr, SINGLE_CACHE_LINE, CACHELINE_OUT);
             const int a = *active_ptr;
             if (a <= 0) {
@@ -1413,7 +1419,8 @@ ACLSHMEM_DEVICE void tp_push_once(__gm__ float* partial, __gm__ float* out, __gm
     if (stage == 10 || stage == 13 || stage == 15 || stage == 16 || stage == 17) {
         int64_t active_elements = layout.elements;
         if (active_ptr != nullptr &&
-            (layout.elements == 196608 || layout.elements == 98304 || hidden == 6144)) {
+            ((layout.elements <= 196608 && (layout.elements % 6144) == 0) ||
+             hidden == 6144)) {
             dcci((__gm__ uint64_t*)active_ptr, SINGLE_CACHE_LINE, CACHELINE_OUT);
             const int a = *active_ptr;
             if (a <= 0) {

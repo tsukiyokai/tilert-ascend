@@ -350,6 +350,10 @@ def verify_8rank_states(
                 )
         if row.get("serial_draft_match") is not True:
             raise VerificationError(f"Rank {rank} serial_draft_match is not True")
+        if row.get("ekv_serial_diffs") != {}:
+            raise VerificationError(
+                f"Rank {rank} ekv_serial_diffs must be empty, got {row.get('ekv_serial_diffs')!r}"
+            )
         row_tokens = _validate_vocab_tokens(
             row.get("output_token_ids"), OSL, f"rank-{rank}.output_token_ids"
         )
@@ -1226,6 +1230,15 @@ def verify_e2e_run(
     if summary_sha != spec.output_sha256:
         raise VerificationError(
             f"summary.output_sha256 {summary_sha!r} != {spec.output_sha256!r}"
+        )
+    summary_ekv = summary.get("ekv_serial_diffs") if isinstance(summary, dict) else None
+    if summary_ekv != {}:
+        raise VerificationError(
+            f"summary.ekv_serial_diffs must be empty, got {summary_ekv!r}"
+        )
+    if "ekv_serial_diffs" in report and report["ekv_serial_diffs"] != {}:
+        raise VerificationError(
+            f"report.ekv_serial_diffs must be empty, got {report['ekv_serial_diffs']!r}"
         )
 
     metrics = verify_timing_and_protocol(

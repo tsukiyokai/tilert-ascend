@@ -1093,6 +1093,7 @@ def build_shmem_libs_script(
         ),
         (
             '  bisheng -xcce --npu-arch=dav-2201 -std=c++17 -O2 -w -fPIC '
+            '-DL2_CACHE_HINT=1 -D__NPU_DEVICE__=1 -DASCENDC_DUMP=0 '
             '-Daclshmemx_sync_vec_all=aclshmemx_barrier_all_vec '
             '-I"$SRC" -I/assets/shmem-lib/include -I/assets/shmem-lib/src/device '
             '-I/assets/shmem-lib/src/host_device -I"$CANN/include" '
@@ -1222,8 +1223,7 @@ def dspine_unit_digest(repo_root: Path = REPO_ROOT) -> str:
                 files.append(cand)
     for rel in (
         "tilert/models/glm_5_2_ascend/weights.py",
-        "tilert/models/glm_5_2_ascend/mla_tail.py",
-        "tilert/models/glm_5_2_ascend/routed_shared.py",
+        "tilert/models/glm_5_2_ascend/abi.py",
         "tests/glm52/test_dspine_unit.py",
     ):
         cand = root / rel

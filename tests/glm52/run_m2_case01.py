@@ -201,6 +201,7 @@ def build_rank_report(res: dict[str, Any], case_id: str) -> dict[str, Any]:
         "main_state": res["main_state"],
         "draft_state": res["draft_state"],
         "serial_draft_match": bool(res["serial_draft_match"]),
+        "ekv_serial_diffs": res.get("ekv_serial_diffs"),
         "runtime_invariants": res["runtime_invariants"],
     }
 
@@ -259,6 +260,7 @@ def build_e2e_report(
             "all_ranks_exact": bool(
                 res["all_ranks_target_exact"] and res["all_ranks_cache_parity"]
             ),
+            "ekv_serial_diffs": res.get("ekv_serial_diffs"),
             "ab_ba_delta_ms": None,
         },
         "ranks": ranks_manifest,
@@ -355,6 +357,9 @@ def main(argv: list[str] | None = None) -> int:
             args.max_steps,
             check_serial,
         )
+        prof_acc = res.get("kernel_prof_acc")
+        if args.enable_kernel_prof and prof_acc is None and runner.kernel_prof_enabled:
+            prof_acc = runner.capture_prof_acc().tolist()
     finally:
         runner.close()
 
@@ -443,6 +448,7 @@ def main(argv: list[str] | None = None) -> int:
             "in_flight_depth": res["runtime_invariants"].get("in_flight_depth"),
             "drain_q_len": drain_q_len,
             "fast_parity": bool(args.fast_parity or args.warmups < 2 or args.formals < 5),
+            "kernel_prof_acc": prof_acc,
             "parity_ok": parity_ok,
         }
         out_p = Path(args.out_json)

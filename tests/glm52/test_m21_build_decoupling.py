@@ -799,6 +799,7 @@ def test_run_m2_case01_emits_valid_m2_report_schema(
             "main_state": main_state,
             "draft_state": draft_state,
             "serial_draft_match": True,
+            "ekv_serial_diffs": {},
             "runtime_invariants": {
                 "w_act_min": 10,
                 "w_act_max": max(w_hist),
