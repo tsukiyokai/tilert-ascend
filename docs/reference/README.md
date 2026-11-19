@@ -34,6 +34,7 @@ ForeachAddList 1.622 / 0.018.
 |`ascend-custom-op-packaging.md`|**Read off the machines, not published** — how a hand-written AscendC kernel reaches the graph. The vendor package file by file; `binList` / `simplifiedKey` / `staticKey` decoded with their generator sources; `opc` as the whole toolchain (**not** `msopgen`) with the exact invocation; what `op_proto` and `op_api` do and do not need rebuilding; the `ASCEND_CUSTOM_OPP_PATH` first-wins resolver confirmed from plog; and the torch-custom-op channel that needs no packaging at all. **§10 is seven superseded assumptions**, including that a `<<<>>>` kernel cannot reach the graph (it can, and we already did it once) and that a one-operator `.o` swap could carry a kernel that fuses two operators (it cannot)|
 |`tilert-rocm-glm52-structure.md`|The TileRT ROCm GLM-5.2 binary, disassembled — kernel inventory and structure, for comparison against what we generate|
 |`tilelang-ascend.md`|**Deprioritized** (hand-written AscendC was chosen instead). Kept for the AscendC primitives it documents: pipe flag protocol, real L1/UB address maps, Cube↔Vector handoff, and the tile-ai repo inventory|
+|`ultra-low-latency-2025.md`|100 public arXiv and X items from 2025-01-01 on, each a decode-latency technique (speculation and acceptance, MTP, megakernel or launch fusion, decode attention, quant on the decode path, collectives or PD transfer). Mechanism, regime, the source's number, a short quote, and a Relevance note against the 10.8528 ms baseline. Ends with Gaps.|
 
 ## The findings that change the plan
 
