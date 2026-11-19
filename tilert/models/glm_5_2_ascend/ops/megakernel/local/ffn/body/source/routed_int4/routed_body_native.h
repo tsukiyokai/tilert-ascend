@@ -470,6 +470,7 @@ struct DirectW4A8Runner16 {
                     else if (next_weight != nullptr) {
                         GlobalTensor<int4b_t> nb_gm;
                         nb_gm.SetGlobalBuffer(next_weight, static_cast<uint64_t>(next_tile_columns) * kInner);
+                        nb_gm.SetL2CacheHint(CacheMode::CACHE_MODE_DISABLE);
                         const int32_t nf_n = ChooseStep(static_cast<int32_t>(next_tile_columns));
                         pref_bi = IssueBMte2(nb_gm, 0, nf_n, 0);
                         has_pref_b = true;
@@ -624,6 +625,7 @@ struct DirectW4A8Runner16 {
                     else if (next_weight != nullptr) {
                         GlobalTensor<int4b_t> nb_gm;
                         nb_gm.SetGlobalBuffer(next_weight, static_cast<uint64_t>(next_tile_columns) * kInner);
+                        nb_gm.SetL2CacheHint(CacheMode::CACHE_MODE_DISABLE);
                         const int32_t nf_n = ChooseStep(static_cast<int32_t>(next_tile_columns));
                         pref_bi = IssueBMte2(nb_gm, 0, nf_n, 0);
                         has_pref_b = true;
@@ -727,9 +729,7 @@ struct DirectW4A8Runner16 {
         GlobalTensor<int4b_t> b_gm;
         GlobalTensor<int32_t> c_gm;
         b_gm.SetGlobalBuffer(weight, static_cast<uint64_t>(tile_columns) * kInner);
-        if (matrix_rows <= 16) {
-            b_gm.SetL2CacheHint(CacheMode::CACHE_MODE_DISABLE);
-        }
+        b_gm.SetL2CacheHint(CacheMode::CACHE_MODE_DISABLE);
         c_gm.SetGlobalBuffer(product, static_cast<uint64_t>(matrix_rows) * org_columns);
 
 #ifdef K11220_MULTI_M32
@@ -804,6 +804,7 @@ struct DirectW4A8Runner16 {
                         else if (next_weight != nullptr) {
                             GlobalTensor<int4b_t> nb_gm;
                             nb_gm.SetGlobalBuffer(next_weight, static_cast<uint64_t>(next_tile_columns) * kInner);
+                            nb_gm.SetL2CacheHint(CacheMode::CACHE_MODE_DISABLE);
                             const int32_t nf_n = ChooseStep(static_cast<int32_t>(next_tile_columns));
                             pref_bi = IssueBMte2(nb_gm, 0, nf_n, 0);
                             has_pref_b = true;
@@ -898,6 +899,7 @@ struct DirectW4A8Runner16 {
                         else if (next_weight != nullptr) {
                             GlobalTensor<int4b_t> nb_gm;
                             nb_gm.SetGlobalBuffer(next_weight, static_cast<uint64_t>(next_tile_columns) * kInner);
+                            nb_gm.SetL2CacheHint(CacheMode::CACHE_MODE_DISABLE);
                             const int32_t nf_n = ChooseStep(static_cast<int32_t>(next_tile_columns));
                             pref_bi = IssueBMte2(nb_gm, 0, nf_n, 0);
                             has_pref_b = true;
@@ -1063,6 +1065,7 @@ struct DirectW4A8Runner16 {
                 else if (next_weight != nullptr) {
                     GlobalTensor<int4b_t> nb_gm;
                     nb_gm.SetGlobalBuffer(next_weight, static_cast<uint64_t>(next_tile_columns) * kInner);
+                    nb_gm.SetL2CacheHint(CacheMode::CACHE_MODE_DISABLE);
                     const int32_t nf_n = ChooseStep(static_cast<int32_t>(next_tile_columns));
                     pref_bi = IssueBMte2(nb_gm, 0, nf_n, 0);
                     has_pref_b = true;

@@ -716,6 +716,7 @@ __aicore__ inline void DirectDenseGateUp24Aic(
     GlobalTensor<int32_t> c_gm;
     a_gm.SetGlobalBuffer(input, static_cast<uint64_t>(proj_rows) * 6144ULL);
     b_gm.SetGlobalBuffer(weights + static_cast<uint64_t>(cid) * 786432ULL, 786432ULL);
+    b_gm.SetL2CacheHint(CacheMode::CACHE_MODE_DISABLE);
     c_gm.SetGlobalBuffer(output + static_cast<uint64_t>(cid) * 128ULL, static_cast<uint64_t>(proj_rows) * 3072ULL);
 
     SetFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
@@ -975,6 +976,7 @@ __aicore__ inline void DirectDenseDown24Aic(
     GlobalTensor<int32_t> c_gm;
     a_gm.SetGlobalBuffer(input, static_cast<uint64_t>(proj_rows) * 1536ULL);
     b_gm.SetGlobalBuffer(weights + static_cast<uint64_t>(cid) * 393216ULL, 393216ULL);
+    b_gm.SetL2CacheHint(CacheMode::CACHE_MODE_DISABLE);
     c_gm.SetGlobalBuffer(output + static_cast<uint64_t>(cid) * static_cast<uint64_t>(capacity) * 256ULL,
                          static_cast<uint64_t>(capacity) * 256ULL);
 

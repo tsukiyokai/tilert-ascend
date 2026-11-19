@@ -31,9 +31,13 @@ CommunicationWindow AllocateCommunicationWindow(int64_t capacity,
     }
 
 
-    window.address = aclshmem_calloc(1, window.bytes);
+    window.address = aclshmem_align(kCommunicationCacheLine, window.bytes);
     if (window.address == nullptr) {
         throw std::runtime_error("SHMEM communication allocation failed");
+    }
+    if (aclrtMemset(window.address, window.bytes, 0, window.bytes) != ACL_SUCCESS) {
+        aclshmem_free(window.address);
+        throw std::runtime_error("SHMEM communication zero-init failed");
     }
     if (reinterpret_cast<uintptr_t>(window.address) % kCommunicationCacheLine) {
         aclshmem_free(window.address);

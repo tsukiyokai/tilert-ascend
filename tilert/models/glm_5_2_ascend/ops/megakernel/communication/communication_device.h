@@ -968,7 +968,11 @@ __aicore__ inline uint32_t AllReduceBf16(
                                         rows, rank, ranks, epoch,
                                         vector_index, vectors, shared_sum, quad4);
         if (sync_end) {
+#ifdef K112824_NO_R2_END_DSB
+            AscendC::PipeBarrier<PIPE_ALL>();
+#else
             CommunicationPublish();
+#endif
             AscendC::SyncAll<true>();
 #ifdef K112110_SIP_RED1
 #ifdef K112140_SIP_RED1_MIN_ROWS

@@ -15,7 +15,7 @@ namespace whole_layer_tree {
 constexpr int64_t kCommunicationHidden = 6144;
 constexpr int64_t kCommunicationMaximumRows = 32;
 constexpr int32_t kCommunicationMaximumRanks = 16;
-constexpr uint64_t kCommunicationCacheLine = 64;
+constexpr uint64_t kCommunicationCacheLine = 128;
 constexpr int64_t kCommunicationChunk = 2048;
 constexpr uint64_t kCommunicationUbBytes = kCommunicationChunk * 22;
 
@@ -86,7 +86,7 @@ CommunicationWindow AllocateCommunicationWindow(int64_t capacity,
 void ReleaseCommunicationWindow(CommunicationWindow& window);
 
 static_assert(kCommunicationHidden % kCommunicationChunk == 0);
-static_assert(MakeCommunicationLayout(32, 16).bytes == 12585024);
+static_assert(MakeCommunicationLayout(32, 16).bytes == 12587136);
 
 #undef WHOLE_LAYER_COMMUNICATION_DEVICE
 

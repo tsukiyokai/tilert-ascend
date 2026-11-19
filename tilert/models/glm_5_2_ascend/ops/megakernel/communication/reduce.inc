@@ -78,6 +78,42 @@ __aicore__ inline void ReduceCommunicationPayloadTiled(
                 AscendC::DataCopy(buffers.narrow[leaf * chunk], source, chunk);
             }
         }
+#ifdef K112830_FAST_POLL_RED2
+        if (pending != 0U) {
+            constexpr uint32_t kReadyIntsPerRank =
+                static_cast<uint32_t>(kCommunicationCacheLine / sizeof(int32_t));
+            constexpr int32_t kReadyPollInts = 8 * static_cast<int32_t>(kReadyIntsPerRank);
+            AscendC::GlobalTensor<int32_t> ready_gm;
+            ready_gm.SetGlobalBuffer(
+                reinterpret_cast<__gm__ int32_t*>(window + layout.ready), kReadyPollInts);
+            auto sig_ub = buffers.accumulator[31 * 1024].ReinterpretCast<int32_t>();
+            const uint32_t ep_slot = epoch & 3U;
+            while (pending != 0U) {
+                AscendC::DataCopy(sig_ub, ready_gm, kReadyPollInts);
+                CommunicationFence<AscendC::HardEvent::MTE2_S>();
+                for (int32_t l = 0; l < 8; ++l) {
+                    const int32_t leaf = (l + static_cast<int32_t>(vector_index)) & 7;
+                    if ((pending & (1U << leaf)) == 0U) {
+                        continue;
+                    }
+                    const TreeStep step = GetTreeStep(plan, leaf);
+                    const uint32_t s_idx =
+                        static_cast<uint32_t>(step.rank) * kReadyIntsPerRank + ep_slot;
+                    if (sig_ub.GetValue(s_idx) == signal) {
+                        AscendC::GlobalTensor<bfloat16_t> source;
+                        const bool use_twin =
+                            sip_att && (((static_cast<int32_t>(step.rank) ^ rank) & 1) != 0);
+                        __gm__ bfloat16_t* src_base = use_twin ? att_twin_plane : att_plane;
+                        const int64_t r_off =
+                            static_cast<int64_t>(step.rank) * rank_stride + pkt_off;
+                        source.SetGlobalBuffer(src_base + r_off, chunk);
+                        AscendC::DataCopy(buffers.narrow[leaf * chunk], source, chunk);
+                        pending &= ~(1U << leaf);
+                    }
+                }
+            }
+        }
+#else
         while (pending != 0U) {
             for (int32_t l = 0; l < 8; ++l) {
                 const int32_t leaf = (l + static_cast<int32_t>(vector_index)) & 7;
@@ -98,6 +134,7 @@ __aicore__ inline void ReduceCommunicationPayloadTiled(
                 }
             }
         }
+#endif
         unready = 0U;
         CommunicationFence<AscendC::HardEvent::MTE2_V>();
         AscendC::Cast(buffers.accumulator[0], buffers.narrow[0],
@@ -251,16 +288,20 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
     uint32_t rt_unready = 0xFFU & ~(1U << rank);
     uint8_t owner_of_exp[256];
 #ifdef K112830_FAST_POLL_RED2
+    constexpr uint32_t kReadyIntsPerRank =
+        static_cast<uint32_t>(kCommunicationCacheLine / sizeof(int32_t));
+    constexpr int32_t kReadyPollInts = 8 * static_cast<int32_t>(kReadyIntsPerRank);
     AscendC::GlobalTensor<int32_t> ready_gm;
-    ready_gm.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(window + layout.ready), 128);
+    ready_gm.SetGlobalBuffer(
+        reinterpret_cast<__gm__ int32_t*>(window + layout.ready), kReadyPollInts);
     auto sig_ub = buffers.accumulator[31 * 1024].ReinterpretCast<int32_t>();
     auto refresh_sigs = [&](uint32_t& mask, uint32_t ep, int32_t sig_val) __aicore__ {
-        AscendC::DataCopy(sig_ub, ready_gm, 128);
+        AscendC::DataCopy(sig_ub, ready_gm, kReadyPollInts);
         CommunicationFence<AscendC::HardEvent::MTE2_S>();
         const uint32_t ep_slot = ep & 3U;
         for (uint32_t r = 0U; r < 8U; ++r) {
             if ((mask & (1U << r)) != 0U) {
-                if (sig_ub.GetValue(r * 16U + ep_slot) == sig_val) {
+                if (sig_ub.GetValue(r * kReadyIntsPerRank + ep_slot) == sig_val) {
                     mask &= ~(1U << r);
                 }
             }
@@ -322,7 +363,8 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
             const uint32_t sh_s_ep = sh_epoch & 3U;
             const uint32_t rt_s_ep = rt_epoch & 3U;
             for (uint32_t r = 0U; r < 8U; ++r) {
-                if ((rt_unready & (1U << r)) != 0U && sig_ub.GetValue(r * 16U + rt_s_ep) == signal) {
+                const uint32_t rt_s_idx = r * kReadyIntsPerRank + rt_s_ep;
+                if ((rt_unready & (1U << r)) != 0U && sig_ub.GetValue(rt_s_idx) == signal) {
                     rt_unready &= ~(1U << r);
                 }
             }
