@@ -1,9 +1,10 @@
 import argparse
+from collections.abc import Sequence
 import hashlib
+import json
 import os
 from pathlib import Path
 import shlex
-import shutil
 import subprocess
 
 REPO = Path(__file__).resolve().parents[4]
@@ -34,6 +35,7 @@ KERNEL_CPP = """#if defined(__CCE_AICORE__) && !defined(__NPU_DEVICE__)
 #define __NPU_DEVICE__ 1
 #endif
 #include "kernel_operator.h"
+#include "shmem.h"
 
 namespace dspine_ops {
 using namespace AscendC;
@@ -2829,6 +2831,597 @@ __aicore__ inline void RunPrologPackCompact(
     }
 }
 
+
+constexpr uint64_t kDspineFlagOff = 128ULL;
+constexpr uint64_t kDspineDataOff = 4224ULL;
+constexpr uint64_t kDspineSlotBytes = 65536ULL;
+constexpr uint64_t kDspinePlaneBytes = 524288ULL;
+
+__aicore__ inline uint32_t DspineReadSeq(uint64_t win_gm)
+{
+    DcciRange(win_gm, 64);
+    return *reinterpret_cast<__gm__ const uint32_t*>(win_gm);
+}
+
+__aicore__ inline void DspineWriteSeq(uint64_t win_gm, uint32_t seq)
+{
+    *reinterpret_cast<__gm__ uint32_t*>(win_gm) = seq;
+    PipeBarrier<PIPE_ALL>();
+    DcciRange(win_gm, 64);
+}
+
+__aicore__ inline __gm__ uint8_t* DspinePayloadPtr(
+    uint64_t win_gm, uint32_t epoch, int32_t pe)
+{
+    return reinterpret_cast<__gm__ uint8_t*>(
+        win_gm + kDspineDataOff
+        + static_cast<uint64_t>(epoch & 7U) * kDspinePlaneBytes
+        + static_cast<uint64_t>(pe) * kDspineSlotBytes);
+}
+
+__aicore__ inline __gm__ int32_t* DspineFlagPtr(
+    uint64_t win_gm, uint32_t epoch, int32_t sender)
+{
+    return reinterpret_cast<__gm__ int32_t*>(
+        win_gm + kDspineFlagOff
+        + (static_cast<uint64_t>(epoch & 7U) * 8ULL + static_cast<uint64_t>(sender)) * 64ULL);
+}
+
+__aicore__ inline void RunDraftHeadTopk(
+    TPipe& pipe,
+    uint64_t q_len_gm,
+    uint64_t res_a_gm,
+    uint64_t res_b_gm,
+    uint64_t gamma_gm,
+    uint64_t w_q8_nz_gm,
+    uint64_t w_s8_gm,
+    uint64_t recs_out_gm,
+    uint64_t act_q_ws_gm,
+    uint64_t act_s_ws_gm,
+    uint64_t acc_i32_ws_gm,
+    uint64_t work_gm,
+    uint64_t gather_in_gm,
+    uint64_t gather_out_gm,
+    uint64_t comm_win_gm,
+    int32_t m_rows,
+    int32_t vocab_valid,
+    int32_t vocab_start,
+    int32_t k,
+    int32_t rank,
+    int32_t ranks,
+    float eps)
+{
+    int32_t eff = m_rows;
+    if (q_len_gm != 0ULL) {
+        DcciRange(q_len_gm, 64);
+        const int32_t q = *reinterpret_cast<__gm__ const int32_t*>(q_len_gm);
+        if (q <= 0) {
+            return;
+        }
+        if (q < eff) {
+            eff = q;
+        }
+    }
+    constexpr int32_t kHidden = 6144;
+    if ASCEND_IS_AIV {
+        const int32_t aiv = GetBlockIdx();
+        if (aiv < eff) {
+            TBuf<TPosition::VECCALC> b_f32, b_bf, b_i8;
+            pipe.InitBuffer(b_f32, 3 * kHidden * 4 + 256 * 4);
+            pipe.InitBuffer(b_bf, 3 * kHidden * 2);
+            pipe.InitBuffer(b_i8, kHidden + 32);
+
+            auto ub_f32 = b_f32.Get<float>();
+            auto ub_x = ub_f32[0];
+            auto ub_sq = ub_f32[kHidden];
+            auto ub_tmp = ub_f32[2 * kHidden];
+            auto ub_red = ub_f32[3 * kHidden];
+            auto ub_sc = ub_f32[3 * kHidden + 128];
+
+            auto ub_bf = b_bf.Get<bfloat16_t>();
+            auto ub_x1 = ub_bf[0];
+            auto ub_x2 = ub_bf[kHidden];
+            auto ub_g = ub_bf[2 * kHidden];
+            auto ub_q8 = b_i8.Get<int8_t>();
+
+            GlobalTensor<bfloat16_t> g_a, g_b, g_g, g_recs;
+            GlobalTensor<int8_t> g_q8;
+            GlobalTensor<float> g_sc;
+            g_a.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(res_a_gm));
+            g_b.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(res_b_gm));
+            g_g.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(gamma_gm), kHidden);
+            g_recs.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(recs_out_gm));
+            g_q8.SetGlobalBuffer(reinterpret_cast<__gm__ int8_t*>(act_q_ws_gm));
+            g_sc.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(act_s_ws_gm));
+
+            const int64_t row_off = static_cast<int64_t>(aiv) * kHidden;
+            DataCopy(ub_x1, g_a[row_off], kHidden);
+            if (res_b_gm != 0ULL) {
+                DataCopy(ub_x2, g_b[row_off], kHidden);
+            }
+            DataCopy(ub_g, g_g, kHidden);
+            Fence<HardEvent::MTE2_V>();
+
+            Cast(ub_x, ub_x1, RoundMode::CAST_NONE, kHidden);
+            if (res_b_gm != 0ULL) {
+                Cast(ub_tmp, ub_x2, RoundMode::CAST_NONE, kHidden);
+                PipeBarrier<PIPE_V>();
+                Add(ub_x, ub_x, ub_tmp, kHidden);
+                PipeBarrier<PIPE_V>();
+                Cast(ub_x1, ub_x, RoundMode::CAST_RINT, kHidden);
+                PipeBarrier<PIPE_V>();
+                Cast(ub_x, ub_x1, RoundMode::CAST_NONE, kHidden);
+            }
+            PipeBarrier<PIPE_V>();
+            Mul(ub_sq, ub_x, ub_x, kHidden);
+            PipeBarrier<PIPE_V>();
+            Add(ub_sq, ub_sq, ub_sq[4096], 2048);
+            PipeBarrier<PIPE_V>();
+            for (int32_t s = 2048; s >= 64; s >>= 1) {
+                Add(ub_sq, ub_sq, ub_sq[s], s);
+                PipeBarrier<PIPE_V>();
+            }
+            AscendCUtils::SetMask<float>(64);
+            WholeReduceSum<float, false>(ub_sq, ub_sq, MASK_PLACEHOLDER, 1, 0, 1, 0);
+            Fence<HardEvent::V_S>();
+            const float rstd = 1.0F / sqrt(
+                ub_sq.GetValue(0) * (1.0F / static_cast<float>(kHidden)) + eps);
+            Fence<HardEvent::S_V>();
+            Muls(ub_x, ub_x, rstd, kHidden);
+            Cast(ub_tmp, ub_g, RoundMode::CAST_NONE, kHidden);
+            PipeBarrier<PIPE_V>();
+            Mul(ub_x, ub_x, ub_tmp, kHidden);
+            PipeBarrier<PIPE_V>();
+            Cast(ub_x1, ub_x, RoundMode::CAST_RINT, kHidden);
+            Fence<HardEvent::V_MTE3>();
+            if (recs_out_gm != 0ULL) {
+                DataCopy(g_recs[row_off], ub_x1, kHidden);
+            }
+            PipeBarrier<PIPE_V>();
+            Cast(ub_x, ub_x1, RoundMode::CAST_NONE, kHidden);
+            PipeBarrier<PIPE_V>();
+            Abs(ub_tmp, ub_x, kHidden);
+            PipeBarrier<PIPE_V>();
+            ReduceMax(ub_red, ub_tmp, ub_sq, kHidden);
+            Fence<HardEvent::V_S>();
+            const float max_v = ub_red.GetValue(0);
+            const float sc = (max_v > 0.0F) ? (max_v / 127.0F) : 1.0F;
+            ub_sc.SetValue(0, sc);
+            Fence<HardEvent::S_V>();
+            Duplicate(ub_tmp, sc, 64);
+            Duplicate(ub_sq, 1.0F, 64);
+            PipeBarrier<PIPE_V>();
+            Div(ub_sq, ub_sq, ub_tmp, 64);
+            PipeBarrier<PIPE_V>();
+            Mul(ub_tmp, ub_x, ub_sq, 64, kHidden / 64, BinaryRepeatParams{1, 1, 0, 8, 8, 0});
+            PipeBarrier<PIPE_V>();
+            auto ub_i32 = ub_sq.ReinterpretCast<int32_t>();
+            Cast(ub_i32, ub_tmp, RoundMode::CAST_RINT, kHidden);
+            PipeBarrier<PIPE_V>();
+            SetDeqScale(static_cast<half>(1.0F));
+            PipeBarrier<PIPE_V>();
+            auto ub_fp16 = ub_x2.ReinterpretCast<half>();
+            Cast(ub_fp16, ub_i32, RoundMode::CAST_ROUND, kHidden);
+            PipeBarrier<PIPE_V>();
+            Cast(ub_q8, ub_fp16, RoundMode::CAST_TRUNC, kHidden);
+            Fence<HardEvent::V_MTE3>();
+            Fence<HardEvent::S_MTE3>();
+            DataCopy(g_q8[row_off], ub_q8, kHidden);
+            DataCopyExtParams copy_sc{1, 4, 0, 0, 0};
+            DataCopyPad(g_sc[aiv], ub_sc, copy_sc);
+        }
+        Publish();
+    }
+
+    SyncAll<false>();
+    pipe.Reset();
+
+    if ASCEND_IS_AIC {
+        const int32_t cid = GetBlockIdx();
+        const int32_t n32_total = (vocab_valid + 31) / 32;
+        const int32_t base_b = n32_total / 24;
+        const int32_t rem_b = n32_total % 24;
+        const int32_t my_b = base_b + (cid < rem_b ? 1 : 0);
+        if (my_b > 0) {
+            const int32_t b_start = cid * base_b + (cid < rem_b ? cid : rem_b);
+            constexpr int32_t kStep = 512;
+            constexpr int32_t kKSteps = kHidden / kStep;
+            constexpr int32_t kN32Sub = 8;
+
+            TBuf<TPosition::A1> a1_buf;
+            TBuf<TPosition::B1> b1_buf0, b1_buf1;
+            TBuf<TPosition::A2> l0a_buf;
+            TBuf<TPosition::B2> l0b_buf0, l0b_buf1;
+            TBuf<TPosition::CO1> l0c_buf;
+            pipe.InitBuffer(a1_buf, 16 * kHidden);
+            pipe.InitBuffer(b1_buf0, kN32Sub * 32 * 512);
+            pipe.InitBuffer(b1_buf1, kN32Sub * 32 * 512);
+            pipe.InitBuffer(l0a_buf, 16 * kStep);
+            pipe.InitBuffer(l0b_buf0, kN32Sub * 32 * 128);
+            pipe.InitBuffer(l0b_buf1, kN32Sub * 32 * 128);
+            pipe.InitBuffer(l0c_buf, my_b * 512 * sizeof(int32_t));
+
+            auto a1 = a1_buf.Get<int8_t>();
+            LocalTensor<int8_t> b1[2] = {b1_buf0.Get<int8_t>(), b1_buf1.Get<int8_t>()};
+            auto l0a = l0a_buf.Get<int8_t>();
+            LocalTensor<int8_t> l0b[2] = {l0b_buf0.Get<int8_t>(), l0b_buf1.Get<int8_t>()};
+            auto l0c = l0c_buf.Get<int32_t>();
+
+            GlobalTensor<int8_t> a_gm, b_gm;
+            GlobalTensor<int32_t> c_gm;
+            a_gm.SetGlobalBuffer(
+                reinterpret_cast<__gm__ int8_t*>(act_q_ws_gm),
+                static_cast<uint64_t>(eff) * kHidden);
+            b_gm.SetGlobalBuffer(
+                reinterpret_cast<__gm__ int8_t*>(w_q8_nz_gm),
+                static_cast<uint64_t>(n32_total) * 384ULL * 512ULL);
+            c_gm.SetGlobalBuffer(
+                reinterpret_cast<__gm__ int32_t*>(acc_i32_ws_gm),
+                static_cast<uint64_t>(eff) * vocab_valid);
+
+            Nd2NzParams copy_a{};
+            copy_a.ndNum = 1;
+            copy_a.nValue = eff;
+            copy_a.dValue = kHidden;
+            copy_a.srcDValue = kHidden;
+            copy_a.dstNzC0Stride = 16;
+            copy_a.dstNzNStride = 1;
+            DataCopy(a1, a_gm, copy_a);
+            SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
+            WaitFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
+
+            SetFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
+            SetFlag<HardEvent::MTE1_MTE2>(EVENT_ID1);
+            SetFlag<HardEvent::M_MTE1>(EVENT_ID3);
+            SetFlag<HardEvent::M_MTE1>(EVENT_ID4);
+            SetFlag<HardEvent::M_MTE1>(EVENT_ID5);
+
+            int32_t b_iter = 0;
+            int32_t lb_iter = 0;
+            for (int32_t kc = 0; kc < kKSteps; ++kc) {
+                WaitFlag<HardEvent::M_MTE1>(EVENT_ID5);
+                LoadData2DParams load_a{};
+                load_a.startIndex = kc * 16;
+                load_a.repeatTimes = 16;
+                load_a.srcStride = 1;
+                load_a.ifTranspose = false;
+                LoadData(l0a, a1, load_a);
+                SetFlag<HardEvent::MTE1_M>(EVENT_ID5);
+                WaitFlag<HardEvent::MTE1_M>(EVENT_ID5);
+
+                for (int32_t nb = 0; nb < my_b; nb += kN32Sub) {
+                    const int32_t n32_cnt = (my_b - nb < kN32Sub) ? (my_b - nb) : kN32Sub;
+                    const int32_t bi = b_iter & 1;
+                    const event_t b_ev = bi ? EVENT_ID1 : EVENT_ID0;
+                    const uint64_t b_off =
+                        static_cast<uint64_t>(b_start + nb) * 384ULL * 512ULL
+                        + static_cast<uint64_t>(kc) * 32ULL * 512ULL;
+                    WaitFlag<HardEvent::MTE1_MTE2>(b_ev);
+                    DataCopy(
+                        b1[bi],
+                        b_gm[b_off],
+                        DataCopyParams{
+                            static_cast<uint16_t>(n32_cnt), 512, 5632, 0});
+                    SetFlag<HardEvent::MTE2_MTE1>(b_ev);
+                    WaitFlag<HardEvent::MTE2_MTE1>(b_ev);
+
+                    LoadData2dTransposeParams trans(
+                        0, static_cast<uint8_t>(n32_cnt), 16, 1, 0, inc);
+                    for (int32_t sub = 0; sub < 4; ++sub) {
+                        const int32_t lbi = lb_iter & 1;
+                        const event_t lb_ev = lbi ? EVENT_ID4 : EVENT_ID3;
+                        WaitFlag<HardEvent::M_MTE1>(lb_ev);
+                        const uint32_t k_sub_off = static_cast<uint32_t>(sub) * 4096U;
+                        for (int32_t i = 0; i < 4; ++i) {
+                            LoadDataWithTranspose(
+                                l0b[lbi][i * n32_cnt * 1024],
+                                b1[bi][k_sub_off + static_cast<uint32_t>(i) * 1024U],
+                                trans);
+                        }
+                        if (sub == 3) {
+                            SetFlag<HardEvent::MTE1_MTE2>(b_ev);
+                        }
+                        SetFlag<HardEvent::MTE1_M>(lb_ev);
+                        WaitFlag<HardEvent::MTE1_M>(lb_ev);
+                        MmadParams mad{};
+                        mad.m = 16;
+                        mad.n = n32_cnt * 32;
+                        mad.k = 128;
+                        mad.cmatrixSource = false;
+                        mad.cmatrixInitVal = (kc == 0 && sub == 0);
+                        Mmad(l0c[nb * 512], l0a[sub * 2048], l0b[lbi], mad);
+                        PipeBarrier<PIPE_M>();
+                        SetFlag<HardEvent::M_MTE1>(lb_ev);
+                        ++lb_iter;
+                    }
+                    ++b_iter;
+                }
+                SetFlag<HardEvent::M_MTE1>(EVENT_ID5);
+            }
+            WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
+            WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID1);
+            WaitFlag<HardEvent::M_MTE1>(EVENT_ID3);
+            WaitFlag<HardEvent::M_MTE1>(EVENT_ID4);
+            WaitFlag<HardEvent::M_MTE1>(EVENT_ID5);
+
+            SetFlag<HardEvent::M_FIX>(EVENT_ID0);
+            WaitFlag<HardEvent::M_FIX>(EVENT_ID0);
+            for (int32_t nb = 0; nb < my_b; nb += kN32Sub) {
+                const int32_t n32_cnt = (my_b - nb < kN32Sub) ? (my_b - nb) : kN32Sub;
+                FixpipeParamsV220 fix{};
+                fix.nSize = n32_cnt * 32;
+                fix.mSize = eff;
+                fix.srcStride = 16;
+                fix.dstStride = vocab_valid;
+                fix.ndNum = 1;
+                fix.quantPre = QuantMode_t::NoQuant;
+                Fixpipe<int32_t, int32_t, CFG_ROW_MAJOR>(
+                    c_gm[(b_start + nb) * 32], l0c[nb * 512], fix);
+            }
+            SetFlag<HardEvent::FIX_M>(EVENT_ID0);
+            WaitFlag<HardEvent::FIX_M>(EVENT_ID0);
+        }
+        Publish();
+    }
+
+    SyncAll<false>();
+    pipe.Reset();
+    if (work_gm == 0ULL) {
+        return;
+    }
+
+    if ASCEND_IS_AIV {
+        const int32_t aiv = GetBlockIdx();
+        const int32_t aivs_per_row = 48 / eff;
+        const int32_t r_idx = aiv / aivs_per_row;
+        const int32_t sub = aiv % aivs_per_row;
+        const int32_t chunk =
+            (((vocab_valid + aivs_per_row - 1) / aivs_per_row) + 63) & ~63;
+        const int32_t col_begin = sub * chunk;
+        const int32_t col_end =
+            (col_begin + chunk < vocab_valid) ? (col_begin + chunk) : vocab_valid;
+        const int32_t len = (col_end > col_begin) ? (col_end - col_begin) : 0;
+
+        TBuf<TPosition::VECCALC> b_i32, b_ws8, b_x, b_bf16, b_blk, b_tmp, b_work, b_sum, b_out;
+        pipe.InitBuffer(b_i32, 2048 * 4);
+        pipe.InitBuffer(b_ws8, 2048 * 4);
+        pipe.InitBuffer(b_x, 2048 * 4);
+        pipe.InitBuffer(b_bf16, 2048 * 2);
+        pipe.InitBuffer(b_blk, 512);
+        pipe.InitBuffer(b_tmp, 2048 * 4);
+        pipe.InitBuffer(b_work, 2048 * 4);
+        pipe.InitBuffer(b_sum, 64);
+        pipe.InitBuffer(b_out, 512);
+        auto ub_i32 = b_i32.Get<int32_t>();
+        auto ub_ws8 = b_ws8.Get<float>();
+        auto ub_x = b_x.Get<float>();
+        auto ub_bf16 = b_bf16.Get<bfloat16_t>();
+        auto ub_blk = b_blk.Get<float>();
+        auto ub_tmp = b_tmp.Get<float>();
+        auto ub_work = b_work.Get<float>();
+        auto ub_sum = b_sum.Get<float>();
+        auto ub_out = b_out.Get<float>();
+
+        GlobalTensor<int32_t> g_acc;
+        GlobalTensor<float> g_ws8, g_act_s, g_work, g_gather;
+        g_acc.SetGlobalBuffer(
+            reinterpret_cast<__gm__ int32_t*>(acc_i32_ws_gm),
+            static_cast<uint64_t>(eff) * vocab_valid);
+        g_ws8.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(w_s8_gm), vocab_valid);
+        g_act_s.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(act_s_ws_gm), eff);
+        g_work.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(work_gm), 48 * 16);
+        g_gather.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(gather_in_gm), 8 * 64);
+
+        DcciRange(act_s_ws_gm, eff * 4);
+        DataCopyPad(
+            ub_sum, g_act_s,
+            DataCopyExtParams{1, static_cast<uint32_t>(eff * 4), 0, 0, 0},
+            DataCopyPadExtParams<float>{false, 0, 0, 0});
+        Fence<HardEvent::MTE2_S>();
+
+        if (aiv < 8 && aiv != rank) {
+            Duplicate(ub_out, 0.0F, 64);
+            Fence<HardEvent::V_MTE3>();
+            DataCopy(g_gather[aiv * 64], ub_out, 64);
+            Fence<HardEvent::MTE3_V>();
+            Fence<HardEvent::MTE3_S>();
+        }
+
+        Duplicate(ub_x, -1.0e30F, chunk);
+        PipeBarrier<PIPE_V>();
+        float tv0 = -1.0e30F, tv1 = -1.0e30F, tv2 = -1.0e30F, tv3 = -1.0e30F;
+        int64_t ti0 = 0, ti1 = 0, ti2 = 0, ti3 = 0;
+        float l_sum = 0.0F;
+
+        if (r_idx < eff && len > 0) {
+            const float act_s = ub_sum.GetValue(r_idx);
+            DataCopyPad(
+                ub_i32, g_acc[static_cast<int64_t>(r_idx) * vocab_valid + col_begin],
+                DataCopyExtParams{1, static_cast<uint32_t>(len * 4), 0, 0, 0},
+                DataCopyPadExtParams<int32_t>{false, 0, 0, 0});
+            DataCopyPad(
+                ub_ws8, g_ws8[col_begin],
+                DataCopyExtParams{1, static_cast<uint32_t>(len * 4), 0, 0, 0},
+                DataCopyPadExtParams<float>{false, 0, 0, 0});
+            Fence<HardEvent::MTE2_V>();
+            const int32_t len_a16 = (len + 15) & ~15;
+            Cast(ub_tmp, ub_i32, RoundMode::CAST_RINT, len_a16);
+            PipeBarrier<PIPE_V>();
+            Mul(ub_tmp, ub_tmp, ub_ws8, len_a16);
+            PipeBarrier<PIPE_V>();
+            Muls(ub_tmp, ub_tmp, act_s, len_a16);
+            PipeBarrier<PIPE_V>();
+            Cast(ub_bf16, ub_tmp, RoundMode::CAST_RINT, len_a16);
+            PipeBarrier<PIPE_V>();
+            Cast(ub_x, ub_bf16, RoundMode::CAST_NONE, len_a16);
+            Fence<HardEvent::V_S>();
+            for (int32_t pad_j = len; pad_j < len_a16; ++pad_j) {
+                ub_x.SetValue(pad_j, -1.0e30F);
+            }
+            Fence<HardEvent::S_V>();
+            const int32_t n_rep = chunk / 64;
+            WholeReduceMax<float>(ub_blk, ub_x, 64, n_rep, 1, 1, 8);
+            Fence<HardEvent::V_S>();
+            for (int32_t b = 0; b < n_rep; ++b) {
+                if (ub_blk.GetValue(2 * b) > KthTop4(k, tv0, tv1, tv2, tv3)) {
+                    const int32_t j_end = ((b + 1) * 64 < len) ? ((b + 1) * 64) : len;
+                    for (int32_t j = b * 64; j < j_end; ++j) {
+                        InsertTop4(
+                            ub_x.GetValue(j),
+                            static_cast<int64_t>(vocab_start + col_begin + j),
+                            tv0, tv1, tv2, tv3, ti0, ti1, ti2, ti3);
+                    }
+                }
+            }
+            Fence<HardEvent::S_V>();
+            Adds(ub_tmp, ub_x, -tv0, chunk);
+            PipeBarrier<PIPE_V>();
+            Maxs(ub_tmp, ub_tmp, -104.0F, chunk);
+            PipeBarrier<PIPE_V>();
+            Exp(ub_tmp, ub_tmp, chunk);
+            PipeBarrier<PIPE_V>();
+            ReduceSum(ub_sum, ub_tmp, ub_work, chunk);
+            Fence<HardEvent::V_S>();
+            l_sum = ub_sum.GetValue(0);
+        }
+
+        ub_out.SetValue(0, tv0);
+        ub_out.SetValue(1, l_sum);
+        ub_out.SetValue(2, tv0);
+        ub_out.SetValue(3, tv1);
+        ub_out.SetValue(4, tv2);
+        ub_out.SetValue(5, tv3);
+        ub_out.SetValue(6, static_cast<float>(ti0));
+        ub_out.SetValue(7, static_cast<float>(ti1));
+        ub_out.SetValue(8, static_cast<float>(ti2));
+        ub_out.SetValue(9, static_cast<float>(ti3));
+        Fence<HardEvent::S_MTE3>();
+        DataCopy(g_work[aiv * 16], ub_out, 16);
+        Publish();
+        SyncAll<true>();
+
+        if (aiv == 0) {
+            DataCopy(ub_work, g_work, 48 * 16);
+            Fence<HardEvent::MTE2_S>();
+            Fence<HardEvent::S_V>();
+            Duplicate(ub_out, 0.0F, 64);
+            Fence<HardEvent::V_S>();
+
+            const int32_t cols = 2 + 2 * k;
+            for (int32_t m = 0; m < eff; ++m) {
+                float rv0 = -1.0e30F, rv1 = -1.0e30F, rv2 = -1.0e30F, rv3 = -1.0e30F;
+                int64_t ri0 = 0, ri1 = 0, ri2 = 0, ri3 = 0;
+                for (int32_t s = 0; s < aivs_per_row; ++s) {
+                    const int32_t base = (m * aivs_per_row + s) * 16;
+                    for (int32_t j = 0; j < k; ++j) {
+                        InsertTop4(
+                            ub_work.GetValue(base + 2 + j),
+                            static_cast<int64_t>(ub_work.GetValue(base + 6 + j)),
+                            rv0, rv1, rv2, rv3, ri0, ri1, ri2, ri3);
+                    }
+                }
+                const float r_max = rv0;
+                Fence<HardEvent::S_V>();
+                Duplicate(ub_blk, -1.0e30F, 64);
+                Duplicate(ub_tmp, 0.0F, 64);
+                Fence<HardEvent::V_S>();
+                for (int32_t s = 0; s < aivs_per_row; ++s) {
+                    const int32_t base = (m * aivs_per_row + s) * 16;
+                    ub_blk.SetValue(s, ub_work.GetValue(base + 0));
+                    ub_tmp.SetValue(s, ub_work.GetValue(base + 1));
+                }
+                Fence<HardEvent::S_V>();
+                Adds(ub_blk, ub_blk, -r_max, 64);
+                PipeBarrier<PIPE_V>();
+                Maxs(ub_blk, ub_blk, -104.0F, 64);
+                PipeBarrier<PIPE_V>();
+                Exp(ub_blk, ub_blk, 64);
+                PipeBarrier<PIPE_V>();
+                Mul(ub_blk, ub_blk, ub_tmp, 64);
+                PipeBarrier<PIPE_V>();
+                ReduceSum(ub_sum, ub_blk, ub_x, 64);
+                Fence<HardEvent::V_S>();
+                const float r_sum = ub_sum.GetValue(0);
+
+                const int32_t out_base = m * cols;
+                ub_out.SetValue(out_base + 0, r_max);
+                ub_out.SetValue(out_base + 1, r_sum);
+                if (k >= 1) {
+                    ub_out.SetValue(out_base + 2 + 0, rv0);
+                    ub_out.SetValue(out_base + 2 + k + 0, static_cast<float>(ri0));
+                }
+                if (k >= 2) {
+                    ub_out.SetValue(out_base + 2 + 1, rv1);
+                    ub_out.SetValue(out_base + 2 + k + 1, static_cast<float>(ri1));
+                }
+                if (k >= 3) {
+                    ub_out.SetValue(out_base + 2 + 2, rv2);
+                    ub_out.SetValue(out_base + 2 + k + 2, static_cast<float>(ri2));
+                }
+                if (k >= 4) {
+                    ub_out.SetValue(out_base + 2 + 3, rv3);
+                    ub_out.SetValue(out_base + 2 + k + 3, static_cast<float>(ri3));
+                }
+            }
+            Fence<HardEvent::S_MTE3>();
+            DataCopy(g_gather[rank * 64], ub_out, 64);
+        }
+        if (comm_win_gm == 0ULL) {
+            Publish();
+            return;
+        }
+        const uint32_t seq = DspineReadSeq(comm_win_gm);
+        const uint32_t epoch = seq + 1U;
+        Publish();
+        SyncAll<true>();
+
+        if (aiv < ranks) {
+            DataCopy(ub_out, g_gather[rank * 64], 64);
+            Fence<HardEvent::MTE2_MTE3>();
+            const int32_t peer = (rank + aiv) % ranks;
+            GlobalTensor<float> g_rem;
+            g_rem.SetGlobalBuffer(
+                reinterpret_cast<__gm__ float*>(
+                    aclshmem_ptr(DspinePayloadPtr(comm_win_gm, epoch, rank), peer)),
+                64);
+            DataCopy(g_rem, ub_out, 64);
+            Fence<HardEvent::MTE3_S>();
+            PipeBarrier<PIPE_ALL>();
+            DataSyncBarrier<MemDsbT::DDR>();
+            __gm__ int32_t* remote_sig = reinterpret_cast<__gm__ int32_t*>(
+                aclshmem_ptr(DspineFlagPtr(comm_win_gm, epoch, rank), peer));
+            *remote_sig = static_cast<int32_t>(epoch);
+            dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(remote_sig));
+        }
+
+        if (aiv == 0) {
+            GlobalTensor<float> g_gout;
+            g_gout.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(gather_out_gm), 8 * 64);
+            for (int32_t pe = 0; pe < ranks; ++pe) {
+                __gm__ volatile int32_t* sig = DspineFlagPtr(comm_win_gm, epoch, pe);
+                while (true) {
+                    dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(
+                        const_cast<__gm__ int32_t*>(sig)));
+                    if (*sig == static_cast<int32_t>(epoch)) {
+                        break;
+                    }
+                }
+                GlobalTensor<float> g_pe;
+                g_pe.SetGlobalBuffer(
+                    reinterpret_cast<__gm__ float*>(
+                        DspinePayloadPtr(comm_win_gm, epoch, pe)),
+                    64);
+                DataCopy(ub_out, g_pe, 64);
+                Fence<HardEvent::MTE2_MTE3>();
+                DataCopy(g_gout[pe * 64], ub_out, 64);
+                Fence<HardEvent::MTE3_MTE2>();
+            }
+            Publish();
+            DspineWriteSeq(comm_win_gm, epoch);
+        }
+        SyncAll<true>();
+    }
+}
 }
 
 extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
@@ -3509,10 +4102,65 @@ extern "C" int tilert_dspine_prolog_pack_compact_raw(
         m_max, vocab_start, vocab_end, rank);
     return 0;
 }
+
+extern "C" __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+void dspine_draft_head_topk_k(
+    uint64_t sync_base,
+    uint64_t q_len_gm,
+    uint64_t res_a_gm,
+    uint64_t res_b_gm,
+    uint64_t gamma_gm,
+    uint64_t w_q8_nz_gm,
+    uint64_t w_s8_gm,
+    uint64_t recs_out_gm,
+    uint64_t act_q_ws_gm,
+    uint64_t act_s_ws_gm,
+    uint64_t acc_i32_ws_gm,
+    uint64_t work_gm,
+    uint64_t gather_in_gm,
+    uint64_t gather_out_gm,
+    uint64_t comm_win_gm,
+    int32_t m_rows,
+    int32_t vocab_valid,
+    int32_t vocab_start,
+    int32_t k,
+    int32_t rank,
+    int32_t ranks,
+    float eps)
+{
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    AscendC::InitSocState();
+    AscendC::SetSyncBaseAddr(sync_base);
+    AscendC::TPipe pipe;
+    dspine_ops::RunDraftHeadTopk(
+        pipe, q_len_gm, res_a_gm, res_b_gm, gamma_gm, w_q8_nz_gm, w_s8_gm,
+        recs_out_gm, act_q_ws_gm, act_s_ws_gm, acc_i32_ws_gm, work_gm,
+        gather_in_gm, gather_out_gm, comm_win_gm,
+        m_rows, vocab_valid, vocab_start, k, rank, ranks, eps);
+}
+
+extern "C" int tilert_dspine_draft_head_topk_raw(
+    void* stream, uint64_t sync_base, uint64_t q_len_gm,
+    uint64_t res_a_gm, uint64_t res_b_gm, uint64_t gamma_gm,
+    uint64_t w_q8_nz_gm, uint64_t w_s8_gm, uint64_t recs_out_gm,
+    uint64_t act_q_ws_gm, uint64_t act_s_ws_gm, uint64_t acc_i32_ws_gm,
+    uint64_t work_gm, uint64_t gather_in_gm, uint64_t gather_out_gm,
+    uint64_t comm_win_gm, int32_t m_rows, int32_t vocab_valid,
+    int32_t vocab_start, int32_t k, int32_t rank, int32_t ranks, float eps)
+{
+    dspine_draft_head_topk_k<<<24, nullptr, stream>>>(
+        sync_base, q_len_gm, res_a_gm, res_b_gm, gamma_gm, w_q8_nz_gm, w_s8_gm,
+        recs_out_gm, act_q_ws_gm, act_s_ws_gm, acc_i32_ws_gm, work_gm,
+        gather_in_gm, gather_out_gm, comm_win_gm,
+        m_rows, vocab_valid, vocab_start, k, rank, ranks, eps);
+    return 0;
+}
 """
 
 HOST_CPP = """#include <cstdint>
 #include <cstring>
+#include "acl/acl.h"
+#include "shmem.h"
 #include <torch_npu/csrc/core/npu/NPUStream.h>
 
 extern "C" {
@@ -3610,6 +4258,14 @@ int tilert_dspine_prolog_pack_compact_raw(
     void* stream, uint64_t ctrl_gm, uint64_t target_toks_gm, uint64_t emb_w_gm,
     uint64_t rot_part_gm, uint64_t comm_in_gm,
     int32_t m_max, int32_t vocab_start, int32_t vocab_end, int32_t rank);
+int tilert_dspine_draft_head_topk_raw(
+    void* stream, uint64_t sync_base, uint64_t q_len_gm,
+    uint64_t res_a_gm, uint64_t res_b_gm, uint64_t gamma_gm,
+    uint64_t w_q8_nz_gm, uint64_t w_s8_gm, uint64_t recs_out_gm,
+    uint64_t act_q_ws_gm, uint64_t act_s_ws_gm, uint64_t acc_i32_ws_gm,
+    uint64_t work_gm, uint64_t gather_in_gm, uint64_t gather_out_gm,
+    uint64_t comm_win_gm, int32_t m_rows, int32_t vocab_valid,
+    int32_t vocab_start, int32_t k, int32_t rank, int32_t ranks, float eps);
 int32_t rtGetC2cCtrlAddr(uint64_t* address, uint32_t* length);
 
 static inline uint64_t ResolveSyncBase(uint64_t sync_base)
@@ -3862,6 +4518,49 @@ int tilert_dspine_prolog_pack_compact_launch(
         ctrl_gm, target_toks_gm, emb_w_gm, rot_part_gm, comm_in_gm,
         m_max, vocab_start, vocab_end, rank);
 }
+
+uint64_t tilert_dspine_alloc_comm_win()
+{
+    if (aclshmemx_init_status() != ACLSHMEM_STATUS_IS_INITIALIZED) {
+        return 0ULL;
+    }
+    constexpr size_t kBytes = 8ULL << 20;
+    void* ptr = aclshmem_align(128, kBytes);
+    if (ptr == nullptr) {
+        return 0ULL;
+    }
+    if (aclrtMemset(ptr, kBytes, 0, kBytes) != ACL_SUCCESS) {
+        aclshmem_free(ptr);
+        return 0ULL;
+    }
+    aclshmem_barrier_all();
+    return reinterpret_cast<uint64_t>(ptr);
+}
+
+void tilert_dspine_free_comm_win(uint64_t ptr)
+{
+    if (ptr != 0ULL && aclshmemx_init_status() == ACLSHMEM_STATUS_IS_INITIALIZED) {
+        aclshmem_free(reinterpret_cast<void*>(ptr));
+    }
+}
+
+int tilert_dspine_draft_head_topk_launch(
+    void*, uint64_t sync_base, uint64_t q_len_gm,
+    uint64_t res_a_gm, uint64_t res_b_gm, uint64_t gamma_gm,
+    uint64_t w_q8_nz_gm, uint64_t w_s8_gm, uint64_t recs_out_gm,
+    uint64_t act_q_ws_gm, uint64_t act_s_ws_gm, uint64_t acc_i32_ws_gm,
+    uint64_t work_gm, uint64_t gather_in_gm, uint64_t gather_out_gm,
+    uint64_t comm_win_gm, int32_t m_rows, int32_t vocab_valid,
+    int32_t vocab_start, int32_t k, int32_t rank, int32_t ranks, float eps)
+{
+    return tilert_dspine_draft_head_topk_raw(
+        c10_npu::getCurrentNPUStream().stream(true),
+        ResolveSyncBase(sync_base), q_len_gm,
+        res_a_gm, res_b_gm, gamma_gm, w_q8_nz_gm, w_s8_gm,
+        recs_out_gm, act_q_ws_gm, act_s_ws_gm, acc_i32_ws_gm, work_gm,
+        gather_in_gm, gather_out_gm, comm_win_gm,
+        m_rows, vocab_valid, vocab_start, k, rank, ranks, eps);
+}
 }"""
 
 
@@ -3890,10 +4589,32 @@ def _site_root() -> Path:
         return Path("/usr/local/lib/python3.11/site-packages")
 
 
+def _dspine_ops_digest(k_flags: Sequence[str], h_flags: Sequence[str]) -> str:
+    h = hashlib.sha256()
+    h.update(json.dumps([list(k_flags), list(h_flags)]).encode("utf-8"))
+    h.update(KERNEL_CPP.encode("utf-8"))
+    h.update(HOST_CPP.encode("utf-8"))
+    return h.hexdigest()
+
+
 def build_dspine_ops(out_dir: str | Path | None = None) -> Path:
     out = default_build_dir() if out_dir is None else Path(out_dir)
-    if out.exists():
-        shutil.rmtree(out)
+    so_path = out / "tilert_dspine_ops.so"
+    manifest_path = out / "dspine_ops.manifest.json"
+    k_flags = ("-DL2_CACHE_HINT=1", "-DASCENDC_DUMP=0")
+    h_flags = ("-std=c++17", "-O2", "-fPIC", "-D_GLIBCXX_USE_CXX11_ABI=1")
+    src_sha = _dspine_ops_digest(k_flags, h_flags)
+    if so_path.is_file() and manifest_path.is_file():
+        try:
+            cached = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            cached = None
+        if (
+            isinstance(cached, dict)
+            and cached.get("source_sha256") == src_sha
+            and cached.get("sha256") == hashlib.sha256(so_path.read_bytes()).hexdigest()
+        ):
+            return so_path
     out.mkdir(parents=True, exist_ok=True)
     (out / "dspine_ops.cpp").write_text(KERNEL_CPP)
     (out / "dspine_host.cpp").write_text(HOST_CPP)
@@ -3943,14 +4664,21 @@ def build_dspine_ops(out_dir: str | Path | None = None) -> Path:
     script = (
         f"set -euo pipefail\n"
         f"set +u; source {shlex.quote(str(cann / 'set_env.sh'))}; set -u\n"
-        f"{' '.join(shlex.quote(x) for x in k_cmd)} &\n"
-        f"{' '.join(shlex.quote(x) for x in h_cmd)} &\n"
-        f"wait\n"
+        f"{' '.join(shlex.quote(x) for x in k_cmd)} & p1=$!\n"
+        f"{' '.join(shlex.quote(x) for x in h_cmd)} & p2=$!\n"
+        f"wait \"$p1\" \"$p2\"\n"
         f"{' '.join(shlex.quote(x) for x in link_cmd)}\n"
     )
     subprocess.run(["bash", "-c", script], check=True)
-    sha = hashlib.sha256(so_path.read_bytes()).hexdigest()[:12]
-    print(f"BUILD_DSPINE_OPS_OK {sha} {so_path}", flush=True)
+    for obj in (out / "dspine_ops.o", out / "dspine_host.o"):
+        if obj.exists():
+            obj.unlink()
+    full_sha = hashlib.sha256(so_path.read_bytes()).hexdigest()
+    manifest = {"source_sha256": src_sha, "sha256": full_sha}
+    tmp_man = manifest_path.with_name(f".{manifest_path.name}.{os.getpid()}.tmp")
+    tmp_man.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp_man, manifest_path)
+    print(f"BUILD_DSPINE_OPS_OK {full_sha[:12]} {so_path}", flush=True)
     return so_path
 
 

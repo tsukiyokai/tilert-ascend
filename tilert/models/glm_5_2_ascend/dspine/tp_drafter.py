@@ -218,6 +218,20 @@ def _load_ops_cdll(so_path: Path, rank: int) -> ctypes.CDLL:
         ctypes.c_int32,
     ]
     lib.tilert_dspine_prolog_pack_compact_launch.restype = ctypes.c_int
+
+    lib.tilert_dspine_alloc_comm_win.argtypes = []
+    lib.tilert_dspine_alloc_comm_win.restype = ctypes.c_uint64
+
+    lib.tilert_dspine_free_comm_win.argtypes = [ctypes.c_uint64]
+    lib.tilert_dspine_free_comm_win.restype = None
+
+    lib.tilert_dspine_draft_head_topk_launch.argtypes = [
+        ctypes.c_void_p,
+        *([ctypes.c_uint64] * 15),
+        *([ctypes.c_int32] * 6),
+        ctypes.c_float,
+    ]
+    lib.tilert_dspine_draft_head_topk_launch.restype = ctypes.c_int
     return lib
 
 
@@ -251,6 +265,17 @@ def _bind_draft_klib(so_path: Path, ver: int):
             ctypes.c_void_p,
         ]
         fn.restype = ctypes.c_int
+    fn_exact = getattr(lib, f"layer_tp_tree_set_exact_idx_ptrs_K{ver}", None)
+    if fn_exact is not None:
+        fn_exact.argtypes = [
+            ctypes.c_uint64,
+            ctypes.c_uint64,
+            ctypes.c_uint64,
+            ctypes.c_uint64,
+            ctypes.c_uint64,
+            ctypes.c_float,
+        ]
+        fn_exact.restype = None
     fn_m(0)
     return lib, fn_m, fn_i, fn_s, fn_kvc
 
@@ -387,6 +412,16 @@ class CalibratedL78V3Runner:
         self.head_vocab_start = self.rank * local_vocab
         self.cal_head_w_q8_nz = self.dw.head_q8_nz
         self.cal_head_s8 = self.dw.head_scale
+        self.comm_win = int(self.wt.ops.tilert_dspine_alloc_comm_win())
+        if self.comm_win == 0:
+            raise RuntimeError("tilert_dspine_alloc_comm_win failed")
+        self._owns_comm_win = True
+        self.c2b_recs_out = torch.zeros((self.max_b, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
+        self.c2b_act_q = torch.zeros((self.max_b, HIDDEN_SIZE), dtype=torch.int8, device=dev)
+        self.c2b_act_s = torch.zeros((self.max_b,), dtype=torch.float32, device=dev)
+        self.c2b_acc_i32 = torch.zeros(
+            (self.max_b, self.head_valid_vocab), dtype=torch.int32, device=dev
+        )
 
         self.wk_w_128 = (
             self.dw.front[2][:4]
@@ -497,7 +532,9 @@ class CalibratedL78V3Runner:
         if not isinstance(klibs_by_ver, dict):
             klibs_by_ver = {}
             self.wt._p2_klibs_by_ver = klibs_by_ver
-        if need_ver in klibs_by_ver:
+        mtime = int(self.l78_build_dir.stat().st_mtime_ns) if self.l78_build_dir.exists() else 0
+        tag = (id(_bind_draft_klib), mtime)
+        if need_ver in klibs_by_ver and getattr(self.wt, "_p2_klib_tag", None) == tag:
             klibs_by_ver[need_ver][1](0)
             return klibs_by_ver
         if self.rank == 0:
@@ -518,6 +555,10 @@ class CalibratedL78V3Runner:
         sha = hashlib.sha256(src_so.read_bytes()).hexdigest()[:10]
         ver_so = src_so.with_name(f"{src_so.stem}_{sha}.so")
         klibs_by_ver[need_ver] = _bind_draft_klib(ver_so, need_ver)
+        self.wt._p2_klib_tag = (
+            id(_bind_draft_klib),
+            int(self.l78_build_dir.stat().st_mtime_ns) if self.l78_build_dir.exists() else 0,
+        )
         return klibs_by_ver
 
     def _build_v3_entries(self):
@@ -525,7 +566,17 @@ class CalibratedL78V3Runner:
 
         klibs_by_ver = self._ensure_l78_klibs()
         need_ver = L78_VARIANT_SPECS[self.k_sfa][0]
-        _, _, fn_i, fn_s_rollout, fn_kvc = klibs_by_ver[need_ver]
+        klib, _, fn_i, fn_s_rollout, fn_kvc = klibs_by_ver[need_ver]
+        fn_exact = getattr(klib, f"layer_tp_tree_set_exact_idx_ptrs_K{need_ver}", None)
+        if fn_exact is not None:
+            fn_exact(
+                int(self.wk_w_128.data_ptr()),
+                int(self.dw.front[3].data_ptr()),
+                int(self.dw.front[4].data_ptr()),
+                int(self.prefix.draft_cache["index_keys"].data_ptr()),
+                int(self.exact_idx_work.data_ptr()),
+                float(K_NORM_EPS),
+            )
 
         dev = self.dev
         dw = self.dw
@@ -881,30 +932,35 @@ class CalibratedL78V3Runner:
             if st_eshr != 0:
                 raise RuntimeError("draft rollout kernel failed")
 
-            recs_d = torch_npu.npu_rms_norm(
-                eshr.bridge[1] + eshr.output, self.wt.logit_norm_step[s_idx], self.norm_eps
-            )[0]
-            logits_d = self._q8_logits_rollout(recs_d)
+            recs_d = self.c2b_recs_out[:m_rows]
             k_top = max(2, m_rows) if self.narrow_topk else 4
-            st = self.wt.ops.tilert_logits_topk_lse_bf16_guarded_launch(
+            st = self.wt.ops.tilert_dspine_draft_head_topk_launch(
                 stream_ptr,
                 self.sync_addr,
                 ql_ptr,
-                logits_d.data_ptr(),
+                eshr.bridge[1].data_ptr(),
+                eshr.output.data_ptr(),
+                self.wt.logit_norm_step[s_idx].data_ptr(),
+                self.cal_head_w_q8_nz.data_ptr(),
+                self.cal_head_s8.data_ptr(),
+                recs_d.data_ptr(),
+                self.c2b_act_q.data_ptr(),
+                self.c2b_act_s.data_ptr(),
+                self.c2b_acc_i32.data_ptr(),
                 self.logits_work.data_ptr(),
                 self.gather_in.data_ptr(),
+                self.gather_out.data_ptr(),
+                self.comm_win,
                 m_rows,
-                self.head_row_stride,
                 self.head_valid_vocab,
                 self.head_vocab_start,
                 k_top,
                 self.rank,
+                self.world_size,
+                self.norm_eps,
             )
             if st != 0:
-                raise RuntimeError(f"logits_topk_lse_bf16_guarded failed: {st}")
-            torch.ops.tilert.onesided_gather_f32_guarded(
-                self.gather_in, self.gather_out, self.step_qlen_dev[s : s + 1]
-            )
+                raise RuntimeError(f"dspine_draft_head_topk failed: {st}")
 
             nxt_b = self.step_m_rows[s + 1] if (s + 1) < self.max_steps else 0
             eshr_nxt = self.eshr_steps[s + 1] if (s + 1) < self.max_steps else eshr
@@ -1140,7 +1196,6 @@ class CalibratedL78V3Runner:
         )
         if st_ekv != 0:
             raise RuntimeError("kv_commit kernel failed")
-        self._exact_index_keys(ekv)
         st_e1 = e1.fn(
             flushed(),
             ctypes.c_uint64(e1.local.sync),
@@ -1150,34 +1205,40 @@ class CalibratedL78V3Runner:
         )
         if st_e1 != 0:
             raise RuntimeError("seed e1 kernel failed")
-        self._exact_index_keys(e1)
 
         s0_gamma = (
             self.wt.logit_norm_seed0
             if self.wt.logit_norm_seed0 is not None
             else self.dw.shared_head_norm_w
         )
-        rec_0 = torch_npu.npu_rms_norm(e1.bridge[1] + e1.output, s0_gamma, self.norm_eps)[0]
-        self.seed_rec_buf.copy_(rec_0)
-        logits_0 = self._q8_logits_rollout(rec_0)
         k_seed = max(2, self.b0) if self.narrow_topk else 4
-        st = self.wt.ops.tilert_logits_topk_lse_bf16_guarded_launch(
+        st = self.wt.ops.tilert_dspine_draft_head_topk_launch(
             stream_ptr,
             self.sync_addr,
             e1.q_len.data_ptr(),
-            logits_0.data_ptr(),
+            e1.bridge[1].data_ptr(),
+            e1.output.data_ptr(),
+            s0_gamma.data_ptr(),
+            self.cal_head_w_q8_nz.data_ptr(),
+            self.cal_head_s8.data_ptr(),
+            self.seed_rec_buf.data_ptr(),
+            self.c2b_act_q.data_ptr(),
+            self.c2b_act_s.data_ptr(),
+            self.c2b_acc_i32.data_ptr(),
             self.logits_work.data_ptr(),
             self.gather_in.data_ptr(),
+            self.gather_out.data_ptr(),
+            self.comm_win,
             1,
-            self.head_row_stride,
             self.head_valid_vocab,
             self.head_vocab_start,
             k_seed,
             self.rank,
+            self.world_size,
+            self.norm_eps,
         )
         if st != 0:
-            raise RuntimeError(f"logits_topk_lse_bf16_guarded failed: {st}")
-        torch.ops.tilert.onesided_gather_f32_guarded(self.gather_in, self.gather_out, e1.q_len)
+            raise RuntimeError(f"dspine_draft_head_topk seed0 failed: {st}")
         st = self.wt.ops.tilert_dspine_beam_step_v3_launch(
             stream_ptr,
             self.sync_addr,
@@ -1303,7 +1364,6 @@ class CalibratedL78V3Runner:
             )
             if st_k != 0:
                 raise RuntimeError("serial commit kernel failed")
-            self._exact_index_keys(entry)
 
         with torch.npu.device(self.dev), torch.inference_mode():
             for i in range(total_need):
@@ -1346,6 +1406,10 @@ class CalibratedL78V3Runner:
             return self.prefix.draft_state(pos_limit), diffs, ekv_diffs
 
     def close(self):
+        if getattr(self, "_owns_comm_win", False) and getattr(self, "comm_win", 0) != 0:
+            self.wt.ops.tilert_dspine_free_comm_win(self.comm_win)
+            self.comm_win = 0
+            self._owns_comm_win = False
         self.eshr_steps = []
         self.entry_cal_idx_1 = None
         self.entry_kv_commit = None

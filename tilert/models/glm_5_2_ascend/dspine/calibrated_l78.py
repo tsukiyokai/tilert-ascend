@@ -552,8 +552,319 @@ class TpCalibratedL78Weights:
 
 
 _KV_COMMIT_DEVICE_SNIPPET = """
+static uint64_t g_exact_wk_w_gm = 0ULL;
+static uint64_t g_exact_knorm_w_gm = 0ULL;
+static uint64_t g_exact_knorm_b_gm = 0ULL;
+static uint64_t g_exact_kcache_gm = 0ULL;
+static uint64_t g_exact_work_gm = 0ULL;
+static float g_exact_eps = 1e-6F;
+
+__aicore__ inline void ExactDcciRange(uint64_t addr, int32_t bytes)
+{
+    if (addr == 0ULL || bytes <= 0) {
+        return;
+    }
+    const uint64_t start = addr & ~63ULL;
+    const uint64_t end = (addr + static_cast<uint64_t>(bytes) + 63ULL) & ~63ULL;
+    for (uint64_t p = start; p < end; p += 64ULL) {
+        AscendC::GlobalTensor<int64_t> g;
+        g.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(p), 8);
+        AscendC::DataCacheCleanAndInvalid<
+            int64_t, AscendC::CacheLine::SINGLE_CACHE_LINE,
+            AscendC::DcciDst::CACHELINE_OUT>(g);
+    }
+}
+
+template <AscendC::HardEvent Ev>
+__aicore__ inline void ExactFence()
+{
+    const auto id = GetTPipePtr()->FetchEventID(Ev);
+    AscendC::SetFlag<Ev>(id);
+    AscendC::WaitFlag<Ev>(id);
+}
+
+__aicore__ inline void ExactPublish()
+{
+    AscendC::PipeBarrier<PIPE_ALL>();
+    AscendC::DataSyncBarrier<AscendC::MemDsbT::DDR>();
+}
+
+__aicore__ __attribute__((noinline)) void RunExactIndexKeysInline(
+    AscendC::TPipe& pipe,
+    uint64_t norm_x_gm,
+    uint64_t q_len_gm,
+    uint64_t slot_i64_gm,
+    uint64_t cos_gm,
+    uint64_t sin_gm,
+    uint64_t wk_w_gm,
+    uint64_t k_norm_w_gm,
+    uint64_t k_norm_b_gm,
+    uint64_t k_cache_gm,
+    uint64_t work_gm,
+    int32_t rows_cap,
+    float eps)
+{
+    if (wk_w_gm == 0ULL || work_gm == 0ULL) {
+        return;
+    }
+    int32_t active_rows = rows_cap;
+    if (q_len_gm != 0ULL) {
+        ExactDcciRange(q_len_gm, 64);
+        active_rows = *reinterpret_cast<__gm__ const int32_t*>(q_len_gm);
+    }
+    if (active_rows <= 0) {
+        return;
+    }
+    if (active_rows > rows_cap) {
+        active_rows = rows_cap;
+    }
+    if ASCEND_IS_AIC {
+        constexpr int32_t kTile = 16;
+        constexpr int32_t kInner = 128;
+        constexpr int32_t kHidden = 6144;
+        constexpr int32_t kSteps = kHidden / kInner;
+        constexpr int32_t kStage = kTile * kInner;
+        constexpr int32_t kAcc = kTile * kTile;
+
+        AscendC::TBuf<AscendC::TPosition::A1> a_stage;
+        AscendC::TBuf<AscendC::TPosition::B1> b_stage;
+        AscendC::TBuf<AscendC::TPosition::A2> a_op;
+        AscendC::TBuf<AscendC::TPosition::B2> b_op;
+        AscendC::TBuf<AscendC::TPosition::CO1> c_acc;
+        pipe.InitBuffer(a_stage, 2 * kStage * sizeof(bfloat16_t));
+        pipe.InitBuffer(b_stage, 2 * kStage * sizeof(bfloat16_t));
+        pipe.InitBuffer(a_op, 2 * kStage * sizeof(bfloat16_t));
+        pipe.InitBuffer(b_op, 2 * kStage * sizeof(bfloat16_t));
+        pipe.InitBuffer(c_acc, kAcc * sizeof(float));
+
+        auto a_l1 = a_stage.Get<bfloat16_t>();
+        auto b_l1 = b_stage.Get<bfloat16_t>();
+        auto a_l0 = a_op.Get<bfloat16_t>();
+        auto b_l0 = b_op.Get<bfloat16_t>();
+        auto c_l0 = c_acc.Get<float>();
+
+        AscendC::GlobalTensor<bfloat16_t> a_gm, b_gm;
+        AscendC::GlobalTensor<float> c_gm;
+        a_gm.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(norm_x_gm), rows_cap * kHidden);
+        b_gm.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(wk_w_gm), 128 * kHidden);
+        c_gm.SetGlobalBuffer(
+            reinterpret_cast<__gm__ float*>(work_gm), rows_cap * 128);
+
+        const int32_t blk = AscendC::GetBlockIdx();
+        const int32_t row_tiles = (active_rows + 15) / 16;
+        const int32_t total_tiles = row_tiles * 8;
+
+        for (int32_t tile = blk; tile < total_tiles; tile += 24) {
+            const int32_t row_tile = tile / 8;
+            const int32_t col_tile = tile % 8;
+            const int32_t r_start = row_tile * kTile;
+            const int32_t r_rem = active_rows - r_start;
+            const int32_t r_valid = (r_rem < kTile) ? r_rem : kTile;
+
+            AscendC::Nd2NzParams copy_a{};
+            copy_a.ndNum = 1;
+            copy_a.nValue = r_valid;
+            copy_a.dValue = kInner;
+            copy_a.srcDValue = kHidden;
+            copy_a.dstNzC0Stride = kTile;
+            copy_a.dstNzNStride = 1;
+
+            AscendC::Nd2NzParams copy_b{};
+            copy_b.ndNum = 1;
+            copy_b.nValue = kTile;
+            copy_b.dValue = kInner;
+            copy_b.srcDValue = kHidden;
+            copy_b.dstNzC0Stride = kTile;
+            copy_b.dstNzNStride = 1;
+
+            AscendC::LoadData2DParams load_a{};
+            load_a.repeatTimes = kInner / kTile;
+            load_a.srcStride = 1;
+            load_a.ifTranspose = false;
+
+            AscendC::LoadData2DParams load_b{};
+            load_b.repeatTimes = kInner / kTile;
+            load_b.srcStride = 1;
+            load_b.ifTranspose = false;
+
+            AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID0);
+            AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID1);
+            AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(EVENT_ID0);
+            AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(EVENT_ID1);
+
+            for (int32_t s = 0; s < kSteps; ++s) {
+                const int32_t buf = s & 1;
+                const event_t ev = buf ? EVENT_ID1 : EVENT_ID0;
+                const int64_t k_off = static_cast<int64_t>(s) * kInner;
+                const int64_t a_off = static_cast<int64_t>(r_start) * kHidden + k_off;
+                const int64_t b_off =
+                    static_cast<int64_t>(col_tile) * kTile * kHidden + k_off;
+
+                AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(ev);
+                AscendC::DataCopy(a_l1[buf * kStage], a_gm[a_off], copy_a);
+                AscendC::DataCopy(b_l1[buf * kStage], b_gm[b_off], copy_b);
+                AscendC::SetFlag<AscendC::HardEvent::MTE2_MTE1>(ev);
+
+                AscendC::WaitFlag<AscendC::HardEvent::MTE2_MTE1>(ev);
+                AscendC::WaitFlag<AscendC::HardEvent::M_MTE1>(ev);
+                AscendC::LoadData(a_l0[buf * kStage], a_l1[buf * kStage], load_a);
+                AscendC::LoadData(b_l0[buf * kStage], b_l1[buf * kStage], load_b);
+                AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(ev);
+                AscendC::SetFlag<AscendC::HardEvent::MTE1_M>(ev);
+
+                AscendC::WaitFlag<AscendC::HardEvent::MTE1_M>(ev);
+                AscendC::MmadParams mad{};
+                mad.m = kTile;
+                mad.n = kTile;
+                mad.k = kInner;
+                mad.cmatrixInitVal = (s == 0);
+                mad.cmatrixSource = false;
+                AscendC::Mmad(c_l0, a_l0[buf * kStage], b_l0[buf * kStage], mad);
+                AscendC::PipeBarrier<PIPE_M>();
+                AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(ev);
+            }
+            AscendC::WaitFlag<AscendC::HardEvent::M_MTE1>(EVENT_ID0);
+            AscendC::WaitFlag<AscendC::HardEvent::M_MTE1>(EVENT_ID1);
+            AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID0);
+            AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID1);
+
+            AscendC::SetFlag<AscendC::HardEvent::M_FIX>(EVENT_ID0);
+            AscendC::WaitFlag<AscendC::HardEvent::M_FIX>(EVENT_ID0);
+            AscendC::FixpipeParamsV220 store{};
+            store.nSize = kTile;
+            store.mSize = r_valid;
+            store.srcStride = kTile;
+            store.dstStride = 128;
+            store.ndNum = 1;
+            store.quantPre = QuantMode_t::NoQuant;
+            const int64_t c_off = static_cast<int64_t>(r_start) * 128 + col_tile * kTile;
+            AscendC::Fixpipe(c_gm[c_off], c_l0, store);
+            AscendC::SetFlag<AscendC::HardEvent::FIX_M>(EVENT_ID0);
+            AscendC::WaitFlag<AscendC::HardEvent::FIX_M>(EVENT_ID0);
+        }
+        ExactPublish();
+    }
+    AscendC::SyncAll<false>();
+    if ASCEND_IS_AIV {
+        const int32_t aiv = AscendC::GetBlockIdx();
+        ExactDcciRange(slot_i64_gm, rows_cap * 8);
+        ExactDcciRange(work_gm, active_rows * 128 * 4);
+
+        AscendC::TBuf<AscendC::TPosition::VECCALC> b_f32, b_bf, b_slot;
+        pipe.InitBuffer(b_f32, 11 * 128 * 4);
+        pipe.InitBuffer(b_bf, 4 * 128 * 2);
+        pipe.InitBuffer(b_slot, 64 * 8);
+
+        auto ub_f32 = b_f32.Get<float>();
+        auto ub_kw = ub_f32[0];
+        auto ub_x = ub_f32[128];
+        auto ub_diff = ub_f32[256];
+        auto ub_sq = ub_f32[384];
+        auto ub_gw = ub_f32[512];
+        auto ub_gb = ub_f32[640];
+        auto ub_tmp = ub_f32[768];
+        auto ub_sum = ub_f32[896];
+        auto ub_k = ub_f32[1024];
+        auto ub_cos = ub_f32[1152];
+        auto ub_sin = ub_f32[1280];
+
+        auto ub_bf = b_bf.Get<bfloat16_t>();
+        auto ub_kw_bf = ub_bf[0];
+        auto ub_out_bf = ub_bf[128];
+        auto ub_cos_bf = ub_bf[256];
+        auto ub_sin_bf = ub_bf[384];
+        auto ub_slot = b_slot.Get<int64_t>();
+
+        AscendC::GlobalTensor<float> g_work, g_gw, g_gb;
+        AscendC::GlobalTensor<bfloat16_t> g_cos, g_sin, g_kcache;
+        AscendC::GlobalTensor<int64_t> g_slot;
+        g_work.SetGlobalBuffer(
+            reinterpret_cast<__gm__ float*>(work_gm), rows_cap * 128);
+        g_gw.SetGlobalBuffer(
+            reinterpret_cast<__gm__ float*>(k_norm_w_gm), 128);
+        g_gb.SetGlobalBuffer(
+            reinterpret_cast<__gm__ float*>(k_norm_b_gm), 128);
+        g_cos.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(cos_gm), rows_cap * 64);
+        g_sin.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(sin_gm), rows_cap * 64);
+        g_kcache.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(k_cache_gm));
+        g_slot.SetGlobalBuffer(
+            reinterpret_cast<__gm__ int64_t*>(slot_i64_gm), rows_cap);
+
+        const int32_t copy_sl = ((rows_cap + 3) / 4) * 4;
+        AscendC::DataCopy(ub_slot, g_slot, copy_sl);
+        AscendC::DataCopy(ub_gw, g_gw, 128);
+        AscendC::DataCopy(ub_gb, g_gb, 128);
+        ExactFence<AscendC::HardEvent::MTE2_S>();
+        ExactFence<AscendC::HardEvent::MTE2_V>();
+
+        for (int32_t r = aiv; r < active_rows; r += 48) {
+            const int64_t slot = ub_slot.GetValue(r);
+            if (slot < 0) {
+                continue;
+            }
+            AscendC::DataCopy(ub_kw, g_work[r * 128], 128);
+            AscendC::DataCopy(ub_cos_bf, g_cos[r * 64], 64);
+            AscendC::DataCopy(ub_sin_bf, g_sin[r * 64], 64);
+            ExactFence<AscendC::HardEvent::MTE2_V>();
+
+            AscendC::Cast(ub_kw_bf, ub_kw, AscendC::RoundMode::CAST_RINT, 128);
+            AscendC::PipeBarrier<PIPE_V>();
+            AscendC::Cast(ub_x, ub_kw_bf, AscendC::RoundMode::CAST_NONE, 128);
+            AscendC::PipeBarrier<PIPE_V>();
+
+            AscendC::ReduceSum(ub_sum, ub_x, ub_tmp, 128);
+            ExactFence<AscendC::HardEvent::V_S>();
+            const float mean = ub_sum.GetValue(0) * (1.0F / 128.0F);
+            ExactFence<AscendC::HardEvent::S_V>();
+            AscendC::Adds(ub_diff, ub_x, -mean, 128);
+            AscendC::PipeBarrier<PIPE_V>();
+            AscendC::Mul(ub_sq, ub_diff, ub_diff, 128);
+            AscendC::PipeBarrier<PIPE_V>();
+            AscendC::ReduceSum(ub_sum, ub_sq, ub_tmp, 128);
+            ExactFence<AscendC::HardEvent::V_S>();
+            const float var = ub_sum.GetValue(0) * (1.0F / 128.0F);
+            const float inv_std = 1.0F / sqrt(var + eps);
+            ExactFence<AscendC::HardEvent::S_V>();
+            AscendC::Muls(ub_x, ub_diff, inv_std, 128);
+            AscendC::PipeBarrier<PIPE_V>();
+            AscendC::Mul(ub_x, ub_x, ub_gw, 128);
+            AscendC::PipeBarrier<PIPE_V>();
+            AscendC::Add(ub_x, ub_x, ub_gb, 128);
+            AscendC::PipeBarrier<PIPE_V>();
+            AscendC::Cast(ub_out_bf, ub_x, AscendC::RoundMode::CAST_RINT, 128);
+            AscendC::PipeBarrier<PIPE_V>();
+
+            AscendC::Cast(ub_k, ub_out_bf, AscendC::RoundMode::CAST_NONE, 64);
+            AscendC::Cast(ub_cos, ub_cos_bf, AscendC::RoundMode::CAST_NONE, 64);
+            AscendC::Cast(ub_sin, ub_sin_bf, AscendC::RoundMode::CAST_NONE, 64);
+            ExactFence<AscendC::HardEvent::V_S>();
+            for (int32_t j = 0; j < 32; ++j) {
+                const float c = ub_cos.GetValue(j);
+                const float s = ub_sin.GetValue(j);
+                const float k0 = ub_k.GetValue(2 * j);
+                const float k1 = ub_k.GetValue(2 * j + 1);
+                ub_diff.SetValue(2 * j, k0 * c - k1 * s);
+                ub_diff.SetValue(2 * j + 1, k1 * c + k0 * s);
+            }
+            ExactFence<AscendC::HardEvent::S_V>();
+            AscendC::Cast(ub_out_bf, ub_diff, AscendC::RoundMode::CAST_RINT, 64);
+            ExactFence<AscendC::HardEvent::V_MTE3>();
+            AscendC::DataCopy(g_kcache[slot * 128], ub_out_bf, 128);
+            ExactFence<AscendC::HardEvent::MTE3_V>();
+            ExactFence<AscendC::HardEvent::MTE3_MTE2>();
+        }
+        ExactPublish();
+    }
+}
+
 __aicore__ inline void RunKvCommit(
-    TPipe& pipe, const Config& config, const Addresses& addresses)
+    TPipe& pipe, const Config& config, const Addresses& addresses,
+    uint64_t wk_w_gm, uint64_t work_gm, float eps)
 {
     SetSysWorkspace((GM_ADDR)addresses.bridge[ffn_bridge::kSystem]);
     const auto rows = addresses.body.rows;
@@ -598,8 +909,6 @@ __aicore__ inline void RunKvCommit(
         ? (GM_ADDR)addresses.shared_topk : (memory + config.indexed.topk);
     whole_layer_attention::Config c_attn = config.indexed.attention;
     c_attn.rows = active_rows;
-    indexer_front::Config c_front = config.indexed.front;
-    c_front.rows = active_rows;
     const whole_layer_attention::DeviceArgs attention{
         a.token_x, a.token_scale, a.main_weights[0], a.main_weights[1],
         a.main_weights[2], a.main_weights[3], a.main_weights[4],
@@ -610,36 +919,87 @@ __aicore__ inline void RunKvCommit(
         memory + config.indexed.attention_offset, memory + config.indexed.latent};
     whole_layer_attention::PrologPhase(pipe, c_attn, attention,
         memory + config.indexed.query_norm, memory + config.indexed.query_norm_scale);
-
-    const indexer_front::device::DeviceArgs front{
-        a.hidden, memory + config.indexed.query_norm, memory + config.indexed.query_norm_scale,
-        a.front_weights[0], a.front_weights[1], a.front_weights[2],
-        a.front_weights[3], a.front_weights[4], a.indexer_metadata[1],
-        a.indexer_metadata[0], a.front_weights[5], memory + config.indexed.front_offset,
-        a.tiling, memory + config.indexed.query, memory + config.indexed.key,
-        memory + config.indexed.weights,
-        memory + config.indexed.query_scale, memory + config.indexed.key_scale,
-        a.indexer_metadata[2], a.caches[2], a.caches[3],
-        static_cast<int64_t>(config.indexed.indexer.pages) * whole_layer_indexer::kPage,
-        config.indexed.attention.rows, static_cast<int32_t>(active_rows)};
-    indexer_front::device::Forward(pipe, c_front, front, indexer_front::device::NoInputStage{});
+    RunExactIndexKeysInline(pipe,
+        addresses.norm.normalized,
+        addresses.attention.main_metadata[3],
+        addresses.attention.main_metadata[2],
+        addresses.attention.main_metadata[1],
+        addresses.attention.main_metadata[0],
+        wk_w_gm,
+        addresses.attention.front_weights[3],
+        addresses.attention.front_weights[4],
+        addresses.attention.caches[2],
+        work_gm,
+        static_cast<int32_t>(rows),
+        eps);
 }
 
 template <int Ver = KERNEL_VER>
 __global__ __mix__(1, 2) __schedmode__(1) __aicore__
-void KvCommitKernel(uint64_t sync, Config config, Addresses addresses)
+void KvCommitKernel(uint64_t sync, Config config, Addresses addresses,
+    uint64_t wk_w_gm, uint64_t work_gm, float eps)
 {
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
     InitSocState();
     SetSyncBaseAddr(sync);
     TPipe pipe;
-    RunKvCommit(pipe, config, addresses);
+    RunKvCommit(pipe, config, addresses, wk_w_gm, work_gm, eps);
+    PipeBarrier<PIPE_ALL>();
+    DataSyncBarrier<MemDsbT::DDR>();
+}
+
+template <bool Indexed, int Ver = KERNEL_VER>
+__global__ __mix__(1, 2) __schedmode__(1) __aicore__
+void LayerExactKernel(uint64_t sync, Config config, Addresses addresses,
+    Communication communication, uint64_t wk_w_gm, uint64_t knorm_w_gm,
+    uint64_t knorm_b_gm, uint64_t kcache_gm, uint64_t work_gm, float eps)
+{
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    InitSocState();
+    AscendC::GlobalTensor<int32_t> q_gm;
+    q_gm.SetGlobalBuffer((__gm__ int32_t*)addresses.attention.main_metadata[3], 1);
+    AscendC::DataCacheCleanAndInvalid<int32_t,
+        AscendC::CacheLine::SINGLE_CACHE_LINE,
+        AscendC::DcciDst::CACHELINE_OUT>(q_gm);
+    if (q_gm.GetValue(0) <= 0) {
+        return;
+    }
+    SetSyncBaseAddr(sync);
+    TPipe pipe;
+    RunLayer(pipe, Indexed, config, addresses, communication, false, 0);
+    PipeBarrier<PIPE_ALL>();
+    pipe.Reset();
+    RunExactIndexKeysInline(pipe,
+        addresses.norm.normalized,
+        addresses.attention.main_metadata[3],
+        addresses.attention.main_metadata[2],
+        addresses.attention.main_metadata[1],
+        addresses.attention.main_metadata[0],
+        wk_w_gm,
+        knorm_w_gm,
+        knorm_b_gm,
+        kcache_gm,
+        work_gm,
+        static_cast<int32_t>(addresses.body.rows),
+        eps);
     PipeBarrier<PIPE_ALL>();
     DataSyncBarrier<MemDsbT::DDR>();
 }
 """
 
 _KV_COMMIT_HOST_SNIPPET = """
+extern "C" void layer_tp_tree_set_exact_idx_ptrs(
+    uint64_t wk_w_gm, uint64_t knorm_w_gm, uint64_t knorm_b_gm,
+    uint64_t kcache_gm, uint64_t work_gm, float eps)
+{
+    layer_tp_tree_chain::g_exact_wk_w_gm = wk_w_gm;
+    layer_tp_tree_chain::g_exact_knorm_w_gm = knorm_w_gm;
+    layer_tp_tree_chain::g_exact_knorm_b_gm = knorm_b_gm;
+    layer_tp_tree_chain::g_exact_kcache_gm = kcache_gm;
+    layer_tp_tree_chain::g_exact_work_gm = work_gm;
+    layer_tp_tree_chain::g_exact_eps = eps;
+}
+
 extern "C" int layer_tp_tree_kv_commit_launch(void* stream, uint64_t sync,
     const layer_tp_tree_chain::Config* config,
     const layer_tp_tree_chain::Addresses* addresses,
@@ -650,7 +1010,10 @@ extern "C" int layer_tp_tree_kv_commit_launch(void* stream, uint64_t sync,
         return -1;
     }
     layer_tp_tree_chain::KvCommitKernel<<<addresses->body.blocks, nullptr, stream>>>(
-        sync, *config, *addresses);
+        sync, *config, *addresses,
+        layer_tp_tree_chain::g_exact_wk_w_gm,
+        layer_tp_tree_chain::g_exact_work_gm,
+        layer_tp_tree_chain::g_exact_eps);
     return 0;
 }
 """
@@ -761,9 +1124,10 @@ L78_BASE_DEFS: tuple[str, ...] = (
     "-DK112726_BRIDGE_PRELOAD_GATE=1",
     "-DL2_CACHE_HINT=1",
     "-DASCENDC_DUMP=0",
-    "-DK112612_DEFER_SH_SIG=1",
     "-DK112600_PIPE_C2V=1",
     "-DK112612_NO_FLAG9=1",
+    "-DSKIP_CHAIN_KERNEL=1",
+    "-DK112612_OVERLAP_SH_P4=1",
 )
 
 
@@ -857,6 +1221,29 @@ def _patch_l78_copied_sources(out: Path) -> None:
         raise RuntimeError("Missing kernel.cpp KV commit injection anchors")
     kern_txt = kern_txt.replace(anchor_dev, _KV_COMMIT_DEVICE_SNIPPET + "\n" + anchor_dev, 1)
     kern_txt = kern_txt.replace(anchor_host, _KV_COMMIT_HOST_SNIPPET + "\n" + anchor_host, 1)
+    idx_launch_old = (
+        "    layer_tp_tree_chain::Kernel<true><<<addresses->body.blocks, nullptr, stream>>>(\n"
+        "        sync, *config, *addresses, *communication);"
+    )
+    idx_launch_new = (
+        "    if (layer_tp_tree_chain::g_exact_wk_w_gm != 0ULL) {\n"
+        "        layer_tp_tree_chain::LayerExactKernel<true>"
+        "<<<addresses->body.blocks, nullptr, stream>>>(\n"
+        "            sync, *config, *addresses, *communication,\n"
+        "            layer_tp_tree_chain::g_exact_wk_w_gm,\n"
+        "            layer_tp_tree_chain::g_exact_knorm_w_gm,\n"
+        "            layer_tp_tree_chain::g_exact_knorm_b_gm,\n"
+        "            layer_tp_tree_chain::g_exact_kcache_gm,\n"
+        "            layer_tp_tree_chain::g_exact_work_gm,\n"
+        "            layer_tp_tree_chain::g_exact_eps);\n"
+        "    } else {\n"
+        "        layer_tp_tree_chain::Kernel<true><<<addresses->body.blocks, nullptr, stream>>>(\n"
+        "            sync, *config, *addresses, *communication);\n"
+        "    }"
+    )
+    if idx_launch_old in kern_txt:
+        kern_txt = kern_txt.replace(idx_launch_old, idx_launch_new, 1)
+
     if "RunLayer(" in kern_txt and "if (q_len <= 0)" not in kern_txt:
         ql_anchor = "    const int64_t active_rows = (q_len > 0 && q_len <= rows) ? q_len : rows;"
         if ql_anchor not in kern_txt:
@@ -941,12 +1328,13 @@ def _render_l78_build_script(
         ]
     )
     base_defs_block = "\n".join(f"        {shlex.quote(d)}" for d in L78_BASE_DEFS)
-    compile_lines = []
+    compile_lines = ["pids=()"]
     for k_val in target_ks:
         ver, sfx = L78_VARIANT_SPECS[k_val]
         compile_lines.append(
             f"compile_variant {ver} {sfx} -DDRAFT_SFA_TOPK={k_val} &"
         )
+        compile_lines.append('pids+=("$!")')
     compile_block = "\n".join(compile_lines)
     return f"""set -euo pipefail
 cann={shlex.quote(str(cann))}
@@ -970,6 +1358,7 @@ compile_variant() {{
         -Dlayer_tp_tree_shared_launch=layer_tp_tree_shared_launch_K$ver
         -Dlayer_tp_tree_kv_commit_launch=layer_tp_tree_kv_commit_launch_K$ver
         -Dlayer_tp_tree_set_mask_ptr=layer_tp_tree_set_mask_ptr_K$ver
+        -Dlayer_tp_tree_set_exact_idx_ptrs=layer_tp_tree_set_exact_idx_ptrs_K$ver
         -Dlayer_tp_tree_set_peer_weights_ptr=layer_tp_tree_set_peer_weights_ptr_K$ver
         "$@"
     )
@@ -989,7 +1378,9 @@ compile_variant() {{
     rm -f "$out/kernel_$sfx.o" "$out/host_$sfx.o" "$out/comm_$sfx.o"
 }}
 {compile_block}
-wait
+for pid in "${{pids[@]}}"; do
+    wait "$pid"
+done
 """
 
 
