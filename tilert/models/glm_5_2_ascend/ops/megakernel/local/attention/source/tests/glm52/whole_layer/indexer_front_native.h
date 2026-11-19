@@ -405,6 +405,170 @@ __aicore__ inline void ProjectKeyKShift(
     WaitFlag<HardEvent::FIX_M>(EVENT_ID0);
 }
 
+__aicore__ inline void ProjectKeyKShift32(
+    TPipe& pipe, const Config& c, GM_ADDR hidden, GM_ADDR weight,
+    GM_ADDR result, int32_t weight_tile)
+{
+    constexpr int32_t kTile = 16;
+    constexpr int32_t kCols = 32;
+    constexpr int32_t kChunk = 512;
+    constexpr int32_t kSub = 128;
+    constexpr int32_t kA1Elems = kTile * kChunk;
+    constexpr int32_t kB1Elems = kChunk * kCols;
+    constexpr int32_t kL0Elems = kTile * kSub;
+    constexpr int32_t kAccElems = kTile * kTile;
+    const int32_t rows_m = c.capacity < kTile ? static_cast<int32_t>(c.capacity) : kTile;
+    const int32_t r0_valid = (static_cast<int32_t>(c.rows) < rows_m)
+        ? static_cast<int32_t>(c.rows) : rows_m;
+    TBuf<TPosition::A1> a1_e0, a1_e1, a1_o0, a1_o1;
+    TBuf<TPosition::B1> b1_buf;
+    TBuf<TPosition::A2> a0_b0, a0_b1;
+    TBuf<TPosition::B2> b0_b0, b0_b1;
+    TBuf<TPosition::CO1> c_b;
+    pipe.InitBuffer(a1_e0, kA1Elems * sizeof(bfloat16_t));
+    pipe.InitBuffer(a1_e1, kA1Elems * sizeof(bfloat16_t));
+    pipe.InitBuffer(a1_o0, kA1Elems * sizeof(bfloat16_t));
+    pipe.InitBuffer(a1_o1, kA1Elems * sizeof(bfloat16_t));
+    pipe.InitBuffer(b1_buf, 12 * kB1Elems * sizeof(bfloat16_t));
+    pipe.InitBuffer(a0_b0, 2 * kL0Elems * sizeof(bfloat16_t));
+    pipe.InitBuffer(a0_b1, 2 * kL0Elems * sizeof(bfloat16_t));
+    pipe.InitBuffer(b0_b0, 2 * kL0Elems * sizeof(bfloat16_t));
+    pipe.InitBuffer(b0_b1, 2 * kL0Elems * sizeof(bfloat16_t));
+    pipe.InitBuffer(c_b, 2 * kAccElems * sizeof(float));
+    LocalTensor<bfloat16_t> a1_e[2] = {a1_e0.Get<bfloat16_t>(), a1_e1.Get<bfloat16_t>()};
+    LocalTensor<bfloat16_t> a1_o[2] = {a1_o0.Get<bfloat16_t>(), a1_o1.Get<bfloat16_t>()};
+    LocalTensor<bfloat16_t> b1 = b1_buf.Get<bfloat16_t>();
+    LocalTensor<bfloat16_t> a0[2] = {a0_b0.Get<bfloat16_t>(), a0_b1.Get<bfloat16_t>()};
+    LocalTensor<bfloat16_t> b0[2] = {b0_b0.Get<bfloat16_t>(), b0_b1.Get<bfloat16_t>()};
+    LocalTensor<float> c_l0 = c_b.Get<float>();
+    GlobalTensor<bfloat16_t> a_gm, b_gm;
+    GlobalTensor<float> c_gm;
+    a_gm.SetGlobalBuffer((__gm__ bfloat16_t*)hidden, c.capacity * kHidden);
+    b_gm.SetGlobalBuffer((__gm__ bfloat16_t*)weight, kKeyColumns * kHidden);
+    c_gm.SetGlobalBuffer((__gm__ float*)result, c.capacity * kKeyColumns);
+    Nd2NzParams copy_a{};
+    copy_a.ndNum = 1;
+    copy_a.nValue = r0_valid;
+    copy_a.dValue = kChunk;
+    copy_a.srcDValue = kHidden;
+    copy_a.dstNzC0Stride = kTile;
+    copy_a.dstNzNStride = 1;
+    Nd2NzParams copy_b{};
+    copy_b.ndNum = 1;
+    copy_b.nValue = kChunk;
+    copy_b.dValue = kCols;
+    copy_b.srcDValue = kCols;
+    copy_b.dstNzC0Stride = kChunk;
+    copy_b.dstNzNStride = 1;
+    LoadData2DParams load_a{};
+    load_a.repeatTimes = kSub / kTile;
+    load_a.srcStride = 1;
+    load_a.ifTranspose = false;
+    LoadData2DParams load_b{};
+    load_b.repeatTimes = kSub / kTile;
+    load_b.srcStride = 1;
+    load_b.ifTranspose = true;
+    const int64_t b_base = static_cast<int64_t>(weight_tile) * kHidden * kCols;
+    const int32_t rot = (weight_tile * 2) % 12;
+    auto ce_of = [&](int32_t kc) __aicore__ -> int32_t {
+        return (kc + rot) % 12;
+    };
+    auto co_of = [&](int32_t kc) __aicore__ -> int32_t {
+        return (11 - kc + rot) % 12;
+    };
+    {
+        const int32_t ce0 = ce_of(0);
+        const int32_t co0 = co_of(0);
+        DataCopy(a1_e[0], a_gm[static_cast<int64_t>(ce0) * kChunk], copy_a);
+        DataCopy(a1_o[0], a_gm[static_cast<int64_t>(co0) * kChunk], copy_a);
+        DataCopy(
+            b1[ce0 * kB1Elems],
+            b_gm[b_base + static_cast<int64_t>(ce0) * kChunk * kCols], copy_b);
+        DataCopy(
+            b1[co0 * kB1Elems],
+            b_gm[b_base + static_cast<int64_t>(co0) * kChunk * kCols], copy_b);
+        SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID0);
+    }
+    SetFlag<HardEvent::M_MTE1>(EVENT_ID3);
+    SetFlag<HardEvent::M_MTE1>(EVENT_ID4);
+    for (int32_t kc = 0; kc < 12; ++kc) {
+        const int32_t bi = kc & 1;
+        const event_t mte_ev = bi ? EVENT_ID1 : EVENT_ID0;
+        const int32_t ce = ce_of(kc);
+        const int32_t co = co_of(kc);
+        if (kc + 1 < 12) {
+            const int32_t nbi = (kc + 1) & 1;
+            const event_t nmte_ev = nbi ? EVENT_ID1 : EVENT_ID0;
+            if (kc + 1 >= 2) {
+                WaitFlag<HardEvent::MTE1_MTE2>(nmte_ev);
+            }
+            const int32_t nce = ce_of(kc + 1);
+            const int32_t nco = co_of(kc + 1);
+            DataCopy(a1_e[nbi], a_gm[static_cast<int64_t>(nce) * kChunk], copy_a);
+            DataCopy(a1_o[nbi], a_gm[static_cast<int64_t>(nco) * kChunk], copy_a);
+            if (kc + 1 < 6) {
+                DataCopy(
+                    b1[nce * kB1Elems],
+                    b_gm[b_base + static_cast<int64_t>(nce) * kChunk * kCols], copy_b);
+                DataCopy(
+                    b1[nco * kB1Elems],
+                    b_gm[b_base + static_cast<int64_t>(nco) * kChunk * kCols], copy_b);
+            }
+            SetFlag<HardEvent::MTE2_MTE1>(nmte_ev);
+        }
+        WaitFlag<HardEvent::MTE2_MTE1>(mte_ev);
+        for (int32_t sub = 0; sub < 4; ++sub) {
+            const int32_t step = kc * 4 + sub;
+            const int32_t lbi = step & 1;
+            const event_t m_ev = lbi ? EVENT_ID4 : EVENT_ID3;
+            const int32_t sub_o = sub ^ 2;
+            WaitFlag<HardEvent::M_MTE1>(m_ev);
+            LoadData(a0[lbi], a1_e[bi][sub * kL0Elems], load_a);
+            LoadData(a0[lbi][kL0Elems], a1_o[bi][sub_o * kL0Elems], load_a);
+            LoadData(b0[lbi], b1[ce * kB1Elems + sub * kL0Elems], load_b);
+            LoadData(
+                b0[lbi][kL0Elems],
+                b1[co * kB1Elems + kChunk * kTile + sub_o * kL0Elems], load_b);
+            if (sub == 3) {
+                SetFlag<HardEvent::MTE1_MTE2>(mte_ev);
+            }
+            SetFlag<HardEvent::MTE1_M>(m_ev);
+            WaitFlag<HardEvent::MTE1_M>(m_ev);
+            MmadParams mad{};
+            mad.m = rows_m;
+            mad.n = kTile;
+            mad.k = kSub;
+            mad.cmatrixInitVal = (step == 0);
+            mad.cmatrixSource = false;
+            Mmad(c_l0, a0[lbi], b0[lbi], mad);
+            Mmad(c_l0[kAccElems], a0[lbi][kL0Elems], b0[lbi][kL0Elems], mad);
+            if (step == 47) {
+                PipeBarrier<PIPE_M>();
+            }
+            SetFlag<HardEvent::M_MTE1>(m_ev);
+        }
+    }
+    WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
+    WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID1);
+    WaitFlag<HardEvent::M_MTE1>(EVENT_ID3);
+    WaitFlag<HardEvent::M_MTE1>(EVENT_ID4);
+    SetFlag<HardEvent::M_FIX>(EVENT_ID0);
+    WaitFlag<HardEvent::M_FIX>(EVENT_ID0);
+    FixpipeParamsV220 store{};
+    store.nSize = kTile;
+    store.mSize = rows_m;
+    store.srcStride = kTile;
+    store.dstStride = kTile;
+    store.ndNum = 1;
+    store.quantPre = QuantMode_t::NoQuant;
+    const int64_t out0 = static_cast<int64_t>(2 * weight_tile) * c.capacity * kTile;
+    const int64_t out1 = static_cast<int64_t>(2 * weight_tile + 1) * c.capacity * kTile;
+    Fixpipe(c_gm[out0], c_l0, store);
+    Fixpipe(c_gm[out1], c_l0[kAccElems], store);
+    SetFlag<HardEvent::FIX_M>(EVENT_ID0);
+    WaitFlag<HardEvent::FIX_M>(EVENT_ID0);
+}
+
 struct VectorWorkspace {
     TBuf<TPosition::VECCALC> narrow_b, half_b, codes_b;
     TBuf<TPosition::VECCALC> value_b, work_b, other_b, weight_b, beta_b;
@@ -1167,150 +1331,15 @@ __aicore__ inline void Forward(TPipe& pipe, const Config& c,
         const bool kshift = (c.capacity == 12 || c.capacity == 16 || c.capacity == 32);
         if (kshift && c.blocks >= 24) {
             const int32_t idx = GetBlockIdx();
-#ifdef K112848_IDX_Q21_K3
-            constexpr int32_t kQWorkers = 21;
-#elif defined(K11070_IDX16_8)
-            constexpr int32_t kQWorkers = 16;
+#if defined(K112192_DIRECT_IDX_Q14) && defined(K11040_F0_NZ) && !defined(L78_EXACT_INDEXER)
+            const bool use_k32 = (c.rows > 1 && c.rows <= 16 && c.capacity >= 16);
+            const int32_t kQWorkers = use_k32 ? 19 : 14;
 #else
+            const bool use_k32 = false;
             constexpr int32_t kQWorkers = 14;
 #endif
             if (idx < kQWorkers) {
-#if defined(K112848_IDX_Q21_K3) && defined(K112192_DIRECT_IDX_Q14) && defined(K11040_F0_NZ)
-                const bool dual_m = (c.rows > 16);
-                const uint16_t m0 = dual_m ? 16U : static_cast<uint16_t>(c.rows);
-                const uint16_t m1 = dual_m ? static_cast<uint16_t>(c.rows - 16) : 0U;
-                const uint32_t m_cap = dual_m ? 32U : 16U;
-                TBuf<TPosition::B1> b1_buf0, b1_buf1;
-                TBuf<TPosition::A1> a1_buf;
-                TBuf<TPosition::A2> l0a_buf;
-                TBuf<TPosition::B2> l0b_buf0, l0b_buf1;
-                TBuf<TPosition::CO1> l0c_buf;
-                pipe.InitBuffer(b1_buf0, 512 * 128);
-                pipe.InitBuffer(b1_buf1, 512 * 128);
-                pipe.InitBuffer(a1_buf, m_cap * 2048U);
-                pipe.InitBuffer(l0a_buf, m_cap * 2048U);
-                pipe.InitBuffer(l0b_buf0, 128 * 128);
-                pipe.InitBuffer(l0b_buf1, 128 * 128);
-                pipe.InitBuffer(l0c_buf, m_cap * 128U * sizeof(int32_t));
-                LocalTensor<int8_t> a1 = a1_buf.Get<int8_t>();
-                LocalTensor<int8_t> b1[2] = {b1_buf0.Get<int8_t>(), b1_buf1.Get<int8_t>()};
-                LocalTensor<int8_t> l0a = l0a_buf.Get<int8_t>();
-                LocalTensor<int8_t> l0b[2] = {l0b_buf0.Get<int8_t>(), l0b_buf1.Get<int8_t>()};
-                LocalTensor<int32_t> l0c = l0c_buf.Get<int32_t>();
-                GlobalTensor<int8_t> a_gm, b_gm;
-                GlobalTensor<int32_t> c_gm;
-                a_gm.SetGlobalBuffer(reinterpret_cast<__gm__ int8_t*>(args.query_norm),
-                                     static_cast<uint64_t>(c.capacity) * 2048ULL);
-                Nd2NzParams copy_a{};
-                copy_a.ndNum = 1;
-                copy_a.nValue = m0;
-                copy_a.dValue = 2048;
-                copy_a.srcDValue = 2048;
-                copy_a.dstNzC0Stride = 16;
-                copy_a.dstNzNStride = 1;
-                DataCopy(a1, a_gm, copy_a);
-                if (dual_m) {
-                    copy_a.nValue = m1;
-                    DataCopy(a1[32768U], a_gm[32768U], copy_a);
-                }
-                SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
-                WaitFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
-                LoadData2DParams load_a{};
-                load_a.repeatTimes = dual_m ? 128 : 64;
-                load_a.srcStride = 1;
-                load_a.ifTranspose = false;
-                LoadData(l0a, a1, load_a);
-                SetFlag<HardEvent::MTE1_M>(EVENT_ID2);
-                WaitFlag<HardEvent::MTE1_M>(EVENT_ID2);
-                LoadData2dTransposeParams trans(0, 4, 16, 1, 0, inc);
-                for (int32_t qh = idx; qh < 32; qh += kQWorkers) {
-                    const int32_t qt = qh >> 1;
-                    const int32_t half = qh & 1;
-                    b_gm.SetGlobalBuffer(
-                        reinterpret_cast<__gm__ int8_t*>(args.query_weight) +
-                            static_cast<uint64_t>(qt) * 524288ULL +
-                            static_cast<uint64_t>(half) * 262144ULL,
-                        262144ULL);
-                    c_gm.SetGlobalBuffer(
-                        reinterpret_cast<__gm__ int32_t*>(args.scratch + c.query_acc) +
-                            static_cast<uint64_t>(qt) * static_cast<uint64_t>(c.capacity) * 256ULL +
-                            static_cast<uint64_t>(half) * 128ULL,
-                        static_cast<uint64_t>(c.capacity) * 256ULL);
-                    DataCopy(b1[0], b_gm[0], DataCopyParams{4, 512, 1536, 0});
-                    SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID0);
-                    SetFlag<HardEvent::M_MTE1>(EVENT_ID3);
-                    SetFlag<HardEvent::M_MTE1>(EVENT_ID4);
-                    for (uint32_t kc = 0U; kc < 4U; ++kc) {
-                        const uint32_t bi = kc & 1U;
-                        const event_t b_evt = bi ? EVENT_ID1 : EVENT_ID0;
-                        if (kc + 1U < 4U) {
-                            const uint32_t nbi = (kc + 1U) & 1U;
-                            const event_t nb_evt = nbi ? EVENT_ID1 : EVENT_ID0;
-                            if (kc + 1U >= 2U) {
-                                WaitFlag<HardEvent::MTE1_MTE2>(nb_evt);
-                            }
-                            DataCopy(
-                                b1[nbi],
-                                b_gm[(kc + 1U) * 16384U],
-                                DataCopyParams{4, 512, 1536, 0});
-                            SetFlag<HardEvent::MTE2_MTE1>(nb_evt);
-                        }
-                        WaitFlag<HardEvent::MTE2_MTE1>(b_evt);
-                        for (uint32_t sub = 0U; sub < 4U; ++sub) {
-                            const uint32_t step = kc * 4U + sub;
-                            const uint32_t lbi = step & 1U;
-                            const event_t lb_evt = lbi ? EVENT_ID4 : EVENT_ID3;
-                            WaitFlag<HardEvent::M_MTE1>(lb_evt);
-                            const uint32_t k_sub_off = sub * 4096U;
-                            for (uint32_t i = 0U; i < 4U; ++i) {
-                                LoadDataWithTranspose(
-                                    l0b[lbi][i * 4096U],
-                                    b1[bi][k_sub_off + i * 1024U],
-                                    trans);
-                            }
-                            if (sub == 3U) {
-                                SetFlag<HardEvent::MTE1_MTE2>(b_evt);
-                            }
-                            SetFlag<HardEvent::MTE1_M>(lb_evt);
-                            WaitFlag<HardEvent::MTE1_M>(lb_evt);
-                            MmadParams mad{};
-                            mad.m = 16;
-                            mad.n = 128;
-                            mad.k = 128;
-                            mad.cmatrixSource = false;
-                            mad.cmatrixInitVal = (step == 0U);
-                            Mmad(l0c, l0a[step * 2048U], l0b[lbi], mad);
-                            if (dual_m) {
-                                Mmad(l0c[2048U], l0a[32768U + step * 2048U], l0b[lbi], mad);
-                            }
-                            if (step == 15U) {
-                                PipeBarrier<PIPE_M>();
-                            }
-                            SetFlag<HardEvent::M_MTE1>(lb_evt);
-                        }
-                    }
-                    WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
-                    WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID1);
-                    WaitFlag<HardEvent::M_MTE1>(EVENT_ID3);
-                    WaitFlag<HardEvent::M_MTE1>(EVENT_ID4);
-                    SetFlag<HardEvent::M_FIX>(EVENT_ID0);
-                    WaitFlag<HardEvent::M_FIX>(EVENT_ID0);
-                    FixpipeParamsV220 fix{};
-                    fix.nSize = 128;
-                    fix.mSize = m0;
-                    fix.srcStride = 16;
-                    fix.dstStride = 256;
-                    fix.ndNum = 1;
-                    fix.quantPre = QuantMode_t::NoQuant;
-                    Fixpipe<int32_t, int32_t, CFG_ROW_MAJOR>(c_gm, l0c, fix);
-                    if (dual_m) {
-                        fix.mSize = m1;
-                        Fixpipe<int32_t, int32_t, CFG_ROW_MAJOR>(c_gm[4096U], l0c[2048U], fix);
-                    }
-                    SetFlag<HardEvent::FIX_M>(EVENT_ID0);
-                    WaitFlag<HardEvent::FIX_M>(EVENT_ID0);
-                }
-#elif defined(K112192_DIRECT_IDX_Q14) && defined(K11040_F0_NZ)
+#if defined(K112192_DIRECT_IDX_Q14) && defined(K11040_F0_NZ)
                 const bool dual_m = (c.rows > 16);
                 const uint16_t m0 = dual_m ? 16U : static_cast<uint16_t>(c.rows);
                 const uint16_t m1 = dual_m ? static_cast<uint16_t>(c.rows - 16) : 0U;
@@ -1498,25 +1527,13 @@ __aicore__ inline void Forward(TPipe& pipe, const Config& c,
                     idx, 0, kQWorkers);
 #endif
             } else if (idx < 24) {
-#ifdef K112848_IDX_Q21_K3
-                for (int32_t kt = idx - kQWorkers; kt < 10; kt += 3) {
-                    if (kt > idx - kQWorkers) {
-                        pipe.Reset();
-                    }
+                if (use_k32) {
+                    ProjectKeyKShift32(pipe, c, args.hidden, args.key_weight,
+                        args.scratch + c.key_acc, idx - kQWorkers);
+                } else {
                     ProjectKeyKShift(pipe, c, args.hidden, args.key_weight,
-                        args.scratch + c.key_acc, kt, 0, c.rows > 16);
+                        args.scratch + c.key_acc, idx - kQWorkers, 0, c.rows > 16);
                 }
-#else
-                ProjectKeyKShift(pipe, c, args.hidden, args.key_weight,
-                    args.scratch + c.key_acc, idx - kQWorkers, 0, c.rows > 16);
-#ifdef K11070_IDX16_8
-                if (idx < 18) {
-                    pipe.Reset();
-                    ProjectKeyKShift(pipe, c, args.hidden, args.key_weight,
-                        args.scratch + c.key_acc, idx - 8, 0, c.rows > 16);
-                }
-#endif
-#endif
             }
         } else if (kshift) {
             const auto owner = ProjectionOwnerFor(GetBlockIdx(), c.blocks);

@@ -61,6 +61,46 @@ __aicore__ inline void DequantSplitNQc(const GlobalTensor<O>& outputGm, const Gl
 
 
 template <typename T, typename C, typename O>
+__aicore__ inline void DequantPerTokenQcSplit(const GlobalTensor<O>& outputGm, const GlobalTensor<T>& inputGm,
+                                              const GlobalTensor<C>& deqScaleQcQrWGm,
+                                              const LocalTensor<float> deQuantScaleQcQrLocal,
+                                              const LocalTensor<uint8_t>& shareTmpUb, uint32_t headCount,
+                                              uint32_t col, uint32_t stride, uint32_t startHead)
+{
+    int64_t count = static_cast<int64_t>(headCount) * static_cast<int64_t>(col);
+    LocalTensor<T> inputLocal = shareTmpUb.ReinterpretCast<T>();
+    LocalTensor<C> scaleLocal = inputLocal[count + 16].template ReinterpretCast<C>();
+    LocalTensor<C> computeLocal = scaleLocal[count + 16].template ReinterpretCast<C>();
+    LocalTensor<O> outputLocal = computeLocal[count + 16].template ReinterpretCast<O>();
+
+    DataCopyParams copyParams{
+        static_cast<uint16_t>(headCount),
+        static_cast<uint16_t>(col * sizeof(T) / 32U),
+        static_cast<uint16_t>((stride - col) * sizeof(T) / 32U), 0};
+
+    Rectangle rectangleParams{1U, static_cast<uint32_t>(count), static_cast<uint32_t>(count)};
+
+    int64_t inputOffset = static_cast<int64_t>(startHead) * static_cast<int64_t>(stride);
+    int64_t outputOffset = static_cast<int64_t>(startHead) * static_cast<int64_t>(col);
+
+    AscendC::SetFlag<HardEvent::MTE3_MTE2>(EVENT_ID0);
+    AscendC::WaitFlag<HardEvent::MTE3_MTE2>(EVENT_ID0);
+    DataCopy(inputLocal, inputGm[inputOffset], copyParams);
+    DataCopy(scaleLocal, deqScaleQcQrWGm[inputOffset], copyParams);
+    AscendC::SetFlag<HardEvent::MTE2_V>(EVENT_ID1);
+    AscendC::WaitFlag<HardEvent::MTE2_V>(EVENT_ID1);
+
+    Dequant(computeLocal, inputLocal, scaleLocal, deQuantScaleQcQrLocal, rectangleParams);
+    AscendC::PipeBarrier<PIPE_V>();
+
+    Cast(outputLocal, computeLocal, RoundMode::CAST_RINT, count);
+    AscendC::SetFlag<HardEvent::V_MTE3>(EVENT_ID2);
+
+    AscendC::WaitFlag<HardEvent::V_MTE3>(EVENT_ID2);
+    DataCopy(outputGm[outputOffset], outputLocal, count);
+}
+
+template <typename T, typename C, typename O>
 __aicore__ inline void DequantPerTokenQc(const GlobalTensor<O>& outputGm, const GlobalTensor<T>& inputGm,
                                          const GlobalTensor<C>& deqScaleQcQrWGm,
                                          const LocalTensor<float> deQuantScaleQcQrLocal,

@@ -434,10 +434,16 @@ __aicore__ inline void QLIVector<QLIT>::ProcessVec1(const QLICommon::RunInfo &in
                 PipeBarrier<PIPE_V>();
                 outQueue_.EnQue<uint32_t>(idxULocal);
                 idxULocal = outQueue_.DeQue<uint32_t>();
-                QLIServiceVec::CopyOut(indiceOutGm[info.indiceOutOffset + cuS1Idx * constInfo_.sparseCount],
-                                       idxULocal.template ReinterpretCast<int32_t>(), constInfo_.sparseCount);
+                const bool skipIdxOut = ((treeMaskGmAddr_ & 1ULL) != 0ULL &&
+                                         constInfo_.sparseCount == 2048U);
+                if (!skipIdxOut) {
+                    QLIServiceVec::CopyOut(
+                        indiceOutGm[info.indiceOutOffset + cuS1Idx * constInfo_.sparseCount],
+                        idxULocal.template ReinterpretCast<int32_t>(),
+                        constInfo_.sparseCount);
+                }
 #ifdef K112162_FUSED_IDX_RTK
-                if ((treeMaskGmAddr_ & 1ULL) != 0ULL && constInfo_.sparseCount == 2048U) {
+                if (skipIdxOut) {
                     const uint64_t* rtkHdr = reinterpret_cast<const uint64_t*>(treeMaskGmAddr_ & ~1ULL);
                     const int32_t kvLenRtk = static_cast<int32_t>(rtkHdr[3]);
                     const uint32_t sfaRowsRtk = static_cast<uint32_t>(rtkHdr[4]);
@@ -762,11 +768,15 @@ __aicore__ inline void QLIVector<QLIT>::ProcessLD(int32_t ldCubeId, uint32_t ldI
         QLIServiceVec::ExtractIndex(outIdxUb, (resInTmp ? tmpUb : curValueIdxUb).template ReinterpretCast<uint32_t>(), BASE_TOPK);
         LocalTensor<int32_t> idxULocal1 = outIdxUb.template ReinterpretCast<int32_t>();
         SetWaitFlag<HardEvent::V_MTE3>(HardEvent::V_MTE3);
-        SetWaitFlag<HardEvent::S_MTE3>(HardEvent::S_MTE3);
-        DataCopy(indiceOutGm[outOffset], idxULocal1, constInfo_.sparseCount);
-        SetWaitFlag<HardEvent::MTE3_V>(HardEvent::MTE3_V);
+        const bool skipIdxOut = ((treeMaskGmAddr_ & 1ULL) != 0ULL &&
+                                 constInfo_.sparseCount == 2048U);
+        if (!skipIdxOut) {
+            SetWaitFlag<HardEvent::S_MTE3>(HardEvent::S_MTE3);
+            DataCopy(indiceOutGm[outOffset], idxULocal1, constInfo_.sparseCount);
+            SetWaitFlag<HardEvent::MTE3_V>(HardEvent::MTE3_V);
+        }
 #ifdef K112162_FUSED_IDX_RTK
-        if ((treeMaskGmAddr_ & 1ULL) != 0ULL && constInfo_.sparseCount == 2048U) {
+        if (skipIdxOut) {
             const uint64_t* rtkHdr = reinterpret_cast<const uint64_t*>(treeMaskGmAddr_ & ~1ULL);
             const int32_t kvLenRtk = static_cast<int32_t>(rtkHdr[3]);
             const uint32_t sfaRowsRtk = static_cast<uint32_t>(rtkHdr[4]);
