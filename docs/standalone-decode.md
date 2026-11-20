@@ -1,10 +1,10 @@
 # GLM-5.2 TP8+EP8 独立解码终态架构
 
-本文定义 TileRT-Ascend 冲刺 SemiAnalysis InferenceMAX 标准 8K/1K 榜极限交互性端点的唯一终态架构：硬件锁死单台 Ascend A3（Ascend910_9392 或 9382，dav-2201 架构，8 物理 die），模型锁死 GLM-5.2 W4A8C8（TP8+EP8），负载锁死 batch=1、ISL=8192、OSL=1024 标准代码生成用例 [case-01-coding](../tests/glm52/megakernel_tp8_ep8/case-01-coding)（冻结提示 SHA256 为 a93d673b...，首词 ID 为 13534），终极目标为稳态 TPOT < 3.0 ms，且 1024 词元输出严格复现黄金 SHA256（2f751372fc82cf290c8e35d3e7cc3cad0296fde4d8d188fba102ac34f82c2962）并与 8 卡主网及独立串行草稿有效状态位级对齐。TP16、非 coding 场景、Prefill 时延（TTFT）、通用在线 HTTP 网关及离散分页块表兼容均非目标，全部从核心引擎剥离。项目背景见 [readme.md](readme.md)，阶段路线见 [plan.md](plan.md)，投机实测见 [speculative-decoding.md](speculative-decoding.md)，屋顶线与实验账本见 [probe.md](probe.md)，数值纪律见 [lesson.md](lesson.md)，自治准则见 [goal.txt](goal.txt)。
+本文定义 TileRT-Ascend 冲刺 SemiAnalysis InferenceMAX 标准 8K/1K 榜极限交互性端点的唯一终态架构：硬件锁死单台 Ascend A3（Ascend910_9392 或 9382，dav-2201 架构，8 物理 die），模型锁死 GLM-5.2 W4A8C8（TP8+EP8），负载锁死 batch=1、ISL=8192、OSL=1024 标准代码生成用例 [case-01-coding](../tests/glm52/cases-8k1k/case-01-coding)（冻结提示 SHA256 为 a93d673b...，首词 ID 为 13534），终极目标为稳态 TPOT < 3.0 ms，且 1024 词元输出严格复现黄金 SHA256（2f751372fc82cf290c8e35d3e7cc3cad0296fde4d8d188fba102ac34f82c2962）并与 8 卡主网及独立串行草稿有效状态位级对齐。TP16、非 coding 场景、Prefill 时延（TTFT）、通用在线 HTTP 网关及离散分页块表兼容均非目标，全部从核心引擎剥离。项目背景见 [readme.md](readme.md)，阶段路线见 [plan.md](plan.md)，投机实测见 [speculative-decoding.md](speculative-decoding.md)，屋顶线与实验账本见 [probe.md](probe.md)，数值纪律见 [lesson.md](lesson.md)，自治准则见 [goal.txt](goal.txt)。
 
 ## 🎯 2026-11-19 屋顶线重校与 S1/S2/S3 物理路线
 
-截至提交 `085508a8`（2026-11-19），全自研零 vLLM 整轮图已将 [case-01-coding](../tests/glm52/megakernel_tp8_ep8/case-01-coding) 冷启动正式 2+5 中位 TPOT 由 M1 基线 6.6928 ms 压至 **5.6904 ms**（最低 5.6836 ms，累计降 1.0024 ms / −15.0%，141 轮，轮均接受 7.255 词元，8 卡主网及串行草稿零误差对齐，样本外 `case-02/03/04` 同步刷新至 10.8965 / 6.3214 / 7.8553 ms）。基于最新带周期剖析的 5.7392 ms 硬件账本（整轮 41.3 ms：Megakernel 35.78 ms + L78 草稿与提交 5.50 ms），必须修正早期两处物理误判：
+截至提交 `085508a8`（2026-11-19），全自研零 vLLM 整轮图已将 [case-01-coding](../tests/glm52/cases-8k1k/case-01-coding) 冷启动正式 2+5 中位 TPOT 由 M1 基线 6.6928 ms 压至 **5.6904 ms**（最低 5.6836 ms，累计降 1.0024 ms / −15.0%，141 轮，轮均接受 7.255 词元，8 卡主网及串行草稿零误差对齐，样本外 `case-02/03/04` 同步刷新至 10.8965 / 6.3214 / 7.8553 ms）。基于最新带周期剖析的 5.7392 ms 硬件账本（整轮 41.3 ms：Megakernel 35.78 ms + L78 草稿与提交 5.50 ms），必须修正早期两处物理误判：
 
 1. **修正单芯带宽屋顶（原 6.32 GB/芯低估 2.4 倍）**：8 芯跑 14–16 宽树时每轮激活约 600 个路由专家（11.3 GB/芯）加 MLA/共享专家/8K KV 共 **15.0 GB/芯**；按单芯 1.25 TB/s 有效带宽，纯字节搬运下限已达 12 ms。当前路由专家矩阵乘（10.35 ms）已运行在峰值七成四，硬抠路由 GEMM 微调收益已近天花板。
 2. **证伪纯后缀匹配、锁定 29.15 ms 低效主战场**：实测 `case-01..04` 真实 1024 输出的纯 prompt/suffix 匹配轮均仅 1.25–1.62 词元（`case-01` 仅 1.43），远低于当前 DSpine L78 的 7.255，停止在 PLD/SuffixDecoding 上投入；真正距屋顶线 5 倍以上、硬件效率低于二成的肥肉集中在注意力（14.17 ms 对比 2.5 ms 字节下限）、非矩阵乘同步与跨卡倾斜等待（9.48 ms）以及 10 步串行 L78 草稿（5.50 ms）。
@@ -69,7 +69,7 @@
 |仓库根目录 /|散落临时会话大文件与未跟踪杂项tmp目录|严格锁定上游TileRT根目录白名单加docs、scripts、tests，零多余文件或目录|启用scripts/hooks/pre-commit钩子阻断任何白名单外根目录条目及二进制产物入库|
 |模型主包 tilert/models/glm_5_2_ascend/|50个扁平Python文件混杂cann前缀寄生补丁、旧TP16原型与过渡适配器|对标[glm_5_2_rocm](../tilert/models/glm_5_2_rocm)收敛为6个核心模块加1个算子包：config.py、weights.py、abi.py、spec.py、end2end.py(Glm52AscendShowHands)、reference.py及ops/|G2合流后一次性删除cann_model.py、cann_graph.py、cann_mtp.py、cann_mtp_graph.py、cann_mtp_projection.py、cann_head.py、cann_attention.py、whole_layer.py、moe_combine.py、routed_expert.py、routed_shared.py、mla_tail.py、attention_native.py及全部TP16遗留包装(逾35个文件)|
 |算子与原生层 ops/|C++源码深埋于tests/glm52/whole_layer下60余个build前缀副本目录中|正式AscendC/TileLang/PTO源码升格至tilert/models/glm_5_2_ascend/ops/{prolog,attention,dense_ffn,moe_ffn,head_argmax,round_ctrl,shmem}|遵循零注释自解释代码与短命名品味；任何.o/.so/.elf编译缓存与快照一律重定向至tests/.artifacts/隔离目录|
-|测试与基准 tests/|tests/glm52扁平堆积150余个一次性脚本与内嵌构建产物|黄金性能与真值锚点唯一锁定[case-01-coding](../tests/glm52/megakernel_tp8_ep8/case-01-coding)；单测按窄腰收敛为test_weights.py、test_ops.py、test_spec.py与bench_case01.py|清退tests/glm52下全部build前缀构建目录与失效一次性脚本，历史实验收据归档于tests/.artifacts/runs/并由manifest校验SHA256|
+|测试与基准 tests/|tests/glm52扁平堆积150余个一次性脚本与内嵌构建产物|黄金性能与真值锚点唯一锁定[case-01-coding](../tests/glm52/cases-8k1k/case-01-coding)；单测按窄腰收敛为test_weights.py、test_ops.py、test_spec.py与bench_case01.py|清退tests/glm52下全部build前缀构建目录与失效一次性脚本，历史实验收据归档于tests/.artifacts/runs/并由manifest校验SHA256|
 |设计文档 docs/|部分旧段落仍残留TP16与多路路线包袱|维持readme.md、plan.md、本文、speculative-decoding.md、probe.md、lesson.md、eggs.md职责正交、精炼不过时|全目录强制遵守.markdownlint.json的MD060 compact表格风格，零死链、零废话，实验结论必绑定原始收据路径|
 
 ## 🏁 见缝插针实验推进与可证伪门禁
@@ -79,5 +79,5 @@
 |演进门禁|所需A3资源|核心交付动作|硬性真值与性能判据|
 |---|---|---|---|
 |G1：五积木与单边融合闭环|1–4颗空闲die(单算子/局部TP)，随后8 die对账|在ops/下补齐PrologBlock、0–2层DenseFfnBlock、第78层投影、双HeadArgmaxBlock及首尾游标裁决核；打通aclshmem核内AR+Norm+Quant原位融合|大于192 MB破L2工作集下确认组件物理净收益；M1/M8/M12/M16多宽度下79层隐藏态、路由、KV与双头贪心词元逐位对齐冻结参考，零调用vllm_ascend算子|
-|G2：ShowHands超图脱钩与仓库大扫除|8颗空闲die(TP8+EP8)|上线ModelArena自持加载与单张整轮超图 $G_{\text{round}}$ 深度2预投喂，跑通[case-01-coding](../tests/glm52/megakernel_tp8_ep8/case-01-coding)离线全量1024词元生成；彻底删除35+个cann前缀寄生文件并收敛目录|进程内断言sys.modules零含vllm与vllm_ascend；1024词元精确命中黄金SHA256(2f751372...)且8卡主网与串行草稿状态全过；同机配对稳态TPOT压破6.0 ms|
-|G3：跨层预取与共享索引树破3 ms|8颗空闲die(TP8+EP8)|开启SoftSyncAll跨层L2静态权重预取与冷专家CACHE_MODE_DISABLE；将共享种子索引下的Top-2/Top-4静态草稿树(W12/W16)合入 $G_{\text{round}}$|遵循Lakatos退化门禁(连续两次无新物理预测修订即截断切换机制格)；[case-01-coding](../tests/glm52/megakernel_tp8_ep8/case-01-coding)五组交替测量稳态中位TPOT < 3.0 ms，黄金SHA256与8卡全状态位级一致|
+|G2：ShowHands超图脱钩与仓库大扫除|8颗空闲die(TP8+EP8)|上线ModelArena自持加载与单张整轮超图 $G_{\text{round}}$ 深度2预投喂，跑通[case-01-coding](../tests/glm52/cases-8k1k/case-01-coding)离线全量1024词元生成；彻底删除35+个cann前缀寄生文件并收敛目录|进程内断言sys.modules零含vllm与vllm_ascend；1024词元精确命中黄金SHA256(2f751372...)且8卡主网与串行草稿状态全过；同机配对稳态TPOT压破6.0 ms|
+|G3：跨层预取与共享索引树破3 ms|8颗空闲die(TP8+EP8)|开启SoftSyncAll跨层L2静态权重预取与冷专家CACHE_MODE_DISABLE；将共享种子索引下的Top-2/Top-4静态草稿树(W12/W16)合入 $G_{\text{round}}$|遵循Lakatos退化门禁(连续两次无新物理预测修订即截断切换机制格)；[case-01-coding](../tests/glm52/cases-8k1k/case-01-coding)五组交替测量稳态中位TPOT < 3.0 ms，黄金SHA256与8卡全状态位级一致|

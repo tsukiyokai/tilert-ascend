@@ -7,9 +7,9 @@ if [[ -f "$base/glm52-source-20261111.tgz" ]]; then
 fi
 mkdir -p "$base/agy_tp8/cases"
 if [[ ! -d "$base/agy_tp8/cases/case-01-coding" ]]; then
-    cp -a "$base/source/tests/glm52/megakernel_tp8_ep8/case-01-coding" "$base/agy_tp8/cases/"
+    cp -a "$base/source/tests/glm52/cases-8k1k/case-01-coding" "$base/agy_tp8/cases/"
 fi
-cp -a "$base/source/tests/glm52/megakernel_tp8_ep8/scripts" "$base/agy_tp8/"
+cp -a "$base/source/tests/glm52/cases-8k1k/scripts" "$base/agy_tp8/"
 printf 'case-01-coding\n' > "$base/agy_tp8/current_case.txt"
 toolkit=${TILERT_TOOLKIT_ROOT:-/tmp/trt-gmm1-20261029-0030/assets}
 devices=(--device /dev/davinci_manager --device /dev/devmm_svm --device /dev/hisi_hdc)

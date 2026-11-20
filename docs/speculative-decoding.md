@@ -1,6 +1,6 @@
 # GLM-5.2 TP8+EP8 投机解码
 
-目标锁定单台 Ascend A3（Ascend910_9392 或 9382，dav-2201 架构，8 物理 die）、官方冻结权重 GLM-5.2 W4A8C8（TP8+EP8）、batch=1、输入 8192 词元、输出 1024 词元，唯一正式验收基准为 [case-01-coding](../tests/glm52/megakernel_tp8_ep8/case-01-coding)（首词 ID 13534 来自预填充，稳态 TPOT 分母为随后生成的 1023 词元，主网有效缓存终态长度 9215）。硬门禁要求稳态中位 TPOT < 3.0 ms，1024 词元输出命中黄金 SHA256（2f751372fc82cf290c8e35d3e7cc3cad0296fde4d8d188fba102ac34f82c2962），且 8 卡主网有效 KV 与独立串行目标条件草稿 KV 逐位对齐。终态架构总纲见 [standalone-decode.md](standalone-decode.md)。
+目标锁定单台 Ascend A3（Ascend910_9392 或 9382，dav-2201 架构，8 物理 die）、官方冻结权重 GLM-5.2 W4A8C8（TP8+EP8）、batch=1、输入 8192 词元、输出 1024 词元，唯一正式验收基准为 [case-01-coding](../tests/glm52/cases-8k1k/case-01-coding)（首词 ID 13534 来自预填充，稳态 TPOT 分母为随后生成的 1023 词元，主网有效缓存终态长度 9215）。硬门禁要求稳态中位 TPOT < 3.0 ms，1024 词元输出命中黄金 SHA256（2f751372fc82cf290c8e35d3e7cc3cad0296fde4d8d188fba102ac34f82c2962），且 8 卡主网有效 KV 与独立串行目标条件草稿 KV 逐位对齐。终态架构总纲见 [standalone-decode.md](standalone-decode.md)。
 
 当前最佳已验收实测稳态中位 TPOT 为 7.5988 ms（最快 7.4716 ms，P90 7.7494 ms，尚未达标 3.0 ms）：采用模型自带第 78 层单层 MTP 自回归锥形树 W16（十步层宽调度 4-4-4-4-2-2-2-2-1-1，共 149 轮，单轮平均提交 6.866 词元；W32 树达 7.992 词元）配合 75 层持久 Megakernel K11030，单轮墙钟约 52.45 ms（0–77 层主网验证 44.31 ms，含 75 层持久链 41.40 ms 与 0–2 层及输出头 2.9 ms；第 78 层 10 步树起草 6.54 ms；目标条件重算与种子提交 1.42 ms；跨卡同步 0.18 ms）。后续 K110383（NZ 注意力尾加 GU_B12 加 DN_KB4）在同构 W16 验证下将 75 层链压至 41.399 ms、单轮验证墙钟压至 43.172 ms，8 卡 0-ULP 通过。
 
@@ -41,7 +41,7 @@
 |基线：原生第78层W16锥形树|当前7.96 ms(6.54+1.42)；终态3.5 ms|当前6.866；校准目标7.2|7.60 ms(实测)|2.29–2.40 ms|零训练基准；严格满足冻结权重与第78层串行KV位级对齐契约|
 |情景A：从零外挂标准5层稠密DSpine(~1.2B)替换第78层|省去条件重算，5层块并行约1.0–1.5 ms(受HBM/L2搬运限制)|约5.6–6.0(单链退化)|7.88 ms(按5.8计，倒挂+3.7%)|2.41 ms(按5.8计，无净收益)|负收益/无收益：DSpine原论文贪心代码实测仅5.71(HumanEval)/6.14(MBPP，主从比8:1–25:1)，600:1主从悬殊下1.2B稠密单链不敌9.7B预训练MoE树；另需约32卡天离线蒸馏、4个新算子，且破坏官方权重与第78层KV验收契约|
 |情景B：解锁外部草稿权重，复用第78层9.7B MoE做EAGLE-3多步自滚微调或嫁接轻量DSpine邻接门控桥|自滚微调维持3.5 ms(零新算子)；嫁接3步块并行压至约1.8 ms|7.5–8.3(消除多步漂移并保住MoE容量与树宽)|6.15–6.70 ms|1.90–2.06 ms|显著正收益(终态净降15%–25%)：唯有保留第78层万亿词元预训练MoE底座，消除自滚暴露偏差或压缩串行步数才能同时做小分子、做大分母；受限于冻结权重门禁不可用于标准榜|
-|情景C：严守冻结权重契约，仅零训练迁移DSpark样本外置信度/存活率宽度调度|裁剪低存活分支压至2.8–3.3 ms|7.0–7.3|7.35–7.50 ms|2.18–2.30 ms|正收益且合规：在[case-02-review](../tests/glm52/megakernel_tp8_ep8/case-02-review)、[case-03-refactor](../tests/glm52/megakernel_tp8_ep8/case-03-refactor)、[case-04-math](../tests/glm52/megakernel_tp8_ep8/case-04-math)样本外标定锥形束宽与共享种子Top-512/1024稀疏前缀，抑制无效分支冷专家激活|
+|情景C：严守冻结权重契约，仅零训练迁移DSpark样本外置信度/存活率宽度调度|裁剪低存活分支压至2.8–3.3 ms|7.0–7.3|7.35–7.50 ms|2.18–2.30 ms|正收益且合规：在[case-02-review](../tests/glm52/cases-8k1k/case-02-review)、[case-03-refactor](../tests/glm52/cases-8k1k/case-03-refactor)、[case-04-math](../tests/glm52/cases-8k1k/case-04-math)样本外标定锥形束宽与共享种子Top-512/1024稀疏前缀，抑制无效分支冷专家激活|
 
 ## 🧱 原生单层 MTP 约 7 词接受上限的五重物理证据
 
@@ -50,7 +50,7 @@
 2. 多步自滚暴露偏差与零训练校准触顶：第 78 层仅受单步真值隐藏态预训练，解码多步自滚时留出集隐藏态 MSE 在 7 步内从 0.518 单调漂移至 0.901（[递推采集与筛选](../tests/.artifacts/runs/glm52-width-20261111/mtp-rollout/README.md)）。提示内前 1536 对样本拟合、后 512 对选强的无监督 rank64 残差映射（仅修正未提交草稿链父状态，不读生成区）将完整词表 W8 从 205 轮压至 197 轮、TPOT 降至 9.101 ms（校准加动态词表为 9.106 ms，对照 9.170 ms，120 份状态通过，[校准证据](../tests/.artifacts/runs/glm52-width-20261111/mtp-recycle/README.md)）。此后五路零改主权重的校准实验全部触顶被拒：七步递推重拟合固定 rank64 基最多仅降总体 MSE 1.087%（未达 2% 门禁）；监督式 primal SVD 低秩残差回归使留出 MSE 由 0.760610 恶化至 0.800252（[监督式低秩筛选](../tests/.artifacts/runs/glm52-width-20261111/mtp-regression/README.md)）；主网 head-map 使 512 位置命中由 348 退化至 339；双候选一步前瞻重评分复现 4096 个逐卡 seed 与 288 份分支状态后命中由 348 退化至 343（改对 15、改错 20，[前瞻筛选](../tests/.artifacts/runs/glm52-width-20261111/mtp-selection-partial/README.md)）；1280 样本子空间上训练 4160 参数的自有头分类校准在内部 256 项上由 170 退化至 164/166/162/149/144，独立读回退回恒等映射（[分类校准](../tests/.artifacts/runs/glm52-width-20261111/mtp-head-calibration/README.md)）。
 3. 共享种子 Top-2048 稀疏索引跨步失配：M2/M4 并行草稿在逻辑 RoPE 与物理 KV 槽分离、种子索引不读临时分支行约束下通过 288 个逐卡批次与 M1 逐字节等价门禁（[并行候选门禁](../tests/.artifacts/runs/glm52-width-20261111/mtp-candidates/README.md)），但树深越过 6–8 步后复用首步种子的 Top-2048 稀疏历史集合相对当前查询发生偏移，制约深层分支命中率。
 4. 256 专家 MoE 路由并集膨胀吞噬宽树收益：主网 W8 独立诊断在 75 层累计触发 4800 个专家命中，八卡分别调用 403–453 个专家块（[原始计数](../tests/.artifacts/runs/glm52-width-20261111/native-profile-ffn/counts/cycles-rank-0.json)）。验证树宽从 W16（6.866）扩至 W32（7.992）接受词数仅增 16.4%，但多分支在 256 专家上激活近似独立的 Top-8 子集，冷专家 HBM 读取线性膨胀导致单轮验证墙钟斜率陡增（早期图执行 W8/W12/W16 单次 TPOT 分别为 9.74/9.82/11.14 ms，[宽度比较](../tests/.artifacts/runs/glm52-width-20261111/mtp-wide-draft/graph-widths-summary.json)；反之将主图物理行由 32 缩至 12 在逻辑 W8 下使五组中位由 9.634 降至 9.491 ms，叠加 GU 与动态词表由 9.333 降至 9.178 ms，80 份状态全过，[缩窄主图](../tests/.artifacts/runs/glm52-width-20261111/main-graph12/bf16-chain/README.md) · [组合证据](../tests/.artifacts/runs/glm52-width-20261111/main-graph12/gu-vocab/README.md)）。
-5. 无模型上下文检索无法互补增益：[case-01-coding](../tests/glm52/megakernel_tp8_ep8/case-01-coding) 唯一 4-gram 比例高达 0.7698，Recency lookup 平均仅提交 1.637 词；同前缀 46 轮严格配对比较中，因果后缀匹配累计提交 184 词，净负于原生 MTP 的 246 词（[混合检索筛选](../tests/.artifacts/runs/glm52-width-20261111/hybrid-lookup/screen.json)）。
+5. 无模型上下文检索无法互补增益：[case-01-coding](../tests/glm52/cases-8k1k/case-01-coding) 唯一 4-gram 比例高达 0.7698，Recency lookup 平均仅提交 1.637 词；同前缀 46 轮严格配对比较中，因果后缀匹配累计提交 184 词，净负于原生 MTP 的 246 词（[混合检索筛选](../tests/.artifacts/runs/glm52-width-20261111/hybrid-lookup/screen.json)）。
 
 ## 🔧 确定性数值修复与算子筛选收据
 

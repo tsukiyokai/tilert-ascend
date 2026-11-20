@@ -355,8 +355,15 @@ def allocate_isolation_env(
     shm_root: str = "/dev/shm",
     target_host: str | None = None,
     visible_devices: Sequence[int] | None = None,
+    world_size: int = WORLD_SIZE,
 ) -> dict[str, str]:
     clean_id = validate_run_id(run_id)
+    if (
+        isinstance(world_size, bool)
+        or not isinstance(world_size, int)
+        or not (1 <= world_size <= 16)
+    ):
+        raise IsolationError(f"world_size must be int in 1..16, got {world_size!r}")
     resolved_host = assert_host_allowed(target_host) if target_host is not None else None
     resolved_port = allocate_free_port_base() if port_base is None else port_base
     if resolved_port < 1024 or resolved_port + 250 > 65535:
@@ -367,19 +374,19 @@ def allocate_isolation_env(
     shm_dir = f"{norm_root}/{clean_id}"
     verify_shm_isolation(shm_dir, clean_id)
     if visible_devices is None:
-        dies = tuple(range(WORLD_SIZE))
+        dies = tuple(range(world_size))
     else:
         dies = tuple(visible_devices)
         if (
-            len(dies) != WORLD_SIZE
-            or len(set(dies)) != WORLD_SIZE
+            len(dies) != world_size
+            or len(set(dies)) != world_size
             or any(
                 isinstance(d, bool) or not isinstance(d, int) or not (0 <= d < 16)
                 for d in dies
             )
         ):
             raise IsolationError(
-                f"visible_devices must contain {WORLD_SIZE} unique ints in 0..15"
+                f"visible_devices must contain {world_size} unique ints in 0..15"
             )
     hccl_lo = resolved_port + 100
     hccl_hi = resolved_port + 250
@@ -445,13 +452,18 @@ def _parse_port_range(value: str) -> tuple[int, int]:
     return lo, hi
 
 
-def _parse_visible_devices(value: str, label: str) -> frozenset[int]:
+def _parse_visible_devices(
+    value: str,
+    label: str,
+    expected_world_size: int = WORLD_SIZE,
+) -> frozenset[int]:
     if value != value.strip() or not value:
         raise IsolationError(f"Invalid ASCEND_RT_VISIBLE_DEVICES in {label}: {value!r}")
     parts = value.split(",")
-    if len(parts) != WORLD_SIZE:
+    if len(parts) != expected_world_size:
         raise IsolationError(
-            f"ASCEND_RT_VISIBLE_DEVICES in {label} must list {WORLD_SIZE} dies, got {value!r}"
+            f"ASCEND_RT_VISIBLE_DEVICES in {label} must list {expected_world_size} dies, "
+            f"got {value!r}"
         )
     dies: set[int] = set()
     for part in parts:
@@ -465,7 +477,7 @@ def _parse_visible_devices(value: str, label: str) -> frozenset[int]:
                 f"Die index out of Ascend A3 range 0..15 in {label}: {part!r}"
             )
         dies.add(die_idx)
-    if len(dies) != WORLD_SIZE:
+    if len(dies) != expected_world_size:
         raise IsolationError(
             f"Duplicate die indices in {label} ASCEND_RT_VISIBLE_DEVICES: {value!r}"
         )
@@ -514,6 +526,7 @@ def _verify_single_isolation_env(
     env: Mapping[str, str],
     target_host: str | None = None,
     label: str = "env",
+    world_size: int = WORLD_SIZE,
 ) -> tuple[str, str, str, str, set[int], str | None, frozenset[int]]:
     expected_host = assert_host_allowed(target_host) if target_host is not None else None
     raw_env_host = env.get("TILERT_TARGET_HOST", "")
@@ -574,7 +587,9 @@ def _verify_single_isolation_env(
         raise IsolationError(
             f"ATB_SHARE_MEMORY_NAME_SUFFIX in {label} must be trimmed and include run_id"
         )
-    visible_dies = _parse_visible_devices(env["ASCEND_RT_VISIBLE_DEVICES"], label)
+    visible_dies = _parse_visible_devices(
+        env["ASCEND_RT_VISIBLE_DEVICES"], label, expected_world_size=world_size
+    )
     ports = _used_ports_from_env(env, label=label)
     return (
         run_id,
@@ -591,9 +606,12 @@ def verify_isolation_env(
     env: Mapping[str, str],
     peer_envs: Sequence[Mapping[str, str]] = (),
     target_host: str | None = None,
+    world_size: int = WORLD_SIZE,
 ) -> None:
     run_id, atb_suffix, run_dir, job_dir, own_ports, own_host, own_dies = (
-        _verify_single_isolation_env(env, target_host=target_host, label="env")
+        _verify_single_isolation_env(
+            env, target_host=target_host, label="env", world_size=world_size
+        )
     )
     seen_ids = {run_id}
     seen_atb = {atb_suffix}
@@ -609,7 +627,7 @@ def verify_isolation_env(
     for idx, peer in enumerate(peer_envs):
         peer_label = f"peer_envs[{idx}]"
         p_id, p_atb, p_run_dir, p_job_dir, p_ports, p_host, p_dies = (
-            _verify_single_isolation_env(peer, label=peer_label)
+            _verify_single_isolation_env(peer, label=peer_label, world_size=world_size)
         )
         if p_id in seen_ids:
             raise IsolationError(f"Duplicate TILERT_E2E_RUN_ID across concurrent runs: {p_id}")

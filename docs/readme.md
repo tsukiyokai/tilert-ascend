@@ -26,7 +26,7 @@ TileRT-Ascend 是 Ascend 上的专用低时延 decode 后端。它接收成熟�
 
 ## 已验证到哪里
 
-当前 coding 8K/1K（[case-01-coding](../tests/glm52/megakernel_tp8_ep8/case-01-coding)）在 DSpine 锥形树 W16 配合 75 层持久 Megakernel 下稳态五次测量中位数为 7.5988 ms/token（最快 7.4716 ms/token，149 轮，8 卡状态与黄金 SHA256 逐位对齐），正朝稳态 TPOT < 3.0 ms 终态推进；终态架构见 [独立解码架构](standalone-decode.md)，投机对照见 [投机路线](speculative-decoding.md)。下表保留早期其他配置的历史证据。
+当前 coding 8K/1K（[case-01-coding](../tests/glm52/cases-8k1k/case-01-coding)）在 DSpine 锥形树 W16 配合 75 层持久 Megakernel 下稳态五次测量中位数为 7.5988 ms/token（最快 7.4716 ms/token，149 轮，8 卡状态与黄金 SHA256 逐位对齐），正朝稳态 TPOT < 3.0 ms 终态推进；终态架构见 [独立解码架构](standalone-decode.md)，投机对照见 [投机路线](speculative-decoding.md)。下表保留早期其他配置的历史证据。
 
 TPOT 表示平均输出 token 间隔；M1、M12 表示目标模型一次处理 1、12 个位置。原始配置与读数汇总在 [probe](probe.md)。
 

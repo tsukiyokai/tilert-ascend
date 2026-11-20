@@ -39,6 +39,7 @@ TARGET_SFA_TOPK: Final[int] = 2048
 WIDTHS: Final[tuple[int, ...]] = (1, 2, 4, 6, 8, 12, 16, 24, 32)
 PROMPT_HEAD_TOKENS: Final[tuple[int, ...]] = (154822, 154824, 154827)
 PROMPT_TAIL_TOKENS: Final[tuple[int, ...]] = (154828, 154841, 154842)
+DEFAULT_TRACK: Final[str] = "a3-tp8-ep8"
 TPOT_FORMULA: Final[str] = "max(8-rank dt_ms) / 1023.0"
 ALLOW_RELAXED_PARITY: Final[bool] = False
 MILESTONES: Final[tuple[str, ...]] = ("M1", "M2", "M3", "M4", "M5")
@@ -84,7 +85,7 @@ FORBIDDEN_RUN_IDS: Final[frozenset[str]] = frozenset({".", "..", "agy_tp8"})
 DEFAULT_KBENV_BIN: Final[str] = (
     "/home/shanshan/dotfiles/harness/skills/vibe-iris/scripts/experiment/kbenv"
 )
-DEFAULT_CASE_ROOT: Final[Path] = Path(__file__).resolve().parents[1] / "megakernel_tp8_ep8"
+DEFAULT_CASE_ROOT: Final[Path] = Path(__file__).resolve().parents[1] / "cases-8k1k"
 
 
 @dataclass(frozen=True)
@@ -96,6 +97,16 @@ class CaseSpec:
     first_token_id: int
     prompt_sha256: str
     output_sha256: str
+
+
+@dataclass(frozen=True)
+class TrackSpec:
+    track: str
+    chip: str
+    world_size: int
+    ep_size: int
+    reduction_tree: tuple[int, ...]
+    output_sha256_by_case: dict[str, str]
 
 
 GOLDEN_CASES: Final[dict[str, CaseSpec]] = {
@@ -137,6 +148,31 @@ GOLDEN_CASES: Final[dict[str, CaseSpec]] = {
     ),
 }
 
+GOLDEN_TRACKS: Final[dict[str, TrackSpec]] = {
+    "a3-tp8-ep8": TrackSpec(
+        track="a3-tp8-ep8",
+        chip=PRIMARY_A3_CHIP,
+        world_size=8,
+        ep_size=8,
+        reduction_tree=(4, 2, 1),
+        output_sha256_by_case={cid: spec.output_sha256 for cid, spec in GOLDEN_CASES.items()},
+    ),
+    "a3-tp16-ep16": TrackSpec(
+        track="a3-tp16-ep16",
+        chip=PRIMARY_A3_CHIP,
+        world_size=16,
+        ep_size=16,
+        reduction_tree=(8, 4, 2, 1),
+        output_sha256_by_case={
+            "case-01-coding": "4b0d2fc10d4c7014536adb89f2c1cbea05315dffb106657261c4113eeb001fc3",
+        },
+    ),
+}
+
+
+def tpot_formula_for_world_size(world_size: int) -> str:
+    return f"max({world_size}-rank dt_ms) / {DECODE_TOKENS}.0"
+
 
 def compact_tokens_sha256(tokens: list[int]) -> str:
     payload = json.dumps(tokens, separators=(",", ":")).encode("ascii")
@@ -153,10 +189,55 @@ def file_sha256(path: Path) -> str:
         return hashlib.file_digest(handle, "sha256").hexdigest()
 
 
-def get_case_spec(case_id: str) -> CaseSpec:
+def get_track_spec(track: str = DEFAULT_TRACK) -> TrackSpec:
+    if track not in GOLDEN_TRACKS:
+        raise VerificationError(f"Unknown track: {track}")
+    return GOLDEN_TRACKS[track]
+
+
+def resolve_track(track: str | None = None, world_size: int | None = None) -> TrackSpec:
+    if track is not None:
+        spec = get_track_spec(track)
+        if world_size is not None and world_size != spec.world_size:
+            raise VerificationError(
+                f"Track {track!r} requires world_size={spec.world_size}, got {world_size!r}"
+            )
+        return spec
+    if world_size is None or world_size == WORLD_SIZE:
+        return GOLDEN_TRACKS[DEFAULT_TRACK]
+    if world_size == 16:
+        return GOLDEN_TRACKS["a3-tp16-ep16"]
+    raise VerificationError(f"Unsupported world_size for track resolution: {world_size!r}")
+
+
+def golden_dir(case_dir: Path, track: str = DEFAULT_TRACK) -> Path:
+    get_track_spec(track)
+    return case_dir / "golden" / track
+
+
+def golden_result_path(case_dir: Path, track: str = DEFAULT_TRACK) -> Path:
+    return golden_dir(case_dir, track) / "result.json"
+
+
+def get_case_spec(case_id: str, track: str = DEFAULT_TRACK) -> CaseSpec:
     if case_id not in GOLDEN_CASES:
         raise VerificationError(f"Unknown case_id: {case_id}")
-    return GOLDEN_CASES[case_id]
+    base = GOLDEN_CASES[case_id]
+    tspec = get_track_spec(track)
+    if case_id not in tspec.output_sha256_by_case:
+        raise VerificationError(f"No golden output_sha256 for {case_id} on track {track}")
+    expected_sha = tspec.output_sha256_by_case[case_id]
+    if expected_sha == base.output_sha256:
+        return base
+    return CaseSpec(
+        case_id=base.case_id,
+        scenario=base.scenario,
+        seq_len=base.seq_len,
+        output_len=base.output_len,
+        first_token_id=base.first_token_id,
+        prompt_sha256=base.prompt_sha256,
+        output_sha256=expected_sha,
+    )
 
 
 def milestone_tpot_limit(milestone: str) -> float:

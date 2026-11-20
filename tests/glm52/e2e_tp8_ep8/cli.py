@@ -12,7 +12,9 @@ from .contracts import (
     DEFAULT_CASE_ROOT,
     DEFAULT_KBENV_BIN,
     DEFAULT_RUNNER_TIMEOUT_S,
+    DEFAULT_TRACK,
     GOLDEN_CASES,
+    GOLDEN_TRACKS,
     HygieneError,
     IsolationError,
     MILESTONES,
@@ -53,6 +55,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="case-01-coding",
     )
     parser.add_argument("--case-root", type=Path, default=DEFAULT_CASE_ROOT)
+    parser.add_argument("--track", choices=tuple(GOLDEN_TRACKS), default=None)
     parser.add_argument("--report-dir", type=Path, default=None)
     parser.add_argument("--output", type=Path, default=None)
     parser.add_argument("--warmups", type=int, default=None)
@@ -90,6 +93,7 @@ def main(argv: list[str] | None = None) -> int:
         results: list[dict[str, Any]] = []
 
         if args.mode == "dry-run":
+            resolved_track = args.track or DEFAULT_TRACK
             warmups, formals = validate_protocol_counts(
                 MIN_WARMUPS if args.warmups is None else args.warmups,
                 MIN_FORMALS if args.formals is None else args.formals,
@@ -116,6 +120,7 @@ def main(argv: list[str] | None = None) -> int:
                     milestone=args.milestone,
                     width=width,
                     port_base=base_port + idx * 300,
+                    track=resolved_track,
                 )
                 results.append(
                     verify_e2e_run(
@@ -125,12 +130,14 @@ def main(argv: list[str] | None = None) -> int:
                         require_warm_head=True,
                         require_ab_ba=args.ab_ba,
                         milestone=args.milestone,
+                        track=resolved_track,
                     )
                 )
             hygiene = verify_root_hygiene(repo_root)
             summary: dict[str, Any] = {
                 "pass": True,
                 "mode": args.mode,
+                "track": resolved_track,
                 "milestone": args.milestone,
                 "cases": results,
                 "hygiene": hygiene,
@@ -162,6 +169,7 @@ def main(argv: list[str] | None = None) -> int:
                         require_warm_head=True,
                         require_ab_ba=args.ab_ba,
                         milestone=args.milestone,
+                        track=args.track,
                     )
                 )
                 report = json.loads((target_dir / "e2e_result.json").read_text(encoding="utf-8"))
@@ -186,6 +194,7 @@ def main(argv: list[str] | None = None) -> int:
                 "cases": results,
             }
         else:
+            resolved_track = args.track or DEFAULT_TRACK
             warmups, formals = validate_protocol_counts(
                 MIN_WARMUPS if args.warmups is None else args.warmups,
                 MIN_FORMALS if args.formals is None else args.formals,
@@ -223,11 +232,13 @@ def main(argv: list[str] | None = None) -> int:
                         target_host=args.target_host,
                         port_base=port_base,
                         timeout_s=float(args.timeout_s),
+                        track=resolved_track,
                     )
                 )
             summary = {
                 "pass": True,
                 "mode": args.mode,
+                "track": resolved_track,
                 "milestone": args.milestone,
                 "cases": results,
             }

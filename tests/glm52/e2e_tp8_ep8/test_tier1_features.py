@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 
@@ -15,14 +16,18 @@ from .contracts import (
     FINAL_POS,
     FORBIDDEN_HOSTS,
     GOLDEN_CASES,
+    GOLDEN_TRACKS,
     ISL,
     OSL,
     SCHEMA_VERSION,
+    TrackSpec,
     WORLD_SIZE,
     VerificationError,
     compact_tokens_sha256,
     default_tokens_sha256,
     get_case_spec,
+    get_track_spec,
+    golden_result_path,
 )
 from .hygiene_gate import (
     KbenvHost,
@@ -62,7 +67,7 @@ def test_t1_f1_case01_prompt_len_and_compact_sha(case_root: Path) -> None:
 
 def test_t1_f1_case01_first_token_id(case_root: Path) -> None:
     spec = get_case_spec("case-01-coding")
-    bench = _load_json(case_root / "case-01-coding" / "bench_result.json")
+    bench = _load_json(golden_result_path(case_root / "case-01-coding"))
     assert bench["first_token_id"] == 13534
     assert bench["output_token_ids"][0] == spec.first_token_id
 
@@ -78,7 +83,7 @@ def test_t1_f1_case01_output_len_and_accepted_sum(case01_bundle: Path) -> None:
 
 def test_t1_f1_case01_output_default_json_sha(case_root: Path) -> None:
     spec = get_case_spec("case-01-coding")
-    bench = _load_json(case_root / "case-01-coding" / "bench_result.json")
+    bench = _load_json(golden_result_path(case_root / "case-01-coding"))
     tokens = bench["output_token_ids"]
     actual = verify_output_tokens(
         tokens,
@@ -265,12 +270,13 @@ def test_t1_f6_cases_index_matches_all_4_prompts(case_root: Path) -> None:
     for case_id, spec in GOLDEN_CASES.items():
         assert by_id[case_id]["prompt_sha256"] == spec.prompt_sha256
         assert by_id[case_id]["seq_len"] == spec.seq_len
+        assert by_id[case_id]["first_token_id"] == spec.first_token_id
 
 
 def test_t1_f6_case02_review_golden_parity(case_root: Path) -> None:
     spec = get_case_spec("case-02-review")
     verify_prompt_case(case_root / "case-02-review", spec)
-    bench = _load_json(case_root / "case-02-review" / "bench_result.json")
+    bench = _load_json(golden_result_path(case_root / "case-02-review"))
     assert verify_output_tokens(
         bench["output_token_ids"],
         expected_sha256=spec.output_sha256,
@@ -281,7 +287,7 @@ def test_t1_f6_case02_review_golden_parity(case_root: Path) -> None:
 def test_t1_f6_case03_refactor_golden_parity(case_root: Path) -> None:
     spec = get_case_spec("case-03-refactor")
     verify_prompt_case(case_root / "case-03-refactor", spec)
-    bench = _load_json(case_root / "case-03-refactor" / "bench_result.json")
+    bench = _load_json(golden_result_path(case_root / "case-03-refactor"))
     assert verify_output_tokens(
         bench["output_token_ids"],
         expected_sha256=spec.output_sha256,
@@ -292,12 +298,63 @@ def test_t1_f6_case03_refactor_golden_parity(case_root: Path) -> None:
 def test_t1_f6_case04_math_golden_parity(case_root: Path) -> None:
     spec = get_case_spec("case-04-math")
     verify_prompt_case(case_root / "case-04-math", spec)
-    bench = _load_json(case_root / "case-04-math" / "bench_result.json")
+    bench = _load_json(golden_result_path(case_root / "case-04-math"))
     assert verify_output_tokens(
         bench["output_token_ids"],
         expected_sha256=spec.output_sha256,
         first_token_id=8419,
     ) == spec.output_sha256
+
+
+def test_t1_f6_multitrack_tp16_contract_and_16rank_verification(
+    tmp_path: Path,
+    case_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tspec = get_track_spec("a3-tp16-ep16")
+    assert tspec.world_size == 16
+    assert tspec.ep_size == 16
+    assert tspec.reduction_tree == (8, 4, 2, 1)
+    spec8 = get_case_spec("case-01-coding", track="a3-tp8-ep8")
+    spec16 = get_case_spec("case-01-coding", track="a3-tp16-ep16")
+    assert spec16.prompt_sha256 == spec8.prompt_sha256
+    assert spec16.first_token_id == spec8.first_token_id == 13534
+    assert spec16.output_sha256 == (
+        "4b0d2fc10d4c7014536adb89f2c1cbea05315dffb106657261c4113eeb001fc3"
+    )
+    verify_prompt_case(case_root / "case-01-coding", spec16, track="a3-tp16-ep16")
+
+    synth_tokens = [spec16.first_token_id] + [7] * (OSL - 1)
+    synth_sha = default_tokens_sha256(synth_tokens)
+    synth_track = TrackSpec(
+        track="a3-tp16-ep16",
+        chip=tspec.chip,
+        world_size=16,
+        ep_size=16,
+        reduction_tree=(8, 4, 2, 1),
+        output_sha256_by_case={"case-01-coding": synth_sha},
+    )
+    monkeypatch.setitem(GOLDEN_TRACKS, "a3-tp16-ep16", synth_track)
+    cases_tmp = tmp_path / "cases"
+    c1 = cases_tmp / "case-01-coding"
+    c1.mkdir(parents=True)
+    shutil.copy2(case_root / "case-01-coding" / "prompt.json", c1 / "prompt.json")
+    bundle16 = build_dry_run_bundle(
+        case_id="case-01-coding",
+        output_dir=tmp_path / "tp16_bundle",
+        case_root=cases_tmp,
+        track="a3-tp16-ep16",
+        output_tokens=synth_tokens,
+        port_base=31900,
+    )
+    rep16 = _load_json(bundle16 / "e2e_result.json")
+    assert rep16["track"] == "a3-tp16-ep16"
+    assert rep16["world_size"] == 16
+    assert rep16["protocol"]["tpot_formula"] == "max(16-rank dt_ms) / 1023.0"
+    assert len(rep16["ranks"]) == 16
+    verified = verify_e2e_run(bundle16, c1, track="a3-tp16-ep16")
+    assert verified["track"] == "a3-tp16-ep16"
+    assert verified["output_sha256"] == synth_sha
 
 
 def test_t1_f6_all_oos_cases_verify_e2e_run(tmp_path: Path, case_root: Path) -> None:

@@ -19,13 +19,14 @@ from .contracts import (
     DEFAULT_CASE_ROOT,
     DEFAULT_KBENV_BIN,
     DEFAULT_RUNNER_TIMEOUT_S,
+    DEFAULT_TRACK,
+    EP_SIZE,
     FINAL_POS,
     MIN_FORMALS,
     MIN_WARMUPS,
     SCHEMA_VERSION,
     TARGET_LAYERS,
     TARGET_SFA_TOPK,
-    TPOT_FORMULA,
     TPOT_TARGET_MS,
     VLLM_FREE_MILESTONES,
     WIDTHS,
@@ -33,7 +34,10 @@ from .contracts import (
     VerificationError,
     file_sha256,
     get_case_spec,
+    get_track_spec,
+    golden_result_path,
     milestone_tpot_limit,
+    tpot_formula_for_world_size,
 )
 from .hygiene_gate import (
     allocate_free_port_base,
@@ -186,10 +190,11 @@ def _make_trial_record(
     output_tokens: list[int],
     accepted_per_round: list[int],
     pair_idx: int | None = None,
+    world_size: int = WORLD_SIZE,
 ) -> dict[str, Any]:
     rank_dt_ms = [
-        round((target_tpot - 0.004 * float(WORLD_SIZE - 1 - r)) * float(DECODE_TOKENS), 6)
-        for r in range(WORLD_SIZE)
+        round((target_tpot - 0.004 * float(world_size - 1 - r)) * float(DECODE_TOKENS), 6)
+        for r in range(world_size)
     ]
     max_tpot = max(rank_dt_ms) / float(DECODE_TOKENS)
     record: dict[str, Any] = {
@@ -219,6 +224,7 @@ def _build_dry_run_trials(
     spec: CaseSpec,
     output_tokens: list[int],
     accepted_per_round: list[int],
+    world_size: int = WORLD_SIZE,
 ) -> list[dict[str, Any]]:
     cand_warm_tpots = _candidate_tpots_for_milestone(milestone, n_warm)
     cand_form_tpots = _candidate_tpots_for_milestone(milestone, n_form)
@@ -245,6 +251,7 @@ def _build_dry_run_trials(
                         output_tokens=output_tokens,
                         accepted_per_round=accepted_per_round,
                         pair_idx=pair_idx,
+                        world_size=world_size,
                     )
                 )
                 trial_idx += 1
@@ -259,6 +266,7 @@ def _build_dry_run_trials(
                 spec=spec,
                 output_tokens=output_tokens,
                 accepted_per_round=accepted_per_round,
+                world_size=world_size,
             )
         )
         trial_idx += 1
@@ -272,6 +280,7 @@ def _build_dry_run_trials(
                 spec=spec,
                 output_tokens=output_tokens,
                 accepted_per_round=accepted_per_round,
+                world_size=world_size,
             )
         )
         trial_idx += 1
@@ -288,13 +297,14 @@ def _write_dry_run_ranks(
     main_state: dict[str, Any],
     draft_state: dict[str, Any],
     runtime_invariants: dict[str, Any],
+    world_size: int = WORLD_SIZE,
 ) -> list[dict[str, Any]]:
     ranks_manifest: list[dict[str, Any]] = []
-    for rank in range(WORLD_SIZE):
+    for rank in range(world_size):
         rank_dt = float(last_cand["rank_dt_ms"][rank])
         rank_payload = {
             "rank": rank,
-            "world_size": WORLD_SIZE,
+            "world_size": world_size,
             "case_id": spec.case_id,
             "prompt_sha256": spec.prompt_sha256,
             "first_token_id": spec.first_token_id,
@@ -336,19 +346,31 @@ def build_dry_run_bundle(
     draft_sfa_topk: int = 1024,
     run_id: str | None = None,
     port_base: int | None = 29900,
+    track: str = DEFAULT_TRACK,
+    output_tokens: list[int] | None = None,
 ) -> Path:
-    spec = get_case_spec(case_id)
+    tspec = get_track_spec(track)
+    spec = get_case_spec(case_id, track=tspec.track)
+    ws = tspec.world_size
     if width not in WIDTHS:
         raise VerificationError(f"Unsupported width: {width} (expected in {WIDTHS})")
     n_warm, n_form = validate_protocol_counts(warmups, formals, ab_ba)
     case_dir = case_root / case_id
-    verify_prompt_case(case_dir, spec)
-    bench_data = json.loads((case_dir / "bench_result.json").read_text(encoding="utf-8"))
-    output_tokens: list[int] = list(bench_data["output_token_ids"])
+    verify_prompt_case(case_dir, spec, track=tspec.track)
+    if output_tokens is None:
+        result_path = golden_result_path(case_dir, tspec.track)
+        if not result_path.is_file():
+            raise VerificationError(
+                f"Missing golden result for track {tspec.track}: {result_path}"
+            )
+        bench_data = json.loads(result_path.read_text(encoding="utf-8"))
+        resolved_tokens: list[int] = list(bench_data["output_token_ids"])
+    else:
+        resolved_tokens = list(output_tokens)
 
     resolved_run_id = validate_run_id(run_id or f"dry_{case_id}_{uuid.uuid4().hex[:8]}")
-    iso_env = allocate_isolation_env(resolved_run_id, port_base=port_base)
-    verify_isolation_env(iso_env)
+    iso_env = allocate_isolation_env(resolved_run_id, port_base=port_base, world_size=ws)
+    verify_isolation_env(iso_env, world_size=ws)
 
     accepted_per_round = _accepted_schedule_for_case(case_id)
     round_traces, w_history = _build_round_traces(
@@ -358,7 +380,14 @@ def build_dry_run_bundle(
     main_state = build_synthetic_cache_state(case_id, TARGET_LAYERS, "main")
     draft_state = build_synthetic_cache_state(case_id, 1, "draft")
     trials = _build_dry_run_trials(
-        milestone, n_warm, n_form, ab_ba, spec, output_tokens, accepted_per_round
+        milestone,
+        n_warm,
+        n_form,
+        ab_ba,
+        spec,
+        resolved_tokens,
+        accepted_per_round,
+        world_size=ws,
     )
 
     warm_ms = [
@@ -397,22 +426,24 @@ def build_dry_run_bundle(
     ranks_manifest = _write_dry_run_ranks(
         output_dir,
         spec,
-        output_tokens,
+        resolved_tokens,
         accepted_per_round,
         horizon_levels,
         last_cand,
         main_state,
         draft_state,
         runtime_invariants,
+        world_size=ws,
     )
     result_payload = {
         "schema_version": SCHEMA_VERSION,
         "milestone": milestone,
+        "track": tspec.track,
         "run_id": resolved_run_id,
         "case_id": case_id,
         "width": width,
         "prompt_sha256": spec.prompt_sha256,
-        "world_size": WORLD_SIZE,
+        "world_size": ws,
         "expert_parallel": True,
         "protocol": {
             "warmups": n_warm,
@@ -430,7 +461,7 @@ def build_dry_run_bundle(
             "synchronized_start": True,
             "hccl_op_expansion_mode": "AIV",
             "hccl_deterministic": True,
-            "tpot_formula": TPOT_FORMULA,
+            "tpot_formula": tpot_formula_for_world_size(ws),
         },
         "isolation": expected_isolation_metadata(iso_env),
         "runtime_hygiene": {
@@ -516,6 +547,8 @@ def build_runner_command(
     ab_ba: bool,
     milestone: str,
     width: int,
+    world_size: int = WORLD_SIZE,
+    ep_size: int = EP_SIZE,
 ) -> list[str]:
     base = shlex.split(runner_cmd)
     if not base:
@@ -537,9 +570,9 @@ def build_runner_command(
         "--isl",
         "8192",
         "--tp-size",
-        "8",
+        str(world_size),
         "--ep-size",
-        "8",
+        str(ep_size),
         "--width",
         str(width),
         "--check-digests",
@@ -581,8 +614,11 @@ def run_a3_formal(
     visible_devices: Sequence[int] | None = None,
     main_cache: Any = None,
     serial_draft_cache: Any = None,
+    track: str = DEFAULT_TRACK,
 ) -> dict[str, Any]:
-    spec = get_case_spec(case_id)
+    tspec = get_track_spec(track)
+    spec = get_case_spec(case_id, track=tspec.track)
+    ws = tspec.world_size
     if width not in WIDTHS:
         raise VerificationError(f"Unsupported width: {width} (expected in {WIDTHS})")
     if (
@@ -601,19 +637,21 @@ def run_a3_formal(
         raise VerificationError(f"timeout_s must be finite positive, got {timeout_s!r}")
     n_warm, n_form = validate_protocol_counts(warmups, formals, ab_ba)
     case_dir = case_root / case_id
-    verify_prompt_case(case_dir, spec)
+    verify_prompt_case(case_dir, spec, track=tspec.track)
     milestone_tpot_limit(milestone)
 
     if target_host is not None:
         selected_host = assert_host_allowed(target_host)
         chosen_dies = visible_devices
     else:
-        _, selected = run_kbenv_precheck(kbenv_bin=kbenv_bin, extra_args=kbenv_args)
+        _, selected = run_kbenv_precheck(
+            kbenv_bin=kbenv_bin, extra_args=kbenv_args, min_free_dies=ws
+        )
         selected_host = assert_host_allowed(selected.ip)
         chosen_dies = (
             visible_devices
             if visible_devices is not None
-            else select_free_die_slice(selected.free_die_indices, WORLD_SIZE)
+            else select_free_die_slice(selected.free_die_indices, ws)
         )
 
     resolved_run_id = validate_run_id(run_id or f"a3_{case_id}_{uuid.uuid4().hex[:8]}")
@@ -623,9 +661,10 @@ def run_a3_formal(
         port_base=resolved_port,
         target_host=selected_host,
         visible_devices=chosen_dies,
+        world_size=ws,
     )
     merged_env = {**os.environ, **iso_env}
-    verify_isolation_env(merged_env, target_host=selected_host)
+    verify_isolation_env(merged_env, target_host=selected_host, world_size=ws)
 
     resolved_cmd = runner_cmd or os.environ.get("TILERT_E2E_RUNNER_CMD", "")
     if not resolved_cmd.strip():
@@ -642,6 +681,8 @@ def run_a3_formal(
         ab_ba=ab_ba,
         milestone=milestone,
         width=width,
+        world_size=ws,
+        ep_size=tspec.ep_size,
     )
     output_dir.mkdir(parents=True, exist_ok=True)
     proc = subprocess.Popen(
@@ -681,6 +722,7 @@ def run_a3_formal(
         milestone=milestone,
         serial_draft_ref=serial_draft_ref,
         main_ref=main_ref,
+        track=tspec.track,
     )
     report = json.loads((output_dir / "e2e_result.json").read_text(encoding="utf-8"))
     if report.get("run_id") != resolved_run_id:

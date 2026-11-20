@@ -20,20 +20,26 @@ try:
     from tests.glm52.e2e_tp8_ep8.contracts import (
         DEFAULT_CASE_ROOT,
         GOLDEN_CASES,
+        GOLDEN_TRACKS,
         MILESTONES,
         WIDTHS,
         get_case_spec,
         milestone_tpot_limit,
+        resolve_track,
+        tpot_formula_for_world_size,
     )
     from tests.glm52.e2e_tp8_ep8.parity_gate import verify_e2e_run, verify_prompt_case
 except ModuleNotFoundError:
     from e2e_tp8_ep8.contracts import (
         DEFAULT_CASE_ROOT,
         GOLDEN_CASES,
+        GOLDEN_TRACKS,
         MILESTONES,
         WIDTHS,
         get_case_spec,
         milestone_tpot_limit,
+        resolve_track,
+        tpot_formula_for_world_size,
     )
     from e2e_tp8_ep8.parity_gate import verify_e2e_run, verify_prompt_case
 
@@ -241,15 +247,19 @@ def build_e2e_report(
     formals: int,
     ranks_manifest: list[dict[str, Any]],
     run_id: str,
+    track: str | None = None,
 ) -> dict[str, Any]:
+    world_size = int(res["world_size"])
+    resolved_track = resolve_track(track, world_size=world_size).track
     return {
         "schema_version": "glm52.e2e.v1",
         "milestone": milestone,
+        "track": resolved_track,
         "run_id": run_id,
         "case_id": case_id,
         "width": int(width),
         "prompt_sha256": res["prompt_sha256"],
-        "world_size": int(res["world_size"]),
+        "world_size": world_size,
         "expert_parallel": True,
         "protocol": {
             "warmups": int(warmups),
@@ -263,7 +273,7 @@ def build_e2e_report(
             "synchronized_start": True,
             "hccl_op_expansion_mode": os.environ.get("HCCL_OP_EXPANSION_MODE", "AIV"),
             "hccl_deterministic": os.environ.get("HCCL_DETERMINISTIC", "").lower() == "true",
-            "tpot_formula": "max(8-rank dt_ms) / 1023.0",
+            "tpot_formula": tpot_formula_for_world_size(world_size),
         },
         "isolation": _isolation_block(run_id),
         "runtime_hygiene": {
@@ -296,6 +306,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument("--case-dir", default=None)
     parser.add_argument("--case-id", choices=tuple(GOLDEN_CASES), default="case-01-coding")
+    parser.add_argument("--track", choices=tuple(GOLDEN_TRACKS), default=None)
     parser.add_argument("--main-prefix", default=None)
     parser.add_argument("--mtp-prefix", required=True)
     parser.add_argument("--model-dir", default="/work/model-raw")
@@ -346,9 +357,10 @@ def main(argv: list[str] | None = None) -> int:
     case_dir, main_prefix_path = _resolve_case_paths(
         args.case_id, args.case_dir, args.main_prefix
     )
-    spec = get_case_spec(args.case_id)
+    track_spec = resolve_track(args.track, world_size=world_size)
+    spec = get_case_spec(args.case_id, track=track_spec.track)
     if rank == 0:
-        verify_prompt_case(case_dir, spec)
+        verify_prompt_case(case_dir, spec, track=track_spec.track)
 
     build_dir, wl_json, _, _ = _prepare_build_artifacts(args, rank)
     if tp_group is not None:
@@ -417,6 +429,7 @@ def main(argv: list[str] | None = None) -> int:
                 formals=args.formals,
                 ranks_manifest=ranks_manifest,
                 run_id=run_id,
+                track=track_spec.track,
             )
             (report_dir / "e2e_result.json").write_text(
                 json.dumps(e2e_payload, indent=2) + "\n",
@@ -429,6 +442,7 @@ def main(argv: list[str] | None = None) -> int:
                     max_tpot_ms=milestone_tpot_limit(args.milestone),
                     require_warm_head=True,
                     milestone=args.milestone,
+                    track=track_spec.track,
                 )
 
     vllm_loaded = loaded_modules_has_vllm() or bool(res["loaded_modules_has_vllm"])
@@ -450,6 +464,8 @@ def main(argv: list[str] | None = None) -> int:
     if rank == 0:
         summary = {
             "case_id": args.case_id,
+            "track": track_spec.track,
+            "world_size": world_size,
             "milestone": args.milestone,
             "width": int(args.width),
             "k_sfa": int(args.k_sfa),

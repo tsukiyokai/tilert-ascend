@@ -287,7 +287,9 @@ def main(argv=None):
     case_dir = Path(args.case_dir)
     pf_blob = torch.load(case_dir / "main-prefix/rank-0.pt", map_location="cpu", weights_only=False)
     mtp_blob = torch.load(args.mtp_prefix, map_location="cpu", weights_only=False)
-    bench_meta = json.loads((case_dir / "bench_result.json").read_text())
+    golden_path = case_dir / "golden" / "a3-tp8-ep8" / "result.json"
+    bench_path = golden_path if golden_path.is_file() else case_dir / "bench_result.json"
+    bench_meta = json.loads(bench_path.read_text())
     ref_state = json.loads((case_dir / "reference-state" / f"rank-{rank}.json").read_text())
     prompt = list(pf_blob["prompt_token_ids"])
     first_tok = int(pf_blob["first_token_id"])

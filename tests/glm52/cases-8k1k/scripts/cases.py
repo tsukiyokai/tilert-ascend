@@ -83,7 +83,9 @@ def calibrate_prompt(tok, raw_template: str, is_code_trim: bool) -> tuple[str, l
     base_trim = "\n".join(kept).rstrip()
     base_trim_ids = tok.encode(base_trim, add_special_tokens=False) if base_trim else []
     note_hdr = "# Note:" if is_code_trim else "Note:"
-    pad_prefix = (f"\n\n{note_hdr}" if is_code_trim else f"\n{note_hdr}") if base_trim else note_hdr
+    pad_prefix = (
+        (f"\n\n{note_hdr}" if is_code_trim else f"\n{note_hdr}") if base_trim else note_hdr
+    )
 
     def build_mid(wlist: list[str]) -> str:
         return base_trim if not wlist else f"{base_trim}{pad_prefix} {' '.join(wlist)}."
@@ -130,9 +132,10 @@ def calibrate_prompt(tok, raw_template: str, is_code_trim: bool) -> tuple[str, l
 
 
 def main() -> None:
+    root = Path(__file__).resolve().parents[1]
     model_dir = sys.argv[1]
-    src_dir = Path(sys.argv[2])
-    out_dir = Path(sys.argv[3])
+    src_dir = Path(sys.argv[2]) if len(sys.argv) > 2 else root / "sources"
+    out_dir = Path(sys.argv[3]) if len(sys.argv) > 3 else root
     out_dir.mkdir(parents=True, exist_ok=True)
 
     from transformers import AutoTokenizer

@@ -21,6 +21,9 @@ from .contracts import (
     compact_tokens_sha256,
     file_sha256,
     get_case_spec,
+    get_track_spec,
+    golden_result_path,
+    resolve_track,
 )
 from .hygiene_gate import (
     allocate_isolation_env,
@@ -91,7 +94,7 @@ def test_t2_f1_rejects_corrupted_prompt_sha256(tmp_path: Path, case_root: Path) 
 
 def test_t2_f1_rejects_wrong_first_token_id(case_root: Path) -> None:
     spec = get_case_spec("case-01-coding")
-    bench = _load_json(case_root / "case-01-coding" / "bench_result.json")
+    bench = _load_json(golden_result_path(case_root / "case-01-coding"))
     with pytest.raises(VerificationError):
         verify_output_tokens(
             bench["output_token_ids"],
@@ -102,7 +105,7 @@ def test_t2_f1_rejects_wrong_first_token_id(case_root: Path) -> None:
 
 def test_t2_f1_rejects_one_token_flip_in_output(case_root: Path) -> None:
     spec = get_case_spec("case-01-coding")
-    bench = _load_json(case_root / "case-01-coding" / "bench_result.json")
+    bench = _load_json(golden_result_path(case_root / "case-01-coding"))
     tokens = list(bench["output_token_ids"])
     tokens[42] = (tokens[42] + 1) % VOCAB_SIZE
     with pytest.raises(VerificationError):
@@ -115,7 +118,7 @@ def test_t2_f1_rejects_one_token_flip_in_output(case_root: Path) -> None:
 
 def test_t2_f1_rejects_compact_json_sha_for_output(case_root: Path) -> None:
     spec = get_case_spec("case-01-coding")
-    bench = _load_json(case_root / "case-01-coding" / "bench_result.json")
+    bench = _load_json(golden_result_path(case_root / "case-01-coding"))
     compact_sha = compact_tokens_sha256(bench["output_token_ids"])
     assert compact_sha != spec.output_sha256
     with pytest.raises(VerificationError):
@@ -315,7 +318,7 @@ def test_t2_f4_rejects_over_8_row_l78_gemm_chunk(case01_bundle: Path) -> None:
 
 def test_t2_f4_rejects_accepted_sum_not_1023(case_root: Path) -> None:
     spec = get_case_spec("case-01-coding")
-    bench = _load_json(case_root / "case-01-coding" / "bench_result.json")
+    bench = _load_json(golden_result_path(case_root / "case-01-coding"))
     for bad_sum in ([1022], [1024]):
         with pytest.raises(VerificationError):
             verify_output_tokens(
@@ -360,7 +363,7 @@ def test_t2_f5_rejects_nan_or_inf_rank_dt(case01_bundle: Path) -> None:
 
 def test_t2_f5_rejects_out_of_vocab_output_token(case_root: Path) -> None:
     spec = get_case_spec("case-01-coding")
-    bench = _load_json(case_root / "case-01-coding" / "bench_result.json")
+    bench = _load_json(golden_result_path(case_root / "case-01-coding"))
     for bad_tok in (-1, VOCAB_SIZE):
         tokens = list(bench["output_token_ids"])
         tokens[500] = bad_tok
@@ -382,7 +385,7 @@ def test_t2_f5_rejects_vllm_loaded_under_m2_plus(case01_bundle: Path) -> None:
 
 def test_t2_f5_rejects_empty_expected_sha_or_relaxed_parity(case_root: Path) -> None:
     spec = get_case_spec("case-01-coding")
-    bench = _load_json(case_root / "case-01-coding" / "bench_result.json")
+    bench = _load_json(golden_result_path(case_root / "case-01-coding"))
     with pytest.raises(VerificationError):
         verify_output_tokens(
             bench["output_token_ids"],
@@ -400,7 +403,7 @@ def test_t2_f5_rejects_empty_expected_sha_or_relaxed_parity(case_root: Path) -> 
 
 def test_t2_f6_rejects_swapped_case02_case03_outputs(case_root: Path) -> None:
     spec2 = get_case_spec("case-02-review")
-    bench3 = _load_json(case_root / "case-03-refactor" / "bench_result.json")
+    bench3 = _load_json(golden_result_path(case_root / "case-03-refactor"))
     with pytest.raises(VerificationError):
         verify_output_tokens(
             bench3["output_token_ids"],
@@ -411,7 +414,7 @@ def test_t2_f6_rejects_swapped_case02_case03_outputs(case_root: Path) -> None:
 
 def test_t2_f6_rejects_case02_wrong_first_token_id(case_root: Path) -> None:
     spec2 = get_case_spec("case-02-review")
-    bench2 = _load_json(case_root / "case-02-review" / "bench_result.json")
+    bench2 = _load_json(golden_result_path(case_root / "case-02-review"))
     with pytest.raises(VerificationError):
         verify_output_tokens(
             bench2["output_token_ids"],
@@ -439,9 +442,11 @@ def test_t2_f6_rejects_tampered_case01_golden_file(
     tampered_dir = tmp_path / "case-01-tampered"
     tampered_dir.mkdir(parents=True)
     shutil.copy2(case_root / "case-01-coding" / "prompt.json", tampered_dir / "prompt.json")
-    bench = _load_json(case_root / "case-01-coding" / "bench_result.json")
+    bench = _load_json(golden_result_path(case_root / "case-01-coding"))
     bench["output_token_ids"][10] ^= 1
-    _write_json(tampered_dir / "bench_result.json", bench)
+    out_golden = golden_result_path(tampered_dir)
+    out_golden.parent.mkdir(parents=True, exist_ok=True)
+    _write_json(out_golden, bench)
     with pytest.raises(VerificationError):
         verify_prompt_case(tampered_dir, spec1)
 
@@ -451,6 +456,22 @@ def test_t2_f6_rejects_tp16_world_size(case01_bundle: Path) -> None:
     report["world_size"] = 16
     with pytest.raises(VerificationError):
         verify_timing_and_protocol(report)
+
+
+def test_t2_f6_rejects_cross_track_mismatch_and_unknown_track(
+    case01_bundle: Path,
+    case_root: Path,
+) -> None:
+    with pytest.raises(VerificationError):
+        get_track_spec("unknown-track")
+    with pytest.raises(VerificationError):
+        get_case_spec("case-02-review", track="a3-tp16-ep16")
+    with pytest.raises(VerificationError):
+        resolve_track("a3-tp16-ep16", world_size=8)
+    with pytest.raises(VerificationError):
+        resolve_track("a3-tp8-ep8", world_size=16)
+    with pytest.raises(VerificationError):
+        verify_e2e_run(case01_bundle, case_root / "case-01-coding", track="a3-tp16-ep16")
 
 
 def test_t2_f7_rejects_ineligible_kbenv_hosts() -> None:

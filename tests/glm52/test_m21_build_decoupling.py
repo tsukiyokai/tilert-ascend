@@ -737,14 +737,14 @@ def test_run_m2_case01_emits_valid_m2_report_schema(
         _build_round_traces,
         build_synthetic_cache_state,
     )
-    from tests.glm52.e2e_tp8_ep8.contracts import GOLDEN_CASES
+    from tests.glm52.e2e_tp8_ep8.contracts import GOLDEN_CASES, golden_result_path
     from tests.glm52.e2e_tp8_ep8.hygiene_gate import allocate_isolation_env
     from tests.glm52.e2e_tp8_ep8.parity_gate import verify_e2e_run
 
     run_m2 = importlib.import_module("tests.glm52.run_m2_case01")
     spec = GOLDEN_CASES["case-01-coding"]
-    case_dir = REPO_ROOT / "tests/glm52/megakernel_tp8_ep8/case-01-coding"
-    bench_tokens = json.loads((case_dir / "bench_result.json").read_text())["output_token_ids"]
+    case_dir = REPO_ROOT / "tests/glm52/cases-8k1k/case-01-coding"
+    bench_tokens = json.loads(golden_result_path(case_dir).read_text())["output_token_ids"]
     acc = _accepted_schedule_for_case("case-01-coding")
     traces, w_hist = _build_round_traces("case-01-coding", acc, width=16, min_w_act=10)
     main_state = build_synthetic_cache_state("case-01-coding", 78, "main")

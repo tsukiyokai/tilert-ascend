@@ -12,6 +12,7 @@ from .contracts import (
     ALLOW_RELAXED_PARITY,
     CaseSpec,
     DECODE_TOKENS,
+    DEFAULT_TRACK,
     DRAFT_LAYERS,
     DRAFT_SFA_TOPK_OPTIONS,
     FINAL_POS,
@@ -28,8 +29,8 @@ from .contracts import (
     STRICT_LT_MILESTONES,
     TARGET_LAYERS,
     TARGET_SFA_TOPK,
-    TPOT_FORMULA,
     TPOT_TARGET_MS,
+    TrackSpec,
     VLLM_FREE_MILESTONES,
     VOCAB_SIZE,
     WIDTHS,
@@ -39,8 +40,11 @@ from .contracts import (
     default_tokens_sha256,
     file_sha256,
     get_case_spec,
+    get_track_spec,
+    golden_result_path,
     is_valid_sha256_hex,
     milestone_tpot_limit,
+    tpot_formula_for_world_size,
 )
 from .hygiene_gate import (
     _parse_endpoint_port,
@@ -115,7 +119,25 @@ def compute_p90(values: Sequence[float]) -> float:
     return ordered[lo] * (1.0 - frac) + ordered[hi] * frac
 
 
-def verify_prompt_case(case_dir: Path, expected_spec: CaseSpec) -> dict[str, Any]:
+def _resolve_report_track(report: dict[str, Any], track: str | None = None) -> TrackSpec:
+    if track is not None:
+        tspec = get_track_spec(track)
+        if "track" in report and report["track"] != tspec.track:
+            raise VerificationError(
+                f"Report track {report['track']!r} != expected {tspec.track!r}"
+            )
+        return tspec
+    raw_track = report.get("track", DEFAULT_TRACK)
+    if not isinstance(raw_track, str):
+        raise VerificationError(f"Invalid report track: {raw_track!r}")
+    return get_track_spec(raw_track)
+
+
+def verify_prompt_case(
+    case_dir: Path,
+    expected_spec: CaseSpec,
+    track: str = DEFAULT_TRACK,
+) -> dict[str, Any]:
     prompt_path = case_dir / "prompt.json"
     if not prompt_path.is_file():
         raise VerificationError(f"Missing prompt.json in {case_dir}")
@@ -152,27 +174,27 @@ def verify_prompt_case(case_dir: Path, expected_spec: CaseSpec) -> dict[str, Any
         raise VerificationError(
             f"Computed compact prompt SHA256 mismatch for {expected_spec.case_id}: {actual_sha}"
         )
-    bench_path = case_dir / "bench_result.json"
+    bench_path = golden_result_path(case_dir, track)
     if bench_path.is_file():
         bench_data = json.loads(bench_path.read_text(encoding="utf-8"))
         if not isinstance(bench_data, dict):
             raise VerificationError(f"Expected JSON object in {bench_path}")
         if bench_data.get("prompt_sha256") != expected_spec.prompt_sha256:
-            raise VerificationError(f"Golden bench_result prompt_sha256 tampered in {bench_path}")
+            raise VerificationError(f"Golden result prompt_sha256 tampered in {bench_path}")
         if (
             not _is_int_token(bench_data.get("first_token_id"))
             or bench_data.get("first_token_id") != expected_spec.first_token_id
         ):
-            raise VerificationError(f"Golden bench_result first_token_id tampered in {bench_path}")
+            raise VerificationError(f"Golden result first_token_id tampered in {bench_path}")
         if bench_data.get("output_sha256") != expected_spec.output_sha256:
-            raise VerificationError(f"Golden bench_result output_sha256 tampered in {bench_path}")
+            raise VerificationError(f"Golden result output_sha256 tampered in {bench_path}")
         bench_tokens = _validate_vocab_tokens(
             bench_data.get("output_token_ids"),
             OSL,
-            f"{expected_spec.case_id}.bench_result.output_token_ids",
+            f"{expected_spec.case_id}.golden.{track}.output_token_ids",
         )
         if default_tokens_sha256(bench_tokens) != expected_spec.output_sha256:
-            raise VerificationError(f"Golden bench_result tokens tampered in {bench_path}")
+            raise VerificationError(f"Golden result tokens tampered in {bench_path}")
     return prompt_data
 
 
@@ -267,32 +289,35 @@ def verify_8rank_states(
     main_ref: dict[str, Any] | None = None,
     expected_spec: CaseSpec | None = None,
     allow_relaxed_parity: bool = False,
+    world_size: int = WORLD_SIZE,
 ) -> None:
     _reject_relaxed_parity(allow_relaxed_parity)
-    if not isinstance(rank_reports, list) or len(rank_reports) != WORLD_SIZE:
+    if not _is_int_token(world_size) or not (1 <= world_size <= 16):
+        raise VerificationError(f"Unsupported world_size: {world_size!r}")
+    if not isinstance(rank_reports, list) or len(rank_reports) != world_size:
         actual = (
             len(rank_reports)
             if isinstance(rank_reports, list)
             else type(rank_reports).__name__
         )
-        raise VerificationError(f"Expected {WORLD_SIZE} rank reports, got {actual}")
+        raise VerificationError(f"Expected {world_size} rank reports, got {actual}")
     seen_ranks: dict[int, dict[str, Any]] = {}
     for idx, report in enumerate(rank_reports):
         if not isinstance(report, dict):
             raise VerificationError(f"rank_reports[{idx}] must be a dict")
         rank = report.get("rank")
-        if not _is_int_token(rank) or not (0 <= rank < WORLD_SIZE):
+        if not _is_int_token(rank) or not (0 <= rank < world_size):
             raise VerificationError(f"Invalid rank ID: {rank!r}")
         if rank in seen_ranks:
             raise VerificationError(f"Duplicate rank ID detected: {rank}")
-        world_size = report.get("world_size")
-        if not _is_int_token(world_size) or world_size != WORLD_SIZE:
+        row_ws = report.get("world_size")
+        if not _is_int_token(row_ws) or row_ws != world_size:
             raise VerificationError(
-                f"Rank {rank} world_size must be {WORLD_SIZE}, got {world_size!r}"
+                f"Rank {rank} world_size must be {world_size}, got {row_ws!r}"
             )
         seen_ranks[rank] = report
-    if set(seen_ranks) != set(range(WORLD_SIZE)):
-        missing = sorted(set(range(WORLD_SIZE)) - set(seen_ranks))
+    if set(seen_ranks) != set(range(world_size)):
+        missing = sorted(set(range(world_size)) - set(seen_ranks))
         raise VerificationError(f"Missing rank reports: {missing}")
 
     ref_rank0 = seen_ranks[0]
@@ -337,7 +362,7 @@ def verify_8rank_states(
         if ref_draft != validated_draft_ref:
             raise VerificationError("Rank 0 draft_state diverges from serial_draft_ref")
 
-    for rank in range(WORLD_SIZE):
+    for rank in range(world_size):
         row = seen_ranks[rank]
         if expected_spec is not None:
             if "case_id" in row and row["case_id"] != expected_spec.case_id:
@@ -406,15 +431,16 @@ def _validate_protocol_metadata(
     report: dict[str, Any],
     require_warm_head: bool,
     milestone: str,
+    expected_world_size: int = WORLD_SIZE,
 ) -> tuple[dict[str, Any], int, int, str]:
     if report.get("schema_version") != SCHEMA_VERSION:
         raise VerificationError(
             f"Unsupported schema_version: {report.get('schema_version')!r}"
         )
     world_size = report.get("world_size")
-    if not _is_int_token(world_size) or world_size != WORLD_SIZE:
+    if not _is_int_token(world_size) or world_size != expected_world_size:
         raise VerificationError(
-            f"Unsupported world_size: {world_size!r} (expected {WORLD_SIZE})"
+            f"Unsupported world_size: {world_size!r} (expected {expected_world_size})"
         )
     if report.get("expert_parallel") is not True:
         raise VerificationError("expert_parallel must be True")
@@ -445,15 +471,18 @@ def _validate_protocol_metadata(
     if protocol.get("prefix_restored") is not True:
         raise VerificationError("prefix_restored must be True before formal timing")
     if protocol.get("synchronized_start") is not True:
-        raise VerificationError("synchronized_start must be True across all 8 ranks")
+        raise VerificationError(
+            f"synchronized_start must be True across all {expected_world_size} ranks"
+        )
     if protocol.get("profiler_enabled") is not False:
         raise VerificationError("profiler_enabled must be False during TPOT timing")
     if protocol.get("sync_debug_flags") != []:
         raise VerificationError(
             f"sync_debug_flags must be empty, got {protocol.get('sync_debug_flags')!r}"
         )
-    if protocol.get("tpot_formula") != TPOT_FORMULA:
-        raise VerificationError(f"tpot_formula must be {TPOT_FORMULA!r}")
+    expected_formula = tpot_formula_for_world_size(expected_world_size)
+    if protocol.get("tpot_formula") != expected_formula:
+        raise VerificationError(f"tpot_formula must be {expected_formula!r}")
     if require_warm_head is not True:
         raise VerificationError("require_warm_head cannot be disabled")
     if protocol.get("head_warmed") is not True:
@@ -485,6 +514,7 @@ def _validate_protocol_metadata(
 def _collect_trial_metrics(
     trials: object,
     paired_order: str,
+    expected_world_size: int = WORLD_SIZE,
 ) -> tuple[list[float], list[float], list[float], dict[int, list[str]], dict[int, list[bool]]]:
     if not isinstance(trials, list) or not trials:
         raise VerificationError("Missing or empty trials list in report")
@@ -516,7 +546,7 @@ def _collect_trial_metrics(
         if trial.get("eos_drained_cleanly") is not True:
             raise VerificationError(f"trials[{idx}] eos_drained_cleanly is not True")
         rank_dts = _check_finite_positive_list(
-            trial.get("rank_dt_ms"), WORLD_SIZE, f"trials[{idx}].rank_dt_ms"
+            trial.get("rank_dt_ms"), expected_world_size, f"trials[{idx}].rank_dt_ms"
         )
         max_tpot = _validate_finite_number(
             trial.get("max_tpot_ms"), f"trials[{idx}].max_tpot_ms"
@@ -678,16 +708,23 @@ def verify_timing_and_protocol(
     require_warm_head: bool = True,
     require_ab_ba: bool = False,
     milestone: str = "M5",
+    track: str | None = None,
 ) -> dict[str, float]:
     if not isinstance(report, dict):
         raise VerificationError("report must be a dict")
     max_tpot = _validate_positive_finite(max_tpot_ms, "max_tpot_ms")
     effective_limit = min(max_tpot, milestone_tpot_limit(milestone))
+    tspec = _resolve_report_track(report, track)
     protocol, warmups, formals, paired_order = _validate_protocol_metadata(
-        report, require_warm_head=require_warm_head, milestone=milestone
+        report,
+        require_warm_head=require_warm_head,
+        milestone=milestone,
+        expected_world_size=tspec.world_size,
     )
     warmups_ms, formal_ms, baseline_formal_ms, ab_ba_pairs, pair_warm_flags = (
-        _collect_trial_metrics(report.get("trials"), paired_order)
+        _collect_trial_metrics(
+            report.get("trials"), paired_order, expected_world_size=tspec.world_size
+        )
     )
     if len(warmups_ms) < MIN_WARMUPS or len(warmups_ms) != warmups:
         raise VerificationError(
@@ -1092,6 +1129,7 @@ def verify_e2e_run(
     serial_draft_ref: dict[str, Any] | None = None,
     main_ref: dict[str, Any] | None = None,
     allow_relaxed_parity: bool = False,
+    track: str | None = None,
 ) -> dict[str, Any]:
     _reject_relaxed_parity(allow_relaxed_parity)
     _validate_positive_finite(max_tpot_ms, "max_tpot_ms")
@@ -1106,9 +1144,11 @@ def verify_e2e_run(
         raise VerificationError(
             f"Report milestone {report.get('milestone')!r} != expected {milestone!r}"
         )
+    tspec = _resolve_report_track(report, track)
+    ws = tspec.world_size
     case_id = str(report.get("case_id", ""))
-    spec = get_case_spec(case_id)
-    verify_prompt_case(case_dir, spec)
+    spec = get_case_spec(case_id, track=tspec.track)
+    verify_prompt_case(case_dir, spec, track=tspec.track)
     if report.get("prompt_sha256") != spec.prompt_sha256:
         raise VerificationError(
             f"Report prompt_sha256 {report.get('prompt_sha256')!r} != {spec.prompt_sha256!r}"
@@ -1117,19 +1157,19 @@ def verify_e2e_run(
     _verify_report_isolation(report)
 
     ranks_manifest = report.get("ranks")
-    if not isinstance(ranks_manifest, list) or len(ranks_manifest) != WORLD_SIZE:
-        raise VerificationError(f"ranks manifest must be a list of length {WORLD_SIZE}")
+    if not isinstance(ranks_manifest, list) or len(ranks_manifest) != ws:
+        raise VerificationError(f"ranks manifest must be a list of length {ws}")
     manifest_by_rank: dict[int, dict[str, Any]] = {}
     for entry in ranks_manifest:
         if not isinstance(entry, dict):
             raise VerificationError("ranks manifest entries must be dicts")
         erank = entry.get("rank")
-        if not _is_int_token(erank) or not (0 <= erank < WORLD_SIZE) or erank in manifest_by_rank:
+        if not _is_int_token(erank) or not (0 <= erank < ws) or erank in manifest_by_rank:
             raise VerificationError(f"Invalid or duplicate rank in ranks manifest: {erank!r}")
         manifest_by_rank[erank] = entry
 
     rank_reports: list[dict[str, Any]] = []
-    for rank in range(WORLD_SIZE):
+    for rank in range(ws):
         rank_path = result_dir / f"rank-{rank}.json"
         if not rank_path.is_file():
             raise VerificationError(f"Missing {rank_path}")
@@ -1161,6 +1201,7 @@ def verify_e2e_run(
         main_ref=main_ref,
         expected_spec=spec,
         allow_relaxed_parity=allow_relaxed_parity,
+        world_size=ws,
     )
 
     ref_invariants = rank_reports[0].get("runtime_invariants")
@@ -1247,22 +1288,23 @@ def verify_e2e_run(
         require_warm_head=require_warm_head,
         require_ab_ba=require_ab_ba,
         milestone=milestone,
+        track=tspec.track,
     )
     formal_cands = [
         t
         for t in trials
         if not t["is_warmup"] and t.get("arm", "candidate") == "candidate"
     ]
-    rank_dts_report = [float(rank_reports[r]["dt_ms"]) for r in range(WORLD_SIZE)]
+    rank_dts_report = [float(rank_reports[r]["dt_ms"]) for r in range(ws)]
     if not any(
         all(
             abs(rank_dts_report[r] - float(cand["rank_dt_ms"][r])) <= 1e-3
-            for r in range(WORLD_SIZE)
+            for r in range(ws)
         )
         for cand in formal_cands
     ):
         raise VerificationError(
-            "rank-{0..7}.json dt_ms values do not match any formal candidate trial"
+            f"rank-{{0..{ws - 1}}}.json dt_ms values do not match any formal candidate trial"
         )
     effective_limit = min(
         _validate_positive_finite(max_tpot_ms, "max_tpot_ms"),
@@ -1280,6 +1322,7 @@ def verify_e2e_run(
         )
     return {
         "case_id": case_id,
+        "track": tspec.track,
         "milestone": milestone,
         "output_sha256": spec.output_sha256,
         **metrics,

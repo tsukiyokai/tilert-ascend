@@ -14,7 +14,7 @@
 
 CPU 索引检查：`TORCH_DEVICE_BACKEND_AUTOLOAD=0 python tests/experiments/glm52-tp8-mtp/check_topk.py --runtime tests/.artifacts/runs/glm52-tp8-mtp-20261111/topk/runtime/vllm_ascend --output /tmp/glm52-topk.json`。输入使用该次部署的 runtime212 快照，检查实际 get/update 与上下文代理方法，不执行 NPU 前向。
 
-设备任务顺序：`job_init_78l.py` → `job_prefill_case.py` → `job_bench_case.py` → `job_mtp_prepare.py` → `job_mtp_width_check.py` → `job_mtp_probe.py` → `job_mtp_graph_check.py`。任务文件位于 [scripts](../../glm52/megakernel_tp8_ep8/scripts)。每步先检查本轮完成记录及 8 rank 错误，才提交下一步；运行中断后以进程状态判定是否结束。
+设备任务顺序：`job_init_78l.py` → `job_prefill_case.py` → `job_bench_case.py` → `job_mtp_prepare.py` → `job_mtp_width_check.py` → `job_mtp_probe.py` → `job_mtp_graph_check.py`。任务文件位于 [scripts](../../glm52/cases-8k1k/scripts)。每步先检查本轮完成记录及 8 rank 错误，才提交下一步；运行中断后以进程状态判定是否结束。
 
 `sys._mtp_probe` 可指定 `widths`、`hybrid` 与 `output_dir`。精度诊断与图捕获在计时外执行，性能比较需要同机交替重复；原始单次结果不作为稳定加速结论。固定 TopK 分组的 W8 图执行在同机五组交替测量中位数为 9.69 ms/token，八卡词元、主网和独立串行草稿状态均对齐；尚未达到 TPOT < 3.0 ms。
 
