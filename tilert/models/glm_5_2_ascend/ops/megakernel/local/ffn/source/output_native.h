@@ -346,11 +346,11 @@ __aicore__ inline void TokenOutputs(
             if (need_scale) {
                 if (mw_s != nullptr) {
                     const uint32_t lslot = my_gexp[expert];
-                    if (lslot < 32U) {
+                    if (lslot < static_cast<uint32_t>(kLocalExperts)) {
                         bias.SetGlobalBuffer(correction + static_cast<int64_t>(lslot) * kHidden, kHidden);
                         weight_scales.SetGlobalBuffer(scales + static_cast<int64_t>(lslot) * kHidden, kHidden);
                     } else {
-                        const int64_t ms = static_cast<int64_t>(lslot - 32U);
+                        const int64_t ms = static_cast<int64_t>(lslot - static_cast<uint32_t>(kLocalExperts));
                         bias.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(mw_s[4U]) + ms * kHidden, kHidden);
                         weight_scales.SetGlobalBuffer(reinterpret_cast<__gm__ ScaleStorage*>(mw_s[5U]) + ms * kHidden, kHidden);
                     }
@@ -502,13 +502,13 @@ __aicore__ inline void TokenOutputs(
             last_expert = expert;
             if (mw_s != nullptr) {
                 const uint32_t lslot = my_gexp[expert];
-                if (lslot < 32U) {
+                if (lslot < static_cast<uint32_t>(kLocalExperts)) {
                     bias.SetGlobalBuffer(correction + static_cast<int64_t>(lslot) * kHidden, kHidden);
                     if (need_scale) {
                         weight_scales.SetGlobalBuffer(scales + static_cast<int64_t>(lslot) * kHidden, kHidden);
                     }
                 } else {
-                    const int64_t ms = static_cast<int64_t>(lslot - 32U);
+                    const int64_t ms = static_cast<int64_t>(lslot - static_cast<uint32_t>(kLocalExperts));
                     bias.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(mw_s[4U]) + ms * kHidden, kHidden);
                     if (need_scale) {
                         weight_scales.SetGlobalBuffer(reinterpret_cast<__gm__ ScaleStorage*>(mw_s[5U]) + ms * kHidden, kHidden);
@@ -562,6 +562,7 @@ __aicore__ inline void TokenOutputs(
                 GlobalTensor<bfloat16_t> self_rt;
                 self_rt.SetGlobalBuffer(dst_addr, span);
                 DataCopy(self_rt, narrow, span);
+#ifndef K112808_PULL_RED2
                 const uint32_t even_peers = static_cast<uint32_t>((comm_ranks >> 1) - 1);
                 for (uint32_t p = 0U; p < even_peers; ++p) {
                     const uint32_t step2 = (((tid_u + p) % even_peers) + 1U) << 1U;
@@ -571,6 +572,7 @@ __aicore__ inline void TokenOutputs(
                         aclshmem_ptr(dst_addr, peer)), span);
                     DataCopy(peer_dst, narrow, span);
                 }
+#endif
             } else {
                 DataCopy(route_out_gm[original * kHidden + column], narrow, span);
             }
@@ -580,6 +582,7 @@ __aicore__ inline void TokenOutputs(
                 GlobalTensor<bfloat16_t> self_rt;
                 self_rt.SetGlobalBuffer(dst_addr, span);
                 DataCopy(self_rt, narrow, span);
+#ifndef K112808_PULL_RED2
                 const uint32_t even_peers = static_cast<uint32_t>((comm_ranks >> 1) - 1);
                 for (uint32_t p = 0U; p < even_peers; ++p) {
                     const uint32_t step2 = (((tid_u + p) % even_peers) + 1U) << 1U;
@@ -589,6 +592,7 @@ __aicore__ inline void TokenOutputs(
                         aclshmem_ptr(dst_addr, peer)), span);
                     DataCopy(peer_dst, narrow, span);
                 }
+#endif
             } else {
                 DataCopy(route_out_gm[original * kHidden + column], narrow, span);
             }

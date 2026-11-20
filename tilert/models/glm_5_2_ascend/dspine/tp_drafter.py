@@ -569,7 +569,8 @@ class CalibratedL78V3Runner:
             klibs_by_ver[need_ver][1](0)
             return klibs_by_ver
         ws = int(getattr(self, "world_size", 8))
-        if self.rank == 0:
+        dist_ready = torch_dist_ready()
+        if self.rank == 0 or not dist_ready:
             if ws == 8:
                 so_19, _ = build_draft_l78_k110419(out_dir=self.l78_build_dir, k_sfa=self.k_sfa)
             else:
@@ -581,21 +582,17 @@ class CalibratedL78V3Runner:
             sha = hashlib.sha256(src_so.read_bytes()).hexdigest()[:10]
             ver_so = src_so.with_name(f"{src_so.stem}_{sha}.so")
             if not ver_so.exists():
-                shutil.copy2(src_so, ver_so)
-        if torch_dist_ready():
+                tmp = ver_so.with_name(f".{ver_so.name}.{self.rank}.tmp")
+                shutil.copy2(src_so, tmp)
+                tmp.replace(ver_so)
+        if dist_ready:
             import torch
 
             torch.distributed.barrier(group=self.channel_group)
-        if ws == 8:
-            so_19, _ = build_draft_l78_k110419(out_dir=self.l78_build_dir, k_sfa=self.k_sfa)
-        else:
-            so_19, _ = build_draft_l78_k110419(
-                out_dir=self.l78_build_dir, k_sfa=self.k_sfa, world_size=ws
-            )
-        out_dir = so_19.parent
-        src_so = out_dir / f"chain_K{need_ver}.so"
-        sha = hashlib.sha256(src_so.read_bytes()).hexdigest()[:10]
-        ver_so = src_so.with_name(f"{src_so.stem}_{sha}.so")
+        if self.rank != 0 and dist_ready:
+            src_so = Path(self.l78_build_dir) / f"chain_K{need_ver}.so"
+            sha = hashlib.sha256(src_so.read_bytes()).hexdigest()[:10]
+            ver_so = src_so.with_name(f"{src_so.stem}_{sha}.so")
         klibs_by_ver[need_ver] = _bind_draft_klib(ver_so, need_ver)
         self.wt._p2_klib_tag = (
             id(_bind_draft_klib),

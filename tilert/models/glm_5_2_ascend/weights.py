@@ -1013,6 +1013,15 @@ def _load_moe_mirrors(
     )
 
 
+def _plan_moe_mirrors_tp16(
+    rank: int,
+    num_layers: int = MAIN_LAYERS,
+) -> dict[int, tuple[list[int], list[int], list[int]]]:
+    mr1 = [((ge >> 4) + 1 + ((ge & 15) % 15)) % 16 for ge in range(256)]
+    my_hosted = [ge for ge in range(256) if mr1[ge] == rank]
+    return {li: (mr1, [], my_hosted) for li in range(3, num_layers)}
+
+
 def _pack_layer_mirror_meta(
     peer_cpu: bytearray,
     layer: int,
@@ -1024,6 +1033,16 @@ def _pack_layer_mirror_meta(
     mirror_64: bool,
 ) -> None:
     off = layer * 640
+    if len(cands) == 256 and not masks:
+        struct.pack_into("<6Q", peer_cpu, off + 64, *mw_ptrs)
+        for ms, ge in enumerate(my_hosted[:8]):
+            peer_cpu[off + 112 + ms] = ge
+        hdr = (len(my_hosted) << 8) | (1 << 18)
+        struct.pack_into("<Q", peer_cpu, off + 120, hdr)
+        for ms, ge in enumerate(my_hosted[8:16]):
+            peer_cpu[off + 256 + ms] = ge
+        peer_cpu[off + 264 : off + 520] = bytes(cands)
+        return
     n_cands = len(cands)
     n_mslots = len(my_hosted)
     for idx in range(min(32, n_cands)):
@@ -1155,10 +1174,19 @@ def build_model_arena(
     mirror_64 = "-DK112600_MIRROR_64=1" in flag_set
     ckpt = ModelSlimCheckpoint(cfg.model_dir)
     mirror_ok = (
-        mirror_v4 and (mirror_p1_v3 or mirror_64) and world_size == 8 and local_experts == 32
+        mirror_v4
+        and (mirror_p1_v3 or mirror_64)
+        and (
+            (world_size == 8 and local_experts == 32)
+            or (world_size == 16 and local_experts == 16)
+        )
     )
-    mirror_plan = (
-        _plan_moe_mirrors(
+    if not mirror_ok:
+        mirror_plan = {}
+    elif world_size == 16:
+        mirror_plan = _plan_moe_mirrors_tp16(rank)
+    else:
+        mirror_plan = _plan_moe_mirrors(
             ckpt,
             rank,
             world_size,
@@ -1166,9 +1194,6 @@ def build_model_arena(
             mirror_64=mirror_64,
             total_budget=(468 if mirror_64 else 450),
         )
-        if mirror_ok
-        else {}
-    )
 
     local_vocab = VOCAB_SIZE // world_size
     vocab_slice = slice(rank * local_vocab, (rank + 1) * local_vocab)
@@ -1373,6 +1398,8 @@ def build_model_arena(
                     down_contig=down_contig,
                 )
                 mirror_meta_specs[layer] = (cands, masks, my_hosted, mw_ptrs)
+                if device.type == "npu" and (layer - 2) % 15 == 0:
+                    torch.npu.empty_cache()
             owners = (*main, *front, *tail, *routed, *shared, input_gamma, *post, shared_topk)
             layers_out.append(
                 LayerWeights(

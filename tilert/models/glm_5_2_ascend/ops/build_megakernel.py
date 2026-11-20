@@ -142,6 +142,15 @@ R4_FLAGS = (
 )
 
 
+def _r4_flags(world_size: int = 8) -> tuple[str, ...]:
+    if int(world_size) == 16:
+        return (
+            *(f for f in R4_FLAGS if f != "-DK112612_OVERLAP_SH_P4=1"),
+            "-DK112808_PULL_RED2=1",
+        )
+    return R4_FLAGS
+
+
 def default_build_dir(world_size: int = 8) -> Path:
     env_dir = os.environ.get("TILERT_BUILD_DIR")
     if env_dir:
@@ -650,7 +659,9 @@ def _strip_inactive_branches(
 
 def effective_source_digest(flags: Sequence[str] = (), world_size: int = 8) -> str:
     base = _topology_flags(world_size) if not flags else ()
-    eff_flags = (f"-DKERNEL_VER={112830}", *base, *R4_FLAGS) if not flags else tuple(flags)
+    eff_flags = (
+        (f"-DKERNEL_VER={112830}", *base, *_r4_flags(world_size)) if not flags else tuple(flags)
+    )
     defined_macros = _extract_defined_macros(eff_flags)
     entries: list[tuple[str, bytes, list[tuple[str, bool, str]] | None]] = []
     for p in sorted(ROOT.rglob("*")):
@@ -741,7 +752,7 @@ def build_chain(
     out.mkdir(parents=True, exist_ok=True)
     cann = _cann_root()
     site = _site_root()
-    defs = [f"-DKERNEL_VER={ver}", *_topology_flags(ws), *R4_FLAGS]
+    defs = [f"-DKERNEL_VER={ver}", *_topology_flags(ws), *_r4_flags(ws)]
     if union_sfa:
         defs.append("-DK112840_UNION_SFA=1")
     if enable_kernel_prof:

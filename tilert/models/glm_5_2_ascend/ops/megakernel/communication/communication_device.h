@@ -20,6 +20,14 @@ class CommunicationBuffers {
         push_scratch = accumulator_buffer_.Get<bfloat16_t>();
     }
 
+    __aicore__ inline void InitFromArena(AscendC::LocalTensor<uint8_t> arena)
+    {
+        narrow = arena[0].ReinterpretCast<bfloat16_t>();
+        accumulator = arena[65536].ReinterpretCast<float>();
+        term = accumulator[kCommunicationChunk];
+        push_scratch = arena[65536].ReinterpretCast<bfloat16_t>();
+    }
+
     AscendC::LocalTensor<bfloat16_t> narrow;
     AscendC::LocalTensor<float> accumulator;
     AscendC::LocalTensor<float> term;
@@ -862,6 +870,142 @@ __aicore__ inline uint32_t AssignExpertOwnersFastV6(
     return n_act;
 }
 #endif
+
+__aicore__ inline uint32_t AssignExpertOwnersFast16(
+    const int32_t* raw_r,
+    int32_t routes,
+    const uint64_t* mirror_rank_u64,
+    uint8_t* exp_cnt,
+    uint8_t* act_ge,
+    uint8_t* act_own)
+{
+    uint64_t* cnt_u64 = reinterpret_cast<uint64_t*>(exp_cnt);
+    for (uint32_t w = 0U; w < 32U; ++w) {
+        cnt_u64[w] = 0ULL;
+    }
+    uint32_t r_ecnt[16] = {};
+    uint32_t r_rcnt[16] = {};
+    uint32_t r_blk[16] = {};
+    uint32_t r_extra[16] = {};
+    uint32_t n_act = 0U;
+    for (int32_t i = 0; i < routes; ++i) {
+        const int32_t r_val = raw_r[i];
+        if (r_val >= 0) {
+            const uint32_t ge = static_cast<uint32_t>(r_val) & 255U;
+            const uint32_t hr = ge >> 4U;
+            const uint32_t old = exp_cnt[ge];
+            exp_cnt[ge] = static_cast<uint8_t>(old + 1U);
+            r_rcnt[hr]++;
+#ifdef K11220_MULTI_M32
+            if ((old & 31U) == 0U) {
+                r_blk[hr]++;
+                if (old == 0U) {
+                    r_ecnt[hr]++;
+                    if (n_act < 128U) {
+                        act_ge[n_act++] = static_cast<uint8_t>(ge);
+                    }
+                }
+            } else if ((old & 7U) == 0U) {
+                r_extra[hr] += 8U;
+            }
+#elif defined(K11220_MULTI_M16)
+            if ((old & 15U) == 0U) {
+                r_blk[hr]++;
+                if (old == 0U) {
+                    r_ecnt[hr]++;
+                    if (n_act < 128U) {
+                        act_ge[n_act++] = static_cast<uint8_t>(ge);
+                    }
+                }
+            } else if ((old & 15U) == 8U) {
+                r_extra[hr] += 16U;
+            }
+#else
+            if ((old & 7U) == 0U) {
+                r_blk[hr]++;
+                if (old == 0U) {
+                    r_ecnt[hr]++;
+                    if (n_act < 128U) {
+                        act_ge[n_act++] = static_cast<uint8_t>(ge);
+                    }
+                }
+            }
+#endif
+        }
+    }
+    if (n_act == 0U) {
+        return 0U;
+    }
+    const uint8_t* mr_u8 = reinterpret_cast<const uint8_t*>(mirror_rank_u64);
+    uint8_t act_hr[128];
+    uint8_t act_mr[128];
+    uint8_t act_c[128];
+    uint8_t act_b[128];
+    uint8_t act_dm[128];
+    for (uint32_t idx = 0U; idx < n_act; ++idx) {
+        const uint32_t ge = act_ge[idx];
+        const uint32_t c = exp_cnt[ge];
+        const uint32_t hr = ge >> 4U;
+        const uint32_t mr = mr_u8[ge];
+        act_own[idx] = static_cast<uint8_t>(hr);
+        act_hr[idx] = static_cast<uint8_t>(hr);
+        act_mr[idx] = static_cast<uint8_t>(mr);
+        act_c[idx] = static_cast<uint8_t>(c);
+#ifdef K11220_MULTI_M32
+        act_b[idx] = static_cast<uint8_t>((c + 31U) >> 5U);
+        act_dm[idx] = static_cast<uint8_t>(8U * ((c - 1U) >> 3U));
+#elif defined(K11220_MULTI_M16)
+        act_b[idx] = static_cast<uint8_t>((c + 15U) >> 4U);
+        act_dm[idx] = static_cast<uint8_t>(16U * ((c + 7U) >> 4U));
+#else
+        act_b[idx] = static_cast<uint8_t>((c + 7U) >> 3U);
+        act_dm[idx] = 0U;
+#endif
+    }
+    uint32_t r_cost[16];
+    for (uint32_t r = 0U; r < 16U; ++r) {
+        r_cost[r] = RankWaveCost(r_blk[r], r_extra[r]);
+    }
+    for (uint32_t pass = 0U; pass < 3U; ++pass) {
+        bool moved = false;
+        for (uint32_t idx = 0U; idx < n_act; ++idx) {
+            const uint32_t b = act_b[idx];
+            if (pass == 0U && b <= 1U) {
+                continue;
+            }
+            const uint32_t hi = act_own[idx];
+            const uint32_t home = act_hr[idx];
+            const uint32_t lo = (hi == home) ? act_mr[idx] : home;
+            const uint32_t c = act_c[idx];
+            if (lo == hi || r_ecnt[lo] >= 16U || r_rcnt[lo] + c > 256U) {
+                continue;
+            }
+            const uint32_t dm = act_dm[idx];
+            const uint32_t new_lo_blk = r_blk[lo] + b;
+            const uint32_t new_lo_ext = r_extra[lo] + dm + ((lo == home) ? 0U : b);
+            const uint32_t new_lo_cost = RankWaveCost(new_lo_blk, new_lo_ext);
+            if (new_lo_cost + 16U >= r_cost[hi]) {
+                continue;
+            }
+            act_own[idx] = static_cast<uint8_t>(lo);
+            r_ecnt[hi]--;
+            r_ecnt[lo]++;
+            r_rcnt[hi] -= c;
+            r_rcnt[lo] += c;
+            r_blk[hi] -= b;
+            r_blk[lo] = new_lo_blk;
+            r_extra[hi] -= dm + ((hi == home) ? 0U : b);
+            r_extra[lo] = new_lo_ext;
+            r_cost[hi] = RankWaveCost(r_blk[hi], r_extra[hi]);
+            r_cost[lo] = new_lo_cost;
+            moved = true;
+        }
+        if (pass > 0U && !moved) {
+            break;
+        }
+    }
+    return n_act;
+}
 #endif
 
 struct LiteMirrorMeta {
@@ -1009,7 +1153,10 @@ __aicore__ inline void AllReduceSlotsToBf16(
     __gm__ const float* probabilities,
     const __gm__ uint8_t* owner_gm = nullptr,
     __gm__ const bfloat16_t* pre_shared_sum = nullptr,
-    int64_t* prof_acc = nullptr)
+    int64_t* prof_acc = nullptr,
+    __gm__ const bfloat16_t* next_residual = nullptr,
+    __gm__ const bfloat16_t* next_gamma = nullptr,
+    bool fused_next_norm = false)
 {
     const bool quad4 = IsQuad4Active(capacity, rows);
     const CommunicationLayout layout = quad4
@@ -1048,7 +1195,8 @@ __aicore__ inline void AllReduceSlotsToBf16(
                                              partial, output, rows, rank, ranks,
                                              sh_epoch, rt_epoch, vector_index, vectors,
                                              shared_partial, expert_ids, probabilities,
-                                             owner_gm, quad4, pre_shared_sum, prof_acc);
+                                             owner_gm, quad4, pre_shared_sum, prof_acc,
+                                             next_residual, next_gamma, fused_next_norm);
 #ifdef K112824_NO_R2_END_DSB
             AscendC::PipeBarrier<PIPE_ALL>();
 #else
@@ -1061,7 +1209,8 @@ __aicore__ inline void AllReduceSlotsToBf16(
                                          partial, output, rows, rank, ranks,
                                          sh_epoch, rt_epoch, vector_index, vectors,
                                          shared_partial, expert_ids, probabilities,
-                                         owner_gm, quad4, pre_shared_sum, prof_acc);
+                                         owner_gm, quad4, pre_shared_sum, prof_acc,
+                                         next_residual, next_gamma, fused_next_norm);
 #ifdef K112824_NO_R2_END_DSB
         AscendC::PipeBarrier<PIPE_ALL>();
 #else

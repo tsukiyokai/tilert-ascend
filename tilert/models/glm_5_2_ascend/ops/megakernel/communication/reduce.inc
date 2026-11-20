@@ -171,7 +171,10 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
     int64_t vector_index, int64_t vectors, __gm__ bfloat16_t* shared_partial,
     __gm__ const int32_t* expert_ids, __gm__ const float* probabilities,
     const __gm__ uint8_t* owner_gm = nullptr, bool quad4 = false,
-    __gm__ const bfloat16_t* pre_shared_sum = nullptr, int64_t* prof_acc = nullptr)
+    __gm__ const bfloat16_t* pre_shared_sum = nullptr, int64_t* prof_acc = nullptr,
+    __gm__ const bfloat16_t* next_residual = nullptr,
+    __gm__ const bfloat16_t* next_gamma = nullptr,
+    bool fused_next_norm = false)
 {
     (void)pre_shared_sum;
     (void)prof_acc;
@@ -531,6 +534,17 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
             AscendC::PipeBarrier<PIPE_V>();
             AscendC::Cast(buffers.accumulator[16384], buffers.narrow[0],
                           AscendC::RoundMode::CAST_NONE, chunk);
+        }
+        if (first_tile && fused_next_norm && static_cast<int64_t>(tid) < rows) {
+            AscendC::GlobalTensor<bfloat16_t> res_gm, gam_gm;
+            res_gm.SetGlobalBuffer(
+                const_cast<__gm__ bfloat16_t*>(next_residual) + static_cast<int64_t>(tid) * 6144,
+                6144);
+            gam_gm.SetGlobalBuffer(const_cast<__gm__ bfloat16_t*>(next_gamma), 6144);
+            AscendC::DataCopy(
+                buffers.accumulator[21504].ReinterpretCast<bfloat16_t>(), res_gm, 6144);
+            AscendC::DataCopy(
+                buffers.accumulator[24576].ReinterpretCast<bfloat16_t>(), gam_gm, 6144);
         }
 #ifdef K112830_FAST_POLL_RED2
         while (wait_owners != 0U) {

@@ -1848,8 +1848,12 @@ __aicore__ inline void Forward(
 #if defined(K11220_FAST_MIRROR_V4) && defined(TESTS_GLM52_COMMUNICATION_TREE_COMMUNICATION_DEVICE_H)
         if (has_mirror && GetBlockIdx() == 0) {
             GlobalTensor<uint32_t> mm_gm;
-            mm_gm.SetGlobalBuffer(reinterpret_cast<__gm__ uint32_t*>(const_cast<__gm__ whole_layer_tree::LayerMirrorMeta*>(mmeta)), 32);
-            DataCopy(held.other.ReinterpretCast<uint32_t>(), mm_gm, 32);
+            const uint32_t mm_words = (whole_layer_tree::kDefaultWorldSize == 16) ? 136U : 32U;
+            mm_gm.SetGlobalBuffer(
+                reinterpret_cast<__gm__ uint32_t*>(
+                    const_cast<__gm__ whole_layer_tree::LayerMirrorMeta*>(mmeta)),
+                mm_words);
+            DataCopy(held.other.ReinterpretCast<uint32_t>(), mm_gm, mm_words);
         }
 #endif
         if (!fast_no_comb) {
@@ -1901,25 +1905,37 @@ __aicore__ inline void Forward(
                 const uint64_t hdr = mm_u64.GetValue(15U);
                 const uint32_t num_cands = static_cast<uint32_t>(hdr & 0xFFULL);
                 const uint32_t my_mslots = static_cast<uint32_t>((hdr >> 8ULL) & 0xFFULL);
-                uint64_t cand_ge_u64[4] = {0ULL, 0ULL, 0ULL, 0ULL};
-                uint64_t cand_mask_u64[4] = {0ULL, 0ULL, 0ULL, 0ULL};
-                if (num_cands > 0U) {
-                    cand_ge_u64[0] = mm_u64.GetValue(0U);
-                    cand_ge_u64[1] = mm_u64.GetValue(1U);
-                    cand_ge_u64[2] = mm_u64.GetValue(2U);
-                    cand_ge_u64[3] = mm_u64.GetValue(3U);
-                    cand_mask_u64[0] = mm_u64.GetValue(4U);
-                    cand_mask_u64[1] = mm_u64.GetValue(5U);
-                    cand_mask_u64[2] = mm_u64.GetValue(6U);
-                    cand_mask_u64[3] = mm_u64.GetValue(7U);
-                }
                 uint64_t cnt_u64_buf[32];
                 uint8_t* exp_cnt = reinterpret_cast<uint8_t*>(cnt_u64_buf);
-                uint8_t act_ge[32];
-                uint8_t act_own[32];
-                const uint32_t n_act = whole_layer_tree::AssignExpertOwnersFastV4(
-                    raw_r, static_cast<int32_t>(routes), num_cands,
-                    cand_ge_u64, cand_mask_u64, exp_cnt, act_ge, act_own);
+                uint8_t act_ge[128];
+                uint8_t act_own[128];
+                uint32_t n_act = 0U;
+                uint64_t my_ge_pack_hi = 0ULL;
+                if constexpr (whole_layer_tree::kDefaultWorldSize == 16) {
+                    my_ge_pack_hi = mm_u64.GetValue(32U);
+                    uint64_t mr_u64[32];
+                    for (uint32_t w = 0U; w < 32U; ++w) {
+                        mr_u64[w] = mm_u64.GetValue(33U + w);
+                    }
+                    n_act = whole_layer_tree::AssignExpertOwnersFast16(
+                        raw_r, static_cast<int32_t>(routes), mr_u64, exp_cnt, act_ge, act_own);
+                } else {
+                    uint64_t cand_ge_u64[4] = {0ULL, 0ULL, 0ULL, 0ULL};
+                    uint64_t cand_mask_u64[4] = {0ULL, 0ULL, 0ULL, 0ULL};
+                    if (num_cands > 0U) {
+                        cand_ge_u64[0] = mm_u64.GetValue(0U);
+                        cand_ge_u64[1] = mm_u64.GetValue(1U);
+                        cand_ge_u64[2] = mm_u64.GetValue(2U);
+                        cand_ge_u64[3] = mm_u64.GetValue(3U);
+                        cand_mask_u64[0] = mm_u64.GetValue(4U);
+                        cand_mask_u64[1] = mm_u64.GetValue(5U);
+                        cand_mask_u64[2] = mm_u64.GetValue(6U);
+                        cand_mask_u64[3] = mm_u64.GetValue(7U);
+                    }
+                    n_act = whole_layer_tree::AssignExpertOwnersFastV4(
+                        raw_r, static_cast<int32_t>(routes), num_cands,
+                        cand_ge_u64, cand_mask_u64, exp_cnt, act_ge, act_own);
+                }
                 for (uint32_t w = 0U; w < 32U; ++w) {
                     g2e_u64[w] = 0xFFFFFFFFFFFFFFFFULL;
                 }
@@ -1931,8 +1947,8 @@ __aicore__ inline void Forward(
                         my_home_active |= (1U << le);
                     }
                 }
-                uint8_t mir_ge[8];
-                uint8_t mir_lslot[8];
+                uint8_t mir_ge[16];
+                uint8_t mir_lslot[16];
                 uint32_t n_mir = 0U;
                 for (uint32_t idx = 0U; idx < n_act; ++idx) {
                     const uint32_t ge = act_ge[idx];
@@ -1942,7 +1958,8 @@ __aicore__ inline void Forward(
                         my_home_active &= ~(1U << (ge & static_cast<uint32_t>(kLocalExperts - 1)));
                     } else if (own == u_rank && home != u_rank) {
                         for (uint32_t ms = 0U; ms < my_mslots; ++ms) {
-                            if (((my_ge_pack >> (ms * 8U)) & 0xFFULL) == ge) {
+                            const uint64_t gp = (ms < 8U) ? my_ge_pack : my_ge_pack_hi;
+                            if (((gp >> ((ms & 7U) * 8U)) & 0xFFULL) == ge) {
                                 mir_ge[n_mir] = static_cast<uint8_t>(ge);
                                 mir_lslot[n_mir] = static_cast<uint8_t>(static_cast<uint32_t>(kLocalExperts) + ms);
                                 ++n_mir;
@@ -2036,13 +2053,27 @@ __aicore__ inline void Forward(
 #elif defined(K11220_FAST_MIRROR_V4) && defined(TESTS_GLM52_COMMUNICATION_TREE_COMMUNICATION_DEVICE_H)
         if (has_mirror) {
             GlobalTensor<uint32_t> mm_gm;
+            if constexpr (whole_layer_tree::kDefaultWorldSize == 16) {
+                mm_gm.SetGlobalBuffer(
+                    reinterpret_cast<__gm__ uint32_t*>(
+                        const_cast<__gm__ whole_layer_tree::LayerMirrorMeta*>(mmeta)),
+                    136);
+                DataCopy(held.other.ReinterpretCast<uint32_t>(), mm_gm, 136);
+            } else {
 #ifdef K11220_FAST_P1_V3
-            mm_gm.SetGlobalBuffer(reinterpret_cast<__gm__ uint32_t*>(const_cast<__gm__ whole_layer_tree::LayerMirrorMeta*>(mmeta)), 64);
-            DataCopy(held.other.ReinterpretCast<uint32_t>(), mm_gm, 64);
+                mm_gm.SetGlobalBuffer(
+                    reinterpret_cast<__gm__ uint32_t*>(
+                        const_cast<__gm__ whole_layer_tree::LayerMirrorMeta*>(mmeta)),
+                    64);
+                DataCopy(held.other.ReinterpretCast<uint32_t>(), mm_gm, 64);
 #else
-            mm_gm.SetGlobalBuffer(reinterpret_cast<__gm__ uint32_t*>(const_cast<__gm__ whole_layer_tree::LayerMirrorMeta*>(mmeta)), 32);
-            DataCopy(held.other.ReinterpretCast<uint32_t>(), mm_gm, 32);
+                mm_gm.SetGlobalBuffer(
+                    reinterpret_cast<__gm__ uint32_t*>(
+                        const_cast<__gm__ whole_layer_tree::LayerMirrorMeta*>(mmeta)),
+                    32);
+                DataCopy(held.other.ReinterpretCast<uint32_t>(), mm_gm, 32);
 #endif
+            }
         }
 #endif
         DataCopyPad(held.input_scale, input_scales,
@@ -2123,82 +2154,90 @@ __aicore__ inline void Forward(
             const uint32_t my_mslots = static_cast<uint32_t>((hdr >> 8ULL) & 0xFFULL);
             uint64_t cnt_u64_buf[32];
             uint8_t* exp_cnt = reinterpret_cast<uint8_t*>(cnt_u64_buf);
+            uint64_t my_ge_pack_hi = 0ULL;
+            uint8_t act_ge[128];
+            uint8_t act_own[128];
+            uint32_t n_act = 0U;
+            if constexpr (whole_layer_tree::kDefaultWorldSize == 16) {
+                my_ge_pack_hi = mm_u64.GetValue(32U);
+                uint64_t mr_u64[32];
+                for (uint32_t w = 0U; w < 32U; ++w) {
+                    mr_u64[w] = mm_u64.GetValue(33U + w);
+                }
+                n_act = whole_layer_tree::AssignExpertOwnersFast16(
+                    raw_r, static_cast<int32_t>(routes), mr_u64, exp_cnt, act_ge, act_own);
+            } else {
 #ifdef K112600_MIRROR_64
-            uint64_t cand_ge_u64[8] = {0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL};
-            uint64_t cand_mask_u64[8] = {0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL};
-            if (num_cands > 0U) {
-                cand_ge_u64[0] = mm_u64.GetValue(0U);
-                cand_ge_u64[1] = mm_u64.GetValue(1U);
-                cand_ge_u64[2] = mm_u64.GetValue(2U);
-                cand_ge_u64[3] = mm_u64.GetValue(3U);
-                cand_mask_u64[0] = mm_u64.GetValue(4U);
-                cand_mask_u64[1] = mm_u64.GetValue(5U);
-                cand_mask_u64[2] = mm_u64.GetValue(6U);
-                cand_mask_u64[3] = mm_u64.GetValue(7U);
-                if (num_cands > 32U && ((hdr & (1ULL << 17ULL)) != 0ULL)) {
-                    cand_ge_u64[4] = mm_u64.GetValue(24U);
-                    cand_ge_u64[5] = mm_u64.GetValue(25U);
-                    cand_ge_u64[6] = mm_u64.GetValue(26U);
-                    cand_ge_u64[7] = mm_u64.GetValue(27U);
-                    cand_mask_u64[4] = mm_u64.GetValue(28U);
-                    cand_mask_u64[5] = mm_u64.GetValue(29U);
-                    cand_mask_u64[6] = mm_u64.GetValue(30U);
-                    cand_mask_u64[7] = mm_u64.GetValue(31U);
-                } else if (num_cands > 32U && ((hdr & (1ULL << 16ULL)) != 0ULL)) {
-                    cand_ge_u64[4] = mm_u64.GetValue(24U);
-                    cand_ge_u64[5] = mm_u64.GetValue(25U);
-                    cand_mask_u64[4] = mm_u64.GetValue(26U);
-                    cand_mask_u64[5] = mm_u64.GetValue(27U);
+                uint64_t cand_ge_u64[8] = {0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL};
+                uint64_t cand_mask_u64[8] = {0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL};
+                if (num_cands > 0U) {
+                    cand_ge_u64[0] = mm_u64.GetValue(0U);
+                    cand_ge_u64[1] = mm_u64.GetValue(1U);
+                    cand_ge_u64[2] = mm_u64.GetValue(2U);
+                    cand_ge_u64[3] = mm_u64.GetValue(3U);
+                    cand_mask_u64[0] = mm_u64.GetValue(4U);
+                    cand_mask_u64[1] = mm_u64.GetValue(5U);
+                    cand_mask_u64[2] = mm_u64.GetValue(6U);
+                    cand_mask_u64[3] = mm_u64.GetValue(7U);
+                    if (num_cands > 32U && ((hdr & (1ULL << 17ULL)) != 0ULL)) {
+                        cand_ge_u64[4] = mm_u64.GetValue(24U);
+                        cand_ge_u64[5] = mm_u64.GetValue(25U);
+                        cand_ge_u64[6] = mm_u64.GetValue(26U);
+                        cand_ge_u64[7] = mm_u64.GetValue(27U);
+                        cand_mask_u64[4] = mm_u64.GetValue(28U);
+                        cand_mask_u64[5] = mm_u64.GetValue(29U);
+                        cand_mask_u64[6] = mm_u64.GetValue(30U);
+                        cand_mask_u64[7] = mm_u64.GetValue(31U);
+                    } else if (num_cands > 32U && ((hdr & (1ULL << 16ULL)) != 0ULL)) {
+                        cand_ge_u64[4] = mm_u64.GetValue(24U);
+                        cand_ge_u64[5] = mm_u64.GetValue(25U);
+                        cand_mask_u64[4] = mm_u64.GetValue(26U);
+                        cand_mask_u64[5] = mm_u64.GetValue(27U);
+                    }
                 }
-            }
-            uint8_t act_ge[64];
-            uint8_t act_own[64];
-            const uint32_t n_act = whole_layer_tree::AssignExpertOwnersFastV6(
-                raw_r, static_cast<int32_t>(routes), num_cands,
-                cand_ge_u64, cand_mask_u64, exp_cnt, act_ge, act_own);
+                n_act = whole_layer_tree::AssignExpertOwnersFastV6(
+                    raw_r, static_cast<int32_t>(routes), num_cands,
+                    cand_ge_u64, cand_mask_u64, exp_cnt, act_ge, act_own);
 #elif defined(K11220_FAST_P1_V3)
-            uint64_t cand_ge_u64[6] = {0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL};
-            uint64_t cand_mask_u64[6] = {0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL};
-            if (num_cands > 0U) {
-                cand_ge_u64[0] = mm_u64.GetValue(0U);
-                cand_ge_u64[1] = mm_u64.GetValue(1U);
-                cand_ge_u64[2] = mm_u64.GetValue(2U);
-                cand_ge_u64[3] = mm_u64.GetValue(3U);
-                cand_mask_u64[0] = mm_u64.GetValue(4U);
-                cand_mask_u64[1] = mm_u64.GetValue(5U);
-                cand_mask_u64[2] = mm_u64.GetValue(6U);
-                cand_mask_u64[3] = mm_u64.GetValue(7U);
-                if (num_cands > 32U && ((hdr & (1ULL << 16ULL)) != 0ULL)) {
-                    cand_ge_u64[4] = mm_u64.GetValue(24U);
-                    cand_ge_u64[5] = mm_u64.GetValue(25U);
-                    cand_mask_u64[4] = mm_u64.GetValue(26U);
-                    cand_mask_u64[5] = mm_u64.GetValue(27U);
+                uint64_t cand_ge_u64[6] = {0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL};
+                uint64_t cand_mask_u64[6] = {0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL};
+                if (num_cands > 0U) {
+                    cand_ge_u64[0] = mm_u64.GetValue(0U);
+                    cand_ge_u64[1] = mm_u64.GetValue(1U);
+                    cand_ge_u64[2] = mm_u64.GetValue(2U);
+                    cand_ge_u64[3] = mm_u64.GetValue(3U);
+                    cand_mask_u64[0] = mm_u64.GetValue(4U);
+                    cand_mask_u64[1] = mm_u64.GetValue(5U);
+                    cand_mask_u64[2] = mm_u64.GetValue(6U);
+                    cand_mask_u64[3] = mm_u64.GetValue(7U);
+                    if (num_cands > 32U && ((hdr & (1ULL << 16ULL)) != 0ULL)) {
+                        cand_ge_u64[4] = mm_u64.GetValue(24U);
+                        cand_ge_u64[5] = mm_u64.GetValue(25U);
+                        cand_mask_u64[4] = mm_u64.GetValue(26U);
+                        cand_mask_u64[5] = mm_u64.GetValue(27U);
+                    }
                 }
-            }
-            uint8_t act_ge[48];
-            uint8_t act_own[48];
-            const uint32_t n_act = whole_layer_tree::AssignExpertOwnersFastV5(
-                raw_r, static_cast<int32_t>(routes), num_cands,
-                cand_ge_u64, cand_mask_u64, exp_cnt, act_ge, act_own);
+                n_act = whole_layer_tree::AssignExpertOwnersFastV5(
+                    raw_r, static_cast<int32_t>(routes), num_cands,
+                    cand_ge_u64, cand_mask_u64, exp_cnt, act_ge, act_own);
 #else
-            uint64_t cand_ge_u64[4] = {0ULL, 0ULL, 0ULL, 0ULL};
-            uint64_t cand_mask_u64[4] = {0ULL, 0ULL, 0ULL, 0ULL};
-            if (num_cands > 0U) {
-                cand_ge_u64[0] = mm_u64.GetValue(0U);
-                cand_ge_u64[1] = mm_u64.GetValue(1U);
-                cand_ge_u64[2] = mm_u64.GetValue(2U);
-                cand_ge_u64[3] = mm_u64.GetValue(3U);
-                cand_mask_u64[0] = mm_u64.GetValue(4U);
-                cand_mask_u64[1] = mm_u64.GetValue(5U);
-                cand_mask_u64[2] = mm_u64.GetValue(6U);
-                cand_mask_u64[3] = mm_u64.GetValue(7U);
-            }
-            uint8_t act_ge[32];
-            uint8_t act_own[32];
-            const uint32_t n_act = whole_layer_tree::AssignExpertOwnersFastV4(
-                raw_r, static_cast<int32_t>(routes), num_cands,
-                cand_ge_u64, cand_mask_u64, exp_cnt, act_ge, act_own);
+                uint64_t cand_ge_u64[4] = {0ULL, 0ULL, 0ULL, 0ULL};
+                uint64_t cand_mask_u64[4] = {0ULL, 0ULL, 0ULL, 0ULL};
+                if (num_cands > 0U) {
+                    cand_ge_u64[0] = mm_u64.GetValue(0U);
+                    cand_ge_u64[1] = mm_u64.GetValue(1U);
+                    cand_ge_u64[2] = mm_u64.GetValue(2U);
+                    cand_ge_u64[3] = mm_u64.GetValue(3U);
+                    cand_mask_u64[0] = mm_u64.GetValue(4U);
+                    cand_mask_u64[1] = mm_u64.GetValue(5U);
+                    cand_mask_u64[2] = mm_u64.GetValue(6U);
+                    cand_mask_u64[3] = mm_u64.GetValue(7U);
+                }
+                n_act = whole_layer_tree::AssignExpertOwnersFastV4(
+                    raw_r, static_cast<int32_t>(routes), num_cands,
+                    cand_ge_u64, cand_mask_u64, exp_cnt, act_ge, act_own);
 #endif
+            }
             for (uint32_t w = 0U; w < 32U; ++w) {
                 g2e_u64[w] = 0xFFFFFFFFFFFFFFFFULL;
             }
@@ -2210,8 +2249,8 @@ __aicore__ inline void Forward(
                     my_home_active |= (1U << le);
                 }
             }
-            uint8_t mir_ge[8];
-            uint8_t mir_lslot[8];
+            uint8_t mir_ge[16];
+            uint8_t mir_lslot[16];
             uint32_t n_mir = 0U;
             for (uint32_t idx = 0U; idx < n_act; ++idx) {
                 const uint32_t ge = act_ge[idx];
@@ -2221,7 +2260,8 @@ __aicore__ inline void Forward(
                     my_home_active &= ~(1U << (ge & static_cast<uint32_t>(kLocalExperts - 1)));
                 } else if (own == u_rank && home != u_rank) {
                     for (uint32_t ms = 0U; ms < my_mslots; ++ms) {
-                        if (((my_ge_pack >> (ms * 8U)) & 0xFFULL) == ge) {
+                        const uint64_t gp = (ms < 8U) ? my_ge_pack : my_ge_pack_hi;
+                        if (((gp >> ((ms & 7U) * 8U)) & 0xFFULL) == ge) {
                             mir_ge[n_mir] = static_cast<uint8_t>(ge);
                             mir_lslot[n_mir] = static_cast<uint8_t>(static_cast<uint32_t>(kLocalExperts) + ms);
                             ++n_mir;
@@ -2578,10 +2618,10 @@ __aicore__ inline void Forward(
     auto gate_w_ptr = [&](uint32_t packed, int64_t expert, int64_t column) __aicore__ -> __gm__ int4b_t* {
         if (pw_active) {
             const uint32_t lslot = (packed >> 24U) & 0xFFU;
-            if (lslot < 32U) {
+            if (lslot < static_cast<uint32_t>(kLocalExperts)) {
                 return Nibbles(reinterpret_cast<__gm__ int4b_t*>(arguments.weights[0]), (static_cast<int64_t>(lslot) * kGateUp + column) * kHidden);
             }
-            const int64_t ms = static_cast<int64_t>(lslot - 32U);
+            const int64_t ms = static_cast<int64_t>(lslot - static_cast<uint32_t>(kLocalExperts));
             return Nibbles(reinterpret_cast<__gm__ int4b_t*>(mw_s[0U]), (ms * kGateUp + column) * kHidden);
         }
         return Nibbles(reinterpret_cast<__gm__ int4b_t*>(arguments.weights[0]), (expert * kGateUp + column) * kHidden);
@@ -2589,10 +2629,10 @@ __aicore__ inline void Forward(
     auto gate_s_ptr = [&](uint32_t packed, int64_t expert, int64_t column) __aicore__ -> __gm__ ScaleStorage* {
         if (pw_active) {
             const uint32_t lslot = (packed >> 24U) & 0xFFU;
-            if (lslot < 32U) {
+            if (lslot < static_cast<uint32_t>(kLocalExperts)) {
                 return reinterpret_cast<__gm__ ScaleStorage*>(arguments.weights[2]) + static_cast<int64_t>(lslot) * kGateUp + column;
             }
-            const int64_t ms = static_cast<int64_t>(lslot - 32U);
+            const int64_t ms = static_cast<int64_t>(lslot - static_cast<uint32_t>(kLocalExperts));
             return reinterpret_cast<__gm__ ScaleStorage*>(mw_s[2U]) + ms * kGateUp + column;
         }
         return reinterpret_cast<__gm__ ScaleStorage*>(arguments.weights[2]) + expert * kGateUp + column;
@@ -2600,10 +2640,10 @@ __aicore__ inline void Forward(
     auto down_w_ptr = [&](uint32_t packed, int64_t expert, int64_t column) __aicore__ -> __gm__ int4b_t* {
         if (pw_active) {
             const uint32_t lslot = (packed >> 24U) & 0xFFU;
-            if (lslot < 32U) {
+            if (lslot < static_cast<uint32_t>(kLocalExperts)) {
                 return Nibbles(reinterpret_cast<__gm__ int4b_t*>(arguments.weights[3]), (static_cast<int64_t>(lslot) * kHidden + column) * kIntermediate);
             }
-            const int64_t ms = static_cast<int64_t>(lslot - 32U);
+            const int64_t ms = static_cast<int64_t>(lslot - static_cast<uint32_t>(kLocalExperts));
             return Nibbles(reinterpret_cast<__gm__ int4b_t*>(mw_s[3U]), (ms * kHidden + column) * kIntermediate);
         }
         return Nibbles(reinterpret_cast<__gm__ int4b_t*>(arguments.weights[3]), (expert * kHidden + column) * kIntermediate);
@@ -2611,10 +2651,10 @@ __aicore__ inline void Forward(
     auto down_s_ptr = [&](uint32_t packed, int64_t expert, int64_t column) __aicore__ -> __gm__ ScaleStorage* {
         if (pw_active) {
             const uint32_t lslot = (packed >> 24U) & 0xFFU;
-            if (lslot < 32U) {
+            if (lslot < static_cast<uint32_t>(kLocalExperts)) {
                 return reinterpret_cast<__gm__ ScaleStorage*>(arguments.weights[5]) + static_cast<int64_t>(lslot) * kHidden + column;
             }
-            const int64_t ms = static_cast<int64_t>(lslot - 32U);
+            const int64_t ms = static_cast<int64_t>(lslot - static_cast<uint32_t>(kLocalExperts));
             return reinterpret_cast<__gm__ ScaleStorage*>(mw_s[5U]) + ms * kHidden + column;
         }
         return reinterpret_cast<__gm__ ScaleStorage*>(arguments.weights[5]) + expert * kHidden + column;
@@ -3026,11 +3066,11 @@ __aicore__ inline void Forward(
             __gm__ ScaleStorage* act_scale = ((__gm__ ScaleStorage*)arguments.weights[2]) + expert * kGateUp;
             if (pw_active) {
                 const uint32_t lslot = my_gexp[expert];
-                if (lslot < 32U) {
+                if (lslot < static_cast<uint32_t>(kLocalExperts)) {
                     act_corr = ((__gm__ float*)arguments.weights[1]) + static_cast<int64_t>(lslot) * kGateUp;
                     act_scale = ((__gm__ ScaleStorage*)arguments.weights[2]) + static_cast<int64_t>(lslot) * kGateUp;
                 } else {
-                    const int64_t ms = static_cast<int64_t>(lslot - 32U);
+                    const int64_t ms = static_cast<int64_t>(lslot - static_cast<uint32_t>(kLocalExperts));
                     act_corr = reinterpret_cast<__gm__ float*>(mw_s[1U]) + ms * kGateUp;
                     act_scale = reinterpret_cast<__gm__ ScaleStorage*>(mw_s[2U]) + ms * kGateUp;
                 }
@@ -3074,11 +3114,11 @@ __aicore__ inline void Forward(
                 __gm__ ScaleStorage* act_scale = ((__gm__ ScaleStorage*)arguments.weights[2]) + expert * kGateUp;
                 if (pw_active) {
                     const uint32_t lslot = my_gexp[expert];
-                    if (lslot < 32U) {
+                    if (lslot < static_cast<uint32_t>(kLocalExperts)) {
                         act_corr = ((__gm__ float*)arguments.weights[1]) + static_cast<int64_t>(lslot) * kGateUp;
                         act_scale = ((__gm__ ScaleStorage*)arguments.weights[2]) + static_cast<int64_t>(lslot) * kGateUp;
                     } else {
-                        const int64_t ms = static_cast<int64_t>(lslot - 32U);
+                        const int64_t ms = static_cast<int64_t>(lslot - static_cast<uint32_t>(kLocalExperts));
                         act_corr = reinterpret_cast<__gm__ float*>(mw_s[1U]) + ms * kGateUp;
                         act_scale = reinterpret_cast<__gm__ ScaleStorage*>(mw_s[2U]) + ms * kGateUp;
                     }
@@ -3118,11 +3158,11 @@ __aicore__ inline void Forward(
             __gm__ ScaleStorage* act_scale = ((__gm__ ScaleStorage*)arguments.weights[2]) + expert * kGateUp;
             if (pw_active) {
                 const uint32_t lslot = my_gexp[expert];
-                if (lslot < 32U) {
+                if (lslot < static_cast<uint32_t>(kLocalExperts)) {
                     act_corr = ((__gm__ float*)arguments.weights[1]) + static_cast<int64_t>(lslot) * kGateUp;
                     act_scale = ((__gm__ ScaleStorage*)arguments.weights[2]) + static_cast<int64_t>(lslot) * kGateUp;
                 } else {
-                    const int64_t ms = static_cast<int64_t>(lslot - 32U);
+                    const int64_t ms = static_cast<int64_t>(lslot - static_cast<uint32_t>(kLocalExperts));
                     act_corr = reinterpret_cast<__gm__ float*>(mw_s[1U]) + ms * kGateUp;
                     act_scale = reinterpret_cast<__gm__ ScaleStorage*>(mw_s[2U]) + ms * kGateUp;
                 }

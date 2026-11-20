@@ -153,16 +153,116 @@ __aicore__ __attribute__((noinline)) void PrefetchSpansAic(
     }
 }
 
+__aicore__ inline void RunFusedNextNormFromArena(
+    AscendC::LocalTensor<uint8_t> arena, int64_t t, __gm__ bfloat16_t* next_input,
+    __gm__ bfloat16_t* next_retained, __gm__ bfloat16_t* next_normalized,
+    __gm__ int8_t* next_codes, __gm__ float* next_scales, float next_epsilon)
+{
+    auto red2_bf16 = arena[139264].ReinterpretCast<bfloat16_t>();
+    auto residual_bf16 = arena[151552].ReinterpretCast<bfloat16_t>();
+    auto gamma_bf16 = arena[163840].ReinterpretCast<bfloat16_t>();
+    auto x1 = arena[0].ReinterpretCast<bfloat16_t>();
+    auto x_f32 = arena[12288].ReinterpretCast<float>();
+    auto sqx = arena[36864].ReinterpretCast<float>();
+    auto tmp = arena[61440].ReinterpretCast<float>();
+
+    GlobalTensor<bfloat16_t> in_gm;
+    in_gm.SetGlobalBuffer(next_input + t * 6144, 6144);
+    DataCopy(red2_bf16, in_gm, 6144);
+    const auto e_m2v_pre = GetTPipePtr()->FetchEventID(HardEvent::MTE2_V);
+    SetFlag<HardEvent::MTE2_V>(e_m2v_pre);
+    WaitFlag<HardEvent::MTE2_V>(e_m2v_pre);
+    PipeBarrier<PIPE_V>();
+    Cast(x_f32, red2_bf16, RoundMode::CAST_NONE, 6144);
+    Cast(sqx, residual_bf16, RoundMode::CAST_NONE, 6144);
+    PipeBarrier<PIPE_V>();
+    Add(x_f32, x_f32, sqx, 6144);
+    PipeBarrier<PIPE_V>();
+    Cast(x1, x_f32, RoundMode::CAST_RINT, 6144);
+    PipeBarrier<PIPE_V>();
+
+    const auto e_vm3_0 = GetTPipePtr()->FetchEventID(HardEvent::V_MTE3);
+    SetFlag<HardEvent::V_MTE3>(e_vm3_0);
+    WaitFlag<HardEvent::V_MTE3>(e_vm3_0);
+    GlobalTensor<bfloat16_t> ret_gm;
+    ret_gm.SetGlobalBuffer(next_retained + t * 6144, 6144);
+    DataCopy(ret_gm, x1, 6144);
+    const auto e_m3v_0 = GetTPipePtr()->AllocEventID<HardEvent::MTE3_V>();
+    SetFlag<HardEvent::MTE3_V>(e_m3v_0);
+
+    Cast(x_f32, x1, RoundMode::CAST_NONE, 6144);
+    PipeBarrier<PIPE_V>();
+    Mul(sqx, x_f32, x_f32, 6144);
+    PipeBarrier<PIPE_V>();
+    Muls(sqx, sqx, 1.0F / 6144.0F, 6144);
+    PipeBarrier<PIPE_V>();
+    ::ReduceSumCustom(sqx, sqx, tmp, 6144);
+    PipeBarrier<PIPE_V>();
+    Adds(sqx, sqx, next_epsilon, 1);
+    PipeBarrier<PIPE_V>();
+    Sqrt(sqx, sqx, 1);
+    Duplicate(tmp, 1.0F, 1);
+    PipeBarrier<PIPE_V>();
+    Div(sqx, tmp, sqx, 1);
+    PipeBarrier<PIPE_V>();
+    const auto e_vs = GetTPipePtr()->FetchEventID(HardEvent::V_S);
+    SetFlag<HardEvent::V_S>(e_vs);
+    WaitFlag<HardEvent::V_S>(e_vs);
+    const float rstd_val = sqx.GetValue(0);
+    const auto e_sv = GetTPipePtr()->FetchEventID(HardEvent::S_V);
+    SetFlag<HardEvent::S_V>(e_sv);
+    WaitFlag<HardEvent::S_V>(e_sv);
+
+    Muls(x_f32, x_f32, rstd_val, 6144);
+    PipeBarrier<PIPE_V>();
+    WaitFlag<HardEvent::MTE3_V>(e_m3v_0);
+    GetTPipePtr()->ReleaseEventID<HardEvent::MTE3_V>(e_m3v_0);
+    Cast(x1, x_f32, RoundMode::CAST_RINT, 6144);
+    PipeBarrier<PIPE_V>();
+    Cast(x_f32, x1, RoundMode::CAST_NONE, 6144);
+    PipeBarrier<PIPE_V>();
+    Cast(sqx, gamma_bf16, RoundMode::CAST_NONE, 6144);
+    PipeBarrier<PIPE_V>();
+    Mul(x_f32, x_f32, sqx, 6144);
+    PipeBarrier<PIPE_V>();
+    Cast(x1, x_f32, RoundMode::CAST_RINT, 6144);
+    if (next_normalized != nullptr) {
+        const auto e_vm3_1 = GetTPipePtr()->FetchEventID(HardEvent::V_MTE3);
+        SetFlag<HardEvent::V_MTE3>(e_vm3_1);
+        WaitFlag<HardEvent::V_MTE3>(e_vm3_1);
+        GlobalTensor<bfloat16_t> norm_gm;
+        norm_gm.SetGlobalBuffer(next_normalized + t * 6144, 6144);
+        DataCopy(norm_gm, x1, 6144);
+    }
+    PipeBarrier<PIPE_ALL>();
+    whole_layer_norm::device::DynamicQuantRow quant;
+    quant.InitFromTensor(arena);
+    quant.Process(nullptr, next_codes + t * 6144, next_scales + t, nullptr, t, 0, nullptr, nullptr);
+    PipeBarrier<PIPE_ALL>();
+}
+
 __aicore__ __attribute__((noinline)) void ReducePhase(TPipe& pipe,
     const Communication& communication, uint64_t partial,
     uint64_t output, int64_t rows, int64_t blocks,
     uint64_t topk_src = 0, uint64_t topk_dst = 0,
     uint64_t shared_sum = 0, uint64_t expert_ids = 0, uint64_t probabilities = 0,
-    uint64_t owner_gm = 0, int64_t* prof_acc = nullptr)
+    uint64_t owner_gm = 0, int64_t* prof_acc = nullptr,
+    bool fused_next_norm = false,
+    uint64_t next_residual = 0, uint64_t next_gamma = 0,
+    uint64_t next_retained = 0, uint64_t next_normalized = 0,
+    uint64_t next_codes = 0, uint64_t next_scales = 0, float next_epsilon = 0.0F)
 {
-    whole_layer_tree::CommunicationBuffers buffers;
     if ASCEND_IS_AIV {
-        buffers.Init(pipe);
+        whole_layer_tree::CommunicationBuffers buffers;
+        AscendC::TBuf<AscendC::TPosition::VECCALC> fused_buf;
+        AscendC::LocalTensor<uint8_t> arena;
+        if (fused_next_norm) {
+            pipe.InitBuffer(fused_buf, 196608);
+            arena = fused_buf.Get<uint8_t>();
+            buffers.InitFromArena(arena);
+        } else {
+            buffers.Init(pipe);
+        }
         if (shared_sum != 0) {
 #ifdef K112612_OVERLAP_SH_P4
             const __gm__ bfloat16_t* pre_sh_ptr = (communication.window != 0ULL)
@@ -180,7 +280,19 @@ __aicore__ __attribute__((noinline)) void ReducePhase(TPipe& pipe,
                 (__gm__ const int32_t*)expert_ids,
                 (__gm__ const float*)probabilities,
                 reinterpret_cast<const __gm__ uint8_t*>(owner_gm),
-                pre_sh_ptr, prof_acc);
+                pre_sh_ptr, prof_acc,
+                reinterpret_cast<const __gm__ bfloat16_t*>(next_residual),
+                reinterpret_cast<const __gm__ bfloat16_t*>(next_gamma),
+                fused_next_norm);
+            if (fused_next_norm && GetBlockIdx() < rows) {
+                RunFusedNextNormFromArena(arena, GetBlockIdx(),
+                    reinterpret_cast<__gm__ bfloat16_t*>(output),
+                    reinterpret_cast<__gm__ bfloat16_t*>(next_retained),
+                    reinterpret_cast<__gm__ bfloat16_t*>(next_normalized),
+                    reinterpret_cast<__gm__ int8_t*>(next_codes),
+                    reinterpret_cast<__gm__ float*>(next_scales),
+                    next_epsilon);
+            }
         } else {
             whole_layer_tree::AllReduceBf16(buffers,
                 (__gm__ uint8_t*)communication.window,
@@ -200,7 +312,8 @@ __aicore__ inline void RunLayer(
     uint64_t layer_pw = 0, int64_t* prof_acc = nullptr,
     GM_ADDR resolved_topk_buf = nullptr, bool need_resolve_shared = false,
     bool* inout_resolved_ok = nullptr, int32_t known_kv_len = -1,
-    int32_t known_q_len = -1, uint64_t fused_rtk_hdr = 0ULL)
+    int32_t known_q_len = -1, uint64_t fused_rtk_hdr = 0ULL,
+    bool skip_norm = false, bool* out_fused_next_norm = nullptr)
 {
     int32_t q_len = known_q_len;
     if (q_len < 0) {
@@ -221,6 +334,7 @@ __aicore__ inline void RunLayer(
     const int64_t norm_rows = active_rows;
     const auto& norm = addresses.norm;
     int64_t ts0 = GetSystemCycle();
+    if (!skip_norm) {
     whole_layer_norm::device::Forward(pipe,
         (__gm__ bfloat16_t*)norm.input, (__gm__ bfloat16_t*)norm.residual,
         (__gm__ bfloat16_t*)norm.gamma, nullptr,
@@ -232,6 +346,7 @@ __aicore__ inline void RunLayer(
         (__gm__ float*)norm.rstd, (__gm__ int8_t*)norm.codes,
 #endif
         (__gm__ float*)norm.scales, norm_rows, blocks, config.input_epsilon);
+    }
     int64_t ts1 = GetSystemCycle();
 
     __gm__ int64_t* attn_prof_ptr = (record_prof || prof_acc != nullptr)
@@ -418,6 +533,25 @@ __aicore__ inline void RunLayer(
         }
     }
 #endif
+    bool fused_next_norm = false;
+#if defined(K11040_F0_NZ) && !defined(L78_PLAIN_RMSNORM) && defined(K112600_EXACT48_RED2_OPT) \
+    && !defined(K11180_LITE_MIRROR) && !defined(K11220_RS768_PUSH) && !defined(K112600_RS768_HIW)
+    if (next_step != nullptr
+        && (next_step->indexed & 2ULL) == 0ULL
+        && communication.window != 0ULL
+        && active_rows >= 1 && active_rows <= 24 && active_rows <= 2 * blocks
+        && next_step->addresses.body.blocks == blocks
+        && next_step->addresses.norm.input == communication.output
+        && next_step->addresses.attention.main_metadata[3] == addresses.attention.main_metadata[3]
+        && next_step->addresses.body.rows == addresses.body.rows
+        && next_step->addresses.norm.codes != 0ULL) {
+        fused_next_norm = true;
+    }
+#endif
+    if (out_fused_next_norm != nullptr) {
+        *out_fused_next_norm = fused_next_norm;
+    }
+    const bool next_idx = (next_step != nullptr) && ((next_step->indexed & 1ULL) != 0ULL);
 #ifdef K11180_LITE_MIRROR
     ReducePhase(pipe, communication, addresses.body.scratch[routed_int4::kRouteOutput],
                 communication.output, active_rows, blocks,
@@ -434,7 +568,15 @@ __aicore__ inline void RunLayer(
                 addresses.bridge[ffn_bridge::kIds],
                 addresses.bridge[ffn_bridge::kProbabilities],
                 (layer_pw != 0ULL) ? addresses.body.scratch[routed_int4::kDownTiling] : 0ULL,
-                prof_acc);
+                prof_acc,
+                fused_next_norm,
+                fused_next_norm ? next_step->addresses.norm.residual : 0ULL,
+                fused_next_norm ? next_step->addresses.norm.gamma : 0ULL,
+                fused_next_norm ? next_step->addresses.norm.retained : 0ULL,
+                (fused_next_norm && next_idx) ? next_step->addresses.norm.normalized : 0ULL,
+                fused_next_norm ? next_step->addresses.norm.codes : 0ULL,
+                fused_next_norm ? next_step->addresses.norm.scales : 0ULL,
+                fused_next_norm ? next_step->config.input_epsilon : 0.0F);
 #endif
 #ifdef K11220_PF_RED2_FULL
     if ASCEND_IS_AIV {
@@ -445,6 +587,12 @@ __aicore__ inline void RunLayer(
         }
     }
 #endif
+    if (fused_next_norm) {
+        if ASCEND_IS_AIV {
+            PipeBarrier<PIPE_ALL>();
+        }
+        SyncAll<false>();
+    }
     if (prof_acc != nullptr) {
         const int64_t cyc6 = GetSystemCycle();
         prof_acc[0] += (ts1 - ts0);
@@ -610,6 +758,7 @@ void ChainKernel(uint64_t steps_gm, int32_t count, uint64_t tree_mask_gm, uint64
     }
 #endif
 
+    bool next_skip_norm = false;
     for (; i < count; ++i) {
         const ChainStep& step = reinterpret_cast<const ChainStep*>(steps_gm)[i];
         if (i == 0 || step.sync != current_sync) {
@@ -654,11 +803,14 @@ void ChainKernel(uint64_t steps_gm, int32_t count, uint64_t tree_mask_gm, uint64
             }
         }
 #endif
+        const bool cur_skip_norm = next_skip_norm;
+        bool step_fused_next_norm = false;
 #ifdef ENABLE_KERNEL_PROF
-        RunLayer(pipe, step_is_idx, step.config, step.addresses, step.communication, false, tree_mask_gm, next_ptr, layer_pw, prof_acc, resolved_topk_buf, need_resolve_shared, &resolved_topk_ok, step_kv_len, step_q_len, step_fused_hdr);
+        RunLayer(pipe, step_is_idx, step.config, step.addresses, step.communication, false, tree_mask_gm, next_ptr, layer_pw, prof_acc, resolved_topk_buf, need_resolve_shared, &resolved_topk_ok, step_kv_len, step_q_len, step_fused_hdr, cur_skip_norm, &step_fused_next_norm);
 #else
-        RunLayer(pipe, step_is_idx, step.config, step.addresses, step.communication, false, tree_mask_gm, next_ptr, layer_pw, nullptr, resolved_topk_buf, need_resolve_shared, &resolved_topk_ok, step_kv_len, step_q_len, step_fused_hdr);
+        RunLayer(pipe, step_is_idx, step.config, step.addresses, step.communication, false, tree_mask_gm, next_ptr, layer_pw, nullptr, resolved_topk_buf, need_resolve_shared, &resolved_topk_ok, step_kv_len, step_q_len, step_fused_hdr, cur_skip_norm, &step_fused_next_norm);
 #endif
+        next_skip_norm = step_fused_next_norm;
     }
 #ifdef ENABLE_KERNEL_PROF
     prof_acc[7] = GetSystemCycle() - t_chain_start;
