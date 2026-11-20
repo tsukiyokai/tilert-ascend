@@ -1,24 +1,43 @@
+import importlib
 import json
 from pathlib import Path
+import shutil
 import socket
+import statistics
 import subprocess
 import sys
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from typing import Any
 
 import pytest
 
-from .a3_runner import build_dry_run_bundle, compute_live_cache_digest, run_a3_formal
+from .a3_runner import (
+    _accepted_schedule_for_case,
+    _build_dry_run_trials,
+    _build_round_traces,
+    build_dry_run_bundle,
+    build_synthetic_cache_state,
+    compute_live_cache_digest,
+    run_a3_formal,
+)
 from .cli import main as cli_main
 from .conftest import resolve_case01_bundle
 from .contracts import (
     DEFAULT_KBENV_BIN,
+    DECODE_TOKENS,
     FINAL_POS,
     FORBIDDEN_HOSTS,
     GOLDEN_CASES,
+    GOLDEN_TRACKS,
     IsolationError,
+    OSL,
+    TrackSpec,
     VerificationError,
+    default_tokens_sha256,
+    file_sha256,
     get_case_spec,
+    get_track_spec,
+    golden_result_path,
 )
 from .hygiene_gate import (
     allocate_isolation_env,
@@ -28,7 +47,7 @@ from .hygiene_gate import (
     verify_python_source_hygiene,
     verify_root_hygiene,
 )
-from .parity_gate import verify_e2e_run, verify_speculative_invariants
+from .parity_gate import compute_p90, verify_e2e_run, verify_speculative_invariants
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -882,4 +901,470 @@ def test_t4_13_cli_defaults_max_tpot_ms_to_milestone_limit(
             ]
         )
         == 1
+    )
+
+
+def _make_tp16_case_root(
+    tmp_path: Path,
+    case_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    tag: str,
+) -> tuple[Path, list[int], str]:
+    synth_tokens = [13534] + [13] * (OSL - 1)
+    synth_sha = default_tokens_sha256(synth_tokens)
+    tspec = get_track_spec("a3-tp16-ep16")
+    monkeypatch.setitem(
+        GOLDEN_TRACKS,
+        "a3-tp16-ep16",
+        TrackSpec(
+            track="a3-tp16-ep16",
+            chip=tspec.chip,
+            world_size=16,
+            ep_size=16,
+            reduction_tree=(8, 4, 2, 1),
+            output_sha256_by_case={"case-01-coding": synth_sha},
+        ),
+    )
+    cases_tmp = tmp_path / f"{tag}_cases"
+    c1 = cases_tmp / "case-01-coding"
+    golden_p = golden_result_path(c1, "a3-tp16-ep16")
+    golden_p.parent.mkdir(parents=True)
+    shutil.copy2(case_root / "case-01-coding" / "prompt.json", c1 / "prompt.json")
+    prompt_sha = get_case_spec("case-01-coding", track="a3-tp16-ep16").prompt_sha256
+    golden_p.write_text(
+        json.dumps(
+            {
+                "prompt_sha256": prompt_sha,
+                "first_token_id": 13534,
+                "output_sha256": synth_sha,
+                "output_token_ids": synth_tokens,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return cases_tmp, synth_tokens, synth_sha
+
+
+def test_t3_09_tp16_ab_ba_3plus5_with_16rank_parity_and_speculative_invariants(
+    tmp_path: Path,
+    case_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cases_tmp, _, synth_sha = _make_tp16_case_root(tmp_path, case_root, monkeypatch, "t3_09")
+    out_dir = build_dry_run_bundle(
+        case_id="case-01-coding",
+        output_dir=tmp_path / "tp16_abba",
+        case_root=cases_tmp,
+        warmups=3,
+        formals=5,
+        ab_ba=True,
+        milestone="M5",
+        width=16,
+        track="a3-tp16-ep16",
+        port_base=31400,
+    )
+    report = _load_json(out_dir / "e2e_result.json")
+    rank0 = _load_json(out_dir / "rank-0.json")
+    verify_speculative_invariants(report["round_traces"], rank0["runtime_invariants"], width=16)
+    res = verify_e2e_run(
+        out_dir,
+        cases_tmp / "case-01-coding",
+        max_tpot_ms=3.0,
+        require_warm_head=True,
+        require_ab_ba=True,
+        milestone="M5",
+        track="a3-tp16-ep16",
+    )
+    assert res["median_tpot_ms"] < 3.0
+    assert res["output_sha256"] == synth_sha
+    assert report["world_size"] == 16
+    assert len(report["ranks"]) == 16
+
+
+def test_t4_14_tp16_cli_dry_run_and_verify_report_end_to_end(
+    tmp_path: Path,
+    case_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cases_tmp, _, synth_sha = _make_tp16_case_root(tmp_path, case_root, monkeypatch, "t4_14")
+    summary_path = tmp_path / "t4_14_out" / "summary.json"
+    rc_dry = cli_main(
+        [
+            "--mode",
+            "dry-run",
+            "--case",
+            "case-01-coding",
+            "--track",
+            "a3-tp16-ep16",
+            "--milestone",
+            "M5",
+            "--case-root",
+            str(cases_tmp),
+            "--port-base",
+            "33200",
+            "--output",
+            str(summary_path),
+        ]
+    )
+    assert rc_dry == 0
+    payload = _load_json(summary_path)
+    assert payload["track"] == "a3-tp16-ep16"
+    assert payload["cases"][0]["median_tpot_ms"] < 3.0
+    assert payload["cases"][0]["output_sha256"] == synth_sha
+
+    report_dir = summary_path.parent / "case-01-coding"
+    rc_verify = cli_main(
+        [
+            "--mode",
+            "verify-report",
+            "--case",
+            "case-01-coding",
+            "--track",
+            "a3-tp16-ep16",
+            "--milestone",
+            "M5",
+            "--case-root",
+            str(cases_tmp),
+            "--report-dir",
+            str(report_dir),
+        ]
+    )
+    assert rc_verify == 0
+
+    r15_path = report_dir / "rank-15.json"
+    r15 = _load_json(r15_path)
+    r15["serial_draft_match"] = False
+    r15_path.write_text(json.dumps(r15) + "\n", encoding="utf-8")
+    e2e_rep = _load_json(report_dir / "e2e_result.json")
+    e2e_rep["ranks"][15]["report_sha256"] = file_sha256(r15_path)
+    (report_dir / "e2e_result.json").write_text(
+        json.dumps(e2e_rep, indent=2) + "\n", encoding="utf-8"
+    )
+    rc_bad = cli_main(
+        [
+            "--mode",
+            "verify-report",
+            "--case",
+            "case-01-coding",
+            "--track",
+            "a3-tp16-ep16",
+            "--milestone",
+            "M5",
+            "--case-root",
+            str(cases_tmp),
+            "--report-dir",
+            str(report_dir),
+        ]
+    )
+    assert rc_bad == 1
+
+
+def test_t4_15_tp16_a3_formal_kbenv_16die_isolation_and_propagation(
+    tmp_path: Path,
+    case_root: Path,
+    repo_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cases_tmp, _, synth_sha = _make_tp16_case_root(tmp_path, case_root, monkeypatch, "t4_15")
+    fake_kbenv = tmp_path / "fake_kbenv_tp16.py"
+    fake_kbenv.write_text(
+        "print('  7.150.12.20 A3 Ascend910_9392 ====······ 40% "
+        "········######## 8/16 84% 部分 否')\n"
+        "print('  7.150.14.84 A3 Ascend910_9392 ========·· 84% "
+        "················ 16/16 84% 空闲 长期')\n",
+        encoding="utf-8",
+    )
+    mock_runner = tmp_path / "mock_tp16_runner.py"
+    mock_runner.write_text(
+        "\n".join(
+            [
+                "import argparse, json, os, sys",
+                "from pathlib import Path",
+                f"sys.path.insert(0, {str(repo_root)!r})",
+                "from tests.glm52.e2e_tp8_ep8.a3_runner import build_dry_run_bundle",
+                "from tests.glm52.e2e_tp8_ep8.contracts import GOLDEN_TRACKS, TrackSpec",
+                "p = argparse.ArgumentParser()",
+                "p.add_argument('--case-dir', required=True)",
+                "p.add_argument('--output-dir', required=True)",
+                "p.add_argument('--warmups', type=int, required=True)",
+                "p.add_argument('--trials', type=int, required=True)",
+                "p.add_argument('--protocol', required=True)",
+                "p.add_argument('--milestone', required=True)",
+                "p.add_argument('--width', type=int, required=True)",
+                "p.add_argument('--tp-size', type=int, required=True)",
+                "p.add_argument('--ep-size', type=int, required=True)",
+                "a, _ = p.parse_known_args()",
+                "tspec = GOLDEN_TRACKS['a3-tp16-ep16']",
+                "GOLDEN_TRACKS['a3-tp16-ep16'] = TrackSpec(",
+                "    track='a3-tp16-ep16', chip=tspec.chip, world_size=16, ep_size=16,",
+                "    reduction_tree=(8, 4, 2, 1),",
+                f"    output_sha256_by_case={{'case-01-coding': {synth_sha!r}}},",
+                ")",
+                "out = Path(a.output_dir)",
+                "build_dry_run_bundle(",
+                "    case_id=Path(a.case_dir).name,",
+                "    output_dir=out,",
+                "    case_root=Path(a.case_dir).parent,",
+                "    warmups=a.warmups,",
+                "    formals=a.trials,",
+                "    ab_ba=(a.protocol == 'ab_ba'),",
+                "    milestone=a.milestone,",
+                "    width=a.width,",
+                "    run_id=os.environ['TILERT_E2E_RUN_ID'],",
+                "    port_base=int(os.environ['MASTER_PORT']),",
+                "    track='a3-tp16-ep16',",
+                ")",
+                "(out / 'seen_tp16.json').write_text(json.dumps({",
+                "    'tp_size': str(a.tp_size),",
+                "    'ep_size': str(a.ep_size),",
+                "    'vis': os.environ.get('ASCEND_RT_VISIBLE_DEVICES'),",
+                "}), encoding='utf-8')",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    out_dir = tmp_path / "a3_formal_tp16"
+    res = run_a3_formal(
+        case_id="case-01-coding",
+        output_dir=out_dir,
+        case_root=cases_tmp,
+        runner_cmd=f"{sys.executable} {mock_runner}",
+        kbenv_bin=sys.executable,
+        kbenv_args=[str(fake_kbenv)],
+        track="a3-tp16-ep16",
+    )
+    seen = _load_json(out_dir / "seen_tp16.json")
+    assert seen["tp_size"] == "16"
+    assert seen["ep_size"] == "16"
+    assert seen["vis"] == ",".join(str(i) for i in range(16))
+    assert res["host"] == "7.150.14.84"
+    assert res["visible_devices"] == ",".join(str(i) for i in range(16))
+    assert res["median_tpot_ms"] < 3.0
+
+
+def test_t4_16_run_m2_case01_tp16_runtime_config_and_report_acceptance(
+    tmp_path: Path,
+    case_root: Path,
+    repo_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.syspath_prepend(str(repo_root))
+    cases_tmp, synth_tokens, synth_sha = _make_tp16_case_root(
+        tmp_path, case_root, monkeypatch, "t4_16"
+    )
+    case_dir = cases_tmp / "case-01-coding"
+    spec16 = get_case_spec("case-01-coding", track="a3-tp16-ep16")
+    run_id = "run_t4_16_tp16"
+    iso_env = allocate_isolation_env(
+        run_id, port_base=33500, target_host="7.150.14.84", world_size=16
+    )
+    for k, v in iso_env.items():
+        monkeypatch.setenv(k, v)
+    monkeypatch.setenv("RANK", "0")
+    monkeypatch.setenv("WORLD_SIZE", "16")
+    monkeypatch.setenv("HCCL_OP_EXPANSION_MODE", "AIV")
+    monkeypatch.setenv("HCCL_DETERMINISTIC", "true")
+    monkeypatch.delenv("PROFILING_MODE", raising=False)
+    monkeypatch.delenv("PROFILER_SAMPLECONFIG", raising=False)
+    monkeypatch.delenv("ASCEND_LAUNCH_BLOCKING", raising=False)
+
+    fake_torch: Any = ModuleType("torch")
+    fake_torch.distributed = SimpleNamespace(
+        is_initialized=lambda: True,
+        barrier=lambda group=None: None,
+        group=SimpleNamespace(WORLD=object()),
+    )
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+    pkg_contracts = importlib.import_module("tests.glm52.e2e_tp8_ep8.contracts")
+    monkeypatch.setitem(pkg_contracts.GOLDEN_TRACKS, "a3-tp16-ep16", GOLDEN_TRACKS["a3-tp16-ep16"])
+
+    rm2 = importlib.import_module("tests.glm52.run_m2_case01")
+    cfg_mod = importlib.import_module("tilert.models.glm_5_2_ascend.config")
+    end2end_mod = importlib.import_module("tilert.models.glm_5_2_ascend.end2end")
+
+    captured_cfg: dict[str, Any] = {}
+
+    class _FakeRuntimeConfig:
+        def __init__(self, **kwargs: Any) -> None:
+            captured_cfg.update(kwargs)
+
+    accepted = _accepted_schedule_for_case("case-01-coding")
+    traces, w_hist = _build_round_traces("case-01-coding", accepted, width=16, min_w_act=10)
+    horizon_levels = [int(tr["horizon_level"]) for tr in traces]
+    main_state = build_synthetic_cache_state("case-01-coding", 78, "main")
+    draft_state = build_synthetic_cache_state("case-01-coding", 1, "draft")
+    trials = _build_dry_run_trials(
+        "M5", 2, 5, False, spec16, synth_tokens, accepted, world_size=16
+    )
+    warmups_ms = [float(t["max_tpot_ms"]) for t in trials if t["is_warmup"]]
+    formal_ms = [float(t["max_tpot_ms"]) for t in trials if not t["is_warmup"]]
+    last_formal = [t for t in trials if not t["is_warmup"]][-1]
+    report_dir = tmp_path / "m2_tp16_rep"
+    out_json = tmp_path / "m2_tp16_summary.json"
+
+    class _FakeShowHands:
+        def __init__(self, *_a: Any, **_kw: Any) -> None:
+            self.kernel_prof_enabled = False
+
+        def load(self) -> None:
+            return None
+
+        def warmup_and_run(
+            self, _warm: int, _form: int, _steps: int, _check_serial: bool
+        ) -> dict[str, Any]:
+            base_res = {
+                "world_size": 16,
+                "prompt_sha256": spec16.prompt_sha256,
+                "first_token_id": 13534,
+                "output_token_ids": synth_tokens,
+                "output_sha256": synth_sha,
+                "rounds": len(accepted),
+                "accepted_per_round": accepted,
+                "horizon_levels": horizon_levels,
+                "main_state": main_state,
+                "draft_state": draft_state,
+                "serial_draft_match": True,
+                "serial_draft_diffs": {},
+                "ekv_serial_diffs": {},
+                "runtime_invariants": {
+                    "w_act_min": 10,
+                    "w_act_max": max(w_hist),
+                    "w_act_history": w_hist,
+                    "collective_split_max_rows": 16,
+                    "l78_gemm_chunk_max_rows": 8,
+                    "in_flight_depth": 2,
+                    "draft_sfa_topk": 1024,
+                    "target_sfa_topk": 2048,
+                },
+                "head_warmed": True,
+                "head_execution_before_timing": {
+                    "wrapped": True,
+                    "active_graph_width": 16,
+                    "graph_widths": [12, 16, 24],
+                },
+                "loaded_modules_has_vllm": False,
+                "compiled_so_dir": f"{iso_env['TILERT_RUN_DIR']}/builds",
+                "draft_head_distinct_from_lm_head": True,
+                "round_traces": traces,
+                "trials": trials,
+                "warmups_ms": warmups_ms,
+                "formal_ms": formal_ms,
+                "median_tpot_ms": float(statistics.median(formal_ms)),
+                "min_tpot_ms": float(min(formal_ms)),
+                "p90_tpot_ms": compute_p90(formal_ms),
+                "sum_accepted": DECODE_TOKENS,
+                "mean_accepted": float(DECODE_TOKENS) / float(len(accepted)),
+                "target_pos": FINAL_POS,
+                "draft_committed_pos": FINAL_POS,
+                "all_ranks_target_exact": True,
+                "all_ranks_cache_parity": True,
+            }
+            report_dir.mkdir(parents=True, exist_ok=True)
+            for r in range(1, 16):
+                r_dt = float(last_formal["rank_dt_ms"][r])
+                r_payload = rm2.build_rank_report(
+                    {**base_res, "rank": r, "dt_ms": r_dt, "tpot_ms": r_dt / 1023.0},
+                    "case-01-coding",
+                )
+                (report_dir / f"rank-{r}.json").write_text(
+                    json.dumps(r_payload) + "\n", encoding="utf-8"
+                )
+            r0_dt = float(last_formal["rank_dt_ms"][0])
+            return {**base_res, "rank": 0, "dt_ms": r0_dt, "tpot_ms": r0_dt / 1023.0}
+
+        def close(self) -> None:
+            return None
+
+    b_dir = tmp_path / "b16"
+    b_dir.mkdir()
+    monkeypatch.setattr(cfg_mod, "RuntimeConfig", _FakeRuntimeConfig)
+    monkeypatch.setattr(end2end_mod, "Glm52AscendShowHands", _FakeShowHands)
+    monkeypatch.setattr(
+        rm2,
+        "_prepare_build_artifacts",
+        lambda _a, _r: (b_dir, b_dir / "wl.json", b_dir / "ops", b_dir / "l78"),
+    )
+
+    rc = rm2.main(
+        [
+            "--case-dir",
+            str(case_dir),
+            "--mtp-prefix",
+            str(tmp_path / "mtp.pt"),
+            "--ckpt",
+            str(tmp_path / "ckpt.pt"),
+            "--milestone",
+            "M5",
+            "--no-fast-parity",
+            "--report-dir",
+            str(report_dir),
+            "--out-json",
+            str(out_json),
+        ]
+    )
+    assert rc == 0
+    assert captured_cfg["world_size"] == 16
+    assert captured_cfg["ep_size"] == 16
+    assert captured_cfg["local_experts"] == 16
+    e2e_rep = _load_json(report_dir / "e2e_result.json")
+    assert e2e_rep["track"] == "a3-tp16-ep16"
+    assert e2e_rep["world_size"] == 16
+    assert e2e_rep["protocol"]["tpot_formula"] == "max(16-rank dt_ms) / 1023.0"
+    summary_rep = _load_json(out_json)
+    assert summary_rep["ep_size"] == 16
+    assert summary_rep["local_experts"] == 16
+    assert summary_rep["fast_parity"] is False
+
+
+def test_t4_17_a3_container_tp16_16die_provisioning_acceptance(
+    repo_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.syspath_prepend(str(repo_root))
+    ac = importlib.import_module("tests.glm52.a3_container")
+    hosts = parse_kbenv_output(
+        "\n".join(
+            [
+                (
+                    f"  {FORBIDDEN_HOSTS[0]} A3 Ascend910_9392 =========· 89% "
+                    "················ 16/16 89% 空闲 长期"
+                ),
+                (
+                    "  7.150.14.84 A3 Ascend910_9392 ========·· 84% "
+                    "················ 16/16 84% 空闲 长期"
+                ),
+            ]
+        )
+    )
+    selected, dies = ac.select_host_and_dies(hosts, world_size=16)
+    assert selected.ip == "7.150.14.84"
+    assert dies == tuple(range(16))
+    assert ac.select_fleet_slots(hosts, world_size=16) == [("7.150.14.84", tuple(range(16)))]
+
+    iso16 = allocate_isolation_env(
+        "run_tp16_acc",
+        port_base=33800,
+        target_host=selected.ip,
+        visible_devices=dies,
+        world_size=16,
+    )
+    docker_cmd = ac.build_docker_run_cmd("run_tp16_acc", dies, world_size=16)
+    for die in range(16):
+        assert f"--device=/dev/davinci{die}" in docker_cmd
+    env_sh = ac.build_container_env_script(iso16)
+    vis16 = ",".join(str(i) for i in range(16))
+    assert f"export ASCEND_RT_VISIBLE_DEVICES={vis16}" in env_sh
+    assert f"export TILERT_HOST_VISIBLE_DEVICES={vis16}" in env_sh
+    assert "export WORLD_SIZE=16" in env_sh
+
+    verify_python_source_hygiene(
+        [
+            repo_root / "tests/glm52/a3_container.py",
+            repo_root / "tests/glm52/run_m2_case01.py",
+            *sorted((repo_root / "tests/glm52/e2e_tp8_ep8").glob("*.py")),
+        ],
+        max_line_length=100,
     )

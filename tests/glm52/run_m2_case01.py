@@ -69,11 +69,22 @@ def resolve_trial_protocol(
     formals: int | None,
     fast_parity: bool,
     serial_draft_parity: bool,
+    *,
+    report_dir: str | Path | None = None,
+    strict_formal: bool = False,
 ) -> tuple[int, int, bool]:
+    if report_dir is not None or (strict_formal and not fast_parity):
+        w = 2 if warmups is None else int(warmups)
+        f = 5 if formals is None else int(formals)
+        if w < 2:
+            raise ValueError(f"formal protocol requires warmups >= 2, got {w}")
+        if f < 5:
+            raise ValueError(f"formal protocol requires formals >= 5, got {f}")
+        return w, f, True
     if fast_parity:
         w = 0 if warmups is None else int(warmups)
         f = 1 if formals is None else int(formals)
-        sdp = True
+        sdp = bool(serial_draft_parity) if strict_formal else True
     else:
         w = 2 if warmups is None else int(warmups)
         f = 5 if formals is None else int(formals)
@@ -123,18 +134,18 @@ def _prepare_build_artifacts(
     from tilert.models.glm_5_2_ascend.ops.build_megakernel import build_chain, default_build_dir
 
     enable_prof = bool(getattr(args, "enable_kernel_prof", False))
+    world_size = int(os.environ.get("WORLD_SIZE", "8"))
     if args.build_dir:
         build_dir = Path(args.build_dir)
         chain_out_dir: Path | None = build_dir
     else:
-        base_dir = default_build_dir()
+        base_dir = default_build_dir() if world_size == 8 else default_build_dir(world_size)
         build_dir = base_dir / "prof" if enable_prof else base_dir
         chain_out_dir = None
     wl_json = build_dir / "whole_layer.json"
     ready = build_dir / "whole_layer.ready"
     ops_dir = build_dir / "dspine_ops"
     l78_dir = build_dir / "dspine_l78"
-    world_size = int(os.environ.get("WORLD_SIZE", "8"))
     if rank == 0:
         build_dir.mkdir(parents=True, exist_ok=True)
         if ready.exists():
@@ -321,8 +332,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--warmups", type=int, default=None)
     parser.add_argument("--formals", type=int, default=None)
     parser.add_argument("--max-steps", type=int, default=1023)
-    parser.add_argument("--fast-parity", action="store_true")
-    parser.add_argument("--serial-draft-parity", action="store_true")
+    parser.add_argument(
+        "--fast-parity", action=argparse.BooleanOptionalAction, default=False
+    )
+    parser.add_argument(
+        "--serial-draft-parity", action=argparse.BooleanOptionalAction, default=True
+    )
     parser.add_argument("--union-sfa", action="store_true")
     parser.add_argument("--enable-kernel-prof", action="store_true")
     parser.add_argument("--report-dir", default=None)
@@ -344,9 +359,9 @@ def main(argv: list[str] | None = None) -> int:
         args.formals,
         args.fast_parity,
         args.serial_draft_parity,
+        report_dir=args.report_dir,
+        strict_formal=True,
     )
-    if args.report_dir is not None:
-        check_serial = True
 
     rank = int(os.environ.get("RANK", "0"))
     world_size = int(os.environ.get("WORLD_SIZE", "8"))
@@ -373,6 +388,8 @@ def main(argv: list[str] | None = None) -> int:
         rank=rank,
         rot_path=Path(args.rot_path) if args.rot_path else None,
         world_size=world_size,
+        ep_size=world_size,
+        local_experts=256 // world_size,
         device=f"npu:{rank}",
     )
     runner = Glm52AscendShowHands(
@@ -466,6 +483,8 @@ def main(argv: list[str] | None = None) -> int:
             "case_id": args.case_id,
             "track": track_spec.track,
             "world_size": world_size,
+            "ep_size": world_size,
+            "local_experts": 256 // world_size,
             "milestone": args.milestone,
             "width": int(args.width),
             "k_sfa": int(args.k_sfa),
@@ -488,7 +507,10 @@ def main(argv: list[str] | None = None) -> int:
             "loaded_modules_has_vllm": vllm_loaded,
             "in_flight_depth": res["runtime_invariants"].get("in_flight_depth"),
             "drain_q_len": drain_q_len,
-            "fast_parity": bool(args.fast_parity or args.warmups < 2 or args.formals < 5),
+            "fast_parity": bool(
+                args.report_dir is None
+                and (args.fast_parity or args.warmups < 2 or args.formals < 5)
+            ),
             "kernel_prof_acc": prof_acc,
             "parity_ok": parity_ok,
         }

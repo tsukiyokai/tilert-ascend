@@ -1,6 +1,8 @@
+import importlib
 import json
 from pathlib import Path
 import shutil
+import struct
 import subprocess
 import sys
 
@@ -8,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from .a3_runner import build_dry_run_bundle
+from .a3_runner import build_dry_run_bundle, build_runner_command
 from .contracts import (
     ALLOW_RELAXED_PARITY,
     DECODE_TOKENS,
@@ -28,12 +30,15 @@ from .contracts import (
     get_case_spec,
     get_track_spec,
     golden_result_path,
+    resolve_track,
+    tpot_formula_for_world_size,
 )
 from .hygiene_gate import (
     KbenvHost,
     allocate_isolation_env,
     parse_kbenv_output,
     select_a3_host,
+    select_free_die_slice,
     verify_isolation_env,
     verify_python_source_hygiene,
     verify_root_hygiene,
@@ -442,3 +447,233 @@ def test_t1_f7_isolation_allocator_unique_shm_ports_atb() -> None:
     env_b = allocate_isolation_env("run_beta", port_base=29400, target_host="7.150.13.51")
     verify_isolation_env(env_a, peer_envs=[env_b], target_host="7.150.12.20")
     verify_isolation_env(env_b, peer_envs=[env_a], target_host="7.150.13.51")
+
+
+def _f32(val: float) -> float:
+    return float(struct.unpack("f", struct.pack("f", val))[0])
+
+
+def _tree_reduce_f32(vals: list[float], strides: tuple[int, ...]) -> float:
+    cur = [_f32(v) for v in vals]
+    for stride in strides:
+        nxt = list(cur)
+        for rank in range(len(cur)):
+            nxt[rank] = _f32(cur[rank] + cur[rank ^ stride])
+        cur = nxt
+    return cur[0]
+
+
+def test_t1_f6_tp16_resolve_track_tree_plan_and_formula(
+    repo_root: Path,
+    case_root: Path,
+) -> None:
+    tspec_auto = resolve_track(None, world_size=16)
+    assert tspec_auto.track == "a3-tp16-ep16"
+    assert tspec_auto.ep_size == 16
+    assert tspec_auto.reduction_tree == (8, 4, 2, 1)
+    assert resolve_track("a3-tp16-ep16", world_size=16).ep_size == 16
+    assert tpot_formula_for_world_size(16) == "max(16-rank dt_ms) / 1023.0"
+    assert golden_result_path(case_root / "case-01-coding", "a3-tp16-ep16") == (
+        case_root / "case-01-coding" / "golden" / "a3-tp16-ep16" / "result.json"
+    )
+
+    tree_h = (
+        repo_root / "tilert/models/glm_5_2_ascend/ops/megakernel/communication/tree_plan.h"
+    ).read_text(encoding="utf-8")
+    assert "case 16: return {0x3e061a022c041800ULL, 0x4f071b032d051901ULL};" in tree_h
+    vals = [16777216.0 if i == 0 else (-16777216.0 if i == 8 else 0.25) for i in range(16)]
+    sum_8421 = _tree_reduce_f32(vals, (8, 4, 2, 1))
+    sum_1248 = _tree_reduce_f32(vals, (1, 2, 4, 8))
+    assert sum_8421 != sum_1248
+
+
+def test_t1_f6_tp16_case01_contract_sha_and_first_token() -> None:
+    expected_sha = "4b0d2fc10d4c7014536adb89f2c1cbea05315dffb106657261c4113eeb001fc3"
+    assert GOLDEN_TRACKS["a3-tp16-ep16"].output_sha256_by_case["case-01-coding"] == expected_sha
+    spec16 = get_case_spec("case-01-coding", track="a3-tp16-ep16")
+    spec8 = get_case_spec("case-01-coding", track="a3-tp8-ep8")
+    assert spec16.first_token_id == 13534
+    assert spec16.output_sha256 != spec8.output_sha256
+
+    synth_tokens = [13534] + [42] * (OSL - 1)
+    synth_sha = default_tokens_sha256(synth_tokens)
+    actual = verify_output_tokens(
+        synth_tokens,
+        expected_sha256=synth_sha,
+        first_token_id=13534,
+        accepted_per_round=[DECODE_TOKENS],
+    )
+    assert actual == synth_sha
+
+
+def test_t1_f2_tp16_16rank_states_and_strict_lt_3ms_m5(
+    tmp_path: Path,
+    case_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    synth_tokens = [13534] + [9] * (OSL - 1)
+    synth_sha = default_tokens_sha256(synth_tokens)
+    tspec = get_track_spec("a3-tp16-ep16")
+    monkeypatch.setitem(
+        GOLDEN_TRACKS,
+        "a3-tp16-ep16",
+        TrackSpec(
+            track="a3-tp16-ep16",
+            chip=tspec.chip,
+            world_size=16,
+            ep_size=16,
+            reduction_tree=(8, 4, 2, 1),
+            output_sha256_by_case={"case-01-coding": synth_sha},
+        ),
+    )
+    cases_tmp = tmp_path / "cases"
+    c1 = cases_tmp / "case-01-coding"
+    golden_p = golden_result_path(c1, "a3-tp16-ep16")
+    golden_p.parent.mkdir(parents=True)
+    shutil.copy2(case_root / "case-01-coding" / "prompt.json", c1 / "prompt.json")
+    prompt_sha = get_case_spec("case-01-coding", track="a3-tp16-ep16").prompt_sha256
+    golden_p.write_text(
+        json.dumps(
+            {
+                "prompt_sha256": prompt_sha,
+                "first_token_id": 13534,
+                "output_sha256": synth_sha,
+                "output_token_ids": synth_tokens,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    bundle = build_dry_run_bundle(
+        case_id="case-01-coding",
+        output_dir=tmp_path / "m5_tp16",
+        case_root=cases_tmp,
+        milestone="M5",
+        track="a3-tp16-ep16",
+        port_base=31950,
+    )
+    ranks = [_load_json(bundle / f"rank-{rank}.json") for rank in range(16)]
+    verify_8rank_states(
+        ranks,
+        serial_draft_ref=ranks[0]["draft_state"],
+        main_ref=ranks[0]["main_state"],
+        expected_spec=get_case_spec("case-01-coding", track="a3-tp16-ep16"),
+        world_size=16,
+    )
+    metrics = verify_timing_and_protocol(
+        _load_json(bundle / "e2e_result.json"),
+        max_tpot_ms=3.0,
+        milestone="M5",
+        track="a3-tp16-ep16",
+    )
+    assert metrics["median_tpot_ms"] < 3.0
+
+
+def test_t1_f7_tp16_isolation_env_16_dies_and_kbenv_selection() -> None:
+    env16 = allocate_isolation_env(
+        "run_tp16_ok",
+        port_base=32100,
+        target_host="7.150.14.84",
+        world_size=16,
+    )
+    assert env16["ASCEND_RT_VISIBLE_DEVICES"] == ",".join(str(i) for i in range(16))
+    verify_isolation_env(env16, target_host="7.150.14.84", world_size=16)
+
+    kbenv_text = "\n".join(
+        [
+            (
+                "  7.150.12.20    A3  Ascend910_9392  ====······  42% "
+                "########········  8/16  70% 部分   否"
+            ),
+            (
+                "  7.150.14.84    A3  Ascend910_9392  ========··  84% "
+                "················ 16/16  84% 空闲   长期"
+            ),
+        ]
+    )
+    hosts = parse_kbenv_output(kbenv_text)
+    selected = select_a3_host(hosts, min_free_dies=16)
+    assert selected.ip == "7.150.14.84"
+    assert select_free_die_slice(selected.free_die_indices, 16) == tuple(range(16))
+
+
+def test_t1_f5_build_runner_command_tp16_flags(tmp_path: Path) -> None:
+    cmd = build_runner_command(
+        "python3 -m tests.glm52.run_m2_case01",
+        tmp_path / "case",
+        tmp_path / "out",
+        warmups=2,
+        formals=5,
+        ab_ba=False,
+        milestone="M5",
+        width=16,
+        world_size=16,
+        ep_size=16,
+    )
+    tp_idx = cmd.index("--tp-size")
+    ep_idx = cmd.index("--ep-size")
+    assert cmd[tp_idx + 1] == "16"
+    assert cmd[ep_idx + 1] == "16"
+
+
+def test_t1_f5_f6_tp16_run_m2_and_a3_container_happy_path(
+    repo_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.syspath_prepend(str(repo_root))
+    ac = importlib.import_module("tests.glm52.a3_container")
+    rm2 = importlib.import_module("tests.glm52.run_m2_case01")
+
+    assert ac.parse_die_slice("0..15", world_size=16) == tuple(range(16))
+    assert ac.parse_die_slice("all", world_size=16) == tuple(range(16))
+    docker_cmd = ac.build_docker_run_cmd("run_tp16_ok", tuple(range(16)), world_size=16)
+    for die in range(16):
+        assert f"--device=/dev/davinci{die}" in docker_cmd
+
+    args = rm2.build_parser().parse_args(
+        ["--mtp-prefix", "m", "--ckpt", "k", "--no-fast-parity"]
+    )
+    assert rm2.resolve_trial_protocol(
+        args.warmups,
+        args.formals,
+        args.fast_parity,
+        args.serial_draft_parity,
+        report_dir=args.report_dir,
+        strict_formal=True,
+    ) == (2, 5, True)
+
+    fake_res = {
+        "world_size": 16,
+        "prompt_sha256": "a" * 64,
+        "head_warmed": True,
+        "head_execution_before_timing": {"wrapped": True, "active_graph_width": 16},
+        "loaded_modules_has_vllm": False,
+        "compiled_so_dir": "/dev/shm/run_tp16_ok/builds",
+        "draft_head_distinct_from_lm_head": True,
+        "round_traces": [],
+        "trials": [],
+        "warmups_ms": [2.9, 2.8],
+        "formal_ms": [2.7, 2.7, 2.7, 2.7, 2.7],
+        "median_tpot_ms": 2.7,
+        "min_tpot_ms": 2.7,
+        "p90_tpot_ms": 2.7,
+        "output_sha256": "b" * 64,
+        "all_ranks_target_exact": True,
+        "all_ranks_cache_parity": True,
+        "ekv_serial_diffs": {},
+    }
+    rep = rm2.build_e2e_report(
+        fake_res,
+        case_id="case-01-coding",
+        milestone="M5",
+        width=16,
+        warmups=2,
+        formals=5,
+        ranks_manifest=[],
+        run_id="run_tp16_ok",
+        track="a3-tp16-ep16",
+    )
+    assert rep["world_size"] == 16
+    assert rep["track"] == "a3-tp16-ep16"
+    assert rep["protocol"]["tpot_formula"] == "max(16-rank dt_ms) / 1023.0"

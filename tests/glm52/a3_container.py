@@ -123,6 +123,29 @@ SHARED_DEVICES: tuple[str, ...] = (
     "/dev/hisi_hdc",
 )
 MEMINFO_KB_RE = re.compile(r"^(MemTotal|MemAvailable):\s+(\d+)\s+kB$", re.MULTILINE)
+SUPPORTED_WORLD_SIZES: tuple[int, ...] = (8, 16)
+
+
+def _validate_world_size(world_size: int) -> int:
+    if (
+        isinstance(world_size, bool)
+        or not isinstance(world_size, int)
+        or world_size not in SUPPORTED_WORLD_SIZES
+    ):
+        raise IsolationError(
+            f"Unsupported world_size {world_size!r}; expected one of {SUPPORTED_WORLD_SIZES}"
+        )
+    return world_size
+
+
+def _infer_env_world_size(env: Mapping[str, str], world_size: int | None) -> int:
+    if world_size is not None:
+        return _validate_world_size(world_size)
+    vis = env.get("ASCEND_RT_VISIBLE_DEVICES", "")
+    parts = [p.strip() for p in vis.split(",") if p.strip()]
+    if len(parts) in SUPPORTED_WORLD_SIZES:
+        return len(parts)
+    return WORLD_SIZE
 
 
 def generate_run_id(prefix: str = "m21") -> str:
@@ -131,17 +154,26 @@ def generate_run_id(prefix: str = "m21") -> str:
     return validate_run_id(f"{prefix}_{stamp}_{suffix}")
 
 
-def parse_die_slice(spec: str) -> tuple[int, ...] | None:
+def parse_die_slice(spec: str, world_size: int = WORLD_SIZE) -> tuple[int, ...] | None:
+    ws = _validate_world_size(world_size)
     clean = spec.strip()
     if not clean or clean == "auto":
         return None
+    if clean in ("0..15", "0-15", "all", "full"):
+        if ws != 16:
+            raise IsolationError(f"die_slice {spec!r} requires world_size=16, got {ws}")
+        return tuple(range(16))
     if clean in ("0..7", "0-7", "low"):
+        if ws != 8:
+            raise IsolationError(f"die_slice {spec!r} requires world_size=8, got {ws}")
         return tuple(range(8))
     if clean in ("8..15", "8-15", "high"):
+        if ws != 8:
+            raise IsolationError(f"die_slice {spec!r} requires world_size=8, got {ws}")
         return tuple(range(8, 16))
     parts = [p.strip() for p in clean.split(",") if p.strip()]
-    if len(parts) != WORLD_SIZE:
-        raise IsolationError(f"die_slice must specify {WORLD_SIZE} dies, got {spec!r}")
+    if len(parts) != ws:
+        raise IsolationError(f"die_slice must specify {ws} dies, got {spec!r}")
     dies: list[int] = []
     for part in parts:
         if not part.isdigit():
@@ -157,12 +189,22 @@ def select_host_and_dies(
     hosts: Sequence[Any],
     target_host: str | None = None,
     die_slice: str = "auto",
-    min_free_dies: int = WORLD_SIZE,
+    min_free_dies: int | None = None,
     allow_idle_dies: bool = False,
+    world_size: int = WORLD_SIZE,
 ) -> tuple[Any, tuple[int, ...]]:
-    explicit_dies = parse_die_slice(die_slice)
+    ws = _validate_world_size(world_size)
+    req_dies = ws if min_free_dies is None else min_free_dies
+    if (
+        isinstance(req_dies, bool)
+        or not isinstance(req_dies, int)
+        or req_dies < ws
+        or req_dies > 16
+    ):
+        raise IsolationError(f"min_free_dies must be in {ws}..16, got {min_free_dies!r}")
+    explicit_dies = parse_die_slice(die_slice, world_size=ws)
     if target_host is None:
-        selected = select_a3_host(hosts, min_free_dies=min_free_dies)
+        selected = select_a3_host(hosts, min_free_dies=req_dies)
     else:
         canonical = assert_host_allowed(target_host)
         matches = [h for h in hosts if h.ip == canonical]
@@ -188,7 +230,7 @@ def select_host_and_dies(
                 f"(free={list(selected.free_die_indices)})"
             )
         return selected, explicit_dies
-    return selected, select_free_die_slice(selected.free_die_indices, count=min_free_dies)
+    return selected, select_free_die_slice(selected.free_die_indices, count=ws)
 
 
 def select_fleet_slots(
@@ -196,7 +238,9 @@ def select_fleet_slots(
     max_slots: int | None = None,
     dual_slot: bool = True,
     exclude_hosts: Sequence[str] = (),
+    world_size: int = WORLD_SIZE,
 ) -> list[tuple[str, tuple[int, ...]]]:
+    ws = _validate_world_size(world_size)
     excluded = {
         parse_strict_ipv4(ip)
         for ip in exclude_hosts
@@ -216,7 +260,7 @@ def select_fleet_slots(
             continue
         if host.ram_pct is None or host.ram_pct < MIN_KBENV_RAM_PCT:
             continue
-        if host.total_dies != 16 or host.free_dies < WORLD_SIZE:
+        if host.total_dies != 16 or host.free_dies < ws:
             continue
         eligible.append(host)
     eligible.sort(
@@ -230,6 +274,11 @@ def select_fleet_slots(
     slots: list[tuple[str, tuple[int, ...]]] = []
     for host in eligible:
         free_set = set(host.free_die_indices)
+        if ws == 16:
+            full = tuple(range(16))
+            if all(d in free_set for d in full):
+                slots.append((host.ip, full))
+            continue
         low = tuple(range(8))
         high = tuple(range(8, 16))
         added_half = False
@@ -239,8 +288,8 @@ def select_fleet_slots(
         if (dual_slot or not added_half) and all(d in free_set for d in high):
             slots.append((host.ip, high))
             added_half = True
-        if not added_half and len(host.free_die_indices) >= WORLD_SIZE:
-            slots.append((host.ip, select_free_die_slice(host.free_die_indices, WORLD_SIZE)))
+        if not added_half and len(host.free_die_indices) >= ws:
+            slots.append((host.ip, select_free_die_slice(host.free_die_indices, ws)))
     if max_slots is not None:
         return slots[: max(0, int(max_slots))]
     return slots
@@ -330,7 +379,8 @@ def du_timeout_for_item(item: str) -> int:
     return 60 if item == "model-raw" else 15
 
 
-def build_whole_layer_base_json(run_id: str) -> str:
+def build_whole_layer_base_json(run_id: str, world_size: int = WORLD_SIZE) -> str:
+    _validate_world_size(world_size)
     clean_id = validate_run_id(run_id)
     payload = {
         **DEFAULT_WHOLE_LAYER_BASE,
@@ -342,8 +392,10 @@ def build_whole_layer_base_json(run_id: str) -> str:
 def build_container_env_script(
     iso_env: Mapping[str, str],
     host_ifname: str = DEFAULT_IFNAME,
+    world_size: int | None = None,
 ) -> str:
-    verify_isolation_env(iso_env)
+    ws = _infer_env_world_size(iso_env, world_size)
+    verify_isolation_env(iso_env, world_size=ws)
     run_id = iso_env["TILERT_E2E_RUN_ID"]
     run_dir = iso_env["TILERT_RUN_DIR"]
     verify_shm_isolation(run_dir, run_id)
@@ -427,6 +479,7 @@ def build_container_env_script(
         ("HCCL_NPU_SOCKET_PORT_RANGE", iso_env["HCCL_NPU_SOCKET_PORT_RANGE"]),
         ("ASCEND_RT_VISIBLE_DEVICES", logical_vis),
         ("TILERT_HOST_VISIBLE_DEVICES", host_vis),
+        ("WORLD_SIZE", str(ws)),
         ("ATB_OPSRUNNER_KERNEL_CACHE_LOCAL_COUNT", "1"),
         ("ATB_OPSRUNNER_KERNEL_CACHE_GLOABL_COUNT", "5"),
         ("ATB_STREAM_SYNC_EVERY_RUNNER_ENABLE", "0"),
@@ -486,17 +539,19 @@ def build_docker_run_cmd(
     model_host_path: str | None = None,
     extra_ro_mounts: Sequence[tuple[str, str]] = (),
     privileged: bool = False,
+    world_size: int = WORLD_SIZE,
 ) -> list[str]:
+    ws = _validate_world_size(world_size)
     clean_id = validate_run_id(run_id)
     shm_dir = f"/dev/shm/{clean_id}"
     verify_shm_isolation(shm_dir, clean_id)
     dies = tuple(visible_devices)
     if (
-        len(dies) != WORLD_SIZE
-        or len(set(dies)) != WORLD_SIZE
+        len(dies) != ws
+        or len(set(dies)) != ws
         or any(isinstance(d, bool) or not isinstance(d, int) or not (0 <= d < 16) for d in dies)
     ):
-        raise IsolationError(f"visible_devices must be {WORLD_SIZE} unique ints in 0..15")
+        raise IsolationError(f"visible_devices must be {ws} unique ints in 0..15")
     cmd = [
         "docker",
         "run",
@@ -574,8 +629,12 @@ def build_teardown_cmd(run_id: str) -> str:
     )
 
 
-def build_remote_port_check_cmd(env: Mapping[str, str]) -> str:
-    verify_isolation_env(env)
+def build_remote_port_check_cmd(
+    env: Mapping[str, str],
+    world_size: int | None = None,
+) -> str:
+    ws = _infer_env_world_size(env, world_size)
+    verify_isolation_env(env, world_size=ws)
     p_master = int(env["MASTER_PORT"])
     p_wl = int(env["TILERT_WHOLE_LAYER_ENDPOINT"].rsplit(":", 1)[1])
     p_os = int(env["TILERT_ONESIDED_ENDPOINT"].rsplit(":", 1)[1])
@@ -760,13 +819,16 @@ def probe_host(
     image: str = DEFAULT_IMAGE,
     kbenv_bin: str = DEFAULT_KBENV_BIN,
     allow_idle_dies: bool = False,
+    world_size: int = WORLD_SIZE,
 ) -> dict[str, Any]:
+    ws = _validate_world_size(world_size)
     hosts = _kbenv_hosts(kbenv_bin)
     selected, dies = select_host_and_dies(
         hosts,
         target_host=host,
         die_slice=die_slice,
         allow_idle_dies=allow_idle_dies,
+        world_size=ws,
     )
     sfs_cmd = build_sfs_probe_script(SFS_PROBE_TARGETS, timeout_s=5)
     check_script = "\n".join(
@@ -793,6 +855,7 @@ def probe_host(
     return {
         "host": selected.ip,
         "state": selected.state,
+        "world_size": ws,
         "free_dies": selected.free_dies,
         "selected_dies": list(dies),
         "ram_pct": selected.ram_pct,
@@ -968,13 +1031,16 @@ def up_container(
     use_prestage: bool = True,
     allow_idle_dies: bool = False,
     privileged: bool = False,
+    world_size: int = WORLD_SIZE,
 ) -> dict[str, Any]:
+    ws = _validate_world_size(world_size)
     hosts = _kbenv_hosts(kbenv_bin)
     selected, dies = select_host_and_dies(
         hosts,
         target_host=host,
         die_slice=die_slice,
         allow_idle_dies=allow_idle_dies,
+        world_size=ws,
     )
     clean_id = validate_run_id(run_id or generate_run_id())
     remote_ssh(selected.ip, build_sfs_probe_script(SFS_PROBE_TARGETS, timeout_s=5))
@@ -990,8 +1056,11 @@ def up_container(
             port_base=cand_port,
             target_host=selected.ip,
             visible_devices=dies,
+            world_size=ws,
         )
-        chk = remote_ssh(selected.ip, build_remote_port_check_cmd(cand_env), check=False)
+        chk = remote_ssh(
+            selected.ip, build_remote_port_check_cmd(cand_env, world_size=ws), check=False
+        )
         if chk.returncode == 0:
             iso_env = cand_env
             break
@@ -1020,8 +1089,8 @@ def up_container(
         input_bytes=tar_proc.stdout,
     )
 
-    env_txt = build_container_env_script(iso_env, host_ifname=ifname)
-    wl_txt = build_whole_layer_base_json(clean_id)
+    env_txt = build_container_env_script(iso_env, host_ifname=ifname, world_size=ws)
+    wl_txt = build_whole_layer_base_json(clean_id, world_size=ws)
     cfg_cmd = (
         f"cat <<'__TILERT_ENV__' > {shlex.quote(shm_dir)}/env.sh\n"
         f"{env_txt}\n__TILERT_ENV__\n"
@@ -1041,11 +1110,13 @@ def up_container(
         model_host_path=model_override,
         extra_ro_mounts=extra_ro,
         privileged=privileged,
+        world_size=ws,
     )
     remote_ssh(selected.ip, " ".join(shlex.quote(tok) for tok in run_cmd))
     return {
         "run_id": clean_id,
         "host": selected.ip,
+        "world_size": ws,
         "visible_devices": list(dies),
         "port_base": int(iso_env["MASTER_PORT"]),
         "shm_dir": shm_dir,
@@ -1376,6 +1447,7 @@ def run_ephemeral(
     use_prestage: bool = True,
     allow_idle_dies: bool = False,
     privileged: bool = False,
+    world_size: int = WORLD_SIZE,
 ) -> dict[str, Any]:
     info = up_container(
         host=host,
@@ -1387,6 +1459,7 @@ def run_ephemeral(
         use_prestage=use_prestage,
         allow_idle_dies=allow_idle_dies,
         privileged=privileged,
+        world_size=world_size,
     )
     rc = 1
     try:
@@ -1407,13 +1480,16 @@ def fanout_fleet(
     exclude_hosts: Sequence[str] = (),
     image: str = DEFAULT_IMAGE,
     kbenv_bin: str = DEFAULT_KBENV_BIN,
+    world_size: int = WORLD_SIZE,
 ) -> list[dict[str, Any]]:
+    ws = _validate_world_size(world_size)
     hosts = _kbenv_hosts(kbenv_bin)
     slots = select_fleet_slots(
         hosts,
         max_slots=max_slots,
         dual_slot=dual_slot,
         exclude_hosts=exclude_hosts,
+        world_size=ws,
     )
     if not slots:
         raise IsolationError("No eligible A3 slots found for fanout")
@@ -1436,6 +1512,7 @@ def fanout_fleet(
                 None,
                 None,
                 True,
+                world_size=ws,
             )
             futs[fut] = (ip, slice_str, rid)
         for fut in as_completed(futs):
@@ -1453,12 +1530,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_probe.add_argument("--image", default=DEFAULT_IMAGE)
     p_probe.add_argument("--kbenv", default=DEFAULT_KBENV_BIN)
     p_probe.add_argument("--allow-idle-dies", action="store_true")
+    p_probe.add_argument(
+        "--world-size", type=int, choices=SUPPORTED_WORLD_SIZES, default=WORLD_SIZE
+    )
 
     p_fleet = sub.add_parser("probe-fleet")
     p_fleet.add_argument("--max-slots", type=int, default=None)
     p_fleet.add_argument("--no-dual-slot", action="store_true")
     p_fleet.add_argument("--exclude", default="")
     p_fleet.add_argument("--kbenv", default=DEFAULT_KBENV_BIN)
+    p_fleet.add_argument(
+        "--world-size", type=int, choices=SUPPORTED_WORLD_SIZES, default=WORLD_SIZE
+    )
 
     p_stage = sub.add_parser("prestage")
     p_stage.add_argument("--host", required=True)
@@ -1476,6 +1559,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_up.add_argument("--no-prestage", action="store_true")
     p_up.add_argument("--allow-idle-dies", action="store_true")
     p_up.add_argument("--privileged", action="store_true")
+    p_up.add_argument(
+        "--world-size", type=int, choices=SUPPORTED_WORLD_SIZES, default=WORLD_SIZE
+    )
 
     p_exec = sub.add_parser("exec")
     p_exec.add_argument("--host", required=True)
@@ -1517,6 +1603,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_run.add_argument("--no-prestage", action="store_true")
     p_run.add_argument("--allow-idle-dies", action="store_true")
     p_run.add_argument("--privileged", action="store_true")
+    p_run.add_argument(
+        "--world-size", type=int, choices=SUPPORTED_WORLD_SIZES, default=WORLD_SIZE
+    )
 
     p_fan = sub.add_parser("fanout")
     p_fan.add_argument("--cmd", required=True)
@@ -1525,6 +1614,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_fan.add_argument("--exclude", default="")
     p_fan.add_argument("--image", default=DEFAULT_IMAGE)
     p_fan.add_argument("--kbenv", default=DEFAULT_KBENV_BIN)
+    p_fan.add_argument(
+        "--world-size", type=int, choices=SUPPORTED_WORLD_SIZES, default=WORLD_SIZE
+    )
 
     args = parser.parse_args(argv)
     if args.subcmd == "probe":
@@ -1534,6 +1626,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             image=args.image,
             kbenv_bin=args.kbenv,
             allow_idle_dies=args.allow_idle_dies,
+            world_size=args.world_size,
         )
         print(json.dumps(out, indent=2))
         return 0
@@ -1544,6 +1637,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             max_slots=args.max_slots,
             dual_slot=not args.no_dual_slot,
             exclude_hosts=excl,
+            world_size=args.world_size,
         )
         print(
             json.dumps(
@@ -1573,6 +1667,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             use_prestage=not args.no_prestage,
             allow_idle_dies=args.allow_idle_dies,
             privileged=args.privileged,
+            world_size=args.world_size,
         )
         print(json.dumps(out, indent=2))
         return 0
@@ -1622,6 +1717,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             use_prestage=not args.no_prestage,
             allow_idle_dies=args.allow_idle_dies,
             privileged=args.privileged,
+            world_size=args.world_size,
         )
         print(json.dumps(out, indent=2))
         return int(out["returncode"])
@@ -1634,6 +1730,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             exclude_hosts=excl,
             image=args.image,
             kbenv_bin=args.kbenv,
+            world_size=args.world_size,
         )
         print(json.dumps(out, indent=2))
         return 0 if all(item["returncode"] == 0 for item in out) else 1
