@@ -1100,10 +1100,12 @@ __aicore__ inline void FinishOutputRows(
     __gm__ bfloat16_t* shmem_dst_base = nullptr, int32_t comm_rank = 0, int32_t comm_ranks = 0,
     bool sip_relay = false)
 {
+    const int64_t eff_max_rows =
+        (ContiguousComm && shmem_dst_base != nullptr && comm_ranks > 8 && MaxRows > 8)
+        ? 8 : MaxRows;
     const int64_t batch_rows = rows <= 1 ? 1
-        : (rows <= 2 * MaxRows ? ((rows + 1) >> 1) : MaxRows);
-    const int64_t batches = (rows <= batch_rows) ? 1
-        : ((rows <= 2 * batch_rows) ? 2 : ((rows + 7) >> 3));
+        : (rows <= 2 * eff_max_rows ? ((rows + 1) >> 1) : eff_max_rows);
+    const int64_t batches = (rows + batch_rows - 1) / batch_rows;
     if (vector_index >= batches * kOutputTiles) {
         return;
     }
@@ -1191,6 +1193,7 @@ __aicore__ inline void FinishOutputRows(
                     GlobalTensor<bfloat16_t> self_sh;
                     self_sh.SetGlobalBuffer(shmem_dst_base + pkt_off, total);
                     DataCopy(self_sh, held.output, total);
+#ifndef K112808_PULL_RED1
                     const uint32_t even_peers = static_cast<uint32_t>((comm_ranks >> 1) - 1);
                     for (uint32_t p = 0U; p < even_peers; ++p) {
                         const uint32_t step2 = (((static_cast<uint32_t>(vector_index) + p) % even_peers) + 1U) << 1U;
@@ -1201,6 +1204,7 @@ __aicore__ inline void FinishOutputRows(
                         peer_dst.SetGlobalBuffer(peer_ptr, total);
                         DataCopy(peer_dst, held.output, total);
                     }
+#endif
                 } else {
                     DataCopy(destination[pkt_off], held.output, total);
                     const uint32_t all_peers = static_cast<uint32_t>(comm_ranks - 1);
@@ -1238,6 +1242,7 @@ __aicore__ inline void FinishOutputRows(
                 GlobalTensor<bfloat16_t> self_sh;
                 self_sh.SetGlobalBuffer(shmem_dst_base + dst_off, rows * kHidden);
                 DataCopy(self_sh, held.output, copy);
+#ifndef K112808_PULL_RED1
                 const uint32_t even_peers = static_cast<uint32_t>((comm_ranks >> 1) - 1);
                 for (uint32_t p = 0U; p < even_peers; ++p) {
                     const uint32_t step2 = (((static_cast<uint32_t>(vector_index) + p) % even_peers) + 1U) << 1U;
@@ -1248,6 +1253,7 @@ __aicore__ inline void FinishOutputRows(
                     peer_dst.SetGlobalBuffer(peer_ptr, rows * kHidden);
                     DataCopy(peer_dst, held.output, copy);
                 }
+#endif
             } else {
                 DataCopy(destination[begin * kHidden + tile * kOutputTile],
                           held.output, copy);
@@ -1410,6 +1416,7 @@ __aicore__ inline void FinishPreloadedOutputRow(
             GlobalTensor<bfloat16_t> self_sh;
             self_sh.SetGlobalBuffer(shmem_dst_base + pkt_off, t.total);
             DataCopy(self_sh, held.output, t.total);
+#ifndef K112808_PULL_RED1
             const uint32_t even_peers = static_cast<uint32_t>((comm_ranks >> 1) - 1);
             for (uint32_t p = 0U; p < even_peers; ++p) {
                 const uint32_t step2 = (((static_cast<uint32_t>(vector_index) + p) % even_peers) + 1U) << 1U;
@@ -1420,6 +1427,7 @@ __aicore__ inline void FinishPreloadedOutputRow(
                 peer_dst.SetGlobalBuffer(peer_ptr, t.total);
                 DataCopy(peer_dst, held.output, t.total);
             }
+#endif
         } else {
             DataCopy(destination[pkt_off], held.output, t.total);
             const uint32_t all_peers = static_cast<uint32_t>(comm_ranks - 1);
@@ -1455,7 +1463,8 @@ __aicore__ inline uint32_t Forward(
     __gm__ uint8_t* scratch, __gm__ uint8_t* tiling,
     __gm__ bfloat16_t* output, int64_t rows, int64_t capacity,
     int64_t blocks, const WorkspaceLayout& layout, bool publish_end = true,
-    __gm__ uint8_t* comm_window = nullptr, int64_t comm_capacity = 0, int32_t comm_rank = 0, int32_t comm_ranks = 0)
+    __gm__ uint8_t* comm_window = nullptr, int64_t comm_capacity = 0, int32_t comm_rank = 0, int32_t comm_ranks = 0,
+    uint32_t known_red1_epoch = 0U)
 {
 #if defined(K11140_DIRECT_MLA_TAIL) && defined(K11040_TAIL_NZ)
 #ifdef K11150_MLA_TAIL_M32
@@ -1485,11 +1494,6 @@ __aicore__ inline uint32_t Forward(
     }
     uint32_t red1_epoch = 0U;
     if ASCEND_IS_AIV {
-#ifdef TESTS_GLM52_COMMUNICATION_TREE_COMMUNICATION_DEVICE_H
-        if (comm_window != nullptr) {
-            red1_epoch = whole_layer_tree::ReadCommunicationEpoch(comm_window) + 1U;
-        }
-#endif
         if (GetBlockIdx() < active_rows) {
             held.Init(pipe);
         }
@@ -1514,6 +1518,17 @@ __aicore__ inline uint32_t Forward(
                 Publish();
                 pipe.Reset();
             }
+#ifdef TESTS_GLM52_COMMUNICATION_TREE_COMMUNICATION_DEVICE_H
+            if (comm_window != nullptr) {
+#ifdef K112860_KNOWN_RED1_EPOCH
+                red1_epoch = (known_red1_epoch != 0U)
+                    ? known_red1_epoch
+                    : (whole_layer_tree::ReadCommunicationEpoch(comm_window) + 1U);
+#else
+                red1_epoch = whole_layer_tree::ReadCommunicationEpoch(comm_window) + 1U;
+#endif
+            }
+#endif
             SyncAll<true>();
             if (GetBlockIdx() < 48) {
                 CrossCoreSetFlag<0x2, PIPE_MTE3>(9);
@@ -1559,14 +1574,22 @@ __aicore__ inline uint32_t Forward(
                 deq_held_xc.Init(pipe);
                 pipe.InitBuffer(combined_buf_xc, kDequantRows * kOutputTile * sizeof(float));
                 combined_xc = combined_buf_xc.Get<float>();
-                pre_xc = PreloadOutputRowScales(
-                    deq_held_xc, combined_xc, output_scale, scales, bias, bias_kind,
-                    active_rows, capacity, GetBlockIdx());
-                CrossCoreWaitFlag(8);
-                FinishPreloadedOutputRow(
-                    pre_xc, deq_held_xc, combined_xc, accumulators, bias_kind,
-                    output, active_rows, capacity, GetBlockIdx(),
-                    xc_dst_base, comm_rank, comm_ranks, sip_r1_xc);
+                if (xc_dst_base != nullptr && comm_ranks > 8 && active_rows > 16) {
+                    CrossCoreWaitFlag(8);
+                    FinishOutputRows<ScaleOrder::CombinedScales, 8, true>(
+                        deq_held_xc, combined_xc, accumulators, output_scale, scales, bias,
+                        bias_kind, output, active_rows, capacity, GetBlockIdx(), 2 * blocks,
+                        xc_dst_base, comm_rank, comm_ranks, sip_r1_xc);
+                } else {
+                    pre_xc = PreloadOutputRowScales(
+                        deq_held_xc, combined_xc, output_scale, scales, bias, bias_kind,
+                        active_rows, capacity, GetBlockIdx());
+                    CrossCoreWaitFlag(8);
+                    FinishPreloadedOutputRow(
+                        pre_xc, deq_held_xc, combined_xc, accumulators, bias_kind,
+                        output, active_rows, capacity, GetBlockIdx(),
+                        xc_dst_base, comm_rank, comm_ranks, sip_r1_xc);
+                }
             }
             if (publish_end) {
                 Publish();
@@ -1584,6 +1607,17 @@ __aicore__ inline uint32_t Forward(
 #endif
     }
     if ASCEND_IS_AIV {
+#ifdef TESTS_GLM52_COMMUNICATION_TREE_COMMUNICATION_DEVICE_H
+        if (comm_window != nullptr) {
+#ifdef K112860_KNOWN_RED1_EPOCH
+            red1_epoch = (known_red1_epoch != 0U)
+                ? known_red1_epoch
+                : (whole_layer_tree::ReadCommunicationEpoch(comm_window) + 1U);
+#else
+            red1_epoch = whole_layer_tree::ReadCommunicationEpoch(comm_window) + 1U;
+#endif
+        }
+#endif
         if (GetBlockIdx() < active_rows) {
             QuantizeValues<kHeads>(held, values, quantized, scales, capacity,
                                    GetBlockIdx(), 2 * blocks, rows);
@@ -1612,7 +1646,7 @@ __aicore__ inline uint32_t Forward(
     const int64_t deq_active_cores = (active_rows <= 1) ? kOutputTiles : (2 * kOutputTiles);
 #ifdef K112168_MLA_TAIL_OVERLAP
     PreloadedDeqTask pre_deq{};
-    const bool use_pre_deq = (active_rows >= 1) && (active_rows <= 32) && (blocks == 24);
+    bool use_pre_deq = (active_rows >= 1) && (active_rows <= 32) && (blocks == 24);
 #endif
     if ASCEND_IS_AIV {
 #ifdef TESTS_GLM52_COMMUNICATION_TREE_COMMUNICATION_DEVICE_H
@@ -1632,6 +1666,11 @@ __aicore__ inline uint32_t Forward(
             red1_dst_base = reinterpret_cast<__gm__ bfloat16_t*>(
                 comm_window + comm_layout.payload + (red1_epoch & p_mask) * comm_layout.plane_bytes
                 + comm_rank * comm_layout.rank_bytes);
+        }
+#endif
+#ifdef K112168_MLA_TAIL_OVERLAP
+        if (red1_dst_base != nullptr && comm_ranks > 8 && active_rows > 16) {
+            use_pre_deq = false;
         }
 #endif
         if (GetBlockIdx() < deq_active_cores) {

@@ -605,7 +605,7 @@ struct VectorWorkspace {
         pipe.InitBuffer(pairs_b, 64 * 4);
         pipe.InitBuffer(temp_b, 128 * 4);
 #ifdef K112514_IDX_PIPE_V2
-        pipe.InitBuffer(offsets_b, (128 + 2048) * 4);
+        pipe.InitBuffer(offsets_b, (GetBlockIdx() < kHeads) ? ((128 + 2048) * 4) : (128 * 4));
 #else
         pipe.InitBuffer(offsets_b, 128 * 4);
 #endif
@@ -638,12 +638,14 @@ struct VectorWorkspace {
         SetDeqScale(static_cast<half>(1.0F));
         Fence<HardEvent::S_V>();
 #ifdef K112514_IDX_PIPE_V2
-        auto off_i32 = offsets.ReinterpretCast<int32_t>();
-        Adds(off_i32[128], off_i32[0], 0, 64);
-        for (int32_t r = 1; r < 32; ++r) {
-            Adds(off_i32[128 + r * 64], off_i32[0], r * 512, 64);
+        if (GetBlockIdx() < kHeads) {
+            auto off_i32 = offsets.ReinterpretCast<int32_t>();
+            Adds(off_i32[128], off_i32[0], 0, 64);
+            for (int32_t r = 1; r < 32; ++r) {
+                Adds(off_i32[128 + r * 64], off_i32[0], r * 512, 64);
+            }
+            PipeBarrier<PIPE_V>();
         }
-        PipeBarrier<PIPE_V>();
 #endif
     }
 };
@@ -736,10 +738,18 @@ __aicore__ inline void QueryEpilogue(VectorWorkspace& held, const Config& c,
              c.rows * kRope);
         Cast(held.sine, held.sine_bf16, RoundMode::CAST_NONE, c.rows * kRope);
         PipeBarrier<PIPE_V>();
+#ifdef K112514_IDX_PIPE_V2
+        Brcb(held.work, held.scalar, static_cast<uint8_t>((c.rows + 7) >> 3), {1, 8});
+        PipeBarrier<PIPE_V>();
+        const BinaryRepeatParams scale_rep{1, 1, 0, 16, 0, 1};
+        Mul(held.other[0], held.weight[0], held.work, 64, c.rows, scale_rep);
+        Mul(held.other[64], held.weight[64], held.work, 64, c.rows, scale_rep);
+#else
         for (int64_t row = 0; row < c.rows; ++row) {
             Muls(held.other[row * kDim], held.weight,
                  held.scalar.GetValue(row), kDim);
         }
+#endif
         PipeBarrier<PIPE_V>();
         Mul(held.value, held.other, held.value, total);
         PipeBarrier<PIPE_V>();
@@ -1344,6 +1354,7 @@ __aicore__ inline void Forward(TPipe& pipe, const Config& c,
             constexpr int32_t kQWorkers = 14;
 #endif
             if (idx < kQWorkers) {
+                if (!use_k32 || idx < 16) {
 #if defined(K112192_DIRECT_IDX_Q14) && defined(K11040_F0_NZ)
                 const bool dual_m = (c.rows > 16);
                 const uint16_t m0 = dual_m ? 16U : static_cast<uint16_t>(c.rows);
@@ -1531,6 +1542,7 @@ __aicore__ inline void Forward(TPipe& pipe, const Config& c,
                     kQueryTile, kQueryRank, kQueryColumns / kQueryTile,
                     idx, 0, kQWorkers);
 #endif
+                }
             } else if (idx < 24) {
                 if (use_k32) {
                     ProjectKeyKShift32(pipe, c, args.hidden, args.key_weight,
@@ -1632,15 +1644,29 @@ __aicore__ inline void Forward(TPipe& pipe, const Config& c,
                                 + static_cast<int64_t>(sub) * half_v;
                             QuantizeBatch<false>(
                                 held, query, query_out, query_scale, beg, half_v, true, false);
-                        } else if (sub == 0U) {
+                        } else {
                             const bool write_key_gm = (args.key_cache == nullptr);
                             const int64_t cache_rows =
                                 args.cache_rows > 0 ? args.cache_rows : c.rows;
                             const int64_t active_rows =
                                 args.cache_rows > 0 ? args.cache_active_rows : c.rows;
-                            QuantizeBatch<true>(
-                                held, key, key_out, key_scale, 0, active_rows, write_key_gm);
-                            WriteQuantizedKeyCache(held, args, 0, active_rows, cache_rows);
+                            if (cache_rows > 16) {
+                                const int64_t per_sub = (cache_rows + 1) >> 1;
+                                const int64_t begin = static_cast<int64_t>(sub) * per_sub;
+                                const int64_t sub_rows = (cache_rows <= begin) ? 0
+                                    : ((cache_rows - begin < per_sub) ? (cache_rows - begin) : per_sub);
+                                const int64_t sub_count = (active_rows <= begin) ? 0
+                                    : ((active_rows - begin < sub_rows) ? (active_rows - begin) : sub_rows);
+                                if (sub_rows > 0) {
+                                    QuantizeBatch<true>(
+                                        held, key, key_out, key_scale, begin, sub_count, write_key_gm);
+                                    WriteQuantizedKeyCache(held, args, begin, sub_count, sub_rows);
+                                }
+                            } else if (sub == 0U) {
+                                QuantizeBatch<true>(
+                                    held, key, key_out, key_scale, 0, active_rows, write_key_gm);
+                                WriteQuantizedKeyCache(held, args, 0, active_rows, cache_rows);
+                            }
                         }
                     }
                 }

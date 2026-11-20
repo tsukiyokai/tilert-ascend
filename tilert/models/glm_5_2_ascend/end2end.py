@@ -230,6 +230,7 @@ class Glm52AscendShowHands:
         w = self.width
 
         self._arena_pool.clear()
+        shared_scratch = {}
         prepared_layers = []
         prev_out = None
         prev_res = None
@@ -245,6 +246,7 @@ class Glm52AscendShowHands:
             if lw.mode == "int8":
                 caches.append(self.prefix.views[f"index_scale.{li}"].view(pages, PAGE_SIZE))
 
+            scratch_key = (w, pages, table_pages)
             pool_key = (w, lw.mode, pages, table_pages, li % 2)
             if pool_key not in self._arena_pool:
                 norm_outputs = [
@@ -255,14 +257,14 @@ class Glm52AscendShowHands:
                     torch.zeros((w, 1), dtype=torch.float32, device=dev),
                 ]
                 if lw.mode == "shared":
-                    scratch, tiling, blocks, sync_a = (
+                    layer_scratch, tiling, blocks, sync_a = (
                         torch.ops.tilert.shared_full_attention_prepare(
                             norm_outputs[3], pages, table_pages, 24
                         )
                     )
                     offsets = None
                 else:
-                    scratch, tiling, offsets, blocks, sync_a = (
+                    layer_scratch, tiling, offsets, blocks, sync_a = (
                         torch.ops.tilert.indexed_attention_prepare(
                             norm_outputs[3],
                             pages,
@@ -273,6 +275,29 @@ class Glm52AscendShowHands:
                             24,
                         )
                     )
+                if scratch_key not in shared_scratch:
+                    if lw.mode == "bf16":
+                        shared_scratch[scratch_key] = layer_scratch
+                    else:
+                        max_scratch, _, _, _, _ = torch.ops.tilert.indexed_attention_prepare(
+                            norm_outputs[3],
+                            pages,
+                            table_pages,
+                            pages,
+                            table_pages,
+                            False,
+                            24,
+                        )
+                        shared_scratch[scratch_key] = max_scratch
+                scratch = shared_scratch[scratch_key]
+                if (
+                    scratch.numel() < layer_scratch.numel()
+                    or scratch.dtype != layer_scratch.dtype
+                ):
+                    raise RuntimeError(
+                        f"Shared scratch mismatch: {scratch.numel()}/{scratch.dtype}"
+                    )
+                del layer_scratch
                 partial = torch.zeros((w, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
                 bridge, body, sync = self.ffn_ops.prepare(partial, 24, 1)
                 if (

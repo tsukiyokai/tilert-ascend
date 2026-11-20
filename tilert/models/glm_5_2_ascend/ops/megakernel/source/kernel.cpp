@@ -250,7 +250,8 @@ __aicore__ __attribute__((noinline)) void ReducePhase(TPipe& pipe,
     bool fused_next_norm = false,
     uint64_t next_residual = 0, uint64_t next_gamma = 0,
     uint64_t next_retained = 0, uint64_t next_normalized = 0,
-    uint64_t next_codes = 0, uint64_t next_scales = 0, float next_epsilon = 0.0F)
+    uint64_t next_codes = 0, uint64_t next_scales = 0, float next_epsilon = 0.0F,
+    uint32_t red1_epoch = 0U)
 {
     if ASCEND_IS_AIV {
         whole_layer_tree::CommunicationBuffers buffers;
@@ -299,7 +300,7 @@ __aicore__ __attribute__((noinline)) void ReducePhase(TPipe& pipe,
                 (__gm__ bfloat16_t*)partial, (__gm__ bfloat16_t*)output,
                 rows, communication.capacity, communication.rank,
                 communication.ranks, GetBlockIdx(), 48,
-                nullptr);
+                nullptr, true, red1_epoch);
         }
         pipe.Reset();
     }
@@ -313,7 +314,8 @@ __aicore__ inline void RunLayer(
     GM_ADDR resolved_topk_buf = nullptr, bool need_resolve_shared = false,
     bool* inout_resolved_ok = nullptr, int32_t known_kv_len = -1,
     int32_t known_q_len = -1, uint64_t fused_rtk_hdr = 0ULL,
-    bool skip_norm = false, bool* out_fused_next_norm = nullptr)
+    bool skip_norm = false, bool* out_fused_next_norm = nullptr,
+    uint32_t known_red1_epoch = 0U)
 {
     int32_t q_len = known_q_len;
     if (q_len < 0) {
@@ -352,14 +354,16 @@ __aicore__ inline void RunLayer(
     __gm__ int64_t* attn_prof_ptr = (record_prof || prof_acc != nullptr)
         ? ((__gm__ int64_t*)addresses.body.scratch[routed_int4::kGateTiling] + 32)
         : nullptr;
+    uint32_t red1_epoch = 0U;
     if (indexed) {
         const auto attention = IndexedArguments(addresses.attention);
-        whole_layer_indexed::Forward(pipe, config.indexed, attention,
+        red1_epoch = whole_layer_indexed::Forward(pipe, config.indexed, attention,
                                     config.bias_kind,
                                     (GM_ADDR)addresses.shared_topk,
                                     (__gm__ uint8_t*)communication.window, communication.capacity,
                                     communication.rank, communication.ranks, tree_mask_gm, attn_prof_ptr,
-                                    resolved_topk_buf, inout_resolved_ok, known_kv_len, q_len, fused_rtk_hdr);
+                                    resolved_topk_buf, inout_resolved_ok, known_kv_len, q_len, fused_rtk_hdr,
+                                    known_red1_epoch);
     } else {
         const auto& a = addresses.attention;
         const whole_layer_attention::DeviceArgs shared{
@@ -374,13 +378,14 @@ __aicore__ inline void RunLayer(
             (GM_ADDR)addresses.shared_topk, (GM_ADDR)a.main_metadata[3],
             (GM_ADDR)a.main_metadata[4], (GM_ADDR)a.main_metadata[5],
             nullptr, nullptr};
-        whole_layer_attention::FullForward(pipe, config.shared, shared,
+        red1_epoch = whole_layer_attention::FullForward(pipe, config.shared, shared,
             (GM_ADDR)a.tail_weights[0], (GM_ADDR)a.tail_weights[1],
             (GM_ADDR)a.tail_weights[2], (GM_ADDR)a.bias, config.bias_kind,
             (GM_ADDR)a.scratch, (GM_ADDR)a.tiling, (GM_ADDR)a.output,
             (__gm__ uint8_t*)communication.window, communication.capacity,
             communication.rank, communication.ranks, tree_mask_gm, attn_prof_ptr,
-            resolved_topk_buf, need_resolve_shared, inout_resolved_ok, known_kv_len, q_len);
+            resolved_topk_buf, need_resolve_shared, inout_resolved_ok, known_kv_len, q_len,
+            known_red1_epoch);
     }
     int64_t ts2 = GetSystemCycle();
 #ifdef ENABLE_KERNEL_PROF
@@ -422,7 +427,9 @@ __aicore__ inline void RunLayer(
     }
 #endif
     ReducePhase(pipe, communication, addresses.attention.output,
-                communication.attention_sum, active_rows, blocks, 0, 0);
+                communication.attention_sum, active_rows, blocks, 0, 0,
+                0, 0, 0, 0, nullptr, false, 0, 0, 0, 0, 0, 0, 0.0F,
+                red1_epoch);
     int64_t ts3 = GetSystemCycle();
 
 
@@ -646,7 +653,7 @@ __aicore__ __attribute__((noinline)) void RunDenseLayer(
     TPipe& pipe, bool indexed, bool pre_normed, const Config& config,
     const Addresses& addresses, const Communication& communication,
     uint64_t tree_mask_gm, const ChainStep* next_step, uint64_t layer_pw,
-    int64_t* prof_acc);
+    int64_t* prof_acc, uint32_t known_red1_epoch = 0U);
 #endif
 
 #ifndef SKIP_CHAIN_KERNEL
@@ -678,6 +685,17 @@ void ChainKernel(uint64_t steps_gm, int32_t count, uint64_t tree_mask_gm, uint64
     for (int i = 0; i < 24; ++i) { prof_acc[i] = 0; }
     const int64_t t_chain_start = GetSystemCycle();
 #endif
+#ifdef K112860_KNOWN_RED1_EPOCH
+    const uint64_t init_comm_win =
+        reinterpret_cast<const ChainStep*>(steps_gm)[0].communication.window;
+    uint32_t chain_epoch = 0U;
+    if ASCEND_IS_AIV {
+        if (init_comm_win != 0ULL) {
+            chain_epoch = whole_layer_tree::ReadCommunicationEpoch(
+                reinterpret_cast<__gm__ uint8_t*>(init_comm_win));
+        }
+    }
+#endif
     int32_t i = 0;
 #ifdef K11220_DENSE78_COLD
     for (; i < count; ++i) {
@@ -695,10 +713,19 @@ void ChainKernel(uint64_t steps_gm, int32_t count, uint64_t tree_mask_gm, uint64
         const uint64_t layer_pw = (peer_weights_gm != 0ULL)
             ? (peer_weights_gm + static_cast<uint64_t>(i) * sizeof(whole_layer_tree::LayerMirrorMeta))
             : 0ULL;
+        uint32_t step_red1_ep = 0U;
+#ifdef K112860_KNOWN_RED1_EPOCH
+        if ASCEND_IS_AIV {
+            if (step.communication.window == init_comm_win && init_comm_win != 0ULL) {
+                step_red1_ep = chain_epoch + 1U;
+            }
+            chain_epoch += 2U;
+        }
+#endif
 #ifdef ENABLE_KERNEL_PROF
-        RunDenseLayer(pipe, (sflags & 1ULL) != 0ULL, (sflags & 4ULL) != 0ULL, step.config, step.addresses, step.communication, tree_mask_gm, next_ptr, layer_pw, prof_acc);
+        RunDenseLayer(pipe, (sflags & 1ULL) != 0ULL, (sflags & 4ULL) != 0ULL, step.config, step.addresses, step.communication, tree_mask_gm, next_ptr, layer_pw, prof_acc, step_red1_ep);
 #else
-        RunDenseLayer(pipe, (sflags & 1ULL) != 0ULL, (sflags & 4ULL) != 0ULL, step.config, step.addresses, step.communication, tree_mask_gm, next_ptr, layer_pw, nullptr);
+        RunDenseLayer(pipe, (sflags & 1ULL) != 0ULL, (sflags & 4ULL) != 0ULL, step.config, step.addresses, step.communication, tree_mask_gm, next_ptr, layer_pw, nullptr, step_red1_ep);
 #endif
     }
 #endif
@@ -805,10 +832,19 @@ void ChainKernel(uint64_t steps_gm, int32_t count, uint64_t tree_mask_gm, uint64
 #endif
         const bool cur_skip_norm = next_skip_norm;
         bool step_fused_next_norm = false;
+        uint32_t step_red1_ep = 0U;
+#ifdef K112860_KNOWN_RED1_EPOCH
+        if ASCEND_IS_AIV {
+            if (step.communication.window == init_comm_win && init_comm_win != 0ULL) {
+                step_red1_ep = chain_epoch + 1U;
+            }
+            chain_epoch += 3U;
+        }
+#endif
 #ifdef ENABLE_KERNEL_PROF
-        RunLayer(pipe, step_is_idx, step.config, step.addresses, step.communication, false, tree_mask_gm, next_ptr, layer_pw, prof_acc, resolved_topk_buf, need_resolve_shared, &resolved_topk_ok, step_kv_len, step_q_len, step_fused_hdr, cur_skip_norm, &step_fused_next_norm);
+        RunLayer(pipe, step_is_idx, step.config, step.addresses, step.communication, false, tree_mask_gm, next_ptr, layer_pw, prof_acc, resolved_topk_buf, need_resolve_shared, &resolved_topk_ok, step_kv_len, step_q_len, step_fused_hdr, cur_skip_norm, &step_fused_next_norm, step_red1_ep);
 #else
-        RunLayer(pipe, step_is_idx, step.config, step.addresses, step.communication, false, tree_mask_gm, next_ptr, layer_pw, nullptr, resolved_topk_buf, need_resolve_shared, &resolved_topk_ok, step_kv_len, step_q_len, step_fused_hdr, cur_skip_norm, &step_fused_next_norm);
+        RunLayer(pipe, step_is_idx, step.config, step.addresses, step.communication, false, tree_mask_gm, next_ptr, layer_pw, nullptr, resolved_topk_buf, need_resolve_shared, &resolved_topk_ok, step_kv_len, step_q_len, step_fused_hdr, cur_skip_norm, &step_fused_next_norm, step_red1_ep);
 #endif
         next_skip_norm = step_fused_next_norm;
     }
@@ -1243,7 +1279,7 @@ __aicore__ __attribute__((noinline)) void RunDenseLayer(
     TPipe& pipe, bool indexed, bool pre_normed, const Config& config,
     const Addresses& addresses, const Communication& communication,
     uint64_t tree_mask_gm, const ChainStep* next_step, uint64_t layer_pw,
-    int64_t* prof_acc)
+    int64_t* prof_acc, uint32_t known_red1_epoch)
 {
     using namespace AscendC;
     GlobalTensor<int32_t> q_len_gm;
@@ -1318,13 +1354,15 @@ __aicore__ __attribute__((noinline)) void RunDenseLayer(
     __gm__ int64_t* attn_prof_ptr = (prof_acc != nullptr)
         ? ((__gm__ int64_t*)addresses.body.scratch[routed_int4::kGateTiling] + 32)
         : nullptr;
+    uint32_t red1_epoch = 0U;
     if (indexed) {
         const auto attention = IndexedArguments(addresses.attention);
-        whole_layer_indexed::Forward(pipe, config.indexed, attention,
+        red1_epoch = whole_layer_indexed::Forward(pipe, config.indexed, attention,
                                     config.bias_kind,
                                     (GM_ADDR)addresses.shared_topk,
                                     (__gm__ uint8_t*)communication.window, communication.capacity,
-                                    communication.rank, communication.ranks, tree_mask_gm, attn_prof_ptr);
+                                    communication.rank, communication.ranks, tree_mask_gm, attn_prof_ptr,
+                                    nullptr, nullptr, -1, -1, 0ULL, known_red1_epoch);
     } else {
         const auto& a = addresses.attention;
         const whole_layer_attention::DeviceArgs shared{
@@ -1339,12 +1377,13 @@ __aicore__ __attribute__((noinline)) void RunDenseLayer(
             (GM_ADDR)addresses.shared_topk, (GM_ADDR)a.main_metadata[3],
             (GM_ADDR)a.main_metadata[4], (GM_ADDR)a.main_metadata[5],
             nullptr, nullptr};
-        whole_layer_attention::FullForward(pipe, config.shared, shared,
+        red1_epoch = whole_layer_attention::FullForward(pipe, config.shared, shared,
             (GM_ADDR)a.tail_weights[0], (GM_ADDR)a.tail_weights[1],
             (GM_ADDR)a.tail_weights[2], (GM_ADDR)a.bias, config.bias_kind,
             (GM_ADDR)a.scratch, (GM_ADDR)a.tiling, (GM_ADDR)a.output,
             (__gm__ uint8_t*)communication.window, communication.capacity,
-            communication.rank, communication.ranks, tree_mask_gm, attn_prof_ptr);
+            communication.rank, communication.ranks, tree_mask_gm, attn_prof_ptr,
+            nullptr, false, nullptr, -1, -1, known_red1_epoch);
     }
     int64_t ts2 = GetSystemCycle();
 #ifdef ENABLE_KERNEL_PROF
@@ -1378,7 +1417,9 @@ __aicore__ __attribute__((noinline)) void RunDenseLayer(
     }
 #endif
     ReducePhase(pipe, communication, addresses.attention.output,
-                communication.attention_sum, active_rows, blocks, 0, 0);
+                communication.attention_sum, active_rows, blocks, 0, 0,
+                0, 0, 0, 0, nullptr, false, 0, 0, 0, 0, 0, 0, 0.0F,
+                red1_epoch);
     int64_t ts3 = GetSystemCycle();
 
     __gm__ int8_t* gu_in_i8 = (__gm__ int8_t*)addresses.bridge[ffn_bridge::kSharedCodes];

@@ -29,6 +29,14 @@
 #define DRAFT_SFA_TOPK kTopK
 #endif
 
+#ifndef K11240_TOP_NOINLINE
+#ifdef K11240_OUTLINE_TOP
+#define K11240_TOP_NOINLINE __attribute__((noinline))
+#else
+#define K11240_TOP_NOINLINE inline
+#endif
+#endif
+
 namespace whole_layer_attention {
 
 struct DeviceArgs {
@@ -78,7 +86,18 @@ __aicore__ inline optiling::MlaPrologBaseParams PrologTiling(const Config& confi
     tiling.mm2SingleCoreN = config.blocks >= 9 ? 64 :
         Ceil(Ceil(kLatent + kRope, config.blocks), 32) * 32;
 #endif
+#ifdef K112854_TP16_PROLOG_PAR
+    if (kHeads == 4U && config.blocks == 24U) {
+        tiling.mm1SingleCoreN = 128;
+        tiling.mm1BlockNum = 16;
+        tiling.mm2SingleCoreN = 96;
+        tiling.mm2BlockNum = 6;
+    } else {
+        tiling.mm2BlockNum = Ceil(kLatent + kRope, tiling.mm2SingleCoreN);
+    }
+#else
     tiling.mm2BlockNum = Ceil(kLatent + kRope, tiling.mm2SingleCoreN);
+#endif
     tiling.mm3SingleCoreN = Ceil(Ceil(kHeads * (kNope + kRope), config.blocks), 32) * 32;
     tiling.mm3BlockNum = Ceil(kHeads * (kNope + kRope), tiling.mm3SingleCoreN);
     tiling.mm4SingleCoreBatch = Ceil(kHeads, config.blocks);
@@ -150,39 +169,39 @@ __aicore__ inline void EndPhase(AscendC::TPipe& pipe)
 
 __aicore__ inline void PrologPhase(
     AscendC::TPipe& pipe, const Config& config, const DeviceArgs& args,
-    GM_ADDR query_norm, GM_ADDR query_norm_scale)
+    GM_ADDR query_norm, GM_ADDR query_norm_scale,
+    GM_ADDR scratch_override = nullptr)
 {
-    GM_ADDR query = args.scratch + config.query_offset;
-    GM_ADDR rope = args.scratch + config.rope_offset;
-    GM_ADDR workspace = args.scratch + config.work_offset;
-    {
-        auto tiling = PrologTiling(config);
-        tiling.queryNormFlag = query_norm != nullptr ? 1U : 0U;
+    GM_ADDR eff_scratch = (scratch_override != nullptr) ? scratch_override : args.scratch;
+    GM_ADDR query = eff_scratch + config.query_offset;
+    GM_ADDR rope = eff_scratch + config.rope_offset;
+    GM_ADDR workspace = eff_scratch + config.work_offset;
+    auto tiling = PrologTiling(config);
+    tiling.queryNormFlag = query_norm != nullptr ? 1U : 0U;
 #ifdef K112706_PROLOG_DEQ_OPT
-        using PrologType = MlaProlog::MLAPType<int8_t, int8_t, bfloat16_t, float,
-            MlaProlog::CACHE_MODE::PA_BSND, true, false,
-            MlaProlog::EMPTY_TENSOR_MODE::NON_EMPTY,
-            MlaProlog::ACTUAL_SEQ_MODE::DISABLED, false, 2, true>;
+    using PrologType = MlaProlog::MLAPType<int8_t, int8_t, bfloat16_t, float,
+        MlaProlog::CACHE_MODE::PA_BSND, true, false,
+        MlaProlog::EMPTY_TENSOR_MODE::NON_EMPTY,
+        MlaProlog::ACTUAL_SEQ_MODE::DISABLED, false, 2, true>;
 #elif defined(K112708_PROLOG_GRP_OPT)
-        using PrologType = MlaProlog::MLAPType<int8_t, int8_t, bfloat16_t, float,
-            MlaProlog::CACHE_MODE::PA_BSND, false, true,
-            MlaProlog::EMPTY_TENSOR_MODE::NON_EMPTY,
-            MlaProlog::ACTUAL_SEQ_MODE::DISABLED, false, 2, true>;
+    using PrologType = MlaProlog::MLAPType<int8_t, int8_t, bfloat16_t, float,
+        MlaProlog::CACHE_MODE::PA_BSND, false, true,
+        MlaProlog::EMPTY_TENSOR_MODE::NON_EMPTY,
+        MlaProlog::ACTUAL_SEQ_MODE::DISABLED, false, 2, true>;
 #else
-        using PrologType = MlaProlog::MLAPType<int8_t, int8_t, bfloat16_t, float,
-            MlaProlog::CACHE_MODE::PA_BSND, false, false,
-            MlaProlog::EMPTY_TENSOR_MODE::NON_EMPTY,
-            MlaProlog::ACTUAL_SEQ_MODE::DISABLED, false, 2, true>;
+    using PrologType = MlaProlog::MLAPType<int8_t, int8_t, bfloat16_t, float,
+        MlaProlog::CACHE_MODE::PA_BSND, false, false,
+        MlaProlog::EMPTY_TENSOR_MODE::NON_EMPTY,
+        MlaProlog::ACTUAL_SEQ_MODE::DISABLED, false, 2, true>;
 #endif
-        MlaProlog::MlaPrologVecS1CubS2<PrologType> prolog(&pipe, nullptr, &tiling);
-        prolog.Init(args.token_x, args.weight_dq, args.weight_uq_qr,
-            args.weight_uk, args.weight_dkv_kr, args.gamma_cq, args.gamma_ckv,
-            args.sin, args.cos, args.slots, args.kv_cache, args.rope_cache,
-            args.token_scale, args.scale_dq, args.scale_uq_qr, args.scale_dkv_kr,
-            nullptr, nullptr, nullptr, nullptr, nullptr,
-            query, rope, nullptr, query_norm, query_norm_scale, workspace);
-        prolog.Process();
-    }
+    MlaProlog::MlaPrologVecS1CubS2<PrologType> prolog(&pipe, nullptr, &tiling);
+    prolog.Init(args.token_x, args.weight_dq, args.weight_uq_qr,
+        args.weight_uk, args.weight_dkv_kr, args.gamma_cq, args.gamma_ckv,
+        args.sin, args.cos, args.slots, args.kv_cache, args.rope_cache,
+        args.token_scale, args.scale_dq, args.scale_uq_qr, args.scale_dkv_kr,
+        nullptr, nullptr, nullptr, nullptr, nullptr,
+        query, rope, nullptr, query_norm, query_norm_scale, workspace);
+    prolog.Process();
 #ifdef K112512_PROLOG_48AIV_V2
     AscendC::PipeBarrier<PIPE_ALL>();
 #ifndef K112702_NO_DDR_INTRADIE
@@ -397,14 +416,12 @@ __aicore__ __attribute__((noinline)) bool ResolveTopk2048(
             }
         }
         AscendC::PipeBarrier<PIPE_ALL>();
-#ifndef K112702_NO_DDR_INTRADIE
 #ifdef K112512_PROLOG_48AIV_V2
         if (vid < total_chunks) {
             AscendC::DataSyncBarrier<AscendC::MemDsbT::DDR>();
         }
 #else
         AscendC::DataSyncBarrier<AscendC::MemDsbT::DDR>();
-#endif
 #endif
         AscendC::SyncAll<true>();
         pipe.Reset();
@@ -416,11 +433,15 @@ __aicore__ __attribute__((noinline)) bool ResolveTopk2048(
 __aicore__ inline void SfaPhase(AscendC::TPipe& pipe, const Config& config,
                                const DeviceArgs& args, GM_ADDR key = nullptr,
                                uint64_t tree_mask_gm = 0, bool is_shared_only = false,
-                               GM_ADDR pre_resolved_topk = nullptr)
+                               GM_ADDR pre_resolved_topk = nullptr,
+                               GM_ADDR scratch_override = nullptr,
+                               GM_ADDR output_override = nullptr)
 {
-    GM_ADDR query = args.scratch + config.query_offset;
-    GM_ADDR rope = args.scratch + config.rope_offset;
-    GM_ADDR workspace = args.scratch + config.work_offset;
+    GM_ADDR eff_scratch = (scratch_override != nullptr) ? scratch_override : args.scratch;
+    GM_ADDR eff_output = (output_override != nullptr) ? output_override : args.output;
+    GM_ADDR query = eff_scratch + config.query_offset;
+    GM_ADDR rope = eff_scratch + config.rope_offset;
+    GM_ADDR workspace = eff_scratch + config.work_offset;
 #ifndef K112120_CLEAN_DCCI
     if (tree_mask_gm != 0) {
         AscendC::GlobalTensor<uint32_t> mask_gm;
@@ -475,7 +496,7 @@ __aicore__ inline void SfaPhase(AscendC::TPipe& pipe, const Config& config,
             union_ok = union_sfa::RunUnionSfa(
                 pipe, config, query, rope,
                 (key == nullptr) ? args.kv_cache : key, args.kv_cache, args.rope_cache,
-                pre_resolved_topk, args.kv_lengths, workspace, args.output,
+                pre_resolved_topk, args.kv_lengths, workspace, eff_output,
                 config.sfa_bytes, is_shared_only, tree_mask_gm);
         }
         if (!union_ok) {
@@ -486,7 +507,7 @@ __aicore__ inline void SfaPhase(AscendC::TPipe& pipe, const Config& config,
         attention.Init(query, key == nullptr ? args.kv_cache : key,
             args.kv_cache, eff_topk,
             q_lens, args.kv_lengths, args.page_table,
-            rope, args.rope_cache, args.output, nullptr, nullptr, workspace,
+            rope, args.rope_cache, eff_output, nullptr, nullptr, workspace,
             &tiling, nullptr, &pipe);
         attention.SetTreeMaskGm(eff_mask_gm);
         attention.Process();

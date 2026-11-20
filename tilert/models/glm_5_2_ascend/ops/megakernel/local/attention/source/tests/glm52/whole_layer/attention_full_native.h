@@ -19,27 +19,28 @@
 
 namespace whole_layer_attention {
 
-__aicore__ K11240_TOP_NOINLINE void FullForward(
-    AscendC::TPipe& pipe, const FullConfig& config, DeviceArgs attention,
+__aicore__ K11240_TOP_NOINLINE uint32_t FullForward(
+    AscendC::TPipe& pipe, const FullConfig& config, const DeviceArgs& attention_in,
     GM_ADDR value_weight, GM_ADDR output_weight, GM_ADDR output_scale,
     GM_ADDR bias, int bias_kind, GM_ADDR scratch, GM_ADDR tail_tiling,
     GM_ADDR output,
     __gm__ uint8_t* comm_window = nullptr, int64_t comm_capacity = 0, int32_t comm_rank = 0, int32_t comm_ranks = 0,
     uint64_t tree_mask_gm = 0, __gm__ int64_t* attn_prof = nullptr,
     GM_ADDR resolved_topk_buf = nullptr, bool need_resolve = false, bool* inout_resolved_ok = nullptr,
-    int32_t known_kv_len = -1, int32_t known_q_len = -1)
+    int32_t known_kv_len = -1, int32_t known_q_len = -1,
+    uint32_t known_red1_epoch = 0U)
 {
     int32_t q_len = known_q_len;
     if (q_len < 0) {
         AscendC::GlobalTensor<int32_t> query_lengths;
-        query_lengths.SetGlobalBuffer((__gm__ int32_t*)attention.query_lengths, 1);
+        query_lengths.SetGlobalBuffer((__gm__ int32_t*)attention_in.query_lengths, 1);
         AscendC::DataCacheCleanAndInvalid<int32_t,
             AscendC::CacheLine::SINGLE_CACHE_LINE,
             AscendC::DcciDst::CACHELINE_OUT>(query_lengths);
         q_len = query_lengths.GetValue(0);
     }
     if (q_len <= 0) {
-        return;
+        return 0U;
     }
     const uint32_t sfa_rows =
         (q_len <= static_cast<int32_t>(config.attention.rows))
@@ -48,12 +49,10 @@ __aicore__ K11240_TOP_NOINLINE void FullForward(
     Config c_attn = config.attention;
     c_attn.rows = sfa_rows;
     GM_ADDR arena = scratch + config.arena_offset;
-    attention.scratch = arena;
-    attention.output = scratch;
 #ifdef ENABLE_KERNEL_PROF
     if (attn_prof != nullptr) { if ASCEND_IS_AIV { if (AscendC::GetBlockIdx() == 0) { attn_prof[0] = AscendC::GetSystemCycle(); } } }
 #endif
-    PrologPhase(pipe, c_attn, attention, nullptr, nullptr);
+    PrologPhase(pipe, c_attn, attention_in, nullptr, nullptr, arena);
 #ifdef ENABLE_KERNEL_PROF
     if (attn_prof != nullptr) { if ASCEND_IS_AIV { if (AscendC::GetBlockIdx() == 0) {
         const int64_t t_p = AscendC::GetSystemCycle();
@@ -67,8 +66,8 @@ __aicore__ K11240_TOP_NOINLINE void FullForward(
     if (resolved_topk_buf != nullptr && inout_resolved_ok != nullptr) {
         if (need_resolve) {
             *inout_resolved_ok = ResolveTopk2048(
-                pipe, attention.topk, resolved_topk_buf,
-                attention.page_table, attention.kv_lengths,
+                pipe, attention_in.topk, resolved_topk_buf,
+                attention_in.page_table, attention_in.kv_lengths,
                 sfa_rows, c_attn.table_pages, tree_mask_gm, known_kv_len);
         }
         if (*inout_resolved_ok) {
@@ -76,7 +75,7 @@ __aicore__ K11240_TOP_NOINLINE void FullForward(
         }
     }
 #endif
-    SfaPhase(pipe, c_attn, attention, nullptr, tree_mask_gm, true, active_resolved_topk);
+    SfaPhase(pipe, c_attn, attention_in, nullptr, tree_mask_gm, true, active_resolved_topk, arena, scratch);
 #ifdef ENABLE_KERNEL_PROF
     if (attn_prof != nullptr) { if ASCEND_IS_AIV { if (AscendC::GetBlockIdx() == 0) { attn_prof[4] = AscendC::GetSystemCycle(); } } }
 #endif
@@ -87,7 +86,7 @@ __aicore__ K11240_TOP_NOINLINE void FullForward(
         (__gm__ float*)output_scale, bias, bias_kind, arena, tail_tiling,
         (__gm__ bfloat16_t*)output, sfa_rows, config.capacity,
         config.attention.blocks, config.tail, false,
-        comm_window, comm_capacity, comm_rank, comm_ranks);
+        comm_window, comm_capacity, comm_rank, comm_ranks, known_red1_epoch);
     if ASCEND_IS_AIV {
         AscendC::PipeBarrier<PIPE_ALL>();
         AscendC::DataSyncBarrier<AscendC::MemDsbT::DDR>();
@@ -117,6 +116,7 @@ __aicore__ K11240_TOP_NOINLINE void FullForward(
         }
 #endif
     }
+    return tail_epoch;
 }
 
 }

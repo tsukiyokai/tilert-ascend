@@ -147,6 +147,9 @@ def _r4_flags(world_size: int = 8) -> tuple[str, ...]:
         return (
             *(f for f in R4_FLAGS if f != "-DK112612_OVERLAP_SH_P4=1"),
             "-DK112808_PULL_RED2=1",
+            "-DK112808_PULL_RED1=1",
+            "-DK112854_TP16_PROLOG_PAR=1",
+            "-DK112860_KNOWN_RED1_EPOCH=1",
         )
     return R4_FLAGS
 

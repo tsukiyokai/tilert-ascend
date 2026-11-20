@@ -839,7 +839,11 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::AivProcess(AivOffset& aivOffs
         (baseParams_->tokenSize <= baseParams_->stepBatchSize);
     const bool parAiv = parCqCkv && !needQnDynamicQuant &&
         (curVectorBlockNum_ <= 24) && (totalAivs >= 2 * curVectorBlockNum_) &&
+#ifdef K112854_TP16_PROLOG_PAR
+        (baseParams_->numHeadSize == 8U || baseParams_->numHeadSize == 4U) &&
+#else
         (baseParams_->numHeadSize == 8U) &&
+#endif
         (MLAPT::cacheMode != CACHE_MODE::PA_BLK_BSND) &&
         (MLAPT::cacheMode != CACHE_MODE::PA_BLK_NZ) &&
         !std::is_same<mmQcQrInputType, bfloat16_t>::value;
@@ -877,9 +881,13 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::AivProcess(AivOffset& aivOffs
         CopyInSinCos(tokenIndex, aivOffset.curVecToken, a22BatchOffset, curStepBatchSize);
     }
     CrossCoreWaitFlag(FINISH_MM_CQ);
+#ifdef K112854_TP16_PROLOG_PAR
+    WaitAllCore<SYNC_MODE_ALL_VEC, PIPE_MTE3>(FINISH_VEC_ALL);
+#else
     if (!parAiv) {
         WaitAllCore<SYNC_MODE_ALL_VEC, PIPE_MTE3>(FINISH_VEC_ALL);
     }
+#endif
     RmsNormCq(tokenIndex, aivOffset.rmsNormCqOffset, rmsNormCqResOffset, aivOffset.curVecToken,
               aivOffset.curBlockTokenOffset);
     if (parAiv && static_cast<int64_t>(blockIdx_) < curVectorBlockNum_) {
@@ -893,9 +901,13 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::AivProcess(AivOffset& aivOffs
                  dequantTool_.dequantScaleCqLocal_[aivOffset.curBlockTokenOffset * FP32_BLOCK_ELEMENT_NUM],
                  FP32_BLOCK_ELEMENT_NUM);
     }
+#ifdef K112854_TP16_PROLOG_PAR
+    WaitAllCore<SYNC_MODE_ALL_VEC, PIPE_MTE3>(FINISH_VEC_ALL);
+#else
     if (!parAiv) {
         WaitAllCore<SYNC_MODE_ALL_VEC, PIPE_MTE3>(FINISH_VEC_ALL);
     }
+#endif
 
     if constexpr ((MLAPT::enableDequantOpt || MLAPT::enableGroupComputeOpt) &&
                   (std::is_same<rmsNormCqOutputType, int8_t>::value)) {
@@ -955,13 +967,19 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::AivProcess(AivOffset& aivOffs
 
     if (parAiv) {
         CrossCoreWaitFlag(FINISH_MM_QCQR);
+#ifdef K112854_TP16_PROLOG_PAR
+        WaitAllCore<SYNC_MODE_ALL_VEC, PIPE_MTE3>(FINISH_VEC_ALL);
+        const uint32_t splitHeads = baseParams_->numHeadSize >> 1U;
+#else
+        constexpr uint32_t splitHeads = 4U;
+#endif
         if (static_cast<int64_t>(blockIdx_) < curVectorBlockNum_) {
             DequantPerTokenQcSplit(
                 mmQcQrResDequantGm_[aivOffset.mmQnPreDequantResOffset],
                 mmQcQrResGm_[aivOffset.mmQnPreDequantOffset],
                 deqScaleQcQrW_,
                 dequantTool_.dequantScaleCqLocal_[aivOffset.curBlockTokenOffset * FP32_BLOCK_ELEMENT_NUM],
-                shareBuffer_.Get<uint8_t>(), 4U,
+                shareBuffer_.Get<uint8_t>(), splitHeads,
                 baseParams_->dimHeadSizeQc,
                 baseParams_->dimHeadRope + baseParams_->dimHeadSizeQc, 0U);
             AscendC::SetFlag<HardEvent::MTE3_MTE2>(EVENT_ID0);
@@ -982,10 +1000,13 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::AivProcess(AivOffset& aivOffs
                 mmQcQrResGm_[(baseParams_->headSizeQr + baseParams_->headSizeQc) * helperTok],
                 deqScaleQcQrW_,
                 dequantTool_.dequantScaleCqLocal_,
-                shareBuffer_.Get<uint8_t>(), 4U,
+                shareBuffer_.Get<uint8_t>(), baseParams_->numHeadSize - splitHeads,
                 baseParams_->dimHeadSizeQc,
-                baseParams_->dimHeadRope + baseParams_->dimHeadSizeQc, 4U);
+                baseParams_->dimHeadRope + baseParams_->dimHeadSizeQc, splitHeads);
         }
+#ifdef K112854_TP16_PROLOG_PAR
+        WaitAllCore<SYNC_MODE_ALL_VEC, PIPE_MTE3>(FINISH_VEC_ALL);
+#endif
         CrossCoreSetFlag<SYNC_MODE_CUBE_VEC, PIPE_MTE3>(FINISH_VEC_DEQUANT_QC);
         RopeQr(aivOffset.ropeQrOffset, aivOffset.ropeQrResOffset, aivOffset.curVecToken,
                aivOffset.curBlockTokenOffset);

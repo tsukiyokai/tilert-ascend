@@ -1105,7 +1105,8 @@ __aicore__ inline uint32_t AllReduceBf16(
     __gm__ bfloat16_t* partial, __gm__ bfloat16_t* output,
     int64_t rows, int64_t capacity, int32_t rank, int32_t ranks,
     int64_t vector_index, int64_t vectors,
-    __gm__ bfloat16_t* shared_sum = nullptr, bool sync_end = true)
+    __gm__ bfloat16_t* shared_sum = nullptr, bool sync_end = true,
+    uint32_t red1_epoch = 0U)
 {
     const bool quad4 = IsQuad4Active(capacity, rows);
     const CommunicationLayout layout = quad4
@@ -1113,7 +1114,7 @@ __aicore__ inline uint32_t AllReduceBf16(
         : MakeCommunicationLayout(capacity, ranks);
     uint32_t epoch = 0;
     if ASCEND_IS_AIV {
-        epoch = ReadCommunicationEpoch(window);
+        epoch = (red1_epoch != 0U) ? red1_epoch : ReadCommunicationEpoch(window);
         ReduceCommunicationPayloadTiled(buffers, window, layout, partial, output,
                                         rows, rank, ranks, epoch,
                                         vector_index, vectors, shared_sum, quad4);

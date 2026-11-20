@@ -67,14 +67,15 @@ struct PhaseTrace {
 #endif
 };
 
-__aicore__ __attribute__((noinline)) void Forward(AscendC::TPipe& pipe, const Config& c,
+__aicore__ K11240_TOP_NOINLINE uint32_t Forward(AscendC::TPipe& pipe, const Config& c,
                                const DeviceArgs& a, int bias_kind,
                                GM_ADDR shared_topk = nullptr,
                                __gm__ uint8_t* comm_window = nullptr, int64_t comm_capacity = 0, int32_t comm_rank = 0, int32_t comm_ranks = 0,
                                uint64_t tree_mask_gm = 0, __gm__ int64_t* attn_prof = nullptr,
                                GM_ADDR resolved_topk_buf = nullptr, bool* out_resolved_ok = nullptr,
                                int32_t known_kv_len = -1, int32_t known_q_len = -1,
-                               uint64_t fused_rtk_hdr = 0ULL)
+                               uint64_t fused_rtk_hdr = 0ULL,
+                               uint32_t known_red1_epoch = 0U)
 {
     GM_ADDR memory = a.scratch;
     GM_ADDR topk_out = (shared_topk != nullptr) ? shared_topk : (memory + c.topk);
@@ -90,7 +91,7 @@ __aicore__ __attribute__((noinline)) void Forward(AscendC::TPipe& pipe, const Co
         q_len = query_lengths.GetValue(0);
     }
     if (q_len <= 0) {
-        return;
+        return 0U;
     }
     const uint32_t sfa_rows =
         (q_len <= static_cast<int32_t>(c.attention.rows))
@@ -131,11 +132,26 @@ __aicore__ __attribute__((noinline)) void Forward(AscendC::TPipe& pipe, const Co
         a.indexer_metadata[2], a.caches[2], a.caches[3],
         static_cast<int64_t>(c_indexer.pages) * whole_layer_indexer::kPage,
         c.attention.rows, q_len};
+#if defined(K112162_FUSED_IDX_RTK) && defined(K112130_VEC_RESOLVED_TOPK) && defined(K11090_FAST_SFA_VEC)
+    const uint32_t fuse_blks = (known_kv_len > 0) ? ((static_cast<uint32_t>(known_kv_len) + 127U) >> 7U) : 0U;
+    const bool did_fuse_rtk =
+        (resolved_topk_buf != nullptr) && (fused_rtk_hdr != 0ULL) &&
+        (c_indexer.quantized ||
+         (whole_layer_attention::kHeads == 4U && c_front.blocks == 24 &&
+          whole_layer_indexer::Bf16Tiling(c_indexer).returnValue == 0U)) &&
+        (sfa_rows >= 8U) && (sfa_rows <= 32U) &&
+        (c_attn.table_pages > 0U) && (known_kv_len > static_cast<int32_t>(sfa_rows)) &&
+        (known_kv_len <= 65536) && (fuse_blks > 0U) && (fuse_blks <= 512U) &&
+        (fuse_blks <= c_attn.table_pages);
+#else
+    const bool did_fuse_rtk = false;
+#endif
+
 #ifdef SFA_PACKED_SHADOW_KV
     indexer_front::device::Forward(pipe, c_front, front,
         ShadowRows{a.caches[0], a.caches[1], a.main_metadata[2], a.caches[4]});
 #else
-    indexer_front::device::Forward(pipe, c_front, front, indexer_front::device::NoInputStage{});
+    indexer_front::device::Forward(pipe, c_front, front);
 #endif
 #ifdef ENABLE_KERNEL_PROF
     if (attn_prof != nullptr) { if ASCEND_IS_AIV { if (AscendC::GetBlockIdx() == 0) { attn_prof[2] = AscendC::GetSystemCycle(); } } }
@@ -150,18 +166,9 @@ __aicore__ __attribute__((noinline)) void Forward(AscendC::TPipe& pipe, const Co
     GM_ADDR active_resolved_topk = nullptr;
     uint64_t idx_mask_arg = tree_mask_gm;
 #if defined(K112162_FUSED_IDX_RTK) && defined(K112130_VEC_RESOLVED_TOPK) && defined(K11090_FAST_SFA_VEC)
-    const uint32_t fuse_blks = (known_kv_len > 0) ? ((static_cast<uint32_t>(known_kv_len) + 127U) >> 7U) : 0U;
-    const bool did_fuse_rtk =
-        (resolved_topk_buf != nullptr) && (fused_rtk_hdr != 0ULL) &&
-        c_indexer.quantized && (sfa_rows >= 8U) && (sfa_rows <= 32U) &&
-        (c_attn.table_pages > 0U) && (known_kv_len > static_cast<int32_t>(sfa_rows)) &&
-        (known_kv_len <= 65536) && (fuse_blks > 0U) && (fuse_blks <= 512U) &&
-        (fuse_blks <= c_attn.table_pages);
     if (did_fuse_rtk) {
         idx_mask_arg = fused_rtk_hdr | 1ULL;
     }
-#else
-    const bool did_fuse_rtk = false;
 #endif
     whole_layer_indexer::Forward(pipe, c_indexer, indexer, true, idx_mask_arg);
 #if defined(K112130_VEC_RESOLVED_TOPK) && defined(K11090_FAST_SFA_VEC)
@@ -205,7 +212,7 @@ __aicore__ __attribute__((noinline)) void Forward(AscendC::TPipe& pipe, const Co
         memory + c.tail_offset, a.tiling + indexer_front::kTilingBytes,
         (__gm__ bfloat16_t*)a.output, sfa_rows, c.front.capacity,
         c.attention.blocks, c.tail, false,
-        comm_window, comm_capacity, comm_rank, comm_ranks);
+        comm_window, comm_capacity, comm_rank, comm_ranks, known_red1_epoch);
     if ASCEND_IS_AIV {
         AscendC::PipeBarrier<PIPE_ALL>();
         AscendC::DataSyncBarrier<AscendC::MemDsbT::DDR>();
@@ -237,6 +244,7 @@ __aicore__ __attribute__((noinline)) void Forward(AscendC::TPipe& pipe, const Co
 #endif
     trace.Mark(5);
     trace.Store(c, memory);
+    return tail_epoch;
 }
 
 }

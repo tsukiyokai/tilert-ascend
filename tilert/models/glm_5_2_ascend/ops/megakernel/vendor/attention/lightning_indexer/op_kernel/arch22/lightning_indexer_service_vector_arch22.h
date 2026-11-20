@@ -354,10 +354,17 @@ __aicore__ inline void LightningIndexerServiceVector<LIT>::ProcessVec(const LICo
             PipeBarrier<PIPE_V>();
             Adds(sortIndiceUbInt, globalTopkIndice_, static_cast<int32_t>(cuBaseS2Idx), cuS2Len);
             PipeBarrier<PIPE_V>();
-            if (treeMaskGmAddr_ != 0 && constInfo_.attenMaskFlag && cuS1Idx >= 0 && cuS1Idx < 32) {
+#ifdef K112162_FUSED_IDX_RTK
+            const uint64_t effTreeMaskAddr = ((treeMaskGmAddr_ & 1ULL) != 0ULL)
+                ? reinterpret_cast<const __gm__ uint64_t*>(treeMaskGmAddr_ & ~1ULL)[2]
+                : treeMaskGmAddr_;
+#else
+            const uint64_t effTreeMaskAddr = treeMaskGmAddr_;
+#endif
+            if (effTreeMaskAddr != 0ULL && constInfo_.attenMaskFlag && cuS1Idx >= 0 && cuS1Idx < 32) {
                 const int32_t prefixLen = static_cast<int32_t>(info.actS2Size) - static_cast<int32_t>(info.actS1Size);
                 if (static_cast<int32_t>(cuBaseS2Idx) + cuS2Len > prefixLen) {
-                    const __gm__ uint32_t* maskPtr = reinterpret_cast<const __gm__ uint32_t*>(treeMaskGmAddr_);
+                    const __gm__ uint32_t* maskPtr = reinterpret_cast<const __gm__ uint32_t*>(effTreeMaskAddr);
                     if (maskPtr[0] != 0U) {
                         const uint32_t rowMask = maskPtr[cuS1Idx];
                         AscendC::PipeBarrier<PIPE_ALL>();
@@ -446,14 +453,140 @@ __aicore__ inline void LightningIndexerServiceVector<LIT>::ProcessVec(const LICo
                     outQueue_.EnQue<float>(outValueUb);
                     outValueUb = outQueue_.DeQue<float>();
 
-                    LIServiceVec::CopyOut(
-                        indiceOutGm[info.indiceOutOffset + cuS1Idx * constInfo_.sparseCount + i * offset], idxULocal1,
-                        copyLen);
-                    if (constInfo_.returnValue) {
+                    const bool skipIdxOut = ((treeMaskGmAddr_ & 1ULL) != 0ULL &&
+                                             constInfo_.sparseCount == 2048U &&
+                                             !constInfo_.returnValue);
+                    if (!skipIdxOut) {
                         LIServiceVec::CopyOut(
-                            valueOutGm[info.indiceOutOffset + cuS1Idx * constInfo_.sparseCount + i * offset],
-                            valueULocal1, copyLen);
+                            indiceOutGm[info.indiceOutOffset + cuS1Idx * constInfo_.sparseCount + i * offset],
+                            idxULocal1, copyLen);
+                        if (constInfo_.returnValue) {
+                            LIServiceVec::CopyOut(
+                                valueOutGm[info.indiceOutOffset + cuS1Idx * constInfo_.sparseCount + i * offset],
+                                valueULocal1, copyLen);
+                        }
                     }
+#ifdef K112162_FUSED_IDX_RTK
+                    if (skipIdxOut) {
+                        const uint64_t* rtkHdr = reinterpret_cast<const uint64_t*>(treeMaskGmAddr_ & ~1ULL);
+                        const int32_t kvLenRtk = static_cast<int32_t>(rtkHdr[3]);
+                        const uint32_t sfaRowsRtk = static_cast<uint32_t>(rtkHdr[4]);
+                        const uint32_t tablePagesRtk = static_cast<uint32_t>(rtkHdr[5]);
+                        const uint32_t qRowRtk =
+                            static_cast<uint32_t>(info.indiceOutOffset + cuS1Idx * constInfo_.sparseCount) >> 11U;
+                        const uint32_t actBlksRtk = (static_cast<uint32_t>(kvLenRtk) + 127U) >> 7U;
+                        LocalTensor<int32_t> workI32 = tmpBuf_.Get<int32_t>();
+                        LocalTensor<uint32_t> workU32 = tmpBuf_.Get<uint32_t>();
+                        LocalTensor<int32_t> outUb = workI32[0];
+                        LocalTensor<uint32_t> outU32 = workU32[0];
+                        LocalTensor<int32_t> rC = workI32[512];
+                        LocalTensor<uint32_t> rCU32 = workU32[512];
+                        LocalTensor<int32_t> signI32 = workI32[1024];
+                        LocalTensor<uint32_t> signU32 = workU32[1024];
+                        LocalTensor<int32_t> tmpA = workI32[1536];
+                        LocalTensor<uint32_t> tmpAU32 = workU32[1536];
+                        LocalTensor<int32_t> tmpB = workI32[2048];
+                        LocalTensor<uint32_t> tmpBU32 = workU32[2048];
+                        LocalTensor<uint32_t> idxU32 = workU32[2560];
+                        LocalTensor<int32_t> blkUb = workI32[3072];
+                        LocalTensor<uint32_t> maskUb = workU32[3584];
+                        LocalTensor<int32_t> rowLutUb = workI32[3648];
+                        SetWaitFlag<HardEvent::V_MTE2>(HardEvent::V_MTE2);
+                        AscendC::GlobalTensor<int32_t> ptGm, dstGm;
+                        ptGm.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(rtkHdr[1]), tablePagesRtk);
+                        dstGm.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(rtkHdr[0]), sfaRowsRtk * 2048U);
+                        AscendC::DataCopy(blkUb, ptGm, (actBlksRtk + 7U) & ~7U);
+                        if (rtkHdr[2] != 0ULL) {
+                            AscendC::GlobalTensor<uint32_t> mGm;
+                            mGm.SetGlobalBuffer(reinterpret_cast<__gm__ uint32_t*>(rtkHdr[2]), 32);
+                            AscendC::DataCopy(maskUb, mGm, 32);
+                        }
+                        AscendC::SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID7);
+                        AscendC::WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID7);
+                        AscendC::SetFlag<AscendC::HardEvent::MTE2_S>(EVENT_ID7);
+                        AscendC::WaitFlag<AscendC::HardEvent::MTE2_S>(EVENT_ID7);
+                        const int32_t prefLenRtk = kvLenRtk - static_cast<int32_t>(sfaRowsRtk);
+                        const bool maskEnRtk = (rtkHdr[2] != 0ULL) && (maskUb.GetValue(0) != 0U);
+                        const bool hasRowMaskRtk = maskEnRtk && (qRowRtk < 32U);
+                        const uint32_t rowMaskRtk = hasRowMaskRtk ? maskUb.GetValue(qRowRtk) : 0xFFFFFFFFU;
+                        const uint32_t fullQBitsRtk = (qRowRtk >= 31U) ? 0xFFFFFFFFU : ((1U << (qRowRtk + 1U)) - 1U);
+                        const bool needLutRtk = hasRowMaskRtk && ((rowMaskRtk & fullQBitsRtk) != fullQBitsRtk);
+                        const int32_t s2LimitRtk = prefLenRtk + static_cast<int32_t>(qRowRtk) + 1;
+                        if (needLutRtk) {
+                            rowLutUb.SetValue(0, 1);
+                            for (uint32_t d = 0U; d < 32U; ++d) {
+                                const int32_t bitOk = (d <= qRowRtk && ((rowMaskRtk >> d) & 1U) != 0U) ? 1 : 0;
+                                rowLutUb.SetValue(1U + d, bitOk);
+                            }
+                            for (uint32_t d = 33U; d < 64U; ++d) {
+                                rowLutUb.SetValue(d, 0);
+                            }
+                            AscendC::SetFlag<AscendC::HardEvent::S_V>(EVENT_ID7);
+                            AscendC::WaitFlag<AscendC::HardEvent::S_V>(EVENT_ID7);
+                        }
+                        AscendC::PipeBarrier<PIPE_V>();
+                        for (uint32_t cIdx = 0U; cIdx < 4U; ++cIdx) {
+                            const uint32_t cOff = cIdx * 512U;
+                            AscendC::Maxs(rC, idxULocal1[cOff], -1, 512U);
+                            AscendC::PipeBarrier<PIPE_V>();
+                            AscendC::Mins(rC, rC, 16777216, 512U);
+                            AscendC::PipeBarrier<PIPE_V>();
+                            AscendC::ShiftRight(signU32, rCU32, 31U, 512U);
+                            AscendC::PipeBarrier<PIPE_V>();
+                            if (!needLutRtk) {
+                                AscendC::Adds(tmpA, rC, -s2LimitRtk, 512U);
+                                AscendC::PipeBarrier<PIPE_V>();
+                                AscendC::ShiftRight(tmpAU32, tmpAU32, 31U, 512U);
+                                AscendC::PipeBarrier<PIPE_V>();
+                                AscendC::Sub(tmpA, tmpA, signI32, 512U);
+                                AscendC::PipeBarrier<PIPE_V>();
+                            } else {
+                                AscendC::Adds(tmpB, rC, 1 - prefLenRtk, 512U);
+                                AscendC::PipeBarrier<PIPE_V>();
+                                AscendC::Maxs(tmpB, tmpB, 0, 512U);
+                                AscendC::PipeBarrier<PIPE_V>();
+                                AscendC::Mins(tmpB, tmpB, 33, 512U);
+                                AscendC::PipeBarrier<PIPE_V>();
+                                AscendC::ShiftLeft(idxU32, tmpBU32, 2U, 512U);
+                                AscendC::PipeBarrier<PIPE_V>();
+                                AscendC::Gather(tmpA, rowLutUb, idxU32, 0U, 512U);
+                                AscendC::PipeBarrier<PIPE_V>();
+                                AscendC::Sub(tmpA, tmpA, signI32, 512U);
+                                AscendC::PipeBarrier<PIPE_V>();
+                            }
+                            AscendC::Maxs(rC, rC, 0, 512U);
+                            AscendC::PipeBarrier<PIPE_V>();
+                            AscendC::Mins(rC, rC, kvLenRtk - 1, 512U);
+                            AscendC::PipeBarrier<PIPE_V>();
+                            AscendC::ShiftRight(tmpBU32, rCU32, 7U, 512U);
+                            AscendC::PipeBarrier<PIPE_V>();
+                            AscendC::ShiftLeft(idxU32, tmpBU32, 2U, 512U);
+                            AscendC::ShiftLeft(tmpBU32, tmpBU32, 7U, 512U);
+                            AscendC::PipeBarrier<PIPE_V>();
+                            AscendC::Gather(outUb, blkUb, idxU32, 0U, 512U);
+                            AscendC::Sub(rC, rC, tmpB, 512U);
+                            AscendC::PipeBarrier<PIPE_V>();
+                            AscendC::ShiftLeft(outU32, outU32, 7U, 512U);
+                            AscendC::PipeBarrier<PIPE_V>();
+                            AscendC::Add(outUb, outUb, rC, 512U);
+                            AscendC::PipeBarrier<PIPE_V>();
+                            AscendC::Adds(outUb, outUb, 2, 512U);
+                            AscendC::PipeBarrier<PIPE_V>();
+                            AscendC::Mul(outUb, tmpA, outUb, 512U);
+                            AscendC::PipeBarrier<PIPE_V>();
+                            AscendC::Add(outUb, outUb, signI32, 512U);
+                            AscendC::PipeBarrier<PIPE_V>();
+                            AscendC::Adds(outUb, outUb, -2, 512U);
+                            AscendC::SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID7);
+                            AscendC::WaitFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID7);
+                            AscendC::DataCopy(dstGm[qRowRtk * 2048U + cOff], outUb, 512U);
+                            AscendC::SetFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID7);
+                            AscendC::WaitFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID7);
+                        }
+                        AscendC::SetFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID7);
+                        AscendC::WaitFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID7);
+                    }
+#endif
                     outQueue_.FreeTensor(outValueUb);
                 }
             } else if (needCopyWsGm) {
@@ -676,14 +809,136 @@ __aicore__ inline void LightningIndexerServiceVector<LIT>::ProcessLD()
 
         LocalTensor<float> outValueUb = ldOutValueBuf_.Get<float>();
         LocalTensor<uint32_t> outIdxUb = ldOutIdxBuf_.Get<uint32_t>();
+        const bool skipIdxOut = ((treeMaskGmAddr_ & 1ULL) != 0ULL &&
+                                 constInfo_.sparseCount == 2048U &&
+                                 !constInfo_.returnValue);
         if (!constInfo_.returnValue) {
             Extract(outValueUb, outIdxUb, curValueIdxUb, (BASE_TOPK / 32));
             LocalTensor<int32_t> idxULocal1 = outIdxUb.template ReinterpretCast<int32_t>();
-            SetWaitFlag<HardEvent::V_MTE3>(HardEvent::V_MTE3);
-            SetWaitFlag<HardEvent::S_MTE3>(HardEvent::S_MTE3);
-            DataCopyPad(indiceOutGm[outOffset], idxULocal1,
-                        {1, static_cast<uint16_t>(constInfo_.sparseCount * sizeof(int32_t)), 0, 0});
-            SetWaitFlag<HardEvent::MTE3_V>(HardEvent::MTE3_V);
+            if (!skipIdxOut) {
+                SetWaitFlag<HardEvent::V_MTE3>(HardEvent::V_MTE3);
+                SetWaitFlag<HardEvent::S_MTE3>(HardEvent::S_MTE3);
+                DataCopyPad(indiceOutGm[outOffset], idxULocal1,
+                            {1, static_cast<uint16_t>(constInfo_.sparseCount * sizeof(int32_t)), 0, 0});
+                SetWaitFlag<HardEvent::MTE3_V>(HardEvent::MTE3_V);
+            }
+#ifdef K112162_FUSED_IDX_RTK
+            if (skipIdxOut) {
+                const uint64_t* rtkHdr = reinterpret_cast<const uint64_t*>(treeMaskGmAddr_ & ~1ULL);
+                const int32_t kvLenRtk = static_cast<int32_t>(rtkHdr[3]);
+                const uint32_t sfaRowsRtk = static_cast<uint32_t>(rtkHdr[4]);
+                const uint32_t tablePagesRtk = static_cast<uint32_t>(rtkHdr[5]);
+                const uint32_t qRowRtk = static_cast<uint32_t>(outOffset) >> 11U;
+                const uint32_t actBlksRtk = (static_cast<uint32_t>(kvLenRtk) + 127U) >> 7U;
+                LocalTensor<int32_t> workI32 = ldToBeMrgBuf_.Get<int32_t>();
+                LocalTensor<uint32_t> workU32 = ldToBeMrgBuf_.Get<uint32_t>();
+                LocalTensor<int32_t> outUb = workI32[0];
+                LocalTensor<uint32_t> outU32 = workU32[0];
+                LocalTensor<int32_t> rC = workI32[2048];
+                LocalTensor<uint32_t> rCU32 = workU32[2048];
+                LocalTensor<int32_t> signI32 = workI32[4096];
+                LocalTensor<uint32_t> signU32 = workU32[4096];
+                LocalTensor<int32_t> tmpA = workI32[6144];
+                LocalTensor<uint32_t> tmpAU32 = workU32[6144];
+                LocalTensor<int32_t> tmpB = workI32[8192];
+                LocalTensor<uint32_t> tmpBU32 = workU32[8192];
+                LocalTensor<uint32_t> idxU32 = workU32[10240];
+                LocalTensor<int32_t> blkUb = workI32[12288];
+                LocalTensor<uint32_t> maskUb = workU32[12800];
+                LocalTensor<int32_t> rowLutUb = workI32[12864];
+                SetWaitFlag<HardEvent::V_MTE2>(HardEvent::V_MTE2);
+                AscendC::GlobalTensor<int32_t> ptGm, dstGm;
+                ptGm.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(rtkHdr[1]), tablePagesRtk);
+                dstGm.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(rtkHdr[0]), sfaRowsRtk * 2048U);
+                AscendC::DataCopy(blkUb, ptGm, (actBlksRtk + 7U) & ~7U);
+                if (rtkHdr[2] != 0ULL) {
+                    AscendC::GlobalTensor<uint32_t> mGm;
+                    mGm.SetGlobalBuffer(reinterpret_cast<__gm__ uint32_t*>(rtkHdr[2]), 32);
+                    AscendC::DataCopy(maskUb, mGm, 32);
+                }
+                AscendC::SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID7);
+                AscendC::WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID7);
+                AscendC::SetFlag<AscendC::HardEvent::MTE2_S>(EVENT_ID7);
+                AscendC::WaitFlag<AscendC::HardEvent::MTE2_S>(EVENT_ID7);
+                const int32_t prefLenRtk = kvLenRtk - static_cast<int32_t>(sfaRowsRtk);
+                const bool maskEnRtk = (rtkHdr[2] != 0ULL) && (maskUb.GetValue(0) != 0U);
+                const bool hasRowMaskRtk = maskEnRtk && (qRowRtk < 32U);
+                const uint32_t rowMaskRtk = hasRowMaskRtk ? maskUb.GetValue(qRowRtk) : 0xFFFFFFFFU;
+                const uint32_t fullQBitsRtk = (qRowRtk >= 31U) ? 0xFFFFFFFFU : ((1U << (qRowRtk + 1U)) - 1U);
+                const bool needLutRtk = hasRowMaskRtk && ((rowMaskRtk & fullQBitsRtk) != fullQBitsRtk);
+                const int32_t s2LimitRtk = prefLenRtk + static_cast<int32_t>(qRowRtk) + 1;
+                if (needLutRtk) {
+                    rowLutUb.SetValue(0, 1);
+                    for (uint32_t d = 0U; d < 32U; ++d) {
+                        const int32_t bitOk = (d <= qRowRtk && ((rowMaskRtk >> d) & 1U) != 0U) ? 1 : 0;
+                        rowLutUb.SetValue(1U + d, bitOk);
+                    }
+                    for (uint32_t d = 33U; d < 64U; ++d) {
+                        rowLutUb.SetValue(d, 0);
+                    }
+                    AscendC::SetFlag<AscendC::HardEvent::S_V>(EVENT_ID7);
+                    AscendC::WaitFlag<AscendC::HardEvent::S_V>(EVENT_ID7);
+                }
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Maxs(rC, idxULocal1, -1, 2048U);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Mins(rC, rC, 16777216, 2048U);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::ShiftRight(signU32, rCU32, 31U, 2048U);
+                AscendC::PipeBarrier<PIPE_V>();
+                if (!needLutRtk) {
+                    AscendC::Adds(tmpA, rC, -s2LimitRtk, 2048U);
+                    AscendC::PipeBarrier<PIPE_V>();
+                    AscendC::ShiftRight(tmpAU32, tmpAU32, 31U, 2048U);
+                    AscendC::PipeBarrier<PIPE_V>();
+                    AscendC::Sub(tmpA, tmpA, signI32, 2048U);
+                    AscendC::PipeBarrier<PIPE_V>();
+                } else {
+                    AscendC::Adds(tmpB, rC, 1 - prefLenRtk, 2048U);
+                    AscendC::PipeBarrier<PIPE_V>();
+                    AscendC::Maxs(tmpB, tmpB, 0, 2048U);
+                    AscendC::PipeBarrier<PIPE_V>();
+                    AscendC::Mins(tmpB, tmpB, 33, 2048U);
+                    AscendC::PipeBarrier<PIPE_V>();
+                    AscendC::ShiftLeft(idxU32, tmpBU32, 2U, 2048U);
+                    AscendC::PipeBarrier<PIPE_V>();
+                    AscendC::Gather(tmpA, rowLutUb, idxU32, 0U, 2048U);
+                    AscendC::PipeBarrier<PIPE_V>();
+                    AscendC::Sub(tmpA, tmpA, signI32, 2048U);
+                    AscendC::PipeBarrier<PIPE_V>();
+                }
+                AscendC::Maxs(rC, rC, 0, 2048U);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Mins(rC, rC, kvLenRtk - 1, 2048U);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::ShiftRight(tmpBU32, rCU32, 7U, 2048U);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::ShiftLeft(idxU32, tmpBU32, 2U, 2048U);
+                AscendC::ShiftLeft(tmpBU32, tmpBU32, 7U, 2048U);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Gather(outUb, blkUb, idxU32, 0U, 2048U);
+                AscendC::Sub(rC, rC, tmpB, 2048U);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::ShiftLeft(outU32, outU32, 7U, 2048U);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Add(outUb, outUb, rC, 2048U);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Adds(outUb, outUb, 2, 2048U);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Mul(outUb, tmpA, outUb, 2048U);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Add(outUb, outUb, signI32, 2048U);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Adds(outUb, outUb, -2, 2048U);
+                AscendC::SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID7);
+                AscendC::WaitFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID7);
+                AscendC::DataCopy(dstGm[qRowRtk * 2048U], outUb, 2048U);
+                AscendC::SetFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID7);
+                AscendC::WaitFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID7);
+                AscendC::SetFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID7);
+                AscendC::WaitFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID7);
+            }
+#endif
         } else {
             Extract(outValueUb, outIdxUb, curValueIdxUb, (BASE_TOPK / 32));
             PipeBarrier<PIPE_V>();

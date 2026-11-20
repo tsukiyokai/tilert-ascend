@@ -9,9 +9,10 @@ __aicore__ inline void ReduceCommunicationPayloadTiled(
     constexpr int64_t kOutTile = 256;
     constexpr int64_t kOutTiles = 24;
     constexpr int64_t kMaxRows = 16;
+    const int64_t max_rows = (ranks > 8) ? 8 : kMaxRows;
     const int64_t batch_rows = rows <= 1 ? 1
-        : (rows <= 2 * kMaxRows ? ((rows + 1) >> 1) : kMaxRows);
-    const int64_t batches = (rows <= batch_rows) ? 1 : 2;
+        : (rows <= 2 * max_rows ? ((rows + 1) >> 1) : max_rows);
+    const int64_t batches = (rows + batch_rows - 1) / batch_rows;
     const int64_t total_tasks = batches * kOutTiles;
     if (vector_index >= total_tasks) {
         return;
@@ -29,19 +30,43 @@ __aicore__ inline void ReduceCommunicationPayloadTiled(
 #else
     const bool sip_att = true;
 #endif
+#ifndef K112808_PULL_RED1
     __gm__ bfloat16_t* att_twin_plane = sip_att
         ? reinterpret_cast<__gm__ bfloat16_t*>(aclshmem_ptr(att_plane, rank ^ 1))
         : nullptr;
+#endif
 #elif defined(K11180_QUAD4_SIP_ALL)
     const bool sip_att = quad4;
+#ifndef K112808_PULL_RED1
     __gm__ bfloat16_t* att_twin_plane = quad4
         ? reinterpret_cast<__gm__ bfloat16_t*>(aclshmem_ptr(att_plane, rank ^ 1))
         : nullptr;
+#endif
 #else
     const bool sip_att = false;
+#ifndef K112808_PULL_RED1
     __gm__ bfloat16_t* att_twin_plane = nullptr;
 #endif
+#endif
     const int64_t rank_stride = layout.rank_bytes / sizeof(bfloat16_t);
+#ifdef K112808_PULL_RED1
+    __gm__ bfloat16_t* pull_planes[16];
+    int32_t leaf_ranks[16];
+    int32_t local_leaf = 0;
+    for (int32_t leaf = 0; leaf < ranks; ++leaf) {
+        const TreeStep step = GetTreeStep(plan, leaf);
+        const int32_t sr = static_cast<int32_t>(step.rank);
+        leaf_ranks[leaf] = sr;
+        if (sr == rank) {
+            local_leaf = leaf;
+            pull_planes[leaf] = att_plane;
+        } else {
+            pull_planes[leaf] = sip_att
+                ? reinterpret_cast<__gm__ bfloat16_t*>(aclshmem_ptr(att_plane, sr))
+                : att_plane;
+        }
+    }
+#endif
     uint32_t unready = (ranks >= 32) ? 0xFFFFFFFFU : ((1U << static_cast<uint32_t>(ranks)) - 1U);
     for (int64_t task = vector_index; task < total_tasks; task += vectors) {
         if (task != vector_index) {
@@ -59,6 +84,31 @@ __aicore__ inline void ReduceCommunicationPayloadTiled(
         const int64_t chunk = count * kOutTile;
         const int64_t pkt_off = begin * kCommunicationHidden + tile * chunk;
         uint32_t pending = unready;
+#ifdef K112808_PULL_RED1
+        if (pending != 0U) {
+            AscendC::GlobalTensor<bfloat16_t> source;
+            source.SetGlobalBuffer(
+                (sip_att ? (att_plane + static_cast<int64_t>(rank) * rank_stride) : partial) + pkt_off,
+                chunk);
+            AscendC::DataCopy(buffers.narrow[local_leaf * chunk], source, chunk);
+            pending &= ~(1U << local_leaf);
+        } else {
+            for (int32_t leaf = 0; leaf < ranks; ++leaf) {
+                const int32_t sr = leaf_ranks[leaf];
+                AscendC::GlobalTensor<bfloat16_t> source;
+                if (sr == rank) {
+                    source.SetGlobalBuffer(
+                        (sip_att ? (att_plane + static_cast<int64_t>(sr) * rank_stride) : partial) + pkt_off,
+                        chunk);
+                } else {
+                    source.SetGlobalBuffer(
+                        pull_planes[leaf] + static_cast<int64_t>(sr) * rank_stride + pkt_off,
+                        chunk);
+                }
+                AscendC::DataCopy(buffers.narrow[leaf * chunk], source, chunk);
+            }
+        }
+#else
         for (int32_t leaf = 0; leaf < ranks; ++leaf) {
             const TreeStep step = GetTreeStep(plan, leaf);
             if (static_cast<int32_t>(step.rank) == rank) {
@@ -78,6 +128,7 @@ __aicore__ inline void ReduceCommunicationPayloadTiled(
                 AscendC::DataCopy(buffers.narrow[leaf * chunk], source, chunk);
             }
         }
+#endif
 #ifdef K112830_FAST_POLL_RED2
         if (pending != 0U) {
             constexpr uint32_t kReadyIntsPerRank =
@@ -86,6 +137,30 @@ __aicore__ inline void ReduceCommunicationPayloadTiled(
             AscendC::GlobalTensor<int32_t> ready_gm;
             ready_gm.SetGlobalBuffer(
                 reinterpret_cast<__gm__ int32_t*>(window + layout.ready), kReadyPollInts);
+#ifdef K112808_PULL_RED1
+            auto sig_ub = buffers.accumulator[31 * 1024].ReinterpretCast<int32_t>();
+            const uint32_t ep_slot = epoch & 3U;
+            while (pending != 0U) {
+                AscendC::DataCopy(sig_ub, ready_gm, kReadyPollInts);
+                CommunicationFence<AscendC::HardEvent::MTE2_S>();
+                for (int32_t l = 0; l < ranks; ++l) {
+                    const int32_t leaf = (l + static_cast<int32_t>(vector_index)) & (ranks - 1);
+                    if ((pending & (1U << leaf)) == 0U) {
+                        continue;
+                    }
+                    const int32_t sr = leaf_ranks[leaf];
+                    const uint32_t s_idx =
+                        static_cast<uint32_t>(sr) * kReadyIntsPerRank + ep_slot;
+                    if (sig_ub.GetValue(s_idx) == signal) {
+                        AscendC::GlobalTensor<bfloat16_t> source;
+                        source.SetGlobalBuffer(
+                            pull_planes[leaf] + static_cast<int64_t>(sr) * rank_stride + pkt_off, chunk);
+                        AscendC::DataCopy(buffers.narrow[leaf * chunk], source, chunk);
+                        pending &= ~(1U << leaf);
+                    }
+                }
+            }
+#else
             auto sig_ub = buffers.accumulator[31 * 1024].ReinterpretCast<int32_t>();
             const uint32_t ep_slot = epoch & 3U;
             while (pending != 0U) {
@@ -112,6 +187,7 @@ __aicore__ inline void ReduceCommunicationPayloadTiled(
                     }
                 }
             }
+#endif
         }
 #else
         while (pending != 0U) {
@@ -120,6 +196,20 @@ __aicore__ inline void ReduceCommunicationPayloadTiled(
                 if ((pending & (1U << leaf)) == 0U) {
                     continue;
                 }
+#ifdef K112808_PULL_RED1
+                const int32_t sr = leaf_ranks[leaf];
+                __gm__ volatile int32_t* sig_addr =
+                    CommunicationReady(window, layout, ranks, epoch, sr);
+                dcci_cacheline((__gm__ uint8_t*)sig_addr);
+                if (*sig_addr == signal) {
+                    AscendC::GlobalTensor<bfloat16_t> source;
+                    source.SetGlobalBuffer(
+                        pull_planes[leaf] + static_cast<int64_t>(sr) * rank_stride + pkt_off,
+                        chunk);
+                    AscendC::DataCopy(buffers.narrow[leaf * chunk], source, chunk);
+                    pending &= ~(1U << leaf);
+                }
+#else
                 const TreeStep step = GetTreeStep(plan, leaf);
                 __gm__ volatile int32_t* sig_addr =
                     CommunicationReady(window, layout, ranks, epoch, step.rank);
@@ -132,6 +222,7 @@ __aicore__ inline void ReduceCommunicationPayloadTiled(
                     AscendC::DataCopy(buffers.narrow[leaf * chunk], source, chunk);
                     pending &= ~(1U << leaf);
                 }
+#endif
             }
         }
 #endif
