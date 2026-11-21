@@ -195,5 +195,56 @@ __aicore__ inline void Forward(
     SyncAll<false>();
 }
 
+#ifdef K113000_BRIDGE_GATE_OVERLAP
+__aicore__ inline void ForwardNormSignalQuant(
+    TPipe& pipe, __gm__ bfloat16_t* input, __gm__ bfloat16_t* residual,
+    __gm__ bfloat16_t* gamma, __gm__ bfloat16_t* beta,
+    __gm__ bfloat16_t* normalized, __gm__ bfloat16_t* retained,
+    __gm__ float* rstd, __gm__ int8_t* quantized,
+    __gm__ float* scales, int64_t rows, int64_t blocks, float epsilon,
+    __gm__ int8_t* staged = nullptr, int64_t capacity = 0,
+    __gm__ int8_t* routed_out = nullptr, __gm__ float* routed_scale = nullptr)
+{
+    (void)blocks;
+    if ASCEND_IS_AIV {
+        const int64_t vector = GetBlockIdx();
+        const TileRTNormSingleNArgs args{
+            kHidden, beta == nullptr ? 12288U : 11264U,
+            epsilon, beta == nullptr ? 1U : 0U};
+        KernelAddRmsNormBiasSingleN<bfloat16_t> norm(&pipe);
+        if (vector < rows) {
+            norm.Init(reinterpret_cast<GM_ADDR>(input),
+                reinterpret_cast<GM_ADDR>(residual),
+                reinterpret_cast<GM_ADDR>(gamma), reinterpret_cast<GM_ADDR>(beta),
+                normalized == nullptr ? nullptr : reinterpret_cast<GM_ADDR>(normalized),
+                rstd == nullptr ? nullptr : reinterpret_cast<GM_ADDR>(rstd),
+                reinterpret_cast<GM_ADDR>(retained), &args);
+            norm.Process();
+            PipeBarrier<PIPE_ALL>();
+        }
+#ifndef K112722_NO_DDR_EXTRA
+        DataSyncBarrier<MemDsbT::DDR>();
+#endif
+        SyncAll<true>();
+        if (rows > 0 && vector < 32) {
+            CrossCoreSetFlag<0x2, PIPE_MTE3>(10);
+        }
+        if (vector < rows) {
+            if (quantized != nullptr) {
+                DynamicQuantRow quant;
+                quant.InitFromTensor(norm.unitBuf.Get<uint8_t>());
+                quant.Process(nullptr,
+                    quantized + vector * kHidden, scales + vector,
+                    staged, vector, capacity,
+                    routed_out != nullptr ? (routed_out + vector * kHidden) : nullptr,
+                    routed_scale != nullptr ? (routed_scale + vector) : nullptr);
+                PipeBarrier<PIPE_ALL>();
+            }
+            pipe.Reset();
+        }
+    }
+}
+#endif
+
 }
 #endif

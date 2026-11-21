@@ -18,6 +18,23 @@ __aicore__ inline void Forward(AscendC::TPipe& pipe, GM_ADDR input,
 #ifdef K112726_BRIDGE_PRELOAD_GATE
     auto gate_pre = device::PreloadDirectBridgeGate16Aic(pipe, (__gm__ bfloat16_t*)gate, rows);
 #endif
+#if defined(K112726_BRIDGE_PRELOAD_GATE) && defined(K113000_BRIDGE_GATE_OVERLAP)
+    whole_layer_norm::device::ForwardNormSignalQuant(pipe,
+        (__gm__ bfloat16_t*)input, (__gm__ bfloat16_t*)residual,
+        (__gm__ bfloat16_t*)gamma, nullptr,
+        (__gm__ bfloat16_t*)a.values[kNormalized],
+        (__gm__ bfloat16_t*)a.values[kRetained],
+#ifdef K11040_F0_NZ
+        nullptr,
+#else
+        (__gm__ float*)a.values[kRstd],
+#endif
+        (__gm__ int8_t*)a.values[kSharedCodes],
+        (__gm__ float*)a.values[kSharedScales],
+        rows, blocks, epsilon,
+        reinterpret_cast<__gm__ int8_t*>(shared_payload), shared_capacity,
+        (__gm__ int8_t*)restored_rows, (__gm__ float*)restored_scales);
+#else
     whole_layer_norm::device::Forward(pipe,
         (__gm__ bfloat16_t*)input, (__gm__ bfloat16_t*)residual,
         (__gm__ bfloat16_t*)gamma, nullptr,
@@ -33,6 +50,7 @@ __aicore__ inline void Forward(AscendC::TPipe& pipe, GM_ADDR input,
         rows, blocks, epsilon,
         reinterpret_cast<__gm__ int8_t*>(shared_payload), shared_capacity,
         (__gm__ int8_t*)restored_rows, (__gm__ float*)restored_scales);
+#endif
 #ifdef K112726_BRIDGE_PRELOAD_GATE
     device::RunDirectBridgeGate16Aic(pipe, gate_pre, (__gm__ bfloat16_t*)a.values[kNormalized],
         (__gm__ float*)a.values[kLogits], rows);

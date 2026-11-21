@@ -390,6 +390,9 @@ __aicore__ inline void RunDirectBridgeGate16Aic(
         load_b.ifTranspose = true;
 
         WaitFlag<HardEvent::MTE2_MTE1>(EVENT_ID0);
+#ifdef K113000_BRIDGE_GATE_OVERLAP
+        CrossCoreWaitFlag(10);
+#endif
         for (uint32_t kp = 0U; kp < 6U; ++kp) {
             WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID2);
             Nd2NzParams copy_a{};

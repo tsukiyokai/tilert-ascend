@@ -153,13 +153,25 @@ __aicore__ __attribute__((noinline)) void PrefetchSpansAic(
     }
 }
 
+#ifdef K113000_WAVE16_RED2
+__aicore__ inline void RunFusedNextNormFromArena(
+    AscendC::LocalTensor<uint8_t> arena, int64_t t, __gm__ bfloat16_t* next_input,
+    __gm__ bfloat16_t* next_retained, __gm__ bfloat16_t* next_normalized,
+    __gm__ int8_t* next_codes, __gm__ float* next_scales, float next_epsilon,
+    __gm__ bfloat16_t* next_gamma, bool wave16_layout)
+#else
 __aicore__ inline void RunFusedNextNormFromArena(
     AscendC::LocalTensor<uint8_t> arena, int64_t t, __gm__ bfloat16_t* next_input,
     __gm__ bfloat16_t* next_retained, __gm__ bfloat16_t* next_normalized,
     __gm__ int8_t* next_codes, __gm__ float* next_scales, float next_epsilon)
+#endif
 {
     auto red2_bf16 = arena[139264].ReinterpretCast<bfloat16_t>();
+#ifdef K113000_WAVE16_RED2
+    auto residual_bf16 = arena[wave16_layout ? 176384 : 151552].ReinterpretCast<bfloat16_t>();
+#else
     auto residual_bf16 = arena[151552].ReinterpretCast<bfloat16_t>();
+#endif
     auto gamma_bf16 = arena[163840].ReinterpretCast<bfloat16_t>();
     auto x1 = arena[0].ReinterpretCast<bfloat16_t>();
     auto x_f32 = arena[12288].ReinterpretCast<float>();
@@ -169,9 +181,25 @@ __aicore__ inline void RunFusedNextNormFromArena(
     GlobalTensor<bfloat16_t> in_gm;
     in_gm.SetGlobalBuffer(next_input + t * 6144, 6144);
     DataCopy(red2_bf16, in_gm, 6144);
+#ifdef K113000_WAVE16_RED2
+    const auto e_m2v_pre = GetTPipePtr()->AllocEventID<HardEvent::MTE2_V>();
+    SetFlag<HardEvent::MTE2_V>(e_m2v_pre);
+    const auto e_m2v_gam = wave16_layout
+        ? GetTPipePtr()->AllocEventID<HardEvent::MTE2_V>()
+        : static_cast<decltype(e_m2v_pre)>(0);
+    if (wave16_layout) {
+        GlobalTensor<bfloat16_t> gam_gm;
+        gam_gm.SetGlobalBuffer(next_gamma, 6144);
+        DataCopy(gamma_bf16, gam_gm, 6144);
+        SetFlag<HardEvent::MTE2_V>(e_m2v_gam);
+    }
+    WaitFlag<HardEvent::MTE2_V>(e_m2v_pre);
+    GetTPipePtr()->ReleaseEventID<HardEvent::MTE2_V>(e_m2v_pre);
+#else
     const auto e_m2v_pre = GetTPipePtr()->FetchEventID(HardEvent::MTE2_V);
     SetFlag<HardEvent::MTE2_V>(e_m2v_pre);
     WaitFlag<HardEvent::MTE2_V>(e_m2v_pre);
+#endif
     PipeBarrier<PIPE_V>();
     Cast(x_f32, red2_bf16, RoundMode::CAST_NONE, 6144);
     Cast(sqx, residual_bf16, RoundMode::CAST_NONE, 6144);
@@ -221,6 +249,12 @@ __aicore__ inline void RunFusedNextNormFromArena(
     PipeBarrier<PIPE_V>();
     Cast(x_f32, x1, RoundMode::CAST_NONE, 6144);
     PipeBarrier<PIPE_V>();
+#ifdef K113000_WAVE16_RED2
+    if (wave16_layout) {
+        WaitFlag<HardEvent::MTE2_V>(e_m2v_gam);
+        GetTPipePtr()->ReleaseEventID<HardEvent::MTE2_V>(e_m2v_gam);
+    }
+#endif
     Cast(sqx, gamma_bf16, RoundMode::CAST_NONE, 6144);
     PipeBarrier<PIPE_V>();
     Mul(x_f32, x_f32, sqx, 6144);
@@ -233,12 +267,24 @@ __aicore__ inline void RunFusedNextNormFromArena(
         GlobalTensor<bfloat16_t> norm_gm;
         norm_gm.SetGlobalBuffer(next_normalized + t * 6144, 6144);
         DataCopy(norm_gm, x1, 6144);
+#ifdef K113000_WAVE16_RED2
+        const auto e_m3v_1 = GetTPipePtr()->AllocEventID<HardEvent::MTE3_V>();
+        SetFlag<HardEvent::MTE3_V>(e_m3v_1);
+        WaitFlag<HardEvent::MTE3_V>(e_m3v_1);
+        GetTPipePtr()->ReleaseEventID<HardEvent::MTE3_V>(e_m3v_1);
+#endif
     }
+#ifdef K113000_WAVE16_RED2
+    PipeBarrier<PIPE_V>();
+#else
     PipeBarrier<PIPE_ALL>();
+#endif
     whole_layer_norm::device::DynamicQuantRow quant;
     quant.InitFromTensor(arena);
     quant.Process(nullptr, next_codes + t * 6144, next_scales + t, nullptr, t, 0, nullptr, nullptr);
+#ifndef K113000_WAVE16_RED2
     PipeBarrier<PIPE_ALL>();
+#endif
 }
 
 __aicore__ __attribute__((noinline)) void ReducePhase(TPipe& pipe,
@@ -286,6 +332,17 @@ __aicore__ __attribute__((noinline)) void ReducePhase(TPipe& pipe,
                 reinterpret_cast<const __gm__ bfloat16_t*>(next_gamma),
                 fused_next_norm);
             if (fused_next_norm && GetBlockIdx() < rows) {
+#ifdef K113000_WAVE16_RED2
+                RunFusedNextNormFromArena(arena, GetBlockIdx(),
+                    reinterpret_cast<__gm__ bfloat16_t*>(output),
+                    reinterpret_cast<__gm__ bfloat16_t*>(next_retained),
+                    reinterpret_cast<__gm__ bfloat16_t*>(next_normalized),
+                    reinterpret_cast<__gm__ int8_t*>(next_codes),
+                    reinterpret_cast<__gm__ float*>(next_scales),
+                    next_epsilon,
+                    reinterpret_cast<__gm__ bfloat16_t*>(next_gamma),
+                    communication.ranks == 16);
+#else
                 RunFusedNextNormFromArena(arena, GetBlockIdx(),
                     reinterpret_cast<__gm__ bfloat16_t*>(output),
                     reinterpret_cast<__gm__ bfloat16_t*>(next_retained),
@@ -293,6 +350,7 @@ __aicore__ __attribute__((noinline)) void ReducePhase(TPipe& pipe,
                     reinterpret_cast<__gm__ int8_t*>(next_codes),
                     reinterpret_cast<__gm__ float*>(next_scales),
                     next_epsilon);
+#endif
             }
         } else {
             whole_layer_tree::AllReduceBf16(buffers,

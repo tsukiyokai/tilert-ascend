@@ -282,7 +282,12 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
     int64_t local_tok = static_cast<int64_t>((tid * 171U) >> 9U);
     int64_t tok_step = 16;
     int64_t col = static_cast<int64_t>(tid - static_cast<uint32_t>(local_tok) * 3U) * 2048;
+#ifdef K113000_WAVE16_RED2
+    const bool use_wave16_red2 = (ranks == 16);
+    const int64_t wave_cap = (ranks > 8 && !use_wave16_red2) ? 8 : 16;
+#else
     const int64_t wave_cap = (ranks > 8) ? 8 : 16;
+#endif
     int64_t wave_base = 0;
 #ifdef K112600_EXACT48_RED2_OPT
     auto map_red2_wave = [&](int64_t w_rows, int64_t& r_tok, int64_t& r_col, int64_t& r_chunk) __aicore__ {
@@ -338,9 +343,15 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
     AscendC::GlobalTensor<float> probs_gm;
     eids_gm.SetGlobalBuffer(const_cast<__gm__ int32_t*>(expert_ids), rows * 8);
     probs_gm.SetGlobalBuffer(const_cast<__gm__ float*>(probabilities), rows * 8);
+#ifdef K113000_WAVE16_RED2
+    auto eids_ub = buffers.accumulator[use_wave16_red2 ? 26624 : (28 * 1024)].ReinterpretCast<int32_t>();
+    auto probs_ub = buffers.accumulator[use_wave16_red2 ? 26880 : (29 * 1024)];
+    auto owner_ub = buffers.accumulator[use_wave16_red2 ? 27136 : (30 * 1024)].ReinterpretCast<uint32_t>();
+#else
     auto eids_ub = buffers.accumulator[28 * 1024].ReinterpretCast<int32_t>();
     auto probs_ub = buffers.accumulator[29 * 1024];
     auto owner_ub = buffers.accumulator[30 * 1024].ReinterpretCast<uint32_t>();
+#endif
     AscendC::DataCopy(eids_ub, eids_gm, rows * 8);
     AscendC::DataCopy(probs_ub, probs_gm, rows * 8);
     if (owner_gm != nullptr) {
@@ -370,7 +381,13 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
 #endif
 
     const int64_t rank_stride = layout.rank_bytes / sizeof(bfloat16_t);
+#ifdef K113000_WAVE16_RED2
+    auto rt_narrow = use_wave16_red2
+        ? buffers.accumulator[0].ReinterpretCast<bfloat16_t>()
+        : buffers.narrow[16384];
+#else
     auto rt_narrow = buffers.narrow[16384];
+#endif
     uint32_t unready = (ranks >= 32) ? 0xFFFFFFFFU : ((1U << static_cast<uint32_t>(ranks)) - 1U);
     uint32_t rt_unready = unready & ~(1U << static_cast<uint32_t>(rank));
     uint8_t owner_of_exp[256];
@@ -381,7 +398,11 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
     AscendC::GlobalTensor<int32_t> ready_gm;
     ready_gm.SetGlobalBuffer(
         reinterpret_cast<__gm__ int32_t*>(window + layout.ready), kReadyPollInts);
+#ifdef K113000_WAVE16_RED2
+    auto sig_ub = buffers.accumulator[use_wave16_red2 ? 27200 : (31 * 1024)].ReinterpretCast<int32_t>();
+#else
     auto sig_ub = buffers.accumulator[31 * 1024].ReinterpretCast<int32_t>();
+#endif
     auto refresh_sigs = [&](uint32_t& mask, uint32_t ep, int32_t sig_val) __aicore__ {
         AscendC::DataCopy(sig_ub, ready_gm, kReadyPollInts);
         CommunicationFence<AscendC::HardEvent::MTE2_S>();
@@ -465,7 +486,12 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
             }
             unready = rmask;
         }
+#ifdef K113000_WAVE16_RED2
+        for (int32_t l = 0; l < ranks; ++l) {
+            const int32_t leaf = use_wave16_red2 ? ((l + static_cast<int32_t>(tid)) & 15) : l;
+#else
         for (int32_t leaf = 0; leaf < ranks; ++leaf) {
+#endif
             const TreeStep step = GetTreeStep(plan, leaf);
             AscendC::GlobalTensor<bfloat16_t> sh_src;
             if (static_cast<int32_t>(step.rank) == rank) {
@@ -553,7 +579,15 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
 #if defined(ENABLE_KERNEL_PROF) && defined(K112824_SPLIT_PROF)
         if (first_tile && prof_acc != nullptr && vector_index == 0) { t_sh_done = AscendC::GetSystemCycle(); }
 #endif
+#ifdef K113000_WAVE16_RED2
+        if (use_wave16_red2) {
+            AscendC::SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+        } else {
+            CommunicationFence<AscendC::HardEvent::MTE2_V>();
+        }
+#else
         CommunicationFence<AscendC::HardEvent::MTE2_V>();
+#endif
 #if defined(K112600_EXACT48_RED2_OPT) || defined(K112612_RED2_DEDUP)
         (void)owner_of_exp;
         if (first_tile) {
@@ -562,7 +596,12 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
         int8_t slot_owner[8];
         uint32_t slot_pending = 0U;
         uint32_t wait_owners = 0U;
+#ifdef K113000_WAVE16_RED2
+        for (int64_t s = 0; s < 8; ++s) {
+            const int64_t slot = use_wave16_red2 ? ((s + static_cast<int64_t>(tid)) & 7) : s;
+#else
         for (int64_t slot = 0; slot < 8; ++slot) {
+#endif
             const int64_t orig = local_tok * 8 + slot;
             const int32_t signed_eid = eids_ub.GetValue(orig);
             if (signed_eid < 0) {
@@ -602,6 +641,98 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
                 wait_owners |= obit;
             }
         }
+#ifdef K113000_WAVE16_RED2
+        if (use_wave16_red2) {
+            if (first_tile && fused_next_norm && static_cast<int64_t>(tid) < rows) {
+                AscendC::GlobalTensor<bfloat16_t> res_gm;
+                res_gm.SetGlobalBuffer(
+                    const_cast<__gm__ bfloat16_t*>(next_residual) + static_cast<int64_t>(tid) * 6144,
+                    6144);
+                AscendC::DataCopy(
+                    buffers.accumulator[27712].ReinterpretCast<bfloat16_t>(), res_gm, 6144);
+            }
+            AscendC::WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+            auto acc = buffers.accumulator[8192];
+            auto sh_left = buffers.accumulator[24576];
+#ifdef K112612_OVERLAP_SH_P4
+            if (pre_shared_sum != nullptr) {
+                AscendC::Cast(sh_left, buffers.narrow[0],
+                              AscendC::RoundMode::CAST_NONE, chunk);
+            } else
+#endif
+            {
+                AscendC::Cast(acc[0], buffers.narrow[8 * chunk],
+                              AscendC::RoundMode::CAST_NONE, 8 * chunk);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Add(acc[0], acc[0], acc[1 * chunk], chunk);
+                AscendC::Add(acc[2 * chunk], acc[2 * chunk], acc[3 * chunk], chunk);
+                AscendC::Add(acc[4 * chunk], acc[4 * chunk], acc[5 * chunk], chunk);
+                AscendC::Add(acc[6 * chunk], acc[6 * chunk], acc[7 * chunk], chunk);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Add(acc[0], acc[0], acc[2 * chunk], chunk);
+                AscendC::Add(acc[4 * chunk], acc[4 * chunk], acc[6 * chunk], chunk);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Add(sh_left, acc[0], acc[4 * chunk], chunk);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Cast(acc[0], buffers.narrow[0],
+                              AscendC::RoundMode::CAST_NONE, 8 * chunk);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Add(acc[0], acc[0], acc[1 * chunk], chunk);
+                AscendC::Add(acc[2 * chunk], acc[2 * chunk], acc[3 * chunk], chunk);
+                AscendC::Add(acc[4 * chunk], acc[4 * chunk], acc[5 * chunk], chunk);
+                AscendC::Add(acc[6 * chunk], acc[6 * chunk], acc[7 * chunk], chunk);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Add(acc[0], acc[0], acc[2 * chunk], chunk);
+                AscendC::Add(acc[4 * chunk], acc[4 * chunk], acc[6 * chunk], chunk);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Add(acc[0], acc[0], acc[4 * chunk], chunk);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Add(acc[0], acc[0], sh_left, chunk);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Cast(buffers.narrow[0], acc[0],
+                              AscendC::RoundMode::CAST_RINT, chunk);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Cast(sh_left, buffers.narrow[0],
+                              AscendC::RoundMode::CAST_NONE, chunk);
+            }
+        } else {
+#ifdef K112612_OVERLAP_SH_P4
+            if (pre_shared_sum != nullptr) {
+                AscendC::Cast(buffers.accumulator[16384], buffers.narrow[0],
+                              AscendC::RoundMode::CAST_NONE, chunk);
+            } else
+#endif
+            {
+                AscendC::Cast(buffers.accumulator[0], buffers.narrow[0],
+                              AscendC::RoundMode::CAST_NONE, ranks * chunk);
+                AscendC::PipeBarrier<PIPE_V>();
+                for (int32_t stride = 1; stride < ranks; stride <<= 1) {
+                    for (int32_t i = 0; i + stride < ranks; i += (stride << 1)) {
+                        AscendC::Add(buffers.accumulator[i * chunk],
+                                     buffers.accumulator[i * chunk],
+                                     buffers.accumulator[(i + stride) * chunk], chunk);
+                    }
+                    AscendC::PipeBarrier<PIPE_V>();
+                }
+                AscendC::Cast(buffers.narrow[0], buffers.accumulator[0],
+                              AscendC::RoundMode::CAST_RINT, chunk);
+                AscendC::PipeBarrier<PIPE_V>();
+                AscendC::Cast(buffers.accumulator[16384], buffers.narrow[0],
+                              AscendC::RoundMode::CAST_NONE, chunk);
+            }
+            if (first_tile && fused_next_norm && static_cast<int64_t>(tid) < rows) {
+                AscendC::GlobalTensor<bfloat16_t> res_gm, gam_gm;
+                res_gm.SetGlobalBuffer(
+                    const_cast<__gm__ bfloat16_t*>(next_residual) + static_cast<int64_t>(tid) * 6144,
+                    6144);
+                gam_gm.SetGlobalBuffer(const_cast<__gm__ bfloat16_t*>(next_gamma), 6144);
+                AscendC::DataCopy(
+                    buffers.accumulator[21504].ReinterpretCast<bfloat16_t>(), res_gm, 6144);
+                AscendC::DataCopy(
+                    buffers.accumulator[24576].ReinterpretCast<bfloat16_t>(), gam_gm, 6144);
+            }
+        }
+#else
 #ifdef K112612_OVERLAP_SH_P4
         if (pre_shared_sum != nullptr) {
             AscendC::Cast(buffers.accumulator[16384], buffers.narrow[0],
@@ -637,6 +768,7 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
             AscendC::DataCopy(
                 buffers.accumulator[24576].ReinterpretCast<bfloat16_t>(), gam_gm, 6144);
         }
+#endif
 #ifdef K112830_FAST_POLL_RED2
         while (wait_owners != 0U) {
             if ((wait_owners & rt_unready) != 0U) {
@@ -648,7 +780,12 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
             if (issue_owners == 0U) {
                 continue;
             }
+#ifdef K113000_WAVE16_RED2
+            for (int64_t s = 0; s < 8; ++s) {
+                const int64_t slot = use_wave16_red2 ? ((s + static_cast<int64_t>(tid)) & 7) : s;
+#else
             for (int64_t slot = 0; slot < 8; ++slot) {
+#endif
                 if ((slot_pending & (1U << slot)) != 0U) {
                     const int32_t owner = static_cast<int32_t>(slot_owner[slot]);
                     if ((issue_owners & (1U << static_cast<uint32_t>(owner))) != 0U) {
@@ -841,6 +978,44 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
 #endif
         AscendC::PipeBarrier<PIPE_V>();
         const int64_t active_slots = (eids_ub.GetValue(local_tok * 8 + 4) < 0) ? 4 : 8;
+#ifdef K113000_WAVE16_RED2
+        auto rt_acc = use_wave16_red2 ? buffers.accumulator[8192] : buffers.accumulator[0];
+        auto sh_acc = use_wave16_red2 ? buffers.accumulator[24576] : buffers.accumulator[16384];
+        AscendC::Cast(rt_acc[0], rt_narrow[0],
+                      AscendC::RoundMode::CAST_NONE, active_slots * chunk);
+        AscendC::PipeBarrier<PIPE_V>();
+        for (int64_t slot = 0; slot < active_slots; ++slot) {
+            const float prob = probs_ub.GetValue(local_tok * 8 + slot);
+            AscendC::Muls(rt_acc[slot * chunk],
+                          rt_acc[slot * chunk], prob, chunk);
+        }
+        AscendC::PipeBarrier<PIPE_V>();
+        for (int64_t slot = 1; slot < active_slots; ++slot) {
+            AscendC::Add(rt_acc[0], rt_acc[0],
+                         rt_acc[slot * chunk], chunk);
+            AscendC::PipeBarrier<PIPE_V>();
+        }
+        AscendC::Cast(rt_narrow[0], rt_acc[0],
+                      AscendC::RoundMode::CAST_RINT, chunk);
+        AscendC::PipeBarrier<PIPE_V>();
+        AscendC::Cast(rt_acc[0], rt_narrow[0],
+                      AscendC::RoundMode::CAST_NONE, chunk);
+        AscendC::PipeBarrier<PIPE_V>();
+        AscendC::Muls(rt_acc[0], rt_acc[0],
+                      2.5F, chunk);
+        AscendC::PipeBarrier<PIPE_V>();
+        AscendC::Cast(rt_narrow[0], rt_acc[0],
+                      AscendC::RoundMode::CAST_RINT, chunk);
+        AscendC::PipeBarrier<PIPE_V>();
+        AscendC::Cast(rt_acc[0], rt_narrow[0],
+                      AscendC::RoundMode::CAST_NONE, chunk);
+        AscendC::PipeBarrier<PIPE_V>();
+        AscendC::Add(rt_acc[0], rt_acc[0],
+                     sh_acc, chunk);
+        AscendC::PipeBarrier<PIPE_V>();
+        AscendC::Cast(buffers.narrow[0], rt_acc[0],
+                      AscendC::RoundMode::CAST_RINT, chunk);
+#else
         AscendC::Cast(buffers.accumulator[0], rt_narrow[0],
                       AscendC::RoundMode::CAST_NONE, active_slots * chunk);
         AscendC::PipeBarrier<PIPE_V>();
@@ -875,6 +1050,7 @@ __aicore__ inline void ReduceCommunicationPayloadSlots(
         AscendC::PipeBarrier<PIPE_V>();
         AscendC::Cast(buffers.narrow[0], buffers.accumulator[0],
                       AscendC::RoundMode::CAST_RINT, chunk);
+#endif
         CommunicationFence<AscendC::HardEvent::V_MTE3>();
         AscendC::GlobalTensor<bfloat16_t> destination;
         destination.SetGlobalBuffer(output + sh_off, chunk);
