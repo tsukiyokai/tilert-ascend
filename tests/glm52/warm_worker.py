@@ -49,7 +49,21 @@ DSPINE_HOT_FILES: tuple[str, ...] = (
 L78_VER_BY_KSFA: dict[int, int] = {2048: 110415, 1024: 110419, 512: 110420}
 
 
-def default_worker_cfg() -> dict[str, Any]:
+def default_worker_cfg(world_size: int = 8) -> dict[str, Any]:
+    if int(world_size) == 16:
+        return {
+            "b_scheds": [
+                [4, 4, 2, 2, 2, 2, 1, 1, 1, 1],
+                [4, 4, 4, 2, 2, 2, 2, 1, 1, 1, 1, 1],
+                [4, 4, 4, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1],
+            ],
+            "min_w_act": 6,
+            "t_base_ms": 30.0,
+            "c_w_ms": 0.50,
+            "narrow_topk": False,
+            "p_stop": 0.14,
+            "min_stop_step": 3,
+        }
     return {
         "b_scheds": [
             [4, 4, 4, 4, 4, 2, 2],
@@ -60,6 +74,8 @@ def default_worker_cfg() -> dict[str, Any]:
         "t_base_ms": 41.5,
         "c_w_ms": 0.68,
         "narrow_topk": True,
+        "p_stop": 0.0,
+        "min_stop_step": 2,
     }
 
 
@@ -422,7 +438,7 @@ def _run_worker(args: argparse.Namespace) -> int:
     runner.load()
     dev = runner.device
     tree_reload_idx = 0
-    cur_cfg = default_worker_cfg()
+    cur_cfg = default_worker_cfg(world_size)
     cur_case_dir = str(case_dir)
     cur_mtp_prefix = str(args.mtp_prefix)
 
@@ -505,6 +521,8 @@ def _run_worker(args: argparse.Namespace) -> int:
             "t_base_ms": float(req_args.get("t_base_ms", cur_cfg["t_base_ms"])),
             "c_w_ms": float(req_args.get("c_w_ms", cur_cfg["c_w_ms"])),
             "narrow_topk": bool(req_args.get("narrow_topk", cur_cfg["narrow_topk"])),
+            "p_stop": float(req_args.get("p_stop", cur_cfg.get("p_stop", 0.0))),
+            "min_stop_step": int(req_args.get("min_stop_step", cur_cfg.get("min_stop_step", 2))),
         }
         default_run_dir = Path(os.environ.get("TILERT_RUN_DIR", str(job_dir.parent)))
         req_out = str(req_args.get("out_json", str(default_run_dir / f"warm_epoch_{epoch}.json")))
@@ -762,6 +780,8 @@ def _run_worker(args: argparse.Namespace) -> int:
                         t_base_ms=cur_cfg["t_base_ms"],
                         c_w_ms=cur_cfg["c_w_ms"],
                         narrow_topk=cur_cfg["narrow_topk"],
+                        p_stop=cur_cfg["p_stop"],
+                        min_stop_step=cur_cfg["min_stop_step"],
                         l78_build_dir=l78_dir,
                     )
                     runner._capture_g_round()
@@ -1064,6 +1084,10 @@ def build_eval_cmd_args(args: argparse.Namespace, out_json: str) -> dict[str, An
         cmd_args["c_w_ms"] = float(args.c_w_ms)
     if getattr(args, "narrow_topk", None) is not None:
         cmd_args["narrow_topk"] = bool(args.narrow_topk)
+    if getattr(args, "p_stop", None) is not None:
+        cmd_args["p_stop"] = float(args.p_stop)
+    if getattr(args, "min_stop_step", None) is not None:
+        cmd_args["min_stop_step"] = int(args.min_stop_step)
     return cmd_args
 
 
@@ -1165,6 +1189,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--c-w-ms", type=float, default=None)
     parser.add_argument("--narrow-topk", dest="narrow_topk", action="store_true", default=None)
     parser.add_argument("--no-narrow-topk", dest="narrow_topk", action="store_false")
+    parser.add_argument("--p-stop", type=float, default=None)
+    parser.add_argument("--min-stop-step", type=int, default=None)
     parser.add_argument("--boot-timeout", type=float, default=600.0)
     parser.add_argument("--epoch-timeout", type=float, default=600.0)
     args = parser.parse_args(argv)

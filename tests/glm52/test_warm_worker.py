@@ -683,6 +683,21 @@ def test_warm_worker_default_cfg_matches_end2end() -> None:
     assert cfg["min_w_act"] == 10
     assert cfg["t_base_ms"] == 41.5
     assert cfg["c_w_ms"] == 0.68
+    assert cfg["p_stop"] == 0.0
+    assert cfg["min_stop_step"] == 2
+
+    cfg16 = default_worker_cfg(16)
+    assert cfg16["b_scheds"] == [
+        [4, 4, 2, 2, 2, 2, 1, 1, 1, 1],
+        [4, 4, 4, 2, 2, 2, 2, 1, 1, 1, 1, 1],
+        [4, 4, 4, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1],
+    ]
+    assert cfg16["narrow_topk"] is False
+    assert cfg16["min_w_act"] == 6
+    assert cfg16["t_base_ms"] == 30.0
+    assert cfg16["c_w_ms"] == 0.50
+    assert cfg16["p_stop"] == 0.14
+    assert cfg16["min_stop_step"] == 3
 
 
 def test_rig_streamlining_ssh_cache_eval_args_and_parallel_shmem(
@@ -724,6 +739,8 @@ def test_rig_streamlining_ssh_cache_eval_args_and_parallel_shmem(
         t_base_ms=35.0,
         c_w_ms=0.55,
         narrow_topk=False,
+        p_stop=0.14,
+        min_stop_step=3,
     )
     payload = build_eval_cmd_args(args, "/tmp/out.json")
     assert payload["serial_draft_parity"] is False
@@ -732,6 +749,8 @@ def test_rig_streamlining_ssh_cache_eval_args_and_parallel_shmem(
     assert payload["b_scheds"] == [[4, 4, 2], [4, 2, 1]]
     assert payload["min_w_act"] == 6
     assert payload["narrow_topk"] is False
+    assert payload["p_stop"] == 0.14
+    assert payload["min_stop_step"] == 3
 
     shmem_script = ac.build_shmem_libs_script()
     assert '-o "$OUT/tp_push_kernel.o" &' in shmem_script
