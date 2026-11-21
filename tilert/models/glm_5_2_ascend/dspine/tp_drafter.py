@@ -233,6 +233,52 @@ def _load_ops_cdll(so_path: Path, rank: int) -> ctypes.CDLL:
         ctypes.c_float,
     ]
     lib.tilert_dspine_draft_head_topk_launch.restype = ctypes.c_int
+
+    lib.tilert_dspine_target_prolog_launch.argtypes = [
+        ctypes.c_void_p,
+        *([ctypes.c_uint64] * 8),
+        *([ctypes.c_int32] * 6),
+        ctypes.c_float,
+    ]
+    lib.tilert_dspine_target_prolog_launch.restype = ctypes.c_int
+
+    lib.tilert_dspine_target_add_rmsnorm_launch.argtypes = [
+        ctypes.c_void_p,
+        *([ctypes.c_uint64] * 5),
+        ctypes.c_int32,
+        ctypes.c_float,
+    ]
+    lib.tilert_dspine_target_add_rmsnorm_launch.restype = ctypes.c_int
+
+    lib.tilert_dspine_target_argmax_launch.argtypes = [
+        ctypes.c_void_p,
+        *([ctypes.c_uint64] * 6),
+        *([ctypes.c_int32] * 5),
+    ]
+    lib.tilert_dspine_target_argmax_launch.restype = ctypes.c_int
+
+    lib.tilert_dspine_commit_gather_launch.argtypes = [
+        ctypes.c_void_p,
+        *([ctypes.c_uint64] * 5),
+        ctypes.c_int32,
+        ctypes.c_int32,
+    ]
+    lib.tilert_dspine_commit_gather_launch.restype = ctypes.c_int
+
+    lib.tilert_dspine_commit_dual_norm_launch.argtypes = [
+        ctypes.c_void_p,
+        *([ctypes.c_uint64] * 5),
+        ctypes.c_int32,
+        ctypes.c_float,
+    ]
+    lib.tilert_dspine_commit_dual_norm_launch.restype = ctypes.c_int
+
+    lib.tilert_dspine_commit_post_mm2_seed_launch.argtypes = [
+        ctypes.c_void_p,
+        *([ctypes.c_uint64] * 18),
+        *([ctypes.c_int32] * 3),
+    ]
+    lib.tilert_dspine_commit_post_mm2_seed_launch.restype = ctypes.c_int
     return lib
 
 
@@ -302,8 +348,34 @@ def _bind_draft_klib(so_path: Path, ver: int):
             u64_ptr,
         ]
         fn_prep.restype = ctypes.c_int
+    fn_walk = getattr(lib, f"layer_tp_tree_draft_walk_launch_K{ver}", None)
+    if fn_walk is not None:
+        fn_walk.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_uint64,
+            ctypes.c_uint64,
+            ctypes.c_void_p,
+            ctypes.c_void_p,
+            ctypes.c_int32,
+        ]
+        fn_walk.restype = ctypes.c_int
     fn_m(0)
     return lib, fn_m, fn_i, fn_s, fn_kvc
+
+
+def _pack_mm2_nz(w_eh_step, k_inner: int):
+    max_d = int(w_eh_step.shape[0])
+    k_steps = 768 // k_inner
+    k_16 = k_inner // 16
+    n_sub = 64 if k_inner <= 128 else (32 if k_inner == 256 else 16)
+    n_chunks = 256 // n_sub
+    n_1 = n_sub // 16
+    wt2 = w_eh_step.transpose(-1, -2).contiguous()
+    return (
+        wt2.view(max_d, 24, n_chunks, n_1, 16, k_steps, k_16, 16)
+        .permute(0, 1, 5, 2, 6, 3, 4, 7)
+        .contiguous()
+    )
 
 
 class _DraftEntry:
@@ -349,7 +421,7 @@ class CalibratedL78V3Runner:
         self.wt = self.dw.cal_wt
         self.rank = int(arena.rank)
         if self.wt.ops is None:
-            _, self.wt.ops = load_dspine_ops(self.rank)
+            _, self.wt.ops = load_dspine_ops(self.rank, world_size=int(arena.world_size))
         self.world_size = int(arena.world_size)
         self.dev = arena.device
         self.channel_group = channel_group
@@ -515,6 +587,7 @@ class CalibratedL78V3Runner:
         self.commit_ctrl_dev = cmt_u8.view(torch.int64)
         self.commit_acc_i32 = cmt_u8[8:12].view(torch.int32)
         self.commit_2acc_i32 = cmt_u8[47 * 8 : 47 * 8 + 4].view(torch.int32)
+        self.commit_par_m = torch.zeros((cm, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
         self.commit_rot_shard = torch.zeros((cm, self.shard_dim), dtype=torch.bfloat16, device=dev)
         self.commit_comm_in = torch.zeros((4 * cm, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
         self.commit_comm_out = torch.zeros((4 * cm, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
@@ -544,6 +617,157 @@ class CalibratedL78V3Runner:
         self.compact_stream = torch.npu.Stream(device=dev)
         self._ev_cmp_fork = torch.npu.Event(enable_timing=False)
         self._ev_cmp_join = torch.npu.Event(enable_timing=False)
+        self.mm2_k_inner = 128
+        self.rot_w_step_nz = None
+        self.w_eh_step_nz = None
+        self.walk_steps_host = None
+        self.walk_steps_dev = None
+        self.walk_args_dev = None
+        if self.world_size == 16 and self.fn_walk is not None:
+            self._init_draft_walk()
+
+    def _init_draft_walk(self):
+        import torch
+
+        max_d = int(self.wt.max_d)
+        wt1 = self.wt.rot_w_step.transpose(-1, -2).contiguous()
+        self.rot_w_step_nz = (
+            wt1.view(max_d, 24, 16, 48, 8, 16)
+            .permute(0, 1, 3, 4, 2, 5)
+            .contiguous()
+        )
+        self.w_eh_step_nz = _pack_mm2_nz(self.wt.w_eh_step, self.mm2_k_inner)
+        raw_steps = [
+            struct.pack("<QQ", eshr.local.sync, int(eshr.local.indexed))
+            + eshr.local.config.raw
+            + eshr.local.addresses.raw
+            + eshr.comm_buf.raw
+            for eshr in self.eshr_steps
+        ]
+        steps_payload = b"".join(raw_steps)
+        if len(steps_payload) != self.max_steps * 1656:
+            raise RuntimeError("Draft walk ChainStep byte length mismatch")
+        self.walk_steps_host = ctypes.create_string_buffer(steps_payload, len(steps_payload))
+        self.walk_steps_dev = self._alloc_from(
+            torch.frombuffer(bytearray(steps_payload), dtype=torch.uint8), 64
+        )
+        self._pack_walk_args()
+        torch.npu.synchronize(self.dev)
+
+    def _pack_walk_args(self):
+        import torch
+
+        def pad16_ptrs(tensor):
+            n = min(int(tensor.shape[0]), 16)
+            ptrs = [int(tensor[i].data_ptr()) for i in range(n)]
+            return ptrs + [0] * (16 - len(ptrs))
+
+        sin_ptr = int(self.arena.sin_cache.data_ptr())
+        cos_ptr = int(self.arena.cos_cache.data_ptr())
+        m_rows_pad = list(self.step_m_rows[:16]) + [0] * (16 - len(self.step_m_rows[:16]))
+        k_top = [max(2, m) if self.narrow_topk else 4 for m in self.step_m_rows[:16]]
+        k_top_pad = k_top + [0] * (16 - len(k_top))
+        u64_fields = [
+            int(self.sync_addr),
+            int(self.draft_ctrl_dev.data_ptr()),
+            int(self.step_qlen_dev.data_ptr()),
+            int(self.comm_win),
+            *pad16_ptrs(self.rot_w_step_nz),
+            *pad16_ptrs(self.wt.rot_b_step),
+            *pad16_ptrs(self.w_eh_step_nz),
+            *pad16_ptrs(self.wt.enorm_step),
+            *pad16_ptrs(self.wt.hnorm_step),
+            *pad16_ptrs(self.wt.logit_norm_step),
+            int(self.emb_w.data_ptr()),
+            int(self.cal_head_w_q8_nz.data_ptr()),
+            int(self.cal_head_s8.data_ptr()),
+            sin_ptr,
+            cos_ptr,
+            int(self.rot_part.data_ptr()),
+            int(self.prolog_comm_in.data_ptr()),
+            int(self.prolog_comm_out.data_ptr()),
+            int(self.eh_in.data_ptr()),
+            int(self.eh_comm_in.data_ptr()),
+            int(self.c2b_recs_out.data_ptr()),
+            int(self.c2b_act_q.data_ptr()),
+            int(self.c2b_act_s.data_ptr()),
+            int(self.c2b_acc_i32.data_ptr()),
+            int(self.logits_work.data_ptr()),
+            int(self.gather_in.data_ptr()),
+            int(self.gather_out.data_ptr()),
+            int(self.seed_top_i.data_ptr()),
+            int(self.seed_top_lp.data_ptr()),
+            int(self.seed_rec_buf.data_ptr()),
+            int(self.prefix_topk_buf.data_ptr()),
+            int(self.anc_slots_buf.data_ptr()),
+            int(self.draft_indices_buf.data_ptr()),
+            int(self.active_toks.data_ptr()),
+            int(self.active_scores.data_ptr()),
+            int(self.active_raw_lp.data_ptr()),
+            int(self.active_margins.data_ptr()),
+            int(self.active_pids.data_ptr()),
+            int(self.active_recs.data_ptr()),
+            int(self.pool_scores.data_ptr()),
+            int(self.pool_raw_lp.data_ptr()),
+            int(self.pool_tokens.data_ptr()),
+            int(self.pool_parents.data_ptr()),
+            int(self.pool_depths_dev.data_ptr()),
+            int(self.beam_work.data_ptr()),
+            int(self.tree_work.data_ptr()),
+            int(self.tree_tokens.data_ptr()),
+            int(self.tree_parents.data_ptr()),
+            int(self.tree_depths.data_ptr()),
+            int(self.st["tree_mask_i32"].data_ptr()),
+            int(self.st["t_input_ids"].data_ptr()),
+            int(self.st["t_positions"].data_ptr()),
+            int(self.st["t_slots"].data_ptr()),
+            int(self.st["t_slots_i64"].data_ptr()),
+            int(self.st["dyn_w"].data_ptr()),
+            int(self.st["full_seq_ptrs_dev"].data_ptr()),
+            int(self.st["mc2_mask_ptr"]),
+            int(self.st["rope_dsts_dev"].data_ptr()),
+        ]
+        i32_fields = [
+            int(self.b0),
+            int(self.max_steps),
+            int(self.wt.max_d),
+            int(self.k_sfa),
+            int(self.w),
+            int(self.min_w_act),
+            int(self.max_pool_size),
+            int(self.st["num_full_seq_ptrs"]),
+            int(self.st["has_mc2_mask"]),
+            int(self.st["num_rope_dsts"]),
+            int(self.emb_vocab_start),
+            int(self.emb_vocab_end),
+            int(self.head_valid_vocab),
+            int(self.head_vocab_start),
+            int(self.rank),
+            int(self.world_size),
+            int(self.mm2_k_inner),
+            0,
+        ]
+        f32_fields = [
+            float(self.beta_margin),
+            float(self.beta_depth),
+            float(self.norm_eps),
+            float(self.t_base_ms),
+            float(self.c_w_ms),
+            0.0,
+        ]
+        payload = struct.pack(
+            "<" + "Q" * 148 + "i" * 18 + "f" * 6 + "i" * 32,
+            *u64_fields,
+            *i32_fields,
+            *f32_fields,
+            *m_rows_pad,
+            *k_top_pad,
+        )
+        if len(payload) != 1408:
+            raise RuntimeError("DraftWalkArgs byte length mismatch")
+        self.walk_args_dev = self._alloc_from(
+            torch.frombuffer(bytearray(payload), dtype=torch.uint8), 64
+        )
 
     def _alloc_bytes(self, nbytes: int, align: int, *, zero: bool = True):
         raw, view = _alloc_aligned(nbytes, align, self.dev, zero=zero)
@@ -606,6 +830,7 @@ class CalibratedL78V3Runner:
         klibs_by_ver = self._ensure_l78_klibs()
         need_ver = L78_VARIANT_SPECS[self.k_sfa][0]
         klib, _, fn_i, fn_s_rollout, fn_kvc = klibs_by_ver[need_ver]
+        self.fn_walk = getattr(klib, f"layer_tp_tree_draft_walk_launch_K{need_ver}", None)
         fn_exact = getattr(klib, f"layer_tp_tree_set_exact_idx_ptrs_K{need_ver}", None)
         if fn_exact is not None:
             fn_exact(
@@ -864,6 +1089,21 @@ class CalibratedL78V3Runner:
     def emit_draft_stage(self):
         import torch
         import torch_npu
+
+        if self.world_size == 16 and self.fn_walk is not None:
+            flushed = self.wt.ops.tilert_get_flushed_stream
+            st = self.fn_walk(
+                flushed(),
+                self.sync_addr,
+                self.walk_args_dev.data_ptr(),
+                self.walk_steps_host,
+                self.walk_steps_dev.data_ptr(),
+                self.max_steps,
+            )
+            if st != 0:
+                raise RuntimeError(f"draft_walk failed: {st}")
+            torch.ops.tilert.set_active_tokens_ptr(self.st["dyn_w"], True, True)
+            return
 
         b0 = self.b0
         eshr0 = self.eshr_steps[0]
@@ -1129,7 +1369,6 @@ class CalibratedL78V3Runner:
 
     def emit_compact_and_commit_seed(self, *, include_compact: bool = True):
         import torch
-        import torch_npu
 
         cm = self.COMMIT_M
         ekv = self.entry_kv_commit
@@ -1155,12 +1394,21 @@ class CalibratedL78V3Runner:
                 raise RuntimeError(f"kv_compact failed: {st}")
             self._ev_cmp_join.record(self.compact_stream)
 
-        self.commit_ttoks_pad32[: self.w].copy_(self.st["target_tokens"][: self.w])
-        row_idx = self.commit_ctrl_dev[3 : 3 + cm]
-        par_m = self.st["target_hidden"].index_select(0, row_idx)
+        st = self.wt.ops.tilert_dspine_commit_gather_launch(
+            stream_ptr,
+            self.commit_ctrl_dev.data_ptr(),
+            self.st["target_tokens"].data_ptr(),
+            self.st["target_hidden"].data_ptr(),
+            self.commit_ttoks_pad32.data_ptr(),
+            self.commit_par_m.data_ptr(),
+            self.w,
+            cm,
+        )
+        if st != 0:
+            raise RuntimeError(f"dspine_commit_gather failed: {st}")
         for off in range(0, cm, 8):
             torch.mm(
-                par_m[off : off + 8],
+                self.commit_par_m[off : off + 8],
                 self.rot_shard_t,
                 out=self.commit_rot_shard[off : off + 8],
             )
@@ -1184,30 +1432,29 @@ class CalibratedL78V3Runner:
             self.commit_comm_out[: 2 * cm],
             self.commit_2acc_i32,
         )
-        en = torch_npu.npu_rms_norm(
-            self.commit_comm_out[:cm], self.enorm_w, self.norm_eps
-        )[0]
-        hn = torch_npu.npu_rms_norm(
-            self.commit_comm_out[cm : 2 * cm], self.hnorm_w, self.norm_eps
-        )[0]
-        self.commit_eh_in[:, :HIDDEN_SIZE].copy_(en)
-        self.commit_eh_in[:, HIDDEN_SIZE:].copy_(hn)
+        st = self.wt.ops.tilert_dspine_commit_dual_norm_launch(
+            stream_ptr,
+            self.commit_ctrl_dev.data_ptr(),
+            self.commit_comm_out.data_ptr(),
+            self.enorm_w.data_ptr(),
+            self.hnorm_w.data_ptr(),
+            self.commit_eh_in.data_ptr(),
+            cm,
+            self.norm_eps,
+        )
+        if st != 0:
+            raise RuntimeError(f"dspine_commit_dual_norm failed: {st}")
         for off in range(0, cm, 8):
             torch.mm(
                 self.commit_eh_in[off : off + 8],
                 self.w_eh_col_r,
                 out=self.commit_eh_shard[off : off + 8],
             )
-        sl_s = self.rank * self.shard_dim
-        self.commit_eh_comm[:cm, sl_s : sl_s + self.shard_dim].copy_(self.commit_eh_shard)
-        torch.ops.tilert.onesided_all_reduce_out_guarded(
-            self.commit_eh_comm, self.commit_hs_all, self.commit_acc_i32
-        )
-
-        st = self.wt.ops.tilert_dspine_prep_commit_seed_v3_launch(
+        st = self.wt.ops.tilert_dspine_commit_post_mm2_seed_launch(
             stream_ptr,
+            self.sync_addr,
             self.commit_ctrl_dev.data_ptr(),
-            self.commit_hs_all.data_ptr(),
+            self.commit_eh_shard.data_ptr(),
             sin_ptr,
             cos_ptr,
             ekv.hs_in.data_ptr(),
@@ -1222,10 +1469,13 @@ class CalibratedL78V3Runner:
             e1.slot_i64.data_ptr(),
             e1.q_len.data_ptr(),
             e1.kv_len.data_ptr(),
+            self.comm_win,
             cm,
+            self.rank,
+            self.world_size,
         )
         if st != 0:
-            raise RuntimeError(f"prep_commit_seed_v3 failed: {st}")
+            raise RuntimeError(f"dspine_commit_post_mm2_seed failed: {st}")
 
         if include_compact:
             main_stream.wait_event(self._ev_cmp_join)

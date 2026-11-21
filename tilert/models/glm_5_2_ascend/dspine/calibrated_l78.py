@@ -11,7 +11,7 @@ import torch
 from torch import nn
 
 from ..weights import pack_output_weights, pack_shared_weights, pack_value_weights
-from .build_dspine_ops import build_dspine_ops
+from .build_dspine_ops import DSPINE_WALK_SHARED_CPP, build_dspine_ops
 
 try:
     import torch_npu
@@ -1084,6 +1084,556 @@ extern "C" int layer_tp_tree_kv_commit_launch(void* stream, uint64_t sync,
 }
 """
 
+_DRAFT_WALK_DEVICE_SNIPPET = """
+struct DraftWalkArgs {
+    uint64_t sync_addr;
+    uint64_t draft_ctrl_gm;
+    uint64_t step_qlen_gm;
+    uint64_t comm_win_gm;
+    uint64_t rot_w_step_nz_gm[16];
+    uint64_t rot_b_step_gm[16];
+    uint64_t w_eh_step_nz_gm[16];
+    uint64_t enorm_step_gm[16];
+    uint64_t hnorm_step_gm[16];
+    uint64_t logit_norm_step_gm[16];
+    uint64_t emb_w_gm;
+    uint64_t cal_head_w_q8_nz_gm;
+    uint64_t cal_head_s8_gm;
+    uint64_t sin_cache_gm;
+    uint64_t cos_cache_gm;
+    uint64_t rot_part_gm;
+    uint64_t prolog_comm_in_gm;
+    uint64_t prolog_comm_out_gm;
+    uint64_t eh_in_gm;
+    uint64_t eh_comm_in_gm;
+    uint64_t c2b_recs_out_gm;
+    uint64_t c2b_act_q_gm;
+    uint64_t c2b_act_s_gm;
+    uint64_t c2b_acc_i32_gm;
+    uint64_t logits_work_gm;
+    uint64_t gather_in_gm;
+    uint64_t gather_out_gm;
+    uint64_t seed_top_i_gm;
+    uint64_t seed_top_lp_gm;
+    uint64_t seed_rec_gm;
+    uint64_t prefix_topk_gm;
+    uint64_t anc_slots_gm;
+    uint64_t indices_buf_gm;
+    uint64_t active_toks_gm;
+    uint64_t active_scores_gm;
+    uint64_t active_raw_lp_gm;
+    uint64_t active_margins_gm;
+    uint64_t active_pids_gm;
+    uint64_t active_recs_gm;
+    uint64_t pool_scores_gm;
+    uint64_t pool_raw_lp_gm;
+    uint64_t pool_tokens_gm;
+    uint64_t pool_parents_gm;
+    uint64_t pool_depths_gm;
+    uint64_t beam_work_gm;
+    uint64_t tree_work_gm;
+    uint64_t tree_tokens_gm;
+    uint64_t tree_parents_gm;
+    uint64_t tree_depths_gm;
+    uint64_t tree_mask_gm;
+    uint64_t t_ids_gm;
+    uint64_t t_pos_gm;
+    uint64_t t_slots_gm;
+    uint64_t t_slots_i64_gm;
+    uint64_t dyn_w_gm;
+    uint64_t full_seq_ptrs_gm;
+    uint64_t mc2_mask_gm;
+    uint64_t rope_dsts_gm;
+    int32_t b0;
+    int32_t max_steps;
+    int32_t max_d;
+    int32_t k_sfa;
+    int32_t width;
+    int32_t min_w_act;
+    int32_t max_pool_size;
+    int32_t num_seq_ptrs;
+    int32_t num_q_ptrs;
+    int32_t num_rope_dsts;
+    int32_t emb_vocab_start;
+    int32_t emb_vocab_end;
+    int32_t head_valid_vocab;
+    int32_t head_vocab_start;
+    int32_t rank;
+    int32_t world_size;
+    int32_t mm2_k_inner;
+    int32_t pad0;
+    float beta_margin;
+    float beta_depth;
+    float norm_eps;
+    float t_base_ms;
+    float c_w_ms;
+    float pad1;
+    int32_t step_m_rows[16];
+    int32_t step_k_top[16];
+};
+static_assert(sizeof(DraftWalkArgs) == 1408, "DraftWalkArgs ABI mismatch");
+
+__aicore__ __attribute__((noinline)) void CubeMm1(
+    AscendC::TPipe& pipe, uint64_t a_gm_addr, uint64_t b_nz_gm_addr, uint64_t c_gm_addr,
+    int32_t eff)
+{
+    if ASCEND_IS_AIC {
+        constexpr int32_t kTile = 16;
+        constexpr int32_t kInner = 128;
+        constexpr int32_t kHidden = 6144;
+        constexpr int32_t kSteps = kHidden / kInner;
+        constexpr int32_t kStage = kTile * kInner;
+        constexpr int32_t kAcc = kTile * kTile;
+        constexpr int32_t kNTotal = dspine_shared::kDspineShardDim / kTile;
+
+        AscendC::TBuf<AscendC::TPosition::A1> a_stage;
+        AscendC::TBuf<AscendC::TPosition::B1> b_stage;
+        AscendC::TBuf<AscendC::TPosition::A2> a_op;
+        AscendC::TBuf<AscendC::TPosition::B2> b_op;
+        AscendC::TBuf<AscendC::TPosition::CO1> c_acc;
+        pipe.InitBuffer(a_stage, 2 * kStage * sizeof(bfloat16_t));
+        pipe.InitBuffer(b_stage, 2 * kStage * sizeof(bfloat16_t));
+        pipe.InitBuffer(a_op, 2 * kStage * sizeof(bfloat16_t));
+        pipe.InitBuffer(b_op, 2 * kStage * sizeof(bfloat16_t));
+        pipe.InitBuffer(c_acc, kAcc * sizeof(float));
+
+        auto a_l1 = a_stage.Get<bfloat16_t>();
+        auto b_l1 = b_stage.Get<bfloat16_t>();
+        auto a_l0 = a_op.Get<bfloat16_t>();
+        auto b_l0 = b_op.Get<bfloat16_t>();
+        auto c_l0 = c_acc.Get<float>();
+
+        AscendC::GlobalTensor<bfloat16_t> a_gm, b_gm, c_gm;
+        a_gm.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(a_gm_addr), eff * kHidden);
+        b_gm.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(b_nz_gm_addr),
+            kNTotal * kSteps * kStage);
+        c_gm.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(c_gm_addr),
+            eff * dspine_shared::kDspineShardDim);
+
+        const int32_t cid = AscendC::GetBlockIdx();
+        for (int32_t col_tile = cid; col_tile < kNTotal; col_tile += 24) {
+            AscendC::Nd2NzParams copy_a{};
+            copy_a.ndNum = 1;
+            copy_a.nValue = eff;
+            copy_a.dValue = kInner;
+            copy_a.srcDValue = kHidden;
+            copy_a.dstNzC0Stride = kTile;
+            copy_a.dstNzNStride = 1;
+
+            AscendC::LoadData2DParams load_ab{};
+            load_ab.repeatTimes = kInner / kTile;
+            load_ab.srcStride = 1;
+            load_ab.ifTranspose = false;
+
+            AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID0);
+            AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID1);
+            AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(EVENT_ID0);
+            AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(EVENT_ID1);
+
+            for (int32_t s = 0; s < kSteps; ++s) {
+                const int32_t buf = s & 1;
+                const event_t ev = buf ? EVENT_ID1 : EVENT_ID0;
+                const int64_t a_off = static_cast<int64_t>(s) * kInner;
+                const int64_t b_off =
+                    (static_cast<int64_t>(col_tile) * kSteps + s) * kStage;
+
+                AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(ev);
+                AscendC::DataCopy(a_l1[buf * kStage], a_gm[a_off], copy_a);
+                AscendC::DataCopy(b_l1[buf * kStage], b_gm[b_off], kStage);
+                AscendC::SetFlag<AscendC::HardEvent::MTE2_MTE1>(ev);
+
+                AscendC::WaitFlag<AscendC::HardEvent::MTE2_MTE1>(ev);
+                AscendC::WaitFlag<AscendC::HardEvent::M_MTE1>(ev);
+                AscendC::LoadData(a_l0[buf * kStage], a_l1[buf * kStage], load_ab);
+                AscendC::LoadData(b_l0[buf * kStage], b_l1[buf * kStage], load_ab);
+                AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(ev);
+                AscendC::SetFlag<AscendC::HardEvent::MTE1_M>(ev);
+
+                AscendC::WaitFlag<AscendC::HardEvent::MTE1_M>(ev);
+                AscendC::MmadParams mad{};
+                mad.m = kTile;
+                mad.n = kTile;
+                mad.k = kInner;
+                mad.cmatrixInitVal = (s == 0);
+                mad.cmatrixSource = false;
+                AscendC::Mmad(c_l0, a_l0[buf * kStage], b_l0[buf * kStage], mad);
+                AscendC::PipeBarrier<PIPE_M>();
+                AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(ev);
+            }
+            AscendC::WaitFlag<AscendC::HardEvent::M_MTE1>(EVENT_ID0);
+            AscendC::WaitFlag<AscendC::HardEvent::M_MTE1>(EVENT_ID1);
+            AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID0);
+            AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID1);
+
+            AscendC::SetFlag<AscendC::HardEvent::M_FIX>(EVENT_ID0);
+            AscendC::WaitFlag<AscendC::HardEvent::M_FIX>(EVENT_ID0);
+            AscendC::FixpipeParamsV220 store{};
+            store.nSize = kTile;
+            store.mSize = eff;
+            store.srcStride = kTile;
+            store.dstStride = dspine_shared::kDspineShardDim;
+            store.ndNum = 1;
+            store.quantPre = QuantMode_t::F322BF16;
+            AscendC::Fixpipe<bfloat16_t, float, CFG_ROW_MAJOR>(
+                c_gm[col_tile * kTile], c_l0, store);
+            AscendC::SetFlag<AscendC::HardEvent::FIX_M>(EVENT_ID0);
+            AscendC::WaitFlag<AscendC::HardEvent::FIX_M>(EVENT_ID0);
+        }
+        AscendC::PipeBarrier<PIPE_ALL>();
+        pipe.Reset();
+    }
+}
+
+template <int32_t KInner, int32_t NSub>
+__aicore__ __attribute__((noinline)) void CubeMm2Impl(
+    AscendC::TPipe& pipe, uint64_t a_gm_addr, uint64_t b_nz_gm_addr, uint64_t c_gm_addr,
+    int32_t eff)
+{
+    if ASCEND_IS_AIC {
+        constexpr int32_t kTotal = dspine_shared::kDspineEhIn;
+        constexpr int32_t kSteps = kTotal / KInner;
+        constexpr int32_t k16 = KInner / 16;
+        constexpr int32_t kAicCols = 256;
+        constexpr int32_t kNChunks = kAicCols / NSub;
+        constexpr int32_t kN1 = NSub / 16;
+        constexpr int32_t kBChunk = NSub * KInner;
+
+        AscendC::TBuf<AscendC::TPosition::A1> a_stage;
+        AscendC::TBuf<AscendC::TPosition::B1> b_stage;
+        AscendC::TBuf<AscendC::TPosition::A2> a_op;
+        AscendC::TBuf<AscendC::TPosition::B2> b_op;
+        AscendC::TBuf<AscendC::TPosition::CO1> c_acc;
+        pipe.InitBuffer(a_stage, 16 * kTotal * sizeof(bfloat16_t));
+        pipe.InitBuffer(b_stage, 2 * kBChunk * sizeof(bfloat16_t));
+        pipe.InitBuffer(a_op, 16 * kTotal * sizeof(bfloat16_t));
+        pipe.InitBuffer(b_op, 2 * kBChunk * sizeof(bfloat16_t));
+        pipe.InitBuffer(c_acc, 16 * kAicCols * sizeof(float));
+
+        auto a_l1 = a_stage.Get<bfloat16_t>();
+        auto b_l1 = b_stage.Get<bfloat16_t>();
+        auto a_l0 = a_op.Get<bfloat16_t>();
+        auto b_l0 = b_op.Get<bfloat16_t>();
+        auto c_l0 = c_acc.Get<float>();
+
+        AscendC::GlobalTensor<bfloat16_t> a_gm, b_gm, c_gm;
+        a_gm.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(a_gm_addr), eff * kTotal);
+        b_gm.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(b_nz_gm_addr),
+            24 * kSteps * kNChunks * kBChunk);
+        c_gm.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(c_gm_addr), eff * 6144);
+
+        const int32_t cid = AscendC::GetBlockIdx();
+        if (cid < 24) {
+            AscendC::Nd2NzParams copy_a{};
+            copy_a.ndNum = 1;
+            copy_a.nValue = eff;
+            copy_a.dValue = kTotal;
+            copy_a.srcDValue = kTotal;
+            copy_a.dstNzC0Stride = 16;
+            copy_a.dstNzNStride = 1;
+            AscendC::DataCopy(a_l1, a_gm, copy_a);
+            AscendC::SetFlag<AscendC::HardEvent::MTE2_MTE1>(EVENT_ID2);
+            AscendC::WaitFlag<AscendC::HardEvent::MTE2_MTE1>(EVENT_ID2);
+
+            AscendC::LoadData2DParams load_a{};
+            load_a.repeatTimes = kTotal / 16;
+            load_a.srcStride = 1;
+            load_a.ifTranspose = false;
+            AscendC::LoadData(a_l0, a_l1, load_a);
+            AscendC::SetFlag<AscendC::HardEvent::MTE1_M>(EVENT_ID2);
+            AscendC::WaitFlag<AscendC::HardEvent::MTE1_M>(EVENT_ID2);
+
+            AscendC::LoadData2DParams load_b{};
+            load_b.repeatTimes = kN1 * k16;
+            load_b.srcStride = 1;
+            load_b.ifTranspose = false;
+
+            AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID0);
+            AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID1);
+            AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(EVENT_ID0);
+            AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(EVENT_ID1);
+
+            for (int32_t kc = 0; kc < kSteps; ++kc) {
+                for (int32_t nt = 0; nt < kNChunks; ++nt) {
+                    const int32_t step_idx = kc * kNChunks + nt;
+                    const int32_t buf = step_idx & 1;
+                    const event_t ev = buf ? EVENT_ID1 : EVENT_ID0;
+                    const int64_t b_off =
+                        (static_cast<int64_t>(cid * kSteps + kc) * kNChunks + nt) * kBChunk;
+
+                    AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(ev);
+                    AscendC::DataCopy(b_l1[buf * kBChunk], b_gm[b_off], kBChunk);
+                    AscendC::SetFlag<AscendC::HardEvent::MTE2_MTE1>(ev);
+
+                    AscendC::WaitFlag<AscendC::HardEvent::MTE2_MTE1>(ev);
+                    AscendC::WaitFlag<AscendC::HardEvent::M_MTE1>(ev);
+                    AscendC::LoadData(b_l0[buf * kBChunk], b_l1[buf * kBChunk], load_b);
+                    AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(ev);
+                    AscendC::SetFlag<AscendC::HardEvent::MTE1_M>(ev);
+
+                    AscendC::WaitFlag<AscendC::HardEvent::MTE1_M>(ev);
+                    AscendC::MmadParams mad{};
+                    mad.m = 16;
+                    mad.n = NSub;
+                    mad.k = KInner;
+                    mad.cmatrixInitVal = (kc == 0);
+                    mad.cmatrixSource = false;
+                    AscendC::Mmad(
+                        c_l0[nt * 16 * NSub],
+                        a_l0[kc * k16 * 256],
+                        b_l0[buf * kBChunk],
+                        mad);
+                    AscendC::PipeBarrier<PIPE_M>();
+                    AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(ev);
+                }
+            }
+            AscendC::WaitFlag<AscendC::HardEvent::M_MTE1>(EVENT_ID0);
+            AscendC::WaitFlag<AscendC::HardEvent::M_MTE1>(EVENT_ID1);
+            AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID0);
+            AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID1);
+
+            AscendC::SetFlag<AscendC::HardEvent::M_FIX>(EVENT_ID0);
+            AscendC::WaitFlag<AscendC::HardEvent::M_FIX>(EVENT_ID0);
+            AscendC::FixpipeParamsV220 store{};
+            store.nSize = kAicCols;
+            store.mSize = eff;
+            store.srcStride = 16;
+            store.dstStride = 6144;
+            store.ndNum = 1;
+            store.quantPre = QuantMode_t::F322BF16;
+            AscendC::Fixpipe<bfloat16_t, float, CFG_ROW_MAJOR>(
+                c_gm[cid * kAicCols], c_l0, store);
+            AscendC::SetFlag<AscendC::HardEvent::FIX_M>(EVENT_ID0);
+            AscendC::WaitFlag<AscendC::HardEvent::FIX_M>(EVENT_ID0);
+        }
+        AscendC::PipeBarrier<PIPE_ALL>();
+        pipe.Reset();
+    }
+}
+
+__aicore__ inline void CubeMm2(
+    AscendC::TPipe& pipe, uint64_t a_gm_addr, uint64_t b_nz_gm_addr, uint64_t c_gm_addr,
+    int32_t eff, int32_t k_inner)
+{
+    if (k_inner == 64) {
+        CubeMm2Impl<64, 64>(pipe, a_gm_addr, b_nz_gm_addr, c_gm_addr, eff);
+    } else if (k_inner == 256) {
+        CubeMm2Impl<256, 32>(pipe, a_gm_addr, b_nz_gm_addr, c_gm_addr, eff);
+    } else if (k_inner == 768) {
+        CubeMm2Impl<768, 16>(pipe, a_gm_addr, b_nz_gm_addr, c_gm_addr, eff);
+    } else {
+        CubeMm2Impl<128, 64>(pipe, a_gm_addr, b_nz_gm_addr, c_gm_addr, eff);
+    }
+}
+
+template <int Ver = KERNEL_VER>
+__global__ __mix__(1, 2) __schedmode__(1) __aicore__
+void DraftWalkKernel(
+    uint64_t sync_base, uint64_t walk_args_gm, uint64_t walk_steps_gm, int32_t step_count)
+{
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+    InitSocState();
+    SetSyncBaseAddr(sync_base);
+    dspine_shared::DcciRange(walk_args_gm, static_cast<int32_t>(sizeof(DraftWalkArgs)));
+    dspine_shared::DcciRange(
+        walk_steps_gm, static_cast<int32_t>(sizeof(ChainStep)) * step_count);
+    const DraftWalkArgs& args = *reinterpret_cast<const DraftWalkArgs*>(walk_args_gm);
+    dspine_shared::DcciRange(args.draft_ctrl_gm, 64);
+    if (reinterpret_cast<__gm__ const int64_t*>(args.draft_ctrl_gm)[2] <= 0) {
+        return;
+    }
+    const ChainStep* steps = reinterpret_cast<const ChainStep*>(walk_steps_gm);
+    uint64_t cur_sync = sync_base;
+    uint32_t win_seq = 0U;
+    if ASCEND_IS_AIV {
+        win_seq = dspine_shared::DspineReadSeq(args.comm_win_gm);
+    }
+    TPipe pipe;
+    const ChainStep& step0 = steps[0];
+    dspine_shared::RunBeamStepV3(
+        pipe, -1, args.b0, args.b0, args.b0, args.b0, 0, args.k_sfa, 0,
+        args.beta_margin, args.beta_depth,
+        args.gather_out_gm, args.draft_ctrl_gm, args.seed_top_i_gm, args.seed_top_lp_gm,
+        args.seed_rec_gm, args.prefix_topk_gm, args.anc_slots_gm, args.indices_buf_gm,
+        args.active_toks_gm, args.active_scores_gm, args.active_raw_lp_gm,
+        args.active_margins_gm, args.active_pids_gm, args.active_recs_gm, 0ULL,
+        args.pool_scores_gm, args.pool_raw_lp_gm, args.pool_tokens_gm, args.pool_parents_gm,
+        args.sin_cache_gm, args.cos_cache_gm,
+        step0.addresses.attention.main_metadata[0],
+        step0.addresses.attention.main_metadata[1],
+        step0.addresses.attention.main_metadata[2],
+        step0.addresses.attention.main_metadata[4],
+        args.beam_work_gm, true);
+    if ASCEND_IS_AIV {
+        pipe.Reset();
+    }
+    AscendC::SyncAll<false>();
+
+    int32_t slot_cur = args.b0;
+    for (int32_t s = 0; s < step_count; ++s) {
+        const ChainStep& step = steps[s];
+        const uint64_t ql_gm = step.addresses.attention.main_metadata[3];
+        dspine_shared::DcciRange(ql_gm, 64);
+        const int32_t eff = *reinterpret_cast<__gm__ const int32_t*>(ql_gm);
+        if (eff <= 0) {
+            break;
+        }
+        const int32_t s_idx = (s < args.max_d) ? s : (args.max_d - 1);
+
+        CubeMm1(pipe, args.active_recs_gm, args.rot_w_step_nz_gm[s_idx], args.rot_part_gm, eff);
+        dspine_shared::RunStep3cPrologPackEmbedPart(
+            pipe, args.active_toks_gm, args.emb_w_gm, args.prolog_comm_in_gm,
+            eff, args.emb_vocab_start, args.emb_vocab_end, args.rank, true, true);
+        if ASCEND_IS_AIV {
+            pipe.Reset();
+        }
+        AscendC::SyncAll<false>();
+
+        if ASCEND_IS_AIV {
+            ++win_seq;
+        }
+        dspine_shared::InlineStep3cPrologRotPush(
+            pipe, args.rot_part_gm, args.rot_b_step_gm[s_idx], args.prolog_comm_out_gm,
+            args.comm_win_gm, win_seq, eff, args.rank);
+        if ASCEND_IS_AIV {
+            pipe.Reset();
+        }
+        dspine_shared::Inline8p2Ar(
+            pipe, args.comm_win_gm, win_seq, args.prolog_comm_in_gm,
+            args.prolog_comm_out_gm, eff * 6144, args.rank);
+        if ASCEND_IS_AIV {
+            pipe.Reset();
+        }
+        dspine_shared::InlineStep3cPrologRotPull(
+            pipe, args.prolog_comm_out_gm, args.comm_win_gm, win_seq, eff, args.rank);
+        if ASCEND_IS_AIV {
+            pipe.Reset();
+        }
+        dspine_shared::RunStep3cDualRmsNormSlice(
+            pipe, args.prolog_comm_out_gm, args.enorm_step_gm[s_idx],
+            args.hnorm_step_gm[s_idx], args.eh_in_gm, eff, args.rank, args.norm_eps, true);
+        if ASCEND_IS_AIV {
+            pipe.Reset();
+        }
+        AscendC::SyncAll<false>();
+
+        CubeMm2(
+            pipe, args.eh_in_gm, args.w_eh_step_nz_gm[s_idx], args.eh_comm_in_gm,
+            eff, args.mm2_k_inner);
+        AscendC::SyncAll<false>();
+
+        if ASCEND_IS_AIV {
+            ++win_seq;
+        }
+        dspine_shared::Inline8p2Ar(
+            pipe, args.comm_win_gm, win_seq, args.eh_comm_in_gm,
+            step.addresses.norm.input, eff * 6144, args.rank);
+        if ASCEND_IS_AIV {
+            pipe.Reset();
+        }
+        AscendC::SyncAll<false>();
+        if (step.sync != cur_sync) {
+            SetSyncBaseAddr(step.sync);
+            cur_sync = step.sync;
+        }
+        RunLayer(
+            pipe, false, step.config, step.addresses, step.communication,
+            false, 0ULL, nullptr, 0ULL, nullptr, nullptr, false, nullptr, -1, eff);
+        AscendC::PipeBarrier<PIPE_ALL>();
+        AscendC::SyncAll<false>();
+        if (cur_sync != sync_base) {
+            SetSyncBaseAddr(sync_base);
+            cur_sync = sync_base;
+        }
+
+        if ASCEND_IS_AIV {
+            ++win_seq;
+        }
+        dspine_shared::RunDraftHeadTopk(
+            pipe, 0ULL, step.addresses.bridge[1], step.communication.output,
+            args.logit_norm_step_gm[s_idx], args.cal_head_w_q8_nz_gm, args.cal_head_s8_gm,
+            args.c2b_recs_out_gm, args.c2b_act_q_gm, args.c2b_act_s_gm, args.c2b_acc_i32_gm,
+            args.logits_work_gm, args.gather_in_gm, args.gather_out_gm, args.comm_win_gm,
+            eff, args.head_valid_vocab, args.head_vocab_start,
+            args.step_k_top[s], args.rank, args.world_size, args.norm_eps, win_seq);
+
+        const int32_t d = s + 1;
+        const int32_t m_rows = args.step_m_rows[s];
+        const int32_t nxt_b = (s + 1 < step_count) ? args.step_m_rows[s + 1] : 0;
+        const ChainStep& step_nxt = (s + 1 < step_count) ? steps[s + 1] : step;
+        dspine_shared::RunBeamStepV3(
+            pipe, d, m_rows, m_rows, args.step_k_top[s], nxt_b, 0, args.k_sfa, slot_cur,
+            args.beta_margin, args.beta_depth,
+            args.gather_out_gm, args.draft_ctrl_gm, args.seed_top_i_gm, args.seed_top_lp_gm,
+            args.seed_rec_gm, args.prefix_topk_gm, args.anc_slots_gm, args.indices_buf_gm,
+            args.active_toks_gm, args.active_scores_gm, args.active_raw_lp_gm,
+            args.active_margins_gm, args.active_pids_gm, args.active_recs_gm,
+            args.c2b_recs_out_gm,
+            args.pool_scores_gm, args.pool_raw_lp_gm, args.pool_tokens_gm, args.pool_parents_gm,
+            args.sin_cache_gm, args.cos_cache_gm,
+            step_nxt.addresses.attention.main_metadata[0],
+            step_nxt.addresses.attention.main_metadata[1],
+            step_nxt.addresses.attention.main_metadata[2],
+            step_nxt.addresses.attention.main_metadata[4],
+            args.beam_work_gm, true);
+        if ASCEND_IS_AIV {
+            pipe.Reset();
+        }
+        AscendC::SyncAll<false>();
+        slot_cur += nxt_b;
+    }
+
+    dspine_shared::RunBuildTreeV3(
+        pipe, args.width, args.min_w_act, args.max_pool_size,
+        args.num_seq_ptrs, args.num_q_ptrs, args.num_rope_dsts,
+        args.t_base_ms, args.c_w_ms,
+        args.draft_ctrl_gm, args.pool_scores_gm, args.pool_raw_lp_gm,
+        args.pool_tokens_gm, args.pool_parents_gm, args.pool_depths_gm,
+        args.tree_tokens_gm, args.tree_parents_gm, args.tree_depths_gm, args.tree_mask_gm,
+        args.t_ids_gm, args.t_pos_gm, args.t_slots_gm, args.t_slots_i64_gm,
+        args.dyn_w_gm, args.full_seq_ptrs_gm, args.mc2_mask_gm,
+        args.cos_cache_gm, args.sin_cache_gm, args.rope_dsts_gm, args.tree_work_gm, true);
+    if ASCEND_IS_AIV {
+        pipe.Reset();
+        if (AscendC::GetBlockIdx() == 0) {
+            dspine_shared::DspineWriteSeq(args.comm_win_gm, win_seq);
+        }
+        dspine_shared::Publish();
+    }
+}
+"""
+
+_DRAFT_WALK_HOST_SNIPPET = """
+extern "C" int layer_tp_tree_draft_walk_launch(
+    void* stream, uint64_t sync_base, uint64_t walk_args_gm,
+    const layer_tp_tree_chain::ChainStep* steps_host,
+    const void* steps_device, int32_t step_count)
+{
+    if (sync_base == 0ULL || walk_args_gm == 0ULL || (walk_args_gm % 64ULL) != 0ULL ||
+        steps_host == nullptr || steps_device == nullptr ||
+        (reinterpret_cast<uintptr_t>(steps_device) % 64ULL) != 0ULL ||
+        step_count <= 0 || step_count > 14) {
+        return -1;
+    }
+    for (int32_t i = 0; i < step_count; ++i) {
+        const auto& s = steps_host[i];
+        if (s.sync == 0ULL || s.addresses.body.blocks != 24 ||
+            s.addresses.shared_topk == 0ULL ||
+            !layer_tp_tree_chain::Valid(s.config, s.addresses, s.communication)) {
+            return -1;
+        }
+    }
+    layer_tp_tree_chain::DraftWalkKernel<<<24, nullptr, stream>>>(
+        sync_base, walk_args_gm, reinterpret_cast<uint64_t>(steps_device), step_count);
+    return 0;
+}
+"""
+
 
 def _default_l78_src_dir() -> Path:
     return Path(__file__).resolve().parents[1] / "ops/megakernel"
@@ -1205,8 +1755,11 @@ def _l78_source_digest(src: Path) -> str:
             if p.is_file():
                 h.update(str(p.relative_to(src)).encode("utf-8"))
                 h.update(p.read_bytes())
+    h.update(DSPINE_WALK_SHARED_CPP.encode("utf-8"))
     h.update(_KV_COMMIT_DEVICE_SNIPPET.encode("utf-8"))
     h.update(_KV_COMMIT_HOST_SNIPPET.encode("utf-8"))
+    h.update(_DRAFT_WALK_DEVICE_SNIPPET.encode("utf-8"))
+    h.update(_DRAFT_WALK_HOST_SNIPPET.encode("utf-8"))
     return h.hexdigest()
 
 
@@ -1244,11 +1797,31 @@ def _l78_defs_for_world(world_size: int = 8) -> tuple[str, ...]:
         raise ValueError(f"Unsupported world_size={world_size!r}; expected 8 or 16")
     heads = 64 // ws
     local_exp = 256 // ws
+    if ws == 16:
+        base = tuple(
+            d
+            for d in L78_BASE_DEFS
+            if not d.startswith("-DATTENTION_HEADS=") and d != "-DK112612_OVERLAP_SH_P4=1"
+        )
+        extra = (
+            "-DK112140_SIP_RED1_MIN_ROWS=8",
+            "-DK112612_DEFER_SH_SIG=1",
+            "-DK112612_SPLIT_P1_OPT=1",
+            "-DK112808_PULL_RED1=1",
+            "-DK112808_PULL_RED2=1",
+            "-DK112854_TP16_PROLOG_PAR=1",
+            "-DK113000_BRIDGE_GATE_OVERLAP=1",
+            "-DK113000_WAVE16_RED2=1",
+        )
+    else:
+        base = tuple(d for d in L78_BASE_DEFS if not d.startswith("-DATTENTION_HEADS="))
+        extra = ()
     return (
-        *(d for d in L78_BASE_DEFS if not d.startswith("-DATTENTION_HEADS=")),
+        *base,
         f"-DATTENTION_HEADS={heads}",
         f"-DWORLD_SIZE={ws}",
         f"-DROUTED_LOCAL_EXPERTS={local_exp}",
+        *extra,
     )
 
 
@@ -1299,8 +1872,16 @@ def _patch_l78_copied_sources(out: Path) -> None:
     anchor_host = 'extern "C" void layer_tp_tree_set_mask_ptr(uint64_t ptr)'
     if anchor_dev not in kern_txt or anchor_host not in kern_txt:
         raise RuntimeError("Missing kernel.cpp KV commit injection anchors")
-    kern_txt = kern_txt.replace(anchor_dev, _KV_COMMIT_DEVICE_SNIPPET + "\n" + anchor_dev, 1)
-    kern_txt = kern_txt.replace(anchor_host, _KV_COMMIT_HOST_SNIPPET + "\n" + anchor_host, 1)
+    dev_inject = (
+        _KV_COMMIT_DEVICE_SNIPPET
+        + "\n"
+        + DSPINE_WALK_SHARED_CPP
+        + "\n"
+        + _DRAFT_WALK_DEVICE_SNIPPET
+    )
+    host_inject = _KV_COMMIT_HOST_SNIPPET + "\n" + _DRAFT_WALK_HOST_SNIPPET
+    kern_txt = kern_txt.replace(anchor_dev, dev_inject + "\n" + anchor_dev, 1)
+    kern_txt = kern_txt.replace(anchor_host, host_inject + "\n" + anchor_host, 1)
     idx_launch_old = (
         "    layer_tp_tree_chain::Kernel<true><<<addresses->body.blocks, nullptr, stream>>>(\n"
         "        sync, *config, *addresses, *communication);"
@@ -1440,6 +2021,7 @@ compile_variant() {{
         -Dlayer_tp_tree_indexed_launch=layer_tp_tree_indexed_launch_K$ver
         -Dlayer_tp_tree_shared_launch=layer_tp_tree_shared_launch_K$ver
         -Dlayer_tp_tree_kv_commit_launch=layer_tp_tree_kv_commit_launch_K$ver
+        -Dlayer_tp_tree_draft_walk_launch=layer_tp_tree_draft_walk_launch_K$ver
         -Dlayer_tp_tree_set_mask_ptr=layer_tp_tree_set_mask_ptr_K$ver
         -Dlayer_tp_tree_set_exact_idx_ptrs=layer_tp_tree_set_exact_idx_ptrs_K$ver
         -Dlayer_tp_tree_set_peer_weights_ptr=layer_tp_tree_set_peer_weights_ptr_K$ver

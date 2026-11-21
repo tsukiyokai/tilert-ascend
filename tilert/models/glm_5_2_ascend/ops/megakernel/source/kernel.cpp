@@ -468,17 +468,19 @@ __aicore__ inline void RunLayer(
 
 #ifdef K11050_AIC_PREFETCH
     if ASCEND_IS_AIC {
+        constexpr uint32_t kSharedMid =
+            2048U / static_cast<uint32_t>(whole_layer_tree::kDefaultWorldSize);
 #ifdef K112728_DROP_R1_GATE_PF
         const PrefetchSpan r1_spans[2] = {
-            {addresses.body.shared.gate_weight, 3145728U},
-            {addresses.body.shared.down_weight, 1572864U},
+            {addresses.body.shared.gate_weight, 2U * kSharedMid * 6144U},
+            {addresses.body.shared.down_weight, kSharedMid * 6144U},
         };
         PrefetchSpansAic(pipe, r1_spans, 2);
 #else
         const PrefetchSpan r1_spans[3] = {
             {addresses.gate, 3145728U},
-            {addresses.body.shared.gate_weight, 3145728U},
-            {addresses.body.shared.down_weight, 1572864U},
+            {addresses.body.shared.gate_weight, 2U * kSharedMid * 6144U},
+            {addresses.body.shared.down_weight, kSharedMid * 6144U},
         };
         PrefetchSpansAic(pipe, r1_spans, 3);
 #endif

@@ -511,6 +511,7 @@ class Glm52AscendShowHands:
         self.l0_normed = torch.zeros((w, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
         self.target_hidden = torch.zeros((w, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
         self.target_tokens = alloc_buf((w,), torch.int64)
+        self.target_argmax_work = alloc_buf((48, 16), torch.float32)
 
         full_seq_ptrs_cpu = torch.zeros((16,), dtype=torch.int64)
         full_seq_ptrs_cpu[0] = int(self.full_seq_len.data_ptr())
@@ -593,6 +594,61 @@ class Glm52AscendShowHands:
         vocab_start = self.rank * local_vocab
         vocab_end = (self.rank + 1) * local_vocab
         stream_ptr = ctypes.c_void_p(torch.npu.current_stream(self.device).npu_stream)
+        if self.world_size == 16:
+            st = self.ops_cdll.tilert_dspine_target_prolog_launch(
+                stream_ptr,
+                self.drafter.sync_addr,
+                self.dyn_w.data_ptr(),
+                self.t_input_ids.data_ptr(),
+                self.arena.embed_w.data_ptr(),
+                self.arena.layers[0].input_gamma.data_ptr(),
+                self.t_emb_out.data_ptr(),
+                self.l0_normed.data_ptr(),
+                self.drafter.comm_win,
+                w,
+                VOCAB_SIZE,
+                vocab_start,
+                vocab_end,
+                self.rank,
+                self.world_size,
+                RMS_NORM_EPS,
+            )
+            if st != 0:
+                raise RuntimeError(f"target_prolog failed: {st}")
+            self.prepared_chain.launch()
+            st = self.ops_cdll.tilert_dspine_target_add_rmsnorm_launch(
+                stream_ptr,
+                self.dyn_w.data_ptr(),
+                self._l77_output.data_ptr(),
+                self._l77_bridge1.data_ptr(),
+                self.arena.norm_w.data_ptr(),
+                self.target_hidden.data_ptr(),
+                w,
+                RMS_NORM_EPS,
+            )
+            if st != 0:
+                raise RuntimeError(f"target_add_rmsnorm failed: {st}")
+            logits = torch.ops.aten.mm.dtype(
+                self.target_hidden, self.arena.lm_head_w.t(), torch.float32
+            )
+            st = self.ops_cdll.tilert_dspine_target_argmax_launch(
+                stream_ptr,
+                self.drafter.sync_addr,
+                self.dyn_w.data_ptr(),
+                logits.data_ptr(),
+                self.target_argmax_work.data_ptr(),
+                self.target_tokens.data_ptr(),
+                self.drafter.comm_win,
+                w,
+                local_vocab,
+                vocab_start,
+                self.rank,
+                self.world_size,
+            )
+            if st != 0:
+                raise RuntimeError(f"target_argmax failed: {st}")
+            return
+
         st = self.ops_cdll.tilert_dspine_embed_lookup_launch(
             stream_ptr,
             self.t_input_ids.data_ptr(),

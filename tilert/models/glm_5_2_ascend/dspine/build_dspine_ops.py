@@ -31,13 +31,17 @@ ASC_SUBDIRS = (
     "tikcpp/tikcfw/interface",
 )
 
-KERNEL_CPP = """#if defined(__CCE_AICORE__) && !defined(__NPU_DEVICE__)
+_DSPINE_HEAD_CPP = """#if defined(__CCE_AICORE__) && !defined(__NPU_DEVICE__)
 #define __NPU_DEVICE__ 1
 #endif
 #include "kernel_operator.h"
 #include "shmem.h"
 
 namespace dspine_ops {
+using namespace AscendC;
+"""
+
+DSPINE_WALK_SHARED_CPP = """namespace dspine_shared {
 using namespace AscendC;
 
 #ifndef WORLD_SIZE
@@ -78,97 +82,212 @@ __aicore__ inline void DcciRange(uint64_t addr, int32_t bytes)
     }
 }
 
-struct RoundState {
-    int32_t q_len;
-    int32_t done;
-    int32_t eos_hit;
-    int32_t round_idx;
-    int32_t main_pos;
-    int32_t draft_pos;
-    int32_t horizon_level;
-    int32_t max_pos;
-    int32_t last_w_act;
-    int32_t drain_q_len;
-    int32_t hi_streak;
-    int32_t lo_streak;
-    int32_t eos_token_id;
-    int32_t pad0;
-    int64_t prev_accepted_total;
-    uint64_t ema_acc;
-    int64_t pending_token;
-    int64_t pad1[6];
-};
+constexpr uint64_t kDspineFlagOff = 128ULL;
+constexpr uint64_t kDspineFlagsPerPlane = 128ULL;
+constexpr uint64_t kDspineDataOff = 65664ULL;
+constexpr uint64_t kDspineSlotBytes = 131072ULL;
+constexpr uint64_t kDspinePlaneBytes = 2097152ULL;
 
-__aicore__ inline void RunPrologPack(
-    TPipe& pipe, uint64_t ctrl_gm, uint64_t target_toks_gm, uint64_t emb_w_gm,
-    uint64_t rot_part_gm, uint64_t comm_in_gm,
-    int32_t m_max, int32_t vocab_start, int32_t vocab_end, int32_t rank)
+__aicore__ inline uint32_t DspineReadSeq(uint64_t win_gm)
+{
+    DcciRange(win_gm, 64);
+    return *reinterpret_cast<__gm__ const uint32_t*>(win_gm);
+}
+
+__aicore__ inline void DspineWriteSeq(uint64_t win_gm, uint32_t seq)
+{
+    *reinterpret_cast<__gm__ uint32_t*>(win_gm) = seq;
+    PipeBarrier<PIPE_ALL>();
+    DcciRange(win_gm, 64);
+}
+
+__aicore__ inline __gm__ uint8_t* DspinePayloadPtr(
+    uint64_t win_gm, uint32_t epoch, int32_t pe)
+{
+    return reinterpret_cast<__gm__ uint8_t*>(
+        win_gm + kDspineDataOff
+        + static_cast<uint64_t>(epoch & 7U) * kDspinePlaneBytes
+        + static_cast<uint64_t>(pe) * kDspineSlotBytes);
+}
+
+__aicore__ inline __gm__ int32_t* DspineFlagPtr(
+    uint64_t win_gm, uint32_t epoch, int32_t sender)
+{
+    return reinterpret_cast<__gm__ int32_t*>(
+        win_gm + kDspineFlagOff
+        + (static_cast<uint64_t>(epoch & 7U) * kDspineFlagsPerPlane
+           + static_cast<uint64_t>(sender)) * 64ULL);
+}
+
+__aicore__ inline __gm__ int32_t* DspineArS1FlagPtr(
+    uint64_t win_gm, uint32_t epoch, int32_t worker)
+{
+    return reinterpret_cast<__gm__ int32_t*>(
+        win_gm + kDspineFlagOff
+        + (static_cast<uint64_t>(epoch & 7U) * kDspineFlagsPerPlane
+           + 16ULL + static_cast<uint64_t>(worker)) * 64ULL);
+}
+
+__aicore__ inline __gm__ int32_t* DspineArS2FlagPtr(
+    uint64_t win_gm, uint32_t epoch, int32_t worker, int32_t lr)
+{
+    return reinterpret_cast<__gm__ int32_t*>(
+        win_gm + kDspineFlagOff
+        + (static_cast<uint64_t>(epoch & 7U) * kDspineFlagsPerPlane
+           + 32ULL + static_cast<uint64_t>(worker) * 8ULL
+           + static_cast<uint64_t>(lr)) * 64ULL);
+}
+
+__aicore__ inline void Inline8p2Ar(
+    TPipe& pipe,
+    uint64_t comm_win_gm,
+    uint32_t epoch,
+    uint64_t partial_gm,
+    uint64_t out_gm,
+    int32_t active_elements,
+    int32_t rank)
 {
     if ASCEND_IS_AIV {
-        TBuf<TPosition::VECCALC> b_ctrl, b_ttoks, b_bf16;
-        pipe.InitBuffer(b_ctrl, 48 * 8);
-        pipe.InitBuffer(b_ttoks, 32 * 8);
-        pipe.InitBuffer(b_bf16, 768 * 2);
-        auto ub_ctrl = b_ctrl.Get<int64_t>();
-        auto ub_ttoks = b_ttoks.Get<int64_t>();
-        auto ub_bf16 = b_bf16.Get<bfloat16_t>();
-
-        GlobalTensor<int64_t> g_ctrl, g_ttoks;
-        GlobalTensor<bfloat16_t> g_emb, g_rot, g_out;
-        g_ctrl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(ctrl_gm), 48);
-        g_ttoks.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(target_toks_gm), 32);
-        g_emb.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(emb_w_gm));
-        g_rot.SetGlobalBuffer(
-            reinterpret_cast<__gm__ bfloat16_t*>(rot_part_gm), m_max * kDspineShardDim);
-        g_out.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(comm_in_gm), 4 * m_max * 6144);
-
-        DcciRange(ctrl_gm, 48 * 8);
-        DataCopy(ub_ctrl, g_ctrl, 48);
-        Fence<HardEvent::MTE2_S>();
-
-        const int32_t count = static_cast<int32_t>(ub_ctrl.GetValue(2));
-        if (count <= 0) {
-            return;
-        }
-        DataCopy(ub_ttoks, g_ttoks, 32);
-        Fence<HardEvent::MTE2_S>();
         const int32_t aiv = GetBlockIdx();
+        const int32_t xpeer = rank ^ 8;
+        const int32_t mod_base = rank & 8;
+        const int32_t my_lr = rank & 7;
+        const int32_t hi_half = (rank >> 3) & 1;
 
-        for (int32_t task = aiv; task < m_max * 12; task += 48) {
-            const int32_t r_idx = task / 12;
-            const int64_t col = static_cast<int64_t>(task % 12) * 512;
-            const int64_t row_id = ub_ctrl.GetValue(3 + r_idx);
-            const int64_t tok = ub_ttoks.GetValue(row_id);
-            if (r_idx < count && tok >= vocab_start && tok < vocab_end) {
-                DataCopy(ub_bf16, g_emb[(tok - vocab_start) * 6144 + col], 512);
-                Fence<HardEvent::MTE2_MTE3>();
-            } else {
-                Duplicate(ub_bf16.ReinterpretCast<int16_t>(), static_cast<int16_t>(0), 512);
-                Fence<HardEvent::V_MTE3>();
+        const int32_t worker = aiv >> 3;
+        const int32_t lr_off = aiv & 7;
+        const int32_t peer_lr = (my_lr + lr_off) & 7;
+        const int32_t peer = mod_base | peer_lr;
+
+        const int32_t w_elems = active_elements / 6;
+        const int32_t w_off = worker * w_elems;
+        const int32_t c_elems = active_elements / 48;
+        const int32_t c_off = aiv * c_elems;
+
+        TBuf<TPosition::VECCALC> b_stage, b_acc, b_term;
+        pipe.InitBuffer(b_stage, 2 * 8192 * sizeof(bfloat16_t));
+        pipe.InitBuffer(b_acc, 8 * 1024 * sizeof(float));
+        pipe.InitBuffer(b_term, 8192 * sizeof(float));
+        auto stage_buf = b_stage.Get<bfloat16_t>();
+        auto acc = b_acc.Get<float>();
+        auto term = b_term.Get<float>();
+
+        __gm__ bfloat16_t* local_s1_bf16 = reinterpret_cast<__gm__ bfloat16_t*>(
+            DspinePayloadPtr(comm_win_gm, epoch, 0));
+        __gm__ bfloat16_t* remote_s1_bf16 = reinterpret_cast<__gm__ bfloat16_t*>(
+            aclshmem_ptr(local_s1_bf16, xpeer));
+        __gm__ float* local_s2_fp32 = reinterpret_cast<__gm__ float*>(
+            reinterpret_cast<__gm__ uint8_t*>(local_s1_bf16) + kDspineSlotBytes);
+
+        GlobalTensor<bfloat16_t> g_part, g_out;
+        g_part.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(partial_gm), active_elements);
+        g_out.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(out_gm), active_elements);
+
+        if (lr_off == 0) {
+            GlobalTensor<bfloat16_t> g_s1_dst;
+            g_s1_dst.SetGlobalBuffer(remote_s1_bf16 + w_off, w_elems);
+            DataCopy(stage_buf, g_part[w_off], w_elems);
+            Fence<HardEvent::MTE2_MTE3>();
+            DataCopy(g_s1_dst, stage_buf, w_elems);
+            Fence<HardEvent::MTE3_S>();
+            PipeBarrier<PIPE_ALL>();
+            DataSyncBarrier<MemDsbT::DDR>();
+            __gm__ int32_t* rem_s1_sig = reinterpret_cast<__gm__ int32_t*>(
+                aclshmem_ptr(DspineArS1FlagPtr(comm_win_gm, epoch, worker), xpeer));
+            *rem_s1_sig = static_cast<int32_t>(epoch);
+            dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(rem_s1_sig));
+        }
+        __gm__ volatile int32_t* loc_s1_sig = DspineArS1FlagPtr(comm_win_gm, epoch, worker);
+        while (true) {
+            dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(
+                const_cast<__gm__ int32_t*>(loc_s1_sig)));
+            if (*loc_s1_sig == static_cast<int32_t>(epoch)) {
+                break;
             }
-            DataCopy(g_out[r_idx * 6144 + col], ub_bf16, 512);
-            Fence<HardEvent::MTE3_V>();
-            Fence<HardEvent::MTE3_MTE2>();
         }
 
-        for (int32_t task = aiv; task < m_max * kDspineWorldSize; task += 48) {
-            const int32_t r_idx = task / kDspineWorldSize;
-            const int32_t s_rk = task % kDspineWorldSize;
-            const int64_t dst_off = static_cast<int64_t>(2 * m_max + r_idx) * 6144
-                + static_cast<int64_t>(s_rk) * kDspineShardDim;
-            if (r_idx < count && s_rk == rank) {
-                DataCopy(ub_bf16, g_rot[r_idx * kDspineShardDim], kDspineShardDim);
-                Fence<HardEvent::MTE2_MTE3>();
-            } else {
-                Duplicate(
-                    ub_bf16.ReinterpretCast<int16_t>(), static_cast<int16_t>(0), kDspineShardDim);
-                Fence<HardEvent::V_MTE3>();
-            }
-            DataCopy(g_out[dst_off], ub_bf16, kDspineShardDim);
-            Fence<HardEvent::MTE3_V>();
-            Fence<HardEvent::MTE3_MTE2>();
+        if (peer != rank) {
+            __gm__ float* remote_s2_fp32 = reinterpret_cast<__gm__ float*>(
+                aclshmem_ptr(local_s2_fp32, peer));
+            GlobalTensor<bfloat16_t> g_s1_loc;
+            g_s1_loc.SetGlobalBuffer(local_s1_bf16 + w_off, w_elems);
+            DataCopy(stage_buf[0], g_part[w_off], w_elems);
+            DataCopy(stage_buf[8192], g_s1_loc, w_elems);
+            Fence<HardEvent::MTE2_V>();
+            Cast(acc, hi_half ? stage_buf[8192] : stage_buf[0],
+                 RoundMode::CAST_NONE, w_elems);
+            Cast(term, hi_half ? stage_buf[0] : stage_buf[8192],
+                 RoundMode::CAST_NONE, w_elems);
+            PipeBarrier<PIPE_V>();
+            Add(acc, acc, term, w_elems);
+            Fence<HardEvent::V_MTE3>();
+            GlobalTensor<float> g_s2_dst;
+            g_s2_dst.SetGlobalBuffer(
+                remote_s2_fp32 + static_cast<int64_t>(my_lr) * active_elements + w_off,
+                w_elems);
+            DataCopy(g_s2_dst, acc, w_elems);
+            Fence<HardEvent::MTE3_S>();
+            PipeBarrier<PIPE_ALL>();
+            DataSyncBarrier<MemDsbT::DDR>();
+            __gm__ int32_t* rem_s2_sig = reinterpret_cast<__gm__ int32_t*>(
+                aclshmem_ptr(DspineArS2FlagPtr(comm_win_gm, epoch, worker, my_lr), peer));
+            *rem_s2_sig = static_cast<int32_t>(epoch);
+            dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(rem_s2_sig));
         }
-        Publish();
+
+        for (int32_t lr = 0; lr < 8; ++lr) {
+            if (lr != my_lr) {
+                __gm__ volatile int32_t* loc_s2_sig =
+                    DspineArS2FlagPtr(comm_win_gm, epoch, worker, lr);
+                while (true) {
+                    dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(
+                        const_cast<__gm__ int32_t*>(loc_s2_sig)));
+                    if (*loc_s2_sig == static_cast<int32_t>(epoch)) {
+                        break;
+                    }
+                }
+                GlobalTensor<float> g_s2_src;
+                g_s2_src.SetGlobalBuffer(
+                    local_s2_fp32 + static_cast<int64_t>(lr) * active_elements + c_off,
+                    c_elems);
+                DataCopy(acc[lr * c_elems], g_s2_src, c_elems);
+            }
+        }
+        PipeBarrier<PIPE_ALL>();
+        GlobalTensor<bfloat16_t> g_c_x;
+        g_c_x.SetGlobalBuffer(local_s1_bf16 + c_off, c_elems);
+        DataCopy(stage_buf[0], g_part[c_off], c_elems);
+        DataCopy(stage_buf[8192], g_c_x, c_elems);
+        Fence<HardEvent::MTE2_V>();
+
+        Cast(term[0], hi_half ? stage_buf[8192] : stage_buf[0],
+             RoundMode::CAST_NONE, c_elems);
+        Cast(term[4096], hi_half ? stage_buf[0] : stage_buf[8192],
+             RoundMode::CAST_NONE, c_elems);
+        PipeBarrier<PIPE_V>();
+        Add(acc[my_lr * c_elems], term[0], term[4096], c_elems);
+        PipeBarrier<PIPE_V>();
+
+        Add(acc[0], acc[0], acc[4 * c_elems], c_elems);
+        Add(acc[2 * c_elems], acc[2 * c_elems], acc[6 * c_elems], c_elems);
+        Add(acc[1 * c_elems], acc[1 * c_elems], acc[5 * c_elems], c_elems);
+        Add(acc[3 * c_elems], acc[3 * c_elems], acc[7 * c_elems], c_elems);
+        PipeBarrier<PIPE_V>();
+        Add(acc[0], acc[0], acc[2 * c_elems], c_elems);
+        Add(acc[1 * c_elems], acc[1 * c_elems], acc[3 * c_elems], c_elems);
+        PipeBarrier<PIPE_V>();
+        Add(acc[0], acc[0], acc[1 * c_elems], c_elems);
+        PipeBarrier<PIPE_V>();
+
+        Cast(stage_buf, acc[0], RoundMode::CAST_RINT, c_elems);
+        Fence<HardEvent::V_MTE3>();
+        DataCopy(g_out[c_off], stage_buf, c_elems);
+        Fence<HardEvent::MTE3_V>();
+        Fence<HardEvent::MTE3_MTE2>();
+        PipeBarrier<PIPE_ALL>();
+        SyncAll<true>();
     }
 }
 
@@ -195,6 +314,20 @@ __aicore__ inline void InsertTop4(
     } else {
         v3 = val; i3 = idx;
     }
+}
+
+__aicore__ inline float KthTop4(int32_t k, float v0, float v1, float v2, float v3)
+{
+    if (k >= 4) {
+        return v3;
+    }
+    if (k == 3) {
+        return v2;
+    }
+    if (k == 2) {
+        return v1;
+    }
+    return v0;
 }
 
 __aicore__ inline void DecodeGatheredTopKV3(
@@ -264,143 +397,6 @@ __aicore__ inline void DecodeGatheredTopKV3(
     }
 }
 
-__aicore__ inline void RunPrepCommitSeedV3(
-    TPipe& pipe,
-    uint64_t ctrl_gm,
-    uint64_t hs_all_gm,
-    uint64_t sin_cache_gm,
-    uint64_t cos_cache_gm,
-    uint64_t kv_hs_gm,
-    uint64_t kv_sin_gm,
-    uint64_t kv_cos_gm,
-    uint64_t kv_slot_gm,
-    uint64_t kv_qlen_gm,
-    uint64_t kv_kvlen_gm,
-    uint64_t seed_hs_gm,
-    uint64_t seed_sin_gm,
-    uint64_t seed_cos_gm,
-    uint64_t seed_slot_gm,
-    uint64_t seed_qlen_gm,
-    uint64_t seed_kvlen_gm,
-    int32_t kv_m_cap)
-{
-    if ASCEND_IS_AIV {
-        const int32_t aiv = GetBlockIdx();
-        TBuf<TPosition::VECCALC> b_ctrl, b_bf16, b_i64, b_i32;
-        pipe.InitBuffer(b_ctrl, 48 * 8);
-        pipe.InitBuffer(b_bf16, 512 * 2);
-        pipe.InitBuffer(b_i64, 32 * 8);
-        pipe.InitBuffer(b_i32, 32 * 4);
-        auto ub_ctrl = b_ctrl.Get<int64_t>();
-        auto ub_bf16 = b_bf16.Get<bfloat16_t>();
-        auto ub_i64 = b_i64.Get<int64_t>();
-        auto ub_i32 = b_i32.Get<int32_t>();
-
-        DcciRange(ctrl_gm, 48 * sizeof(int64_t));
-        GlobalTensor<int64_t> g_ctrl;
-        g_ctrl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(ctrl_gm), 48);
-        DataCopy(ub_ctrl, g_ctrl, 48);
-        Fence<HardEvent::MTE2_S>();
-
-        const int64_t main_start = ub_ctrl.GetValue(0);
-        int32_t count = static_cast<int32_t>(ub_ctrl.GetValue(1));
-        if (count <= 0) {
-            return;
-        }
-        if (count > kv_m_cap + 1) {
-            count = kv_m_cap + 1;
-        }
-        const int32_t kv_rows = count - 1;
-        const int32_t seed_idx = count - 1;
-        const int64_t seed_pos = main_start + static_cast<int64_t>(seed_idx);
-
-        GlobalTensor<bfloat16_t> g_hs_all, g_kv_hs, g_seed_hs;
-        GlobalTensor<bfloat16_t> g_sin_c, g_cos_c, g_kv_sin, g_kv_cos, g_s_sin, g_s_cos;
-        g_hs_all.SetGlobalBuffer(
-            reinterpret_cast<__gm__ bfloat16_t*>(hs_all_gm), (kv_m_cap + 4) * 6144);
-        g_kv_hs.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(kv_hs_gm), kv_m_cap * 6144);
-        g_seed_hs.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(seed_hs_gm), 6144);
-        g_sin_c.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(sin_cache_gm));
-        g_cos_c.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(cos_cache_gm));
-        g_kv_sin.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(kv_sin_gm), kv_m_cap * 64);
-        g_kv_cos.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(kv_cos_gm), kv_m_cap * 64);
-        g_s_sin.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(seed_sin_gm), 64);
-        g_s_cos.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(seed_cos_gm), 64);
-
-        for (int32_t task = aiv; task < kv_rows * 12; task += 48) {
-            const int32_t r = task / 12;
-            const int64_t col = static_cast<int64_t>(task % 12) * 512;
-            DataCopy(ub_bf16, g_hs_all[r * 6144 + col], 512);
-            Fence<HardEvent::MTE2_MTE3>();
-            DataCopy(g_kv_hs[r * 6144 + col], ub_bf16, 512);
-            Fence<HardEvent::MTE3_MTE2>();
-        }
-
-        if (aiv >= 12 && aiv < 24) {
-            const int64_t col = static_cast<int64_t>(aiv - 12) * 512;
-            DataCopy(ub_bf16, g_hs_all[seed_idx * 6144 + col], 512);
-            Fence<HardEvent::MTE2_MTE3>();
-            DataCopy(g_seed_hs[col], ub_bf16, 512);
-            Fence<HardEvent::MTE3_MTE2>();
-        }
-
-        if (aiv >= 24 && aiv < 24 + kv_rows) {
-            const int32_t r = aiv - 24;
-            const int64_t p = main_start + r;
-            DataCopy(ub_bf16[0], g_sin_c[p * 64], 64);
-            DataCopy(ub_bf16[64], g_cos_c[p * 64], 64);
-            Fence<HardEvent::MTE2_MTE3>();
-            DataCopy(g_kv_sin[r * 64], ub_bf16[0], 64);
-            DataCopy(g_kv_cos[r * 64], ub_bf16[64], 64);
-        }
-
-        if (aiv == 47) {
-            DataCopy(ub_bf16[0], g_sin_c[seed_pos * 64], 64);
-            DataCopy(ub_bf16[64], g_cos_c[seed_pos * 64], 64);
-            Fence<HardEvent::MTE2_MTE3>();
-            DataCopy(g_s_sin, ub_bf16[0], 64);
-            DataCopy(g_s_cos, ub_bf16[64], 64);
-        }
-
-        if (aiv == 0) {
-            for (int32_t r = 0; r < kv_m_cap; ++r) {
-                ub_i64.SetValue(r, (r < kv_rows) ? (main_start + r) : (9296LL + r));
-            }
-            ub_i64.SetValue(16, seed_pos);
-            ub_i32.SetValue(0, kv_rows);
-            ub_i32.SetValue(8, static_cast<int32_t>(main_start + kv_rows));
-            ub_i32.SetValue(16, 1);
-            ub_i32.SetValue(24, static_cast<int32_t>(seed_pos + 1));
-            Fence<HardEvent::S_MTE3>();
-
-            GlobalTensor<int64_t> g_kv_sl, g_s_sl;
-            GlobalTensor<int32_t> g_kv_ql, g_kv_kvl, g_s_ql, g_s_kvl;
-            g_kv_sl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(kv_slot_gm), kv_m_cap);
-            g_s_sl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(seed_slot_gm), 1);
-            g_kv_ql.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(kv_qlen_gm), 1);
-            g_kv_kvl.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(kv_kvlen_gm), 1);
-            g_s_ql.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(seed_qlen_gm), 1);
-            g_s_kvl.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(seed_kvlen_gm), 1);
-
-            DataCopyPad(g_kv_sl, ub_i64[0], DataCopyExtParams{
-                1, static_cast<uint32_t>(kv_m_cap * sizeof(int64_t)), 0, 0, 0});
-            DataCopyPad(g_s_sl, ub_i64[16], DataCopyExtParams{1, sizeof(int64_t), 0, 0, 0});
-            DataCopyPad(g_kv_ql, ub_i32[0], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
-            DataCopyPad(g_kv_kvl, ub_i32[8], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
-            DataCopyPad(g_s_ql, ub_i32[16], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
-            DataCopyPad(g_s_kvl, ub_i32[24], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
-            Fence<HardEvent::MTE3_S>();
-            DcciRange(kv_slot_gm, kv_m_cap * sizeof(int64_t));
-            DcciRange(seed_slot_gm, sizeof(int64_t));
-            DcciRange(kv_qlen_gm, sizeof(int32_t));
-            DcciRange(kv_kvlen_gm, sizeof(int32_t));
-            DcciRange(seed_qlen_gm, sizeof(int32_t));
-            DcciRange(seed_kvlen_gm, sizeof(int32_t));
-        }
-        Publish();
-    }
-}
-
 __aicore__ inline void RunBeamStepV3(
     TPipe& pipe,
     int32_t step,
@@ -438,7 +434,8 @@ __aicore__ inline void RunBeamStepV3(
     uint64_t eshr_cos_gm,
     uint64_t eshr_slot_gm,
     uint64_t eshr_kvlen_gm,
-    uint64_t work_gm)
+    uint64_t work_gm,
+    bool intra_die = false)
 {
     if ASCEND_IS_AIV {
         if (draft_ctrl_gm != 0ULL) {
@@ -541,7 +538,11 @@ __aicore__ inline void RunBeamStepV3(
                 DataCopy(g_si, ub_i64, 8);
                 DataCopy(g_slp, ub_f32, 8);
             }
-            Publish();
+            if (intra_die) {
+                PipeBarrier<PIPE_ALL>();
+            } else {
+                Publish();
+            }
             return;
         }
 
@@ -688,7 +689,11 @@ __aicore__ inline void RunBeamStepV3(
                 DataCopyPad(g_ppars[0], ub_i64[80], DataCopyExtParams{
                     1, static_cast<uint32_t>(n_init * sizeof(int64_t)), 0, 0, 0});
             }
-            Publish();
+            if (intra_die) {
+                PipeBarrier<PIPE_ALL>();
+            } else {
+                Publish();
+            }
             return;
         }
 
@@ -842,7 +847,11 @@ __aicore__ inline void RunBeamStepV3(
                 DataCopyPad(g_ekv, ub_kv, DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
             }
         }
-        Publish();
+        if (intra_die) {
+            PipeBarrier<PIPE_ALL>();
+        } else {
+            Publish();
+        }
 
         if (b_next > 0) {
             SyncAll<true>();
@@ -908,7 +917,11 @@ __aicore__ inline void RunBeamStepV3(
                 DataCopy(g_idx[r * 2048 + pre_off], ub_idx, 64);
                 Fence<HardEvent::MTE3_MTE2>();
             }
-            Publish();
+            if (intra_die) {
+                PipeBarrier<PIPE_ALL>();
+            } else {
+                Publish();
+            }
         }
     }
 }
@@ -943,7 +956,8 @@ __aicore__ inline void RunBuildTreeV3(
     uint64_t cos_cache_gm,
     uint64_t sin_cache_gm,
     uint64_t rope_dsts_gm,
-    uint64_t work_gm)
+    uint64_t work_gm,
+    bool intra_die = false)
 {
     if ASCEND_IS_AIV {
         if (draft_ctrl_gm != 0ULL) {
@@ -1191,7 +1205,8 @@ __aicore__ inline void RunBuildTreeV3(
             ub_i32.SetValue(80, pos_full);
             auto ub_mc2 = ub_i32[88].ReinterpretCast<uint8_t>();
             for (int32_t j = 0; j < 32; ++j) {
-                ub_mc2.SetValue(j, (j < w_act) ? static_cast<uint8_t>(1) : static_cast<uint8_t>(0));
+                ub_mc2.SetValue(
+                    j, (j < w_act) ? static_cast<uint8_t>(1) : static_cast<uint8_t>(0));
             }
 
             Fence<HardEvent::S_MTE3>();
@@ -1249,7 +1264,11 @@ __aicore__ inline void RunBuildTreeV3(
                     uint8_t, CacheLine::SINGLE_CACHE_LINE, DcciDst::CACHELINE_OUT>(g_mc2);
             }
         }
-        Publish();
+        if (intra_die) {
+            PipeBarrier<PIPE_ALL>();
+        } else {
+            Publish();
+        }
 
         if (num_rope_dsts > 0) {
             SyncAll<true>();
@@ -1280,23 +1299,1132 @@ __aicore__ inline void RunBuildTreeV3(
                 DataCopy(g_dc, ub_cos, copy_elems);
                 DataCopy(g_ds, ub_sin, copy_elems);
             }
+            if (intra_die) {
+                PipeBarrier<PIPE_ALL>();
+            } else {
+                Publish();
+            }
+        }
+    }
+}
+
+__aicore__ inline void RunStep3cPrologPackEmbedPart(
+    TPipe& pipe, uint64_t active_toks_gm, uint64_t emb_w_gm, uint64_t comm_in_gm,
+    int32_t b_rows, int32_t vocab_start, int32_t vocab_end, int32_t rank,
+    bool skip_rot_zero = false, bool intra_die = false)
+{
+    if ASCEND_IS_AIV {
+        TBuf<TPosition::VECCALC> b_toks, b_bf16;
+        pipe.InitBuffer(b_toks, 64);
+        pipe.InitBuffer(b_bf16, 768 * 2);
+        auto ub_toks = b_toks.Get<int64_t>();
+        auto ub_bf16 = b_bf16.Get<bfloat16_t>();
+
+        GlobalTensor<int64_t> g_toks;
+        GlobalTensor<bfloat16_t> g_emb, g_out;
+        g_toks.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(active_toks_gm), 8);
+        g_emb.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(emb_w_gm));
+        g_out.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(comm_in_gm), 2 * b_rows * 6144);
+
+        DataCopy(ub_toks, g_toks, 8);
+        Fence<HardEvent::MTE2_S>();
+
+        const int32_t aiv = GetBlockIdx();
+        if (aiv < b_rows * 12) {
+            const int32_t r_idx = aiv / 12;
+            const int64_t col = static_cast<int64_t>(aiv % 12) * 512;
+            const int64_t tok = ub_toks.GetValue(r_idx);
+            if (tok >= vocab_start && tok < vocab_end) {
+                DataCopy(ub_bf16, g_emb[(tok - vocab_start) * 6144 + col], 512);
+                Fence<HardEvent::MTE2_MTE3>();
+            } else {
+                Duplicate(ub_bf16.ReinterpretCast<int16_t>(), static_cast<int16_t>(0), 512);
+                Fence<HardEvent::V_MTE3>();
+            }
+            DataCopy(g_out[r_idx * 6144 + col], ub_bf16, 512);
+            Fence<HardEvent::MTE3_V>();
+            Fence<HardEvent::MTE3_MTE2>();
+        }
+
+        if (!skip_rot_zero) {
+            for (int32_t task = aiv; task < b_rows * kDspineWorldSize; task += 48) {
+                const int32_t r_idx = task / kDspineWorldSize;
+                const int32_t s_rk = task % kDspineWorldSize;
+                if (s_rk != rank) {
+                    const int64_t dst_off = static_cast<int64_t>(b_rows + r_idx) * 6144
+                        + static_cast<int64_t>(s_rk) * kDspineShardDim;
+                    Duplicate(
+                        ub_bf16.ReinterpretCast<int16_t>(), static_cast<int16_t>(0),
+                        kDspineShardDim);
+                    Fence<HardEvent::V_MTE3>();
+                    DataCopy(g_out[dst_off], ub_bf16, kDspineShardDim);
+                    Fence<HardEvent::MTE3_V>();
+                }
+            }
+        }
+        if (intra_die) {
+            PipeBarrier<PIPE_ALL>();
+        } else {
             Publish();
         }
     }
 }
 
-__aicore__ inline float KthTop4(int32_t k, float v0, float v1, float v2, float v3)
+__aicore__ inline void RunStep3cPrologPackRotPart(
+    TPipe& pipe, uint64_t rot_part_gm, uint64_t rot_bias_gm, uint64_t comm_in_gm,
+    int32_t b_rows, int32_t rank)
 {
-    if (k >= 4) {
-        return v3;
+    if ASCEND_IS_AIV {
+        const int32_t aiv = GetBlockIdx();
+        if (aiv < b_rows) {
+            TBuf<TPosition::VECCALC> b_bf16, b_bias, b_f1, b_f2;
+            pipe.InitBuffer(b_bf16, 768 * 2);
+            pipe.InitBuffer(b_bias, 768 * 2);
+            pipe.InitBuffer(b_f1, 768 * 4);
+            pipe.InitBuffer(b_f2, 768 * 4);
+            auto ub_bf16 = b_bf16.Get<bfloat16_t>();
+            auto ub_bias = b_bias.Get<bfloat16_t>();
+            auto ub_f1 = b_f1.Get<float>();
+            auto ub_f2 = b_f2.Get<float>();
+
+            GlobalTensor<bfloat16_t> g_rot, g_rbias, g_out;
+            g_rot.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(rot_part_gm));
+            g_rbias.SetGlobalBuffer(
+                reinterpret_cast<__gm__ bfloat16_t*>(rot_bias_gm), kDspineShardDim);
+            g_out.SetGlobalBuffer(
+                reinterpret_cast<__gm__ bfloat16_t*>(comm_in_gm), 2 * b_rows * 6144);
+
+            DataCopy(ub_bias, g_rbias, kDspineShardDim);
+            for (int32_t r_idx = aiv; r_idx < b_rows; r_idx += 48) {
+                const int64_t dst_off = static_cast<int64_t>(b_rows + r_idx) * 6144
+                    + static_cast<int64_t>(rank) * kDspineShardDim;
+                DataCopy(ub_bf16, g_rot[r_idx * kDspineShardDim], kDspineShardDim);
+                Fence<HardEvent::MTE2_V>();
+                Cast(ub_f1, ub_bf16, RoundMode::CAST_NONE, kDspineShardDim);
+                Cast(ub_f2, ub_bias, RoundMode::CAST_NONE, kDspineShardDim);
+                PipeBarrier<PIPE_V>();
+                Add(ub_f1, ub_f1, ub_f2, kDspineShardDim);
+                PipeBarrier<PIPE_V>();
+                Cast(ub_bf16, ub_f1, RoundMode::CAST_RINT, kDspineShardDim);
+                Fence<HardEvent::V_MTE3>();
+                DataCopy(g_out[dst_off], ub_bf16, kDspineShardDim);
+                Fence<HardEvent::MTE3_V>();
+                Fence<HardEvent::MTE3_MTE2>();
+            }
+        }
+        Publish();
     }
-    if (k == 3) {
-        return v2;
+}
+
+__aicore__ inline void RunStep3cPrologPack(
+    TPipe& pipe, uint64_t active_toks_gm, uint64_t emb_w_gm,
+    uint64_t rot_part_gm, uint64_t rot_bias_gm, uint64_t comm_in_gm,
+    int32_t b_rows, int32_t vocab_start, int32_t vocab_end, int32_t rank)
+{
+    RunStep3cPrologPackEmbedPart(
+        pipe, active_toks_gm, emb_w_gm, comm_in_gm, b_rows, vocab_start, vocab_end, rank);
+    if ASCEND_IS_AIV {
+        pipe.Reset();
     }
-    if (k == 2) {
-        return v1;
+    RunStep3cPrologPackRotPart(pipe, rot_part_gm, rot_bias_gm, comm_in_gm, b_rows, rank);
+}
+
+__aicore__ inline void InlineStep3cPrologRotPush(
+    TPipe& pipe, uint64_t rot_part_gm, uint64_t rot_bias_gm, uint64_t comm_out_gm,
+    uint64_t comm_win_gm, uint32_t epoch, int32_t b_rows, int32_t rank)
+{
+    if ASCEND_IS_AIV {
+        const int32_t aiv = GetBlockIdx();
+        TBuf<TPosition::VECCALC> b_bf16, b_bias, b_f1, b_f2;
+        pipe.InitBuffer(b_bf16, 8 * kDspineShardDim * sizeof(bfloat16_t));
+        pipe.InitBuffer(b_bias, kDspineShardDim * sizeof(bfloat16_t));
+        pipe.InitBuffer(b_f1, kDspineShardDim * sizeof(float));
+        pipe.InitBuffer(b_f2, kDspineShardDim * sizeof(float));
+        auto ub_bf16 = b_bf16.Get<bfloat16_t>();
+        auto ub_bias = b_bias.Get<bfloat16_t>();
+        auto ub_f1 = b_f1.Get<float>();
+        auto ub_f2 = b_f2.Get<float>();
+
+        GlobalTensor<bfloat16_t> g_rot, g_rbias, g_out;
+        g_rot.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(rot_part_gm));
+        g_rbias.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(rot_bias_gm), kDspineShardDim);
+        g_out.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(comm_out_gm), 2 * b_rows * 6144);
+
+        if (aiv < b_rows) {
+            DataCopy(ub_bias, g_rbias, kDspineShardDim);
+            DataCopy(ub_bf16, g_rot[aiv * kDspineShardDim], kDspineShardDim);
+            Fence<HardEvent::MTE2_V>();
+            Cast(ub_f1, ub_bf16, RoundMode::CAST_NONE, kDspineShardDim);
+            Cast(ub_f2, ub_bias, RoundMode::CAST_NONE, kDspineShardDim);
+            PipeBarrier<PIPE_V>();
+            Add(ub_f1, ub_f1, ub_f2, kDspineShardDim);
+            PipeBarrier<PIPE_V>();
+            Cast(ub_bf16, ub_f1, RoundMode::CAST_RINT, kDspineShardDim);
+            Fence<HardEvent::V_MTE3>();
+            const int64_t dst_off = static_cast<int64_t>(b_rows + aiv) * 6144
+                + static_cast<int64_t>(rank) * kDspineShardDim;
+            DataCopy(g_out[dst_off], ub_bf16, kDspineShardDim);
+            DataCopy(g_rot[aiv * kDspineShardDim], ub_bf16, kDspineShardDim);
+            Fence<HardEvent::MTE3_S>();
+        }
+        PipeBarrier<PIPE_ALL>();
+        SyncAll<true>();
+
+        if (aiv >= 1 && aiv < kDspineWorldSize) {
+            const int32_t elems = b_rows * kDspineShardDim;
+            DataCopy(ub_bf16, g_rot, elems);
+            Fence<HardEvent::MTE2_MTE3>();
+            const int32_t peer = (rank + aiv) % kDspineWorldSize;
+            __gm__ bfloat16_t* rem_slot = reinterpret_cast<__gm__ bfloat16_t*>(
+                aclshmem_ptr(DspinePayloadPtr(comm_win_gm, epoch, 15), peer));
+            GlobalTensor<bfloat16_t> g_rem;
+            g_rem.SetGlobalBuffer(rem_slot + static_cast<int64_t>(rank) * 4096, elems);
+            DataCopy(g_rem, ub_bf16, elems);
+            Fence<HardEvent::MTE3_S>();
+            PipeBarrier<PIPE_ALL>();
+            DataSyncBarrier<MemDsbT::DDR>();
+            __gm__ int32_t* rem_sig = reinterpret_cast<__gm__ int32_t*>(
+                aclshmem_ptr(DspineFlagPtr(comm_win_gm, epoch, rank), peer));
+            *rem_sig = static_cast<int32_t>(epoch);
+            dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(rem_sig));
+        }
     }
-    return v0;
+}
+
+__aicore__ inline void InlineStep3cPrologRotPull(
+    TPipe& pipe, uint64_t comm_out_gm, uint64_t comm_win_gm, uint32_t epoch,
+    int32_t b_rows, int32_t rank)
+{
+    if ASCEND_IS_AIV {
+        const int32_t aiv = GetBlockIdx();
+        if (aiv >= 1 && aiv < kDspineWorldSize) {
+            const int32_t elems = b_rows * kDspineShardDim;
+            TBuf<TPosition::VECCALC> b_bf16;
+            pipe.InitBuffer(b_bf16, 8 * kDspineShardDim * sizeof(bfloat16_t));
+            auto ub_bf16 = b_bf16.Get<bfloat16_t>();
+            const int32_t peer = (rank + aiv) % kDspineWorldSize;
+            __gm__ volatile int32_t* loc_sig = DspineFlagPtr(comm_win_gm, epoch, peer);
+            while (true) {
+                dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(
+                    const_cast<__gm__ int32_t*>(loc_sig)));
+                if (*loc_sig == static_cast<int32_t>(epoch)) {
+                    break;
+                }
+            }
+            __gm__ bfloat16_t* loc_slot = reinterpret_cast<__gm__ bfloat16_t*>(
+                DspinePayloadPtr(comm_win_gm, epoch, 15));
+            GlobalTensor<bfloat16_t> g_src, g_out;
+            g_src.SetGlobalBuffer(loc_slot + static_cast<int64_t>(peer) * 4096, elems);
+            g_out.SetGlobalBuffer(
+                reinterpret_cast<__gm__ bfloat16_t*>(comm_out_gm), 2 * b_rows * 6144);
+            DataCopy(ub_bf16, g_src, elems);
+            Fence<HardEvent::MTE2_MTE3>();
+            for (int32_t r_idx = 0; r_idx < b_rows; ++r_idx) {
+                const int64_t dst_off = static_cast<int64_t>(b_rows + r_idx) * 6144
+                    + static_cast<int64_t>(peer) * kDspineShardDim;
+                DataCopy(g_out[dst_off], ub_bf16[r_idx * kDspineShardDim], kDspineShardDim);
+            }
+            Fence<HardEvent::MTE3_S>();
+        }
+        PipeBarrier<PIPE_ALL>();
+        SyncAll<true>();
+    }
+}
+
+__aicore__ inline void RunStep3cDualRmsNormSlice(
+    TPipe& pipe, uint64_t comm_out_gm, uint64_t enorm_w_gm, uint64_t hnorm_w_gm,
+    uint64_t eh_in_gm, int32_t b_rows, int32_t rank, float eps, bool intra_die = false)
+{
+    if ASCEND_IS_AIV {
+        const int32_t t = GetBlockIdx();
+        if (t < 2 * b_rows) {
+            TBuf<TPosition::VECCALC> b_x, b_g, b_xf, b_sq, b_work, b_gf, b_sum;
+            pipe.InitBuffer(b_x, 6144 * 2);
+            pipe.InitBuffer(b_g, 768 * 2);
+            pipe.InitBuffer(b_xf, 6144 * 4);
+            pipe.InitBuffer(b_sq, 6144 * 4);
+            pipe.InitBuffer(b_work, 6144 * 4);
+            pipe.InitBuffer(b_gf, 768 * 4);
+            pipe.InitBuffer(b_sum, 64);
+            auto ub_x = b_x.Get<bfloat16_t>();
+            auto ub_g = b_g.Get<bfloat16_t>();
+            auto ub_xf = b_xf.Get<float>();
+            auto ub_sq = b_sq.Get<float>();
+            auto ub_work = b_work.Get<float>();
+            auto ub_gf = b_gf.Get<float>();
+            auto ub_sum = b_sum.Get<float>();
+
+            const bool is_rot = (t >= b_rows);
+            const int32_t r_idx = is_rot ? (t - b_rows) : t;
+            GlobalTensor<bfloat16_t> g_in, g_w, g_out;
+            g_in.SetGlobalBuffer(
+                reinterpret_cast<__gm__ bfloat16_t*>(comm_out_gm), 2 * b_rows * 6144);
+            g_w.SetGlobalBuffer(
+                reinterpret_cast<__gm__ bfloat16_t*>(is_rot ? hnorm_w_gm : enorm_w_gm), 6144);
+            g_out.SetGlobalBuffer(
+                reinterpret_cast<__gm__ bfloat16_t*>(eh_in_gm), b_rows * kDspineEhIn);
+
+            DataCopy(ub_x, g_in[t * 6144], 6144);
+            DataCopy(ub_g, g_w[rank * kDspineShardDim], kDspineShardDim);
+            Fence<HardEvent::MTE2_V>();
+
+            Cast(ub_xf, ub_x, RoundMode::CAST_NONE, 6144);
+            Cast(ub_gf, ub_g, RoundMode::CAST_NONE, kDspineShardDim);
+            PipeBarrier<PIPE_V>();
+            Mul(ub_sq, ub_xf, ub_xf, 6144);
+            PipeBarrier<PIPE_V>();
+            ReduceSum(ub_sum, ub_sq, ub_work, 6144);
+            Fence<HardEvent::V_S>();
+            const float mean_eps = ub_sum.GetValue(0) * (1.0F / 6144.0F) + eps;
+            Fence<HardEvent::S_V>();
+            Duplicate(ub_sum, mean_eps, 8);
+            PipeBarrier<PIPE_V>();
+            Rsqrt(ub_sum, ub_sum, 8);
+            Fence<HardEvent::V_S>();
+            const float rstd = ub_sum.GetValue(0);
+            Fence<HardEvent::S_V>();
+
+            Muls(ub_sq, ub_xf[rank * kDspineShardDim], rstd, kDspineShardDim);
+            PipeBarrier<PIPE_V>();
+            Mul(ub_sq, ub_sq, ub_gf, kDspineShardDim);
+            PipeBarrier<PIPE_V>();
+            Cast(ub_g, ub_sq, RoundMode::CAST_RINT, kDspineShardDim);
+            Fence<HardEvent::V_MTE3>();
+            DataCopy(
+                g_out[r_idx * kDspineEhIn + (is_rot ? kDspineShardDim : 0)], ub_g, kDspineShardDim);
+        }
+        if (intra_die) {
+            PipeBarrier<PIPE_ALL>();
+        } else {
+            Publish();
+        }
+    }
+}
+
+__aicore__ inline void RunDraftHeadTopk(
+    TPipe& pipe,
+    uint64_t q_len_gm,
+    uint64_t res_a_gm,
+    uint64_t res_b_gm,
+    uint64_t gamma_gm,
+    uint64_t w_q8_nz_gm,
+    uint64_t w_s8_gm,
+    uint64_t recs_out_gm,
+    uint64_t act_q_ws_gm,
+    uint64_t act_s_ws_gm,
+    uint64_t acc_i32_ws_gm,
+    uint64_t work_gm,
+    uint64_t gather_in_gm,
+    uint64_t gather_out_gm,
+    uint64_t comm_win_gm,
+    int32_t m_rows,
+    int32_t vocab_valid,
+    int32_t vocab_start,
+    int32_t k,
+    int32_t rank,
+    int32_t ranks,
+    float eps,
+    uint32_t explicit_epoch = 0U)
+{
+    int32_t eff = m_rows;
+    if (q_len_gm != 0ULL) {
+        DcciRange(q_len_gm, 64);
+        const int32_t q = *reinterpret_cast<__gm__ const int32_t*>(q_len_gm);
+        if (q <= 0) {
+            return;
+        }
+        if (q < eff) {
+            eff = q;
+        }
+    }
+    constexpr int32_t kHidden = 6144;
+    if ASCEND_IS_AIV {
+        const int32_t aiv = GetBlockIdx();
+        if (aiv < eff) {
+            TBuf<TPosition::VECCALC> b_f32, b_bf, b_i8;
+            pipe.InitBuffer(b_f32, 3 * kHidden * 4 + 256 * 4);
+            pipe.InitBuffer(b_bf, 3 * kHidden * 2);
+            pipe.InitBuffer(b_i8, kHidden + 32);
+
+            auto ub_f32 = b_f32.Get<float>();
+            auto ub_x = ub_f32[0];
+            auto ub_sq = ub_f32[kHidden];
+            auto ub_tmp = ub_f32[2 * kHidden];
+            auto ub_red = ub_f32[3 * kHidden];
+            auto ub_sc = ub_f32[3 * kHidden + 128];
+
+            auto ub_bf = b_bf.Get<bfloat16_t>();
+            auto ub_x1 = ub_bf[0];
+            auto ub_x2 = ub_bf[kHidden];
+            auto ub_g = ub_bf[2 * kHidden];
+            auto ub_q8 = b_i8.Get<int8_t>();
+
+            GlobalTensor<bfloat16_t> g_a, g_b, g_g, g_recs;
+            GlobalTensor<int8_t> g_q8;
+            GlobalTensor<float> g_sc;
+            g_a.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(res_a_gm));
+            g_b.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(res_b_gm));
+            g_g.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(gamma_gm), kHidden);
+            g_recs.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(recs_out_gm));
+            g_q8.SetGlobalBuffer(reinterpret_cast<__gm__ int8_t*>(act_q_ws_gm));
+            g_sc.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(act_s_ws_gm));
+
+            const int64_t row_off = static_cast<int64_t>(aiv) * kHidden;
+            DataCopy(ub_x1, g_a[row_off], kHidden);
+            if (res_b_gm != 0ULL) {
+                DataCopy(ub_x2, g_b[row_off], kHidden);
+            }
+            DataCopy(ub_g, g_g, kHidden);
+            Fence<HardEvent::MTE2_V>();
+
+            Cast(ub_x, ub_x1, RoundMode::CAST_NONE, kHidden);
+            if (res_b_gm != 0ULL) {
+                Cast(ub_tmp, ub_x2, RoundMode::CAST_NONE, kHidden);
+                PipeBarrier<PIPE_V>();
+                Add(ub_x, ub_x, ub_tmp, kHidden);
+                PipeBarrier<PIPE_V>();
+                Cast(ub_x1, ub_x, RoundMode::CAST_RINT, kHidden);
+                PipeBarrier<PIPE_V>();
+                Cast(ub_x, ub_x1, RoundMode::CAST_NONE, kHidden);
+            }
+            PipeBarrier<PIPE_V>();
+            Mul(ub_sq, ub_x, ub_x, kHidden);
+            PipeBarrier<PIPE_V>();
+            Add(ub_sq, ub_sq, ub_sq[4096], 2048);
+            PipeBarrier<PIPE_V>();
+            for (int32_t s = 2048; s >= 64; s >>= 1) {
+                Add(ub_sq, ub_sq, ub_sq[s], s);
+                PipeBarrier<PIPE_V>();
+            }
+            AscendCUtils::SetMask<float>(64);
+            WholeReduceSum<float, false>(ub_sq, ub_sq, MASK_PLACEHOLDER, 1, 0, 1, 0);
+            Fence<HardEvent::V_S>();
+            const float rstd = 1.0F / sqrt(
+                ub_sq.GetValue(0) * (1.0F / static_cast<float>(kHidden)) + eps);
+            Fence<HardEvent::S_V>();
+            Muls(ub_x, ub_x, rstd, kHidden);
+            Cast(ub_tmp, ub_g, RoundMode::CAST_NONE, kHidden);
+            PipeBarrier<PIPE_V>();
+            Mul(ub_x, ub_x, ub_tmp, kHidden);
+            PipeBarrier<PIPE_V>();
+            Cast(ub_x1, ub_x, RoundMode::CAST_RINT, kHidden);
+            Fence<HardEvent::V_MTE3>();
+            if (recs_out_gm != 0ULL) {
+                DataCopy(g_recs[row_off], ub_x1, kHidden);
+            }
+            PipeBarrier<PIPE_V>();
+            Cast(ub_x, ub_x1, RoundMode::CAST_NONE, kHidden);
+            PipeBarrier<PIPE_V>();
+            Abs(ub_tmp, ub_x, kHidden);
+            PipeBarrier<PIPE_V>();
+            ReduceMax(ub_red, ub_tmp, ub_sq, kHidden);
+            Fence<HardEvent::V_S>();
+            const float max_v = ub_red.GetValue(0);
+            const float sc = (max_v > 0.0F) ? (max_v / 127.0F) : 1.0F;
+            ub_sc.SetValue(0, sc);
+            Fence<HardEvent::S_V>();
+            Duplicate(ub_tmp, sc, 64);
+            Duplicate(ub_sq, 1.0F, 64);
+            PipeBarrier<PIPE_V>();
+            Div(ub_sq, ub_sq, ub_tmp, 64);
+            PipeBarrier<PIPE_V>();
+            Mul(ub_tmp, ub_x, ub_sq, 64, kHidden / 64, BinaryRepeatParams{1, 1, 0, 8, 8, 0});
+            PipeBarrier<PIPE_V>();
+            auto ub_i32 = ub_sq.ReinterpretCast<int32_t>();
+            Cast(ub_i32, ub_tmp, RoundMode::CAST_RINT, kHidden);
+            PipeBarrier<PIPE_V>();
+            SetDeqScale(static_cast<half>(1.0F));
+            PipeBarrier<PIPE_V>();
+            auto ub_fp16 = ub_x2.ReinterpretCast<half>();
+            Cast(ub_fp16, ub_i32, RoundMode::CAST_ROUND, kHidden);
+            PipeBarrier<PIPE_V>();
+            Cast(ub_q8, ub_fp16, RoundMode::CAST_TRUNC, kHidden);
+            Fence<HardEvent::V_MTE3>();
+            Fence<HardEvent::S_MTE3>();
+            DataCopy(g_q8[row_off], ub_q8, kHidden);
+            DataCopyExtParams copy_sc{1, 4, 0, 0, 0};
+            DataCopyPad(g_sc[aiv], ub_sc, copy_sc);
+        }
+        if (explicit_epoch != 0U) {
+            PipeBarrier<PIPE_ALL>();
+        } else {
+            Publish();
+        }
+    }
+
+    SyncAll<false>();
+    pipe.Reset();
+
+    if ASCEND_IS_AIC {
+        const int32_t cid = GetBlockIdx();
+        const int32_t n32_total = (vocab_valid + 31) / 32;
+        const int32_t base_b = n32_total / 24;
+        const int32_t rem_b = n32_total % 24;
+        const int32_t my_b = base_b + (cid < rem_b ? 1 : 0);
+        if (my_b > 0) {
+            const int32_t b_start = cid * base_b + (cid < rem_b ? cid : rem_b);
+            constexpr int32_t kStep = 512;
+            constexpr int32_t kKSteps = kHidden / kStep;
+            constexpr int32_t kN32Sub = 8;
+
+            TBuf<TPosition::A1> a1_buf;
+            TBuf<TPosition::B1> b1_buf0, b1_buf1;
+            TBuf<TPosition::A2> l0a_buf;
+            TBuf<TPosition::B2> l0b_buf0, l0b_buf1;
+            TBuf<TPosition::CO1> l0c_buf;
+            pipe.InitBuffer(a1_buf, 16 * kHidden);
+            pipe.InitBuffer(b1_buf0, kN32Sub * 32 * 512);
+            pipe.InitBuffer(b1_buf1, kN32Sub * 32 * 512);
+            pipe.InitBuffer(l0a_buf, 16 * kStep);
+            pipe.InitBuffer(l0b_buf0, kN32Sub * 32 * 128);
+            pipe.InitBuffer(l0b_buf1, kN32Sub * 32 * 128);
+            pipe.InitBuffer(l0c_buf, my_b * 512 * sizeof(int32_t));
+
+            auto a1 = a1_buf.Get<int8_t>();
+            LocalTensor<int8_t> b1[2] = {b1_buf0.Get<int8_t>(), b1_buf1.Get<int8_t>()};
+            auto l0a = l0a_buf.Get<int8_t>();
+            LocalTensor<int8_t> l0b[2] = {l0b_buf0.Get<int8_t>(), l0b_buf1.Get<int8_t>()};
+            auto l0c = l0c_buf.Get<int32_t>();
+
+            GlobalTensor<int8_t> a_gm, b_gm;
+            GlobalTensor<int32_t> c_gm;
+            a_gm.SetGlobalBuffer(
+                reinterpret_cast<__gm__ int8_t*>(act_q_ws_gm),
+                static_cast<uint64_t>(eff) * kHidden);
+            b_gm.SetGlobalBuffer(
+                reinterpret_cast<__gm__ int8_t*>(w_q8_nz_gm),
+                static_cast<uint64_t>(n32_total) * 384ULL * 512ULL);
+            c_gm.SetGlobalBuffer(
+                reinterpret_cast<__gm__ int32_t*>(acc_i32_ws_gm),
+                static_cast<uint64_t>(eff) * vocab_valid);
+
+            Nd2NzParams copy_a{};
+            copy_a.ndNum = 1;
+            copy_a.nValue = eff;
+            copy_a.dValue = kHidden;
+            copy_a.srcDValue = kHidden;
+            copy_a.dstNzC0Stride = 16;
+            copy_a.dstNzNStride = 1;
+            DataCopy(a1, a_gm, copy_a);
+            SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
+            WaitFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
+
+            SetFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
+            SetFlag<HardEvent::MTE1_MTE2>(EVENT_ID1);
+            SetFlag<HardEvent::M_MTE1>(EVENT_ID3);
+            SetFlag<HardEvent::M_MTE1>(EVENT_ID4);
+            SetFlag<HardEvent::M_MTE1>(EVENT_ID5);
+
+            int32_t b_iter = 0;
+            int32_t lb_iter = 0;
+            for (int32_t kc = 0; kc < kKSteps; ++kc) {
+                WaitFlag<HardEvent::M_MTE1>(EVENT_ID5);
+                LoadData2DParams load_a{};
+                load_a.startIndex = kc * 16;
+                load_a.repeatTimes = 16;
+                load_a.srcStride = 1;
+                load_a.ifTranspose = false;
+                LoadData(l0a, a1, load_a);
+                SetFlag<HardEvent::MTE1_M>(EVENT_ID5);
+                WaitFlag<HardEvent::MTE1_M>(EVENT_ID5);
+
+                for (int32_t nb = 0; nb < my_b; nb += kN32Sub) {
+                    const int32_t n32_cnt = (my_b - nb < kN32Sub) ? (my_b - nb) : kN32Sub;
+                    const int32_t bi = b_iter & 1;
+                    const event_t b_ev = bi ? EVENT_ID1 : EVENT_ID0;
+                    const uint64_t b_off =
+                        static_cast<uint64_t>(b_start + nb) * 384ULL * 512ULL
+                        + static_cast<uint64_t>(kc) * 32ULL * 512ULL;
+                    WaitFlag<HardEvent::MTE1_MTE2>(b_ev);
+                    DataCopy(
+                        b1[bi],
+                        b_gm[b_off],
+                        DataCopyParams{
+                            static_cast<uint16_t>(n32_cnt), 512, 5632, 0});
+                    SetFlag<HardEvent::MTE2_MTE1>(b_ev);
+                    WaitFlag<HardEvent::MTE2_MTE1>(b_ev);
+
+                    LoadData2dTransposeParams trans(
+                        0, static_cast<uint8_t>(n32_cnt), 16, 1, 0, inc);
+                    for (int32_t sub = 0; sub < 4; ++sub) {
+                        const int32_t lbi = lb_iter & 1;
+                        const event_t lb_ev = lbi ? EVENT_ID4 : EVENT_ID3;
+                        WaitFlag<HardEvent::M_MTE1>(lb_ev);
+                        const uint32_t k_sub_off = static_cast<uint32_t>(sub) * 4096U;
+                        for (int32_t i = 0; i < 4; ++i) {
+                            LoadDataWithTranspose(
+                                l0b[lbi][i * n32_cnt * 1024],
+                                b1[bi][k_sub_off + static_cast<uint32_t>(i) * 1024U],
+                                trans);
+                        }
+                        if (sub == 3) {
+                            SetFlag<HardEvent::MTE1_MTE2>(b_ev);
+                        }
+                        SetFlag<HardEvent::MTE1_M>(lb_ev);
+                        WaitFlag<HardEvent::MTE1_M>(lb_ev);
+                        MmadParams mad{};
+                        mad.m = 16;
+                        mad.n = n32_cnt * 32;
+                        mad.k = 128;
+                        mad.cmatrixSource = false;
+                        mad.cmatrixInitVal = (kc == 0 && sub == 0);
+                        Mmad(l0c[nb * 512], l0a[sub * 2048], l0b[lbi], mad);
+                        PipeBarrier<PIPE_M>();
+                        SetFlag<HardEvent::M_MTE1>(lb_ev);
+                        ++lb_iter;
+                    }
+                    ++b_iter;
+                }
+                SetFlag<HardEvent::M_MTE1>(EVENT_ID5);
+            }
+            WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
+            WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID1);
+            WaitFlag<HardEvent::M_MTE1>(EVENT_ID3);
+            WaitFlag<HardEvent::M_MTE1>(EVENT_ID4);
+            WaitFlag<HardEvent::M_MTE1>(EVENT_ID5);
+
+            SetFlag<HardEvent::M_FIX>(EVENT_ID0);
+            WaitFlag<HardEvent::M_FIX>(EVENT_ID0);
+            for (int32_t nb = 0; nb < my_b; nb += kN32Sub) {
+                const int32_t n32_cnt = (my_b - nb < kN32Sub) ? (my_b - nb) : kN32Sub;
+                FixpipeParamsV220 fix{};
+                fix.nSize = n32_cnt * 32;
+                fix.mSize = eff;
+                fix.srcStride = 16;
+                fix.dstStride = vocab_valid;
+                fix.ndNum = 1;
+                fix.quantPre = QuantMode_t::NoQuant;
+                Fixpipe<int32_t, int32_t, CFG_ROW_MAJOR>(
+                    c_gm[(b_start + nb) * 32], l0c[nb * 512], fix);
+            }
+            SetFlag<HardEvent::FIX_M>(EVENT_ID0);
+            WaitFlag<HardEvent::FIX_M>(EVENT_ID0);
+        }
+        if (explicit_epoch != 0U) {
+            PipeBarrier<PIPE_ALL>();
+        } else {
+            Publish();
+        }
+    }
+
+    SyncAll<false>();
+    pipe.Reset();
+    if (work_gm == 0ULL) {
+        return;
+    }
+
+    if ASCEND_IS_AIV {
+        const int32_t aiv = GetBlockIdx();
+        const int32_t aivs_per_row = 48 / eff;
+        const int32_t r_idx = aiv / aivs_per_row;
+        const int32_t sub = aiv % aivs_per_row;
+        const int32_t chunk =
+            (((vocab_valid + aivs_per_row - 1) / aivs_per_row) + 63) & ~63;
+        const int32_t col_begin = sub * chunk;
+        const int32_t col_end =
+            (col_begin + chunk < vocab_valid) ? (col_begin + chunk) : vocab_valid;
+        const int32_t len = (col_end > col_begin) ? (col_end - col_begin) : 0;
+
+        TBuf<TPosition::VECCALC> b_i32, b_ws8, b_x, b_bf16, b_blk, b_tmp, b_work, b_sum, b_out;
+        pipe.InitBuffer(b_i32, 2048 * 4);
+        pipe.InitBuffer(b_ws8, 2048 * 4);
+        pipe.InitBuffer(b_x, 2048 * 4);
+        pipe.InitBuffer(b_bf16, 2048 * 2);
+        pipe.InitBuffer(b_blk, 512);
+        pipe.InitBuffer(b_tmp, 2048 * 4);
+        pipe.InitBuffer(b_work, 2048 * 4);
+        pipe.InitBuffer(b_sum, 64);
+        pipe.InitBuffer(b_out, 512);
+        auto ub_i32 = b_i32.Get<int32_t>();
+        auto ub_ws8 = b_ws8.Get<float>();
+        auto ub_x = b_x.Get<float>();
+        auto ub_bf16 = b_bf16.Get<bfloat16_t>();
+        auto ub_blk = b_blk.Get<float>();
+        auto ub_tmp = b_tmp.Get<float>();
+        auto ub_work = b_work.Get<float>();
+        auto ub_sum = b_sum.Get<float>();
+        auto ub_out = b_out.Get<float>();
+
+        GlobalTensor<int32_t> g_acc;
+        GlobalTensor<float> g_ws8, g_act_s, g_work, g_gather;
+        g_acc.SetGlobalBuffer(
+            reinterpret_cast<__gm__ int32_t*>(acc_i32_ws_gm),
+            static_cast<uint64_t>(eff) * vocab_valid);
+        g_ws8.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(w_s8_gm), vocab_valid);
+        g_act_s.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(act_s_ws_gm), eff);
+        g_work.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(work_gm), 48 * 16);
+        g_gather.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(gather_in_gm), ranks * 64);
+
+        DcciRange(act_s_ws_gm, eff * 4);
+        DataCopyPad(
+            ub_sum, g_act_s,
+            DataCopyExtParams{1, static_cast<uint32_t>(eff * 4), 0, 0, 0},
+            DataCopyPadExtParams<float>{false, 0, 0, 0});
+        Fence<HardEvent::MTE2_S>();
+
+        if (aiv < ranks && aiv != rank) {
+            Duplicate(ub_out, 0.0F, 64);
+            Fence<HardEvent::V_MTE3>();
+            DataCopy(g_gather[aiv * 64], ub_out, 64);
+            Fence<HardEvent::MTE3_V>();
+            Fence<HardEvent::MTE3_S>();
+        }
+
+        Duplicate(ub_x, -1.0e30F, chunk);
+        PipeBarrier<PIPE_V>();
+        float tv0 = -1.0e30F, tv1 = -1.0e30F, tv2 = -1.0e30F, tv3 = -1.0e30F;
+        int64_t ti0 = 0, ti1 = 0, ti2 = 0, ti3 = 0;
+        float l_sum = 0.0F;
+
+        if (r_idx < eff && len > 0) {
+            const float act_s = ub_sum.GetValue(r_idx);
+            DataCopyPad(
+                ub_i32, g_acc[static_cast<int64_t>(r_idx) * vocab_valid + col_begin],
+                DataCopyExtParams{1, static_cast<uint32_t>(len * 4), 0, 0, 0},
+                DataCopyPadExtParams<int32_t>{false, 0, 0, 0});
+            DataCopyPad(
+                ub_ws8, g_ws8[col_begin],
+                DataCopyExtParams{1, static_cast<uint32_t>(len * 4), 0, 0, 0},
+                DataCopyPadExtParams<float>{false, 0, 0, 0});
+            Fence<HardEvent::MTE2_V>();
+            const int32_t len_a16 = (len + 15) & ~15;
+            Cast(ub_tmp, ub_i32, RoundMode::CAST_RINT, len_a16);
+            PipeBarrier<PIPE_V>();
+            Mul(ub_tmp, ub_tmp, ub_ws8, len_a16);
+            PipeBarrier<PIPE_V>();
+            Muls(ub_tmp, ub_tmp, act_s, len_a16);
+            PipeBarrier<PIPE_V>();
+            Cast(ub_bf16, ub_tmp, RoundMode::CAST_RINT, len_a16);
+            PipeBarrier<PIPE_V>();
+            Cast(ub_x, ub_bf16, RoundMode::CAST_NONE, len_a16);
+            Fence<HardEvent::V_S>();
+            for (int32_t pad_j = len; pad_j < len_a16; ++pad_j) {
+                ub_x.SetValue(pad_j, -1.0e30F);
+            }
+            Fence<HardEvent::S_V>();
+            const int32_t n_rep = chunk / 64;
+            WholeReduceMax<float>(ub_blk, ub_x, 64, n_rep, 1, 1, 8);
+            Fence<HardEvent::V_S>();
+            for (int32_t b = 0; b < n_rep; ++b) {
+                if (ub_blk.GetValue(2 * b) > KthTop4(k, tv0, tv1, tv2, tv3)) {
+                    const int32_t j_end = ((b + 1) * 64 < len) ? ((b + 1) * 64) : len;
+                    for (int32_t j = b * 64; j < j_end; ++j) {
+                        InsertTop4(
+                            ub_x.GetValue(j),
+                            static_cast<int64_t>(vocab_start + col_begin + j),
+                            tv0, tv1, tv2, tv3, ti0, ti1, ti2, ti3);
+                    }
+                }
+            }
+            Fence<HardEvent::S_V>();
+            Adds(ub_tmp, ub_x, -tv0, chunk);
+            PipeBarrier<PIPE_V>();
+            Maxs(ub_tmp, ub_tmp, -104.0F, chunk);
+            PipeBarrier<PIPE_V>();
+            Exp(ub_tmp, ub_tmp, chunk);
+            PipeBarrier<PIPE_V>();
+            ReduceSum(ub_sum, ub_tmp, ub_work, chunk);
+            Fence<HardEvent::V_S>();
+            l_sum = ub_sum.GetValue(0);
+        }
+
+        ub_out.SetValue(0, tv0);
+        ub_out.SetValue(1, l_sum);
+        ub_out.SetValue(2, tv0);
+        ub_out.SetValue(3, tv1);
+        ub_out.SetValue(4, tv2);
+        ub_out.SetValue(5, tv3);
+        ub_out.SetValue(6, static_cast<float>(ti0));
+        ub_out.SetValue(7, static_cast<float>(ti1));
+        ub_out.SetValue(8, static_cast<float>(ti2));
+        ub_out.SetValue(9, static_cast<float>(ti3));
+        Fence<HardEvent::S_MTE3>();
+        DataCopy(g_work[aiv * 16], ub_out, 16);
+        if (explicit_epoch != 0U) {
+            PipeBarrier<PIPE_ALL>();
+        } else {
+            Publish();
+        }
+        SyncAll<true>();
+
+        if (aiv == 0) {
+            DataCopy(ub_work, g_work, 48 * 16);
+            Fence<HardEvent::MTE2_S>();
+            Fence<HardEvent::S_V>();
+            Duplicate(ub_out, 0.0F, 64);
+            Fence<HardEvent::V_S>();
+
+            const int32_t cols = 2 + 2 * k;
+            for (int32_t m = 0; m < eff; ++m) {
+                float rv0 = -1.0e30F, rv1 = -1.0e30F, rv2 = -1.0e30F, rv3 = -1.0e30F;
+                int64_t ri0 = 0, ri1 = 0, ri2 = 0, ri3 = 0;
+                for (int32_t s = 0; s < aivs_per_row; ++s) {
+                    const int32_t base = (m * aivs_per_row + s) * 16;
+                    for (int32_t j = 0; j < k; ++j) {
+                        InsertTop4(
+                            ub_work.GetValue(base + 2 + j),
+                            static_cast<int64_t>(ub_work.GetValue(base + 6 + j)),
+                            rv0, rv1, rv2, rv3, ri0, ri1, ri2, ri3);
+                    }
+                }
+                const float r_max = rv0;
+                Fence<HardEvent::S_V>();
+                Duplicate(ub_blk, -1.0e30F, 64);
+                Duplicate(ub_tmp, 0.0F, 64);
+                Fence<HardEvent::V_S>();
+                for (int32_t s = 0; s < aivs_per_row; ++s) {
+                    const int32_t base = (m * aivs_per_row + s) * 16;
+                    ub_blk.SetValue(s, ub_work.GetValue(base + 0));
+                    ub_tmp.SetValue(s, ub_work.GetValue(base + 1));
+                }
+                Fence<HardEvent::S_V>();
+                Adds(ub_blk, ub_blk, -r_max, 64);
+                PipeBarrier<PIPE_V>();
+                Maxs(ub_blk, ub_blk, -104.0F, 64);
+                PipeBarrier<PIPE_V>();
+                Exp(ub_blk, ub_blk, 64);
+                PipeBarrier<PIPE_V>();
+                Mul(ub_blk, ub_blk, ub_tmp, 64);
+                PipeBarrier<PIPE_V>();
+                ReduceSum(ub_sum, ub_blk, ub_x, 64);
+                Fence<HardEvent::V_S>();
+                const float r_sum = ub_sum.GetValue(0);
+
+                const int32_t out_base = m * cols;
+                ub_out.SetValue(out_base + 0, r_max);
+                ub_out.SetValue(out_base + 1, r_sum);
+                if (k >= 1) {
+                    ub_out.SetValue(out_base + 2 + 0, rv0);
+                    ub_out.SetValue(out_base + 2 + k + 0, static_cast<float>(ri0));
+                }
+                if (k >= 2) {
+                    ub_out.SetValue(out_base + 2 + 1, rv1);
+                    ub_out.SetValue(out_base + 2 + k + 1, static_cast<float>(ri1));
+                }
+                if (k >= 3) {
+                    ub_out.SetValue(out_base + 2 + 2, rv2);
+                    ub_out.SetValue(out_base + 2 + k + 2, static_cast<float>(ri2));
+                }
+                if (k >= 4) {
+                    ub_out.SetValue(out_base + 2 + 3, rv3);
+                    ub_out.SetValue(out_base + 2 + k + 3, static_cast<float>(ri3));
+                }
+            }
+            Fence<HardEvent::S_MTE3>();
+            DataCopy(g_gather[rank * 64], ub_out, 64);
+        }
+        if (comm_win_gm == 0ULL) {
+            Publish();
+            pipe.Reset();
+            return;
+        }
+        const uint32_t seq = (explicit_epoch != 0U)
+            ? (explicit_epoch - 1U) : DspineReadSeq(comm_win_gm);
+        const uint32_t epoch = (explicit_epoch != 0U) ? explicit_epoch : (seq + 1U);
+        if (explicit_epoch != 0U) {
+            PipeBarrier<PIPE_ALL>();
+        } else {
+            Publish();
+        }
+        SyncAll<true>();
+
+        if (aiv == 0) {
+            GlobalTensor<float> g_gout;
+            g_gout.SetGlobalBuffer(
+                reinterpret_cast<__gm__ float*>(gather_out_gm), ranks * 64);
+            DataCopy(g_gout[rank * 64], ub_out, 64);
+            Fence<HardEvent::MTE3_V>();
+            Fence<HardEvent::MTE3_S>();
+            if (explicit_epoch == 0U) {
+                DspineWriteSeq(comm_win_gm, epoch);
+                Publish();
+            } else {
+                PipeBarrier<PIPE_ALL>();
+            }
+        } else if (aiv < ranks) {
+            DataCopy(ub_out, g_gather[rank * 64], 64);
+            Fence<HardEvent::MTE2_MTE3>();
+            const int32_t peer = (rank + aiv) % ranks;
+            GlobalTensor<float> g_rem;
+            g_rem.SetGlobalBuffer(
+                reinterpret_cast<__gm__ float*>(
+                    aclshmem_ptr(DspinePayloadPtr(comm_win_gm, epoch, rank), peer)),
+                64);
+            DataCopy(g_rem, ub_out, 64);
+            Fence<HardEvent::MTE3_S>();
+            PipeBarrier<PIPE_ALL>();
+            DataSyncBarrier<MemDsbT::DDR>();
+            __gm__ int32_t* remote_sig = reinterpret_cast<__gm__ int32_t*>(
+                aclshmem_ptr(DspineFlagPtr(comm_win_gm, epoch, rank), peer));
+            *remote_sig = static_cast<int32_t>(epoch);
+            dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(remote_sig));
+
+            __gm__ volatile int32_t* sig = DspineFlagPtr(comm_win_gm, epoch, peer);
+            while (true) {
+                dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(
+                    const_cast<__gm__ int32_t*>(sig)));
+                if (*sig == static_cast<int32_t>(epoch)) {
+                    break;
+                }
+            }
+            GlobalTensor<float> g_pe, g_gout;
+            g_pe.SetGlobalBuffer(
+                reinterpret_cast<__gm__ float*>(
+                    DspinePayloadPtr(comm_win_gm, epoch, peer)),
+                64);
+            g_gout.SetGlobalBuffer(
+                reinterpret_cast<__gm__ float*>(gather_out_gm), ranks * 64);
+            DataCopy(ub_out[64], g_pe, 64);
+            Fence<HardEvent::MTE2_MTE3>();
+            DataCopy(g_gout[peer * 64], ub_out[64], 64);
+            Fence<HardEvent::MTE3_S>();
+            if (explicit_epoch != 0U) {
+                PipeBarrier<PIPE_ALL>();
+            } else {
+                Publish();
+            }
+        }
+        SyncAll<true>();
+        pipe.Reset();
+    }
+}
+}
+"""
+
+_DSPINE_BODY_CPP = """using namespace dspine_shared;
+
+
+struct RoundState {
+    int32_t q_len;
+    int32_t done;
+    int32_t eos_hit;
+    int32_t round_idx;
+    int32_t main_pos;
+    int32_t draft_pos;
+    int32_t horizon_level;
+    int32_t max_pos;
+    int32_t last_w_act;
+    int32_t drain_q_len;
+    int32_t hi_streak;
+    int32_t lo_streak;
+    int32_t eos_token_id;
+    int32_t pad0;
+    int64_t prev_accepted_total;
+    uint64_t ema_acc;
+    int64_t pending_token;
+    int64_t pad1[6];
+};
+
+__aicore__ inline void RunPrologPack(
+    TPipe& pipe, uint64_t ctrl_gm, uint64_t target_toks_gm, uint64_t emb_w_gm,
+    uint64_t rot_part_gm, uint64_t comm_in_gm,
+    int32_t m_max, int32_t vocab_start, int32_t vocab_end, int32_t rank)
+{
+    if ASCEND_IS_AIV {
+        TBuf<TPosition::VECCALC> b_ctrl, b_ttoks, b_bf16;
+        pipe.InitBuffer(b_ctrl, 48 * 8);
+        pipe.InitBuffer(b_ttoks, 32 * 8);
+        pipe.InitBuffer(b_bf16, 768 * 2);
+        auto ub_ctrl = b_ctrl.Get<int64_t>();
+        auto ub_ttoks = b_ttoks.Get<int64_t>();
+        auto ub_bf16 = b_bf16.Get<bfloat16_t>();
+
+        GlobalTensor<int64_t> g_ctrl, g_ttoks;
+        GlobalTensor<bfloat16_t> g_emb, g_rot, g_out;
+        g_ctrl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(ctrl_gm), 48);
+        g_ttoks.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(target_toks_gm), 32);
+        g_emb.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(emb_w_gm));
+        g_rot.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(rot_part_gm), m_max * kDspineShardDim);
+        g_out.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(comm_in_gm), 4 * m_max * 6144);
+
+        DcciRange(ctrl_gm, 48 * 8);
+        DataCopy(ub_ctrl, g_ctrl, 48);
+        Fence<HardEvent::MTE2_S>();
+
+        const int32_t count = static_cast<int32_t>(ub_ctrl.GetValue(2));
+        if (count <= 0) {
+            return;
+        }
+        DataCopy(ub_ttoks, g_ttoks, 32);
+        Fence<HardEvent::MTE2_S>();
+        const int32_t aiv = GetBlockIdx();
+
+        for (int32_t task = aiv; task < m_max * 12; task += 48) {
+            const int32_t r_idx = task / 12;
+            const int64_t col = static_cast<int64_t>(task % 12) * 512;
+            const int64_t row_id = ub_ctrl.GetValue(3 + r_idx);
+            const int64_t tok = ub_ttoks.GetValue(row_id);
+            if (r_idx < count && tok >= vocab_start && tok < vocab_end) {
+                DataCopy(ub_bf16, g_emb[(tok - vocab_start) * 6144 + col], 512);
+                Fence<HardEvent::MTE2_MTE3>();
+            } else {
+                Duplicate(ub_bf16.ReinterpretCast<int16_t>(), static_cast<int16_t>(0), 512);
+                Fence<HardEvent::V_MTE3>();
+            }
+            DataCopy(g_out[r_idx * 6144 + col], ub_bf16, 512);
+            Fence<HardEvent::MTE3_V>();
+            Fence<HardEvent::MTE3_MTE2>();
+        }
+
+        for (int32_t task = aiv; task < m_max * kDspineWorldSize; task += 48) {
+            const int32_t r_idx = task / kDspineWorldSize;
+            const int32_t s_rk = task % kDspineWorldSize;
+            const int64_t dst_off = static_cast<int64_t>(2 * m_max + r_idx) * 6144
+                + static_cast<int64_t>(s_rk) * kDspineShardDim;
+            if (r_idx < count && s_rk == rank) {
+                DataCopy(ub_bf16, g_rot[r_idx * kDspineShardDim], kDspineShardDim);
+                Fence<HardEvent::MTE2_MTE3>();
+            } else {
+                Duplicate(
+                    ub_bf16.ReinterpretCast<int16_t>(), static_cast<int16_t>(0), kDspineShardDim);
+                Fence<HardEvent::V_MTE3>();
+            }
+            DataCopy(g_out[dst_off], ub_bf16, kDspineShardDim);
+            Fence<HardEvent::MTE3_V>();
+            Fence<HardEvent::MTE3_MTE2>();
+        }
+        Publish();
+    }
+}
+
+__aicore__ inline void RunPrepCommitSeedV3(
+    TPipe& pipe,
+    uint64_t ctrl_gm,
+    uint64_t hs_all_gm,
+    uint64_t sin_cache_gm,
+    uint64_t cos_cache_gm,
+    uint64_t kv_hs_gm,
+    uint64_t kv_sin_gm,
+    uint64_t kv_cos_gm,
+    uint64_t kv_slot_gm,
+    uint64_t kv_qlen_gm,
+    uint64_t kv_kvlen_gm,
+    uint64_t seed_hs_gm,
+    uint64_t seed_sin_gm,
+    uint64_t seed_cos_gm,
+    uint64_t seed_slot_gm,
+    uint64_t seed_qlen_gm,
+    uint64_t seed_kvlen_gm,
+    int32_t kv_m_cap)
+{
+    if ASCEND_IS_AIV {
+        const int32_t aiv = GetBlockIdx();
+        TBuf<TPosition::VECCALC> b_ctrl, b_bf16, b_i64, b_i32;
+        pipe.InitBuffer(b_ctrl, 48 * 8);
+        pipe.InitBuffer(b_bf16, 512 * 2);
+        pipe.InitBuffer(b_i64, 32 * 8);
+        pipe.InitBuffer(b_i32, 32 * 4);
+        auto ub_ctrl = b_ctrl.Get<int64_t>();
+        auto ub_bf16 = b_bf16.Get<bfloat16_t>();
+        auto ub_i64 = b_i64.Get<int64_t>();
+        auto ub_i32 = b_i32.Get<int32_t>();
+
+        DcciRange(ctrl_gm, 48 * sizeof(int64_t));
+        GlobalTensor<int64_t> g_ctrl;
+        g_ctrl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(ctrl_gm), 48);
+        DataCopy(ub_ctrl, g_ctrl, 48);
+        Fence<HardEvent::MTE2_S>();
+
+        const int64_t main_start = ub_ctrl.GetValue(0);
+        int32_t count = static_cast<int32_t>(ub_ctrl.GetValue(1));
+        if (count <= 0) {
+            return;
+        }
+        if (count > kv_m_cap + 1) {
+            count = kv_m_cap + 1;
+        }
+        const int32_t kv_rows = count - 1;
+        const int32_t seed_idx = count - 1;
+        const int64_t seed_pos = main_start + static_cast<int64_t>(seed_idx);
+
+        GlobalTensor<bfloat16_t> g_hs_all, g_kv_hs, g_seed_hs;
+        GlobalTensor<bfloat16_t> g_sin_c, g_cos_c, g_kv_sin, g_kv_cos, g_s_sin, g_s_cos;
+        g_hs_all.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(hs_all_gm), (kv_m_cap + 4) * 6144);
+        g_kv_hs.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(kv_hs_gm), kv_m_cap * 6144);
+        g_seed_hs.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(seed_hs_gm), 6144);
+        g_sin_c.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(sin_cache_gm));
+        g_cos_c.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(cos_cache_gm));
+        g_kv_sin.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(kv_sin_gm), kv_m_cap * 64);
+        g_kv_cos.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(kv_cos_gm), kv_m_cap * 64);
+        g_s_sin.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(seed_sin_gm), 64);
+        g_s_cos.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(seed_cos_gm), 64);
+
+        for (int32_t task = aiv; task < kv_rows * 12; task += 48) {
+            const int32_t r = task / 12;
+            const int64_t col = static_cast<int64_t>(task % 12) * 512;
+            DataCopy(ub_bf16, g_hs_all[r * 6144 + col], 512);
+            Fence<HardEvent::MTE2_MTE3>();
+            DataCopy(g_kv_hs[r * 6144 + col], ub_bf16, 512);
+            Fence<HardEvent::MTE3_MTE2>();
+        }
+
+        if (aiv >= 12 && aiv < 24) {
+            const int64_t col = static_cast<int64_t>(aiv - 12) * 512;
+            DataCopy(ub_bf16, g_hs_all[seed_idx * 6144 + col], 512);
+            Fence<HardEvent::MTE2_MTE3>();
+            DataCopy(g_seed_hs[col], ub_bf16, 512);
+            Fence<HardEvent::MTE3_MTE2>();
+        }
+
+        if (aiv >= 24 && aiv < 24 + kv_rows) {
+            const int32_t r = aiv - 24;
+            const int64_t p = main_start + r;
+            DataCopy(ub_bf16[0], g_sin_c[p * 64], 64);
+            DataCopy(ub_bf16[64], g_cos_c[p * 64], 64);
+            Fence<HardEvent::MTE2_MTE3>();
+            DataCopy(g_kv_sin[r * 64], ub_bf16[0], 64);
+            DataCopy(g_kv_cos[r * 64], ub_bf16[64], 64);
+        }
+
+        if (aiv == 47) {
+            DataCopy(ub_bf16[0], g_sin_c[seed_pos * 64], 64);
+            DataCopy(ub_bf16[64], g_cos_c[seed_pos * 64], 64);
+            Fence<HardEvent::MTE2_MTE3>();
+            DataCopy(g_s_sin, ub_bf16[0], 64);
+            DataCopy(g_s_cos, ub_bf16[64], 64);
+        }
+
+        if (aiv == 0) {
+            for (int32_t r = 0; r < kv_m_cap; ++r) {
+                ub_i64.SetValue(r, (r < kv_rows) ? (main_start + r) : (9296LL + r));
+            }
+            ub_i64.SetValue(16, seed_pos);
+            ub_i32.SetValue(0, kv_rows);
+            ub_i32.SetValue(8, static_cast<int32_t>(main_start + kv_rows));
+            ub_i32.SetValue(16, 1);
+            ub_i32.SetValue(24, static_cast<int32_t>(seed_pos + 1));
+            Fence<HardEvent::S_MTE3>();
+
+            GlobalTensor<int64_t> g_kv_sl, g_s_sl;
+            GlobalTensor<int32_t> g_kv_ql, g_kv_kvl, g_s_ql, g_s_kvl;
+            g_kv_sl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(kv_slot_gm), kv_m_cap);
+            g_s_sl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(seed_slot_gm), 1);
+            g_kv_ql.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(kv_qlen_gm), 1);
+            g_kv_kvl.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(kv_kvlen_gm), 1);
+            g_s_ql.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(seed_qlen_gm), 1);
+            g_s_kvl.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(seed_kvlen_gm), 1);
+
+            DataCopyPad(g_kv_sl, ub_i64[0], DataCopyExtParams{
+                1, static_cast<uint32_t>(kv_m_cap * sizeof(int64_t)), 0, 0, 0});
+            DataCopyPad(g_s_sl, ub_i64[16], DataCopyExtParams{1, sizeof(int64_t), 0, 0, 0});
+            DataCopyPad(g_kv_ql, ub_i32[0], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
+            DataCopyPad(g_kv_kvl, ub_i32[8], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
+            DataCopyPad(g_s_ql, ub_i32[16], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
+            DataCopyPad(g_s_kvl, ub_i32[24], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
+            Fence<HardEvent::MTE3_S>();
+            DcciRange(kv_slot_gm, kv_m_cap * sizeof(int64_t));
+            DcciRange(seed_slot_gm, sizeof(int64_t));
+            DcciRange(kv_qlen_gm, sizeof(int32_t));
+            DcciRange(kv_kvlen_gm, sizeof(int32_t));
+            DcciRange(seed_qlen_gm, sizeof(int32_t));
+            DcciRange(seed_kvlen_gm, sizeof(int32_t));
+        }
+        Publish();
+    }
 }
 
 __aicore__ inline void RunKvCompact(
@@ -1360,148 +2488,6 @@ __aicore__ inline void RunKvCompact(
                 Fence<HardEvent::MTE3_MTE2>();
                 Fence<HardEvent::MTE3_S>();
             }
-        }
-        Publish();
-    }
-}
-
-__aicore__ inline void RunStep3cPrologPack(
-    TPipe& pipe, uint64_t active_toks_gm, uint64_t emb_w_gm,
-    uint64_t rot_part_gm, uint64_t rot_bias_gm, uint64_t comm_in_gm,
-    int32_t b_rows, int32_t vocab_start, int32_t vocab_end, int32_t rank)
-{
-    if ASCEND_IS_AIV {
-        TBuf<TPosition::VECCALC> b_toks, b_bf16, b_bias, b_f1, b_f2;
-        pipe.InitBuffer(b_toks, 64);
-        pipe.InitBuffer(b_bf16, 768 * 2);
-        pipe.InitBuffer(b_bias, 768 * 2);
-        pipe.InitBuffer(b_f1, 768 * 4);
-        pipe.InitBuffer(b_f2, 768 * 4);
-        auto ub_toks = b_toks.Get<int64_t>();
-        auto ub_bf16 = b_bf16.Get<bfloat16_t>();
-        auto ub_bias = b_bias.Get<bfloat16_t>();
-        auto ub_f1 = b_f1.Get<float>();
-        auto ub_f2 = b_f2.Get<float>();
-
-        GlobalTensor<int64_t> g_toks;
-        GlobalTensor<bfloat16_t> g_emb, g_rot, g_rbias, g_out;
-        g_toks.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(active_toks_gm), 8);
-        g_emb.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(emb_w_gm));
-        g_rot.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(rot_part_gm));
-        g_rbias.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(rot_bias_gm), kDspineShardDim);
-        g_out.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(comm_in_gm), 2 * b_rows * 6144);
-
-        DataCopy(ub_toks, g_toks, 8);
-        Fence<HardEvent::MTE2_S>();
-
-        const int32_t aiv = GetBlockIdx();
-        if (aiv < b_rows * 12) {
-            const int32_t r_idx = aiv / 12;
-            const int64_t col = static_cast<int64_t>(aiv % 12) * 512;
-            const int64_t tok = ub_toks.GetValue(r_idx);
-            if (tok >= vocab_start && tok < vocab_end) {
-                DataCopy(ub_bf16, g_emb[(tok - vocab_start) * 6144 + col], 512);
-                Fence<HardEvent::MTE2_MTE3>();
-            } else {
-                Duplicate(ub_bf16.ReinterpretCast<int16_t>(), static_cast<int16_t>(0), 512);
-                Fence<HardEvent::V_MTE3>();
-            }
-            DataCopy(g_out[r_idx * 6144 + col], ub_bf16, 512);
-            Fence<HardEvent::MTE3_V>();
-            Fence<HardEvent::MTE3_MTE2>();
-        }
-
-        for (int32_t task = aiv; task < b_rows * kDspineWorldSize; task += 48) {
-            const int32_t r_idx = task / kDspineWorldSize;
-            const int32_t s_rk = task % kDspineWorldSize;
-            const int64_t dst_off = static_cast<int64_t>(b_rows + r_idx) * 6144
-                + static_cast<int64_t>(s_rk) * kDspineShardDim;
-            if (s_rk == rank) {
-                DataCopy(ub_bf16, g_rot[r_idx * kDspineShardDim], kDspineShardDim);
-                DataCopy(ub_bias, g_rbias, kDspineShardDim);
-                Fence<HardEvent::MTE2_V>();
-                Cast(ub_f1, ub_bf16, RoundMode::CAST_NONE, kDspineShardDim);
-                Cast(ub_f2, ub_bias, RoundMode::CAST_NONE, kDspineShardDim);
-                PipeBarrier<PIPE_V>();
-                Add(ub_f1, ub_f1, ub_f2, kDspineShardDim);
-                PipeBarrier<PIPE_V>();
-                Cast(ub_bf16, ub_f1, RoundMode::CAST_RINT, kDspineShardDim);
-                Fence<HardEvent::V_MTE3>();
-                DataCopy(g_out[dst_off], ub_bf16, kDspineShardDim);
-            } else {
-                Duplicate(
-                    ub_bf16.ReinterpretCast<int16_t>(), static_cast<int16_t>(0), kDspineShardDim);
-                Fence<HardEvent::V_MTE3>();
-                DataCopy(g_out[dst_off], ub_bf16, kDspineShardDim);
-            }
-            Fence<HardEvent::MTE3_V>();
-            Fence<HardEvent::MTE3_MTE2>();
-        }
-        Publish();
-    }
-}
-
-__aicore__ inline void RunStep3cDualRmsNormSlice(
-    TPipe& pipe, uint64_t comm_out_gm, uint64_t enorm_w_gm, uint64_t hnorm_w_gm,
-    uint64_t eh_in_gm, int32_t b_rows, int32_t rank, float eps)
-{
-    if ASCEND_IS_AIV {
-        const int32_t t = GetBlockIdx();
-        if (t < 2 * b_rows) {
-            TBuf<TPosition::VECCALC> b_x, b_g, b_xf, b_sq, b_work, b_gf, b_sum;
-            pipe.InitBuffer(b_x, 6144 * 2);
-            pipe.InitBuffer(b_g, 768 * 2);
-            pipe.InitBuffer(b_xf, 6144 * 4);
-            pipe.InitBuffer(b_sq, 6144 * 4);
-            pipe.InitBuffer(b_work, 6144 * 4);
-            pipe.InitBuffer(b_gf, 768 * 4);
-            pipe.InitBuffer(b_sum, 64);
-            auto ub_x = b_x.Get<bfloat16_t>();
-            auto ub_g = b_g.Get<bfloat16_t>();
-            auto ub_xf = b_xf.Get<float>();
-            auto ub_sq = b_sq.Get<float>();
-            auto ub_work = b_work.Get<float>();
-            auto ub_gf = b_gf.Get<float>();
-            auto ub_sum = b_sum.Get<float>();
-
-            const bool is_rot = (t >= b_rows);
-            const int32_t r_idx = is_rot ? (t - b_rows) : t;
-            GlobalTensor<bfloat16_t> g_in, g_w, g_out;
-            g_in.SetGlobalBuffer(
-                reinterpret_cast<__gm__ bfloat16_t*>(comm_out_gm), 2 * b_rows * 6144);
-            g_w.SetGlobalBuffer(
-                reinterpret_cast<__gm__ bfloat16_t*>(is_rot ? hnorm_w_gm : enorm_w_gm), 6144);
-            g_out.SetGlobalBuffer(
-                reinterpret_cast<__gm__ bfloat16_t*>(eh_in_gm), b_rows * kDspineEhIn);
-
-            DataCopy(ub_x, g_in[t * 6144], 6144);
-            DataCopy(ub_g, g_w[rank * kDspineShardDim], kDspineShardDim);
-            Fence<HardEvent::MTE2_V>();
-
-            Cast(ub_xf, ub_x, RoundMode::CAST_NONE, 6144);
-            Cast(ub_gf, ub_g, RoundMode::CAST_NONE, kDspineShardDim);
-            PipeBarrier<PIPE_V>();
-            Mul(ub_sq, ub_xf, ub_xf, 6144);
-            PipeBarrier<PIPE_V>();
-            ReduceSum(ub_sum, ub_sq, ub_work, 6144);
-            Fence<HardEvent::V_S>();
-            const float mean_eps = ub_sum.GetValue(0) * (1.0F / 6144.0F) + eps;
-            Fence<HardEvent::S_V>();
-            Duplicate(ub_sum, mean_eps, 8);
-            PipeBarrier<PIPE_V>();
-            Rsqrt(ub_sum, ub_sum, 8);
-            Fence<HardEvent::V_S>();
-            const float rstd = ub_sum.GetValue(0);
-            Fence<HardEvent::S_V>();
-
-            Muls(ub_sq, ub_xf[rank * kDspineShardDim], rstd, kDspineShardDim);
-            PipeBarrier<PIPE_V>();
-            Mul(ub_sq, ub_sq, ub_gf, kDspineShardDim);
-            PipeBarrier<PIPE_V>();
-            Cast(ub_g, ub_sq, RoundMode::CAST_RINT, kDspineShardDim);
-            Fence<HardEvent::V_MTE3>();
-            DataCopy(
-                g_out[r_idx * kDspineEhIn + (is_rot ? kDspineShardDim : 0)], ub_g, kDspineShardDim);
         }
         Publish();
     }
@@ -2853,469 +3839,420 @@ __aicore__ inline void RunPrologPackCompact(
 }
 
 
-constexpr uint64_t kDspineFlagOff = 128ULL;
-constexpr uint64_t kDspineDataOff = 8320ULL;
-constexpr uint64_t kDspineSlotBytes = 32768ULL;
-constexpr uint64_t kDspinePlaneBytes = 524288ULL;
-
-__aicore__ inline uint32_t DspineReadSeq(uint64_t win_gm)
+__aicore__ inline void RmsNorm6144(
+    LocalTensor<bfloat16_t>& ub_x,
+    LocalTensor<float>& ub_xf,
+    LocalTensor<float>& ub_sq,
+    LocalTensor<float>& ub_gf,
+    LocalTensor<float>& ub_sum,
+    float eps,
+    bool is_add_norm)
 {
-    DcciRange(win_gm, 64);
-    return *reinterpret_cast<__gm__ const uint32_t*>(win_gm);
+    Mul(ub_sq, ub_xf, ub_xf, 6144);
+    PipeBarrier<PIPE_V>();
+    float rstd = 0.0F;
+    if (is_add_norm) {
+        Muls(ub_sq, ub_sq, 1.0F / 6144.0F, 6144);
+        PipeBarrier<PIPE_V>();
+        Duplicate(ub_sum, 0.0F, 64);
+        PipeBarrier<PIPE_V>();
+        BinaryRepeatParams rp;
+        rp.src0RepStride = 8;
+        rp.src0BlkStride = 1;
+        rp.src1RepStride = 0;
+        rp.src1BlkStride = 1;
+        rp.dstRepStride = 0;
+        rp.dstBlkStride = 1;
+        Add(ub_sum, ub_sq, ub_sum, 64, 96, rp);
+        PipeBarrier<PIPE_V>();
+        AscendCUtils::SetMask<float>(64);
+        WholeReduceSum<float, false>(ub_sum, ub_sum, MASK_PLACEHOLDER, 1, 0, 1, 0);
+        PipeBarrier<PIPE_V>();
+        ResetMask();
+        Adds(ub_sum, ub_sum, eps, 1);
+        PipeBarrier<PIPE_V>();
+        Sqrt(ub_sum, ub_sum, 1);
+        Duplicate(ub_sq, 1.0F, 1);
+        PipeBarrier<PIPE_V>();
+        Div(ub_sum, ub_sq, ub_sum, 1);
+        PipeBarrier<PIPE_V>();
+        Fence<HardEvent::V_S>();
+        rstd = ub_sum.GetValue(0);
+        Fence<HardEvent::S_V>();
+    } else {
+        Add(ub_sq, ub_sq, ub_sq[4096], 2048);
+        PipeBarrier<PIPE_V>();
+        for (int32_t s = 2048; s >= 64; s >>= 1) {
+            Add(ub_sq, ub_sq, ub_sq[s], s);
+            PipeBarrier<PIPE_V>();
+        }
+        AscendCUtils::SetMask<float>(64);
+        WholeReduceSum<float, false>(ub_sum, ub_sq, MASK_PLACEHOLDER, 1, 0, 1, 0);
+        PipeBarrier<PIPE_V>();
+        ResetMask();
+        Fence<HardEvent::V_S>();
+        rstd = 1.0F / sqrt(ub_sum.GetValue(0) * (1.0F / 6144.0F) + eps);
+        Fence<HardEvent::S_V>();
+    }
+    Muls(ub_xf, ub_xf, rstd, 6144);
+    PipeBarrier<PIPE_V>();
+    if (is_add_norm) {
+        Cast(ub_x, ub_xf, RoundMode::CAST_RINT, 6144);
+        PipeBarrier<PIPE_V>();
+        Cast(ub_xf, ub_x, RoundMode::CAST_NONE, 6144);
+        PipeBarrier<PIPE_V>();
+    }
+    Mul(ub_xf, ub_xf, ub_gf, 6144);
+    PipeBarrier<PIPE_V>();
+    Cast(ub_x, ub_xf, RoundMode::CAST_RINT, 6144);
 }
 
-__aicore__ inline void DspineWriteSeq(uint64_t win_gm, uint32_t seq)
-{
-    *reinterpret_cast<__gm__ uint32_t*>(win_gm) = seq;
-    PipeBarrier<PIPE_ALL>();
-    DcciRange(win_gm, 64);
-}
-
-__aicore__ inline __gm__ uint8_t* DspinePayloadPtr(
-    uint64_t win_gm, uint32_t epoch, int32_t pe)
-{
-    return reinterpret_cast<__gm__ uint8_t*>(
-        win_gm + kDspineDataOff
-        + static_cast<uint64_t>(epoch & 7U) * kDspinePlaneBytes
-        + static_cast<uint64_t>(pe) * kDspineSlotBytes);
-}
-
-__aicore__ inline __gm__ int32_t* DspineFlagPtr(
-    uint64_t win_gm, uint32_t epoch, int32_t sender)
-{
-    return reinterpret_cast<__gm__ int32_t*>(
-        win_gm + kDspineFlagOff
-        + (static_cast<uint64_t>(epoch & 7U) * 16ULL + static_cast<uint64_t>(sender)) * 64ULL);
-}
-
-__aicore__ inline void RunDraftHeadTopk(
+__aicore__ inline void RunTargetProlog(
     TPipe& pipe,
     uint64_t q_len_gm,
-    uint64_t res_a_gm,
-    uint64_t res_b_gm,
+    uint64_t t_ids_gm,
+    uint64_t emb_w_gm,
     uint64_t gamma_gm,
-    uint64_t w_q8_nz_gm,
-    uint64_t w_s8_gm,
-    uint64_t recs_out_gm,
-    uint64_t act_q_ws_gm,
-    uint64_t act_s_ws_gm,
-    uint64_t acc_i32_ws_gm,
-    uint64_t work_gm,
-    uint64_t gather_in_gm,
-    uint64_t gather_out_gm,
+    uint64_t emb_out_gm,
+    uint64_t l0_normed_gm,
     uint64_t comm_win_gm,
-    int32_t m_rows,
-    int32_t vocab_valid,
+    int32_t width,
+    int32_t vocab_size,
     int32_t vocab_start,
-    int32_t k,
+    int32_t vocab_end,
     int32_t rank,
     int32_t ranks,
     float eps)
 {
-    int32_t eff = m_rows;
-    if (q_len_gm != 0ULL) {
-        DcciRange(q_len_gm, 64);
-        const int32_t q = *reinterpret_cast<__gm__ const int32_t*>(q_len_gm);
-        if (q <= 0) {
+    if ASCEND_IS_AIV {
+        if (q_len_gm == 0ULL || comm_win_gm == 0ULL || width <= 0) {
             return;
         }
-        if (q < eff) {
-            eff = q;
+        DcciRange(q_len_gm, 64);
+        int32_t active = *reinterpret_cast<__gm__ const int32_t*>(q_len_gm);
+        if (active <= 0) {
+            return;
         }
-    }
-    constexpr int32_t kHidden = 6144;
-    if ASCEND_IS_AIV {
+        if (active > width) {
+            active = width;
+        }
         const int32_t aiv = GetBlockIdx();
-        if (aiv < eff) {
-            TBuf<TPosition::VECCALC> b_f32, b_bf, b_i8;
-            pipe.InitBuffer(b_f32, 3 * kHidden * 4 + 256 * 4);
-            pipe.InitBuffer(b_bf, 3 * kHidden * 2);
-            pipe.InitBuffer(b_i8, kHidden + 32);
+        const uint32_t seq = DspineReadSeq(comm_win_gm);
+        const uint32_t epoch = seq + 1U;
 
-            auto ub_f32 = b_f32.Get<float>();
-            auto ub_x = ub_f32[0];
-            auto ub_sq = ub_f32[kHidden];
-            auto ub_tmp = ub_f32[2 * kHidden];
-            auto ub_red = ub_f32[3 * kHidden];
-            auto ub_sc = ub_f32[3 * kHidden + 128];
+        TBuf<TPosition::VECCALC> b_ids, b_row, b_g, b_xf, b_sq, b_gf, b_sum;
+        pipe.InitBuffer(b_ids, 64 * 4);
+        pipe.InitBuffer(b_row, 6144 * 2);
+        pipe.InitBuffer(b_g, 6144 * 2);
+        pipe.InitBuffer(b_xf, 6144 * 4);
+        pipe.InitBuffer(b_sq, 6144 * 4);
+        pipe.InitBuffer(b_gf, 6144 * 4);
+        pipe.InitBuffer(b_sum, 64 * 4);
 
-            auto ub_bf = b_bf.Get<bfloat16_t>();
-            auto ub_x1 = ub_bf[0];
-            auto ub_x2 = ub_bf[kHidden];
-            auto ub_g = ub_bf[2 * kHidden];
-            auto ub_q8 = b_i8.Get<int8_t>();
+        auto ub_ids = b_ids.Get<int32_t>();
+        auto ub_row = b_row.Get<bfloat16_t>();
+        auto ub_g = b_g.Get<bfloat16_t>();
+        auto ub_xf = b_xf.Get<float>();
+        auto ub_sq = b_sq.Get<float>();
+        auto ub_gf = b_gf.Get<float>();
+        auto ub_sum = b_sum.Get<float>();
 
-            GlobalTensor<bfloat16_t> g_a, g_b, g_g, g_recs;
-            GlobalTensor<int8_t> g_q8;
-            GlobalTensor<float> g_sc;
-            g_a.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(res_a_gm));
-            g_b.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(res_b_gm));
-            g_g.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(gamma_gm), kHidden);
-            g_recs.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(recs_out_gm));
-            g_q8.SetGlobalBuffer(reinterpret_cast<__gm__ int8_t*>(act_q_ws_gm));
-            g_sc.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(act_s_ws_gm));
+        GlobalTensor<int32_t> g_ids;
+        GlobalTensor<bfloat16_t> g_emb, g_gamma, g_emb_out, g_l0_normed;
+        g_ids.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(t_ids_gm), width);
+        g_emb.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(emb_w_gm));
+        g_gamma.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(gamma_gm), 6144);
+        g_emb_out.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(emb_out_gm),
+            static_cast<int64_t>(width) * 6144);
+        g_l0_normed.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(l0_normed_gm),
+            static_cast<int64_t>(width) * 6144);
 
-            const int64_t row_off = static_cast<int64_t>(aiv) * kHidden;
-            DataCopy(ub_x1, g_a[row_off], kHidden);
-            if (res_b_gm != 0ULL) {
-                DataCopy(ub_x2, g_b[row_off], kHidden);
+        DcciRange(t_ids_gm, width * 4);
+        const int32_t copy_ids = ((width + 7) / 8) * 8;
+        DataCopy(ub_ids, g_ids, copy_ids);
+        Fence<HardEvent::MTE2_S>();
+
+        for (int32_t task = aiv; task < active * 12; task += 48) {
+            const int32_t r = task / 12;
+            const int64_t col = static_cast<int64_t>(task % 12) * 512;
+            const int32_t tok = ub_ids.GetValue(r);
+            if (tok >= vocab_start && tok < vocab_end) {
+                const int64_t src_off =
+                    static_cast<int64_t>(tok - vocab_start) * 6144 + col;
+                const int64_t dst_off = static_cast<int64_t>(r) * 6144 + col;
+                DataCopy(ub_row, g_emb[src_off], 512);
+                Fence<HardEvent::MTE2_MTE3>();
+                DataCopy(g_emb_out[dst_off], ub_row, 512);
+                Fence<HardEvent::MTE3_MTE2>();
             }
-            DataCopy(ub_g, g_g, kHidden);
-            Fence<HardEvent::MTE2_V>();
-
-            Cast(ub_x, ub_x1, RoundMode::CAST_NONE, kHidden);
-            if (res_b_gm != 0ULL) {
-                Cast(ub_tmp, ub_x2, RoundMode::CAST_NONE, kHidden);
-                PipeBarrier<PIPE_V>();
-                Add(ub_x, ub_x, ub_tmp, kHidden);
-                PipeBarrier<PIPE_V>();
-                Cast(ub_x1, ub_x, RoundMode::CAST_RINT, kHidden);
-                PipeBarrier<PIPE_V>();
-                Cast(ub_x, ub_x1, RoundMode::CAST_NONE, kHidden);
-            }
-            PipeBarrier<PIPE_V>();
-            Mul(ub_sq, ub_x, ub_x, kHidden);
-            PipeBarrier<PIPE_V>();
-            Add(ub_sq, ub_sq, ub_sq[4096], 2048);
-            PipeBarrier<PIPE_V>();
-            for (int32_t s = 2048; s >= 64; s >>= 1) {
-                Add(ub_sq, ub_sq, ub_sq[s], s);
-                PipeBarrier<PIPE_V>();
-            }
-            AscendCUtils::SetMask<float>(64);
-            WholeReduceSum<float, false>(ub_sq, ub_sq, MASK_PLACEHOLDER, 1, 0, 1, 0);
-            Fence<HardEvent::V_S>();
-            const float rstd = 1.0F / sqrt(
-                ub_sq.GetValue(0) * (1.0F / static_cast<float>(kHidden)) + eps);
-            Fence<HardEvent::S_V>();
-            Muls(ub_x, ub_x, rstd, kHidden);
-            Cast(ub_tmp, ub_g, RoundMode::CAST_NONE, kHidden);
-            PipeBarrier<PIPE_V>();
-            Mul(ub_x, ub_x, ub_tmp, kHidden);
-            PipeBarrier<PIPE_V>();
-            Cast(ub_x1, ub_x, RoundMode::CAST_RINT, kHidden);
-            Fence<HardEvent::V_MTE3>();
-            if (recs_out_gm != 0ULL) {
-                DataCopy(g_recs[row_off], ub_x1, kHidden);
-            }
-            PipeBarrier<PIPE_V>();
-            Cast(ub_x, ub_x1, RoundMode::CAST_NONE, kHidden);
-            PipeBarrier<PIPE_V>();
-            Abs(ub_tmp, ub_x, kHidden);
-            PipeBarrier<PIPE_V>();
-            ReduceMax(ub_red, ub_tmp, ub_sq, kHidden);
-            Fence<HardEvent::V_S>();
-            const float max_v = ub_red.GetValue(0);
-            const float sc = (max_v > 0.0F) ? (max_v / 127.0F) : 1.0F;
-            ub_sc.SetValue(0, sc);
-            Fence<HardEvent::S_V>();
-            Duplicate(ub_tmp, sc, 64);
-            Duplicate(ub_sq, 1.0F, 64);
-            PipeBarrier<PIPE_V>();
-            Div(ub_sq, ub_sq, ub_tmp, 64);
-            PipeBarrier<PIPE_V>();
-            Mul(ub_tmp, ub_x, ub_sq, 64, kHidden / 64, BinaryRepeatParams{1, 1, 0, 8, 8, 0});
-            PipeBarrier<PIPE_V>();
-            auto ub_i32 = ub_sq.ReinterpretCast<int32_t>();
-            Cast(ub_i32, ub_tmp, RoundMode::CAST_RINT, kHidden);
-            PipeBarrier<PIPE_V>();
-            SetDeqScale(static_cast<half>(1.0F));
-            PipeBarrier<PIPE_V>();
-            auto ub_fp16 = ub_x2.ReinterpretCast<half>();
-            Cast(ub_fp16, ub_i32, RoundMode::CAST_ROUND, kHidden);
-            PipeBarrier<PIPE_V>();
-            Cast(ub_q8, ub_fp16, RoundMode::CAST_TRUNC, kHidden);
-            Fence<HardEvent::V_MTE3>();
-            Fence<HardEvent::S_MTE3>();
-            DataCopy(g_q8[row_off], ub_q8, kHidden);
-            DataCopyExtParams copy_sc{1, 4, 0, 0, 0};
-            DataCopyPad(g_sc[aiv], ub_sc, copy_sc);
         }
         Publish();
-    }
+        SyncAll<true>();
 
-    SyncAll<false>();
-    pipe.Reset();
-
-    if ASCEND_IS_AIC {
-        const int32_t cid = GetBlockIdx();
-        const int32_t n32_total = (vocab_valid + 31) / 32;
-        const int32_t base_b = n32_total / 24;
-        const int32_t rem_b = n32_total % 24;
-        const int32_t my_b = base_b + (cid < rem_b ? 1 : 0);
-        if (my_b > 0) {
-            const int32_t b_start = cid * base_b + (cid < rem_b ? cid : rem_b);
-            constexpr int32_t kStep = 512;
-            constexpr int32_t kKSteps = kHidden / kStep;
-            constexpr int32_t kN32Sub = 8;
-
-            TBuf<TPosition::A1> a1_buf;
-            TBuf<TPosition::B1> b1_buf0, b1_buf1;
-            TBuf<TPosition::A2> l0a_buf;
-            TBuf<TPosition::B2> l0b_buf0, l0b_buf1;
-            TBuf<TPosition::CO1> l0c_buf;
-            pipe.InitBuffer(a1_buf, 16 * kHidden);
-            pipe.InitBuffer(b1_buf0, kN32Sub * 32 * 512);
-            pipe.InitBuffer(b1_buf1, kN32Sub * 32 * 512);
-            pipe.InitBuffer(l0a_buf, 16 * kStep);
-            pipe.InitBuffer(l0b_buf0, kN32Sub * 32 * 128);
-            pipe.InitBuffer(l0b_buf1, kN32Sub * 32 * 128);
-            pipe.InitBuffer(l0c_buf, my_b * 512 * sizeof(int32_t));
-
-            auto a1 = a1_buf.Get<int8_t>();
-            LocalTensor<int8_t> b1[2] = {b1_buf0.Get<int8_t>(), b1_buf1.Get<int8_t>()};
-            auto l0a = l0a_buf.Get<int8_t>();
-            LocalTensor<int8_t> l0b[2] = {l0b_buf0.Get<int8_t>(), l0b_buf1.Get<int8_t>()};
-            auto l0c = l0c_buf.Get<int32_t>();
-
-            GlobalTensor<int8_t> a_gm, b_gm;
-            GlobalTensor<int32_t> c_gm;
-            a_gm.SetGlobalBuffer(
-                reinterpret_cast<__gm__ int8_t*>(act_q_ws_gm),
-                static_cast<uint64_t>(eff) * kHidden);
-            b_gm.SetGlobalBuffer(
-                reinterpret_cast<__gm__ int8_t*>(w_q8_nz_gm),
-                static_cast<uint64_t>(n32_total) * 384ULL * 512ULL);
-            c_gm.SetGlobalBuffer(
-                reinterpret_cast<__gm__ int32_t*>(acc_i32_ws_gm),
-                static_cast<uint64_t>(eff) * vocab_valid);
-
-            Nd2NzParams copy_a{};
-            copy_a.ndNum = 1;
-            copy_a.nValue = eff;
-            copy_a.dValue = kHidden;
-            copy_a.srcDValue = kHidden;
-            copy_a.dstNzC0Stride = 16;
-            copy_a.dstNzNStride = 1;
-            DataCopy(a1, a_gm, copy_a);
-            SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
-            WaitFlag<HardEvent::MTE2_MTE1>(EVENT_ID2);
-
-            SetFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
-            SetFlag<HardEvent::MTE1_MTE2>(EVENT_ID1);
-            SetFlag<HardEvent::M_MTE1>(EVENT_ID3);
-            SetFlag<HardEvent::M_MTE1>(EVENT_ID4);
-            SetFlag<HardEvent::M_MTE1>(EVENT_ID5);
-
-            int32_t b_iter = 0;
-            int32_t lb_iter = 0;
-            for (int32_t kc = 0; kc < kKSteps; ++kc) {
-                WaitFlag<HardEvent::M_MTE1>(EVENT_ID5);
-                LoadData2DParams load_a{};
-                load_a.startIndex = kc * 16;
-                load_a.repeatTimes = 16;
-                load_a.srcStride = 1;
-                load_a.ifTranspose = false;
-                LoadData(l0a, a1, load_a);
-                SetFlag<HardEvent::MTE1_M>(EVENT_ID5);
-                WaitFlag<HardEvent::MTE1_M>(EVENT_ID5);
-
-                for (int32_t nb = 0; nb < my_b; nb += kN32Sub) {
-                    const int32_t n32_cnt = (my_b - nb < kN32Sub) ? (my_b - nb) : kN32Sub;
-                    const int32_t bi = b_iter & 1;
-                    const event_t b_ev = bi ? EVENT_ID1 : EVENT_ID0;
-                    const uint64_t b_off =
-                        static_cast<uint64_t>(b_start + nb) * 384ULL * 512ULL
-                        + static_cast<uint64_t>(kc) * 32ULL * 512ULL;
-                    WaitFlag<HardEvent::MTE1_MTE2>(b_ev);
-                    DataCopy(
-                        b1[bi],
-                        b_gm[b_off],
-                        DataCopyParams{
-                            static_cast<uint16_t>(n32_cnt), 512, 5632, 0});
-                    SetFlag<HardEvent::MTE2_MTE1>(b_ev);
-                    WaitFlag<HardEvent::MTE2_MTE1>(b_ev);
-
-                    LoadData2dTransposeParams trans(
-                        0, static_cast<uint8_t>(n32_cnt), 16, 1, 0, inc);
-                    for (int32_t sub = 0; sub < 4; ++sub) {
-                        const int32_t lbi = lb_iter & 1;
-                        const event_t lb_ev = lbi ? EVENT_ID4 : EVENT_ID3;
-                        WaitFlag<HardEvent::M_MTE1>(lb_ev);
-                        const uint32_t k_sub_off = static_cast<uint32_t>(sub) * 4096U;
-                        for (int32_t i = 0; i < 4; ++i) {
-                            LoadDataWithTranspose(
-                                l0b[lbi][i * n32_cnt * 1024],
-                                b1[bi][k_sub_off + static_cast<uint32_t>(i) * 1024U],
-                                trans);
-                        }
-                        if (sub == 3) {
-                            SetFlag<HardEvent::MTE1_MTE2>(b_ev);
-                        }
-                        SetFlag<HardEvent::MTE1_M>(lb_ev);
-                        WaitFlag<HardEvent::MTE1_M>(lb_ev);
-                        MmadParams mad{};
-                        mad.m = 16;
-                        mad.n = n32_cnt * 32;
-                        mad.k = 128;
-                        mad.cmatrixSource = false;
-                        mad.cmatrixInitVal = (kc == 0 && sub == 0);
-                        Mmad(l0c[nb * 512], l0a[sub * 2048], l0b[lbi], mad);
-                        PipeBarrier<PIPE_M>();
-                        SetFlag<HardEvent::M_MTE1>(lb_ev);
-                        ++lb_iter;
-                    }
-                    ++b_iter;
+        __gm__ bfloat16_t* plane_base = reinterpret_cast<__gm__ bfloat16_t*>(
+            DspinePayloadPtr(comm_win_gm, epoch, 0));
+        if (aiv == 0) {
+            DspineWriteSeq(comm_win_gm, epoch);
+            Publish();
+        } else if (aiv < ranks) {
+            const int32_t peer = (rank + aiv) % ranks;
+            __gm__ bfloat16_t* rem_plane = reinterpret_cast<__gm__ bfloat16_t*>(
+                aclshmem_ptr(plane_base, peer));
+            GlobalTensor<bfloat16_t> g_rem;
+            g_rem.SetGlobalBuffer(rem_plane, static_cast<int64_t>(width) * 6144);
+            for (int32_t r = 0; r < active; ++r) {
+                const int32_t tok = ub_ids.GetValue(r);
+                if (tok >= vocab_start && tok < vocab_end) {
+                    const int64_t row_off = static_cast<int64_t>(r) * 6144;
+                    DataCopy(ub_row, g_emb_out[row_off], 6144);
+                    Fence<HardEvent::MTE2_MTE3>();
+                    DataCopy(g_rem[row_off], ub_row, 6144);
+                    Fence<HardEvent::MTE3_MTE2>();
                 }
-                SetFlag<HardEvent::M_MTE1>(EVENT_ID5);
             }
-            WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID0);
-            WaitFlag<HardEvent::MTE1_MTE2>(EVENT_ID1);
-            WaitFlag<HardEvent::M_MTE1>(EVENT_ID3);
-            WaitFlag<HardEvent::M_MTE1>(EVENT_ID4);
-            WaitFlag<HardEvent::M_MTE1>(EVENT_ID5);
+            Fence<HardEvent::MTE3_S>();
+            PipeBarrier<PIPE_ALL>();
+            DataSyncBarrier<MemDsbT::DDR>();
+            __gm__ int32_t* remote_sig = reinterpret_cast<__gm__ int32_t*>(
+                aclshmem_ptr(DspineFlagPtr(comm_win_gm, epoch, rank), peer));
+            *remote_sig = static_cast<int32_t>(epoch);
+            dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(remote_sig));
 
-            SetFlag<HardEvent::M_FIX>(EVENT_ID0);
-            WaitFlag<HardEvent::M_FIX>(EVENT_ID0);
-            for (int32_t nb = 0; nb < my_b; nb += kN32Sub) {
-                const int32_t n32_cnt = (my_b - nb < kN32Sub) ? (my_b - nb) : kN32Sub;
-                FixpipeParamsV220 fix{};
-                fix.nSize = n32_cnt * 32;
-                fix.mSize = eff;
-                fix.srcStride = 16;
-                fix.dstStride = vocab_valid;
-                fix.ndNum = 1;
-                fix.quantPre = QuantMode_t::NoQuant;
-                Fixpipe<int32_t, int32_t, CFG_ROW_MAJOR>(
-                    c_gm[(b_start + nb) * 32], l0c[nb * 512], fix);
+            __gm__ volatile int32_t* sig = DspineFlagPtr(comm_win_gm, epoch, peer);
+            while (true) {
+                dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(
+                    const_cast<__gm__ int32_t*>(sig)));
+                if (*sig == static_cast<int32_t>(epoch)) {
+                    break;
+                }
             }
-            SetFlag<HardEvent::FIX_M>(EVENT_ID0);
-            WaitFlag<HardEvent::FIX_M>(EVENT_ID0);
+        }
+        SyncAll<true>();
+
+        if (aiv < active) {
+            GlobalTensor<bfloat16_t> g_plane;
+            g_plane.SetGlobalBuffer(plane_base, static_cast<int64_t>(width) * 6144);
+            DataCopy(ub_g, g_gamma, 6144);
+            Fence<HardEvent::MTE2_V>();
+            Cast(ub_gf, ub_g, RoundMode::CAST_NONE, 6144);
+            PipeBarrier<PIPE_V>();
+
+            for (int32_t r = aiv; r < active; r += 48) {
+                const int32_t tok = ub_ids.GetValue(r);
+                const int64_t row_off = static_cast<int64_t>(r) * 6144;
+                if (tok >= vocab_start && tok < vocab_end) {
+                    DataCopy(ub_row, g_emb_out[row_off], 6144);
+                    Fence<HardEvent::MTE2_V>();
+                } else if (tok >= 0 && tok < vocab_size) {
+                    DataCopy(ub_row, g_plane[row_off], 6144);
+                    Fence<HardEvent::MTE2_MTE3>();
+                    Fence<HardEvent::MTE2_V>();
+                    DataCopy(g_emb_out[row_off], ub_row, 6144);
+                    Fence<HardEvent::MTE3_V>();
+                } else {
+                    Duplicate(
+                        ub_row.ReinterpretCast<int16_t>(), static_cast<int16_t>(0), 6144);
+                    Fence<HardEvent::V_MTE3>();
+                    DataCopy(g_emb_out[row_off], ub_row, 6144);
+                    Fence<HardEvent::MTE3_V>();
+                    PipeBarrier<PIPE_V>();
+                }
+                Cast(ub_xf, ub_row, RoundMode::CAST_NONE, 6144);
+                PipeBarrier<PIPE_V>();
+                RmsNorm6144(ub_row, ub_xf, ub_sq, ub_gf, ub_sum, eps, false);
+                Fence<HardEvent::V_MTE3>();
+                DataCopy(g_l0_normed[row_off], ub_row, 6144);
+                Fence<HardEvent::MTE3_MTE2>();
+                Fence<HardEvent::MTE3_V>();
+            }
         }
         Publish();
     }
+}
 
-    SyncAll<false>();
-    pipe.Reset();
-    if (work_gm == 0ULL) {
-        return;
-    }
-
+__aicore__ inline void RunTargetAddRmsNorm(
+    TPipe& pipe,
+    uint64_t q_len_gm,
+    uint64_t x1_gm,
+    uint64_t x2_gm,
+    uint64_t gamma_gm,
+    uint64_t out_gm,
+    int32_t width,
+    float eps)
+{
     if ASCEND_IS_AIV {
+        int32_t active = width;
+        if (q_len_gm != 0ULL) {
+            DcciRange(q_len_gm, 64);
+            active = *reinterpret_cast<__gm__ const int32_t*>(q_len_gm);
+        }
+        if (active <= 0) {
+            return;
+        }
+        if (active > width) {
+            active = width;
+        }
         const int32_t aiv = GetBlockIdx();
-        const int32_t aivs_per_row = 48 / eff;
+        if (aiv < active) {
+            TBuf<TPosition::VECCALC> b_x1, b_x2, b_g, b_xf, b_sq, b_gf, b_sum;
+            pipe.InitBuffer(b_x1, 6144 * 2);
+            pipe.InitBuffer(b_x2, 6144 * 2);
+            pipe.InitBuffer(b_g, 6144 * 2);
+            pipe.InitBuffer(b_xf, 6144 * 4);
+            pipe.InitBuffer(b_sq, 6144 * 4);
+            pipe.InitBuffer(b_gf, 6144 * 4);
+            pipe.InitBuffer(b_sum, 64 * 4);
+
+            auto ub_x1 = b_x1.Get<bfloat16_t>();
+            auto ub_x2 = b_x2.Get<bfloat16_t>();
+            auto ub_g = b_g.Get<bfloat16_t>();
+            auto ub_xf = b_xf.Get<float>();
+            auto ub_sq = b_sq.Get<float>();
+            auto ub_gf = b_gf.Get<float>();
+            auto ub_sum = b_sum.Get<float>();
+
+            GlobalTensor<bfloat16_t> g_x1, g_x2, g_g, g_out;
+            g_x1.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(x1_gm));
+            g_x2.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(x2_gm));
+            g_g.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(gamma_gm), 6144);
+            g_out.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(out_gm));
+
+            DataCopy(ub_g, g_g, 6144);
+            Fence<HardEvent::MTE2_V>();
+            Cast(ub_gf, ub_g, RoundMode::CAST_NONE, 6144);
+            PipeBarrier<PIPE_V>();
+
+            for (int32_t r = aiv; r < active; r += 48) {
+                const int64_t row_off = static_cast<int64_t>(r) * 6144;
+                DataCopy(ub_x1, g_x1[row_off], 6144);
+                DataCopy(ub_x2, g_x2[row_off], 6144);
+                Fence<HardEvent::MTE2_V>();
+                Cast(ub_xf, ub_x1, RoundMode::CAST_NONE, 6144);
+                Cast(ub_sq, ub_x2, RoundMode::CAST_NONE, 6144);
+                PipeBarrier<PIPE_V>();
+                Add(ub_xf, ub_xf, ub_sq, 6144);
+                PipeBarrier<PIPE_V>();
+                Cast(ub_x1, ub_xf, RoundMode::CAST_RINT, 6144);
+                PipeBarrier<PIPE_V>();
+                Cast(ub_xf, ub_x1, RoundMode::CAST_NONE, 6144);
+                PipeBarrier<PIPE_V>();
+                RmsNorm6144(ub_x1, ub_xf, ub_sq, ub_gf, ub_sum, eps, true);
+                Fence<HardEvent::V_MTE3>();
+                DataCopy(g_out[row_off], ub_x1, 6144);
+                Fence<HardEvent::MTE3_MTE2>();
+                Fence<HardEvent::MTE3_V>();
+            }
+        }
+        Publish();
+    }
+}
+
+__aicore__ inline void RunTargetArgmax(
+    TPipe& pipe,
+    uint64_t q_len_gm,
+    uint64_t logits_gm,
+    uint64_t work_gm,
+    uint64_t out_tokens_gm,
+    uint64_t comm_win_gm,
+    int32_t width,
+    int32_t valid_vocab,
+    int32_t vocab_start,
+    int32_t rank,
+    int32_t ranks)
+{
+    if ASCEND_IS_AIV {
+        if (q_len_gm == 0ULL || comm_win_gm == 0ULL || width <= 0) {
+            return;
+        }
+        DcciRange(q_len_gm, 64);
+        int32_t eff = *reinterpret_cast<__gm__ const int32_t*>(q_len_gm);
+        if (eff <= 0) {
+            return;
+        }
+        if (eff > width) {
+            eff = width;
+        }
+        const int32_t aiv = GetBlockIdx();
+        const uint32_t seq = DspineReadSeq(comm_win_gm);
+        const uint32_t epoch = seq + 1U;
+
+        const int32_t aivs_per_row = (48 / eff >= 1) ? (48 / eff) : 1;
         const int32_t r_idx = aiv / aivs_per_row;
         const int32_t sub = aiv % aivs_per_row;
         const int32_t chunk =
-            (((vocab_valid + aivs_per_row - 1) / aivs_per_row) + 63) & ~63;
+            (((valid_vocab + aivs_per_row - 1) / aivs_per_row) + 63) & ~63;
         const int32_t col_begin = sub * chunk;
         const int32_t col_end =
-            (col_begin + chunk < vocab_valid) ? (col_begin + chunk) : vocab_valid;
-        const int32_t len = (col_end > col_begin) ? (col_end - col_begin) : 0;
+            (col_begin + chunk < valid_vocab) ? (col_begin + chunk) : valid_vocab;
+        const int32_t len = (r_idx < eff && col_end > col_begin) ? (col_end - col_begin) : 0;
 
-        TBuf<TPosition::VECCALC> b_i32, b_ws8, b_x, b_bf16, b_blk, b_tmp, b_work, b_sum, b_out;
-        pipe.InitBuffer(b_i32, 2048 * 4);
-        pipe.InitBuffer(b_ws8, 2048 * 4);
-        pipe.InitBuffer(b_x, 2048 * 4);
-        pipe.InitBuffer(b_bf16, 2048 * 2);
-        pipe.InitBuffer(b_blk, 512);
-        pipe.InitBuffer(b_tmp, 2048 * 4);
-        pipe.InitBuffer(b_work, 2048 * 4);
-        pipe.InitBuffer(b_sum, 64);
-        pipe.InitBuffer(b_out, 512);
-        auto ub_i32 = b_i32.Get<int32_t>();
-        auto ub_ws8 = b_ws8.Get<float>();
+        TBuf<TPosition::VECCALC> b_x, b_blk, b_work, b_out, b_all, b_toks;
+        pipe.InitBuffer(b_x, 4096 * 4);
+        pipe.InitBuffer(b_blk, 128 * 4);
+        pipe.InitBuffer(b_work, 48 * 16 * 4);
+        pipe.InitBuffer(b_out, 128 * 4);
+        pipe.InitBuffer(b_all, 16 * 128 * 4);
+        pipe.InitBuffer(b_toks, 64 * 8);
+
         auto ub_x = b_x.Get<float>();
-        auto ub_bf16 = b_bf16.Get<bfloat16_t>();
         auto ub_blk = b_blk.Get<float>();
-        auto ub_tmp = b_tmp.Get<float>();
         auto ub_work = b_work.Get<float>();
-        auto ub_sum = b_sum.Get<float>();
         auto ub_out = b_out.Get<float>();
+        auto ub_all = b_all.Get<float>();
+        auto ub_toks = b_toks.Get<int64_t>();
 
-        GlobalTensor<int32_t> g_acc;
-        GlobalTensor<float> g_ws8, g_act_s, g_work, g_gather;
-        g_acc.SetGlobalBuffer(
-            reinterpret_cast<__gm__ int32_t*>(acc_i32_ws_gm),
-            static_cast<uint64_t>(eff) * vocab_valid);
-        g_ws8.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(w_s8_gm), vocab_valid);
-        g_act_s.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(act_s_ws_gm), eff);
+        GlobalTensor<float> g_logits, g_work;
+        GlobalTensor<int64_t> g_out_toks;
+        g_logits.SetGlobalBuffer(
+            reinterpret_cast<__gm__ float*>(logits_gm),
+            static_cast<uint64_t>(width) * valid_vocab);
         g_work.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(work_gm), 48 * 16);
-        g_gather.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(gather_in_gm), ranks * 64);
+        g_out_toks.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(out_tokens_gm), width);
 
-        DcciRange(act_s_ws_gm, eff * 4);
-        DataCopyPad(
-            ub_sum, g_act_s,
-            DataCopyExtParams{1, static_cast<uint32_t>(eff * 4), 0, 0, 0},
-            DataCopyPadExtParams<float>{false, 0, 0, 0});
-        Fence<HardEvent::MTE2_S>();
-
-        if (aiv < ranks && aiv != rank) {
-            Duplicate(ub_out, 0.0F, 64);
-            Fence<HardEvent::V_MTE3>();
-            DataCopy(g_gather[aiv * 64], ub_out, 64);
-            Fence<HardEvent::MTE3_V>();
-            Fence<HardEvent::MTE3_S>();
-        }
-
-        Duplicate(ub_x, -1.0e30F, chunk);
-        PipeBarrier<PIPE_V>();
-        float tv0 = -1.0e30F, tv1 = -1.0e30F, tv2 = -1.0e30F, tv3 = -1.0e30F;
-        int64_t ti0 = 0, ti1 = 0, ti2 = 0, ti3 = 0;
-        float l_sum = 0.0F;
-
-        if (r_idx < eff && len > 0) {
-            const float act_s = ub_sum.GetValue(r_idx);
+        bool has_best = false;
+        float best_val = 0.0F;
+        int32_t best_idx = 0;
+        for (int32_t off = 0; off < len; off += 4096) {
+            const int32_t tile_len = (len - off < 4096) ? (len - off) : 4096;
+            const int32_t tile_a64 = (tile_len + 63) & ~63;
             DataCopyPad(
-                ub_i32, g_acc[static_cast<int64_t>(r_idx) * vocab_valid + col_begin],
-                DataCopyExtParams{1, static_cast<uint32_t>(len * 4), 0, 0, 0},
-                DataCopyPadExtParams<int32_t>{false, 0, 0, 0});
-            DataCopyPad(
-                ub_ws8, g_ws8[col_begin],
-                DataCopyExtParams{1, static_cast<uint32_t>(len * 4), 0, 0, 0},
+                ub_x,
+                g_logits[static_cast<int64_t>(r_idx) * valid_vocab + col_begin + off],
+                DataCopyExtParams{1, static_cast<uint32_t>(tile_len * 4), 0, 0, 0},
                 DataCopyPadExtParams<float>{false, 0, 0, 0});
-            Fence<HardEvent::MTE2_V>();
-            const int32_t len_a16 = (len + 15) & ~15;
-            Cast(ub_tmp, ub_i32, RoundMode::CAST_RINT, len_a16);
-            PipeBarrier<PIPE_V>();
-            Mul(ub_tmp, ub_tmp, ub_ws8, len_a16);
-            PipeBarrier<PIPE_V>();
-            Muls(ub_tmp, ub_tmp, act_s, len_a16);
-            PipeBarrier<PIPE_V>();
-            Cast(ub_bf16, ub_tmp, RoundMode::CAST_RINT, len_a16);
-            PipeBarrier<PIPE_V>();
-            Cast(ub_x, ub_bf16, RoundMode::CAST_NONE, len_a16);
-            Fence<HardEvent::V_S>();
-            for (int32_t pad_j = len; pad_j < len_a16; ++pad_j) {
-                ub_x.SetValue(pad_j, -1.0e30F);
+            Fence<HardEvent::MTE2_S>();
+            for (int32_t pad_j = tile_len; pad_j < tile_a64; ++pad_j) {
+                ub_x.SetValue(pad_j, -3.4028235e38F);
             }
             Fence<HardEvent::S_V>();
-            const int32_t n_rep = chunk / 64;
+            const int32_t n_rep = tile_a64 / 64;
             WholeReduceMax<float>(ub_blk, ub_x, 64, n_rep, 1, 1, 8);
             Fence<HardEvent::V_S>();
             for (int32_t b = 0; b < n_rep; ++b) {
-                if (ub_blk.GetValue(2 * b) > KthTop4(k, tv0, tv1, tv2, tv3)) {
-                    const int32_t j_end = ((b + 1) * 64 < len) ? ((b + 1) * 64) : len;
+                const float b_max = ub_blk.GetValue(2 * b);
+                if (!has_best || b_max > best_val) {
+                    const int32_t j_end =
+                        ((b + 1) * 64 < tile_len) ? ((b + 1) * 64) : tile_len;
                     for (int32_t j = b * 64; j < j_end; ++j) {
-                        InsertTop4(
-                            ub_x.GetValue(j),
-                            static_cast<int64_t>(vocab_start + col_begin + j),
-                            tv0, tv1, tv2, tv3, ti0, ti1, ti2, ti3);
+                        const float v = ub_x.GetValue(j);
+                        const int32_t gi = vocab_start + col_begin + off + j;
+                        if (!has_best || v > best_val || (v == best_val && gi < best_idx)) {
+                            has_best = true;
+                            best_val = v;
+                            best_idx = gi;
+                        }
                     }
                 }
             }
-            Fence<HardEvent::S_V>();
-            Adds(ub_tmp, ub_x, -tv0, chunk);
-            PipeBarrier<PIPE_V>();
-            Maxs(ub_tmp, ub_tmp, -104.0F, chunk);
-            PipeBarrier<PIPE_V>();
-            Exp(ub_tmp, ub_tmp, chunk);
-            PipeBarrier<PIPE_V>();
-            ReduceSum(ub_sum, ub_tmp, ub_work, chunk);
-            Fence<HardEvent::V_S>();
-            l_sum = ub_sum.GetValue(0);
+            Fence<HardEvent::S_MTE2>();
         }
 
-        ub_out.SetValue(0, tv0);
-        ub_out.SetValue(1, l_sum);
-        ub_out.SetValue(2, tv0);
-        ub_out.SetValue(3, tv1);
-        ub_out.SetValue(4, tv2);
-        ub_out.SetValue(5, tv3);
-        ub_out.SetValue(6, static_cast<float>(ti0));
-        ub_out.SetValue(7, static_cast<float>(ti1));
-        ub_out.SetValue(8, static_cast<float>(ti2));
-        ub_out.SetValue(9, static_cast<float>(ti3));
+        auto ub_out_i32 = ub_out.ReinterpretCast<int32_t>();
+        ub_out.SetValue(0, best_val);
+        ub_out_i32.SetValue(1, best_idx);
+        ub_out_i32.SetValue(2, has_best ? 1 : 0);
         Fence<HardEvent::S_MTE3>();
         DataCopy(g_work[aiv * 16], ub_out, 16);
         Publish();
@@ -3324,88 +4261,57 @@ __aicore__ inline void RunDraftHeadTopk(
         if (aiv == 0) {
             DataCopy(ub_work, g_work, 48 * 16);
             Fence<HardEvent::MTE2_S>();
-            Fence<HardEvent::S_V>();
-            Duplicate(ub_out, 0.0F, 64);
+            Duplicate(ub_out, 0.0F, 128);
+            PipeBarrier<PIPE_V>();
             Fence<HardEvent::V_S>();
-
-            const int32_t cols = 2 + 2 * k;
+            auto ub_work_i32 = ub_work.ReinterpretCast<int32_t>();
             for (int32_t m = 0; m < eff; ++m) {
-                float rv0 = -1.0e30F, rv1 = -1.0e30F, rv2 = -1.0e30F, rv3 = -1.0e30F;
-                int64_t ri0 = 0, ri1 = 0, ri2 = 0, ri3 = 0;
+                bool r_has = false;
+                float r_val = 0.0F;
+                int32_t r_idx_best = 0;
                 for (int32_t s = 0; s < aivs_per_row; ++s) {
                     const int32_t base = (m * aivs_per_row + s) * 16;
-                    for (int32_t j = 0; j < k; ++j) {
-                        InsertTop4(
-                            ub_work.GetValue(base + 2 + j),
-                            static_cast<int64_t>(ub_work.GetValue(base + 6 + j)),
-                            rv0, rv1, rv2, rv3, ri0, ri1, ri2, ri3);
+                    if (ub_work_i32.GetValue(base + 2) == 0) {
+                        continue;
+                    }
+                    const float v = ub_work.GetValue(base + 0);
+                    const int32_t gi = ub_work_i32.GetValue(base + 1);
+                    if (!r_has || v > r_val || (v == r_val && gi < r_idx_best)) {
+                        r_has = true;
+                        r_val = v;
+                        r_idx_best = gi;
                     }
                 }
-                const float r_max = rv0;
-                Fence<HardEvent::S_V>();
-                Duplicate(ub_blk, -1.0e30F, 64);
-                Duplicate(ub_tmp, 0.0F, 64);
-                Fence<HardEvent::V_S>();
-                for (int32_t s = 0; s < aivs_per_row; ++s) {
-                    const int32_t base = (m * aivs_per_row + s) * 16;
-                    ub_blk.SetValue(s, ub_work.GetValue(base + 0));
-                    ub_tmp.SetValue(s, ub_work.GetValue(base + 1));
-                }
-                Fence<HardEvent::S_V>();
-                Adds(ub_blk, ub_blk, -r_max, 64);
-                PipeBarrier<PIPE_V>();
-                Maxs(ub_blk, ub_blk, -104.0F, 64);
-                PipeBarrier<PIPE_V>();
-                Exp(ub_blk, ub_blk, 64);
-                PipeBarrier<PIPE_V>();
-                Mul(ub_blk, ub_blk, ub_tmp, 64);
-                PipeBarrier<PIPE_V>();
-                ReduceSum(ub_sum, ub_blk, ub_x, 64);
-                Fence<HardEvent::V_S>();
-                const float r_sum = ub_sum.GetValue(0);
-
-                const int32_t out_base = m * cols;
-                ub_out.SetValue(out_base + 0, r_max);
-                ub_out.SetValue(out_base + 1, r_sum);
-                if (k >= 1) {
-                    ub_out.SetValue(out_base + 2 + 0, rv0);
-                    ub_out.SetValue(out_base + 2 + k + 0, static_cast<float>(ri0));
-                }
-                if (k >= 2) {
-                    ub_out.SetValue(out_base + 2 + 1, rv1);
-                    ub_out.SetValue(out_base + 2 + k + 1, static_cast<float>(ri1));
-                }
-                if (k >= 3) {
-                    ub_out.SetValue(out_base + 2 + 2, rv2);
-                    ub_out.SetValue(out_base + 2 + k + 2, static_cast<float>(ri2));
-                }
-                if (k >= 4) {
-                    ub_out.SetValue(out_base + 2 + 3, rv3);
-                    ub_out.SetValue(out_base + 2 + k + 3, static_cast<float>(ri3));
-                }
+                ub_out.SetValue(m, r_val);
+                ub_out_i32.SetValue(64 + m, r_idx_best);
             }
             Fence<HardEvent::S_MTE3>();
-            DataCopy(g_gather[rank * 64], ub_out, 64);
-        }
-        if (comm_win_gm == 0ULL) {
+            GlobalTensor<float> g_self_slot;
+            g_self_slot.SetGlobalBuffer(
+                reinterpret_cast<__gm__ float*>(
+                    DspinePayloadPtr(comm_win_gm, epoch, rank)),
+                128);
+            DataCopy(g_self_slot, ub_out, 128);
+            Fence<HardEvent::MTE3_S>();
+            DspineWriteSeq(comm_win_gm, epoch);
             Publish();
-            return;
         }
-        const uint32_t seq = DspineReadSeq(comm_win_gm);
-        const uint32_t epoch = seq + 1U;
-        Publish();
         SyncAll<true>();
 
-        if (aiv < ranks) {
-            DataCopy(ub_out, g_gather[rank * 64], 64);
-            Fence<HardEvent::MTE2_MTE3>();
+        if (aiv >= 1 && aiv < ranks) {
             const int32_t peer = (rank + aiv) % ranks;
-            GlobalTensor<float> g_rem;
-            g_rem.SetGlobalBuffer(
+            GlobalTensor<float> g_self_slot, g_rem_slot;
+            g_self_slot.SetGlobalBuffer(
+                reinterpret_cast<__gm__ float*>(
+                    DspinePayloadPtr(comm_win_gm, epoch, rank)),
+                128);
+            g_rem_slot.SetGlobalBuffer(
                 reinterpret_cast<__gm__ float*>(
                     aclshmem_ptr(DspinePayloadPtr(comm_win_gm, epoch, rank), peer)),
-                64);
-            DataCopy(g_rem, ub_out, 64);
+                128);
+            DataCopy(ub_out, g_self_slot, 128);
+            Fence<HardEvent::MTE2_MTE3>();
+            DataCopy(g_rem_slot, ub_out, 128);
             Fence<HardEvent::MTE3_S>();
             PipeBarrier<PIPE_ALL>();
             DataSyncBarrier<MemDsbT::DDR>();
@@ -3413,34 +4319,409 @@ __aicore__ inline void RunDraftHeadTopk(
                 aclshmem_ptr(DspineFlagPtr(comm_win_gm, epoch, rank), peer));
             *remote_sig = static_cast<int32_t>(epoch);
             dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(remote_sig));
+
+            __gm__ volatile int32_t* sig = DspineFlagPtr(comm_win_gm, epoch, peer);
+            while (true) {
+                dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(
+                    const_cast<__gm__ int32_t*>(sig)));
+                if (*sig == static_cast<int32_t>(epoch)) {
+                    break;
+                }
+            }
+            Publish();
         }
+        SyncAll<true>();
 
         if (aiv == 0) {
-            GlobalTensor<float> g_gout;
-            g_gout.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(gather_out_gm), ranks * 64);
             for (int32_t pe = 0; pe < ranks; ++pe) {
-                __gm__ volatile int32_t* sig = DspineFlagPtr(comm_win_gm, epoch, pe);
-                while (true) {
-                    dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(
-                        const_cast<__gm__ int32_t*>(sig)));
-                    if (*sig == static_cast<int32_t>(epoch)) {
-                        break;
-                    }
-                }
                 GlobalTensor<float> g_pe;
                 g_pe.SetGlobalBuffer(
                     reinterpret_cast<__gm__ float*>(
                         DspinePayloadPtr(comm_win_gm, epoch, pe)),
-                    64);
-                DataCopy(ub_out, g_pe, 64);
-                Fence<HardEvent::MTE2_MTE3>();
-                DataCopy(g_gout[pe * 64], ub_out, 64);
-                Fence<HardEvent::MTE3_MTE2>();
+                    128);
+                DataCopy(ub_all[pe * 128], g_pe, 128);
             }
+            Fence<HardEvent::MTE2_S>();
+            auto ub_all_i32 = ub_all.ReinterpretCast<int32_t>();
+            for (int32_t m = 0; m < eff; ++m) {
+                float r_val = ub_all.GetValue(m);
+                int32_t r_idx_best = ub_all_i32.GetValue(64 + m);
+                for (int32_t pe = 1; pe < ranks; ++pe) {
+                    const float v = ub_all.GetValue(pe * 128 + m);
+                    const int32_t gi = ub_all_i32.GetValue(pe * 128 + 64 + m);
+                    if (v > r_val || (v == r_val && gi < r_idx_best)) {
+                        r_val = v;
+                        r_idx_best = gi;
+                    }
+                }
+                ub_toks.SetValue(m, static_cast<int64_t>(r_idx_best));
+            }
+            for (int32_t m = eff; m < width; ++m) {
+                ub_toks.SetValue(m, 0LL);
+            }
+            Fence<HardEvent::S_MTE3>();
+            DataCopyPad(
+                g_out_toks,
+                ub_toks,
+                DataCopyExtParams{1, static_cast<uint32_t>(width * 8), 0, 0, 0});
+            Fence<HardEvent::MTE3_S>();
+            DcciRange(out_tokens_gm, width * 8);
             Publish();
-            DspineWriteSeq(comm_win_gm, epoch);
         }
+    }
+}
+
+__aicore__ inline void RunCommitGather(
+    TPipe& pipe,
+    uint64_t ctrl_gm,
+    uint64_t target_toks_gm,
+    uint64_t target_hidden_gm,
+    uint64_t ttoks_pad_gm,
+    uint64_t par_out_gm,
+    int32_t width,
+    int32_t m_max)
+{
+    if ASCEND_IS_AIV {
+        TBuf<TPosition::VECCALC> b_ctrl, b_toks, b_bf16;
+        pipe.InitBuffer(b_ctrl, 48 * 8);
+        pipe.InitBuffer(b_toks, 64 * 8);
+        pipe.InitBuffer(b_bf16, 512 * 2);
+        auto ub_ctrl = b_ctrl.Get<int64_t>();
+        auto ub_toks = b_toks.Get<int64_t>();
+        auto ub_bf16 = b_bf16.Get<bfloat16_t>();
+
+        GlobalTensor<int64_t> g_ctrl, g_ttoks, g_ttoks_pad;
+        GlobalTensor<bfloat16_t> g_hid, g_par;
+        g_ctrl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(ctrl_gm), 48);
+        g_ttoks.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(target_toks_gm), width);
+        g_ttoks_pad.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(ttoks_pad_gm), 32);
+        g_hid.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(target_hidden_gm),
+            static_cast<int64_t>(width) * 6144);
+        g_par.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(par_out_gm),
+            static_cast<int64_t>(m_max) * 6144);
+
+        DcciRange(ctrl_gm, 48 * 8);
+        DataCopy(ub_ctrl, g_ctrl, 48);
+        Fence<HardEvent::MTE2_S>();
+
+        int32_t count = static_cast<int32_t>(ub_ctrl.GetValue(2));
+        if (count <= 0) {
+            return;
+        }
+        if (count > m_max) {
+            count = m_max;
+        }
+        const int32_t aiv = GetBlockIdx();
+        if (aiv == 0) {
+            DcciRange(target_toks_gm, width * 8);
+            DataCopyPad(
+                ub_toks,
+                g_ttoks,
+                DataCopyExtParams{1, static_cast<uint32_t>(width * 8), 0, 0, 0},
+                DataCopyPadExtParams<int64_t>{false, 0, 0, 0});
+            Fence<HardEvent::MTE2_MTE3>();
+            DataCopyPad(
+                g_ttoks_pad,
+                ub_toks,
+                DataCopyExtParams{1, static_cast<uint32_t>(width * 8), 0, 0, 0});
+            Fence<HardEvent::MTE3_S>();
+            DcciRange(ttoks_pad_gm, width * 8);
+        }
+
+        for (int32_t task = aiv; task < count * 12; task += 48) {
+            const int32_t r_idx = task / 12;
+            const int64_t col = static_cast<int64_t>(task % 12) * 512;
+            int64_t row_id = ub_ctrl.GetValue(3 + r_idx);
+            if (row_id < 0) {
+                row_id = 0;
+            }
+            if (row_id >= width) {
+                row_id = width - 1;
+            }
+            DataCopy(ub_bf16, g_hid[row_id * 6144 + col], 512);
+            Fence<HardEvent::MTE2_MTE3>();
+            DataCopy(g_par[static_cast<int64_t>(r_idx) * 6144 + col], ub_bf16, 512);
+            Fence<HardEvent::MTE3_MTE2>();
+        }
+        Publish();
+    }
+}
+
+__aicore__ inline void RunCommitDualNorm(
+    TPipe& pipe,
+    uint64_t ctrl_gm,
+    uint64_t comm_out_gm,
+    uint64_t enorm_w_gm,
+    uint64_t hnorm_w_gm,
+    uint64_t eh_in_gm,
+    int32_t m_max,
+    float eps)
+{
+    if ASCEND_IS_AIV {
+        TBuf<TPosition::VECCALC> b_ctrl, b_x, b_g, b_xf, b_sq, b_gf, b_sum;
+        pipe.InitBuffer(b_ctrl, 48 * 8);
+        pipe.InitBuffer(b_x, 6144 * 2);
+        pipe.InitBuffer(b_g, 6144 * 2);
+        pipe.InitBuffer(b_xf, 6144 * 4);
+        pipe.InitBuffer(b_sq, 6144 * 4);
+        pipe.InitBuffer(b_gf, 6144 * 4);
+        pipe.InitBuffer(b_sum, 64 * 4);
+
+        auto ub_ctrl = b_ctrl.Get<int64_t>();
+        auto ub_x = b_x.Get<bfloat16_t>();
+        auto ub_g = b_g.Get<bfloat16_t>();
+        auto ub_xf = b_xf.Get<float>();
+        auto ub_sq = b_sq.Get<float>();
+        auto ub_gf = b_gf.Get<float>();
+        auto ub_sum = b_sum.Get<float>();
+
+        GlobalTensor<int64_t> g_ctrl;
+        GlobalTensor<bfloat16_t> g_in, g_ew, g_hw, g_out;
+        g_ctrl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(ctrl_gm), 48);
+        g_in.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(comm_out_gm), 2 * m_max * 6144);
+        g_ew.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(enorm_w_gm), 6144);
+        g_hw.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(hnorm_w_gm), 6144);
+        g_out.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(eh_in_gm), m_max * 12288);
+
+        DcciRange(ctrl_gm, 48 * 8);
+        DataCopy(ub_ctrl, g_ctrl, 48);
+        Fence<HardEvent::MTE2_S>();
+
+        int32_t count = static_cast<int32_t>(ub_ctrl.GetValue(2));
+        if (count <= 0) {
+            return;
+        }
+        if (count > m_max) {
+            count = m_max;
+        }
+        const int32_t aiv = GetBlockIdx();
+        for (int32_t t = aiv; t < 2 * count; t += 48) {
+            const bool is_rot = (t >= count);
+            const int32_t r_idx = is_rot ? (t - count) : t;
+            const int32_t in_row = is_rot ? (m_max + r_idx) : r_idx;
+            const int64_t out_off =
+                static_cast<int64_t>(r_idx) * 12288 + (is_rot ? 6144 : 0);
+            DataCopy(ub_x, g_in[static_cast<int64_t>(in_row) * 6144], 6144);
+            DataCopy(ub_g, is_rot ? g_hw : g_ew, 6144);
+            Fence<HardEvent::MTE2_V>();
+            Cast(ub_xf, ub_x, RoundMode::CAST_NONE, 6144);
+            Cast(ub_gf, ub_g, RoundMode::CAST_NONE, 6144);
+            PipeBarrier<PIPE_V>();
+            RmsNorm6144(ub_x, ub_xf, ub_sq, ub_gf, ub_sum, eps, false);
+            Fence<HardEvent::V_MTE3>();
+            DataCopy(g_out[out_off], ub_x, 6144);
+            Fence<HardEvent::MTE3_MTE2>();
+            Fence<HardEvent::MTE3_V>();
+        }
+        Publish();
+    }
+}
+
+__aicore__ inline void RunCommitPostMm2Seed(
+    TPipe& pipe,
+    uint64_t ctrl_gm,
+    uint64_t eh_shard_gm,
+    uint64_t sin_cache_gm,
+    uint64_t cos_cache_gm,
+    uint64_t kv_hs_gm,
+    uint64_t kv_sin_gm,
+    uint64_t kv_cos_gm,
+    uint64_t kv_slot_gm,
+    uint64_t kv_qlen_gm,
+    uint64_t kv_kvlen_gm,
+    uint64_t seed_hs_gm,
+    uint64_t seed_sin_gm,
+    uint64_t seed_cos_gm,
+    uint64_t seed_slot_gm,
+    uint64_t seed_qlen_gm,
+    uint64_t seed_kvlen_gm,
+    uint64_t comm_win_gm,
+    int32_t kv_m_cap,
+    int32_t rank,
+    int32_t ranks)
+{
+    if ASCEND_IS_AIV {
+        if (comm_win_gm == 0ULL) {
+            return;
+        }
+        TBuf<TPosition::VECCALC> b_ctrl, b_in, b_rem, b_rope, b_i64, b_i32;
+        pipe.InitBuffer(b_ctrl, 48 * 8);
+        pipe.InitBuffer(b_in, 12288 * 2);
+        pipe.InitBuffer(b_rem, 12288 * 2);
+        pipe.InitBuffer(b_rope, 128 * 2);
+        pipe.InitBuffer(b_i64, 32 * 8);
+        pipe.InitBuffer(b_i32, 32 * 4);
+
+        auto ub_ctrl = b_ctrl.Get<int64_t>();
+        auto ub_in = b_in.Get<bfloat16_t>();
+        auto ub_rem = b_rem.Get<bfloat16_t>();
+        auto ub_rope = b_rope.Get<bfloat16_t>();
+        auto ub_i64 = b_i64.Get<int64_t>();
+        auto ub_i32 = b_i32.Get<int32_t>();
+
+        GlobalTensor<int64_t> g_ctrl;
+        g_ctrl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(ctrl_gm), 48);
+        DcciRange(ctrl_gm, 48 * 8);
+        DataCopy(ub_ctrl, g_ctrl, 48);
+        Fence<HardEvent::MTE2_S>();
+
+        const int64_t main_start = ub_ctrl.GetValue(0);
+        int32_t count = static_cast<int32_t>(ub_ctrl.GetValue(1));
+        if (count <= 0) {
+            return;
+        }
+        if (count > kv_m_cap) {
+            count = kv_m_cap;
+        }
+        const int32_t aiv = GetBlockIdx();
+        const uint32_t seq = DspineReadSeq(comm_win_gm);
+        const uint32_t epoch = seq + 1U;
         SyncAll<true>();
+
+        const int32_t kv_rows = count - 1;
+        const int32_t seed_idx = count - 1;
+        const int64_t seed_pos = main_start + static_cast<int64_t>(seed_idx);
+        const int32_t total_elems = count * kDspineShardDim;
+        const uint16_t blk_len = static_cast<uint16_t>(kDspineShardDim * 2 / 32);
+        const uint16_t dst_str = static_cast<uint16_t>((6144 - kDspineShardDim) * 2 / 32);
+
+        GlobalTensor<bfloat16_t> g_eh, g_kv_hs, g_seed_hs;
+        g_eh.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(eh_shard_gm),
+            kv_m_cap * kDspineShardDim);
+        g_kv_hs.SetGlobalBuffer(
+            reinterpret_cast<__gm__ bfloat16_t*>(kv_hs_gm), kv_m_cap * 6144);
+        g_seed_hs.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(seed_hs_gm), 6144);
+
+        if (aiv == 0) {
+            DspineWriteSeq(comm_win_gm, epoch);
+            DataCopy(ub_in, g_eh, total_elems);
+            Fence<HardEvent::MTE2_MTE3>();
+            if (kv_rows > 0) {
+                DataCopy(
+                    g_kv_hs[static_cast<int64_t>(rank) * kDspineShardDim],
+                    ub_in,
+                    DataCopyParams{
+                        static_cast<uint16_t>(kv_rows), blk_len, 0, dst_str});
+            }
+            DataCopy(
+                g_seed_hs[static_cast<int64_t>(rank) * kDspineShardDim],
+                ub_in[seed_idx * kDspineShardDim],
+                kDspineShardDim);
+
+            for (int32_t r = 0; r < kv_m_cap; ++r) {
+                ub_i64.SetValue(r, (r < kv_rows) ? (main_start + r) : (9296LL + r));
+            }
+            ub_i64.SetValue(16, seed_pos);
+            ub_i32.SetValue(0, kv_rows);
+            ub_i32.SetValue(8, static_cast<int32_t>(main_start + kv_rows));
+            ub_i32.SetValue(16, 1);
+            ub_i32.SetValue(24, static_cast<int32_t>(seed_pos + 1));
+            Fence<HardEvent::S_MTE3>();
+
+            GlobalTensor<int64_t> g_kv_sl, g_s_sl;
+            GlobalTensor<int32_t> g_kv_ql, g_kv_kvl, g_s_ql, g_s_kvl;
+            g_kv_sl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(kv_slot_gm), kv_m_cap);
+            g_s_sl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(seed_slot_gm), 1);
+            g_kv_ql.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(kv_qlen_gm), 1);
+            g_kv_kvl.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(kv_kvlen_gm), 1);
+            g_s_ql.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(seed_qlen_gm), 1);
+            g_s_kvl.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(seed_kvlen_gm), 1);
+
+            DataCopyPad(g_kv_sl, ub_i64[0], DataCopyExtParams{
+                1, static_cast<uint32_t>(kv_m_cap * sizeof(int64_t)), 0, 0, 0});
+            DataCopyPad(g_s_sl, ub_i64[16], DataCopyExtParams{1, sizeof(int64_t), 0, 0, 0});
+            DataCopyPad(g_kv_ql, ub_i32[0], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
+            DataCopyPad(g_kv_kvl, ub_i32[8], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
+            DataCopyPad(g_s_ql, ub_i32[16], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
+            DataCopyPad(g_s_kvl, ub_i32[24], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
+            Fence<HardEvent::MTE3_S>();
+            DcciRange(kv_slot_gm, kv_m_cap * sizeof(int64_t));
+            DcciRange(seed_slot_gm, sizeof(int64_t));
+            DcciRange(kv_qlen_gm, sizeof(int32_t));
+            DcciRange(kv_kvlen_gm, sizeof(int32_t));
+            DcciRange(seed_qlen_gm, sizeof(int32_t));
+            DcciRange(seed_kvlen_gm, sizeof(int32_t));
+        } else if (aiv < ranks) {
+            const int32_t peer = (rank + aiv) % ranks;
+            GlobalTensor<bfloat16_t> g_rem_slot, g_local_peer;
+            g_rem_slot.SetGlobalBuffer(
+                reinterpret_cast<__gm__ bfloat16_t*>(
+                    aclshmem_ptr(DspinePayloadPtr(comm_win_gm, epoch, rank), peer)),
+                total_elems);
+            g_local_peer.SetGlobalBuffer(
+                reinterpret_cast<__gm__ bfloat16_t*>(
+                    DspinePayloadPtr(comm_win_gm, epoch, peer)),
+                total_elems);
+            DataCopy(ub_in, g_eh, total_elems);
+            Fence<HardEvent::MTE2_MTE3>();
+            DataCopy(g_rem_slot, ub_in, total_elems);
+            Fence<HardEvent::MTE3_S>();
+            PipeBarrier<PIPE_ALL>();
+            DataSyncBarrier<MemDsbT::DDR>();
+            __gm__ int32_t* remote_sig = reinterpret_cast<__gm__ int32_t*>(
+                aclshmem_ptr(DspineFlagPtr(comm_win_gm, epoch, rank), peer));
+            *remote_sig = static_cast<int32_t>(epoch);
+            dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(remote_sig));
+
+            __gm__ volatile int32_t* sig = DspineFlagPtr(comm_win_gm, epoch, peer);
+            while (true) {
+                dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(
+                    const_cast<__gm__ int32_t*>(sig)));
+                if (*sig == static_cast<int32_t>(epoch)) {
+                    break;
+                }
+            }
+            DataCopy(ub_rem, g_local_peer, total_elems);
+            Fence<HardEvent::MTE2_MTE3>();
+            if (kv_rows > 0) {
+                DataCopy(
+                    g_kv_hs[static_cast<int64_t>(peer) * kDspineShardDim],
+                    ub_rem,
+                    DataCopyParams{
+                        static_cast<uint16_t>(kv_rows), blk_len, 0, dst_str});
+            }
+            DataCopy(
+                g_seed_hs[static_cast<int64_t>(peer) * kDspineShardDim],
+                ub_rem[seed_idx * kDspineShardDim],
+                kDspineShardDim);
+        }
+
+        if (aiv >= 24 && aiv < 24 + kv_rows) {
+            GlobalTensor<bfloat16_t> g_sin_c, g_cos_c, g_kv_sin, g_kv_cos;
+            g_sin_c.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(sin_cache_gm));
+            g_cos_c.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(cos_cache_gm));
+            g_kv_sin.SetGlobalBuffer(
+                reinterpret_cast<__gm__ bfloat16_t*>(kv_sin_gm), kv_m_cap * 64);
+            g_kv_cos.SetGlobalBuffer(
+                reinterpret_cast<__gm__ bfloat16_t*>(kv_cos_gm), kv_m_cap * 64);
+            const int32_t r = aiv - 24;
+            const int64_t p = main_start + r;
+            DataCopy(ub_rope[0], g_sin_c[p * 64], 64);
+            DataCopy(ub_rope[64], g_cos_c[p * 64], 64);
+            Fence<HardEvent::MTE2_MTE3>();
+            DataCopy(g_kv_sin[r * 64], ub_rope[0], 64);
+            DataCopy(g_kv_cos[r * 64], ub_rope[64], 64);
+        }
+
+        if (aiv == 47) {
+            GlobalTensor<bfloat16_t> g_sin_c, g_cos_c, g_s_sin, g_s_cos;
+            g_sin_c.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(sin_cache_gm));
+            g_cos_c.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(cos_cache_gm));
+            g_s_sin.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(seed_sin_gm), 64);
+            g_s_cos.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(seed_cos_gm), 64);
+            DataCopy(ub_rope[0], g_sin_c[seed_pos * 64], 64);
+            DataCopy(ub_rope[64], g_cos_c[seed_pos * 64], 64);
+            Fence<HardEvent::MTE2_MTE3>();
+            DataCopy(g_s_sin, ub_rope[0], 64);
+            DataCopy(g_s_cos, ub_rope[64], 64);
+        }
+
+        Publish();
     }
 }
 }
@@ -4176,7 +5457,166 @@ extern "C" int tilert_dspine_draft_head_topk_raw(
         m_rows, vocab_valid, vocab_start, k, rank, ranks, eps);
     return 0;
 }
+
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
+void dspine_target_prolog_k(
+    uint64_t sync_base, uint64_t q_len_gm, uint64_t t_ids_gm, uint64_t emb_w_gm,
+    uint64_t gamma_gm, uint64_t emb_out_gm, uint64_t l0_normed_gm, uint64_t comm_win_gm,
+    int32_t width, int32_t vocab_size, int32_t vocab_start, int32_t vocab_end,
+    int32_t rank, int32_t ranks, float eps)
+{
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
+    AscendC::InitSocState();
+    AscendC::SetSyncBaseAddr(sync_base);
+    AscendC::TPipe pipe;
+    dspine_ops::RunTargetProlog(
+        pipe, q_len_gm, t_ids_gm, emb_w_gm, gamma_gm, emb_out_gm, l0_normed_gm,
+        comm_win_gm, width, vocab_size, vocab_start, vocab_end, rank, ranks, eps);
+}
+
+extern "C" int tilert_dspine_target_prolog_raw(
+    void* stream, uint64_t sync_base, uint64_t q_len_gm, uint64_t t_ids_gm,
+    uint64_t emb_w_gm, uint64_t gamma_gm, uint64_t emb_out_gm, uint64_t l0_normed_gm,
+    uint64_t comm_win_gm, int32_t width, int32_t vocab_size,
+    int32_t vocab_start, int32_t vocab_end, int32_t rank, int32_t ranks, float eps)
+{
+    dspine_target_prolog_k<<<48, nullptr, stream>>>(
+        sync_base, q_len_gm, t_ids_gm, emb_w_gm, gamma_gm, emb_out_gm, l0_normed_gm,
+        comm_win_gm, width, vocab_size, vocab_start, vocab_end, rank, ranks, eps);
+    return 0;
+}
+
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
+void dspine_target_add_rmsnorm_k(
+    uint64_t q_len_gm, uint64_t x1_gm, uint64_t x2_gm, uint64_t gamma_gm,
+    uint64_t out_gm, int32_t width, float eps)
+{
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
+    AscendC::InitSocState();
+    AscendC::TPipe pipe;
+    dspine_ops::RunTargetAddRmsNorm(
+        pipe, q_len_gm, x1_gm, x2_gm, gamma_gm, out_gm, width, eps);
+}
+
+extern "C" int tilert_dspine_target_add_rmsnorm_raw(
+    void* stream, uint64_t q_len_gm, uint64_t x1_gm, uint64_t x2_gm,
+    uint64_t gamma_gm, uint64_t out_gm, int32_t width, float eps)
+{
+    dspine_target_add_rmsnorm_k<<<48, nullptr, stream>>>(
+        q_len_gm, x1_gm, x2_gm, gamma_gm, out_gm, width, eps);
+    return 0;
+}
+
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
+void dspine_target_argmax_k(
+    uint64_t sync_base, uint64_t q_len_gm, uint64_t logits_gm, uint64_t work_gm,
+    uint64_t out_tokens_gm, uint64_t comm_win_gm, int32_t width,
+    int32_t valid_vocab, int32_t vocab_start, int32_t rank, int32_t ranks)
+{
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
+    AscendC::InitSocState();
+    AscendC::SetSyncBaseAddr(sync_base);
+    AscendC::TPipe pipe;
+    dspine_ops::RunTargetArgmax(
+        pipe, q_len_gm, logits_gm, work_gm, out_tokens_gm, comm_win_gm,
+        width, valid_vocab, vocab_start, rank, ranks);
+}
+
+extern "C" int tilert_dspine_target_argmax_raw(
+    void* stream, uint64_t sync_base, uint64_t q_len_gm, uint64_t logits_gm,
+    uint64_t work_gm, uint64_t out_tokens_gm, uint64_t comm_win_gm, int32_t width,
+    int32_t valid_vocab, int32_t vocab_start, int32_t rank, int32_t ranks)
+{
+    dspine_target_argmax_k<<<48, nullptr, stream>>>(
+        sync_base, q_len_gm, logits_gm, work_gm, out_tokens_gm, comm_win_gm,
+        width, valid_vocab, vocab_start, rank, ranks);
+    return 0;
+}
+
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
+void dspine_commit_gather_k(
+    uint64_t ctrl_gm, uint64_t target_toks_gm, uint64_t target_hidden_gm,
+    uint64_t ttoks_pad_gm, uint64_t par_out_gm, int32_t width, int32_t m_max)
+{
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
+    AscendC::InitSocState();
+    AscendC::TPipe pipe;
+    dspine_ops::RunCommitGather(
+        pipe, ctrl_gm, target_toks_gm, target_hidden_gm, ttoks_pad_gm,
+        par_out_gm, width, m_max);
+}
+
+extern "C" int tilert_dspine_commit_gather_raw(
+    void* stream, uint64_t ctrl_gm, uint64_t target_toks_gm, uint64_t target_hidden_gm,
+    uint64_t ttoks_pad_gm, uint64_t par_out_gm, int32_t width, int32_t m_max)
+{
+    dspine_commit_gather_k<<<48, nullptr, stream>>>(
+        ctrl_gm, target_toks_gm, target_hidden_gm, ttoks_pad_gm,
+        par_out_gm, width, m_max);
+    return 0;
+}
+
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
+void dspine_commit_dual_norm_k(
+    uint64_t ctrl_gm, uint64_t comm_out_gm, uint64_t enorm_w_gm, uint64_t hnorm_w_gm,
+    uint64_t eh_in_gm, int32_t m_max, float eps)
+{
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
+    AscendC::InitSocState();
+    AscendC::TPipe pipe;
+    dspine_ops::RunCommitDualNorm(
+        pipe, ctrl_gm, comm_out_gm, enorm_w_gm, hnorm_w_gm, eh_in_gm, m_max, eps);
+}
+
+extern "C" int tilert_dspine_commit_dual_norm_raw(
+    void* stream, uint64_t ctrl_gm, uint64_t comm_out_gm, uint64_t enorm_w_gm,
+    uint64_t hnorm_w_gm, uint64_t eh_in_gm, int32_t m_max, float eps)
+{
+    dspine_commit_dual_norm_k<<<48, nullptr, stream>>>(
+        ctrl_gm, comm_out_gm, enorm_w_gm, hnorm_w_gm, eh_in_gm, m_max, eps);
+    return 0;
+}
+
+extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__
+void dspine_commit_post_mm2_seed_k(
+    uint64_t sync_base, uint64_t ctrl_gm, uint64_t eh_shard_gm,
+    uint64_t sin_cache_gm, uint64_t cos_cache_gm,
+    uint64_t kv_hs_gm, uint64_t kv_sin_gm, uint64_t kv_cos_gm,
+    uint64_t kv_slot_gm, uint64_t kv_qlen_gm, uint64_t kv_kvlen_gm,
+    uint64_t seed_hs_gm, uint64_t seed_sin_gm, uint64_t seed_cos_gm,
+    uint64_t seed_slot_gm, uint64_t seed_qlen_gm, uint64_t seed_kvlen_gm,
+    uint64_t comm_win_gm, int32_t kv_m_cap, int32_t rank, int32_t ranks)
+{
+    KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_AIV_ONLY);
+    AscendC::InitSocState();
+    AscendC::SetSyncBaseAddr(sync_base);
+    AscendC::TPipe pipe;
+    dspine_ops::RunCommitPostMm2Seed(
+        pipe, ctrl_gm, eh_shard_gm, sin_cache_gm, cos_cache_gm,
+        kv_hs_gm, kv_sin_gm, kv_cos_gm, kv_slot_gm, kv_qlen_gm, kv_kvlen_gm,
+        seed_hs_gm, seed_sin_gm, seed_cos_gm, seed_slot_gm, seed_qlen_gm, seed_kvlen_gm,
+        comm_win_gm, kv_m_cap, rank, ranks);
+}
+
+extern "C" int tilert_dspine_commit_post_mm2_seed_raw(
+    void* stream, uint64_t sync_base, uint64_t ctrl_gm, uint64_t eh_shard_gm,
+    uint64_t sin_cache_gm, uint64_t cos_cache_gm,
+    uint64_t kv_hs_gm, uint64_t kv_sin_gm, uint64_t kv_cos_gm,
+    uint64_t kv_slot_gm, uint64_t kv_qlen_gm, uint64_t kv_kvlen_gm,
+    uint64_t seed_hs_gm, uint64_t seed_sin_gm, uint64_t seed_cos_gm,
+    uint64_t seed_slot_gm, uint64_t seed_qlen_gm, uint64_t seed_kvlen_gm,
+    uint64_t comm_win_gm, int32_t kv_m_cap, int32_t rank, int32_t ranks)
+{
+    dspine_commit_post_mm2_seed_k<<<48, nullptr, stream>>>(
+        sync_base, ctrl_gm, eh_shard_gm, sin_cache_gm, cos_cache_gm,
+        kv_hs_gm, kv_sin_gm, kv_cos_gm, kv_slot_gm, kv_qlen_gm, kv_kvlen_gm,
+        seed_hs_gm, seed_sin_gm, seed_cos_gm, seed_slot_gm, seed_qlen_gm, seed_kvlen_gm,
+        comm_win_gm, kv_m_cap, rank, ranks);
+    return 0;
+}
 """
+
+KERNEL_CPP = _DSPINE_HEAD_CPP + "\n" + DSPINE_WALK_SHARED_CPP + "\n" + _DSPINE_BODY_CPP
 
 HOST_CPP = """#include <cstdint>
 #include <cstring>
@@ -4287,6 +5727,32 @@ int tilert_dspine_draft_head_topk_raw(
     uint64_t work_gm, uint64_t gather_in_gm, uint64_t gather_out_gm,
     uint64_t comm_win_gm, int32_t m_rows, int32_t vocab_valid,
     int32_t vocab_start, int32_t k, int32_t rank, int32_t ranks, float eps);
+int tilert_dspine_target_prolog_raw(
+    void* stream, uint64_t sync_base, uint64_t q_len_gm, uint64_t t_ids_gm,
+    uint64_t emb_w_gm, uint64_t gamma_gm, uint64_t emb_out_gm, uint64_t l0_normed_gm,
+    uint64_t comm_win_gm, int32_t width, int32_t vocab_size,
+    int32_t vocab_start, int32_t vocab_end, int32_t rank, int32_t ranks, float eps);
+int tilert_dspine_target_add_rmsnorm_raw(
+    void* stream, uint64_t q_len_gm, uint64_t x1_gm, uint64_t x2_gm,
+    uint64_t gamma_gm, uint64_t out_gm, int32_t width, float eps);
+int tilert_dspine_target_argmax_raw(
+    void* stream, uint64_t sync_base, uint64_t q_len_gm, uint64_t logits_gm,
+    uint64_t work_gm, uint64_t out_tokens_gm, uint64_t comm_win_gm, int32_t width,
+    int32_t valid_vocab, int32_t vocab_start, int32_t rank, int32_t ranks);
+int tilert_dspine_commit_gather_raw(
+    void* stream, uint64_t ctrl_gm, uint64_t target_toks_gm, uint64_t target_hidden_gm,
+    uint64_t ttoks_pad_gm, uint64_t par_out_gm, int32_t width, int32_t m_max);
+int tilert_dspine_commit_dual_norm_raw(
+    void* stream, uint64_t ctrl_gm, uint64_t comm_out_gm, uint64_t enorm_w_gm,
+    uint64_t hnorm_w_gm, uint64_t eh_in_gm, int32_t m_max, float eps);
+int tilert_dspine_commit_post_mm2_seed_raw(
+    void* stream, uint64_t sync_base, uint64_t ctrl_gm, uint64_t eh_shard_gm,
+    uint64_t sin_cache_gm, uint64_t cos_cache_gm,
+    uint64_t kv_hs_gm, uint64_t kv_sin_gm, uint64_t kv_cos_gm,
+    uint64_t kv_slot_gm, uint64_t kv_qlen_gm, uint64_t kv_kvlen_gm,
+    uint64_t seed_hs_gm, uint64_t seed_sin_gm, uint64_t seed_cos_gm,
+    uint64_t seed_slot_gm, uint64_t seed_qlen_gm, uint64_t seed_kvlen_gm,
+    uint64_t comm_win_gm, int32_t kv_m_cap, int32_t rank, int32_t ranks);
 int32_t rtGetC2cCtrlAddr(uint64_t* address, uint32_t* length);
 
 static inline uint64_t ResolveSyncBase(uint64_t sync_base)
@@ -4545,7 +6011,7 @@ uint64_t tilert_dspine_alloc_comm_win()
     if (aclshmemx_init_status() != ACLSHMEM_STATUS_IS_INITIALIZED) {
         return 0ULL;
     }
-    constexpr size_t kBytes = 8ULL << 20;
+    constexpr size_t kBytes = 24ULL << 20;
     void* ptr = aclshmem_align(128, kBytes);
     if (ptr == nullptr) {
         return 0ULL;
@@ -4581,6 +6047,75 @@ int tilert_dspine_draft_head_topk_launch(
         recs_out_gm, act_q_ws_gm, act_s_ws_gm, acc_i32_ws_gm, work_gm,
         gather_in_gm, gather_out_gm, comm_win_gm,
         m_rows, vocab_valid, vocab_start, k, rank, ranks, eps);
+}
+
+int tilert_dspine_target_prolog_launch(
+    void*, uint64_t sync_base, uint64_t q_len_gm, uint64_t t_ids_gm,
+    uint64_t emb_w_gm, uint64_t gamma_gm, uint64_t emb_out_gm, uint64_t l0_normed_gm,
+    uint64_t comm_win_gm, int32_t width, int32_t vocab_size,
+    int32_t vocab_start, int32_t vocab_end, int32_t rank, int32_t ranks, float eps)
+{
+    return tilert_dspine_target_prolog_raw(
+        c10_npu::getCurrentNPUStream().stream(true),
+        ResolveSyncBase(sync_base), q_len_gm, t_ids_gm, emb_w_gm, gamma_gm,
+        emb_out_gm, l0_normed_gm, comm_win_gm, width, vocab_size,
+        vocab_start, vocab_end, rank, ranks, eps);
+}
+
+int tilert_dspine_target_add_rmsnorm_launch(
+    void*, uint64_t q_len_gm, uint64_t x1_gm, uint64_t x2_gm,
+    uint64_t gamma_gm, uint64_t out_gm, int32_t width, float eps)
+{
+    return tilert_dspine_target_add_rmsnorm_raw(
+        c10_npu::getCurrentNPUStream().stream(true),
+        q_len_gm, x1_gm, x2_gm, gamma_gm, out_gm, width, eps);
+}
+
+int tilert_dspine_target_argmax_launch(
+    void*, uint64_t sync_base, uint64_t q_len_gm, uint64_t logits_gm,
+    uint64_t work_gm, uint64_t out_tokens_gm, uint64_t comm_win_gm, int32_t width,
+    int32_t valid_vocab, int32_t vocab_start, int32_t rank, int32_t ranks)
+{
+    return tilert_dspine_target_argmax_raw(
+        c10_npu::getCurrentNPUStream().stream(true),
+        ResolveSyncBase(sync_base), q_len_gm, logits_gm, work_gm, out_tokens_gm,
+        comm_win_gm, width, valid_vocab, vocab_start, rank, ranks);
+}
+
+int tilert_dspine_commit_gather_launch(
+    void*, uint64_t ctrl_gm, uint64_t target_toks_gm, uint64_t target_hidden_gm,
+    uint64_t ttoks_pad_gm, uint64_t par_out_gm, int32_t width, int32_t m_max)
+{
+    return tilert_dspine_commit_gather_raw(
+        c10_npu::getCurrentNPUStream().stream(true),
+        ctrl_gm, target_toks_gm, target_hidden_gm, ttoks_pad_gm, par_out_gm,
+        width, m_max);
+}
+
+int tilert_dspine_commit_dual_norm_launch(
+    void*, uint64_t ctrl_gm, uint64_t comm_out_gm, uint64_t enorm_w_gm,
+    uint64_t hnorm_w_gm, uint64_t eh_in_gm, int32_t m_max, float eps)
+{
+    return tilert_dspine_commit_dual_norm_raw(
+        c10_npu::getCurrentNPUStream().stream(true),
+        ctrl_gm, comm_out_gm, enorm_w_gm, hnorm_w_gm, eh_in_gm, m_max, eps);
+}
+
+int tilert_dspine_commit_post_mm2_seed_launch(
+    void*, uint64_t sync_base, uint64_t ctrl_gm, uint64_t eh_shard_gm,
+    uint64_t sin_cache_gm, uint64_t cos_cache_gm,
+    uint64_t kv_hs_gm, uint64_t kv_sin_gm, uint64_t kv_cos_gm,
+    uint64_t kv_slot_gm, uint64_t kv_qlen_gm, uint64_t kv_kvlen_gm,
+    uint64_t seed_hs_gm, uint64_t seed_sin_gm, uint64_t seed_cos_gm,
+    uint64_t seed_slot_gm, uint64_t seed_qlen_gm, uint64_t seed_kvlen_gm,
+    uint64_t comm_win_gm, int32_t kv_m_cap, int32_t rank, int32_t ranks)
+{
+    return tilert_dspine_commit_post_mm2_seed_raw(
+        c10_npu::getCurrentNPUStream().stream(true),
+        ResolveSyncBase(sync_base), ctrl_gm, eh_shard_gm, sin_cache_gm, cos_cache_gm,
+        kv_hs_gm, kv_sin_gm, kv_cos_gm, kv_slot_gm, kv_qlen_gm, kv_kvlen_gm,
+        seed_hs_gm, seed_sin_gm, seed_cos_gm, seed_slot_gm, seed_qlen_gm, seed_kvlen_gm,
+        comm_win_gm, kv_m_cap, rank, ranks);
 }
 }"""
 
