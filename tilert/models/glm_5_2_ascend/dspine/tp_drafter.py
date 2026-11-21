@@ -287,6 +287,14 @@ def _load_ops_cdll(so_path: Path, rank: int) -> ctypes.CDLL:
         ctypes.c_int32,
     ]
     lib.tilert_dspine_commit_mm_k128_launch.restype = ctypes.c_int
+
+    lib.tilert_dspine_commit_fused_launch.argtypes = [
+        ctypes.c_void_p,
+        *([ctypes.c_uint64] * 29),
+        *([ctypes.c_int32] * 7),
+        ctypes.c_float,
+    ]
+    lib.tilert_dspine_commit_fused_launch.restype = ctypes.c_int
     return lib
 
 
@@ -611,21 +619,29 @@ class CalibratedL78V3Runner:
         self.compact_ctrl_dev = cmp_u8.view(torch.int64)
 
         cm = self.COMMIT_M
+        cm_buf = cm + 1 if self.world_size == 16 else cm
+        self.commit_buf_m = cm_buf
         self.commit_ttoks_pad32 = torch.zeros((32,), dtype=torch.int64, device=dev)
         _, cmt_u8 = self._alloc_bytes(48 * 8, 64, zero=True)
         self.commit_ctrl_dev = cmt_u8.view(torch.int64)
         self.commit_acc_i32 = cmt_u8[8:12].view(torch.int32)
         self.commit_2acc_i32 = cmt_u8[47 * 8 : 47 * 8 + 4].view(torch.int32)
-        self.commit_par_m = torch.zeros((cm, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
-        self.commit_rot_shard = torch.zeros((cm, self.shard_dim), dtype=torch.bfloat16, device=dev)
+        self.commit_par_m = torch.zeros((cm_buf, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
+        self.commit_rot_shard = torch.zeros(
+            (cm_buf, self.shard_dim), dtype=torch.bfloat16, device=dev
+        )
         self.commit_comm_in = torch.zeros((4 * cm, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
         self.commit_comm_out = torch.zeros((4 * cm, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
-        self.commit_eh_in = torch.zeros((cm, 2 * HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
-        self.commit_eh_shard = torch.zeros((cm, self.shard_dim), dtype=torch.bfloat16, device=dev)
+        self.commit_eh_in = torch.zeros((cm_buf, 2 * HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
+        self.commit_eh_shard = torch.zeros(
+            (cm_buf, self.shard_dim), dtype=torch.bfloat16, device=dev
+        )
         self.commit_eh_comm = torch.zeros((2 * cm, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
         self.commit_hs_all = torch.zeros((2 * cm, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
         self.kv_commit_topk = torch.zeros((cm, 1, 2048), dtype=torch.int32, device=dev)
 
+        self.seed_args_dev = None
+        self.fn_set_seed_args = None
         self._build_v3_entries()
         self.sync_addr = int(self.entry_cal_idx_1.sync)
 
@@ -870,6 +886,60 @@ class CalibratedL78V3Runner:
                 int(self.exact_idx_work.data_ptr()),
                 float(K_NORM_EPS),
             )
+        self.fn_set_seed_args = getattr(
+            klib, f"layer_tp_tree_set_seed_args_ptr_K{need_ver}", None
+        )
+        if self.fn_set_seed_args is not None:
+            self.fn_set_seed_args.argtypes = [ctypes.c_uint64]
+            self.fn_set_seed_args.restype = None
+            if self.world_size == 16:
+                s0_gamma = (
+                    self.wt.logit_norm_seed0
+                    if self.wt.logit_norm_seed0 is not None
+                    else self.dw.shared_head_norm_w
+                )
+                k_seed = max(2, self.b0) if self.narrow_topk else 4
+                head_bytes = int(
+                    self.cal_head_w_q8_nz.numel() * self.cal_head_w_q8_nz.element_size()
+                )
+                pf_bytes = min(head_bytes, 24 << 20) & ~65535
+                seed_payload = struct.pack(
+                    "<" + "Q" * 17 + "i" * 8 + "fI" + "Q" * 10,
+                    int(self.comm_win),
+                    int(s0_gamma.data_ptr()),
+                    int(self.cal_head_w_q8_nz.data_ptr()),
+                    int(self.cal_head_s8.data_ptr()),
+                    int(self.seed_rec_buf.data_ptr()),
+                    int(self.c2b_act_q.data_ptr()),
+                    int(self.c2b_act_s.data_ptr()),
+                    int(self.c2b_acc_i32.data_ptr()),
+                    int(self.logits_work.data_ptr()),
+                    int(self.gather_in.data_ptr()),
+                    int(self.gather_out.data_ptr()),
+                    int(self.draft_ctrl_dev.data_ptr()),
+                    int(self.seed_top_i.data_ptr()),
+                    int(self.seed_top_lp.data_ptr()),
+                    int(self.prefix_topk_buf.data_ptr()),
+                    int(self.draft_indices_buf.data_ptr()),
+                    int(self.beam_work.data_ptr()),
+                    int(self.head_valid_vocab),
+                    int(self.head_vocab_start),
+                    int(k_seed),
+                    int(self.b0),
+                    int(self.max_b),
+                    int(self.k_sfa),
+                    int(self.rank),
+                    int(self.world_size),
+                    float(self.norm_eps),
+                    int(pf_bytes),
+                    *([0] * 10),
+                )
+                self.seed_args_dev = self._alloc_from(
+                    torch.frombuffer(bytearray(seed_payload), dtype=torch.uint8), 64
+                )
+                self.fn_set_seed_args(int(self.seed_args_dev.data_ptr()))
+            else:
+                self.fn_set_seed_args(0)
 
         dev = self.dev
         dw = self.dw
@@ -1423,121 +1493,187 @@ class CalibratedL78V3Runner:
                 raise RuntimeError(f"kv_compact failed: {st}")
             self._ev_cmp_join.record(self.compact_stream)
 
-        st = self.wt.ops.tilert_dspine_commit_gather_launch(
-            stream_ptr,
-            self.commit_ctrl_dev.data_ptr(),
-            self.st["target_tokens"].data_ptr(),
-            self.st["target_hidden"].data_ptr(),
-            self.commit_ttoks_pad32.data_ptr(),
-            self.commit_par_m.data_ptr(),
-            self.w,
-            cm,
-        )
-        if st != 0:
-            raise RuntimeError(f"dspine_commit_gather failed: {st}")
-        st = self.wt.ops.tilert_dspine_commit_mm_k128_launch(
-            stream_ptr,
-            self.sync_addr,
-            self.commit_ctrl_dev.data_ptr(),
-            self.commit_par_m.data_ptr(),
-            self.rot_shard_nz.data_ptr(),
-            self.commit_rot_shard.data_ptr(),
-            cm,
-            HIDDEN_SIZE,
-        )
-        if st != 0:
-            raise RuntimeError(f"dspine_commit_mm_k128 rot failed: {st}")
-        st = self.wt.ops.tilert_dspine_prolog_pack_compact_launch(
-            stream_ptr,
-            self.commit_ctrl_dev.data_ptr(),
-            self.commit_ttoks_pad32.data_ptr(),
-            self.emb_w.data_ptr(),
-            self.commit_rot_shard.data_ptr(),
-            self.commit_comm_in.data_ptr(),
-            cm,
-            self.emb_vocab_start,
-            self.emb_vocab_end,
-            self.rank,
-        )
-        if st != 0:
-            raise RuntimeError(f"dspine_prolog_pack_compact failed: {st}")
+        if self.world_size == 16 and hasattr(self.wt.ops, "tilert_dspine_commit_fused_launch"):
+            st = self.wt.ops.tilert_dspine_commit_fused_launch(
+                stream_ptr,
+                self.sync_addr,
+                self.commit_ctrl_dev.data_ptr(),
+                self.st["target_tokens"].data_ptr(),
+                self.st["target_hidden"].data_ptr(),
+                self.commit_par_m.data_ptr(),
+                self.rot_shard_nz.data_ptr(),
+                self.commit_rot_shard.data_ptr(),
+                self.emb_w.data_ptr(),
+                self.enorm_w.data_ptr(),
+                self.hnorm_w.data_ptr(),
+                self.commit_comm_out.data_ptr(),
+                self.commit_eh_in.data_ptr(),
+                self.w_eh_col_nz.data_ptr(),
+                self.commit_eh_shard.data_ptr(),
+                sin_ptr,
+                cos_ptr,
+                ekv.hs_in.data_ptr(),
+                ekv.sin_buf.data_ptr(),
+                ekv.cos_buf.data_ptr(),
+                ekv.slot_i64.data_ptr(),
+                ekv.q_len.data_ptr(),
+                ekv.kv_len.data_ptr(),
+                e1.hs_in.data_ptr(),
+                e1.sin_buf.data_ptr(),
+                e1.cos_buf.data_ptr(),
+                e1.slot_i64.data_ptr(),
+                e1.q_len.data_ptr(),
+                e1.kv_len.data_ptr(),
+                self.comm_win,
+                self.w,
+                self.commit_buf_m,
+                cm,
+                self.emb_vocab_start,
+                self.emb_vocab_end,
+                self.rank,
+                self.world_size,
+                self.norm_eps,
+            )
+            if st != 0:
+                raise RuntimeError(f"dspine_commit_fused failed: {st}")
+            if include_compact:
+                main_stream.wait_event(self._ev_cmp_join)
+            st_ekv = ekv.fn(
+                flushed(),
+                ctypes.c_uint64(ekv.local.sync),
+                ekv.local.config,
+                ekv.local.addresses,
+                ekv.comm_buf,
+            )
+            if st_ekv != 0:
+                raise RuntimeError("kv_commit kernel failed")
+            st_e1 = e1.fn(
+                flushed(),
+                ctypes.c_uint64(e1.local.sync),
+                e1.local.config,
+                e1.local.addresses,
+                e1.comm_buf,
+            )
+            if st_e1 != 0:
+                raise RuntimeError("seed e1 kernel failed")
+            if self.seed_args_dev is not None and self.fn_set_seed_args is not None:
+                return
+        else:
+            st = self.wt.ops.tilert_dspine_commit_gather_launch(
+                stream_ptr,
+                self.commit_ctrl_dev.data_ptr(),
+                self.st["target_tokens"].data_ptr(),
+                self.st["target_hidden"].data_ptr(),
+                self.commit_ttoks_pad32.data_ptr(),
+                self.commit_par_m.data_ptr(),
+                self.w,
+                cm,
+            )
+            if st != 0:
+                raise RuntimeError(f"dspine_commit_gather failed: {st}")
+            st = self.wt.ops.tilert_dspine_commit_mm_k128_launch(
+                stream_ptr,
+                self.sync_addr,
+                self.commit_ctrl_dev.data_ptr(),
+                self.commit_par_m.data_ptr(),
+                self.rot_shard_nz.data_ptr(),
+                self.commit_rot_shard.data_ptr(),
+                cm,
+                HIDDEN_SIZE,
+            )
+            if st != 0:
+                raise RuntimeError(f"dspine_commit_mm_k128 rot failed: {st}")
+            st = self.wt.ops.tilert_dspine_prolog_pack_compact_launch(
+                stream_ptr,
+                self.commit_ctrl_dev.data_ptr(),
+                self.commit_ttoks_pad32.data_ptr(),
+                self.emb_w.data_ptr(),
+                self.commit_rot_shard.data_ptr(),
+                self.commit_comm_in.data_ptr(),
+                cm,
+                self.emb_vocab_start,
+                self.emb_vocab_end,
+                self.rank,
+            )
+            if st != 0:
+                raise RuntimeError(f"dspine_prolog_pack_compact failed: {st}")
 
-        torch.ops.tilert.onesided_all_reduce_out_guarded(
-            self.commit_comm_in[: 2 * cm],
-            self.commit_comm_out[: 2 * cm],
-            self.commit_2acc_i32,
-        )
-        st = self.wt.ops.tilert_dspine_commit_dual_norm_launch(
-            stream_ptr,
-            self.commit_ctrl_dev.data_ptr(),
-            self.commit_comm_out.data_ptr(),
-            self.enorm_w.data_ptr(),
-            self.hnorm_w.data_ptr(),
-            self.commit_eh_in.data_ptr(),
-            cm,
-            self.norm_eps,
-        )
-        if st != 0:
-            raise RuntimeError(f"dspine_commit_dual_norm failed: {st}")
-        st = self.wt.ops.tilert_dspine_commit_mm_k128_launch(
-            stream_ptr,
-            self.sync_addr,
-            self.commit_ctrl_dev.data_ptr(),
-            self.commit_eh_in.data_ptr(),
-            self.w_eh_col_nz.data_ptr(),
-            self.commit_eh_shard.data_ptr(),
-            cm,
-            2 * HIDDEN_SIZE,
-        )
-        if st != 0:
-            raise RuntimeError(f"dspine_commit_mm_k128 eh failed: {st}")
-        st = self.wt.ops.tilert_dspine_commit_post_mm2_seed_launch(
-            stream_ptr,
-            self.sync_addr,
-            self.commit_ctrl_dev.data_ptr(),
-            self.commit_eh_shard.data_ptr(),
-            sin_ptr,
-            cos_ptr,
-            ekv.hs_in.data_ptr(),
-            ekv.sin_buf.data_ptr(),
-            ekv.cos_buf.data_ptr(),
-            ekv.slot_i64.data_ptr(),
-            ekv.q_len.data_ptr(),
-            ekv.kv_len.data_ptr(),
-            e1.hs_in.data_ptr(),
-            e1.sin_buf.data_ptr(),
-            e1.cos_buf.data_ptr(),
-            e1.slot_i64.data_ptr(),
-            e1.q_len.data_ptr(),
-            e1.kv_len.data_ptr(),
-            self.comm_win,
-            cm,
-            self.rank,
-            self.world_size,
-        )
-        if st != 0:
-            raise RuntimeError(f"dspine_commit_post_mm2_seed failed: {st}")
+            torch.ops.tilert.onesided_all_reduce_out_guarded(
+                self.commit_comm_in[: 2 * cm],
+                self.commit_comm_out[: 2 * cm],
+                self.commit_2acc_i32,
+            )
+            st = self.wt.ops.tilert_dspine_commit_dual_norm_launch(
+                stream_ptr,
+                self.commit_ctrl_dev.data_ptr(),
+                self.commit_comm_out.data_ptr(),
+                self.enorm_w.data_ptr(),
+                self.hnorm_w.data_ptr(),
+                self.commit_eh_in.data_ptr(),
+                cm,
+                self.norm_eps,
+            )
+            if st != 0:
+                raise RuntimeError(f"dspine_commit_dual_norm failed: {st}")
+            st = self.wt.ops.tilert_dspine_commit_mm_k128_launch(
+                stream_ptr,
+                self.sync_addr,
+                self.commit_ctrl_dev.data_ptr(),
+                self.commit_eh_in.data_ptr(),
+                self.w_eh_col_nz.data_ptr(),
+                self.commit_eh_shard.data_ptr(),
+                cm,
+                2 * HIDDEN_SIZE,
+            )
+            if st != 0:
+                raise RuntimeError(f"dspine_commit_mm_k128 eh failed: {st}")
+            st = self.wt.ops.tilert_dspine_commit_post_mm2_seed_launch(
+                stream_ptr,
+                self.sync_addr,
+                self.commit_ctrl_dev.data_ptr(),
+                self.commit_eh_shard.data_ptr(),
+                sin_ptr,
+                cos_ptr,
+                ekv.hs_in.data_ptr(),
+                ekv.sin_buf.data_ptr(),
+                ekv.cos_buf.data_ptr(),
+                ekv.slot_i64.data_ptr(),
+                ekv.q_len.data_ptr(),
+                ekv.kv_len.data_ptr(),
+                e1.hs_in.data_ptr(),
+                e1.sin_buf.data_ptr(),
+                e1.cos_buf.data_ptr(),
+                e1.slot_i64.data_ptr(),
+                e1.q_len.data_ptr(),
+                e1.kv_len.data_ptr(),
+                self.comm_win,
+                cm,
+                self.rank,
+                self.world_size,
+            )
+            if st != 0:
+                raise RuntimeError(f"dspine_commit_post_mm2_seed failed: {st}")
 
-        if include_compact:
-            main_stream.wait_event(self._ev_cmp_join)
-        st_ekv = ekv.fn(
-            flushed(),
-            ctypes.c_uint64(ekv.local.sync),
-            ekv.local.config,
-            ekv.local.addresses,
-            ekv.comm_buf,
-        )
-        if st_ekv != 0:
-            raise RuntimeError("kv_commit kernel failed")
-        st_e1 = e1.fn(
-            flushed(),
-            ctypes.c_uint64(e1.local.sync),
-            e1.local.config,
-            e1.local.addresses,
-            e1.comm_buf,
-        )
-        if st_e1 != 0:
-            raise RuntimeError("seed e1 kernel failed")
+            if include_compact:
+                main_stream.wait_event(self._ev_cmp_join)
+            st_ekv = ekv.fn(
+                flushed(),
+                ctypes.c_uint64(ekv.local.sync),
+                ekv.local.config,
+                ekv.local.addresses,
+                ekv.comm_buf,
+            )
+            if st_ekv != 0:
+                raise RuntimeError("kv_commit kernel failed")
+            st_e1 = e1.fn(
+                flushed(),
+                ctypes.c_uint64(e1.local.sync),
+                e1.local.config,
+                e1.local.addresses,
+                e1.comm_buf,
+            )
+            if st_e1 != 0:
+                raise RuntimeError("seed e1 kernel failed")
 
         s0_gamma = (
             self.wt.logit_norm_seed0
@@ -1613,6 +1749,7 @@ class CalibratedL78V3Runner:
             self.commit_ctrl_dev[0] = 8191
             self.commit_ctrl_dev[1] = 1
             self.commit_ctrl_dev[2] = 1
+            self.commit_ctrl_dev[3] = 0
             self.commit_ctrl_dev[47] = self.COMMIT_M + 1
             self.st["target_tokens"][:2].fill_(self.first_token)
             self.st["target_hidden"][:2].copy_(self.prefix.parent_hidden.to(self.dev).expand(2, -1))
@@ -1685,8 +1822,8 @@ class CalibratedL78V3Runner:
             hn = torch_npu.npu_rms_norm(
                 self.commit_comm_out[2 * cm : 3 * cm], self.hnorm_w, self.norm_eps
             )[0]
-            self.commit_eh_in[:, :HIDDEN_SIZE].copy_(en)
-            self.commit_eh_in[:, HIDDEN_SIZE:].copy_(hn)
+            self.commit_eh_in[:cm, :HIDDEN_SIZE].copy_(en)
+            self.commit_eh_in[:cm, HIDDEN_SIZE:].copy_(hn)
             st_mm2 = self.wt.ops.tilert_dspine_commit_mm_k128_launch(
                 stream_ptr,
                 self.sync_addr,
@@ -1701,7 +1838,7 @@ class CalibratedL78V3Runner:
                 raise RuntimeError(f"serial commit_mm_k128 eh failed: {st_mm2}")
             sl_s = self.rank * self.shard_dim
             self.commit_eh_comm[:cm, sl_s : sl_s + self.shard_dim].copy_(
-                self.commit_eh_shard
+                self.commit_eh_shard[:cm]
             )
             torch.ops.tilert.onesided_all_reduce_out(
                 self.commit_eh_comm, self.commit_hs_all
@@ -1747,12 +1884,18 @@ class CalibratedL78V3Runner:
                 ekv_diffs = {k: d for k, d in ekv_raw.items() if math.isnan(d) or d > 0.0}
             else:
                 ekv_diffs = {}
-            for pos in sorted(seed_set):
-                if not 8191 <= pos < pos_limit:
-                    continue
-                i = pos - 8191
-                hid = parent_h if i == 0 else hidden_seq[i - 1 : i]
-                run_single(e1, pos, tokens[i], hid)
+            if self.fn_set_seed_args is not None:
+                self.fn_set_seed_args(0)
+            try:
+                for pos in sorted(seed_set):
+                    if not 8191 <= pos < pos_limit:
+                        continue
+                    i = pos - 8191
+                    hid = parent_h if i == 0 else hidden_seq[i - 1 : i]
+                    run_single(e1, pos, tokens[i], hid)
+            finally:
+                if self.fn_set_seed_args is not None and self.seed_args_dev is not None:
+                    self.fn_set_seed_args(int(self.seed_args_dev.data_ptr()))
             torch.npu.synchronize(self.dev)
             diffs_raw = {
                 k: float(

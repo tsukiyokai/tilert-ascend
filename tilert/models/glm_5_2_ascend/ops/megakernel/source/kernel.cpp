@@ -419,10 +419,143 @@ __aicore__ __attribute__((noinline)) void ReducePhase(TPipe& pipe,
     uint32_t red1_epoch = 0U
 #ifdef L78_FUSE_HEAD_NORM
     , uint64_t head_gamma_gm = 0ULL, uint64_t head_recs_gm = 0ULL,
-    uint64_t head_act_q_gm = 0ULL, uint64_t head_act_s_gm = 0ULL
+    uint64_t head_act_q_gm = 0ULL, uint64_t head_act_s_gm = 0ULL,
+    uint64_t exact_norm_x_gm = 0ULL, uint64_t exact_wk_w_gm = 0ULL,
+    uint64_t exact_work_gm = 0ULL, int32_t exact_rows_cap = 0,
+    uint64_t exact_pf_w_gm = 0ULL, uint32_t exact_pf_bytes = 0U,
+    __gm__ volatile int32_t* head_done_gm = nullptr
 #endif
     )
 {
+#ifdef L78_FUSE_HEAD_NORM
+    if ASCEND_IS_AIC {
+        if (shared_sum != 0 && exact_wk_w_gm != 0ULL && exact_norm_x_gm != 0ULL && exact_work_gm != 0ULL) {
+            const uint32_t cid = static_cast<uint32_t>(GetBlockIdx());
+            if (cid < 8U) {
+                constexpr int32_t kTile = 16;
+                constexpr int32_t kInner = 128;
+                constexpr int32_t kHidden = 6144;
+                constexpr int32_t kSteps = kHidden / kInner;
+                constexpr int32_t kStage = kTile * kInner;
+                constexpr int32_t kAcc = kTile * kTile;
+                AscendC::TBuf<AscendC::TPosition::A1> a_stage;
+                AscendC::TBuf<AscendC::TPosition::B1> b_stage;
+                AscendC::TBuf<AscendC::TPosition::A2> a_op;
+                AscendC::TBuf<AscendC::TPosition::B2> b_op;
+                AscendC::TBuf<AscendC::TPosition::CO1> c_acc;
+                pipe.InitBuffer(a_stage, 2 * kStage * sizeof(bfloat16_t));
+                pipe.InitBuffer(b_stage, 2 * kStage * sizeof(bfloat16_t));
+                pipe.InitBuffer(a_op, 2 * kStage * sizeof(bfloat16_t));
+                pipe.InitBuffer(b_op, 2 * kStage * sizeof(bfloat16_t));
+                pipe.InitBuffer(c_acc, kAcc * sizeof(float));
+                auto a_l1 = a_stage.Get<bfloat16_t>();
+                auto b_l1 = b_stage.Get<bfloat16_t>();
+                auto a_l0 = a_op.Get<bfloat16_t>();
+                auto b_l0 = b_op.Get<bfloat16_t>();
+                auto c_l0 = c_acc.Get<float>();
+                AscendC::GlobalTensor<bfloat16_t> a_gm, b_gm;
+                AscendC::GlobalTensor<float> c_gm;
+                a_gm.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(exact_norm_x_gm), exact_rows_cap * kHidden);
+                b_gm.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(exact_wk_w_gm), 128 * kHidden);
+                c_gm.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(exact_work_gm), exact_rows_cap * 128);
+                AscendC::Nd2NzParams copy_a{};
+                copy_a.ndNum = 1;
+                copy_a.nValue = static_cast<uint16_t>(rows);
+                copy_a.dValue = kInner;
+                copy_a.srcDValue = kHidden;
+                copy_a.dstNzC0Stride = kTile;
+                copy_a.dstNzNStride = 1;
+                AscendC::Nd2NzParams copy_b{};
+                copy_b.ndNum = 1;
+                copy_b.nValue = kTile;
+                copy_b.dValue = kInner;
+                copy_b.srcDValue = kHidden;
+                copy_b.dstNzC0Stride = kTile;
+                copy_b.dstNzNStride = 1;
+                AscendC::LoadData2DParams load_ab{};
+                load_ab.repeatTimes = kInner / kTile;
+                load_ab.srcStride = 1;
+                load_ab.ifTranspose = false;
+                AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID0);
+                AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID1);
+                AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(EVENT_ID0);
+                AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(EVENT_ID1);
+                for (int32_t s = 0; s < kSteps; ++s) {
+                    const int32_t buf = s & 1;
+                    const event_t ev = buf ? EVENT_ID1 : EVENT_ID0;
+                    const int64_t k_off = static_cast<int64_t>(s) * kInner;
+                    const int64_t b_off = static_cast<int64_t>(cid) * kTile * kHidden + k_off;
+                    AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(ev);
+                    AscendC::DataCopy(a_l1[buf * kStage], a_gm[k_off], copy_a);
+                    AscendC::DataCopy(b_l1[buf * kStage], b_gm[b_off], copy_b);
+                    AscendC::SetFlag<AscendC::HardEvent::MTE2_MTE1>(ev);
+                    AscendC::WaitFlag<AscendC::HardEvent::MTE2_MTE1>(ev);
+                    AscendC::WaitFlag<AscendC::HardEvent::M_MTE1>(ev);
+                    AscendC::LoadData(a_l0[buf * kStage], a_l1[buf * kStage], load_ab);
+                    AscendC::LoadData(b_l0[buf * kStage], b_l1[buf * kStage], load_ab);
+                    AscendC::SetFlag<AscendC::HardEvent::MTE1_MTE2>(ev);
+                    AscendC::SetFlag<AscendC::HardEvent::MTE1_M>(ev);
+                    AscendC::WaitFlag<AscendC::HardEvent::MTE1_M>(ev);
+                    AscendC::MmadParams mad{};
+                    mad.m = kTile;
+                    mad.n = kTile;
+                    mad.k = kInner;
+                    mad.cmatrixInitVal = (s == 0);
+                    mad.cmatrixSource = false;
+                    AscendC::Mmad(c_l0, a_l0[buf * kStage], b_l0[buf * kStage], mad);
+                    AscendC::PipeBarrier<PIPE_M>();
+                    AscendC::SetFlag<AscendC::HardEvent::M_MTE1>(ev);
+                }
+                AscendC::WaitFlag<AscendC::HardEvent::M_MTE1>(EVENT_ID0);
+                AscendC::WaitFlag<AscendC::HardEvent::M_MTE1>(EVENT_ID1);
+                AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID0);
+                AscendC::WaitFlag<AscendC::HardEvent::MTE1_MTE2>(EVENT_ID1);
+                AscendC::SetFlag<AscendC::HardEvent::M_FIX>(EVENT_ID0);
+                AscendC::WaitFlag<AscendC::HardEvent::M_FIX>(EVENT_ID0);
+                AscendC::FixpipeParamsV220 fix{};
+                fix.nSize = kTile;
+                fix.mSize = static_cast<uint16_t>(rows);
+                fix.srcStride = kTile;
+                fix.dstStride = 128;
+                fix.ndNum = 1;
+                fix.quantPre = QuantMode_t::NoQuant;
+                AscendC::Fixpipe(c_gm[static_cast<int64_t>(cid) * kTile], c_l0, fix);
+                AscendC::SetFlag<AscendC::HardEvent::FIX_M>(EVENT_ID0);
+                AscendC::WaitFlag<AscendC::HardEvent::FIX_M>(EVENT_ID0);
+                AscendC::PipeBarrier<PIPE_ALL>();
+                AscendC::DataSyncBarrier<AscendC::MemDsbT::DDR>();
+                pipe.Reset();
+            } else if (cid < 24U && exact_pf_w_gm != 0ULL && exact_pf_bytes >= 65536U) {
+                constexpr uint32_t kChunkBytes = 65536U;
+                const uint32_t total_chunks = exact_pf_bytes >> 16U;
+                const uint32_t pf_cid = cid - 8U;
+                if (total_chunks > pf_cid) {
+                    pipe.Reset();
+                    TBuf<TPosition::A1> pf_buf;
+                    pipe.InitBuffer(pf_buf, 4U * kChunkBytes);
+                    auto l1 = pf_buf.Get<int8_t>();
+                    uint32_t slot = 0U;
+                    for (uint32_t g = pf_cid; g < total_chunks; g += 16U) {
+                        if (head_done_gm != nullptr) {
+                            dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(
+                                const_cast<__gm__ int32_t*>(head_done_gm)));
+                            if (*head_done_gm != 0) {
+                                break;
+                            }
+                        }
+                        GlobalTensor<int8_t> gm;
+                        gm.SetGlobalBuffer(reinterpret_cast<__gm__ int8_t*>(
+                            exact_pf_w_gm + (static_cast<uint64_t>(g) << 16U)), kChunkBytes);
+                        DataCopy(l1[(slot & 3U) * kChunkBytes], gm, kChunkBytes);
+                        ++slot;
+                    }
+                    PipeBarrier<PIPE_MTE2>();
+                    pipe.Reset();
+                }
+            }
+        }
+    }
+#endif
     if ASCEND_IS_AIV {
         whole_layer_tree::CommunicationBuffers buffers;
         AscendC::TBuf<AscendC::TPosition::VECCALC> fused_buf;
@@ -489,6 +622,15 @@ __aicore__ __attribute__((noinline)) void ReducePhase(TPipe& pipe,
 #endif
                 }
             }
+#ifdef L78_FUSE_HEAD_NORM
+            if (head_done_gm != nullptr && GetBlockIdx() == 0) {
+                PipeBarrier<PIPE_ALL>();
+                DataSyncBarrier<MemDsbT::DDR>();
+                *head_done_gm = 1;
+                dcci_cacheline(reinterpret_cast<__gm__ uint8_t*>(
+                    const_cast<__gm__ int32_t*>(head_done_gm)));
+            }
+#endif
         } else {
             whole_layer_tree::AllReduceBf16(buffers,
                 (__gm__ uint8_t*)communication.window,
@@ -513,7 +655,10 @@ __aicore__ inline void RunLayer(
     uint32_t known_red1_epoch = 0U
 #ifdef L78_FUSE_HEAD_NORM
     , uint64_t head_gamma_gm = 0ULL, uint64_t head_recs_gm = 0ULL,
-    uint64_t head_act_q_gm = 0ULL, uint64_t head_act_s_gm = 0ULL
+    uint64_t head_act_q_gm = 0ULL, uint64_t head_act_s_gm = 0ULL,
+    uint64_t exact_wk_w_gm = 0ULL, uint64_t exact_work_gm = 0ULL,
+    int32_t exact_rows_cap = 0, uint64_t exact_pf_w_gm = 0ULL,
+    uint32_t exact_pf_bytes = 0U
 #endif
     )
 {
@@ -642,11 +787,7 @@ __aicore__ inline void RunLayer(
     SetSysWorkspace(bridge.values[ffn_bridge::kSystem]);
     const int64_t eff_shared_cap =
         (active_rows <= 16) ? 16 : addresses.body.shared.capacity;
-#ifdef K11089_MTP_TOPK4
-    const int64_t eff_topk = indexed ? 8 : 4;
-#else
     const int64_t eff_topk = 8;
-#endif
 #ifdef K11220_PF_RED2_FULL
     __gm__ volatile int32_t* red2_done_gm =
         reinterpret_cast<__gm__ volatile int32_t*>(addresses.body.scratch[routed_int4::kGroupCount]) + 128;
@@ -655,6 +796,19 @@ __aicore__ inline void RunLayer(
             *red2_done_gm = 0;
             dcci_cacheline(
                 reinterpret_cast<__gm__ uint8_t*>(const_cast<__gm__ int32_t*>(red2_done_gm)));
+        }
+    }
+#endif
+#ifdef L78_FUSE_HEAD_NORM
+    __gm__ volatile int32_t* head_done_gm =
+        reinterpret_cast<__gm__ volatile int32_t*>(addresses.body.scratch[routed_int4::kGroupCount]) + 144;
+    if (exact_wk_w_gm != 0ULL) {
+        if ASCEND_IS_AIV {
+            if (GetBlockIdx() == 0) {
+                *head_done_gm = 0;
+                dcci_cacheline(
+                    reinterpret_cast<__gm__ uint8_t*>(const_cast<__gm__ int32_t*>(head_done_gm)));
+            }
         }
     }
 #endif
@@ -798,7 +952,14 @@ __aicore__ inline void RunLayer(
                 fused_head_norm ? head_gamma_gm : 0ULL,
                 fused_head_norm ? head_recs_gm : 0ULL,
                 fused_head_norm ? head_act_q_gm : 0ULL,
-                fused_head_norm ? head_act_s_gm : 0ULL);
+                fused_head_norm ? head_act_s_gm : 0ULL,
+                (fused_head_norm && exact_wk_w_gm != 0ULL) ? addresses.norm.normalized : 0ULL,
+                fused_head_norm ? exact_wk_w_gm : 0ULL,
+                fused_head_norm ? exact_work_gm : 0ULL,
+                fused_head_norm ? exact_rows_cap : 0,
+                fused_head_norm ? exact_pf_w_gm : 0ULL,
+                fused_head_norm ? exact_pf_bytes : 0U,
+                (fused_head_norm && exact_wk_w_gm != 0ULL) ? head_done_gm : nullptr);
 #else
     ReducePhase(pipe, communication, addresses.body.scratch[routed_int4::kRouteOutput],
                 communication.output, active_rows, blocks,

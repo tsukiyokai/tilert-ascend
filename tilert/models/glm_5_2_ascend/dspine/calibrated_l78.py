@@ -624,6 +624,39 @@ static uint64_t g_exact_knorm_b_gm = 0ULL;
 static uint64_t g_exact_kcache_gm = 0ULL;
 static uint64_t g_exact_work_gm = 0ULL;
 static float g_exact_eps = 1e-6F;
+static uint64_t g_exact_seed_args_gm = 0ULL;
+
+struct SeedTopkArgs {
+    uint64_t comm_win_gm;
+    uint64_t s0_gamma_gm;
+    uint64_t cal_head_w_q8_nz_gm;
+    uint64_t cal_head_s8_gm;
+    uint64_t recs_out_gm;
+    uint64_t c2b_act_q_gm;
+    uint64_t c2b_act_s_gm;
+    uint64_t c2b_acc_i32_gm;
+    uint64_t logits_work_gm;
+    uint64_t gather_in_gm;
+    uint64_t gather_out_gm;
+    uint64_t draft_ctrl_gm;
+    uint64_t seed_top_i_gm;
+    uint64_t seed_top_lp_gm;
+    uint64_t prefix_topk_gm;
+    uint64_t indices_buf_gm;
+    uint64_t beam_work_gm;
+    int32_t vocab_valid;
+    int32_t vocab_start;
+    int32_t k_seed;
+    int32_t b0;
+    int32_t max_b;
+    int32_t k_sfa;
+    int32_t rank;
+    int32_t world_size;
+    float norm_eps;
+    uint32_t pf_bytes;
+    uint64_t pad[10];
+};
+static_assert(sizeof(SeedTopkArgs) == 256, "SeedTopkArgs ABI mismatch");
 
 __aicore__ inline void ExactDcciRange(uint64_t addr, int32_t bytes)
 {
@@ -653,6 +686,142 @@ __aicore__ inline void ExactPublish()
 {
     AscendC::PipeBarrier<PIPE_ALL>();
     AscendC::DataSyncBarrier<AscendC::MemDsbT::DDR>();
+}
+
+__aicore__ __attribute__((noinline)) void RunExactIndexKeysAiv(
+    AscendC::TPipe& pipe,
+    uint64_t q_len_gm,
+    uint64_t slot_i64_gm,
+    uint64_t cos_gm,
+    uint64_t sin_gm,
+    uint64_t k_norm_w_gm,
+    uint64_t k_norm_b_gm,
+    uint64_t k_cache_gm,
+    uint64_t work_gm,
+    int32_t rows_cap,
+    float eps)
+{
+    if (work_gm == 0ULL) {
+        return;
+    }
+    int32_t active_rows = rows_cap;
+    if (q_len_gm != 0ULL) {
+        ExactDcciRange(q_len_gm, 64);
+        active_rows = *reinterpret_cast<__gm__ const int32_t*>(q_len_gm);
+    }
+    if (active_rows <= 0) {
+        return;
+    }
+    if (active_rows > rows_cap) {
+        active_rows = rows_cap;
+    }
+    if ASCEND_IS_AIV {
+        const int32_t aiv = AscendC::GetBlockIdx();
+        ExactDcciRange(slot_i64_gm, rows_cap * 8);
+        ExactDcciRange(work_gm, active_rows * 128 * 4);
+
+        AscendC::TBuf<AscendC::TPosition::VECCALC> b_f32, b_bf, b_slot;
+        pipe.InitBuffer(b_f32, 11 * 128 * 4);
+        pipe.InitBuffer(b_bf, 4 * 128 * 2);
+        pipe.InitBuffer(b_slot, 64 * 8);
+
+        auto ub_f32 = b_f32.Get<float>();
+        auto ub_kw = ub_f32[0];
+        auto ub_x = ub_f32[128];
+        auto ub_diff = ub_f32[256];
+        auto ub_sq = ub_f32[384];
+        auto ub_gw = ub_f32[512];
+        auto ub_gb = ub_f32[640];
+        auto ub_tmp = ub_f32[768];
+        auto ub_sum = ub_f32[896];
+        auto ub_k = ub_f32[1024];
+        auto ub_cos = ub_f32[1152];
+        auto ub_sin = ub_f32[1280];
+
+        auto ub_bf = b_bf.Get<bfloat16_t>();
+        auto ub_kw_bf = ub_bf[0];
+        auto ub_out_bf = ub_bf[128];
+        auto ub_cos_bf = ub_bf[256];
+        auto ub_sin_bf = ub_bf[384];
+        auto ub_slot = b_slot.Get<int64_t>();
+
+        AscendC::GlobalTensor<float> g_work, g_gw, g_gb;
+        AscendC::GlobalTensor<bfloat16_t> g_cos, g_sin, g_kcache;
+        AscendC::GlobalTensor<int64_t> g_slot;
+        g_work.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(work_gm), rows_cap * 128);
+        g_gw.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(k_norm_w_gm), 128);
+        g_gb.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(k_norm_b_gm), 128);
+        g_cos.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(cos_gm), rows_cap * 64);
+        g_sin.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(sin_gm), rows_cap * 64);
+        g_kcache.SetGlobalBuffer(reinterpret_cast<__gm__ bfloat16_t*>(k_cache_gm));
+        g_slot.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(slot_i64_gm), rows_cap);
+
+        const int32_t copy_sl = ((rows_cap + 3) / 4) * 4;
+        AscendC::DataCopy(ub_slot, g_slot, copy_sl);
+        AscendC::DataCopy(ub_gw, g_gw, 128);
+        AscendC::DataCopy(ub_gb, g_gb, 128);
+        ExactFence<AscendC::HardEvent::MTE2_S>();
+        ExactFence<AscendC::HardEvent::MTE2_V>();
+
+        for (int32_t r = aiv; r < active_rows; r += 48) {
+            const int64_t slot = ub_slot.GetValue(r);
+            if (slot < 0) {
+                continue;
+            }
+            AscendC::DataCopy(ub_kw, g_work[r * 128], 128);
+            AscendC::DataCopy(ub_cos_bf, g_cos[r * 64], 64);
+            AscendC::DataCopy(ub_sin_bf, g_sin[r * 64], 64);
+            ExactFence<AscendC::HardEvent::MTE2_V>();
+
+            AscendC::Cast(ub_kw_bf, ub_kw, AscendC::RoundMode::CAST_RINT, 128);
+            AscendC::PipeBarrier<PIPE_V>();
+            AscendC::Cast(ub_x, ub_kw_bf, AscendC::RoundMode::CAST_NONE, 128);
+            AscendC::PipeBarrier<PIPE_V>();
+
+            AscendC::ReduceSum(ub_sum, ub_x, ub_tmp, 128);
+            ExactFence<AscendC::HardEvent::V_S>();
+            const float mean = ub_sum.GetValue(0) * (1.0F / 128.0F);
+            ExactFence<AscendC::HardEvent::S_V>();
+            AscendC::Adds(ub_diff, ub_x, -mean, 128);
+            AscendC::PipeBarrier<PIPE_V>();
+            AscendC::Mul(ub_sq, ub_diff, ub_diff, 128);
+            AscendC::PipeBarrier<PIPE_V>();
+            AscendC::ReduceSum(ub_sum, ub_sq, ub_tmp, 128);
+            ExactFence<AscendC::HardEvent::V_S>();
+            const float var = ub_sum.GetValue(0) * (1.0F / 128.0F);
+            const float inv_std = 1.0F / sqrt(var + eps);
+            ExactFence<AscendC::HardEvent::S_V>();
+            AscendC::Muls(ub_x, ub_diff, inv_std, 128);
+            AscendC::PipeBarrier<PIPE_V>();
+            AscendC::Mul(ub_x, ub_x, ub_gw, 128);
+            AscendC::PipeBarrier<PIPE_V>();
+            AscendC::Add(ub_x, ub_x, ub_gb, 128);
+            AscendC::PipeBarrier<PIPE_V>();
+            AscendC::Cast(ub_out_bf, ub_x, AscendC::RoundMode::CAST_RINT, 128);
+            AscendC::PipeBarrier<PIPE_V>();
+
+            AscendC::Cast(ub_k, ub_out_bf, AscendC::RoundMode::CAST_NONE, 64);
+            AscendC::Cast(ub_cos, ub_cos_bf, AscendC::RoundMode::CAST_NONE, 64);
+            AscendC::Cast(ub_sin, ub_sin_bf, AscendC::RoundMode::CAST_NONE, 64);
+            ExactFence<AscendC::HardEvent::V_S>();
+            for (int32_t j = 0; j < 32; ++j) {
+                const float c = ub_cos.GetValue(j);
+                const float s = ub_sin.GetValue(j);
+                const float k0 = ub_k.GetValue(2 * j);
+                const float k1 = ub_k.GetValue(2 * j + 1);
+                ub_diff.SetValue(2 * j, k0 * c - k1 * s);
+                ub_diff.SetValue(2 * j + 1, k1 * c + k0 * s);
+            }
+            ExactFence<AscendC::HardEvent::S_V>();
+            AscendC::Cast(ub_out_bf, ub_diff, AscendC::RoundMode::CAST_RINT, 64);
+            ExactFence<AscendC::HardEvent::V_MTE3>();
+            AscendC::DataCopy(g_kcache[slot * 128], ub_out_bf, 128);
+            ExactFence<AscendC::HardEvent::MTE3_V>();
+            ExactFence<AscendC::HardEvent::MTE3_MTE2>();
+        }
+        ExactPublish();
+        pipe.Reset();
+    }
 }
 
 __aicore__ __attribute__((noinline)) void RunExactIndexKeysInline(
@@ -1018,7 +1187,8 @@ template <bool Indexed, int Ver = KERNEL_VER>
 __global__ __mix__(1, 2) __schedmode__(1) __aicore__
 void LayerExactKernel(uint64_t sync, Config config, Addresses addresses,
     Communication communication, uint64_t wk_w_gm, uint64_t knorm_w_gm,
-    uint64_t knorm_b_gm, uint64_t kcache_gm, uint64_t work_gm, float eps)
+    uint64_t knorm_b_gm, uint64_t kcache_gm, uint64_t work_gm, float eps,
+    uint64_t seed_args_gm = 0ULL)
 {
     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
     InitSocState();
@@ -1032,6 +1202,60 @@ void LayerExactKernel(uint64_t sync, Config config, Addresses addresses,
     }
     SetSyncBaseAddr(sync);
     TPipe pipe;
+#ifdef L78_FUSE_HEAD_NORM
+    if (seed_args_gm != 0ULL) {
+        ExactDcciRange(seed_args_gm, static_cast<int32_t>(sizeof(SeedTopkArgs)));
+        const SeedTopkArgs sargs = *reinterpret_cast<const SeedTopkArgs*>(seed_args_gm);
+        uint32_t l78_red1_ep = 0U;
+        if ASCEND_IS_AIV {
+            if (communication.window != 0ULL) {
+                l78_red1_ep = whole_layer_tree::ReadCommunicationEpoch(
+                    reinterpret_cast<__gm__ uint8_t*>(communication.window)) + 1U;
+            }
+        }
+        RunLayer(pipe, Indexed, config, addresses, communication, false, 0ULL,
+            nullptr, 0ULL, nullptr, nullptr, false, nullptr, -1, -1, 0ULL, false, nullptr,
+            l78_red1_ep, sargs.s0_gamma_gm, sargs.recs_out_gm,
+            sargs.c2b_act_q_gm, sargs.c2b_act_s_gm,
+            wk_w_gm, work_gm, static_cast<int32_t>(addresses.body.rows),
+            sargs.cal_head_w_q8_nz_gm, sargs.pf_bytes);
+        PipeBarrier<PIPE_ALL>();
+        SyncAll<false>();
+        pipe.Reset();
+        RunExactIndexKeysAiv(pipe,
+            addresses.attention.main_metadata[3],
+            addresses.attention.main_metadata[2],
+            addresses.attention.main_metadata[1],
+            addresses.attention.main_metadata[0],
+            knorm_w_gm,
+            knorm_b_gm,
+            kcache_gm,
+            work_gm,
+            static_cast<int32_t>(addresses.body.rows),
+            eps);
+        dspine_shared::RunDraftHeadTopk(
+            pipe, 0ULL, addresses.bridge[1], communication.output,
+            sargs.s0_gamma_gm, sargs.cal_head_w_q8_nz_gm, sargs.cal_head_s8_gm,
+            sargs.recs_out_gm, sargs.c2b_act_q_gm, sargs.c2b_act_s_gm, sargs.c2b_acc_i32_gm,
+            sargs.logits_work_gm, sargs.gather_in_gm, sargs.gather_out_gm, sargs.comm_win_gm,
+            1, sargs.vocab_valid, sargs.vocab_start, sargs.k_seed,
+            sargs.rank, sargs.world_size, sargs.norm_eps, 0U, true);
+        dspine_shared::RunBeamStepV3(
+            pipe, 0, sargs.max_b, sargs.b0, sargs.k_seed, sargs.b0, 0, sargs.k_sfa, 0,
+            0.0F, 0.0F,
+            sargs.gather_out_gm, sargs.draft_ctrl_gm, sargs.seed_top_i_gm, sargs.seed_top_lp_gm,
+            0ULL, sargs.prefix_topk_gm, 0ULL, sargs.indices_buf_gm,
+            0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL,
+            0ULL, 0ULL, 0ULL, 0ULL,
+            0ULL, 0ULL, 0ULL, 0ULL, 0ULL, 0ULL,
+            sargs.beam_work_gm);
+        PipeBarrier<PIPE_ALL>();
+        DataSyncBarrier<MemDsbT::DDR>();
+        return;
+    }
+#else
+    (void)seed_args_gm;
+#endif
     RunLayer(pipe, Indexed, config, addresses, communication, false, 0);
     PipeBarrier<PIPE_ALL>();
     pipe.Reset();
@@ -1054,6 +1278,11 @@ void LayerExactKernel(uint64_t sync, Config config, Addresses addresses,
 """
 
 _KV_COMMIT_HOST_SNIPPET = """
+extern "C" void layer_tp_tree_set_seed_args_ptr(uint64_t seed_args_gm)
+{
+    layer_tp_tree_chain::g_exact_seed_args_gm = seed_args_gm;
+}
+
 extern "C" void layer_tp_tree_set_exact_idx_ptrs(
     uint64_t wk_w_gm, uint64_t knorm_w_gm, uint64_t knorm_b_gm,
     uint64_t kcache_gm, uint64_t work_gm, float eps)
@@ -1476,7 +1705,7 @@ void DraftWalkKernel(
         step0.addresses.attention.main_metadata[1],
         step0.addresses.attention.main_metadata[2],
         step0.addresses.attention.main_metadata[4],
-        args.beam_work_gm, true);
+        args.beam_work_gm, true, -1.0e30F, 2, 16, false);
     if ASCEND_IS_AIV {
         pipe.Reset();
     }
@@ -1493,6 +1722,59 @@ void DraftWalkKernel(
         }
         const int32_t s_idx = (s < args.max_d) ? s : (args.max_d - 1);
 
+#ifdef L78_ONEHOP_COMM
+        uint32_t ep_emb = 0U;
+        if ASCEND_IS_AIV {
+            ep_emb = ++win_seq;
+        }
+        CubeMm1(pipe, args.active_recs_gm, args.rot_w_step_nz_gm[s_idx], args.rot_part_gm, eff);
+        if ASCEND_IS_AIV {
+            dspine_shared::Inline1HopEmbPush(
+                pipe, args.comm_win_gm, ep_emb, args.active_toks_gm, args.emb_w_gm,
+                args.prolog_comm_out_gm, eff, args.emb_vocab_start, args.emb_vocab_end,
+                args.rank);
+            pipe.Reset();
+        }
+        AscendC::SyncAll<false>();
+
+        const uint64_t h_sq_global_gm =
+            args.prolog_comm_out_gm + 17ULL * 6144ULL * sizeof(bfloat16_t);
+        uint32_t ep_sq = 0U;
+        if ASCEND_IS_AIV {
+            ep_sq = ++win_seq;
+        }
+        dspine_shared::Inline1HopEmbRecvRotSq(
+            pipe, args.comm_win_gm, ep_emb, ep_sq, args.active_toks_gm,
+            args.rot_part_gm, args.rot_b_step_gm[s_idx], args.prolog_comm_out_gm,
+            h_sq_global_gm, eff, args.emb_vocab_start, args.emb_vocab_end, args.rank);
+        if ASCEND_IS_AIV {
+            pipe.Reset();
+        }
+        dspine_shared::RunStep3cDualRmsNormSlice(
+            pipe, args.prolog_comm_out_gm, args.enorm_step_gm[s_idx],
+            args.hnorm_step_gm[s_idx], args.eh_in_gm, eff, args.rank, args.norm_eps, true,
+            h_sq_global_gm, args.rot_part_gm);
+        if ASCEND_IS_AIV {
+            pipe.Reset();
+        }
+        AscendC::SyncAll<false>();
+
+        CubeMm2(
+            pipe, args.eh_in_gm, args.w_eh_step_nz_gm[s_idx], args.eh_comm_in_gm,
+            eff, args.mm2_k_inner);
+        AscendC::SyncAll<false>();
+
+        uint32_t ep_ag = 0U;
+        if ASCEND_IS_AIV {
+            ep_ag = ++win_seq;
+        }
+        dspine_shared::Inline1HopRsAgBf16(
+            pipe, args.comm_win_gm, ep_ag, args.eh_comm_in_gm,
+            step.addresses.norm.input, eff, args.rank);
+        if ASCEND_IS_AIV {
+            pipe.Reset();
+        }
+#else
         CubeMm1(pipe, args.active_recs_gm, args.rot_w_step_nz_gm[s_idx], args.rot_part_gm, eff);
         dspine_shared::RunStep3cPrologPackEmbedPart(
             pipe, args.active_toks_gm, args.emb_w_gm, args.prolog_comm_in_gm,
@@ -1545,6 +1827,7 @@ void DraftWalkKernel(
             pipe.Reset();
         }
         AscendC::SyncAll<false>();
+#endif
         if (step.sync != cur_sync) {
             SetSyncBaseAddr(step.sync);
             cur_sync = step.sync;
@@ -1562,7 +1845,8 @@ void DraftWalkKernel(
             false, 0ULL, nullptr, 0ULL, nullptr, nullptr, false, nullptr, -1, eff,
             0ULL, false, nullptr, step_red1_ep,
             args.logit_norm_step_gm[s_idx], args.c2b_recs_out_gm,
-            args.c2b_act_q_gm, args.c2b_act_s_gm);
+            args.c2b_act_q_gm, args.c2b_act_s_gm,
+            0ULL, 0ULL, 0, 0ULL, 0U);
         const bool skip_head_stage1 = (eff >= 1 && eff <= 4);
 #else
         RunLayer(
@@ -1594,6 +1878,7 @@ void DraftWalkKernel(
         const int32_t m_rows = args.step_m_rows[s];
         const int32_t nxt_b = (s + 1 < step_count) ? args.step_m_rows[s + 1] : 0;
         const ChainStep& step_nxt = (s + 1 < step_count) ? steps[s + 1] : step;
+        const bool prefix_tail_only = (d + 1 <= 64 && nxt_b <= args.b0);
         dspine_shared::RunBeamStepV3(
             pipe, d, m_rows, m_rows, args.step_k_top[s], nxt_b, 0, args.k_sfa, slot_cur,
             args.beta_margin, args.beta_depth,
@@ -1608,7 +1893,8 @@ void DraftWalkKernel(
             step_nxt.addresses.attention.main_metadata[1],
             step_nxt.addresses.attention.main_metadata[2],
             step_nxt.addresses.attention.main_metadata[4],
-            args.beam_work_gm, true, args.log_p_stop, args.min_stop_step, args.width);
+            args.beam_work_gm, true, args.log_p_stop, args.min_stop_step, args.width,
+            prefix_tail_only);
         if ASCEND_IS_AIV {
             pipe.Reset();
         }
@@ -1838,6 +2124,10 @@ def _l78_defs_for_world(world_size: int = 8) -> tuple[str, ...]:
         )
         extra = (
             "-DK112140_SIP_RED1_MIN_ROWS=8",
+            "-DK112184_IDX_FRONT_OPT=1",
+            "-DK112192_DIRECT_IDX_Q14=1",
+            "-DK112160_AIV_DSB_OPT=1",
+            "-DK112162_MERGE_CONTIG=1",
             "-DK112612_DEFER_SH_SIG=1",
             "-DK112612_SPLIT_P1_OPT=1",
             "-DK112808_PULL_RED1=1",
@@ -1846,6 +2136,7 @@ def _l78_defs_for_world(world_size: int = 8) -> tuple[str, ...]:
             "-DK112860_KNOWN_RED1_EPOCH=1",
             "-DK113000_BRIDGE_GATE_OVERLAP=1",
             "-DK113000_WAVE16_RED2=1",
+            "-DL78_ONEHOP_COMM=1",
             "-DL78_FUSE_HEAD_NORM=1",
         )
     else:
@@ -1908,9 +2199,9 @@ def _patch_l78_copied_sources(out: Path) -> None:
     if anchor_dev not in kern_txt or anchor_host not in kern_txt:
         raise RuntimeError("Missing kernel.cpp KV commit injection anchors")
     dev_inject = (
-        _KV_COMMIT_DEVICE_SNIPPET
+        DSPINE_WALK_SHARED_CPP
         + "\n"
-        + DSPINE_WALK_SHARED_CPP
+        + _KV_COMMIT_DEVICE_SNIPPET
         + "\n"
         + _DRAFT_WALK_DEVICE_SNIPPET
     )
@@ -1931,7 +2222,8 @@ def _patch_l78_copied_sources(out: Path) -> None:
         "            layer_tp_tree_chain::g_exact_knorm_b_gm,\n"
         "            layer_tp_tree_chain::g_exact_kcache_gm,\n"
         "            layer_tp_tree_chain::g_exact_work_gm,\n"
-        "            layer_tp_tree_chain::g_exact_eps);\n"
+        "            layer_tp_tree_chain::g_exact_eps,\n"
+        "            layer_tp_tree_chain::g_exact_seed_args_gm);\n"
         "    } else {\n"
         "        layer_tp_tree_chain::Kernel<true><<<addresses->body.blocks, nullptr, stream>>>(\n"
         "            sync, *config, *addresses, *communication);\n"
@@ -2059,6 +2351,7 @@ compile_variant() {{
         -Dlayer_tp_tree_draft_walk_launch=layer_tp_tree_draft_walk_launch_K$ver
         -Dlayer_tp_tree_set_mask_ptr=layer_tp_tree_set_mask_ptr_K$ver
         -Dlayer_tp_tree_set_exact_idx_ptrs=layer_tp_tree_set_exact_idx_ptrs_K$ver
+        -Dlayer_tp_tree_set_seed_args_ptr=layer_tp_tree_set_seed_args_ptr_K$ver
         -Dlayer_tp_tree_set_peer_weights_ptr=layer_tp_tree_set_peer_weights_ptr_K$ver
         -Dlayer_tp_tree_prepare_records=layer_tp_tree_prepare_records_K$ver
         "$@"
