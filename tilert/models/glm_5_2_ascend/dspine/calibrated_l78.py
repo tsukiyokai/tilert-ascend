@@ -54,7 +54,7 @@ def build_beam_specs(
     specs: list[tuple[int, int, int, int, int]] = []
     for si, cur_b in enumerate(sched):
         nxt_b = sched[si + 1] if si + 1 < len(sched) else 0
-        k_exp = max(cur_b, nxt_b) if nxt_b > 0 else cur_b
+        k_exp = max(2, cur_b, nxt_b) if nxt_b > 0 else max(2, cur_b)
         p_off = len(depths)
         specs.append((si + 1, cur_b, k_exp, nxt_b, p_off))
         depths.extend([si + 2] * (cur_b * k_exp))
@@ -1161,13 +1161,13 @@ struct DraftWalkArgs {
     int32_t rank;
     int32_t world_size;
     int32_t mm2_k_inner;
-    int32_t pad0;
+    int32_t min_stop_step;
     float beta_margin;
     float beta_depth;
     float norm_eps;
     float t_base_ms;
     float c_w_ms;
-    float pad1;
+    float log_p_stop;
     int32_t step_m_rows[16];
     int32_t step_k_top[16];
 };
@@ -1283,6 +1283,7 @@ __aicore__ __attribute__((noinline)) void CubeMm1(
             AscendC::WaitFlag<AscendC::HardEvent::FIX_M>(EVENT_ID0);
         }
         AscendC::PipeBarrier<PIPE_ALL>();
+        AscendC::DataSyncBarrier<AscendC::MemDsbT::DDR>();
         pipe.Reset();
     }
 }
@@ -1412,6 +1413,7 @@ __aicore__ __attribute__((noinline)) void CubeMm2Impl(
             AscendC::WaitFlag<AscendC::HardEvent::FIX_M>(EVENT_ID0);
         }
         AscendC::PipeBarrier<PIPE_ALL>();
+        AscendC::DataSyncBarrier<AscendC::MemDsbT::DDR>();
         pipe.Reset();
     }
 }
@@ -1450,8 +1452,14 @@ void DraftWalkKernel(
     const ChainStep* steps = reinterpret_cast<const ChainStep*>(walk_steps_gm);
     uint64_t cur_sync = sync_base;
     uint32_t win_seq = 0U;
+    const uint64_t init_l78_win = steps[0].communication.window;
+    uint32_t l78_epoch = 0U;
     if ASCEND_IS_AIV {
         win_seq = dspine_shared::DspineReadSeq(args.comm_win_gm);
+        if (init_l78_win != 0ULL) {
+            l78_epoch = whole_layer_tree::ReadCommunicationEpoch(
+                reinterpret_cast<__gm__ uint8_t*>(init_l78_win));
+        }
     }
     TPipe pipe;
     const ChainStep& step0 = steps[0];
@@ -1497,26 +1505,26 @@ void DraftWalkKernel(
         if ASCEND_IS_AIV {
             ++win_seq;
         }
-        dspine_shared::InlineStep3cPrologRotPush(
-            pipe, args.rot_part_gm, args.rot_b_step_gm[s_idx], args.prolog_comm_out_gm,
-            args.comm_win_gm, win_seq, eff, args.rank);
+        const uint64_t h_sq_local_gm =
+            args.prolog_comm_out_gm + 16ULL * 6144ULL * sizeof(bfloat16_t);
+        const uint64_t h_sq_global_gm =
+            args.prolog_comm_out_gm + 17ULL * 6144ULL * sizeof(bfloat16_t);
+        dspine_shared::RunStep3cPrologRotBiasAndSq(
+            pipe, args.rot_part_gm, args.rot_b_step_gm[s_idx], h_sq_local_gm, eff);
         if ASCEND_IS_AIV {
             pipe.Reset();
         }
         dspine_shared::Inline8p2Ar(
             pipe, args.comm_win_gm, win_seq, args.prolog_comm_in_gm,
-            args.prolog_comm_out_gm, eff * 6144, args.rank);
-        if ASCEND_IS_AIV {
-            pipe.Reset();
-        }
-        dspine_shared::InlineStep3cPrologRotPull(
-            pipe, args.prolog_comm_out_gm, args.comm_win_gm, win_seq, eff, args.rank);
+            args.prolog_comm_out_gm, eff * 6144, args.rank,
+            h_sq_local_gm, h_sq_global_gm, eff);
         if ASCEND_IS_AIV {
             pipe.Reset();
         }
         dspine_shared::RunStep3cDualRmsNormSlice(
             pipe, args.prolog_comm_out_gm, args.enorm_step_gm[s_idx],
-            args.hnorm_step_gm[s_idx], args.eh_in_gm, eff, args.rank, args.norm_eps, true);
+            args.hnorm_step_gm[s_idx], args.eh_in_gm, eff, args.rank, args.norm_eps, true,
+            h_sq_global_gm, args.rot_part_gm);
         if ASCEND_IS_AIV {
             pipe.Reset();
         }
@@ -1541,10 +1549,29 @@ void DraftWalkKernel(
             SetSyncBaseAddr(step.sync);
             cur_sync = step.sync;
         }
+        uint32_t step_red1_ep = 0U;
+        if ASCEND_IS_AIV {
+            if (init_l78_win != 0ULL && step.communication.window == init_l78_win) {
+                step_red1_ep = l78_epoch + 1U;
+            }
+            l78_epoch += 3U;
+        }
+#ifdef L78_FUSE_HEAD_NORM
         RunLayer(
             pipe, false, step.config, step.addresses, step.communication,
-            false, 0ULL, nullptr, 0ULL, nullptr, nullptr, false, nullptr, -1, eff);
-        AscendC::PipeBarrier<PIPE_ALL>();
+            false, 0ULL, nullptr, 0ULL, nullptr, nullptr, false, nullptr, -1, eff,
+            0ULL, false, nullptr, step_red1_ep,
+            args.logit_norm_step_gm[s_idx], args.c2b_recs_out_gm,
+            args.c2b_act_q_gm, args.c2b_act_s_gm);
+        const bool skip_head_stage1 = (eff >= 1 && eff <= 4);
+#else
+        RunLayer(
+            pipe, false, step.config, step.addresses, step.communication,
+            false, 0ULL, nullptr, 0ULL, nullptr, nullptr, false, nullptr, -1, eff,
+            0ULL, false, nullptr, step_red1_ep);
+        const bool skip_head_stage1 = false;
+#endif
+        dspine_shared::Publish();
         AscendC::SyncAll<false>();
         if (cur_sync != sync_base) {
             SetSyncBaseAddr(sync_base);
@@ -1560,7 +1587,8 @@ void DraftWalkKernel(
             args.c2b_recs_out_gm, args.c2b_act_q_gm, args.c2b_act_s_gm, args.c2b_acc_i32_gm,
             args.logits_work_gm, args.gather_in_gm, args.gather_out_gm, args.comm_win_gm,
             eff, args.head_valid_vocab, args.head_vocab_start,
-            args.step_k_top[s], args.rank, args.world_size, args.norm_eps, win_seq);
+            args.step_k_top[s], args.rank, args.world_size, args.norm_eps, win_seq,
+            skip_head_stage1);
 
         const int32_t d = s + 1;
         const int32_t m_rows = args.step_m_rows[s];
@@ -1580,11 +1608,15 @@ void DraftWalkKernel(
             step_nxt.addresses.attention.main_metadata[1],
             step_nxt.addresses.attention.main_metadata[2],
             step_nxt.addresses.attention.main_metadata[4],
-            args.beam_work_gm, true);
+            args.beam_work_gm, true, args.log_p_stop, args.min_stop_step, args.width);
         if ASCEND_IS_AIV {
             pipe.Reset();
         }
         AscendC::SyncAll<false>();
+        dspine_shared::DcciRange(args.draft_ctrl_gm, 64);
+        if (reinterpret_cast<__gm__ const int64_t*>(args.draft_ctrl_gm)[5] != 0) {
+            break;
+        }
         slot_cur += nxt_b;
     }
 
@@ -1798,10 +1830,11 @@ def _l78_defs_for_world(world_size: int = 8) -> tuple[str, ...]:
     heads = 64 // ws
     local_exp = 256 // ws
     if ws == 16:
+        drop = {"-DK112612_OVERLAP_SH_P4=1"}
         base = tuple(
             d
             for d in L78_BASE_DEFS
-            if not d.startswith("-DATTENTION_HEADS=") and d != "-DK112612_OVERLAP_SH_P4=1"
+            if not d.startswith("-DATTENTION_HEADS=") and d not in drop
         )
         extra = (
             "-DK112140_SIP_RED1_MIN_ROWS=8",
@@ -1810,8 +1843,10 @@ def _l78_defs_for_world(world_size: int = 8) -> tuple[str, ...]:
             "-DK112808_PULL_RED1=1",
             "-DK112808_PULL_RED2=1",
             "-DK112854_TP16_PROLOG_PAR=1",
+            "-DK112860_KNOWN_RED1_EPOCH=1",
             "-DK113000_BRIDGE_GATE_OVERLAP=1",
             "-DK113000_WAVE16_RED2=1",
+            "-DL78_FUSE_HEAD_NORM=1",
         )
     else:
         base = tuple(d for d in L78_BASE_DEFS if not d.startswith("-DATTENTION_HEADS="))

@@ -745,6 +745,8 @@ __aicore__ inline void QLIPreload<QLIT>::ProcessDecode()
             vectorService.InitLDBuffers(pipe);
             ICachePreLoad(LD_PREFETCH_LEN);
         }
+        AscendC::PipeBarrier<PIPE_ALL>();
+        AscendC::DataSyncBarrier<AscendC::MemDsbT::DDR>();
         SyncAll();
         if (splitCoreInfo.isLD) {
             vectorService.ProcessLD(splitCoreInfo.ldCubeId, splitCoreInfo.ldInnerS1Idx);

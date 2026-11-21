@@ -279,6 +279,14 @@ def _load_ops_cdll(so_path: Path, rank: int) -> ctypes.CDLL:
         *([ctypes.c_int32] * 3),
     ]
     lib.tilert_dspine_commit_post_mm2_seed_launch.restype = ctypes.c_int
+
+    lib.tilert_dspine_commit_mm_k128_launch.argtypes = [
+        ctypes.c_void_p,
+        *([ctypes.c_uint64] * 5),
+        ctypes.c_int32,
+        ctypes.c_int32,
+    ]
+    lib.tilert_dspine_commit_mm_k128_launch.restype = ctypes.c_int
     return lib
 
 
@@ -406,6 +414,8 @@ class CalibratedL78V3Runner:
         t_base_ms: float = 41.5,
         c_w_ms: float = 0.68,
         narrow_topk: bool = False,
+        p_stop: float = 0.0,
+        min_stop_step: int = 2,
         l78_build_dir: str | Path | None = None,
     ):
         import torch
@@ -452,6 +462,11 @@ class CalibratedL78V3Runner:
         self.t_base_ms = float(t_base_ms)
         self.c_w_ms = float(c_w_ms)
         self.narrow_topk = bool(narrow_topk)
+        self.p_stop = float(p_stop)
+        if not 0.0 <= self.p_stop < 1.0:
+            raise ValueError(f"Unsupported p_stop: {self.p_stop}")
+        self.log_p_stop = math.log(self.p_stop) if self.p_stop > 0.0 else -1.0e30
+        self.min_stop_step = max(1, int(min_stop_step))
 
         dev = self.dev
         self._owners = []
@@ -517,9 +532,8 @@ class CalibratedL78V3Runner:
         self.c2b_recs_out = torch.zeros((self.max_b, HIDDEN_SIZE), dtype=torch.bfloat16, device=dev)
         self.c2b_act_q = torch.zeros((self.max_b, HIDDEN_SIZE), dtype=torch.int8, device=dev)
         self.c2b_act_s = torch.zeros((self.max_b,), dtype=torch.float32, device=dev)
-        self.c2b_acc_i32 = torch.zeros(
-            (self.max_b, self.head_valid_vocab), dtype=torch.int32, device=dev
-        )
+        acc_stride = ((self.head_valid_vocab + 31) // 32) * 32
+        self.c2b_acc_i32 = torch.zeros((self.max_b, acc_stride), dtype=torch.int32, device=dev)
 
         self.wk_w_128 = (
             self.dw.front[2][:4]
@@ -531,6 +545,21 @@ class CalibratedL78V3Runner:
         self.exact_idx_work = torch.zeros((self.COMMIT_M, 128), dtype=torch.float32, device=dev)
 
         self.shard_dim = HIDDEN_SIZE // self.world_size
+        n_tiles = self.shard_dim // 16
+        self.rot_shard_nz = (
+            self.rot_shard_t.t()
+            .contiguous()
+            .view(n_tiles, 16, HIDDEN_SIZE // 128, 8, 16)
+            .permute(0, 2, 3, 1, 4)
+            .contiguous()
+        )
+        self.w_eh_col_nz = (
+            self.w_eh_col_r.t()
+            .contiguous()
+            .view(n_tiles, 16, (2 * HIDDEN_SIZE) // 128, 8, 16)
+            .permute(0, 2, 3, 1, 4)
+            .contiguous()
+        )
         self.gather_in = torch.zeros(
             (max(8, self.world_size), 64), dtype=torch.float32, device=dev
         )
@@ -745,7 +774,7 @@ class CalibratedL78V3Runner:
             int(self.rank),
             int(self.world_size),
             int(self.mm2_k_inner),
-            0,
+            int(self.min_stop_step),
         ]
         f32_fields = [
             float(self.beta_margin),
@@ -753,7 +782,7 @@ class CalibratedL78V3Runner:
             float(self.norm_eps),
             float(self.t_base_ms),
             float(self.c_w_ms),
-            0.0,
+            float(self.log_p_stop),
         ]
         payload = struct.pack(
             "<" + "Q" * 148 + "i" * 18 + "f" * 6 + "i" * 32,
@@ -1406,12 +1435,18 @@ class CalibratedL78V3Runner:
         )
         if st != 0:
             raise RuntimeError(f"dspine_commit_gather failed: {st}")
-        for off in range(0, cm, 8):
-            torch.mm(
-                self.commit_par_m[off : off + 8],
-                self.rot_shard_t,
-                out=self.commit_rot_shard[off : off + 8],
-            )
+        st = self.wt.ops.tilert_dspine_commit_mm_k128_launch(
+            stream_ptr,
+            self.sync_addr,
+            self.commit_ctrl_dev.data_ptr(),
+            self.commit_par_m.data_ptr(),
+            self.rot_shard_nz.data_ptr(),
+            self.commit_rot_shard.data_ptr(),
+            cm,
+            HIDDEN_SIZE,
+        )
+        if st != 0:
+            raise RuntimeError(f"dspine_commit_mm_k128 rot failed: {st}")
         st = self.wt.ops.tilert_dspine_prolog_pack_compact_launch(
             stream_ptr,
             self.commit_ctrl_dev.data_ptr(),
@@ -1444,12 +1479,18 @@ class CalibratedL78V3Runner:
         )
         if st != 0:
             raise RuntimeError(f"dspine_commit_dual_norm failed: {st}")
-        for off in range(0, cm, 8):
-            torch.mm(
-                self.commit_eh_in[off : off + 8],
-                self.w_eh_col_r,
-                out=self.commit_eh_shard[off : off + 8],
-            )
+        st = self.wt.ops.tilert_dspine_commit_mm_k128_launch(
+            stream_ptr,
+            self.sync_addr,
+            self.commit_ctrl_dev.data_ptr(),
+            self.commit_eh_in.data_ptr(),
+            self.w_eh_col_nz.data_ptr(),
+            self.commit_eh_shard.data_ptr(),
+            cm,
+            2 * HIDDEN_SIZE,
+        )
+        if st != 0:
+            raise RuntimeError(f"dspine_commit_mm_k128 eh failed: {st}")
         st = self.wt.ops.tilert_dspine_commit_post_mm2_seed_launch(
             stream_ptr,
             self.sync_addr,
@@ -1606,7 +1647,19 @@ class CalibratedL78V3Runner:
             self.commit_ctrl_dev[2] = 1
             self.commit_ctrl_dev[47] = cm + 1
             self.commit_ttoks_pad32[0] = int(tok)
-            torch.mm(hid, self.rot_shard_t, out=self.commit_rot_shard[:1])
+            hid_c = hid.contiguous()
+            st_mm1 = self.wt.ops.tilert_dspine_commit_mm_k128_launch(
+                stream_ptr,
+                self.sync_addr,
+                0,
+                hid_c.data_ptr(),
+                self.rot_shard_nz.data_ptr(),
+                self.commit_rot_shard.data_ptr(),
+                1,
+                HIDDEN_SIZE,
+            )
+            if st_mm1 != 0:
+                raise RuntimeError(f"serial commit_mm_k128 rot failed: {st_mm1}")
             self.wt.ops.tilert_dspine_prolog_pack_launch(
                 stream_ptr,
                 self.commit_ctrl_dev.data_ptr(),
@@ -1634,7 +1687,18 @@ class CalibratedL78V3Runner:
             )[0]
             self.commit_eh_in[:, :HIDDEN_SIZE].copy_(en)
             self.commit_eh_in[:, HIDDEN_SIZE:].copy_(hn)
-            torch.mm(self.commit_eh_in[:1], self.w_eh_col_r, out=self.commit_eh_shard[:1])
+            st_mm2 = self.wt.ops.tilert_dspine_commit_mm_k128_launch(
+                stream_ptr,
+                self.sync_addr,
+                0,
+                self.commit_eh_in.data_ptr(),
+                self.w_eh_col_nz.data_ptr(),
+                self.commit_eh_shard.data_ptr(),
+                1,
+                2 * HIDDEN_SIZE,
+            )
+            if st_mm2 != 0:
+                raise RuntimeError(f"serial commit_mm_k128 eh failed: {st_mm2}")
             sl_s = self.rank * self.shard_dim
             self.commit_eh_comm[:cm, sl_s : sl_s + self.shard_dim].copy_(
                 self.commit_eh_shard

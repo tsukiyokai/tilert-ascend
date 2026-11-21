@@ -287,6 +287,125 @@ __aicore__ inline void RunFusedNextNormFromArena(
 #endif
 }
 
+#ifdef L78_FUSE_HEAD_NORM
+__aicore__ inline void RunFusedHeadNormFromArena(
+    AscendC::LocalTensor<uint8_t> arena, int64_t t, __gm__ bfloat16_t* res_b_gm,
+    __gm__ bfloat16_t* gamma_gm, __gm__ bfloat16_t* recs_out_gm,
+    __gm__ int8_t* act_q_gm, __gm__ float* act_s_gm, float eps)
+{
+    constexpr int32_t kHidden = 6144;
+    auto red2_bf16 = arena[139264].ReinterpretCast<bfloat16_t>();
+    auto residual_bf16 = arena[176384].ReinterpretCast<bfloat16_t>();
+    auto gamma_bf16 = arena[163840].ReinterpretCast<bfloat16_t>();
+    auto ub_x1 = arena[0].ReinterpretCast<bfloat16_t>();
+    auto ub_x = arena[12288].ReinterpretCast<float>();
+    auto ub_sq = arena[36864].ReinterpretCast<float>();
+    auto ub_tmp = arena[61440].ReinterpretCast<float>();
+    auto ub_red = arena[86016].ReinterpretCast<float>();
+    auto ub_sc = arena[87040].ReinterpretCast<float>();
+    auto ub_q8 = arena[87104].ReinterpretCast<int8_t>();
+    auto ub_fp16 = red2_bf16.ReinterpretCast<half>();
+
+    GlobalTensor<bfloat16_t> in_gm, gam_gm, g_recs;
+    GlobalTensor<int8_t> g_q8;
+    GlobalTensor<float> g_sc;
+    in_gm.SetGlobalBuffer(res_b_gm + t * kHidden, kHidden);
+    gam_gm.SetGlobalBuffer(gamma_gm, kHidden);
+    g_recs.SetGlobalBuffer(recs_out_gm + t * kHidden, kHidden);
+    g_q8.SetGlobalBuffer(act_q_gm + t * kHidden, kHidden);
+    g_sc.SetGlobalBuffer(act_s_gm + t, 1);
+
+    DataCopy(red2_bf16, in_gm, kHidden);
+    DataCopy(gamma_bf16, gam_gm, kHidden);
+    const auto e_m2v = GetTPipePtr()->AllocEventID<HardEvent::MTE2_V>();
+    SetFlag<HardEvent::MTE2_V>(e_m2v);
+    WaitFlag<HardEvent::MTE2_V>(e_m2v);
+    GetTPipePtr()->ReleaseEventID<HardEvent::MTE2_V>(e_m2v);
+
+    Cast(ub_x, residual_bf16, RoundMode::CAST_NONE, kHidden);
+    Cast(ub_tmp, red2_bf16, RoundMode::CAST_NONE, kHidden);
+    PipeBarrier<PIPE_V>();
+    Add(ub_x, ub_x, ub_tmp, kHidden);
+    PipeBarrier<PIPE_V>();
+    Cast(ub_x1, ub_x, RoundMode::CAST_RINT, kHidden);
+    PipeBarrier<PIPE_V>();
+    Cast(ub_x, ub_x1, RoundMode::CAST_NONE, kHidden);
+    PipeBarrier<PIPE_V>();
+
+    Mul(ub_sq, ub_x, ub_x, kHidden);
+    PipeBarrier<PIPE_V>();
+    Add(ub_sq, ub_sq, ub_sq[4096], 2048);
+    PipeBarrier<PIPE_V>();
+    for (int32_t s = 2048; s >= 64; s >>= 1) {
+        Add(ub_sq, ub_sq, ub_sq[s], s);
+        PipeBarrier<PIPE_V>();
+    }
+    AscendCUtils::SetMask<float>(64);
+    WholeReduceSum<float, false>(ub_sq, ub_sq, MASK_PLACEHOLDER, 1, 0, 1, 0);
+    const auto e_vs0 = GetTPipePtr()->FetchEventID(HardEvent::V_S);
+    SetFlag<HardEvent::V_S>(e_vs0);
+    WaitFlag<HardEvent::V_S>(e_vs0);
+    const float rstd = 1.0F / sqrt(
+        ub_sq.GetValue(0) * (1.0F / static_cast<float>(kHidden)) + eps);
+    const auto e_sv0 = GetTPipePtr()->FetchEventID(HardEvent::S_V);
+    SetFlag<HardEvent::S_V>(e_sv0);
+    WaitFlag<HardEvent::S_V>(e_sv0);
+
+    Muls(ub_x, ub_x, rstd, kHidden);
+    Cast(ub_tmp, gamma_bf16, RoundMode::CAST_NONE, kHidden);
+    PipeBarrier<PIPE_V>();
+    Mul(ub_x, ub_x, ub_tmp, kHidden);
+    PipeBarrier<PIPE_V>();
+    Cast(ub_x1, ub_x, RoundMode::CAST_RINT, kHidden);
+    if (recs_out_gm != nullptr) {
+        const auto e_vm3_0 = GetTPipePtr()->FetchEventID(HardEvent::V_MTE3);
+        SetFlag<HardEvent::V_MTE3>(e_vm3_0);
+        WaitFlag<HardEvent::V_MTE3>(e_vm3_0);
+        DataCopy(g_recs, ub_x1, kHidden);
+    }
+    PipeBarrier<PIPE_V>();
+    Cast(ub_x, ub_x1, RoundMode::CAST_NONE, kHidden);
+    PipeBarrier<PIPE_V>();
+    Abs(ub_tmp, ub_x, kHidden);
+    PipeBarrier<PIPE_V>();
+    ReduceMax(ub_red, ub_tmp, ub_sq, kHidden);
+    const auto e_vs1 = GetTPipePtr()->FetchEventID(HardEvent::V_S);
+    SetFlag<HardEvent::V_S>(e_vs1);
+    WaitFlag<HardEvent::V_S>(e_vs1);
+    const float max_v = ub_red.GetValue(0);
+    const float sc = (max_v > 0.0F) ? (max_v / 127.0F) : 1.0F;
+    ub_sc.SetValue(0, sc);
+    const auto e_sv1 = GetTPipePtr()->FetchEventID(HardEvent::S_V);
+    SetFlag<HardEvent::S_V>(e_sv1);
+    WaitFlag<HardEvent::S_V>(e_sv1);
+    Duplicate(ub_tmp, sc, 64);
+    Duplicate(ub_sq, 1.0F, 64);
+    PipeBarrier<PIPE_V>();
+    Div(ub_sq, ub_sq, ub_tmp, 64);
+    PipeBarrier<PIPE_V>();
+    Mul(ub_tmp, ub_x, ub_sq, 64, kHidden / 64, BinaryRepeatParams{1, 1, 0, 8, 8, 0});
+    PipeBarrier<PIPE_V>();
+    auto ub_i32 = ub_sq.ReinterpretCast<int32_t>();
+    Cast(ub_i32, ub_tmp, RoundMode::CAST_RINT, kHidden);
+    PipeBarrier<PIPE_V>();
+    SetDeqScale(static_cast<half>(1.0F));
+    PipeBarrier<PIPE_V>();
+    Cast(ub_fp16, ub_i32, RoundMode::CAST_ROUND, kHidden);
+    PipeBarrier<PIPE_V>();
+    Cast(ub_q8, ub_fp16, RoundMode::CAST_TRUNC, kHidden);
+    const auto e_vm3_1 = GetTPipePtr()->FetchEventID(HardEvent::V_MTE3);
+    SetFlag<HardEvent::V_MTE3>(e_vm3_1);
+    WaitFlag<HardEvent::V_MTE3>(e_vm3_1);
+    const auto e_sm3 = GetTPipePtr()->FetchEventID(HardEvent::S_MTE3);
+    SetFlag<HardEvent::S_MTE3>(e_sm3);
+    WaitFlag<HardEvent::S_MTE3>(e_sm3);
+    DataCopy(g_q8, ub_q8, kHidden);
+    DataCopyExtParams copy_sc{1, 4, 0, 0, 0};
+    DataCopyPad(g_sc, ub_sc, copy_sc);
+    PipeBarrier<PIPE_ALL>();
+}
+#endif
+
 __aicore__ __attribute__((noinline)) void ReducePhase(TPipe& pipe,
     const Communication& communication, uint64_t partial,
     uint64_t output, int64_t rows, int64_t blocks,
@@ -297,7 +416,12 @@ __aicore__ __attribute__((noinline)) void ReducePhase(TPipe& pipe,
     uint64_t next_residual = 0, uint64_t next_gamma = 0,
     uint64_t next_retained = 0, uint64_t next_normalized = 0,
     uint64_t next_codes = 0, uint64_t next_scales = 0, float next_epsilon = 0.0F,
-    uint32_t red1_epoch = 0U)
+    uint32_t red1_epoch = 0U
+#ifdef L78_FUSE_HEAD_NORM
+    , uint64_t head_gamma_gm = 0ULL, uint64_t head_recs_gm = 0ULL,
+    uint64_t head_act_q_gm = 0ULL, uint64_t head_act_s_gm = 0ULL
+#endif
+    )
 {
     if ASCEND_IS_AIV {
         whole_layer_tree::CommunicationBuffers buffers;
@@ -332,6 +456,18 @@ __aicore__ __attribute__((noinline)) void ReducePhase(TPipe& pipe,
                 reinterpret_cast<const __gm__ bfloat16_t*>(next_gamma),
                 fused_next_norm);
             if (fused_next_norm && GetBlockIdx() < rows) {
+#ifdef L78_FUSE_HEAD_NORM
+                if (head_gamma_gm != 0ULL) {
+                    RunFusedHeadNormFromArena(arena, GetBlockIdx(),
+                        reinterpret_cast<__gm__ bfloat16_t*>(output),
+                        reinterpret_cast<__gm__ bfloat16_t*>(head_gamma_gm),
+                        reinterpret_cast<__gm__ bfloat16_t*>(head_recs_gm),
+                        reinterpret_cast<__gm__ int8_t*>(head_act_q_gm),
+                        reinterpret_cast<__gm__ float*>(head_act_s_gm),
+                        next_epsilon);
+                } else
+#endif
+                {
 #ifdef K113000_WAVE16_RED2
                 RunFusedNextNormFromArena(arena, GetBlockIdx(),
                     reinterpret_cast<__gm__ bfloat16_t*>(output),
@@ -351,6 +487,7 @@ __aicore__ __attribute__((noinline)) void ReducePhase(TPipe& pipe,
                     reinterpret_cast<__gm__ float*>(next_scales),
                     next_epsilon);
 #endif
+                }
             }
         } else {
             whole_layer_tree::AllReduceBf16(buffers,
@@ -373,7 +510,12 @@ __aicore__ inline void RunLayer(
     bool* inout_resolved_ok = nullptr, int32_t known_kv_len = -1,
     int32_t known_q_len = -1, uint64_t fused_rtk_hdr = 0ULL,
     bool skip_norm = false, bool* out_fused_next_norm = nullptr,
-    uint32_t known_red1_epoch = 0U)
+    uint32_t known_red1_epoch = 0U
+#ifdef L78_FUSE_HEAD_NORM
+    , uint64_t head_gamma_gm = 0ULL, uint64_t head_recs_gm = 0ULL,
+    uint64_t head_act_q_gm = 0ULL, uint64_t head_act_s_gm = 0ULL
+#endif
+    )
 {
     int32_t q_len = known_q_len;
     if (q_len < 0) {
@@ -618,6 +760,13 @@ __aicore__ inline void RunLayer(
     if (out_fused_next_norm != nullptr) {
         *out_fused_next_norm = fused_next_norm;
     }
+#ifdef L78_FUSE_HEAD_NORM
+    const bool fused_head_norm = (head_gamma_gm != 0ULL && communication.window != 0ULL
+        && active_rows >= 1 && active_rows <= 4);
+    if (fused_head_norm) {
+        fused_next_norm = true;
+    }
+#endif
     const bool next_idx = (next_step != nullptr) && ((next_step->indexed & 1ULL) != 0ULL);
 #ifdef K11180_LITE_MIRROR
     ReducePhase(pipe, communication, addresses.body.scratch[routed_int4::kRouteOutput],
@@ -627,6 +776,29 @@ __aicore__ inline void RunLayer(
                 addresses.bridge[ffn_bridge::kIds],
                 addresses.bridge[ffn_bridge::kProbabilities],
                 layer_pw);
+#else
+#ifdef L78_FUSE_HEAD_NORM
+    ReducePhase(pipe, communication, addresses.body.scratch[routed_int4::kRouteOutput],
+                communication.output, active_rows, blocks,
+                addresses.body.shared.output, 0,
+                addresses.bridge[ffn_bridge::kScaledRouted],
+                addresses.bridge[ffn_bridge::kIds],
+                addresses.bridge[ffn_bridge::kProbabilities],
+                (layer_pw != 0ULL) ? addresses.body.scratch[routed_int4::kDownTiling] : 0ULL,
+                prof_acc,
+                fused_next_norm,
+                fused_next_norm ? (fused_head_norm ? addresses.bridge[1] : next_step->addresses.norm.residual) : 0ULL,
+                fused_next_norm ? (fused_head_norm ? head_gamma_gm : next_step->addresses.norm.gamma) : 0ULL,
+                (fused_next_norm && !fused_head_norm) ? next_step->addresses.norm.retained : 0ULL,
+                (fused_next_norm && !fused_head_norm && next_idx) ? next_step->addresses.norm.normalized : 0ULL,
+                (fused_next_norm && !fused_head_norm) ? next_step->addresses.norm.codes : 0ULL,
+                (fused_next_norm && !fused_head_norm) ? next_step->addresses.norm.scales : 0ULL,
+                fused_next_norm ? (fused_head_norm ? config.input_epsilon : next_step->config.input_epsilon) : 0.0F,
+                0U,
+                fused_head_norm ? head_gamma_gm : 0ULL,
+                fused_head_norm ? head_recs_gm : 0ULL,
+                fused_head_norm ? head_act_q_gm : 0ULL,
+                fused_head_norm ? head_act_s_gm : 0ULL);
 #else
     ReducePhase(pipe, communication, addresses.body.scratch[routed_int4::kRouteOutput],
                 communication.output, active_rows, blocks,
@@ -645,6 +817,7 @@ __aicore__ inline void RunLayer(
                 fused_next_norm ? next_step->addresses.norm.scales : 0ULL,
                 fused_next_norm ? next_step->config.input_epsilon : 0.0F);
 #endif
+#endif
 #ifdef K11220_PF_RED2_FULL
     if ASCEND_IS_AIV {
         if (GetBlockIdx() == 0) {
@@ -655,10 +828,19 @@ __aicore__ inline void RunLayer(
     }
 #endif
     if (fused_next_norm) {
+#ifdef L78_FUSE_HEAD_NORM
+        if (!fused_head_norm) {
+            if ASCEND_IS_AIV {
+                PipeBarrier<PIPE_ALL>();
+            }
+            SyncAll<false>();
+        }
+#else
         if ASCEND_IS_AIV {
             PipeBarrier<PIPE_ALL>();
         }
         SyncAll<false>();
+#endif
     }
     if (prof_acc != nullptr) {
         const int64_t cyc6 = GetSystemCycle();

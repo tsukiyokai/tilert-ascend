@@ -558,6 +558,20 @@ class Glm52AscendShowHands:
             "target_tokens": self.target_tokens,
         }
         self.hctrl = ZeroLagHorizonController()
+        is_tp16 = self.world_size == 16
+        b_scheds_default = (
+            [
+                [4, 4, 2, 2, 2, 2, 1, 1, 1, 1],
+                [4, 4, 4, 2, 2, 2, 2, 1, 1, 1, 1, 1],
+                [4, 4, 4, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1],
+            ]
+            if is_tp16
+            else [
+                [4, 4, 4, 4, 4, 2, 2],
+                [4, 4, 4, 4, 2, 2, 2, 2, 1, 1],
+                [4, 4, 4, 4, 2, 2, 2, 2, 1, 1],
+            ]
+        )
         self.drafter = CalibratedL78V3Runner(
             self.arena,
             self.prefix,
@@ -567,20 +581,18 @@ class Glm52AscendShowHands:
             self.target_ctx,
             self.tp_group,
             self.prefix.first_token_id,
-            b_scheds=[
-                [4, 4, 4, 4, 4, 2, 2],
-                [4, 4, 4, 4, 2, 2, 2, 2, 1, 1],
-                [4, 4, 4, 4, 2, 2, 2, 2, 1, 1],
-            ],
+            b_scheds=b_scheds_default,
             horizon_ctrl=self.hctrl,
             inv_temp=self.cfg.inv_temp,
             beta_margin=0.0,
             beta_depth=0.0,
             k_sfa=self.k_sfa,
-            min_w_act=10,
-            t_base_ms=41.5,
-            c_w_ms=0.68,
-            narrow_topk=True,
+            min_w_act=6 if is_tp16 else 10,
+            t_base_ms=30.0 if is_tp16 else 41.5,
+            c_w_ms=0.50 if is_tp16 else 0.68,
+            narrow_topk=not is_tp16,
+            p_stop=0.14 if is_tp16 else 0.0,
+            min_stop_step=3 if is_tp16 else 2,
             l78_build_dir=self.build_dir / "dspine_l78",
         )
         self._capture_g_round()
