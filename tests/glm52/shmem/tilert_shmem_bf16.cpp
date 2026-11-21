@@ -3,6 +3,7 @@
 #include <torch/library.h>
 #include <torch_npu/csrc/core/npu/NPUStream.h>
 
+#include <acl/acl.h>
 #include <cstdint>
 #include <mutex>
 
@@ -10,6 +11,7 @@ extern "C" {
 int32_t rtGetC2cCtrlAddr(uint64_t* address, uint32_t* length);
 void* aclshmem_malloc(size_t size);
 void aclshmem_free(void* ptr);
+void aclshmem_barrier_all(void);
 }
 
 void tp_push_demo(uint32_t block_dim, void* stream, uint64_t fftsAddr,
@@ -84,6 +86,9 @@ struct ShmemState {
         const size_t window_bytes = 16384 + stride_bytes * 64;
         window = static_cast<uint8_t*>(aclshmem_malloc(window_bytes));
         TORCH_CHECK(window != nullptr, "aclshmem_malloc(window) failed");
+        TORCH_CHECK(aclrtMemset(window, 16384, 0, 16384) == 0,
+                    "aclrtMemset(window) failed");
+        aclshmem_barrier_all();
         if (ffts == 0) {
             uint32_t length = 0;
             TORCH_CHECK(rtGetC2cCtrlAddr(&ffts, &length) == 0 && ffts != 0,

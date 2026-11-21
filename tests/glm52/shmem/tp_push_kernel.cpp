@@ -30,7 +30,10 @@ ACLSHMEM_DEVICE TpPushLayout TpPushPlane(__gm__ uint8_t* window, int rows, int h
     layout.elements = static_cast<int64_t>(rows) * hidden;
     layout.stride = AlignUp(layout.elements * sizeof(float), ALIGN_BYTES) / sizeof(float);
     const int64_t head_int32 = PLANES * MAX_SLICES * SIGNAL_SLOT_INT32;
-    layout.data = (__gm__ float*)((__gm__ int32_t*)window + head_int32) + plane * pe_size * layout.stride;
+    const int64_t plane_pe_stride =
+        (pe_size == 16 && layout.stride < 393216LL) ? 393216LL : layout.stride;
+    layout.data = (__gm__ float*)((__gm__ int32_t*)window + head_int32) +
+                  plane * pe_size * plane_pe_stride;
     return layout;
 }
 
@@ -696,6 +699,137 @@ ACLSHMEM_DEVICE void TpPushRmsNormQuantRow(
     }
 }
 
+ACLSHMEM_DEVICE void TpPush8p2TreeBf16(
+    const TpPushLayout& layout, __gm__ bfloat16_t* partial, __gm__ bfloat16_t* out,
+    __gm__ uint8_t* window, int64_t core, int64_t cores, int64_t my_pe, int64_t pe_size,
+    int64_t plane, int32_t count,
+    const LocalTensor<bfloat16_t>& stage_buf,
+    const LocalTensor<float>& acc, const LocalTensor<float>& term,
+    int64_t active_elements)
+{
+    const int64_t xpeer = my_pe ^ 8;
+    const int64_t mod_base = my_pe & 8;
+    const int64_t my_lr = my_pe & 7;
+    const int64_t hi_half = (my_pe >> 3) & 1;
+
+    const int64_t eff_plane = (count - 1) & (PLANES - 1);
+    const TpPushLayout tree_layout = TpPushPlane(
+        window, 1, static_cast<int>(layout.elements), pe_size, eff_plane);
+
+    __gm__ bfloat16_t* local_s1_bf16 = (__gm__ bfloat16_t*)tree_layout.data;
+    __gm__ bfloat16_t* remote_s1_bf16 =
+        (__gm__ bfloat16_t*)aclshmem_ptr((__gm__ void*)local_s1_bf16, (int)xpeer);
+    __gm__ float* local_s2_fp32 = tree_layout.data + tree_layout.stride;
+
+    __gm__ int32_t* pool_base = (__gm__ int32_t*)aclshmemi_get_team_sync_pool(4);
+
+    const int64_t worker = core >> 3;
+    const int64_t lr_off = core & 7;
+    const int64_t peer_lr = (my_lr + lr_off) & 7;
+    const int64_t peer = mod_base | peer_lr;
+    __gm__ int32_t* flag_s2_rs = pool_base + worker * 8 * SIGNAL_SLOT_INT32;
+
+    const int64_t w_elems = active_elements / 6;
+    const int64_t w_off = worker * w_elems;
+    __gm__ int32_t* s1_w_flags =
+        (__gm__ int32_t*)aclshmemi_get_team_sync_pool(10) +
+        worker * 16 * SIGNAL_SLOT_INT32;
+    if (lr_off == 0) {
+        GlobalTensor<bfloat16_t> s1_src;
+        s1_src.SetGlobalBuffer(partial + w_off, w_elems);
+        DataCopy(stage_buf, s1_src, w_elems);
+        SetFlag<AscendC::HardEvent::MTE2_MTE3>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::MTE2_MTE3>(EVENT_ID0);
+
+        GlobalTensor<bfloat16_t> s1_dst;
+        s1_dst.SetGlobalBuffer(remote_s1_bf16 + w_off, w_elems);
+        DataCopy(s1_dst, stage_buf, w_elems);
+        SetFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
+        DataSyncBarrier<MemDsbT::DDR>();
+        aclshmemi_signal_set(s1_w_flags + my_pe * SIGNAL_SLOT_INT32, (int)xpeer, count);
+    }
+    aclshmem_signal_wait_until(
+        s1_w_flags + xpeer * SIGNAL_SLOT_INT32, ACLSHMEM_CMP_GE, count);
+    if (peer != my_pe) {
+        __gm__ float* remote_s2_fp32 =
+            (__gm__ float*)aclshmem_ptr((__gm__ void*)local_s2_fp32, (int)peer);
+        GlobalTensor<bfloat16_t> g_my, g_x;
+        g_my.SetGlobalBuffer(partial + w_off, w_elems);
+        g_x.SetGlobalBuffer(local_s1_bf16 + w_off, w_elems);
+        DataCopy(stage_buf[0], g_my, w_elems);
+        DataCopy(stage_buf[4096], g_x, w_elems);
+        SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+
+        Cast(acc, hi_half ? stage_buf[4096] : stage_buf[0],
+             AscendC::RoundMode::CAST_NONE, w_elems);
+        Cast(term, hi_half ? stage_buf[0] : stage_buf[4096],
+             AscendC::RoundMode::CAST_NONE, w_elems);
+        PipeBarrier<PIPE_V>();
+        Add(acc, acc, term, w_elems);
+        SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+
+        GlobalTensor<float> r_dst;
+        r_dst.SetGlobalBuffer(remote_s2_fp32 + my_lr * active_elements + w_off, w_elems);
+        DataCopy(r_dst, acc, w_elems);
+        SetFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
+        WaitFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
+        DataSyncBarrier<MemDsbT::DDR>();
+        aclshmemi_signal_set(flag_s2_rs + my_lr * SIGNAL_SLOT_INT32, (int)peer, count);
+    }
+
+    const int64_t c_elems = active_elements / 48;
+    const int64_t c_off = core * c_elems;
+    for (int64_t lr = 0; lr < 8; ++lr) {
+        if (lr != my_lr) {
+            aclshmem_signal_wait_until(
+                flag_s2_rs + lr * SIGNAL_SLOT_INT32, ACLSHMEM_CMP_GE, count);
+            GlobalTensor<float> r_src;
+            r_src.SetGlobalBuffer(local_s2_fp32 + lr * active_elements + c_off, c_elems);
+            DataCopy(acc[lr * c_elems], r_src, c_elems);
+        }
+    }
+    GlobalTensor<bfloat16_t> c_my, c_x;
+    c_my.SetGlobalBuffer(partial + c_off, c_elems);
+    c_x.SetGlobalBuffer(local_s1_bf16 + c_off, c_elems);
+    DataCopy(stage_buf[0], c_my, c_elems);
+    DataCopy(stage_buf[4096], c_x, c_elems);
+    SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+    WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+
+    Cast(term[0], hi_half ? stage_buf[4096] : stage_buf[0],
+         AscendC::RoundMode::CAST_NONE, c_elems);
+    Cast(term[4096], hi_half ? stage_buf[0] : stage_buf[4096],
+         AscendC::RoundMode::CAST_NONE, c_elems);
+    PipeBarrier<PIPE_V>();
+    Add(acc[my_lr * c_elems], term[0], term[4096], c_elems);
+    PipeBarrier<PIPE_V>();
+
+    Add(acc[0], acc[0], acc[4 * c_elems], c_elems);
+    Add(acc[2 * c_elems], acc[2 * c_elems], acc[6 * c_elems], c_elems);
+    Add(acc[1 * c_elems], acc[1 * c_elems], acc[5 * c_elems], c_elems);
+    Add(acc[3 * c_elems], acc[3 * c_elems], acc[7 * c_elems], c_elems);
+    PipeBarrier<PIPE_V>();
+    Add(acc[0], acc[0], acc[2 * c_elems], c_elems);
+    Add(acc[1 * c_elems], acc[1 * c_elems], acc[3 * c_elems], c_elems);
+    PipeBarrier<PIPE_V>();
+    Add(acc[0], acc[0], acc[1 * c_elems], c_elems);
+    PipeBarrier<PIPE_V>();
+
+    Cast(stage_buf, acc[0], AscendC::RoundMode::CAST_RINT, c_elems);
+    SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+    WaitFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+    GlobalTensor<bfloat16_t> out_dst;
+    out_dst.SetGlobalBuffer(out + c_off, c_elems);
+    DataCopy(out_dst, stage_buf, c_elems);
+    SetFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID0);
+    WaitFlag<AscendC::HardEvent::MTE3_V>(EVENT_ID0);
+    SetFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID0);
+    WaitFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID0);
+}
+
 ACLSHMEM_DEVICE void TpPushRsAgBf16(
     const TpPushLayout& layout, __gm__ bfloat16_t* partial, __gm__ bfloat16_t* out,
     int64_t core, int64_t cores, int64_t my_pe, int64_t pe_size,
@@ -709,7 +843,8 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
     __gm__ bfloat16_t* gamma = nullptr,
     __gm__ bfloat16_t* beta = nullptr, __gm__ bfloat16_t* norm_out = nullptr,
     __gm__ int8_t* quant_out = nullptr, __gm__ float* scale_out = nullptr,
-    float eps = 1e-5f, int stage = 10)
+    float eps = 1e-5f, int stage = 10,
+    __gm__ uint8_t* window = nullptr, int64_t plane = 0)
 {
     const bool fast_8x48 = (pe_size == 8 && cores == 48);
     const int64_t workers = fast_8x48 ? 6 : (cores / pe_size);
@@ -743,15 +878,25 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
     auto counter_slot = (__gm__ int32_t*)aclshmemi_get_team_sync_counter(1 + core);
     const int32_t count = aclshmemi_load(counter_slot) + 1;
     aclshmemi_store(counter_slot, count);
+    if (pe_size == 16 && cores == 48 && window != nullptr &&
+        routed_full == nullptr && routed_slice == nullptr &&
+        active_elements > 0 && (active_elements % 6144) == 0 &&
+        active_elements <= 24576) {
+        TpPush8p2TreeBf16(layout, partial, out, window, core, cores, my_pe, pe_size,
+                          plane, count, stage_buf, acc, term, active_elements);
+    } else {
+    const TpPushLayout eff_layout = (pe_size == 16 && window != nullptr)
+        ? TpPushPlane(window, 1, static_cast<int>(layout.elements), pe_size, (count - 1) & (PLANES - 1))
+        : layout;
     if (gamma == nullptr && w_elems == 0 && peer_w_elems == 0) {
         return;
     }
 
     const int64_t win_off =
-        (one_hop && pe_size * slice_elems > layout.elements)
+        (one_hop && pe_size * slice_elems > eff_layout.elements)
             ? (pe_size * slice_elems)
-            : layout.elements;
-    __gm__ bfloat16_t* local_rs_win = (__gm__ bfloat16_t*)layout.data;
+            : eff_layout.elements;
+    __gm__ bfloat16_t* local_rs_win = (__gm__ bfloat16_t*)eff_layout.data;
     __gm__ bfloat16_t* local_rs_win_routed = local_rs_win + win_off;
     __gm__ float* local_rs_win_routed_fp32 = (__gm__ float*)(local_rs_win + win_off);
     __gm__ bfloat16_t* local_ag_win = (stage == 17)
@@ -814,6 +959,9 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
         }
         SetFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
         WaitFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
+        if (pe_size == 16) {
+            DataSyncBarrier<MemDsbT::DDR>();
+        }
         aclshmemi_signal_set(flag_rs + my_pe * SIGNAL_SLOT_INT32, (int)peer, count);
         SetFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID0);
         WaitFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID0);
@@ -829,6 +977,69 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
         const bool preload_local = (w_elems > 0) && (w_elems <= (STAGE_UB_BYTES / static_cast<int64_t>(sizeof(float))));
         const bool remote_routed = (stage != 16 && stage != 17 && one_hop && routed_slice != nullptr && my_pe != 0);
 
+        if (pe_size == 16 && routed_slice == nullptr && routed_full == nullptr) {
+            for (int64_t offset = 0; offset < w_elems; offset += 1024) {
+                const int64_t c = (w_elems - offset < 1024) ? (w_elems - offset) : 1024;
+                for (int64_t k = 0; k < 8; ++k) {
+                    const int64_t k_hi = k | 8;
+                    if (offset == 0 && k != my_pe) {
+                        aclshmem_signal_wait_until(
+                            flag_rs + k * SIGNAL_SLOT_INT32, ACLSHMEM_CMP_GE, count);
+                    }
+                    GlobalTensor<bfloat16_t> s_lo;
+                    s_lo.SetGlobalBuffer((k == my_pe)
+                                             ? (partial + my_global_off + offset)
+                                             : (local_rs_win + k * slice_elems + w_off + offset),
+                                         c);
+                    DataCopy(first[k * 1024], s_lo, c);
+
+                    if (offset == 0 && k_hi != my_pe) {
+                        aclshmem_signal_wait_until(
+                            flag_rs + k_hi * SIGNAL_SLOT_INT32, ACLSHMEM_CMP_GE, count);
+                    }
+                    GlobalTensor<bfloat16_t> s_hi;
+                    s_hi.SetGlobalBuffer((k_hi == my_pe)
+                                             ? (partial + my_global_off + offset)
+                                             : (local_rs_win + k_hi * slice_elems + w_off + offset),
+                                         c);
+                    DataCopy(second[k * 1024], s_hi, c);
+                }
+                SetFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+                WaitFlag<AscendC::HardEvent::MTE2_V>(EVENT_ID0);
+                for (int64_t k = 0; k < 8; ++k) {
+                    Cast(acc[k * 1024], first[k * 1024], AscendC::RoundMode::CAST_NONE, c);
+                    Cast(term[k * 1024], second[k * 1024], AscendC::RoundMode::CAST_NONE, c);
+                }
+                PipeBarrier<PIPE_V>();
+                for (int64_t k = 0; k < 8; ++k) {
+                    Add(acc[k * 1024], acc[k * 1024], term[k * 1024], c);
+                }
+                PipeBarrier<PIPE_V>();
+                Add(acc[0], acc[0], acc[4096], c);
+                Add(acc[2048], acc[2048], acc[6144], c);
+                Add(acc[1024], acc[1024], acc[5120], c);
+                Add(acc[3072], acc[3072], acc[7168], c);
+                PipeBarrier<PIPE_V>();
+                Add(acc[0], acc[0], acc[2048], c);
+                Add(acc[1024], acc[1024], acc[3072], c);
+                PipeBarrier<PIPE_V>();
+                Add(acc[0], acc[0], acc[1024], c);
+                PipeBarrier<PIPE_V>();
+                Cast(first, acc[0], AscendC::RoundMode::CAST_RINT, c);
+                SetFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+                WaitFlag<AscendC::HardEvent::V_MTE3>(EVENT_ID0);
+
+                GlobalTensor<bfloat16_t> sink;
+                sink.SetGlobalBuffer((peer == my_pe) ? (out + my_global_off + offset)
+                                                     : (remote_ag_win + my_global_off + offset),
+                                     c);
+                DataCopy(sink, first, c);
+                SetFlag<AscendC::HardEvent::MTE3_V>(events[0]);
+                WaitFlag<AscendC::HardEvent::MTE3_V>(events[0]);
+                SetFlag<AscendC::HardEvent::MTE3_MTE2>(events[0]);
+                WaitFlag<AscendC::HardEvent::MTE3_MTE2>(events[0]);
+            }
+        } else {
         if (preload_local) {
             GlobalTensor<bfloat16_t> my_src;
             my_src.SetGlobalBuffer(partial + my_global_off, w_elems);
@@ -1162,11 +1373,15 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
             SetFlag<AscendC::HardEvent::MTE3_MTE2>(events[0]);
             WaitFlag<AscendC::HardEvent::MTE3_MTE2>(events[0]);
         }
+        }
 
         if (peer != my_pe) {
             if (w_elems > 0) {
                 SetFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
                 WaitFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
+                if (pe_size == 16) {
+                    DataSyncBarrier<MemDsbT::DDR>();
+                }
                 aclshmemi_signal_set(flag_ag + my_pe * SIGNAL_SLOT_INT32, (int)peer, count);
             }
 
@@ -1186,6 +1401,7 @@ ACLSHMEM_DEVICE void TpPushRsAgBf16(
                 WaitFlag<AscendC::HardEvent::MTE3_MTE2>(EVENT_ID0);
             }
         }
+    }
     }
 
     if (gamma != nullptr) {
@@ -1291,6 +1507,15 @@ ACLSHMEM_DEVICE void tp_push_once(__gm__ float* partial, __gm__ float* out, __gm
                 return;
             }
         }
+        const int64_t workers = (cores >= pe_size) ? (cores / pe_size) : 1;
+        TpPushLayout s18_layout = layout;
+        int32_t count = 0;
+        if (pe_size == 16 && core < pe_size * workers) {
+            auto counter_slot = (__gm__ int32_t*)aclshmemi_get_team_sync_counter(1 + core);
+            count = aclshmemi_load(counter_slot) + 1;
+            aclshmemi_store(counter_slot, count);
+            s18_layout = TpPushPlane(window, 1, 196608, pe_size, (count - 1) & (PLANES - 1));
+        }
         if (core < pe_size) {
             GlobalTensor<float> src;
             src.SetGlobalBuffer((__gm__ float*)partial + my_pe * 64, 64);
@@ -1298,7 +1523,7 @@ ACLSHMEM_DEVICE void tp_push_once(__gm__ float* partial, __gm__ float* out, __gm
             SetFlag<AscendC::HardEvent::MTE2_MTE3>(EVENT_ID0);
             WaitFlag<AscendC::HardEvent::MTE2_MTE3>(EVENT_ID0);
             const int64_t peer = (my_pe + core) % pe_size;
-            __gm__ float* remote = (__gm__ float*)aclshmem_ptr(layout.data + my_pe * 64, (int)peer);
+            __gm__ float* remote = (__gm__ float*)aclshmem_ptr(s18_layout.data + my_pe * 64, (int)peer);
             GlobalTensor<float> sink;
             sink.SetGlobalBuffer(remote, 64);
             DataCopy(sink, stage_tensor, 64);
@@ -1306,14 +1531,14 @@ ACLSHMEM_DEVICE void tp_push_once(__gm__ float* partial, __gm__ float* out, __gm
             WaitFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
         }
         aclshmem_quiet();
-        const int64_t workers = (cores >= pe_size) ? (cores / pe_size) : 1;
-        __gm__ int32_t* pool_base = (__gm__ int32_t*)aclshmemi_get_team_sync_pool(1);
+        __gm__ int32_t* pool_base = (__gm__ int32_t*)aclshmemi_get_team_sync_pool(pe_size == 16 ? 8 : 1);
         __gm__ int32_t* flag_base = nullptr;
-        int32_t count = 0;
         if (core < pe_size * workers) {
-            auto counter_slot = (__gm__ int32_t*)aclshmemi_get_team_sync_counter(1 + core);
-            count = aclshmemi_load(counter_slot) + 1;
-            aclshmemi_store(counter_slot, count);
+            if (pe_size != 16) {
+                auto counter_slot = (__gm__ int32_t*)aclshmemi_get_team_sync_counter(1 + core);
+                count = aclshmemi_load(counter_slot) + 1;
+                aclshmemi_store(counter_slot, count);
+            }
             const int64_t worker = core / pe_size;
             const int64_t peer = (my_pe + (core % pe_size)) % pe_size;
             flag_base = pool_base + worker * pe_size * SIGNAL_SLOT_INT32;
@@ -1325,7 +1550,7 @@ ACLSHMEM_DEVICE void tp_push_once(__gm__ float* partial, __gm__ float* out, __gm
                     flag_base + pe * SIGNAL_SLOT_INT32, ACLSHMEM_CMP_GE, count);
             }
             GlobalTensor<float> source;
-            source.SetGlobalBuffer(layout.data, pe_size * 64);
+            source.SetGlobalBuffer(s18_layout.data, pe_size * 64);
             DataCopy(term, source, pe_size * 64);
             SetFlag<AscendC::HardEvent::MTE2_MTE3>(EVENT_ID0);
             WaitFlag<AscendC::HardEvent::MTE2_MTE3>(EVENT_ID0);
@@ -1349,71 +1574,86 @@ ACLSHMEM_DEVICE void tp_push_once(__gm__ float* partial, __gm__ float* out, __gm
                 active_rows = a;
             }
         }
+        auto counter_slot = (__gm__ int32_t*)aclshmemi_get_team_sync_counter(1 + core);
+        const int32_t count = aclshmemi_load(counter_slot) + 1;
+        aclshmemi_store(counter_slot, count);
+        const int64_t s14_plane = (pe_size == 16) ? ((count - 1) & (PLANES - 1)) : plane;
+        const TpPushLayout s14_layout = (pe_size == 16)
+            ? TpPushPlane(window, 1, 196608, pe_size, s14_plane)
+            : layout;
+        __gm__ int32_t* s14_flags = (pe_size == 16)
+            ? (TpPushFlags(window, s14_plane) + 16 * SIGNAL_SLOT_INT32)
+            : (__gm__ int32_t*)aclshmemi_get_team_sync_pool(1);
         if (core < pe_size) {
-            dcci((__gm__ uint64_t*)partial, ENTIRE_DATA_CACHE, CACHELINE_OUT);
-            dcci((__gm__ uint64_t*)errors, ENTIRE_DATA_CACHE, CACHELINE_OUT);
-            __ubuf__ float* ub_vals = stage_ub;
+            GlobalTensor<float> g_vals;
+            g_vals.SetGlobalBuffer(partial, active_rows);
+            DataCopyPad(stage_tensor, g_vals,
+                        DataCopyExtParams{1, static_cast<uint32_t>(active_rows * 4), 0, 0, 0},
+                        DataCopyPadExtParams<float>{false, 0, 0, 0});
+            GlobalTensor<int64_t> g_idxs;
+            g_idxs.SetGlobalBuffer((__gm__ int64_t*)errors, active_rows);
+            DataCopyPad(acc.ReinterpretCast<int64_t>(), g_idxs,
+                        DataCopyExtParams{1, static_cast<uint32_t>(active_rows * 8), 0, 0, 0},
+                        DataCopyPadExtParams<int64_t>{false, 0, 0, 0});
+            SetFlag<AscendC::HardEvent::MTE2_S>(EVENT_ID0);
+            WaitFlag<AscendC::HardEvent::MTE2_S>(EVENT_ID0);
             __ubuf__ int32_t* ub_idxs = (__ubuf__ int32_t*)(stage_ub + 64);
-            __gm__ int64_t* gm_idxs = (__gm__ int64_t*)errors;
+            __ubuf__ int64_t* ub_in_idxs = (__ubuf__ int64_t*)acc.GetPhyAddr();
             for (int i = 0; i < active_rows; ++i) {
-                ub_vals[i] = partial[i];
-                ub_idxs[i] = static_cast<int32_t>(gm_idxs[i]) + hidden;
+                ub_idxs[i] = static_cast<int32_t>(ub_in_idxs[i]) + hidden;
             }
             SetFlag<AscendC::HardEvent::S_MTE3>(EVENT_ID0);
             WaitFlag<AscendC::HardEvent::S_MTE3>(EVENT_ID0);
             const int64_t peer = (my_pe + core) % pe_size;
             __gm__ float* remote =
-                (__gm__ float*)aclshmem_ptr(layout.data + my_pe * 128, (int)peer);
+                (__gm__ float*)aclshmem_ptr(s14_layout.data + my_pe * 128, (int)peer);
             GlobalTensor<float> sink;
             sink.SetGlobalBuffer(remote, 128);
             DataCopy(sink, stage_tensor, 128);
             SetFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
             WaitFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
+            DataSyncBarrier<MemDsbT::DDR>();
+            aclshmemi_signal_set(s14_flags + my_pe * SIGNAL_SLOT_INT32, (int)peer, count);
         }
-        aclshmem_quiet();
-        const int64_t workers = (cores >= pe_size) ? (cores / pe_size) : 1;
-        __gm__ int32_t* flag_base = nullptr;
-        int32_t count = 0;
-        if (core < pe_size * workers) {
-            auto counter_slot = (__gm__ int32_t*)aclshmemi_get_team_sync_counter(1 + core);
-            count = aclshmemi_load(counter_slot) + 1;
-            aclshmemi_store(counter_slot, count);
-            const int64_t worker = core / pe_size;
-            const int64_t peer = (my_pe + (core % pe_size)) % pe_size;
-            __gm__ int32_t* pool_base = (__gm__ int32_t*)aclshmemi_get_team_sync_pool(1);
-            flag_base = pool_base + worker * pe_size * SIGNAL_SLOT_INT32;
-            aclshmemi_signal_set(flag_base + my_pe * SIGNAL_SLOT_INT32, (int)peer, count);
-        }
-        if (core == 0) {
+        if (core < rows) {
             for (int64_t pe = 0; pe < pe_size; ++pe) {
                 aclshmem_signal_wait_until(
-                    flag_base + pe * SIGNAL_SLOT_INT32, ACLSHMEM_CMP_GE, count);
+                    s14_flags + pe * SIGNAL_SLOT_INT32, ACLSHMEM_CMP_GE, count);
             }
             GlobalTensor<float> source;
-            source.SetGlobalBuffer(layout.data, pe_size * 128);
+            source.SetGlobalBuffer(s14_layout.data, pe_size * 128);
             DataCopy(term, source, pe_size * 128);
             SetFlag<AscendC::HardEvent::MTE2_S>(EVENT_ID0);
             WaitFlag<AscendC::HardEvent::MTE2_S>(EVENT_ID0);
             __ubuf__ float* all_vals = (__ubuf__ float*)term.GetPhyAddr();
-            __gm__ int64_t* out_idxs = (__gm__ int64_t*)out;
-            for (int i = 0; i < active_rows; ++i) {
-                float best_val = all_vals[i];
-                int32_t best_idx = reinterpret_cast<__ubuf__ int32_t*>(all_vals + 64)[i];
-                for (int64_t pe = 1; pe < pe_size; ++pe) {
-                    __ubuf__ float* p_vals = all_vals + pe * 128;
-                    __ubuf__ int32_t* p_idxs = reinterpret_cast<__ubuf__ int32_t*>(p_vals + 64);
-                    const float v = p_vals[i];
-                    if (v > best_val) {
-                        best_val = v;
-                        best_idx = p_idxs[i];
+            __ubuf__ int64_t* ub_out = (__ubuf__ int64_t*)stage_second.GetPhyAddr();
+            GlobalTensor<int64_t> g_out;
+            g_out.SetGlobalBuffer((__gm__ int64_t*)out, rows);
+            for (int i = static_cast<int>(core); i < rows; i += static_cast<int>(cores)) {
+                if (i < active_rows) {
+                    float best_val = all_vals[i];
+                    int32_t best_idx = reinterpret_cast<__ubuf__ int32_t*>(all_vals + 64)[i];
+                    for (int64_t pe = 1; pe < pe_size; ++pe) {
+                        __ubuf__ float* p_vals = all_vals + pe * 128;
+                        __ubuf__ int32_t* p_idxs = reinterpret_cast<__ubuf__ int32_t*>(p_vals + 64);
+                        const float v = p_vals[i];
+                        const int32_t gi = p_idxs[i];
+                        if (v > best_val || (v == best_val && gi < best_idx)) {
+                            best_val = v;
+                            best_idx = gi;
+                        }
                     }
+                    ub_out[0] = static_cast<int64_t>(best_idx);
+                } else {
+                    ub_out[0] = 0;
                 }
-                out_idxs[i] = static_cast<int64_t>(best_idx);
+                SetFlag<AscendC::HardEvent::S_MTE3>(EVENT_ID0);
+                WaitFlag<AscendC::HardEvent::S_MTE3>(EVENT_ID0);
+                DataCopyPad(g_out[i], stage_second.ReinterpretCast<int64_t>(),
+                            DataCopyExtParams{1, 8, 0, 0, 0});
+                SetFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
+                WaitFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
             }
-            for (int i = active_rows; i < rows; ++i) {
-                out_idxs[i] = 0;
-            }
-            dcci((__gm__ uint64_t*)out, ENTIRE_DATA_CACHE, CACHELINE_OUT);
         }
         return;
     }
@@ -1443,22 +1683,32 @@ ACLSHMEM_DEVICE void tp_push_once(__gm__ float* partial, __gm__ float* out, __gm
                            stage_tensor.ReinterpretCast<bfloat16_t>(), stage_second, acc, term,
                            term_second.ReinterpretCast<bfloat16_t>(),
                            routed_full, routed_slice, scale, active_elements,
-                           nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, 1e-5f, stage);
+                           nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                           1e-5f, stage, window, plane);
             return;
         }
+        int32_t count = 0;
+        TpPushLayout fb_layout = layout;
+        if (pe_size == 16 && window != nullptr) {
+            auto counter_slot = (__gm__ int32_t*)aclshmemi_get_team_sync_counter(1 + core);
+            count = aclshmemi_load(counter_slot) + 1;
+            aclshmemi_store(counter_slot, count);
+            fb_layout = TpPushPlane(window, rows, hidden, pe_size, (count - 1) & (PLANES - 1));
+        }
         __gm__ bfloat16_t* routed_slice = (stage == 15) ? (__gm__ bfloat16_t*)errors : nullptr;
-        TpPushPublishBf16(layout, (__gm__ bfloat16_t*)partial, core, cores, my_pe, pe_size,
+        TpPushPublishBf16(fb_layout, (__gm__ bfloat16_t*)partial, core, cores, my_pe, pe_size,
                           stage_tensor.ReinterpretCast<bfloat16_t>(), stage_second.ReinterpretCast<bfloat16_t>(),
                           routed_slice);
         SetFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
         WaitFlag<AscendC::HardEvent::MTE3_S>(EVENT_ID0);
         __gm__ int32_t* pool_base = (__gm__ int32_t*)aclshmemi_get_team_sync_pool(1);
         __gm__ int32_t* flag_base = nullptr;
-        int32_t count = 0;
         if (core < pe_size * workers) {
-            auto counter_slot = (__gm__ int32_t*)aclshmemi_get_team_sync_counter(1 + core);
-            count = aclshmemi_load(counter_slot) + 1;
-            aclshmemi_store(counter_slot, count);
+            if (pe_size != 16 || window == nullptr) {
+                auto counter_slot = (__gm__ int32_t*)aclshmemi_get_team_sync_counter(1 + core);
+                count = aclshmemi_load(counter_slot) + 1;
+                aclshmemi_store(counter_slot, count);
+            }
             const int64_t worker = core / pe_size;
             const int64_t peer = (my_pe + (core % pe_size)) % pe_size;
             flag_base = pool_base + worker * pe_size * SIGNAL_SLOT_INT32;
@@ -1468,8 +1718,8 @@ ACLSHMEM_DEVICE void tp_push_once(__gm__ float* partial, __gm__ float* out, __gm
         }
         __gm__ bfloat16_t* routed =
             (stage == 13) ? (__gm__ bfloat16_t*)errors
-                          : ((stage == 15) ? ((__gm__ bfloat16_t*)layout.data + layout.elements) : nullptr);
-        TpPushReduceBf16(layout, (__gm__ bfloat16_t*)out, core, cores, pe_size, acc, term,
+                          : ((stage == 15) ? ((__gm__ bfloat16_t*)fb_layout.data + fb_layout.elements) : nullptr);
+        TpPushReduceBf16(fb_layout, (__gm__ bfloat16_t*)out, core, cores, pe_size, acc, term,
                          term_second.ReinterpretCast<bfloat16_t>(), routed, scale, flag_base, count,
                          (__gm__ bfloat16_t*)partial, my_pe, (stage == 15) ? pool_base : nullptr, routed_slice);
         return;
@@ -1631,7 +1881,8 @@ extern "C" [[bisheng::core_ratio(0, 1)]] __global__ __aicore__ void tp_push_rmsn
                    stage_tensor.ReinterpretCast<bfloat16_t>(), stage_second, acc, term,
                    term_second.ReinterpretCast<bfloat16_t>(),
                    routed_full, routed_slice, scale, active_elements,
-                   residual, res_out, gamma, beta, norm_out, quant_out, scale_out, eps, stage);
+                   residual, res_out, gamma, beta, norm_out, quant_out, scale_out,
+                   eps, stage, window, plane);
 }
 
 void tp_push_rmsnorm_quant(uint32_t block_dim, void* stream, uint64_t fftsAddr, float* partial, float* out,
