@@ -2068,3 +2068,150 @@ def test_t2_f6_a3_container_tp16_rejects_8die_slice_and_partial_host(
         "  7.150.12.20 A3 Ascend910_9392 ====······ 40% ········######## 8/16 84% 部分 否\n"
     )
     assert ac.select_fleet_slots(hosts_8, world_size=16) == []
+
+
+def _fake_npu_smi(
+    hbm_by_die: dict[int, tuple[int, int]],
+    busy_npus: tuple[tuple[int, int], ...] = (),
+) -> str:
+    lines = [
+        "| NPU Name | Health | Power(W) Temp(C) Hugepages-Usage(page) |",
+        "| Chip Phy-ID | Bus-Id | AICore(%) Memory-Usage(MB) HBM-Usage(MB) |",
+    ]
+    for d in range(16):
+        npu_id, chip_id = divmod(d, 2)
+        used, tot = hbm_by_die.get(d, (3000, 65536))
+        health = "Alarm" if d == 0 else "OK"
+        lines.append(f"| {npu_id} Ascend910 | {health} | 165.0 35 0 / 0 |")
+        lines.append(f"| {chip_id} {d} | 0000:9D:00.0 | 0 0 / 0 {used} / {tot} |")
+    lines.append("| NPU Chip | Process id | Process name | Process memory(MB) |")
+    for npu_id, chip_id in busy_npus:
+        lines.append(f"| {npu_id} {chip_id} | 12345 | python3 | 4096 |")
+    if not busy_npus:
+        lines.append("| No running processes found in NPU 0 |")
+    return "\n".join(lines)
+
+
+def test_t2_alarm_dies_opt_in_guardrails(
+    repo_root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.syspath_prepend(str(repo_root))
+    ac = importlib.import_module("tests.glm52.a3_container")
+    hosts_alarm = parse_kbenv_output(
+        "  7.150.10.78 A3 Ascend910_9392 ·········· 1% ×··············· 15/16 46% 占用 否\n"
+    )
+    with pytest.raises(ac.IsolationError):
+        ac.select_host_and_dies(hosts_alarm, target_host="7.150.10.78", world_size=16)
+    with pytest.raises(ac.IsolationError):
+        ac.select_host_and_dies(hosts_alarm, world_size=16, allow_alarm_dies=True)
+
+    hosts_busy = parse_kbenv_output(
+        "  7.150.10.79 A3 Ascend910_9392 ·········· 1% #··············· 15/16 46% 占用 否\n"
+    )
+    with pytest.raises(ac.IsolationError):
+        ac.select_host_and_dies(
+            hosts_busy,
+            target_host="7.150.10.79",
+            world_size=16,
+            allow_alarm_dies=True,
+        )
+
+    sel, dies = ac.select_host_and_dies(
+        hosts_alarm,
+        target_host="7.150.10.78",
+        world_size=16,
+        allow_alarm_dies=True,
+    )
+    assert sel.ip == "7.150.10.78"
+    assert dies == tuple(range(16))
+
+    ok_smi = _fake_npu_smi({0: (5242, 65536)})
+    pcts = ac.verify_npu_smi_dies(ok_smi, dies, max_hbm_pct=ac.ALARM_DIE_MAX_HBM_PCT)
+    assert pcts[0] <= 8.0
+
+    high_hbm_smi = _fake_npu_smi({0: (5244, 65536)})
+    with pytest.raises(ac.IsolationError, match="HBM usage"):
+        ac.verify_npu_smi_dies(high_hbm_smi, dies, max_hbm_pct=ac.ALARM_DIE_MAX_HBM_PCT)
+
+    busy_proc_smi = _fake_npu_smi({0: (3000, 65536)}, busy_npus=((0, 0),))
+    with pytest.raises(ac.IsolationError, match="running NPU processes"):
+        ac.verify_npu_smi_dies(busy_proc_smi, dies, max_hbm_pct=ac.ALARM_DIE_MAX_HBM_PCT)
+
+    missing_die_smi = _fake_npu_smi({}).replace("| 1 15 |", "| 1 99 |").splitlines()
+    missing_die_smi = "\n".join(ln for ln in missing_die_smi if "| 1 99 |" not in ln)
+    with pytest.raises(ac.IsolationError, match="telemetry"):
+        ac.verify_npu_smi_dies(missing_die_smi, dies, max_hbm_pct=ac.ALARM_DIE_MAX_HBM_PCT)
+
+    class _Res:
+        def __init__(self, out: str) -> None:
+            self.stdout = out.encode("utf-8")
+
+    monkeypatch.setattr(ac, "_kbenv_hosts", lambda _bin: hosts_alarm)
+
+    cur_smi = ok_smi
+
+    def _fake_ssh(ip: str, cmd: str, check: bool = True) -> _Res:
+        if cmd == "npu-smi info":
+            return _Res(cur_smi)
+        return _Res(
+            "---DF---\nFilesystem 1B-blocks Used Available Use% Mounted on\n"
+            "tmpfs 200000000000 1000 1000000000000 1% /dev/shm\n"
+            "---MEM---\nMemTotal: 1000 kB\nMemAvailable: 900 kB\n---PS---\n"
+        )
+
+    monkeypatch.setattr(ac, "remote_ssh", _fake_ssh)
+    probe_out = ac.probe_host("7.150.10.78", world_size=16, allow_alarm_dies=True)
+    assert probe_out["selected_dies"] == list(range(16))
+
+    cur_smi = high_hbm_smi
+    with pytest.raises(ac.IsolationError, match="HBM usage"):
+        ac.probe_host("7.150.10.78", world_size=16, allow_alarm_dies=True)
+
+    with pytest.raises(ac.IsolationError):
+        ac.probe_host("7.150.10.78", world_size=16, allow_alarm_dies=False)
+
+    for dmap in ("+···············", "×+··············"):
+        hosts_occ = parse_kbenv_output(
+            f"  7.150.10.79 A3 Ascend910_9392 ·········· 1% {dmap} 15/16 46% 占用 否\n"
+        )
+        with pytest.raises(ac.IsolationError):
+            ac.select_host_and_dies(
+                hosts_occ,
+                target_host="7.150.10.79",
+                world_size=16,
+                allow_alarm_dies=True,
+            )
+
+    no_proc_tbl = ok_smi.split("| NPU Chip | Process id |")[0]
+    with pytest.raises(ac.IsolationError, match="Process id"):
+        ac.verify_npu_smi_dies(no_proc_tbl, dies, max_hbm_pct=ac.ALARM_DIE_MAX_HBM_PCT)
+
+    na_hbm_smi = ok_smi.replace("0 0 / 0 5242 / 65536", "0 128 / 4096 NA / NA")
+    with pytest.raises(ac.IsolationError, match="telemetry"):
+        ac.verify_npu_smi_dies(na_hbm_smi, dies, max_hbm_pct=ac.ALARM_DIE_MAX_HBM_PCT)
+
+    dual_lines = [
+        "| NPU Name | Health | Power(W) Temp(C) Hugepages-Usage(page) |",
+        "| Chip Device | Bus-Id | AICore(%) Memory-Usage(MB) HBM-Usage(MB) |",
+    ]
+    for npu_id in range(8):
+        health = "Alarm" if npu_id == 0 else "OK"
+        dual_lines.append(f"| {npu_id} Ascend910 | {health} | 165.0 35 0 / 0 |")
+        for chip_id in (0, 1):
+            d = npu_id * 2 + chip_id
+            dual_lines.append(f"| {chip_id} {d} | 0000:9D:00.0 | 0 0 / 0 3000 / 65536 |")
+    dual_lines.extend(
+        [
+            "| NPU Chip | Process id | Process name | Process memory(MB) |",
+            "| No running processes found in NPU 0 |",
+        ]
+    )
+    dual_pcts = ac.verify_npu_smi_dies(
+        "\n".join(dual_lines), dies, max_hbm_pct=ac.ALARM_DIE_MAX_HBM_PCT
+    )
+    assert set(dual_pcts) == set(range(16))
+
+    tiny_over_smi = _fake_npu_smi({0: (800004, 10000000)})
+    with pytest.raises(ac.IsolationError, match="HBM usage"):
+        ac.verify_npu_smi_dies(tiny_over_smi, dies, max_hbm_pct=ac.ALARM_DIE_MAX_HBM_PCT)

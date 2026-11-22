@@ -124,6 +124,17 @@ SHARED_DEVICES: tuple[str, ...] = (
 )
 MEMINFO_KB_RE = re.compile(r"^(MemTotal|MemAvailable):\s+(\d+)\s+kB$", re.MULTILINE)
 SUPPORTED_WORLD_SIZES: tuple[int, ...] = (8, 16)
+ALARM_DIE_MAX_HBM_PCT: float = 8.0
+ALARM_DIE_TOKENS: frozenset[str] = frozenset({"·", "×"})
+
+
+def _eligible_die_indices(host: Any, allow_alarm_dies: bool) -> tuple[int, ...]:
+    if not allow_alarm_dies:
+        return tuple(host.free_die_indices)
+    die_map = getattr(host, "die_map", "")
+    if die_map:
+        return tuple(idx for idx, tok in enumerate(die_map) if tok in ALARM_DIE_TOKENS)
+    return tuple(host.free_die_indices)
 
 
 def _validate_world_size(world_size: int) -> int:
@@ -192,8 +203,11 @@ def select_host_and_dies(
     min_free_dies: int | None = None,
     allow_idle_dies: bool = False,
     world_size: int = WORLD_SIZE,
+    allow_alarm_dies: bool = False,
 ) -> tuple[Any, tuple[int, ...]]:
     ws = _validate_world_size(world_size)
+    if allow_alarm_dies and not target_host:
+        raise IsolationError("--allow-alarm-dies requires explicit target_host")
     req_dies = ws if min_free_dies is None else min_free_dies
     if (
         isinstance(req_dies, bool)
@@ -215,22 +229,23 @@ def select_host_and_dies(
             raise IsolationError(f"Host {canonical} generation {selected.generation!r} != A3")
         if selected.chip not in ALLOWED_A3_CHIPS:
             raise IsolationError(f"Host {canonical} chip {selected.chip!r} not eligible")
-        if not allow_idle_dies and selected.state not in ALLOWED_KBENV_STATES:
+        if not (allow_idle_dies or allow_alarm_dies) and selected.state not in ALLOWED_KBENV_STATES:
             raise IsolationError(f"Host {canonical} state {selected.state!r} not idle/partial")
         if selected.ram_pct is None or selected.ram_pct < MIN_KBENV_RAM_PCT:
             raise IsolationError(
                 f"Host {canonical} RAM {selected.ram_pct}% < {MIN_KBENV_RAM_PCT}%"
             )
+    eligible = _eligible_die_indices(selected, allow_alarm_dies=allow_alarm_dies)
     if explicit_dies is not None:
-        free_set = set(selected.free_die_indices)
-        missing = [d for d in explicit_dies if d not in free_set]
+        elig_set = set(eligible)
+        missing = [d for d in explicit_dies if d not in elig_set]
         if missing:
             raise IsolationError(
                 f"Requested dies {missing} busy on {selected.ip} "
                 f"(free={list(selected.free_die_indices)})"
             )
         return selected, explicit_dies
-    return selected, select_free_die_slice(selected.free_die_indices, count=ws)
+    return selected, select_free_die_slice(eligible, count=ws)
 
 
 def select_fleet_slots(
@@ -653,6 +668,71 @@ def build_remote_port_check_cmd(
     return f"python3 -c {shlex.quote(py_check)}"
 
 
+def verify_npu_smi_dies(
+    npu_smi_output: str,
+    visible_devices: Sequence[int],
+    *,
+    max_hbm_pct: float | None = None,
+) -> dict[int, float]:
+    dies = {int(d) for d in visible_devices}
+    busy: set[int] = set()
+    hbm_exact: dict[int, float] = {}
+    hbm_pcts: dict[int, float] = {}
+    procs = False
+    saw_proc_header = False
+    has_mem_col = False
+    cur_npu: int | None = None
+    for ln in npu_smi_output.splitlines():
+        if "Process id" in ln:
+            procs = True
+            saw_proc_header = True
+            continue
+        if "|" not in ln:
+            continue
+        parts = ln.split("|")
+        if procs:
+            if len(parts) >= 4 and parts[2].strip().isdigit():
+                toks = parts[1].split()
+                if len(toks) >= 2 and toks[0].isdigit() and toks[1].isdigit():
+                    busy.add(int(toks[0]) * 2 + int(toks[1]))
+            continue
+        if "Memory-Usage" in ln and "HBM-Usage" in ln:
+            has_mem_col = True
+            continue
+        if len(parts) < 4:
+            continue
+        toks = parts[1].split()
+        if len(toks) >= 2 and toks[0].isdigit() and "Ascend" in toks[1]:
+            cur_npu = int(toks[0])
+            continue
+        if cur_npu is not None and len(toks) >= 2 and toks[0].isdigit() and toks[1].isdigit():
+            die = cur_npu * 2 + int(toks[0])
+            usage_toks = re.sub(r"\s*/\s*", "/", parts[3]).split()
+            ratio_cnt = sum(1 for tok in usage_toks if "/" in tok)
+            m = re.fullmatch(r"(\d+)/(\d+)", usage_toks[-1]) if usage_toks else None
+            if m:
+                used, total = int(m.group(1)), int(m.group(2))
+                if total > 0 and (ratio_cnt >= 2 or (not has_mem_col and total >= 8192)):
+                    exact = (used * 100.0) / total
+                    hbm_exact[die] = exact
+                    hbm_pcts[die] = round(exact, 4)
+    if not saw_proc_header:
+        raise IsolationError("Missing npu-smi Process id table")
+    ov = sorted(dies & busy)
+    if ov:
+        raise IsolationError(f"Requested dies have running NPU processes: {ov}")
+    if max_hbm_pct is not None:
+        missing = sorted(d for d in dies if d not in hbm_exact)
+        if missing:
+            raise IsolationError(f"Missing npu-smi HBM telemetry for dies: {missing}")
+        high = {d: hbm_exact[d] for d in sorted(dies) if hbm_exact[d] > max_hbm_pct}
+        if high:
+            raise IsolationError(
+                f"Alarm die check rejected HBM usage > {max_hbm_pct}%: {high}"
+            )
+    return {d: hbm_pcts[d] for d in sorted(dies) if d in hbm_pcts}
+
+
 def build_remote_die_check_cmd(visible_devices: Sequence[int]) -> str:
     dies_csv = ",".join(str(int(d)) for d in visible_devices)
     py_check = (
@@ -820,6 +900,7 @@ def probe_host(
     kbenv_bin: str = DEFAULT_KBENV_BIN,
     allow_idle_dies: bool = False,
     world_size: int = WORLD_SIZE,
+    allow_alarm_dies: bool = False,
 ) -> dict[str, Any]:
     ws = _validate_world_size(world_size)
     hosts = _kbenv_hosts(kbenv_bin)
@@ -829,6 +910,7 @@ def probe_host(
         die_slice=die_slice,
         allow_idle_dies=allow_idle_dies,
         world_size=ws,
+        allow_alarm_dies=allow_alarm_dies,
     )
     sfs_cmd = build_sfs_probe_script(SFS_PROBE_TARGETS, timeout_s=5)
     check_script = "\n".join(
@@ -851,7 +933,15 @@ def probe_host(
     ps_part = out.split("---PS---\n", 1)[1]
     shm_avail = parse_df_avail_bytes(df_part)
     mem_total, mem_avail = parse_meminfo_bytes(mem_part)
-    remote_ssh(selected.ip, build_remote_die_check_cmd(dies))
+    if allow_alarm_dies:
+        smi_res = remote_ssh(selected.ip, "npu-smi info")
+        verify_npu_smi_dies(
+            smi_res.stdout.decode("utf-8", errors="replace"),
+            dies,
+            max_hbm_pct=ALARM_DIE_MAX_HBM_PCT,
+        )
+    else:
+        remote_ssh(selected.ip, build_remote_die_check_cmd(dies))
     return {
         "host": selected.ip,
         "state": selected.state,
@@ -1032,6 +1122,7 @@ def up_container(
     allow_idle_dies: bool = False,
     privileged: bool = False,
     world_size: int = WORLD_SIZE,
+    allow_alarm_dies: bool = False,
 ) -> dict[str, Any]:
     ws = _validate_world_size(world_size)
     hosts = _kbenv_hosts(kbenv_bin)
@@ -1041,11 +1132,20 @@ def up_container(
         die_slice=die_slice,
         allow_idle_dies=allow_idle_dies,
         world_size=ws,
+        allow_alarm_dies=allow_alarm_dies,
     )
     clean_id = validate_run_id(run_id or generate_run_id())
     remote_ssh(selected.ip, build_sfs_probe_script(SFS_PROBE_TARGETS, timeout_s=5))
     remote_ssh(selected.ip, f"docker image inspect {shlex.quote(image)} >/dev/null")
-    remote_ssh(selected.ip, build_remote_die_check_cmd(dies))
+    if allow_alarm_dies:
+        smi_res = remote_ssh(selected.ip, "npu-smi info")
+        verify_npu_smi_dies(
+            smi_res.stdout.decode("utf-8", errors="replace"),
+            dies,
+            max_hbm_pct=ALARM_DIE_MAX_HBM_PCT,
+        )
+    else:
+        remote_ssh(selected.ip, build_remote_die_check_cmd(dies))
 
     reserved: list[int] = []
     iso_env: dict[str, str] | None = None
@@ -1448,6 +1548,7 @@ def run_ephemeral(
     allow_idle_dies: bool = False,
     privileged: bool = False,
     world_size: int = WORLD_SIZE,
+    allow_alarm_dies: bool = False,
 ) -> dict[str, Any]:
     info = up_container(
         host=host,
@@ -1460,6 +1561,7 @@ def run_ephemeral(
         allow_idle_dies=allow_idle_dies,
         privileged=privileged,
         world_size=world_size,
+        allow_alarm_dies=allow_alarm_dies,
     )
     rc = 1
     try:
@@ -1530,6 +1632,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_probe.add_argument("--image", default=DEFAULT_IMAGE)
     p_probe.add_argument("--kbenv", default=DEFAULT_KBENV_BIN)
     p_probe.add_argument("--allow-idle-dies", action="store_true")
+    p_probe.add_argument("--allow-alarm-dies", action="store_true")
     p_probe.add_argument(
         "--world-size", type=int, choices=SUPPORTED_WORLD_SIZES, default=WORLD_SIZE
     )
@@ -1558,6 +1661,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_up.add_argument("--kbenv", default=DEFAULT_KBENV_BIN)
     p_up.add_argument("--no-prestage", action="store_true")
     p_up.add_argument("--allow-idle-dies", action="store_true")
+    p_up.add_argument("--allow-alarm-dies", action="store_true")
     p_up.add_argument("--privileged", action="store_true")
     p_up.add_argument(
         "--world-size", type=int, choices=SUPPORTED_WORLD_SIZES, default=WORLD_SIZE
@@ -1602,6 +1706,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     p_run.add_argument("--pull-to", default=None)
     p_run.add_argument("--no-prestage", action="store_true")
     p_run.add_argument("--allow-idle-dies", action="store_true")
+    p_run.add_argument("--allow-alarm-dies", action="store_true")
     p_run.add_argument("--privileged", action="store_true")
     p_run.add_argument(
         "--world-size", type=int, choices=SUPPORTED_WORLD_SIZES, default=WORLD_SIZE
@@ -1627,6 +1732,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             kbenv_bin=args.kbenv,
             allow_idle_dies=args.allow_idle_dies,
             world_size=args.world_size,
+            allow_alarm_dies=args.allow_alarm_dies,
         )
         print(json.dumps(out, indent=2))
         return 0
@@ -1668,6 +1774,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             allow_idle_dies=args.allow_idle_dies,
             privileged=args.privileged,
             world_size=args.world_size,
+            allow_alarm_dies=args.allow_alarm_dies,
         )
         print(json.dumps(out, indent=2))
         return 0
@@ -1718,6 +1825,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             allow_idle_dies=args.allow_idle_dies,
             privileged=args.privileged,
             world_size=args.world_size,
+            allow_alarm_dies=args.allow_alarm_dies,
         )
         print(json.dumps(out, indent=2))
         return int(out["returncode"])
