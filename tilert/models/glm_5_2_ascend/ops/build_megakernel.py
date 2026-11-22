@@ -144,7 +144,7 @@ R4_FLAGS = (
 
 def _r4_flags(world_size: int = 8) -> tuple[str, ...]:
     if int(world_size) == 16:
-        drop = {"-DK112612_OVERLAP_SH_P4=1", "-DK112612_NO_FLAG9=1"}
+        drop = {"-DK112612_OVERLAP_SH_P4=1", "-DK112612_NO_FLAG9=1", "-DK11240_OUTLINE_TOP=1"}
         return (
             *(f for f in R4_FLAGS if f not in drop),
             "-DK112612_SPLIT_P1_OPT=1",
@@ -154,6 +154,9 @@ def _r4_flags(world_size: int = 8) -> tuple[str, ...]:
             "-DK112860_KNOWN_RED1_EPOCH=1",
             "-DK113000_BRIDGE_GATE_OVERLAP=1",
             "-DK113000_WAVE16_RED2=1",
+            "-DK113100_TP16_PROLOG_MM4_BAL=1",
+            "-DK113100_TP16_PROLOG_CUBE_SYNC=1",
+            "-DK112516_SFA_V2=1",
         )
     return R4_FLAGS
 

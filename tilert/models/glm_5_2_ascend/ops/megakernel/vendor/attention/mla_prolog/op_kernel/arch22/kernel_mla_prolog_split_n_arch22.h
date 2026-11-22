@@ -105,7 +105,9 @@ private:
                                         const GlobalTensor<S>& tensorBScaleGm = {});
     __aicore__ inline void MatmulQcQr(AicOffset& aicOffset);
     __aicore__ inline void MatmulAndSyncQcQr(AicOffset& aicOffset);
+    template <bool needQnDynamicQuant>
     __aicore__ inline void MatmulQnWeightPreload(int64_t weightUkOffset, int64_t mmQnLoops);
+    template <bool needQnDynamicQuant>
     __aicore__ inline void PreloadQnAndSync(AicOffset& aicOffset, int64_t mmQnLoops);
     template <bool needQnDynamicQuant>
     __aicore__ inline void MatmulQnSyncDynamicQuantAndMulQr(int64_t qcOffset, int64_t weightUkOffset,
@@ -798,6 +800,11 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::AicProcess(AicOffset& aicOffs
         MatmulSplitN<mmInputType, mmCkvKrOutputType, dequantScaleType, true>(
             mmCkvKrResGm_[aicOffset.ckvKrResOffset], tokenXGm_[tokenXOffset], weightDkvKrGm_[aicOffset.weightDkvKrOffset],
             mmCkvKrParam_, UsedBlockParams{baseParams_->mm1BlockNum, baseParams_->mm1BlockNum + baseParams_->mm2BlockNum});
+#ifdef K113100_TP16_PROLOG_CUBE_SYNC
+        if (baseParams_->numHeadSize == 4U) {
+            WaitAllCore<SYNC_MODE_ALL_CUBE, PIPE_FIX>(FINISH_MM_ALL);
+        }
+#endif
         CrossCoreSetFlag<SYNC_MODE_CUBE_VEC, PIPE_FIX>(FINISH_MM_CQ);
     } else {
         CrossCoreSetFlag<SYNC_MODE_CUBE_VEC, PIPE_FIX>(FINISH_MM_CQ);
@@ -811,7 +818,7 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::AicProcess(AicOffset& aicOffs
 
     MatmulAndSyncQcQr(aicOffset);
 
-    PreloadQnAndSync(aicOffset, mmQnLoops);
+    PreloadQnAndSync<needQnDynamicQuant>(aicOffset, mmQnLoops);
     MatmulQnSyncDynamicQuantAndMulQr<needQnDynamicQuant>(aicOffset.qcOffset, aicOffset.weightUkOffset,
                                                          aicOffset.qnResOffset, mmQnLoops);
     if constexpr (!needQnDynamicQuant) {
@@ -882,7 +889,13 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::AivProcess(AivOffset& aivOffs
     }
     CrossCoreWaitFlag(FINISH_MM_CQ);
 #ifdef K112854_TP16_PROLOG_PAR
+#ifdef K113100_TP16_PROLOG_CUBE_SYNC
+    if (!parCqCkv || baseParams_->numHeadSize != 4U) {
+        WaitAllCore<SYNC_MODE_ALL_VEC, PIPE_MTE3>(FINISH_VEC_ALL);
+    }
+#else
     WaitAllCore<SYNC_MODE_ALL_VEC, PIPE_MTE3>(FINISH_VEC_ALL);
+#endif
 #else
     if (!parAiv) {
         WaitAllCore<SYNC_MODE_ALL_VEC, PIPE_MTE3>(FINISH_VEC_ALL);
@@ -957,6 +970,18 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::AivProcess(AivOffset& aivOffs
                 (baseParams_->dimHeadRope + baseParams_->headSizeCkv) * helperTok + baseParams_->headSizeCkv;
             CkvkrParams krParams{hTokIdx, hRopeKrOffset, 0, 0, 0, 0};
             RopeAndScatterKr(dequantScaleXLocal, shareTmpUb, cosLocalCkvKr, sinLocalCkvKr, krParams);
+#ifdef K113100_TP16_PROLOG_MM4_BAL
+            const int64_t hCqOff = baseParams_->headSizeCq * helperTok;
+            AscendC::GlobalTensor<dequantScaleType> tmpCqScGm;
+            tmpCqScGm.SetGlobalBuffer(
+                reinterpret_cast<__gm__ dequantScaleType*>(mmCqResGm_.GetPhyAddr(hCqOff)),
+                FP32_BLOCK_ELEMENT_NUM);
+            AscendC::SetFlag<HardEvent::V_MTE2>(EVENT_ID0);
+            AscendC::WaitFlag<HardEvent::V_MTE2>(EVENT_ID0);
+            DataCopy(dequantTool_.dequantScaleCqLocal_, tmpCqScGm, FP32_BLOCK_ELEMENT_NUM);
+            AscendC::SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
+            AscendC::WaitFlag<HardEvent::MTE2_V>(EVENT_ID0);
+#endif
         }
     } else {
         RmsNormRopeScatterCkvKr(tokenIndex, aivOffset.rmsNormCkvOffset, aivOffset.ropeKrOffset, aivOffset.curVecToken);
@@ -968,7 +993,13 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::AivProcess(AivOffset& aivOffs
     if (parAiv) {
         CrossCoreWaitFlag(FINISH_MM_QCQR);
 #ifdef K112854_TP16_PROLOG_PAR
+#ifdef K113100_TP16_PROLOG_CUBE_SYNC
+        if (!parCqCkv || baseParams_->numHeadSize != 4U) {
+            WaitAllCore<SYNC_MODE_ALL_VEC, PIPE_MTE3>(FINISH_VEC_ALL);
+        }
+#else
         WaitAllCore<SYNC_MODE_ALL_VEC, PIPE_MTE3>(FINISH_VEC_ALL);
+#endif
         const uint32_t splitHeads = baseParams_->numHeadSize >> 1U;
 #else
         constexpr uint32_t splitHeads = 4U;
@@ -985,6 +1016,7 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::AivProcess(AivOffset& aivOffs
             AscendC::SetFlag<HardEvent::MTE3_MTE2>(EVENT_ID0);
             AscendC::WaitFlag<HardEvent::MTE3_MTE2>(EVENT_ID0);
         } else if (isHelper) {
+#ifndef K113100_TP16_PROLOG_MM4_BAL
             const int64_t hCqOff = baseParams_->headSizeCq * helperTok;
             AscendC::GlobalTensor<dequantScaleType> tmpCqScGm;
             tmpCqScGm.SetGlobalBuffer(
@@ -995,6 +1027,7 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::AivProcess(AivOffset& aivOffs
             DataCopy(dequantTool_.dequantScaleCqLocal_, tmpCqScGm, FP32_BLOCK_ELEMENT_NUM);
             AscendC::SetFlag<HardEvent::MTE2_V>(EVENT_ID0);
             AscendC::WaitFlag<HardEvent::MTE2_V>(EVENT_ID0);
+#endif
             DequantPerTokenQcSplit(
                 mmQcQrResDequantGm_[baseParams_->headSizeQc * helperTok],
                 mmQcQrResGm_[(baseParams_->headSizeQr + baseParams_->headSizeQc) * helperTok],
@@ -1035,7 +1068,16 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::DequantQcAndRopeQc(AivOffset&
                    aivOffset.curBlockTokenOffset);
         } else {
             CrossCoreWaitFlag(FINISH_MM_QCQR);
+#ifdef K113100_TP16_PROLOG_CUBE_SYNC
+            const bool parCqCkv = !MLAPT::enableDequantOpt && !MLAPT::enableGroupComputeOpt &&
+                (baseParams_->mm1BlockNum + baseParams_->mm2BlockNum <= 24U) &&
+                (baseParams_->tokenSize <= baseParams_->stepBatchSize);
+            if (!parCqCkv || baseParams_->numHeadSize != 4U) {
+                WaitAllCore<SYNC_MODE_ALL_VEC, PIPE_MTE3>(FINISH_VEC_ALL);
+            }
+#else
             WaitAllCore<SYNC_MODE_ALL_VEC, PIPE_MTE3>(FINISH_VEC_ALL);
+#endif
             DequantQc(aivOffset.mmQnPreDequantOffset, aivOffset.mmQnPreDequantResOffset, aivOffset.curVecToken,
                       aivOffset.curBlockTokenOffset);
             WaitAllCore<SYNC_MODE_ALL_VEC, PIPE_MTE3>(FINISH_VEC_ALL);
@@ -1116,6 +1158,19 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::ComputeAicOffset(AicOffset& a
         aicOffset.weightUkOffset = headIdx * static_cast<int64_t>(baseParams_->headSizeCkv) *
                                    static_cast<int64_t>(baseParams_->dimHeadSizeQc);
         aicOffset.qnResOffset = static_cast<int64_t>(baseParams_->headSizeCkv) * headIdx;
+#ifdef K113100_TP16_PROLOG_MM4_BAL
+    } else if (!MLAPT::enableDequantOpt && !MLAPT::enableGroupComputeOpt &&
+        baseParams_->numHeadSize == 4U && baseParams_->headSizeCkv == 512U && baseParams_->dimHeadSizeQc == 192U) {
+        int64_t headIdx = static_cast<int64_t>(cubeBlockIdx_ & 3U);
+        if constexpr (std::is_same<mmQcQrOutputType, int32_t>::value || std::is_same<mmQcQrOutputType, float>::value) {
+            aicOffset.qcOffset = static_cast<int64_t>(baseParams_->dimHeadSizeQc) * headIdx;
+        } else {
+            aicOffset.qcOffset = static_cast<int64_t>(baseParams_->dimHeadRope + baseParams_->dimHeadSizeQc) * headIdx;
+        }
+        aicOffset.weightUkOffset = headIdx * static_cast<int64_t>(baseParams_->headSizeCkv) *
+                                   static_cast<int64_t>(baseParams_->dimHeadSizeQc);
+        aicOffset.qnResOffset = static_cast<int64_t>(baseParams_->headSizeCkv) * headIdx;
+#endif
     } else if (cubeBlockIdx_ < baseParams_->mm4BlockNum) {
         if constexpr (std::is_same<mmQcQrOutputType, int32_t>::value || std::is_same<mmQcQrOutputType, float>::value) {
             aicOffset.qcOffset = static_cast<int64_t>(baseParams_->dimHeadSizeQc) * numHeadOffset;
@@ -1318,16 +1373,25 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::MatmulQcQr(AicOffset& aicOffs
 }
 
 template <typename MLAPT>
+template <bool needQnDynamicQuant>
 __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::PreloadQnAndSync(AicOffset& aicOffset, int64_t mmQnLoops)
 {
     if constexpr (!MLAPT::enableDequantOpt) {
         if constexpr (MLAPT::enableGroupComputeOpt) {
             CrossCoreSetFlag<SYNC_MODE_CUBE_VEC, PIPE_FIX>(FINISH_MM_QR);
         } else {
+#ifdef K113100_TP16_PROLOG_CUBE_SYNC
+            if (!MLAPT::enableDequantOpt && !MLAPT::enableGroupComputeOpt &&
+                (baseParams_->mm1BlockNum + baseParams_->mm2BlockNum <= 24U) &&
+                (baseParams_->tokenSize <= baseParams_->stepBatchSize) &&
+                baseParams_->numHeadSize == 4U) {
+                WaitAllCore<SYNC_MODE_ALL_CUBE, PIPE_FIX>(FINISH_MM_ALL);
+            }
+#endif
             CrossCoreSetFlag<SYNC_MODE_CUBE_VEC, PIPE_FIX>(FINISH_MM_QCQR);
         }
     }
-    MatmulQnWeightPreload(aicOffset.weightUkOffset, mmQnLoops);
+    MatmulQnWeightPreload<needQnDynamicQuant>(aicOffset.weightUkOffset, mmQnLoops);
     if constexpr (MLAPT::enableDequantOpt) {
 
         return;
@@ -1341,6 +1405,7 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::PreloadQnAndSync(AicOffset& a
 }
 
 template <typename MLAPT>
+template <bool needQnDynamicQuant>
 __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::MatmulQnWeightPreload(int64_t weightUkOffset, int64_t subLoopTimes)
 {
     if constexpr (!MLAPT::enableDequantOpt && !MLAPT::enableGroupComputeOpt) {
@@ -1365,6 +1430,22 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::MatmulQnWeightPreload(int64_t
 #endif
             return;
         }
+#ifdef K113100_TP16_PROLOG_MM4_BAL
+        if constexpr (!needQnDynamicQuant) {
+            if (baseParams_->numHeadSize == 4U && baseParams_->headSizeCkv == 512U && mmQnParam_.k == 192U) {
+                constexpr uint32_t kMm4Cores = 8U;
+                constexpr uint32_t kCols0 = 256U;
+                if (blockIdx_ >= kMm4Cores) {
+                    return;
+                }
+                uint32_t subIdx = blockIdx_ >> 2U;
+                uint32_t nL1Offset0 = subIdx * kCols0;
+                LoadL1B<mmQnInputType, DataFormat::ND, false>(
+                    weightUkGm_[weightUkOffset + nL1Offset0], kCols0, 512U, 192U, 192U, bufParam_);
+                return;
+            }
+        }
+#endif
     }
     if constexpr (MLAPT::enableGroupComputeOpt) {
         if (blockIdx_ >= QC_CORE_NUM) {
@@ -1459,6 +1540,46 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::MatmulQnSyncDynamicQuantAndMu
             bufParam_.aL1BufIter++;
             return;
         }
+#ifdef K113100_TP16_PROLOG_MM4_BAL
+        if (baseParams_->numHeadSize == 4U && baseParams_->headSizeCkv == 512U && mmQnParam_.k == 192U) {
+            constexpr uint32_t kMm4Cores = 8U;
+            constexpr uint32_t kCols0 = 256U;
+            if (blockIdx_ >= kMm4Cores) {
+                return;
+            }
+            using O_L0C = typename std::conditional<std::is_same<mmQnInputType, int8_t>::value, int32_t, float>::type;
+            uint32_t mSize = Align(mmQnParam_.m, BLOCK_CUBE_SIZE);
+            mmLocalTensors<mmQnInputType, O_L0C> localTensors;
+            localTensors.Init(bufParam_);
+
+            LoadL1A(mmQcQrResDequantGm_[qcOffset], mmQnParam_.m, mmQnParam_.kL1StepSize, mmQnParam_.orgKa, bufParam_);
+            AscendC::WaitFlag<HardEvent::MTE2_MTE1>((bufParam_.aL1BufIter & 1u) + A_EVENT0);
+            LocalTensor<mmQnInputType> aL1 =
+                localTensors.aL1Tensor[(bufParam_.aL1BufIter & 1u) * (L1_A_SIZE / sizeof(mmQnInputType))];
+
+            uint32_t subIdx = blockIdx_ >> 2U;
+            uint32_t nL1Offset0 = subIdx * kCols0;
+            AscendC::WaitFlag<HardEvent::FIX_M>((bufParam_.cL0BufIter & 1u) + L0C_EVENT0);
+            LocalTensor<O_L0C> cL0 =
+                localTensors.cL0Tensor[(bufParam_.cL0BufIter & 1u) * (L0C_PP_SIZE / sizeof(O_L0C))];
+            AscendC::WaitFlag<HardEvent::MTE2_MTE1>((bufParam_.bL1BufIter & 1u) + B_EVENT0);
+            LocalTensor<mmQnInputType> bL1 =
+                localTensors.bL1Tensor[(bufParam_.bL1BufIter & 1u) * (L1_B_SIZE / sizeof(mmQnInputType))];
+            MmadParams mmadParams = MmadParams(mSize, kCols0, mmQnParam_.baseK, UNIT_FLAG_DISABLE, false, true);
+            int64_t aOffset = 0;
+            MatmulL1<mmQnInputType, mmQnOutputType, dequantScaleType, O_L0C, false>(
+                cL0, aL1, bL1, localTensors, bufParam_, mmQnParam_, 0U, 1U, mmadParams, aOffset);
+            AscendC::SetFlag<HardEvent::MTE1_MTE2>((bufParam_.bL1BufIter & 1u) + B_EVENT0);
+            bufParam_.bL1BufIter++;
+            GetTensorC<mmQnInputType, mmQnOutputType, O_L0C, false>(
+                mmQnResGm_[qnResOffset + nL1Offset0], cL0, mmQnParam_.m, kCols0, mSize, mmQnParam_.orgKc, bufParam_);
+            AscendC::SetFlag<HardEvent::FIX_M>((bufParam_.cL0BufIter & 1u) + L0C_EVENT0);
+            bufParam_.cL0BufIter++;
+            AscendC::SetFlag<HardEvent::MTE1_MTE2>((bufParam_.aL1BufIter & 1u) + A_EVENT0);
+            bufParam_.aL1BufIter++;
+            return;
+        }
+#endif
     }
     uint32_t maxBlockIdx = !MLAPT::enableGroupComputeOpt ? baseParams_->mm4BlockNum : QC_CORE_NUM;
     if (blockIdx_ >= maxBlockIdx) {
