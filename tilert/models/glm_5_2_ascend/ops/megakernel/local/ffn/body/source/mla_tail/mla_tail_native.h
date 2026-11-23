@@ -1090,7 +1090,7 @@ struct OutputWorkspace {
 
 enum class ScaleOrder { ChannelThenToken, CombinedScales };
 
-template <ScaleOrder order = ScaleOrder::CombinedScales, int64_t MaxRows = kDequantRows, bool ContiguousComm = false>
+template <ScaleOrder order = ScaleOrder::CombinedScales, int64_t MaxRows = kDequantRows, bool ContiguousComm = false, bool PairedTileOrder = false>
 __aicore__ inline void FinishOutputRows(
     OutputWorkspace& held, LocalTensor<float>& combined,
     __gm__ int32_t* accumulators, __gm__ float* weight_scales,
@@ -1106,8 +1106,14 @@ __aicore__ inline void FinishOutputRows(
     const int64_t batch_rows = rows <= 1 ? 1
         : (rows <= 2 * eff_max_rows ? ((rows + 1) >> 1) : eff_max_rows);
     const int64_t batches = (rows + batch_rows - 1) / batch_rows;
-    if (vector_index >= batches * kOutputTiles) {
-        return;
+    if constexpr (PairedTileOrder) {
+        if (vector_index >= 2 * kOutputTiles) {
+            return;
+        }
+    } else {
+        if (vector_index >= batches * kOutputTiles) {
+            return;
+        }
     }
     GlobalTensor<int32_t> source, integer_bias;
     GlobalTensor<float> weight_scale, token_scale, floating_bias;
@@ -1119,11 +1125,13 @@ __aicore__ inline void FinishOutputRows(
     floating_bias.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(bias));
     destination.SetGlobalBuffer(output, rows * kHidden);
 
-    for (int64_t task = vector_index; task < batches * kOutputTiles;
-         task += vectors) {
+    const int64_t loop_start = PairedTileOrder ? (vector_index & 1) : vector_index;
+    const int64_t loop_end = PairedTileOrder ? batches : (batches * kOutputTiles);
+    const int64_t loop_step = PairedTileOrder ? 2 : vectors;
+    for (int64_t task = loop_start; task < loop_end; task += loop_step) {
         const uint32_t utask = static_cast<uint32_t>(task);
-        const uint32_t q = (utask * 683U) >> 14U;
-        const int64_t tile = static_cast<int64_t>(utask - q * 24U);
+        const uint32_t q = PairedTileOrder ? utask : ((utask * 683U) >> 14U);
+        const int64_t tile = PairedTileOrder ? (vector_index >> 1) : static_cast<int64_t>(utask - q * 24U);
         const int64_t begin = static_cast<int64_t>(q) * batch_rows;
         const int64_t count = rows <= begin ? 0
             : (rows - begin < batch_rows ? rows - begin : batch_rows);
@@ -1276,7 +1284,7 @@ __aicore__ inline void FinishOutputRows(
                       held.output, copy);
 #endif
         }
-        if (task + vectors < batches * kOutputTiles) {
+        if (task + loop_step < loop_end) {
             Fence<HardEvent::MTE3_MTE2>();
             Fence<HardEvent::MTE3_V>();
         }
@@ -1576,7 +1584,7 @@ __aicore__ inline uint32_t Forward(
                 combined_xc = combined_buf_xc.Get<float>();
                 if (xc_dst_base != nullptr && comm_ranks > 8 && active_rows > 16) {
                     CrossCoreWaitFlag(8);
-                    FinishOutputRows<ScaleOrder::CombinedScales, 8, true>(
+                    FinishOutputRows<ScaleOrder::CombinedScales, 8, true, true>(
                         deq_held_xc, combined_xc, accumulators, output_scale, scales, bias,
                         bias_kind, output, active_rows, capacity, GetBlockIdx(), 2 * blocks,
                         xc_dst_base, comm_rank, comm_ranks, sip_r1_xc);

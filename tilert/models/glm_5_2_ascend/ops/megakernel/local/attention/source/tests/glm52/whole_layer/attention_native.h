@@ -170,7 +170,11 @@ __aicore__ inline void EndPhase(AscendC::TPipe& pipe)
 __aicore__ inline void PrologPhase(
     AscendC::TPipe& pipe, const Config& config, const DeviceArgs& args,
     GM_ADDR query_norm, GM_ADDR query_norm_scale,
-    GM_ADDR scratch_override = nullptr)
+    GM_ADDR scratch_override = nullptr
+#ifdef K113202_PROLOG_IDX_OVERLAP
+    , bool skip_end_sync = false
+#endif
+    )
 {
     GM_ADDR eff_scratch = (scratch_override != nullptr) ? scratch_override : args.scratch;
     GM_ADDR query = eff_scratch + config.query_offset;
@@ -213,7 +217,13 @@ __aicore__ inline void PrologPhase(
         AscendC::DataSyncBarrier<AscendC::MemDsbT::DDR>();
     }
 #endif
+#ifdef K113202_PROLOG_IDX_OVERLAP
+    if (!skip_end_sync) {
+        AscendC::SyncAll<false>();
+    }
+#else
     AscendC::SyncAll<false>();
+#endif
     pipe.Reset();
 #else
     EndPhase(pipe);

@@ -116,7 +116,8 @@ def _serial_target_hidden(
             masks_step = [
                 causal_masks[j] if j < chunk_len else (1 << j) for j in range(width)
             ] + [0] * (32 - width)
-            arena.tree_mask_i32.copy_(torch.tensor(masks_step, dtype=torch.int32, device=device))
+            masks_i32 = [m - (1 << 32) if m >= (1 << 31) else m for m in masks_step]
+            arena.tree_mask_i32.copy_(torch.tensor(masks_i32, dtype=torch.int32, device=device))
             mc2_mask[:chunk_len].fill_(1)
             if chunk_len < width:
                 mc2_mask[chunk_len:].zero_()
@@ -561,9 +562,9 @@ class Glm52AscendShowHands:
         is_tp16 = self.world_size == 16
         b_scheds_default = (
             [
-                [4, 4, 2, 2, 2, 2, 1, 1, 1, 1],
-                [4, 4, 4, 2, 2, 2, 2, 1, 1, 1, 1, 1],
-                [4, 4, 4, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1],
+                [4, 4, 2, 2, 2, 2] + [1] * 10,
+                [4, 4, 4, 2, 2, 2, 2] + [1] * 11,
+                [4, 4, 4, 2, 2, 2, 2] + [1] * 13,
             ]
             if is_tp16
             else [
@@ -590,7 +591,7 @@ class Glm52AscendShowHands:
             min_w_act=6 if is_tp16 else 10,
             t_base_ms=30.0 if is_tp16 else 41.5,
             c_w_ms=0.50 if is_tp16 else 0.68,
-            narrow_topk=not is_tp16,
+            narrow_topk=True,
             p_stop=0.14 if is_tp16 else 0.0,
             min_stop_step=3 if is_tp16 else 2,
             l78_build_dir=self.build_dir / "dspine_l78",

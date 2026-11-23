@@ -902,7 +902,11 @@ __aicore__ inline void RunLayer(
     if (next_step != nullptr
         && (next_step->indexed & 2ULL) == 0ULL
         && communication.window != 0ULL
+#ifdef K113000_WAVE16_RED2
+        && active_rows >= 1 && active_rows <= 32 && active_rows <= 2 * blocks
+#else
         && active_rows >= 1 && active_rows <= 24 && active_rows <= 2 * blocks
+#endif
         && next_step->addresses.body.blocks == blocks
         && next_step->addresses.norm.input == communication.output
         && next_step->addresses.attention.main_metadata[3] == addresses.attention.main_metadata[3]

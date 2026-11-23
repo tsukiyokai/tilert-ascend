@@ -157,6 +157,7 @@ def _r4_flags(world_size: int = 8) -> tuple[str, ...]:
             "-DK113100_TP16_PROLOG_MM4_BAL=1",
             "-DK113100_TP16_PROLOG_CUBE_SYNC=1",
             "-DK112516_SFA_V2=1",
+            "-DK113202_PROLOG_IDX_OVERLAP=1",
         )
     return R4_FLAGS
 

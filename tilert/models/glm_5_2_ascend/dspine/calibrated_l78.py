@@ -1319,12 +1319,12 @@ struct DraftWalkArgs {
     uint64_t draft_ctrl_gm;
     uint64_t step_qlen_gm;
     uint64_t comm_win_gm;
-    uint64_t rot_w_step_nz_gm[16];
-    uint64_t rot_b_step_gm[16];
-    uint64_t w_eh_step_nz_gm[16];
-    uint64_t enorm_step_gm[16];
-    uint64_t hnorm_step_gm[16];
-    uint64_t logit_norm_step_gm[16];
+    uint64_t rot_w_step_nz_gm[32];
+    uint64_t rot_b_step_gm[32];
+    uint64_t w_eh_step_nz_gm[32];
+    uint64_t enorm_step_gm[32];
+    uint64_t hnorm_step_gm[32];
+    uint64_t logit_norm_step_gm[32];
     uint64_t emb_w_gm;
     uint64_t cal_head_w_q8_nz_gm;
     uint64_t cal_head_s8_gm;
@@ -1397,10 +1397,10 @@ struct DraftWalkArgs {
     float t_base_ms;
     float c_w_ms;
     float log_p_stop;
-    int32_t step_m_rows[16];
-    int32_t step_k_top[16];
+    int32_t step_m_rows[32];
+    int32_t step_k_top[32];
 };
-static_assert(sizeof(DraftWalkArgs) == 1408, "DraftWalkArgs ABI mismatch");
+static_assert(sizeof(DraftWalkArgs) == 2304, "DraftWalkArgs ABI mismatch");
 
 __aicore__ __attribute__((noinline)) void CubeMm1(
     AscendC::TPipe& pipe, uint64_t a_gm_addr, uint64_t b_nz_gm_addr, uint64_t c_gm_addr,
@@ -1935,7 +1935,7 @@ extern "C" int layer_tp_tree_draft_walk_launch(
     if (sync_base == 0ULL || walk_args_gm == 0ULL || (walk_args_gm % 64ULL) != 0ULL ||
         steps_host == nullptr || steps_device == nullptr ||
         (reinterpret_cast<uintptr_t>(steps_device) % 64ULL) != 0ULL ||
-        step_count <= 0 || step_count > 14) {
+        step_count <= 0 || step_count > 32) {
         return -1;
     }
     for (int32_t i = 0; i < step_count; ++i) {

@@ -78,6 +78,20 @@ private:
                                      __gm__ uint8_t* quantScaleCkv, __gm__ uint8_t* quantScaleCkr,
                                      __gm__ uint8_t* smoothScaleCq, __gm__ uint8_t* kNopeClipAlpha);
     __aicore__ inline void WorkspaceInit(__gm__ uint8_t* a22Workspace);
+#ifdef K113202_PROLOG_IDX_OVERLAP
+    __aicore__ inline bool SkipAic8PlusTailSync() const
+    {
+        if constexpr (!MLAPT::enableDequantOpt && !MLAPT::enableGroupComputeOpt &&
+                      std::is_same<mmQcQrInputType, int8_t>::value) {
+            return (baseParams_->numHeadSize == 4U) &&
+                   (baseParams_->headSizeCkv == 512U) &&
+                   (mmQnParam_.k == 192U) &&
+                   (baseParams_->mm1BlockNum + baseParams_->mm2BlockNum <= 24U) &&
+                   (baseParams_->tokenSize <= baseParams_->stepBatchSize);
+        }
+        return false;
+    }
+#endif
     __aicore__ inline void MmParamInit();
     __aicore__ inline void MmQnParamInit();
     __aicore__ inline void MmQcQrParamInit();
@@ -1040,7 +1054,13 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::AivProcess(AivOffset& aivOffs
 #ifdef K112854_TP16_PROLOG_PAR
         WaitAllCore<SYNC_MODE_ALL_VEC, PIPE_MTE3>(FINISH_VEC_ALL);
 #endif
+#ifdef K113202_PROLOG_IDX_OVERLAP
+        if (!(!needQnDynamicQuant && SkipAic8PlusTailSync()) || (blockIdx_ >> 1U) < 8U) {
+            CrossCoreSetFlag<SYNC_MODE_CUBE_VEC, PIPE_MTE3>(FINISH_VEC_DEQUANT_QC);
+        }
+#else
         CrossCoreSetFlag<SYNC_MODE_CUBE_VEC, PIPE_MTE3>(FINISH_VEC_DEQUANT_QC);
+#endif
         RopeQr(aivOffset.ropeQrOffset, aivOffset.ropeQrResOffset, aivOffset.curVecToken,
                aivOffset.curBlockTokenOffset);
         aivOffset.ropeQrResOffset +=
@@ -1081,7 +1101,13 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::DequantQcAndRopeQc(AivOffset&
             DequantQc(aivOffset.mmQnPreDequantOffset, aivOffset.mmQnPreDequantResOffset, aivOffset.curVecToken,
                       aivOffset.curBlockTokenOffset);
             WaitAllCore<SYNC_MODE_ALL_VEC, PIPE_MTE3>(FINISH_VEC_ALL);
+#ifdef K113202_PROLOG_IDX_OVERLAP
+            if (!(!needQnDynamicQuant && SkipAic8PlusTailSync()) || (blockIdx_ >> 1U) < 8U) {
+                CrossCoreSetFlag<SYNC_MODE_CUBE_VEC, PIPE_MTE3>(FINISH_VEC_DEQUANT_QC);
+            }
+#else
             CrossCoreSetFlag<SYNC_MODE_CUBE_VEC, PIPE_MTE3>(FINISH_VEC_DEQUANT_QC);
+#endif
             RopeQr(aivOffset.ropeQrOffset, aivOffset.ropeQrResOffset, aivOffset.curVecToken,
                    aivOffset.curBlockTokenOffset);
         }
@@ -1391,6 +1417,11 @@ __aicore__ inline void MlaPrologVecS1CubS2<MLAPT>::PreloadQnAndSync(AicOffset& a
             CrossCoreSetFlag<SYNC_MODE_CUBE_VEC, PIPE_FIX>(FINISH_MM_QCQR);
         }
     }
+#ifdef K113202_PROLOG_IDX_OVERLAP
+    if (!needQnDynamicQuant && SkipAic8PlusTailSync() && blockIdx_ >= 8U) {
+        return;
+    }
+#endif
     MatmulQnWeightPreload<needQnDynamicQuant>(aicOffset.weightUkOffset, mmQnLoops);
     if constexpr (MLAPT::enableDequantOpt) {
 

@@ -909,6 +909,15 @@ __aicore__ inline void DecodeGatheredTopKV3(
     }
 }
 
+__aicore__ inline int32_t DspineSchedB(uint64_t lo, uint64_t hi, int32_t t)
+{
+    if (t < 0 || t >= 32) {
+        return 0;
+    }
+    const uint64_t word = (t < 16) ? lo : hi;
+    return static_cast<int32_t>((word >> (4 * (t & 15))) & 0xFULL);
+}
+
 __aicore__ inline void RunBeamStepV3(
     TPipe& pipe,
     int32_t step,
@@ -961,27 +970,25 @@ __aicore__ inline void RunBeamStepV3(
             if (g_dc.GetValue(2) <= 0) {
                 return;
             }
-            const uint64_t packed = static_cast<uint64_t>(g_dc.GetValue(7));
-            if (packed != 0ULL) {
-                const int32_t b0 = static_cast<int32_t>(packed & 0xFULL);
+            const uint64_t packed_lo = static_cast<uint64_t>(g_dc.GetValue(7));
+            const uint64_t packed_hi = static_cast<uint64_t>(g_dc.GetValue(6));
+            if (packed_lo != 0ULL || packed_hi != 0ULL) {
+                const int32_t b0 = DspineSchedB(packed_lo, packed_hi, 0);
                 if (step == -1) {
                     b_next = b0;
                 } else if (step > 0) {
-                    const int32_t b_cur_d = (step <= 14)
-                        ? static_cast<int32_t>((packed >> (4 * (step - 1))) & 0xFULL) : 0;
+                    const int32_t b_cur_d = DspineSchedB(packed_lo, packed_hi, step - 1);
                     if (b_cur_d <= 0) {
                         return;
                     }
-                    const int32_t b_nxt_d = (step < 14)
-                        ? static_cast<int32_t>((packed >> (4 * step)) & 0xFULL) : 0;
+                    const int32_t b_nxt_d = DspineSchedB(packed_lo, packed_hi, step);
                     const int32_t k_exp_raw = (b_nxt_d > b_cur_d) ? b_nxt_d : b_cur_d;
                     const int32_t k_exp_d = (k_exp_raw > 2) ? k_exp_raw : 2;
                     int32_t p_off_d = 1 + b0;
                     int32_t s_cur_d = b0;
                     for (int32_t t = 0; t < step - 1; ++t) {
-                        const int32_t bt = static_cast<int32_t>((packed >> (4 * t)) & 0xFULL);
-                        const int32_t bn =
-                            static_cast<int32_t>((packed >> (4 * (t + 1))) & 0xFULL);
+                        const int32_t bt = DspineSchedB(packed_lo, packed_hi, t);
+                        const int32_t bn = DspineSchedB(packed_lo, packed_hi, t + 1);
                         const int32_t ke_raw = (bn > bt) ? bn : bt;
                         const int32_t ke = (ke_raw > 2) ? ke_raw : 2;
                         p_off_d += bt * ke;
@@ -1004,7 +1011,7 @@ __aicore__ inline void RunBeamStepV3(
         pipe.InitBuffer(b_wk, 256);
         pipe.InitBuffer(b_i64, 256 * 8);
         pipe.InitBuffer(b_f32, 256 * 4);
-        pipe.InitBuffer(b_anc, 256 * 4);
+        pipe.InitBuffer(b_anc, 512 * 4);
         pipe.InitBuffer(b_bf16, 2048 * 2);
 
         auto ub_gat = b_gat.Get<float>();
@@ -1137,7 +1144,7 @@ __aicore__ inline void RunBeamStepV3(
                 g_prlp.SetGlobalBuffer(reinterpret_cast<__gm__ float*>(pool_raw_lp_gm));
                 g_ptoks.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(pool_tokens_gm));
                 g_ppars.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(pool_parents_gm));
-                g_anc.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(anc_slots_gm), 128);
+                g_anc.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(anc_slots_gm), 256);
                 g_eslot.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(eshr_slot_gm), b_next);
                 g_ekv.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(eshr_kvlen_gm), 1);
 
@@ -1146,7 +1153,7 @@ __aicore__ inline void RunBeamStepV3(
                 Fence<HardEvent::MTE2_S>();
 
                 const float mg0 = ub_f32.GetValue(7);
-                for (int32_t z = 0; z < 128; ++z) {
+                for (int32_t z = 0; z < 256; ++z) {
                     ub_anc.SetValue(z, 0);
                 }
 
@@ -1161,7 +1168,7 @@ __aicore__ inline void RunBeamStepV3(
                         const float rlp = ub_f32.GetValue(j);
                         const float sc = rlp + beta_margin * mg0 - beta_depth * 1.0F;
                         const int32_t sl = 9250 + next_slot_cur + j;
-                        ub_anc.SetValue(j * 16 + 0, sl);
+                        ub_anc.SetValue(j * 32 + 0, sl);
                         ub_i64.SetValue(32 + j, tk);
                         ub_f32.SetValue(16 + j, sc);
                         ub_f32.SetValue(24 + j, rlp);
@@ -1186,7 +1193,7 @@ __aicore__ inline void RunBeamStepV3(
                 Fence<HardEvent::S_MTE3>();
 
                 const uint32_t n_init = static_cast<uint32_t>(1 + b_next);
-                DataCopy(g_anc, ub_anc, 128);
+                DataCopy(g_anc, ub_anc, 256);
                 DataCopy(g_atoks, ub_i64[32], 8);
                 DataCopy(g_ascs, ub_f32[16], 8);
                 DataCopy(g_arlp, ub_f32[24], 8);
@@ -1213,7 +1220,7 @@ __aicore__ inline void RunBeamStepV3(
         GlobalTensor<int64_t> g_work_i64;
         g_work_i64.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(work_gm), 8);
         GlobalTensor<int32_t> g_anc;
-        g_anc.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(anc_slots_gm), 128);
+        g_anc.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(anc_slots_gm), 256);
 
         if (aiv == 0) {
             GlobalTensor<int64_t> g_ctrl, g_atoks, g_apids, g_ptoks, g_ppars, g_eslot;
@@ -1238,7 +1245,7 @@ __aicore__ inline void RunBeamStepV3(
             DataCopy(ub_f32[0], g_arlp, 8);
             DataCopy(ub_f32[8], g_amgs, 8);
             DataCopy(ub_gat, g_gat, kDspineWorldSize * 64);
-            DataCopy(ub_anc[0], g_anc, 128);
+            DataCopy(ub_anc[0], g_anc, 256);
             Fence<HardEvent::MTE2_S>();
 
             const int64_t base_pos = ub_i64.GetValue(9);
@@ -1310,11 +1317,11 @@ __aicore__ inline void RunBeamStepV3(
                 auto ub_nsc = ub_f32[16];
                 auto ub_nrlp = ub_f32[24];
                 auto ub_nmg = ub_f32[32];
-                auto ub_anew = ub_anc[128];
+                auto ub_anew = ub_anc[256];
                 auto ub_kv = ub_mr.ReinterpretCast<int32_t>();
                 const int64_t next_pos = base_pos + d;
 
-                for (int32_t z = 0; z < 128; ++z) {
+                for (int32_t z = 0; z < 256; ++z) {
                     ub_anew.SetValue(z, 0);
                 }
                 for (int32_t j = 0; j < 8; ++j) {
@@ -1323,9 +1330,9 @@ __aicore__ inline void RunBeamStepV3(
                         const int32_t src_bi = top_i / k_expand;
                         const int32_t sl = 9250 + next_slot_cur + j;
                         for (int32_t t = 0; t < d; ++t) {
-                            ub_anew.SetValue(j * 16 + t, ub_anc.GetValue(src_bi * 16 + t));
+                            ub_anew.SetValue(j * 32 + t, ub_anc.GetValue(src_bi * 32 + t));
                         }
-                        ub_anew.SetValue(j * 16 + d, sl);
+                        ub_anew.SetValue(j * 32 + d, sl);
                         ub_ntk.SetValue(j, ub_s_tk.GetValue(top_i));
                         ub_nsc.SetValue(j, ub_s_sc.GetValue(top_i));
                         ub_nrlp.SetValue(j, ub_s_rlp.GetValue(top_i));
@@ -1366,7 +1373,7 @@ __aicore__ inline void RunBeamStepV3(
                     ub_w_out.SetValue(4, next_pos);
                     ub_kv.SetValue(0, 9295);
                     Fence<HardEvent::S_MTE3>();
-                    DataCopy(g_anc, ub_anew, 128);
+                    DataCopy(g_anc, ub_anew, 256);
                     DataCopy(g_atoks, ub_ntk, 8);
                     DataCopy(g_ascs, ub_nsc, 8);
                     DataCopy(g_arlp, ub_nrlp, 8);
@@ -1392,7 +1399,7 @@ __aicore__ inline void RunBeamStepV3(
             }
             if (!stop_now) {
                 DataCopy(ub_i64[0], g_work_i64, 8);
-                DataCopy(ub_anc[0], g_anc, 128);
+                DataCopy(ub_anc[0], g_anc, 256);
                 Fence<HardEvent::MTE2_S>();
                 const int64_t next_pos = ub_i64.GetValue(4);
 
@@ -1443,7 +1450,7 @@ __aicore__ inline void RunBeamStepV3(
                         Fence<HardEvent::MTE2_S>();
                         const int32_t start_u = 64 - n_causal;
                         for (int32_t u = 0; u < n_causal; ++u) {
-                            ub_idx.SetValue(start_u + u, ub_anc.GetValue(aiv * 16 + u));
+                            ub_idx.SetValue(start_u + u, ub_anc.GetValue(aiv * 32 + u));
                         }
                         Fence<HardEvent::S_MTE3>();
                         DataCopy(g_idx[aiv * 2048 + pre_off], ub_idx, 64);
@@ -1460,7 +1467,7 @@ __aicore__ inline void RunBeamStepV3(
                             Fence<HardEvent::MTE2_S>();
                             const int32_t start_u = 64 - n_causal;
                             for (int32_t u = 0; u < n_causal; ++u) {
-                                ub_idx.SetValue(start_u + u, ub_anc.GetValue(r * 16 + u));
+                                ub_idx.SetValue(start_u + u, ub_anc.GetValue(r * 32 + u));
                             }
                             Fence<HardEvent::S_MTE3>();
                         } else {
@@ -1593,10 +1600,11 @@ __aicore__ inline void RunBuildTreeV3(
                 (stop_pool > 0 && static_cast<int32_t>(stop_pool) < pool_size)
                     ? static_cast<int32_t>(stop_pool) : pool_size;
             int32_t eff_pool_size = pool_size;
-            const uint64_t packed_sched = static_cast<uint64_t>(ub_ctrl.GetValue(7));
-            if (packed_sched != 0ULL) {
+            const uint64_t packed_lo = static_cast<uint64_t>(ub_ctrl.GetValue(7));
+            const uint64_t packed_hi = static_cast<uint64_t>(ub_ctrl.GetValue(6));
+            if (packed_lo != 0ULL || packed_hi != 0ULL) {
                 int32_t p_idx = 0;
-                const int32_t b0 = static_cast<int32_t>(packed_sched & 0xFULL);
+                const int32_t b0 = DspineSchedB(packed_lo, packed_hi, 0);
                 if (p_idx < max_sched_fill) {
                     ub_pdp.SetValue(p_idx, 0);
                 }
@@ -1607,13 +1615,12 @@ __aicore__ inline void RunBuildTreeV3(
                     }
                     ++p_idx;
                 }
-                for (int32_t t = 0; t < 14; ++t) {
-                    const int32_t bt = static_cast<int32_t>((packed_sched >> (4 * t)) & 0xFULL);
+                for (int32_t t = 0; t < 32; ++t) {
+                    const int32_t bt = DspineSchedB(packed_lo, packed_hi, t);
                     if (bt <= 0) {
                         break;
                     }
-                    const int32_t bn = (t + 1 < 14)
-                        ? static_cast<int32_t>((packed_sched >> (4 * (t + 1))) & 0xFULL) : 0;
+                    const int32_t bn = DspineSchedB(packed_lo, packed_hi, t + 1);
                     const int32_t ke_raw = (bn > bt) ? bn : bt;
                     const int32_t ke = (ke_raw > 2) ? ke_raw : 2;
                     const int32_t cnt = bt * ke;
@@ -3526,7 +3533,12 @@ __aicore__ inline void RunPrologPrepareMeta(
         if (commit_ctrl_gm != 0ULL) {
             cmt_ctrl[1] = 0;
             cmt_ctrl[2] = 0;
+            cmt_ctrl[46] = 0;
             cmt_ctrl[47] = 0;
+            cmt_ctrl[48 + 1] = 0;
+            cmt_ctrl[48 + 2] = 0;
+            cmt_ctrl[48 + 46] = 0;
+            cmt_ctrl[48 + 47] = 0;
         }
         if (step_qlen_ptrs_gm != 0ULL) {
             DcciRange(step_qlen_ptrs_gm, max_steps * 8);
@@ -3534,7 +3546,7 @@ __aicore__ inline void RunPrologPrepareMeta(
         for (int32_t s = 0; s < max_steps; ++s) {
             if (step_qlen_gm != 0ULL) {
                 s_ql[s] = 0;
-                s_ql[16 + s] = 0;
+                s_ql[32 + s] = 0;
             }
             if (step_qlen_ptrs_gm != 0ULL && s_ptrs[s] != 0ULL) {
                 *reinterpret_cast<__gm__ int32_t*>(s_ptrs[s]) = 0;
@@ -3543,8 +3555,8 @@ __aicore__ inline void RunPrologPrepareMeta(
             }
         }
         if (commit_qlen_ptrs_gm != 0ULL) {
-            DcciRange(commit_qlen_ptrs_gm, 16);
-            for (int32_t i = 0; i < 2; ++i) {
+            DcciRange(commit_qlen_ptrs_gm, 24);
+            for (int32_t i = 0; i < 3; ++i) {
                 if (c_ptrs[i] != 0ULL) {
                     *reinterpret_cast<__gm__ int32_t*>(c_ptrs[i]) = 0;
                     PipeBarrier<PIPE_ALL>();
@@ -3582,7 +3594,7 @@ __aicore__ inline void RunPrologPrepareMeta(
             d_ctrl[5] = 0;
         }
         int32_t num_steps = max_steps;
-        const int32_t stride = max_steps + 2;
+        const int32_t stride = max_steps + 3;
         if (step_table_gm != 0ULL) {
             DcciRange(step_table_gm, 16 * stride * 8);
             const int64_t* row_tbl = nullptr;
@@ -3591,16 +3603,17 @@ __aicore__ inline void RunPrologPrepareMeta(
             num_steps = static_cast<int32_t>(s_tbl[tbl_off + 0]);
             if (draft_ctrl_gm != 0ULL) {
                 d_ctrl[7] = s_tbl[tbl_off + 1];
+                d_ctrl[6] = s_tbl[tbl_off + 2];
             }
             if (step_qlen_ptrs_gm != 0ULL) {
                 DcciRange(step_qlen_ptrs_gm, max_steps * 8);
             }
             for (int32_t s = 0; s < max_steps; ++s) {
                 const int32_t val = (s < num_steps)
-                    ? static_cast<int32_t>(s_tbl[tbl_off + 2 + s]) : 0;
+                    ? static_cast<int32_t>(s_tbl[tbl_off + 3 + s]) : 0;
                 if (step_qlen_gm != 0ULL) {
                     s_ql[s] = val;
-                    s_ql[16 + s] = val * 2;
+                    s_ql[32 + s] = val * 2;
                 }
                 if (step_qlen_ptrs_gm != 0ULL && s_ptrs[s] != 0ULL) {
                     *reinterpret_cast<__gm__ int32_t*>(s_ptrs[s]) = val;
@@ -3620,7 +3633,7 @@ __aicore__ inline void RunPrologPrepareMeta(
         DcciRange(compact_ctrl_gm, 64);
     }
     if (commit_ctrl_gm != 0ULL) {
-        DcciRange(commit_ctrl_gm, 64);
+        DcciRange(commit_ctrl_gm, 96 * 8);
     }
     if (dyn_w_gm != 0ULL) {
         DcciRange(dyn_w_gm, 64);
@@ -3629,7 +3642,7 @@ __aicore__ inline void RunPrologPrepareMeta(
         DcciRange(mc2_mask_gm, width);
     }
     if (step_qlen_gm != 0ULL && max_steps > 0) {
-        DcciRange(step_qlen_gm, (16 + max_steps) * 4);
+        DcciRange(step_qlen_gm, (32 + max_steps) * 4);
     }
     if (receipt_ring_gm != 0ULL) {
         DcciRange(receipt_ring_gm, 256);
@@ -3770,19 +3783,50 @@ __aicore__ inline void RunResolveAndAdvance(
 
     if (commit_ctrl_gm != 0ULL) {
         auto* cmt = reinterpret_cast<__gm__ int64_t*>(commit_ctrl_gm);
-        if (acc > 0) {
+        if (acc > 0 && acc <= commit_m) {
             cmt[0] = static_cast<int64_t>(main_start);
             cmt[1] = static_cast<int64_t>(acc);
             cmt[2] = static_cast<int64_t>(acc);
+            cmt[46] = 0;
             cmt[47] = static_cast<int64_t>(commit_m + acc);
             const int32_t last_row = acc_rows[acc - 1];
             for (int32_t j = 0; j <= commit_m; ++j) {
                 cmt[3 + j] = static_cast<int64_t>((j < acc) ? acc_rows[j] : last_row);
             }
+            cmt[48 + 1] = 0;
+            cmt[48 + 2] = 0;
+            cmt[48 + 46] = 0;
+            cmt[48 + 47] = 0;
+        } else if (acc > commit_m) {
+            const int32_t rem_acc = acc - commit_m;
+            cmt[0] = static_cast<int64_t>(main_start);
+            cmt[1] = static_cast<int64_t>(commit_m);
+            cmt[2] = static_cast<int64_t>(commit_m);
+            cmt[46] = 1;
+            cmt[47] = static_cast<int64_t>(commit_m + commit_m);
+            const int32_t last_c1 = acc_rows[commit_m - 1];
+            for (int32_t j = 0; j <= commit_m; ++j) {
+                cmt[3 + j] = static_cast<int64_t>((j < commit_m) ? acc_rows[j] : last_c1);
+            }
+            cmt[48 + 0] = static_cast<int64_t>(main_start + commit_m);
+            cmt[48 + 1] = static_cast<int64_t>(rem_acc);
+            cmt[48 + 2] = static_cast<int64_t>(rem_acc);
+            cmt[48 + 46] = 0;
+            cmt[48 + 47] = static_cast<int64_t>(commit_m + rem_acc);
+            const int32_t last_row = acc_rows[acc - 1];
+            for (int32_t j = 0; j <= commit_m; ++j) {
+                cmt[48 + 3 + j] = static_cast<int64_t>(
+                    (j < rem_acc) ? acc_rows[commit_m + j] : last_row);
+            }
         } else {
             cmt[1] = 0;
             cmt[2] = 0;
+            cmt[46] = 0;
             cmt[47] = 0;
+            cmt[48 + 1] = 0;
+            cmt[48 + 2] = 0;
+            cmt[48 + 46] = 0;
+            cmt[48 + 47] = 0;
         }
     }
 
@@ -3878,7 +3922,7 @@ __aicore__ inline void RunResolveAndAdvance(
         DcciRange(compact_ctrl_gm, 64 + width * 8);
     }
     if (commit_ctrl_gm != 0ULL) {
-        DcciRange(commit_ctrl_gm, 48 * 8);
+        DcciRange(commit_ctrl_gm, 96 * 8);
     }
     if (receipt_ring_gm != 0ULL) {
         DcciRange(receipt_ring_gm, 256);
@@ -5586,7 +5630,15 @@ __aicore__ inline void RunCommitFused(
     const __gm__ int64_t* c_ptr = reinterpret_cast<__gm__ const int64_t*>(ctrl_gm);
     const int64_t main_start = c_ptr[0];
     int32_t count = static_cast<int32_t>(c_ptr[1]);
+    const bool skip_seed = (c_ptr[46] != 0);
     if (count <= 0) {
+        if ASCEND_IS_AIV {
+            if (GetBlockIdx() == 0 && kv_qlen_gm != 0ULL) {
+                *reinterpret_cast<__gm__ int32_t*>(kv_qlen_gm) = 0;
+                PipeBarrier<PIPE_ALL>();
+                DcciRange(kv_qlen_gm, 64);
+            }
+        }
         return;
     }
     if (count > m_buf_cap) {
@@ -5889,7 +5941,7 @@ __aicore__ inline void RunCommitFused(
     }
     if ASCEND_IS_AIV {
         const int32_t aiv = GetBlockIdx();
-        const int32_t kv_rows = count - 1;
+        const int32_t kv_rows = skip_seed ? count : (count - 1);
         const int32_t seed_idx = count - 1;
         const int64_t seed_pos = main_start + static_cast<int64_t>(seed_idx);
         if (aiv == 0) {
@@ -5908,30 +5960,36 @@ __aicore__ inline void RunCommitFused(
             ub_i32.SetValue(24, static_cast<int32_t>(seed_pos + 1));
             Fence<HardEvent::S_MTE3>();
 
-            GlobalTensor<int64_t> g_kv_sl, g_s_sl;
-            GlobalTensor<int32_t> g_kv_ql, g_kv_kvl, g_s_ql, g_s_kvl;
+            GlobalTensor<int64_t> g_kv_sl;
+            GlobalTensor<int32_t> g_kv_ql, g_kv_kvl;
             g_kv_sl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(kv_slot_gm), kv_m_cap);
-            g_s_sl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(seed_slot_gm), 1);
             g_kv_ql.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(kv_qlen_gm), 1);
             g_kv_kvl.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(kv_kvlen_gm), 1);
-            g_s_ql.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(seed_qlen_gm), 1);
-            g_s_kvl.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(seed_kvlen_gm), 1);
 
             DataCopyPad(g_kv_sl, ub_i64[0], DataCopyExtParams{
                 1, static_cast<uint32_t>(kv_m_cap * sizeof(int64_t)), 0, 0, 0});
-            DataCopyPad(g_s_sl, ub_i64[16], DataCopyExtParams{1, sizeof(int64_t), 0, 0, 0});
             DataCopyPad(g_kv_ql, ub_i32[0], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
             DataCopyPad(g_kv_kvl, ub_i32[8], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
-            DataCopyPad(g_s_ql, ub_i32[16], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
-            DataCopyPad(g_s_kvl, ub_i32[24], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
+            if (!skip_seed) {
+                GlobalTensor<int64_t> g_s_sl;
+                GlobalTensor<int32_t> g_s_ql, g_s_kvl;
+                g_s_sl.SetGlobalBuffer(reinterpret_cast<__gm__ int64_t*>(seed_slot_gm), 1);
+                g_s_ql.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(seed_qlen_gm), 1);
+                g_s_kvl.SetGlobalBuffer(reinterpret_cast<__gm__ int32_t*>(seed_kvlen_gm), 1);
+                DataCopyPad(g_s_sl, ub_i64[16], DataCopyExtParams{1, sizeof(int64_t), 0, 0, 0});
+                DataCopyPad(g_s_ql, ub_i32[16], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
+                DataCopyPad(g_s_kvl, ub_i32[24], DataCopyExtParams{1, sizeof(int32_t), 0, 0, 0});
+            }
             Fence<HardEvent::MTE3_S>();
             DcciRange(kv_slot_gm, kv_m_cap * sizeof(int64_t));
-            DcciRange(seed_slot_gm, sizeof(int64_t));
             DcciRange(kv_qlen_gm, sizeof(int32_t));
             DcciRange(kv_kvlen_gm, sizeof(int32_t));
-            DcciRange(seed_qlen_gm, sizeof(int32_t));
-            DcciRange(seed_kvlen_gm, sizeof(int32_t));
-        } else if ((aiv >= 24 && aiv < 24 + kv_rows) || aiv == 47) {
+            if (!skip_seed) {
+                DcciRange(seed_slot_gm, sizeof(int64_t));
+                DcciRange(seed_qlen_gm, sizeof(int32_t));
+                DcciRange(seed_kvlen_gm, sizeof(int32_t));
+            }
+        } else if ((aiv >= 24 && aiv < 24 + kv_rows) || (!skip_seed && aiv == 47)) {
             TBuf<TPosition::VECCALC> b_rope;
             pipe.InitBuffer(b_rope, 128 * 2);
             auto ub_rope = b_rope.Get<bfloat16_t>();
@@ -5970,7 +6028,7 @@ __aicore__ inline void RunCommitFused(
     if ASCEND_IS_AIV {
         const int32_t aiv = GetBlockIdx();
         const uint32_t ep_rot_eh = seq + 2U;
-        const int32_t kv_rows = count - 1;
+        const int32_t kv_rows = skip_seed ? count : (count - 1);
         const int32_t seed_idx = count - 1;
         const int32_t total_elems = count * kDspineShardDim;
         const uint16_t blk_len = static_cast<uint16_t>(kDspineShardDim * 2 / 32);
@@ -6000,10 +6058,12 @@ __aicore__ inline void RunCommitFused(
                     ub_in,
                     DataCopyParams{static_cast<uint16_t>(kv_rows), blk_len, 0, dst_str});
             }
-            DataCopy(
-                g_seed_hs[static_cast<int64_t>(rank) * kDspineShardDim],
-                ub_in[seed_idx * kDspineShardDim],
-                kDspineShardDim);
+            if (!skip_seed) {
+                DataCopy(
+                    g_seed_hs[static_cast<int64_t>(rank) * kDspineShardDim],
+                    ub_in[seed_idx * kDspineShardDim],
+                    kDspineShardDim);
+            }
         } else if (aiv < ranks) {
             const int32_t peer = (rank + aiv) % ranks;
             GlobalTensor<bfloat16_t> g_rem_slot, g_local_peer;
@@ -6042,10 +6102,12 @@ __aicore__ inline void RunCommitFused(
                     ub_rem,
                     DataCopyParams{static_cast<uint16_t>(kv_rows), blk_len, 0, dst_str});
             }
-            DataCopy(
-                g_seed_hs[static_cast<int64_t>(peer) * kDspineShardDim],
-                ub_rem[seed_idx * kDspineShardDim],
-                kDspineShardDim);
+            if (!skip_seed) {
+                DataCopy(
+                    g_seed_hs[static_cast<int64_t>(peer) * kDspineShardDim],
+                    ub_rem[seed_idx * kDspineShardDim],
+                    kDspineShardDim);
+            }
         }
         Publish();
     }

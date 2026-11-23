@@ -447,7 +447,7 @@ class CalibratedL78V3Runner:
         self.l78_build_dir = l78_build_dir
 
         self.b_scheds = [tuple(int(x) for x in s) for s in b_scheds]
-        if not 1 <= len(self.b_scheds) <= 3 or max(len(s) for s in self.b_scheds) > 14:
+        if not 1 <= len(self.b_scheds) <= 3 or max(len(s) for s in self.b_scheds) > 32:
             raise ValueError("Unsupported DSpine beam schedule dimensions")
         self.b0 = int(self.b_scheds[0][0])
         self.max_steps = max(len(s) for s in self.b_scheds)
@@ -496,23 +496,32 @@ class CalibratedL78V3Runner:
             dep_cpu[i] = dp
         self.pool_depths_dev = self._alloc_from(dep_cpu, 64)
 
-        self.step_table_stride = self.max_steps + 2
+        self.step_table_stride = self.max_steps + 3
         tbl_cpu = torch.zeros((16, self.step_table_stride), dtype=torch.int64)
         for lvl, sched in enumerate(self.b_scheds):
-            packed = 0
+            packed_lo = 0
+            packed_hi = 0
             for t, b in enumerate(sched):
-                packed |= (int(b) & 0xF) << (4 * t)
+                if t < 16:
+                    packed_lo |= (int(b) & 0xF) << (4 * t)
+                else:
+                    packed_hi |= (int(b) & 0xF) << (4 * (t - 16))
+            if packed_lo >= (1 << 63):
+                packed_lo -= 1 << 64
+            if packed_hi >= (1 << 63):
+                packed_hi -= 1 << 64
             tbl_cpu[lvl, 0] = len(sched)
-            tbl_cpu[lvl, 1] = packed
+            tbl_cpu[lvl, 1] = packed_lo
+            tbl_cpu[lvl, 2] = packed_hi
             for t, b in enumerate(sched):
-                tbl_cpu[lvl, 2 + t] = int(b)
+                tbl_cpu[lvl, 3 + t] = int(b)
         self.step_table_dev = self._alloc_from(tbl_cpu, 64)
 
-        _, sq_u8 = self._alloc_bytes(max(16, self.max_steps) * 4, 64, zero=True)
+        _, sq_u8 = self._alloc_bytes(max(64, 2 * self.max_steps) * 4, 64, zero=True)
         self.step_qlen_dev = sq_u8.view(torch.int32)
-        _, sq2_u8 = self._alloc_bytes(max(16, self.max_steps) * 4, 64, zero=True)
+        _, sq2_u8 = self._alloc_bytes(max(64, 2 * self.max_steps) * 4, 64, zero=True)
         self.step_2qlen_dev = sq2_u8.view(torch.int32)
-        _, sqp_u8 = self._alloc_bytes(max(8, self.max_steps) * 8, 64, zero=True)
+        _, sqp_u8 = self._alloc_bytes(max(32, self.max_steps) * 8, 64, zero=True)
         self.step_qlen_ptrs_dev = sqp_u8.view(torch.int64)
         _, cqp_u8 = self._alloc_bytes(64, 64, zero=True)
         self.commit_qlen_ptrs_dev = cqp_u8.view(torch.int64)
@@ -583,7 +592,7 @@ class CalibratedL78V3Runner:
         self.seed_top_i = torch.zeros((8,), dtype=torch.int64, device=dev)
         self.seed_top_lp = torch.zeros((8,), dtype=torch.float32, device=dev)
         self.prefix_topk_buf = torch.zeros((2048,), dtype=torch.int32, device=dev)
-        self.anc_slots_buf = torch.zeros((128,), dtype=torch.int32, device=dev)
+        self.anc_slots_buf = torch.zeros((256,), dtype=torch.int32, device=dev)
         self.active_toks = torch.zeros((8,), dtype=torch.int64, device=dev)
         self.active_scores = torch.zeros((8,), dtype=torch.float32, device=dev)
         self.active_raw_lp = torch.zeros((8,), dtype=torch.float32, device=dev)
@@ -622,7 +631,7 @@ class CalibratedL78V3Runner:
         cm_buf = cm + 1 if self.world_size == 16 else cm
         self.commit_buf_m = cm_buf
         self.commit_ttoks_pad32 = torch.zeros((32,), dtype=torch.int64, device=dev)
-        _, cmt_u8 = self._alloc_bytes(48 * 8, 64, zero=True)
+        _, cmt_u8 = self._alloc_bytes(96 * 8, 64, zero=True)
         self.commit_ctrl_dev = cmt_u8.view(torch.int64)
         self.commit_acc_i32 = cmt_u8[8:12].view(torch.int32)
         self.commit_2acc_i32 = cmt_u8[47 * 8 : 47 * 8 + 4].view(torch.int32)
@@ -649,10 +658,13 @@ class CalibratedL78V3Runner:
             [
                 int(self.entry_kv_commit.q_len.data_ptr()),
                 int(self.entry_cal_idx_1.q_len.data_ptr()),
+                int(self.entry_kv_commit_2.q_len.data_ptr())
+                if self.entry_kv_commit_2 is not None
+                else 0,
             ],
             dtype=torch.int64,
         )
-        self.commit_qlen_ptrs_dev[:2].copy_(cqp_cpu.to(dev))
+        self.commit_qlen_ptrs_dev[:3].copy_(cqp_cpu.to(dev))
 
         sqp_cpu = torch.tensor(
             [int(eshr.q_len.data_ptr()) for eshr in self.eshr_steps],
@@ -702,27 +714,27 @@ class CalibratedL78V3Runner:
     def _pack_walk_args(self):
         import torch
 
-        def pad16_ptrs(tensor):
-            n = min(int(tensor.shape[0]), 16)
+        def pad32_ptrs(tensor):
+            n = min(int(tensor.shape[0]), 32)
             ptrs = [int(tensor[i].data_ptr()) for i in range(n)]
-            return ptrs + [0] * (16 - len(ptrs))
+            return ptrs + [0] * (32 - len(ptrs))
 
         sin_ptr = int(self.arena.sin_cache.data_ptr())
         cos_ptr = int(self.arena.cos_cache.data_ptr())
-        m_rows_pad = list(self.step_m_rows[:16]) + [0] * (16 - len(self.step_m_rows[:16]))
-        k_top = [max(2, m) if self.narrow_topk else 4 for m in self.step_m_rows[:16]]
-        k_top_pad = k_top + [0] * (16 - len(k_top))
+        m_rows_pad = list(self.step_m_rows[:32]) + [0] * (32 - len(self.step_m_rows[:32]))
+        k_top = [max(2, m) if self.narrow_topk else 4 for m in self.step_m_rows[:32]]
+        k_top_pad = k_top + [0] * (32 - len(k_top))
         u64_fields = [
             int(self.sync_addr),
             int(self.draft_ctrl_dev.data_ptr()),
             int(self.step_qlen_dev.data_ptr()),
             int(self.comm_win),
-            *pad16_ptrs(self.rot_w_step_nz),
-            *pad16_ptrs(self.wt.rot_b_step),
-            *pad16_ptrs(self.w_eh_step_nz),
-            *pad16_ptrs(self.wt.enorm_step),
-            *pad16_ptrs(self.wt.hnorm_step),
-            *pad16_ptrs(self.wt.logit_norm_step),
+            *pad32_ptrs(self.rot_w_step_nz),
+            *pad32_ptrs(self.wt.rot_b_step),
+            *pad32_ptrs(self.w_eh_step_nz),
+            *pad32_ptrs(self.wt.enorm_step),
+            *pad32_ptrs(self.wt.hnorm_step),
+            *pad32_ptrs(self.wt.logit_norm_step),
             int(self.emb_w.data_ptr()),
             int(self.cal_head_w_q8_nz.data_ptr()),
             int(self.cal_head_s8.data_ptr()),
@@ -801,14 +813,14 @@ class CalibratedL78V3Runner:
             float(self.log_p_stop),
         ]
         payload = struct.pack(
-            "<" + "Q" * 148 + "i" * 18 + "f" * 6 + "i" * 32,
+            "<" + "Q" * 244 + "i" * 18 + "f" * 6 + "i" * 64,
             *u64_fields,
             *i32_fields,
             *f32_fields,
             *m_rows_pad,
             *k_top_pad,
         )
-        if len(payload) != 1408:
+        if len(payload) != 2304:
             raise RuntimeError("DraftWalkArgs byte length mismatch")
         self.walk_args_dev = self._alloc_from(
             torch.frombuffer(bytearray(payload), dtype=torch.uint8), 64
@@ -1121,6 +1133,11 @@ class CalibratedL78V3Runner:
         self._ws_kvc = make_ws(self.COMMIT_M, True)
         self.entry_kv_commit = bind_entry(
             self._ws_kvc, True, fn_kvc, False, custom_topk=self.kv_commit_topk
+        )
+        self.entry_kv_commit_2 = (
+            bind_entry(self._ws_kvc, True, fn_kvc, False, custom_topk=self.kv_commit_topk)
+            if self.world_size == 16
+            else None
         )
         torch.npu.synchronize(dev)
 
@@ -1547,6 +1564,59 @@ class CalibratedL78V3Runner:
             )
             if st_ekv != 0:
                 raise RuntimeError("kv_commit kernel failed")
+            ekv2 = getattr(self, "entry_kv_commit_2", None)
+            if ekv2 is not None:
+                st2 = self.wt.ops.tilert_dspine_commit_fused_launch(
+                    stream_ptr,
+                    self.sync_addr,
+                    self.commit_ctrl_dev.data_ptr() + 48 * 8,
+                    self.st["target_tokens"].data_ptr(),
+                    self.st["target_hidden"].data_ptr(),
+                    self.commit_par_m.data_ptr(),
+                    self.rot_shard_nz.data_ptr(),
+                    self.commit_rot_shard.data_ptr(),
+                    self.emb_w.data_ptr(),
+                    self.enorm_w.data_ptr(),
+                    self.hnorm_w.data_ptr(),
+                    self.commit_comm_out.data_ptr(),
+                    self.commit_eh_in.data_ptr(),
+                    self.w_eh_col_nz.data_ptr(),
+                    self.commit_eh_shard.data_ptr(),
+                    sin_ptr,
+                    cos_ptr,
+                    ekv2.hs_in.data_ptr(),
+                    ekv2.sin_buf.data_ptr(),
+                    ekv2.cos_buf.data_ptr(),
+                    ekv2.slot_i64.data_ptr(),
+                    ekv2.q_len.data_ptr(),
+                    ekv2.kv_len.data_ptr(),
+                    e1.hs_in.data_ptr(),
+                    e1.sin_buf.data_ptr(),
+                    e1.cos_buf.data_ptr(),
+                    e1.slot_i64.data_ptr(),
+                    e1.q_len.data_ptr(),
+                    e1.kv_len.data_ptr(),
+                    self.comm_win,
+                    self.w,
+                    self.commit_buf_m,
+                    cm,
+                    self.emb_vocab_start,
+                    self.emb_vocab_end,
+                    self.rank,
+                    self.world_size,
+                    self.norm_eps,
+                )
+                if st2 != 0:
+                    raise RuntimeError(f"dspine_commit_fused chunk2 failed: {st2}")
+                st_ekv2 = ekv2.fn(
+                    flushed(),
+                    ctypes.c_uint64(ekv2.local.sync),
+                    ekv2.local.config,
+                    ekv2.local.addresses,
+                    ekv2.comm_buf,
+                )
+                if st_ekv2 != 0:
+                    raise RuntimeError("kv_commit chunk2 kernel failed")
             st_e1 = e1.fn(
                 flushed(),
                 ctypes.c_uint64(e1.local.sync),
@@ -1917,6 +1987,7 @@ class CalibratedL78V3Runner:
         self.eshr_steps = []
         self.entry_cal_idx_1 = None
         self.entry_kv_commit = None
+        self.entry_kv_commit_2 = None
         self._owners.clear()
         gc.collect()
 

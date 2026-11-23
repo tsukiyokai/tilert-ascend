@@ -115,8 +115,18 @@ __aicore__ K11240_TOP_NOINLINE uint32_t Forward(AscendC::TPipe& pipe, const Conf
 #ifdef ENABLE_KERNEL_PROF
     if (attn_prof != nullptr) { if ASCEND_IS_AIV { if (AscendC::GetBlockIdx() == 0) { attn_prof[0] = AscendC::GetSystemCycle(); } } }
 #endif
+#ifdef K113202_PROLOG_IDX_OVERLAP
+    const bool overlap_idx = (c_attn.blocks == 24U) &&
+        (whole_layer_attention::kHeads == 4U) &&
+        (c_front.blocks >= 24) &&
+        c_front.quantized &&
+        (c_front.capacity == 12 || c_front.capacity == 16 || c_front.capacity == 32);
+    whole_layer_attention::PrologPhase(pipe, c_attn, attention,
+        memory + c.query_norm, memory + c.query_norm_scale, nullptr, overlap_idx);
+#else
     whole_layer_attention::PrologPhase(pipe, c_attn, attention,
         memory + c.query_norm, memory + c.query_norm_scale);
+#endif
 #ifdef ENABLE_KERNEL_PROF
     if (attn_prof != nullptr) { if ASCEND_IS_AIV { if (AscendC::GetBlockIdx() == 0) { attn_prof[1] = AscendC::GetSystemCycle(); } } }
 #endif
@@ -148,10 +158,19 @@ __aicore__ K11240_TOP_NOINLINE uint32_t Forward(AscendC::TPipe& pipe, const Conf
 #endif
 
 #ifdef SFA_PACKED_SHADOW_KV
+#ifdef K113202_PROLOG_IDX_OVERLAP
+    indexer_front::device::Forward(pipe, c_front, front,
+        ShadowRows{a.caches[0], a.caches[1], a.main_metadata[2], a.caches[4]}, overlap_idx);
+#else
     indexer_front::device::Forward(pipe, c_front, front,
         ShadowRows{a.caches[0], a.caches[1], a.main_metadata[2], a.caches[4]});
+#endif
+#else
+#ifdef K113202_PROLOG_IDX_OVERLAP
+    indexer_front::device::Forward(pipe, c_front, front, {}, overlap_idx);
 #else
     indexer_front::device::Forward(pipe, c_front, front);
+#endif
 #endif
 #ifdef ENABLE_KERNEL_PROF
     if (attn_prof != nullptr) { if ASCEND_IS_AIV { if (AscendC::GetBlockIdx() == 0) { attn_prof[2] = AscendC::GetSystemCycle(); } } }

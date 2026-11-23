@@ -1334,7 +1334,11 @@ struct NoInputStage {
 template <typename InputStage = NoInputStage>
 __aicore__ inline void Forward(TPipe& pipe, const Config& c,
                                const DeviceArgs& args,
-                               InputStage input_stage = {})
+                               InputStage input_stage = {}
+#ifdef K113202_PROLOG_IDX_OVERLAP
+                               , bool prolog_overlap = false
+#endif
+                               )
 {
     using mla_tail::device::Publish;
 #ifndef K112192_DIRECT_IDX_Q14
@@ -1353,8 +1357,48 @@ __aicore__ inline void Forward(TPipe& pipe, const Config& c,
             const bool use_k32 = false;
             constexpr int32_t kQWorkers = 14;
 #endif
+#ifdef K113202_PROLOG_IDX_OVERLAP
+            bool run_q = false;
+            int32_t q_start = idx;
+            int32_t q_end = 16;
+            int32_t q_step = kQWorkers;
+            if (prolog_overlap) {
+                if (use_k32) {
+                    if (idx < 5) {
+                        run_q = true;
+                        q_start = 11 + idx;
+                        q_end = q_start + 1;
+                        q_step = 1;
+                    } else if (idx >= 8 && idx < 19) {
+                        run_q = true;
+                        q_start = idx - 8;
+                        q_end = q_start + 1;
+                        q_step = 1;
+                    }
+                } else if (idx < 14) {
+                    run_q = true;
+                    if (idx >= 8) {
+                        q_start = idx - 8;
+                        q_end = q_start + 1;
+                        q_step = 1;
+                    } else {
+                        q_start = 6 + idx;
+                        q_end = 16;
+                        q_step = 8;
+                    }
+                }
+            } else {
+                run_q = (!use_k32 || idx < 16);
+            }
+            if (idx < kQWorkers) {
+                if (run_q) {
+#else
+            const int32_t q_start = idx;
+            constexpr int32_t q_end = 16;
+            const int32_t q_step = kQWorkers;
             if (idx < kQWorkers) {
                 if (!use_k32 || idx < 16) {
+#endif
 #if defined(K112192_DIRECT_IDX_Q14) && defined(K11040_F0_NZ)
                 const bool dual_m = (c.rows > 16);
                 const uint16_t m0 = dual_m ? 16U : static_cast<uint16_t>(c.rows);
@@ -1403,7 +1447,7 @@ __aicore__ inline void Forward(TPipe& pipe, const Config& c,
                 SetFlag<HardEvent::MTE1_M>(EVENT_ID2);
                 WaitFlag<HardEvent::MTE1_M>(EVENT_ID2);
                 LoadData2dTransposeParams trans(0, 8, 16, 1, 0, inc);
-                for (int32_t qt = idx; qt < 16; qt += kQWorkers) {
+                for (int32_t qt = q_start; qt < q_end; qt += q_step) {
                     b_gm.SetGlobalBuffer(
                         reinterpret_cast<__gm__ int8_t*>(args.query_weight)
                             + static_cast<uint64_t>(qt) * 524288ULL,
@@ -1498,7 +1542,7 @@ __aicore__ inline void Forward(TPipe& pipe, const Config& c,
                            mla_tail::device::OutputC, mla_tail::device::OutputBias,
                            mla_tail::device::kQueryTiling16> q_mm;
                     q_mm.Init(&q_cube, &pipe);
-                    for (int32_t qt = idx; qt < 16; qt += kQWorkers) {
+                    for (int32_t qt = q_start; qt < q_end; qt += q_step) {
                         q_w.SetGlobalBuffer(
                             (__gm__ int8_t*)args.query_weight
                                 + static_cast<int64_t>(qt) * kQueryRank * kQueryTile,
@@ -1519,7 +1563,7 @@ __aicore__ inline void Forward(TPipe& pipe, const Config& c,
                            mla_tail::device::OutputC, mla_tail::device::OutputBias,
                            mla_tail::device::kQueryTiling32> q_mm;
                     q_mm.Init(&q_cube, &pipe);
-                    for (int32_t qt = idx; qt < 16; qt += kQWorkers) {
+                    for (int32_t qt = q_start; qt < q_end; qt += q_step) {
                         q_w.SetGlobalBuffer(
                             (__gm__ int8_t*)args.query_weight
                                 + static_cast<int64_t>(qt) * kQueryRank * kQueryTile,
