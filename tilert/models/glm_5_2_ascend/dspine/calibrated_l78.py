@@ -1,15 +1,18 @@
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 import hashlib
 import json
 import math
 import os
 from pathlib import Path
+import re
 import shlex
 import shutil
 import subprocess
 import torch
 from torch import nn
 
+from ..ops.build_megakernel import UNSET_L78_MACROS, effective_tree_digest
 from ..weights import pack_output_weights, pack_shared_weights, pack_value_weights
 from .build_dspine_ops import DSPINE_WALK_SHARED_CPP, build_dspine_ops
 
@@ -2065,20 +2068,34 @@ L78_BASE_DEFS: tuple[str, ...] = (
 )
 
 
-def _l78_source_digest(src: Path) -> str:
-    h = hashlib.sha256()
-    for sub in ("local", "source", "vendor", "communication"):
-        sub_dir = src / sub
-        for p in sorted(sub_dir.rglob("*")):
-            if p.is_file():
-                h.update(str(p.relative_to(src)).encode("utf-8"))
-                h.update(p.read_bytes())
-    h.update(DSPINE_WALK_SHARED_CPP.encode("utf-8"))
-    h.update(_KV_COMMIT_DEVICE_SNIPPET.encode("utf-8"))
-    h.update(_KV_COMMIT_HOST_SNIPPET.encode("utf-8"))
-    h.update(_DRAFT_WALK_DEVICE_SNIPPET.encode("utf-8"))
-    h.update(_DRAFT_WALK_HOST_SNIPPET.encode("utf-8"))
-    return h.hexdigest()
+_L78_EXTRA_UNSET_RE = re.compile(
+    r"^(?:K\d+[A-Z0-9_]*|L78_[A-Z0-9_]+|SKIP_[A-Z0-9_]+|"
+    r"ENABLE_KERNEL_PROF|SFA_PACKED_SHADOW_KV|ATTENTION_INDEXED_PROFILE)$"
+)
+
+
+def _is_l78_build_unset_macro(name: str) -> bool:
+    return name in UNSET_L78_MACROS or _L78_EXTRA_UNSET_RE.match(name) is not None
+
+
+def _l78_effective_source_digest(src: Path, defs: Sequence[str]) -> str:
+    return effective_tree_digest(
+        src,
+        defs,
+        subdirs=("local", "source", "vendor", "communication"),
+        extra_texts=(
+            DSPINE_WALK_SHARED_CPP,
+            _KV_COMMIT_DEVICE_SNIPPET,
+            _KV_COMMIT_HOST_SNIPPET,
+            _DRAFT_WALK_DEVICE_SNIPPET,
+            _DRAFT_WALK_HOST_SNIPPET,
+        ),
+        unset_macro_fn=_is_l78_build_unset_macro,
+    )
+
+
+def _l78_source_digest(src: Path, world_size: int = 8) -> str:
+    return _l78_effective_source_digest(src, _l78_defs_for_world(world_size))
 
 
 def _resolve_l78_ksfa(
@@ -2151,7 +2168,21 @@ def _l78_defs_for_world(world_size: int = 8) -> tuple[str, ...]:
     )
 
 
-def _l78_variant_digest(src_digest: str, ver: int, k_val: int, world_size: int = 8) -> str:
+def _l78_variant_digest(
+    src_or_digest: str | Path,
+    ver: int,
+    k_val: int,
+    world_size: int = 8,
+) -> str:
+    if isinstance(src_or_digest, Path):
+        defs = (
+            f"-DKERNEL_VER={ver}",
+            f"-DDRAFT_SFA_TOPK={k_val}",
+            *_l78_defs_for_world(world_size),
+        )
+        src_digest = _l78_effective_source_digest(src_or_digest, defs)
+    else:
+        src_digest = src_or_digest
     payload = {
         "source_digest": src_digest,
         "ver": ver,
@@ -2391,7 +2422,7 @@ def build_draft_l78_k110419(
     target_ks = _resolve_l78_ksfa(k_sfa, variants)
     so_1024 = out / "chain_K110419.so"
     so_512 = out / "chain_K110420.so"
-    src_digest = _l78_source_digest(src)
+    src_digest = _l78_source_digest(src, ws)
     manifest_path = out / "l78.manifest.json"
     prev_variants: dict[str, dict[str, object]] = {}
     if manifest_path.is_file():
@@ -2407,7 +2438,7 @@ def build_draft_l78_k110419(
         ver, _ = L78_VARIANT_SPECS[k_val]
         so_p = out / f"chain_K{ver}.so"
         entry = prev_variants.get(str(ver))
-        expected_vdig = _l78_variant_digest(src_digest, ver, k_val, ws)
+        expected_vdig = _l78_variant_digest(src, ver, k_val, ws)
         hit = (
             so_p.is_file()
             and isinstance(entry, dict)
@@ -2441,7 +2472,7 @@ def build_draft_l78_k110419(
         so_p = out / f"chain_K{ver}.so"
         if not so_p.is_file():
             continue
-        expected_vdig = _l78_variant_digest(src_digest, ver, k_val, ws)
+        expected_vdig = _l78_variant_digest(src, ver, k_val, ws)
         if k_val in missing_or_stale:
             next_variants[str(ver)] = {
                 "k_sfa": k_val,

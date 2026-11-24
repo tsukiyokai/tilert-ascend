@@ -427,8 +427,34 @@ def test_a3_container_sync_source_prestage_probe_and_du_timeout(
     assert ac.du_timeout_for_item("model-raw") == 60
     assert ac.du_timeout_for_item("ckpt") == 15
     up_tar_cmd = ac.build_up_source_tar_cmd(repo)
-    assert "--exclude=docs/evidence" in up_tar_cmd
-    assert "--exclude=docs/assets" in up_tar_cmd
+    assert "--exclude=./docs/evidence" in up_tar_cmd
+    assert "--exclude=./docs/assets" in up_tar_cmd
+    assert "--exclude=./docs/reference" in up_tar_cmd
+    assert "--exclude=./tests/glm52/whole_layer" in up_tar_cmd
+    tar_bytes = subprocess.check_output(ac.build_up_source_tar_cmd(REPO_ROOT))
+    with tarfile.open(fileobj=io.BytesIO(tar_bytes), mode="r:gz") as tf:
+        listed = set(tf.getnames())
+    assert "./tests/glm52/whole_layer" not in listed
+    assert (
+        "./tilert/models/glm_5_2_ascend/ops/megakernel/local/attention/source/"
+        "tests/glm52/whole_layer/attention_indexed_contract.h"
+    ) in listed
+
+    lsenv_p = tmp_path / "lsenv.md"
+    lsenv_p.write_text(
+        "| Alias | IP | Gen | Chip | Mod | Pwless | Pw |\n"
+        "| --- | --- | --- | --- | --- | --- | --- |\n"
+        "| — | `7.150.8.208` | A3 | `Ascend910_9392` | 8 / 16 | no | `Hw123456` |\n"
+        "| `a5dt-10` | `10.83.185.10` | A5 | `Ascend950DT` | 8 / 8 | no | local credentials |\n",
+        encoding="utf-8",
+    )
+    cred_p = tmp_path / "passwords"
+    cred_p.write_text("7.150.8.208\tOverridePw\n", encoding="utf-8")
+    monkeypatch.setenv("TRT_SSH_CREDENTIALS", str(cred_p))
+    monkeypatch.setenv("TRT_LSENV_PATH", str(lsenv_p))
+    assert ac._load_ssh_passwords() == {"7.150.8.208": "OverridePw"}
+    cred_p.unlink()
+    assert ac._load_ssh_passwords() == {"7.150.8.208": "Hw123456"}
 
 
 def test_formal_e2e_package_intact() -> None:
@@ -592,11 +618,18 @@ def test_a3_container_exclude_forbidden_and_ssh_key_fallback(
         "  7.150.11.91 A3 Ascend910_9392 ====······ 41% "
         "················ 16/16 41% 空闲 否\n"
     )
-    assert ac.select_fleet_slots(hosts, exclude_hosts=["10.83.185.129"]) == [
+    assert ac.select_fleet_slots(
+        hosts, exclude_hosts=["10.83.185.129"], world_size=8
+    ) == [
         ("7.150.11.91", tuple(range(8))),
         ("7.150.11.91", tuple(range(8, 16))),
     ]
-    assert ac.select_fleet_slots(hosts, exclude_hosts=["10.83.185.129", "7.150.11.91"]) == []
+    assert (
+        ac.select_fleet_slots(
+            hosts, exclude_hosts=["10.83.185.129", "7.150.11.91"], world_size=8
+        )
+        == []
+    )
 
     ssh_dir = tmp_path / ".ssh"
     ssh_dir.mkdir()
@@ -635,6 +668,7 @@ def test_a3_container_8_15_logical_devices_prestage_and_shmem_helper(
         port_base=31000,
         target_host="7.150.9.184",
         visible_devices=range(8, 16),
+        world_size=8,
     )
     assert iso_8_15["ASCEND_RT_VISIBLE_DEVICES"] == "8,9,10,11,12,13,14,15"
     env_sh = ac.build_container_env_script(iso_8_15)
@@ -688,11 +722,11 @@ def test_warm_worker_default_cfg_matches_end2end() -> None:
 
     cfg16 = default_worker_cfg(16)
     assert cfg16["b_scheds"] == [
-        [4, 4, 2, 2, 2, 2, 1, 1, 1, 1],
-        [4, 4, 4, 2, 2, 2, 2, 1, 1, 1, 1, 1],
-        [4, 4, 4, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1],
+        [4, 4, 2, 2, 2, 2] + [1] * 10,
+        [4, 4, 4, 2, 2, 2, 2] + [1] * 11,
+        [4, 4, 4, 2, 2, 2, 2] + [1] * 13,
     ]
-    assert cfg16["narrow_topk"] is False
+    assert cfg16["narrow_topk"] is True
     assert cfg16["min_w_act"] == 6
     assert cfg16["t_base_ms"] == 30.0
     assert cfg16["c_w_ms"] == 0.50
@@ -739,6 +773,7 @@ def test_rig_streamlining_ssh_cache_eval_args_and_parallel_shmem(
         t_base_ms=35.0,
         c_w_ms=0.55,
         narrow_topk=False,
+        beta_depth=-0.04,
         p_stop=0.14,
         min_stop_step=3,
     )
@@ -749,6 +784,7 @@ def test_rig_streamlining_ssh_cache_eval_args_and_parallel_shmem(
     assert payload["b_scheds"] == [[4, 4, 2], [4, 2, 1]]
     assert payload["min_w_act"] == 6
     assert payload["narrow_topk"] is False
+    assert payload["beta_depth"] == -0.04
     assert payload["p_stop"] == 0.14
     assert payload["min_stop_step"] == 3
 
@@ -756,3 +792,33 @@ def test_rig_streamlining_ssh_cache_eval_args_and_parallel_shmem(
     assert '-o "$OUT/tp_push_kernel.o" &' in shmem_script
     assert '-o "$OUT/tilert_shmem_bf16.o" &' in shmem_script
     assert "\n  wait\n" in shmem_script
+
+
+def test_warm_worker_width_override_and_reboot_tier() -> None:
+    import argparse
+
+    from tilert.models.glm_5_2_ascend.end2end import WIDTHS
+    from warm_worker import build_eval_cmd_args, classify_reload_tier
+
+    base = {
+        "boot_sha": "b1",
+        "width": 16,
+        "chain_sha": "c1",
+        "dspine_py_sha": "p1",
+        "dspine_ops_sha": "o1",
+        "l78_klib_sha": "k1",
+        "ckpt_sha": "w1",
+    }
+    assert classify_reload_tier(base, dict(base)) == "none"
+    assert classify_reload_tier(base, {**base, "width": 24}) == "reboot"
+    for w in WIDTHS:
+        ns = argparse.Namespace(
+            k_sfa=1024,
+            width=w,
+            ckpt="/prestage/cal.pt",
+            warmups=0,
+            formals=1,
+            fast_parity=False,
+            serial_draft_parity=True,
+        )
+        assert build_eval_cmd_args(ns, "/tmp/w.json")["width"] == w

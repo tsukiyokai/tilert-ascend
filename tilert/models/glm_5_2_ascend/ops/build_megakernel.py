@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 import argparse
 import hashlib
 import json
@@ -218,12 +218,13 @@ def _eval_macro_defined(
     name: str,
     defined_macros: frozenset[str],
     tainted_macros: frozenset[str] = frozenset(),
+    unset_macro_fn: Callable[[str], bool] = _is_l78_unset_macro,
 ) -> bool | None:
     if name in tainted_macros:
         return None
     if name in defined_macros:
         return True
-    if _is_l78_unset_macro(name):
+    if unset_macro_fn(name):
         return False
     return None
 
@@ -252,6 +253,7 @@ def _eval_if_expr(
     expr: str,
     defined_macros: frozenset[str],
     tainted_macros: frozenset[str] = frozenset(),
+    unset_macro_fn: Callable[[str], bool] = _is_l78_unset_macro,
 ) -> bool | None:
     clean = _strip_cpp_comments(expr)
     m = DEFINED_EXPR_RE.match(clean)
@@ -259,7 +261,7 @@ def _eval_if_expr(
         return None
     neg, name_paren, name_bare = m.groups()
     name = name_paren or name_bare
-    val = _eval_macro_defined(name, defined_macros, tainted_macros)
+    val = _eval_macro_defined(name, defined_macros, tainted_macros, unset_macro_fn)
     if val is None:
         return None
     return (not val) if neg else val
@@ -458,6 +460,7 @@ def _collect_tracked_macro_mutations(
     logical_lines: Sequence[tuple[str, bool, str]],
     defined_macros: frozenset[str],
     tainted_macros: frozenset[str],
+    unset_macro_fn: Callable[[str], bool] = _is_l78_unset_macro,
 ) -> tuple[set[str], bool]:
     found: set[str] = set()
     stack: list[list[object]] = []
@@ -470,7 +473,7 @@ def _collect_tracked_macro_mutations(
         arg = parts[1].strip() if len(parts) > 1 else ""
         if kw in ("define", "undef"):
             m_id = arg.split("(", 1)[0].split(None, 1)[0] if arg else ""
-            if parent_active and (m_id in defined_macros or _is_l78_unset_macro(m_id)):
+            if parent_active and (m_id in defined_macros or unset_macro_fn(m_id)):
                 found.add(m_id)
             continue
         if kw in ("ifdef", "ifndef", "if"):
@@ -480,20 +483,24 @@ def _collect_tracked_macro_mutations(
             if kw == "ifdef":
                 m_name = arg.split(None, 1)[0] if arg else ""
                 cond = (
-                    _eval_macro_defined(m_name, defined_macros, tainted_macros)
+                    _eval_macro_defined(
+                        m_name, defined_macros, tainted_macros, unset_macro_fn
+                    )
                     if IDENT_RE.match(m_name)
                     else None
                 )
             elif kw == "ifndef":
                 m_name = arg.split(None, 1)[0] if arg else ""
                 val = (
-                    _eval_macro_defined(m_name, defined_macros, tainted_macros)
+                    _eval_macro_defined(
+                        m_name, defined_macros, tainted_macros, unset_macro_fn
+                    )
                     if IDENT_RE.match(m_name)
                     else None
                 )
                 cond = None if val is None else (not val)
             else:
-                cond = _eval_if_expr(arg, defined_macros, tainted_macros)
+                cond = _eval_if_expr(arg, defined_macros, tainted_macros, unset_macro_fn)
             if cond is None:
                 stack.append(["OPAQUE", True, True])
             else:
@@ -513,7 +520,7 @@ def _collect_tracked_macro_mutations(
             if top[2]:
                 top[1] = False
                 continue
-            cond = _eval_if_expr(arg, defined_macros, tainted_macros)
+            cond = _eval_if_expr(arg, defined_macros, tainted_macros, unset_macro_fn)
             if cond is None:
                 return found, False
             top[1] = cond
@@ -549,6 +556,7 @@ def _strip_inactive_branches_from_lines(
     raw_bytes: bytes,
     defined_macros: frozenset[str],
     tainted_macros: frozenset[str] = frozenset(),
+    unset_macro_fn: Callable[[str], bool] = _is_l78_unset_macro,
 ) -> bytes:
     out: list[bytes] = []
     stack: list[list[object]] = []
@@ -563,7 +571,7 @@ def _strip_inactive_branches_from_lines(
         arg = parts[1].strip() if len(parts) > 1 else ""
         if kw in ("define", "undef"):
             m_id = arg.split("(", 1)[0].split(None, 1)[0] if arg else ""
-            if parent_active and (m_id in defined_macros or _is_l78_unset_macro(m_id)):
+            if parent_active and (m_id in defined_macros or unset_macro_fn(m_id)):
                 return raw_bytes
             if parent_active:
                 out.append(raw_line.encode("utf-8"))
@@ -575,20 +583,24 @@ def _strip_inactive_branches_from_lines(
             if kw == "ifdef":
                 m_name = arg.split(None, 1)[0] if arg else ""
                 cond = (
-                    _eval_macro_defined(m_name, defined_macros, tainted_macros)
+                    _eval_macro_defined(
+                        m_name, defined_macros, tainted_macros, unset_macro_fn
+                    )
                     if IDENT_RE.match(m_name)
                     else None
                 )
             elif kw == "ifndef":
                 m_name = arg.split(None, 1)[0] if arg else ""
                 val = (
-                    _eval_macro_defined(m_name, defined_macros, tainted_macros)
+                    _eval_macro_defined(
+                        m_name, defined_macros, tainted_macros, unset_macro_fn
+                    )
                     if IDENT_RE.match(m_name)
                     else None
                 )
                 cond = None if val is None else (not val)
             else:
-                cond = _eval_if_expr(arg, defined_macros, tainted_macros)
+                cond = _eval_if_expr(arg, defined_macros, tainted_macros, unset_macro_fn)
             if cond is None:
                 stack.append(["OPAQUE", True, True])
                 out.append(raw_line.encode("utf-8"))
@@ -612,7 +624,7 @@ def _strip_inactive_branches_from_lines(
                 top[1] = False
                 out.append(b"\x00ELIF_KNOWN:F\n")
                 continue
-            cond = _eval_if_expr(arg, defined_macros, tainted_macros)
+            cond = _eval_if_expr(arg, defined_macros, tainted_macros, unset_macro_fn)
             if cond is None:
                 return raw_bytes
             top[1] = cond
@@ -668,17 +680,23 @@ def _strip_inactive_branches(
     )
 
 
-def effective_source_digest(flags: Sequence[str] = (), world_size: int = 8) -> str:
-    base = _topology_flags(world_size) if not flags else ()
-    eff_flags = (
-        (f"-DKERNEL_VER={112830}", *base, *_r4_flags(world_size)) if not flags else tuple(flags)
-    )
+def effective_tree_digest(
+    root: Path,
+    eff_flags: Sequence[str],
+    subdirs: Sequence[str] | None = None,
+    extra_texts: Sequence[str] = (),
+    unset_macro_fn: Callable[[str], bool] = _is_l78_unset_macro,
+) -> str:
     defined_macros = _extract_defined_macros(eff_flags)
     entries: list[tuple[str, bytes, list[tuple[str, bool, str]] | None]] = []
-    for p in sorted(ROOT.rglob("*")):
-        if not p.is_file():
-            continue
-        rel = str(p.relative_to(ROOT))
+    if subdirs is None:
+        paths = sorted(p for p in root.rglob("*") if p.is_file())
+    else:
+        paths = sorted(
+            p for sub in subdirs for p in (root / sub).rglob("*") if p.is_file()
+        )
+    for p in paths:
+        rel = str(p.relative_to(root))
         raw_bytes = p.read_bytes()
         if p.suffix.lower() in CPP_SOURCE_SUFFIXES:
             try:
@@ -698,7 +716,7 @@ def effective_source_digest(flags: Sequence[str] = (), world_size: int = 8) -> s
             if logical_lines is None:
                 continue
             found, ok = _collect_tracked_macro_mutations(
-                logical_lines, defined_macros, cur_tainted
+                logical_lines, defined_macros, cur_tainted, unset_macro_fn
             )
             newly_found |= found
             if not ok:
@@ -710,7 +728,7 @@ def effective_source_digest(flags: Sequence[str] = (), world_size: int = 8) -> s
                     arg = parts[1].strip() if len(parts) > 1 else ""
                     if kw in ("define", "undef"):
                         m_id = arg.split("(", 1)[0].split(None, 1)[0] if arg else ""
-                        if m_id in defined_macros or _is_l78_unset_macro(m_id):
+                        if m_id in defined_macros or unset_macro_fn(m_id):
                             newly_found.add(m_id)
         if newly_found <= tainted:
             break
@@ -726,10 +744,24 @@ def effective_source_digest(flags: Sequence[str] = (), world_size: int = 8) -> s
         else:
             h.update(
                 _strip_inactive_branches_from_lines(
-                    logical_lines, raw_bytes, defined_macros, tainted_frozen
+                    logical_lines,
+                    raw_bytes,
+                    defined_macros,
+                    tainted_frozen,
+                    unset_macro_fn,
                 )
             )
+    for text in extra_texts:
+        h.update(text.encode("utf-8"))
     return h.hexdigest()
+
+
+def effective_source_digest(flags: Sequence[str] = (), world_size: int = 8) -> str:
+    base = _topology_flags(world_size) if not flags else ()
+    eff_flags = (
+        (f"-DKERNEL_VER={112830}", *base, *_r4_flags(world_size)) if not flags else tuple(flags)
+    )
+    return effective_tree_digest(ROOT, eff_flags)
 
 
 def _topology_flags(world_size: int = 8) -> tuple[str, ...]:

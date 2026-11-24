@@ -53,14 +53,15 @@ def default_worker_cfg(world_size: int = 8) -> dict[str, Any]:
     if int(world_size) == 16:
         return {
             "b_scheds": [
-                [4, 4, 2, 2, 2, 2, 1, 1, 1, 1],
-                [4, 4, 4, 2, 2, 2, 2, 1, 1, 1, 1, 1],
-                [4, 4, 4, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1],
+                [4, 4, 2, 2, 2, 2] + [1] * 10,
+                [4, 4, 4, 2, 2, 2, 2] + [1] * 11,
+                [4, 4, 4, 2, 2, 2, 2] + [1] * 13,
             ],
             "min_w_act": 6,
             "t_base_ms": 30.0,
             "c_w_ms": 0.50,
-            "narrow_topk": False,
+            "narrow_topk": True,
+            "beta_depth": None,
             "p_stop": 0.14,
             "min_stop_step": 3,
         }
@@ -74,6 +75,7 @@ def default_worker_cfg(world_size: int = 8) -> dict[str, Any]:
         "t_base_ms": 41.5,
         "c_w_ms": 0.68,
         "narrow_topk": True,
+        "beta_depth": None,
         "p_stop": 0.0,
         "min_stop_step": 2,
     }
@@ -180,6 +182,12 @@ def compute_hot_fingerprints(
 
 def classify_reload_tier(prev_state: dict[str, Any], cur_state: dict[str, Any]) -> str:
     if prev_state.get("boot_sha") != cur_state.get("boot_sha"):
+        return "reboot"
+    if (
+        "width" in prev_state
+        and "width" in cur_state
+        and prev_state.get("width") != cur_state.get("width")
+    ):
         return "reboot"
     if prev_state.get("chain_sha") != cur_state.get("chain_sha"):
         return "chain_and_dspine"
@@ -430,7 +438,7 @@ def _run_worker(args: argparse.Namespace) -> int:
         Path(args.mtp_prefix),
         build_dir,
         k_sfa=int(args.k_sfa),
-        width=16,
+        width=int(getattr(args, "width", 16)),
         main_prefix_path=main_pf,
         rank=rank,
         tp_group=tp_group,
@@ -449,6 +457,7 @@ def _run_worker(args: argparse.Namespace) -> int:
         "boot_sha": boot_sha,
         **compute_hot_fingerprints(build_dir, Path(args.ckpt), REPO_ROOT, args.k_sfa),
         "k_sfa": int(args.k_sfa),
+        "width": int(getattr(args, "width", 16)),
         "ckpt": str(args.ckpt),
     }
 
@@ -464,7 +473,13 @@ def _run_worker(args: argparse.Namespace) -> int:
             (ack_dir / f"ready_{r}").unlink(missing_ok=True)
         atomic_write_json(
             ready_file,
-            {"world_size": world_size, "boot_sha": boot_sha, "epoch": 0, "pid": os.getpid()},
+            {
+                "world_size": world_size,
+                "width": int(getattr(args, "width", 16)),
+                "boot_sha": boot_sha,
+                "epoch": 0,
+                "pid": os.getpid(),
+            },
         )
     else:
         while not ready_file.is_file():
@@ -521,6 +536,11 @@ def _run_worker(args: argparse.Namespace) -> int:
             "t_base_ms": float(req_args.get("t_base_ms", cur_cfg["t_base_ms"])),
             "c_w_ms": float(req_args.get("c_w_ms", cur_cfg["c_w_ms"])),
             "narrow_topk": bool(req_args.get("narrow_topk", cur_cfg["narrow_topk"])),
+            "beta_depth": (
+                None
+                if req_args.get("beta_depth", cur_cfg.get("beta_depth")) is None
+                else float(req_args.get("beta_depth", cur_cfg.get("beta_depth")))
+            ),
             "p_stop": float(req_args.get("p_stop", cur_cfg.get("p_stop", 0.0))),
             "min_stop_step": int(req_args.get("min_stop_step", cur_cfg.get("min_stop_step", 2))),
         }
@@ -603,7 +623,8 @@ def _run_worker(args: argparse.Namespace) -> int:
                         build_dir, Path(req_ckpt), REPO_ROOT, req_k_sfa
                     )
                 )
-                cur_state = {"boot_sha": cur_boot, **cur_hot}
+                req_width = int(req_args.get("width") or state["width"])
+                cur_state = {"boot_sha": cur_boot, "width": req_width, **cur_hot}
                 tier = classify_reload_tier(state, cur_state)
                 case_changed = req_case_dir != cur_case_dir or req_mtp_prefix != cur_mtp_prefix
                 cfg_changed = req_cfg != cur_cfg or req_k_sfa != state["k_sfa"]
@@ -774,7 +795,7 @@ def _run_worker(args: argparse.Namespace) -> int:
                         horizon_ctrl=runner.hctrl,
                         inv_temp=runner.cfg.inv_temp,
                         beta_margin=0.0,
-                        beta_depth=0.0,
+                        beta_depth=cur_cfg.get("beta_depth"),
                         k_sfa=req_k_sfa,
                         min_w_act=cur_cfg["min_w_act"],
                         t_base_ms=cur_cfg["t_base_ms"],
@@ -903,6 +924,7 @@ def boot_daemon(
     whole_layer_base: str,
     build_dir: str | None = None,
     k_sfa: int = 1024,
+    width: int = 16,
     union_sfa: bool = False,
     enable_kernel_prof: bool = False,
     boot_timeout_s: float = 600.0,
@@ -918,7 +940,7 @@ def boot_daemon(
         cmd = list(worker_cmd_override)
     else:
         master_port = os.environ.get("MASTER_PORT", "29900")
-        nproc = int(os.environ.get("WORLD_SIZE", "8"))
+        nproc = int(os.environ.get("WORLD_SIZE", "16"))
         cmd = [
             "torchrun",
             f"--nproc_per_node={nproc}",
@@ -941,6 +963,8 @@ def boot_daemon(
             whole_layer_base,
             "--k-sfa",
             str(k_sfa),
+            "--width",
+            str(width),
         ]
         if build_dir:
             cmd.extend(["--build-dir", str(build_dir)])
@@ -1055,6 +1079,7 @@ def daemon_status(job_dir: Path) -> dict[str, Any]:
         "ready": ready_file.is_file(),
         "pid": pid or None,
         "boot_sha": ready_info.get("boot_sha"),
+        "width": ready_info.get("width", 16),
         "next_epoch": _next_epoch(job_dir),
     }
 
@@ -1062,6 +1087,7 @@ def daemon_status(job_dir: Path) -> dict[str, Any]:
 def build_eval_cmd_args(args: argparse.Namespace, out_json: str) -> dict[str, Any]:
     cmd_args: dict[str, Any] = {
         "k_sfa": args.k_sfa,
+        "width": int(getattr(args, "width", 16)),
         "ckpt": args.ckpt,
         "warmups": args.warmups,
         "formals": args.formals,
@@ -1084,6 +1110,8 @@ def build_eval_cmd_args(args: argparse.Namespace, out_json: str) -> dict[str, An
         cmd_args["c_w_ms"] = float(args.c_w_ms)
     if getattr(args, "narrow_topk", None) is not None:
         cmd_args["narrow_topk"] = bool(args.narrow_topk)
+    if getattr(args, "beta_depth", None) is not None:
+        cmd_args["beta_depth"] = float(args.beta_depth)
     if getattr(args, "p_stop", None) is not None:
         cmd_args["p_stop"] = float(args.p_stop)
     if getattr(args, "min_stop_step", None) is not None:
@@ -1109,8 +1137,14 @@ def boot_or_submit(args: argparse.Namespace) -> dict[str, Any]:
     cur_boot = compute_boot_fingerprint(
         Path(args.whole_layer_base), args.model_dir, bdir, REPO_ROOT
     )
+    req_width = int(getattr(args, "width", 16))
     st = daemon_status(job_dir)
-    if not st["alive"] or not st["ready"] or st.get("boot_sha") != cur_boot:
+    if (
+        not st["alive"]
+        or not st["ready"]
+        or st.get("boot_sha") != cur_boot
+        or int(st.get("width", 16)) != req_width
+    ):
         stop_daemon(job_dir)
         boot_daemon(
             job_dir,
@@ -1121,6 +1155,7 @@ def boot_or_submit(args: argparse.Namespace) -> dict[str, Any]:
             whole_layer_base=args.whole_layer_base,
             build_dir=args.build_dir,
             k_sfa=args.k_sfa,
+            width=req_width,
             union_sfa=args.union_sfa,
             enable_kernel_prof=enable_prof,
             boot_timeout_s=args.boot_timeout,
@@ -1144,6 +1179,7 @@ def boot_or_submit(args: argparse.Namespace) -> dict[str, Any]:
             whole_layer_base=args.whole_layer_base,
             build_dir=args.build_dir,
             k_sfa=args.k_sfa,
+            width=req_width,
             union_sfa=args.union_sfa,
             enable_kernel_prof=enable_prof,
             boot_timeout_s=args.boot_timeout,
@@ -1170,6 +1206,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--build-dir", default=None)
     parser.add_argument("--out-json", default=None)
     parser.add_argument("--k-sfa", type=int, default=1024)
+    parser.add_argument("--width", type=int, default=16)
     parser.add_argument("--union-sfa", action="store_true")
     parser.add_argument("--enable-kernel-prof", action="store_true")
     parser.add_argument("--warmups", type=int, default=0)
@@ -1189,6 +1226,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--c-w-ms", type=float, default=None)
     parser.add_argument("--narrow-topk", dest="narrow_topk", action="store_true", default=None)
     parser.add_argument("--no-narrow-topk", dest="narrow_topk", action="store_false")
+    parser.add_argument("--beta-depth", type=float, default=None)
     parser.add_argument("--p-stop", type=float, default=None)
     parser.add_argument("--min-stop-step", type=int, default=None)
     parser.add_argument("--boot-timeout", type=float, default=600.0)

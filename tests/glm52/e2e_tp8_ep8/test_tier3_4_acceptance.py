@@ -66,9 +66,13 @@ def test_t3_01_f1_x_f2_case01_golden_and_8rank_digests_w16_w24(
             width=width,
             min_w_act=min_w,
             port_base=port,
+            track="a3-tp8-ep8",
         )
-        res = verify_e2e_run(out_dir, case_root / "case-01-coding")
-        assert res["output_sha256"] == get_case_spec("case-01-coding").output_sha256
+        res = verify_e2e_run(out_dir, case_root / "case-01-coding", track="a3-tp8-ep8")
+        assert (
+            res["output_sha256"]
+            == get_case_spec("case-01-coding", track="a3-tp8-ep8").output_sha256
+        )
 
 
 def test_t3_02_f1_x_f3_case01_ab_ba_warm_head_and_sha_every_trial(
@@ -83,6 +87,7 @@ def test_t3_02_f1_x_f3_case01_ab_ba_warm_head_and_sha_every_trial(
         formals=5,
         ab_ba=True,
         milestone="M5",
+        track="a3-tp8-ep8",
     )
     res = verify_e2e_run(
         out_dir,
@@ -91,6 +96,7 @@ def test_t3_02_f1_x_f3_case01_ab_ba_warm_head_and_sha_every_trial(
         require_warm_head=True,
         require_ab_ba=True,
         milestone="M5",
+        track="a3-tp8-ep8",
     )
     assert res["median_tpot_ms"] < 3.0
 
@@ -105,11 +111,12 @@ def test_t3_03_f2_x_f4_dynamic_w_act_split_and_chunk_with_8rank_parity(
         case_root=case_root,
         width=16,
         min_w_act=10,
+        track="a3-tp8-ep8",
     )
     report = _load_json(out_dir / "e2e_result.json")
     rank0 = _load_json(out_dir / "rank-0.json")
     verify_speculative_invariants(report["round_traces"], rank0["runtime_invariants"], width=16)
-    res = verify_e2e_run(out_dir, case_root / "case-01-coding")
+    res = verify_e2e_run(out_dir, case_root / "case-01-coding", track="a3-tp8-ep8")
     assert res["case_id"] == "case-01-coding"
 
 
@@ -123,13 +130,14 @@ def test_t3_04_f3_x_f4_inflight2_pipelining_warmups_and_clean_pos9215_drain(
         case_root=case_root,
         warmups=2,
         formals=5,
+        track="a3-tp8-ep8",
     )
     report = _load_json(out_dir / "e2e_result.json")
     rank0 = _load_json(out_dir / "rank-0.json")
     assert rank0["runtime_invariants"]["in_flight_depth"] == 2
     assert report["round_traces"][-1]["drain_q_len"] == 0
     assert report["round_traces"][-1]["final_pos"] == FINAL_POS
-    verify_e2e_run(out_dir, case_root / "case-01-coding")
+    verify_e2e_run(out_dir, case_root / "case-01-coding", track="a3-tp8-ep8")
 
 
 def test_t3_05_f3_x_f6_oos_cases_ab_ba_and_horizon_controller(
@@ -145,12 +153,14 @@ def test_t3_05_f3_x_f6_oos_cases_ab_ba_and_horizon_controller(
             formals=5,
             ab_ba=True,
             port_base=30000 + idx * 300,
+            track="a3-tp8-ep8",
         )
         res = verify_e2e_run(
             out_dir,
             case_root / case_id,
             require_ab_ba=True,
             milestone="M5",
+            track="a3-tp8-ep8",
         )
         assert res["median_tpot_ms"] < 3.0
 
@@ -164,18 +174,20 @@ def test_t3_06_f4_x_f6_distinct_oos_tau_regimes_without_sha_drift(
         output_dir=tmp_path / "c2",
         case_root=case_root,
         port_base=30100,
+        track="a3-tp8-ep8",
     )
     dir_c3 = build_dry_run_bundle(
         case_id="case-03-refactor",
         output_dir=tmp_path / "c3",
         case_root=case_root,
         port_base=30400,
+        track="a3-tp8-ep8",
     )
     r2 = _load_json(dir_c2 / "e2e_result.json")
     r3 = _load_json(dir_c3 / "e2e_result.json")
     assert r2["round_traces"][-1]["horizon_level"] != r3["round_traces"][-1]["horizon_level"]
-    verify_e2e_run(dir_c2, case_root / "case-02-review")
-    verify_e2e_run(dir_c3, case_root / "case-03-refactor")
+    verify_e2e_run(dir_c2, case_root / "case-02-review", track="a3-tp8-ep8")
+    verify_e2e_run(dir_c3, case_root / "case-03-refactor", track="a3-tp8-ep8")
 
 
 def test_t3_07_f5_x_f7_preflight_aborts_before_launching_bad_runner(
@@ -191,6 +203,7 @@ def test_t3_07_f5_x_f7_preflight_aborts_before_launching_bad_runner(
             case_root=case_root,
             runner_cmd=bad_runner,
             target_host=FORBIDDEN_HOSTS[0],
+            track="a3-tp8-ep8",
         )
     assert not marker.exists()
 
@@ -210,6 +223,7 @@ def test_t3_08_f1_x_f7_concurrent_dual_runs_disjoint_shm_ports_and_hygiene(
         case_root=case_root,
         run_id="run_concurrent_a",
         port_base=28100,
+        track="a3-tp8-ep8",
     )
     dir_b = build_dry_run_bundle(
         case_id="case-02-review",
@@ -217,9 +231,10 @@ def test_t3_08_f1_x_f7_concurrent_dual_runs_disjoint_shm_ports_and_hygiene(
         case_root=case_root,
         run_id="run_concurrent_b",
         port_base=28500,
+        track="a3-tp8-ep8",
     )
-    verify_e2e_run(dir_a, case_root / "case-01-coding")
-    verify_e2e_run(dir_b, case_root / "case-02-review")
+    verify_e2e_run(dir_a, case_root / "case-01-coding", track="a3-tp8-ep8")
+    verify_e2e_run(dir_b, case_root / "case-02-review", track="a3-tp8-ep8")
     assert verify_root_hygiene(repo_root)["pass"] is True
 
 
@@ -238,6 +253,8 @@ def test_t4_01_case01_formal_acceptance_end_to_end(
             "dry-run",
             "--case",
             "case-01-coding",
+            "--track",
+            "a3-tp8-ep8",
             "--case-root",
             str(case_root),
             "--output",
@@ -262,6 +279,8 @@ def test_t4_01_case01_formal_acceptance_end_to_end(
             "verify-report",
             "--case",
             "case-01-coding",
+            "--track",
+            "a3-tp8-ep8",
             "--case-root",
             str(case_root),
             "--report-dir",
@@ -282,6 +301,8 @@ def test_t4_02_case01_ab_ba_3plus5_regression_gate(
             "dry-run",
             "--case",
             "case-01-coding",
+            "--track",
+            "a3-tp8-ep8",
             "--case-root",
             str(case_root),
             "--warmups",
@@ -310,6 +331,8 @@ def test_t4_03_oos_coding_acceptance_cases_02_03_04(
             "dry-run",
             "--case",
             "all",
+            "--track",
+            "a3-tp8-ep8",
             "--case-root",
             str(case_root),
             "--output",
@@ -342,8 +365,9 @@ def test_t4_04_sequential_multicase_cache_isolation(
             output_dir=tmp_path / f"seq_{step_idx}_{case_id}",
             case_root=case_root,
             port_base=32000 + step_idx * 300,
+            track="a3-tp8-ep8",
         )
-        res = verify_e2e_run(step_dir, case_root / case_id)
+        res = verify_e2e_run(step_dir, case_root / case_id, track="a3-tp8-ep8")
         rank0 = _load_json(step_dir / "rank-0.json")
         verified_digests.append(
             {
@@ -372,12 +396,14 @@ def test_t4_05_milestone_m2_plus_vllm_free_and_tpot_policy_gate(
             case_root=case_root,
             milestone=ms,
             port_base=33500 + idx * 300,
+            track="a3-tp8-ep8",
         )
         res = verify_e2e_run(
             out_dir,
             case_root / "case-01-coding",
             max_tpot_ms=max_tpot,
             milestone=ms,
+            track="a3-tp8-ep8",
         )
         report = _load_json(out_dir / "e2e_result.json")
         if ms == "M1":
@@ -408,6 +434,7 @@ def test_t4_06_e2e_hygiene_kbenv_and_r3_r4_r5_audit(
         case_id="case-01-coding",
         output_dir=tmp_path / "tampered_cli",
         case_root=case_root,
+        track="a3-tp8-ep8",
     )
     res_file = tampered_dir / "e2e_result.json"
     bad_report = _load_json(res_file)
@@ -419,6 +446,8 @@ def test_t4_06_e2e_hygiene_kbenv_and_r3_r4_r5_audit(
             "verify-report",
             "--case",
             "case-01-coding",
+            "--track",
+            "a3-tp8-ep8",
             "--case-root",
             str(case_root),
             "--report-dir",
@@ -427,7 +456,7 @@ def test_t4_06_e2e_hygiene_kbenv_and_r3_r4_r5_audit(
     )
     assert rc == 1
     with pytest.raises(VerificationError):
-        verify_e2e_run(tampered_dir, case_root / "case-01-coding")
+        verify_e2e_run(tampered_dir, case_root / "case-01-coding", track="a3-tp8-ep8")
 
 
 def test_t4_07_partial_node_free_die_slice_and_target_host_propagation(
@@ -468,6 +497,7 @@ def test_t4_07_partial_node_free_die_slice_and_target_host_propagation(
         "    width=a.width,\n"
         "    run_id=os.environ['TILERT_E2E_RUN_ID'],\n"
         "    port_base=int(os.environ['MASTER_PORT']),\n"
+        "    track='a3-tp8-ep8',\n"
         ")\n"
         "(out / 'env_seen.json').write_text(json.dumps({\n"
         "    'TILERT_TARGET_HOST': os.environ.get('TILERT_TARGET_HOST'),\n"
@@ -484,6 +514,7 @@ def test_t4_07_partial_node_free_die_slice_and_target_host_propagation(
         runner_cmd=f"{sys.executable} {mock_runner}",
         kbenv_bin=f"{sys.executable}",
         kbenv_args=[str(fake_kbenv)],
+        track="a3-tp8-ep8",
     )
     seen = _load_json(out_dir / "env_seen.json")
     assert seen["TILERT_TARGET_HOST"] == "7.156.98.198"
@@ -510,6 +541,7 @@ def test_t4_08_a3_live_requires_report_dir_or_runner_cmd(
         output_dir=tmp_path / "live_dir",
         case_root=case_root,
         port_base=34100,
+        track="a3-tp8-ep8",
     )
     resolved = resolve_case01_bundle(
         tmp_path=tmp_path,
@@ -545,6 +577,7 @@ def test_t4_09_a3_formal_ephemeral_ports_fresh_dir_timeout_and_live_digest(
         "    case_root=Path(a.case_dir).parent,\n"
         "    run_id=os.environ['TILERT_E2E_RUN_ID'],\n"
         "    port_base=int(os.environ['MASTER_PORT']),\n"
+        "    track='a3-tp8-ep8',\n"
         ")\n",
         encoding="utf-8",
     )
@@ -555,6 +588,8 @@ def test_t4_09_a3_formal_ephemeral_ports_fresh_dir_timeout_and_live_digest(
             "a3-formal",
             "--case",
             "case-01-coding",
+            "--track",
+            "a3-tp8-ep8",
             "--case-root",
             str(case_root),
             "--target-host",
@@ -578,6 +613,8 @@ def test_t4_09_a3_formal_ephemeral_ports_fresh_dir_timeout_and_live_digest(
                 "a3-formal",
                 "--case",
                 "case-01-coding",
+                "--track",
+                "a3-tp8-ep8",
                 "--case-root",
                 str(case_root),
                 "--target-host",
@@ -601,6 +638,7 @@ def test_t4_09_a3_formal_ephemeral_ports_fresh_dir_timeout_and_live_digest(
             case_root=case_root,
             runner_cmd="true",
             target_host="7.150.12.20",
+            track="a3-tp8-ep8",
         )
 
     sleeper = f"{sys.executable} -c 'import time; time.sleep(5)'"
@@ -612,6 +650,7 @@ def test_t4_09_a3_formal_ephemeral_ports_fresh_dir_timeout_and_live_digest(
             runner_cmd=sleeper,
             target_host="7.150.12.20",
             timeout_s=0.1,
+            track="a3-tp8-ep8",
         )
 
     class _FakeTensor:
@@ -695,6 +734,7 @@ def test_t4_11_n2_n5_runner_contract_match_fresh_dir_and_digest_validation(
         "    width=16,\n"
         "    run_id=os.environ['TILERT_E2E_RUN_ID'],\n"
         "    port_base=int(os.environ['MASTER_PORT']),\n"
+        "    track='a3-tp8-ep8',\n"
         ")\n",
         encoding="utf-8",
     )
@@ -713,6 +753,7 @@ def test_t4_11_n2_n5_runner_contract_match_fresh_dir_and_digest_validation(
                 case_root=case_root,
                 runner_cmd=f"{sys.executable} {cheat_runner}",
                 target_host="7.150.12.20",
+                track="a3-tp8-ep8",
                 **kwargs,
             )
 
@@ -722,6 +763,7 @@ def test_t4_11_n2_n5_runner_contract_match_fresh_dir_and_digest_validation(
         case_root=case_root,
         milestone="M1",
         port_base=36500,
+        track="a3-tp8-ep8",
     )
     rc_ms = cli_main(
         [
@@ -729,6 +771,8 @@ def test_t4_11_n2_n5_runner_contract_match_fresh_dir_and_digest_validation(
             "verify-report",
             "--case",
             "case-01-coding",
+            "--track",
+            "a3-tp8-ep8",
             "--case-root",
             str(case_root),
             "--report-dir",
@@ -749,6 +793,7 @@ def test_t4_11_n2_n5_runner_contract_match_fresh_dir_and_digest_validation(
             case_root=case_root,
             runner_cmd="true",
             target_host="7.150.12.20",
+            track="a3-tp8-ep8",
         )
 
     monkeypatch.delitem(sys.modules, "torch", raising=False)
@@ -772,6 +817,7 @@ def test_t4_12_r5_cli_verify_report_flags_and_non_dict_json(
         formals=5,
         ab_ba=True,
         port_base=40100,
+        track="a3-tp8-ep8",
     )
     assert (
         cli_main(
@@ -780,6 +826,8 @@ def test_t4_12_r5_cli_verify_report_flags_and_non_dict_json(
                 "verify-report",
                 "--case",
                 "case-01-coding",
+                "--track",
+                "a3-tp8-ep8",
                 "--case-root",
                 str(case_root),
                 "--report-dir",
@@ -795,6 +843,7 @@ def test_t4_12_r5_cli_verify_report_flags_and_non_dict_json(
         output_dir=tmp_path / "r5_dry",
         case_root=case_root,
         port_base=40400,
+        track="a3-tp8-ep8",
     )
     for bad_flags in (
         ["--warmups", "0", "--formals", "0", "--width", "999"],
@@ -809,6 +858,8 @@ def test_t4_12_r5_cli_verify_report_flags_and_non_dict_json(
                     "verify-report",
                     "--case",
                     "case-01-coding",
+                    "--track",
+                    "a3-tp8-ep8",
                     "--case-root",
                     str(case_root),
                     "--report-dir",
@@ -830,6 +881,8 @@ def test_t4_12_r5_cli_verify_report_flags_and_non_dict_json(
                 "verify-report",
                 "--case",
                 "case-01-coding",
+                "--track",
+                "a3-tp8-ep8",
                 "--case-root",
                 str(case_root),
                 "--report-dir",
@@ -856,6 +909,8 @@ def test_t4_13_cli_defaults_max_tpot_ms_to_milestone_limit(
                 "dry-run",
                 "--case",
                 "case-01-coding",
+                "--track",
+                "a3-tp8-ep8",
                 "--case-root",
                 str(case_root),
                 "--milestone",
@@ -873,6 +928,8 @@ def test_t4_13_cli_defaults_max_tpot_ms_to_milestone_limit(
                 "verify-report",
                 "--case",
                 "case-01-coding",
+                "--track",
+                "a3-tp8-ep8",
                 "--case-root",
                 str(case_root),
                 "--milestone",
@@ -890,6 +947,8 @@ def test_t4_13_cli_defaults_max_tpot_ms_to_milestone_limit(
                 "verify-report",
                 "--case",
                 "case-01-coding",
+                "--track",
+                "a3-tp8-ep8",
                 "--case-root",
                 str(case_root),
                 "--milestone",

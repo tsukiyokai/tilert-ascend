@@ -60,19 +60,19 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 
 def _load_ranks(bundle_dir: Path) -> list[dict[str, Any]]:
-    return [_load_json(bundle_dir / f"rank-{rank}.json") for rank in range(WORLD_SIZE)]
+    return [_load_json(bundle_dir / f"rank-{rank}.json") for rank in range(8)]
 
 
 def test_t1_f1_case01_prompt_len_and_compact_sha(case_root: Path) -> None:
-    spec = get_case_spec("case-01-coding")
-    prompt_data = verify_prompt_case(case_root / "case-01-coding", spec)
+    spec = get_case_spec("case-01-coding", track="a3-tp8-ep8")
+    prompt_data = verify_prompt_case(case_root / "case-01-coding", spec, track="a3-tp8-ep8")
     assert len(prompt_data["prompt_token_ids"]) == ISL
     assert compact_tokens_sha256(prompt_data["prompt_token_ids"]) == spec.prompt_sha256
 
 
 def test_t1_f1_case01_first_token_id(case_root: Path) -> None:
-    spec = get_case_spec("case-01-coding")
-    bench = _load_json(golden_result_path(case_root / "case-01-coding"))
+    spec = get_case_spec("case-01-coding", track="a3-tp8-ep8")
+    bench = _load_json(golden_result_path(case_root / "case-01-coding", track="a3-tp8-ep8"))
     assert bench["first_token_id"] == 13534
     assert bench["output_token_ids"][0] == spec.first_token_id
 
@@ -87,8 +87,8 @@ def test_t1_f1_case01_output_len_and_accepted_sum(case01_bundle: Path) -> None:
 
 
 def test_t1_f1_case01_output_default_json_sha(case_root: Path) -> None:
-    spec = get_case_spec("case-01-coding")
-    bench = _load_json(golden_result_path(case_root / "case-01-coding"))
+    spec = get_case_spec("case-01-coding", track="a3-tp8-ep8")
+    bench = _load_json(golden_result_path(case_root / "case-01-coding", track="a3-tp8-ep8"))
     tokens = bench["output_token_ids"]
     actual = verify_output_tokens(
         tokens,
@@ -102,15 +102,17 @@ def test_t1_f1_case01_output_default_json_sha(case_root: Path) -> None:
 def test_t1_f1_schema_world_size_and_ep(case01_bundle: Path) -> None:
     report = _load_json(case01_bundle / "e2e_result.json")
     assert report["schema_version"] == SCHEMA_VERSION
-    assert report["world_size"] == WORLD_SIZE
+    assert report["world_size"] == 8
     assert report["expert_parallel"] is True
     assert "torch" not in sys.modules
 
 
 def test_t1_f2_all_8_ranks_present_and_complete(case01_bundle: Path) -> None:
     ranks = _load_ranks(case01_bundle)
-    assert [row["rank"] for row in ranks] == list(range(WORLD_SIZE))
-    verify_8rank_states(ranks, expected_spec=get_case_spec("case-01-coding"))
+    assert [row["rank"] for row in ranks] == list(range(8))
+    verify_8rank_states(
+        ranks, expected_spec=get_case_spec("case-01-coding", track="a3-tp8-ep8"), world_size=8
+    )
 
 
 def test_t1_f2_main_state_pos_9215_and_78_layers_match(case01_bundle: Path) -> None:
@@ -118,7 +120,7 @@ def test_t1_f2_main_state_pos_9215_and_78_layers_match(case01_bundle: Path) -> N
     ref_main = ranks[0]["main_state"]
     assert ref_main["position"] == FINAL_POS
     assert len(ref_main["layers"]) == 78
-    verify_8rank_states(ranks, main_ref=ref_main)
+    verify_8rank_states(ranks, main_ref=ref_main, world_size=8)
 
 
 def test_t1_f2_draft_state_pos_9215_and_1_layer_match(case01_bundle: Path) -> None:
@@ -126,7 +128,7 @@ def test_t1_f2_draft_state_pos_9215_and_1_layer_match(case01_bundle: Path) -> No
     ref_draft = ranks[0]["draft_state"]
     assert ref_draft["position"] == FINAL_POS
     assert len(ref_draft["layers"]) == 1
-    verify_8rank_states(ranks, serial_draft_ref=ref_draft)
+    verify_8rank_states(ranks, serial_draft_ref=ref_draft, world_size=8)
 
 
 def test_t1_f2_serial_draft_match_true_all_ranks(case01_bundle: Path) -> None:
@@ -182,6 +184,7 @@ def test_t1_f3_ab_ba_interleaved_and_tpot_target(
         formals=5,
         ab_ba=True,
         milestone="M5",
+        track="a3-tp8-ep8",
     )
     report = _load_json(bundle / "e2e_result.json")
     metrics = verify_timing_and_protocol(
@@ -235,7 +238,9 @@ def test_t1_f4_horizon_controller_kv_commit_and_inflight_drain(case01_bundle: Pa
 
 
 def test_t1_f5_strict_guard_passes_valid_bundle(case01_bundle: Path, case_root: Path) -> None:
-    summary = verify_e2e_run(case01_bundle, case_root / "case-01-coding", milestone="M5")
+    summary = verify_e2e_run(
+        case01_bundle, case_root / "case-01-coding", milestone="M5", track="a3-tp8-ep8"
+    )
     assert summary["case_id"] == "case-01-coding"
 
 
@@ -246,6 +251,7 @@ def test_t1_f5_allow_relaxed_parity_cannot_be_enabled(case01_bundle: Path, case_
             case01_bundle,
             case_root / "case-01-coding",
             allow_relaxed_parity=True,
+            track="a3-tp8-ep8",
         )
 
 
@@ -279,9 +285,9 @@ def test_t1_f6_cases_index_matches_all_4_prompts(case_root: Path) -> None:
 
 
 def test_t1_f6_case02_review_golden_parity(case_root: Path) -> None:
-    spec = get_case_spec("case-02-review")
-    verify_prompt_case(case_root / "case-02-review", spec)
-    bench = _load_json(golden_result_path(case_root / "case-02-review"))
+    spec = get_case_spec("case-02-review", track="a3-tp8-ep8")
+    verify_prompt_case(case_root / "case-02-review", spec, track="a3-tp8-ep8")
+    bench = _load_json(golden_result_path(case_root / "case-02-review", track="a3-tp8-ep8"))
     assert verify_output_tokens(
         bench["output_token_ids"],
         expected_sha256=spec.output_sha256,
@@ -290,9 +296,9 @@ def test_t1_f6_case02_review_golden_parity(case_root: Path) -> None:
 
 
 def test_t1_f6_case03_refactor_golden_parity(case_root: Path) -> None:
-    spec = get_case_spec("case-03-refactor")
-    verify_prompt_case(case_root / "case-03-refactor", spec)
-    bench = _load_json(golden_result_path(case_root / "case-03-refactor"))
+    spec = get_case_spec("case-03-refactor", track="a3-tp8-ep8")
+    verify_prompt_case(case_root / "case-03-refactor", spec, track="a3-tp8-ep8")
+    bench = _load_json(golden_result_path(case_root / "case-03-refactor", track="a3-tp8-ep8"))
     assert verify_output_tokens(
         bench["output_token_ids"],
         expected_sha256=spec.output_sha256,
@@ -301,9 +307,9 @@ def test_t1_f6_case03_refactor_golden_parity(case_root: Path) -> None:
 
 
 def test_t1_f6_case04_math_golden_parity(case_root: Path) -> None:
-    spec = get_case_spec("case-04-math")
-    verify_prompt_case(case_root / "case-04-math", spec)
-    bench = _load_json(golden_result_path(case_root / "case-04-math"))
+    spec = get_case_spec("case-04-math", track="a3-tp8-ep8")
+    verify_prompt_case(case_root / "case-04-math", spec, track="a3-tp8-ep8")
+    bench = _load_json(golden_result_path(case_root / "case-04-math", track="a3-tp8-ep8"))
     assert verify_output_tokens(
         bench["output_token_ids"],
         expected_sha256=spec.output_sha256,
@@ -369,8 +375,9 @@ def test_t1_f6_all_oos_cases_verify_e2e_run(tmp_path: Path, case_root: Path) -> 
             output_dir=tmp_path / case_id,
             case_root=case_root,
             port_base=31000 + idx * 300,
+            track="a3-tp8-ep8",
         )
-        res = verify_e2e_run(out_dir, case_root / case_id)
+        res = verify_e2e_run(out_dir, case_root / case_id, track="a3-tp8-ep8")
         assert res["case_id"] == case_id
 
 

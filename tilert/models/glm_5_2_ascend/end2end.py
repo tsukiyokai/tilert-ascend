@@ -163,6 +163,12 @@ class Glm52AscendShowHands:
         main_prefix_path: Path | None = None,
         rank: int | None = None,
         tp_group: Any | None = None,
+        beta_depth: float | None = None,
+        b_scheds: list[list[int]] | None = None,
+        t_base_ms: float | None = None,
+        c_w_ms: float | None = None,
+        min_w_act: int | None = None,
+        p_stop: float | None = None,
     ) -> None:
         self.cfg = cfg
         self.case_dir = Path(case_dir)
@@ -176,6 +182,12 @@ class Glm52AscendShowHands:
         self.rank = int(cfg.rank if rank is None else rank)
         self.world_size = int(cfg.world_size)
         self.tp_group = tp_group
+        self.beta_depth = beta_depth
+        self.b_scheds = b_scheds
+        self.t_base_ms = t_base_ms
+        self.c_w_ms = c_w_ms
+        self.min_w_act = min_w_act
+        self.p_stop = p_stop
         self.device = None
         self.libraries = None
         self.metadata_lib = None
@@ -560,19 +572,27 @@ class Glm52AscendShowHands:
         }
         self.hctrl = ZeroLagHorizonController()
         is_tp16 = self.world_size == 16
-        b_scheds_default = (
-            [
+        if self.b_scheds is not None:
+            b_scheds_default = self.b_scheds
+        elif is_tp16:
+            b_scheds_default = [
                 [4, 4, 2, 2, 2, 2] + [1] * 10,
                 [4, 4, 4, 2, 2, 2, 2] + [1] * 11,
                 [4, 4, 4, 2, 2, 2, 2] + [1] * 13,
             ]
-            if is_tp16
-            else [
+        else:
+            b_scheds_default = [
                 [4, 4, 4, 4, 4, 2, 2],
                 [4, 4, 4, 4, 2, 2, 2, 2, 1, 1],
                 [4, 4, 4, 4, 2, 2, 2, 2, 1, 1],
             ]
+        eff_beta_depth = 0.0 if self.beta_depth is None else float(self.beta_depth)
+        eff_min_w_act = (6 if is_tp16 else 10) if self.min_w_act is None else int(self.min_w_act)
+        eff_t_base_ms = (
+            (30.0 if is_tp16 else 41.5) if self.t_base_ms is None else float(self.t_base_ms)
         )
+        eff_c_w_ms = (0.50 if is_tp16 else 0.68) if self.c_w_ms is None else float(self.c_w_ms)
+        eff_p_stop = (0.14 if is_tp16 else 0.0) if self.p_stop is None else float(self.p_stop)
         self.drafter = CalibratedL78V3Runner(
             self.arena,
             self.prefix,
@@ -586,13 +606,13 @@ class Glm52AscendShowHands:
             horizon_ctrl=self.hctrl,
             inv_temp=self.cfg.inv_temp,
             beta_margin=0.0,
-            beta_depth=0.0,
+            beta_depth=eff_beta_depth,
             k_sfa=self.k_sfa,
-            min_w_act=6 if is_tp16 else 10,
-            t_base_ms=30.0 if is_tp16 else 41.5,
-            c_w_ms=0.50 if is_tp16 else 0.68,
+            min_w_act=eff_min_w_act,
+            t_base_ms=eff_t_base_ms,
+            c_w_ms=eff_c_w_ms,
             narrow_topk=True,
-            p_stop=0.14 if is_tp16 else 0.0,
+            p_stop=eff_p_stop,
             min_stop_step=3 if is_tp16 else 2,
             l78_build_dir=self.build_dir / "dspine_l78",
         )

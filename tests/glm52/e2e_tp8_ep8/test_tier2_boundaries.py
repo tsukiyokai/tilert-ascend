@@ -66,11 +66,11 @@ def _write_json(path: Path, data: dict[str, Any]) -> None:
 
 
 def _load_ranks(bundle_dir: Path) -> list[dict[str, Any]]:
-    return [_load_json(bundle_dir / f"rank-{rank}.json") for rank in range(WORLD_SIZE)]
+    return [_load_json(bundle_dir / f"rank-{rank}.json") for rank in range(8)]
 
 
 def test_t2_f1_rejects_bad_prompt_length(tmp_path: Path, case_root: Path) -> None:
-    spec = get_case_spec("case-01-coding")
+    spec = get_case_spec("case-01-coding", track="a3-tp8-ep8")
     prompt_data = _load_json(case_root / "case-01-coding" / "prompt.json")
     for bad_len in (8191, 8193):
         case_dir = tmp_path / f"bad_len_{bad_len}"
@@ -83,11 +83,11 @@ def test_t2_f1_rejects_bad_prompt_length(tmp_path: Path, case_root: Path) -> Non
         )
         _write_json(case_dir / "prompt.json", mutated)
         with pytest.raises(VerificationError):
-            verify_prompt_case(case_dir, spec)
+            verify_prompt_case(case_dir, spec, track="a3-tp8-ep8")
 
 
 def test_t2_f1_rejects_corrupted_prompt_sha256(tmp_path: Path, case_root: Path) -> None:
-    spec = get_case_spec("case-01-coding")
+    spec = get_case_spec("case-01-coding", track="a3-tp8-ep8")
     prompt_data = _load_json(case_root / "case-01-coding" / "prompt.json")
     case_dir = tmp_path / "bad_sha"
     case_dir.mkdir(parents=True)
@@ -95,12 +95,12 @@ def test_t2_f1_rejects_corrupted_prompt_sha256(tmp_path: Path, case_root: Path) 
     mutated["prompt_token_ids"][10] ^= 1
     _write_json(case_dir / "prompt.json", mutated)
     with pytest.raises(VerificationError):
-        verify_prompt_case(case_dir, spec)
+        verify_prompt_case(case_dir, spec, track="a3-tp8-ep8")
 
 
 def test_t2_f1_rejects_wrong_first_token_id(case_root: Path) -> None:
-    spec = get_case_spec("case-01-coding")
-    bench = _load_json(golden_result_path(case_root / "case-01-coding"))
+    spec = get_case_spec("case-01-coding", track="a3-tp8-ep8")
+    bench = _load_json(golden_result_path(case_root / "case-01-coding", track="a3-tp8-ep8"))
     with pytest.raises(VerificationError):
         verify_output_tokens(
             bench["output_token_ids"],
@@ -110,8 +110,8 @@ def test_t2_f1_rejects_wrong_first_token_id(case_root: Path) -> None:
 
 
 def test_t2_f1_rejects_one_token_flip_in_output(case_root: Path) -> None:
-    spec = get_case_spec("case-01-coding")
-    bench = _load_json(golden_result_path(case_root / "case-01-coding"))
+    spec = get_case_spec("case-01-coding", track="a3-tp8-ep8")
+    bench = _load_json(golden_result_path(case_root / "case-01-coding", track="a3-tp8-ep8"))
     tokens = list(bench["output_token_ids"])
     tokens[42] = (tokens[42] + 1) % VOCAB_SIZE
     with pytest.raises(VerificationError):
@@ -123,8 +123,8 @@ def test_t2_f1_rejects_one_token_flip_in_output(case_root: Path) -> None:
 
 
 def test_t2_f1_rejects_compact_json_sha_for_output(case_root: Path) -> None:
-    spec = get_case_spec("case-01-coding")
-    bench = _load_json(golden_result_path(case_root / "case-01-coding"))
+    spec = get_case_spec("case-01-coding", track="a3-tp8-ep8")
+    bench = _load_json(golden_result_path(case_root / "case-01-coding", track="a3-tp8-ep8"))
     compact_sha = compact_tokens_sha256(bench["output_token_ids"])
     assert compact_sha != spec.output_sha256
     with pytest.raises(VerificationError):
@@ -138,7 +138,7 @@ def test_t2_f1_rejects_compact_json_sha_for_output(case_root: Path) -> None:
 def test_t2_f2_rejects_missing_rank_report(case01_bundle: Path) -> None:
     ranks = _load_ranks(case01_bundle)[:-1]
     with pytest.raises(VerificationError):
-        verify_8rank_states(ranks)
+        verify_8rank_states(ranks, world_size=8)
 
 
 def test_t2_f2_rejects_rank_layer_cache_digest_mismatch(case01_bundle: Path) -> None:
@@ -147,7 +147,7 @@ def test_t2_f2_rejects_rank_layer_cache_digest_mismatch(case01_bundle: Path) -> 
     flipped = ("0" if old_sha[0] != "0" else "1") + old_sha[1:]
     ranks[5]["main_state"]["layers"][22]["latent"]["sha256"] = flipped
     with pytest.raises(VerificationError):
-        verify_8rank_states(ranks)
+        verify_8rank_states(ranks, world_size=8)
 
 
 def test_t2_f2_rejects_wrong_final_position(case01_bundle: Path) -> None:
@@ -156,24 +156,24 @@ def test_t2_f2_rejects_wrong_final_position(case01_bundle: Path) -> None:
         for row in ranks:
             row["main_state"]["position"] = bad_pos
         with pytest.raises(VerificationError):
-            verify_8rank_states(ranks)
+            verify_8rank_states(ranks, world_size=8)
 
 
 def test_t2_f2_rejects_serial_draft_mismatch(case01_bundle: Path) -> None:
     ranks = _load_ranks(case01_bundle)
     ranks[3]["serial_draft_match"] = False
     with pytest.raises(VerificationError):
-        verify_8rank_states(ranks)
+        verify_8rank_states(ranks, world_size=8)
 
     ranks_ekv = _load_ranks(case01_bundle)
     ranks_ekv[0]["ekv_serial_diffs"] = {"layer_78": {"max_abs": 1.0}}
     with pytest.raises(VerificationError):
-        verify_8rank_states(ranks_ekv)
+        verify_8rank_states(ranks_ekv, world_size=8)
 
     ranks_missing_ekv = _load_ranks(case01_bundle)
     ranks_missing_ekv[2].pop("ekv_serial_diffs")
     with pytest.raises(VerificationError):
-        verify_8rank_states(ranks_missing_ekv)
+        verify_8rank_states(ranks_missing_ekv, world_size=8)
 
 
 def test_t2_f2_rejects_nonempty_ekv_serial_diffs_in_e2e_bundle(
@@ -186,6 +186,7 @@ def test_t2_f2_rejects_nonempty_ekv_serial_diffs_in_e2e_bundle(
         output_dir=tmp_path / "ekv_nonempty",
         case_root=case_root,
         port_base=32700,
+        track="a3-tp8-ep8",
     )
     rep = _load_json(bundle / "e2e_result.json")
     r0_path = bundle / "rank-0.json"
@@ -272,7 +273,7 @@ def test_t2_f3_rejects_tpot_above_target_or_lt_5_formals(case01_bundle: Path) ->
     for trial in slow["trials"]:
         if not trial["is_warmup"]:
             tpot = slow_tpots[formal_idx]
-            trial["rank_dt_ms"] = [tpot * float(DECODE_TOKENS)] * WORLD_SIZE
+            trial["rank_dt_ms"] = [tpot * float(DECODE_TOKENS)] * 8
             trial["max_tpot_ms"] = tpot
             formal_idx += 1
     slow["summary"]["formal_ms"] = slow_tpots
@@ -323,8 +324,8 @@ def test_t2_f4_rejects_over_8_row_l78_gemm_chunk(case01_bundle: Path) -> None:
 
 
 def test_t2_f4_rejects_accepted_sum_not_1023(case_root: Path) -> None:
-    spec = get_case_spec("case-01-coding")
-    bench = _load_json(golden_result_path(case_root / "case-01-coding"))
+    spec = get_case_spec("case-01-coding", track="a3-tp8-ep8")
+    bench = _load_json(golden_result_path(case_root / "case-01-coding", track="a3-tp8-ep8"))
     for bad_sum in ([1022], [1024]):
         with pytest.raises(VerificationError):
             verify_output_tokens(
@@ -356,7 +357,7 @@ def test_t2_f5_rejects_duplicate_rank_ids(case01_bundle: Path) -> None:
     ranks = _load_ranks(case01_bundle)
     ranks[7]["rank"] = 0
     with pytest.raises(VerificationError):
-        verify_8rank_states(ranks)
+        verify_8rank_states(ranks, world_size=8)
 
 
 def test_t2_f5_rejects_nan_or_inf_rank_dt(case01_bundle: Path) -> None:
@@ -368,8 +369,8 @@ def test_t2_f5_rejects_nan_or_inf_rank_dt(case01_bundle: Path) -> None:
 
 
 def test_t2_f5_rejects_out_of_vocab_output_token(case_root: Path) -> None:
-    spec = get_case_spec("case-01-coding")
-    bench = _load_json(golden_result_path(case_root / "case-01-coding"))
+    spec = get_case_spec("case-01-coding", track="a3-tp8-ep8")
+    bench = _load_json(golden_result_path(case_root / "case-01-coding", track="a3-tp8-ep8"))
     for bad_tok in (-1, VOCAB_SIZE):
         tokens = list(bench["output_token_ids"])
         tokens[500] = bad_tok
@@ -390,8 +391,8 @@ def test_t2_f5_rejects_vllm_loaded_under_m2_plus(case01_bundle: Path) -> None:
 
 
 def test_t2_f5_rejects_empty_expected_sha_or_relaxed_parity(case_root: Path) -> None:
-    spec = get_case_spec("case-01-coding")
-    bench = _load_json(golden_result_path(case_root / "case-01-coding"))
+    spec = get_case_spec("case-01-coding", track="a3-tp8-ep8")
+    bench = _load_json(golden_result_path(case_root / "case-01-coding", track="a3-tp8-ep8"))
     with pytest.raises(VerificationError):
         verify_output_tokens(
             bench["output_token_ids"],
@@ -408,8 +409,8 @@ def test_t2_f5_rejects_empty_expected_sha_or_relaxed_parity(case_root: Path) -> 
 
 
 def test_t2_f6_rejects_swapped_case02_case03_outputs(case_root: Path) -> None:
-    spec2 = get_case_spec("case-02-review")
-    bench3 = _load_json(golden_result_path(case_root / "case-03-refactor"))
+    spec2 = get_case_spec("case-02-review", track="a3-tp8-ep8")
+    bench3 = _load_json(golden_result_path(case_root / "case-03-refactor", track="a3-tp8-ep8"))
     with pytest.raises(VerificationError):
         verify_output_tokens(
             bench3["output_token_ids"],
@@ -419,8 +420,8 @@ def test_t2_f6_rejects_swapped_case02_case03_outputs(case_root: Path) -> None:
 
 
 def test_t2_f6_rejects_case02_wrong_first_token_id(case_root: Path) -> None:
-    spec2 = get_case_spec("case-02-review")
-    bench2 = _load_json(golden_result_path(case_root / "case-02-review"))
+    spec2 = get_case_spec("case-02-review", track="a3-tp8-ep8")
+    bench2 = _load_json(golden_result_path(case_root / "case-02-review", track="a3-tp8-ep8"))
     with pytest.raises(VerificationError):
         verify_output_tokens(
             bench2["output_token_ids"],
@@ -437,24 +438,24 @@ def test_t2_f6_rejects_missing_case04_bench_result(
     case4_copy.mkdir(parents=True)
     shutil.copy2(case_root / "case-04-math" / "prompt.json", case4_copy / "prompt.json")
     with pytest.raises(VerificationError):
-        verify_e2e_run(tmp_path / "missing_bundle", case4_copy)
+        verify_e2e_run(tmp_path / "missing_bundle", case4_copy, track="a3-tp8-ep8")
 
 
 def test_t2_f6_rejects_tampered_case01_golden_file(
     tmp_path: Path,
     case_root: Path,
 ) -> None:
-    spec1 = get_case_spec("case-01-coding")
+    spec1 = get_case_spec("case-01-coding", track="a3-tp8-ep8")
     tampered_dir = tmp_path / "case-01-tampered"
     tampered_dir.mkdir(parents=True)
     shutil.copy2(case_root / "case-01-coding" / "prompt.json", tampered_dir / "prompt.json")
-    bench = _load_json(golden_result_path(case_root / "case-01-coding"))
+    bench = _load_json(golden_result_path(case_root / "case-01-coding", track="a3-tp8-ep8"))
     bench["output_token_ids"][10] ^= 1
-    out_golden = golden_result_path(tampered_dir)
+    out_golden = golden_result_path(tampered_dir, track="a3-tp8-ep8")
     out_golden.parent.mkdir(parents=True, exist_ok=True)
     _write_json(out_golden, bench)
     with pytest.raises(VerificationError):
-        verify_prompt_case(tampered_dir, spec1)
+        verify_prompt_case(tampered_dir, spec1, track="a3-tp8-ep8")
 
 
 def test_t2_f6_rejects_tp16_world_size(case01_bundle: Path) -> None:
@@ -582,6 +583,7 @@ def test_t2_x1_x2_rejects_empty_none_or_incomplete_round_traces(
         output_dir=tmp_path / "fresh_x2",
         case_root=case_root,
         port_base=31300,
+        track="a3-tp8-ep8",
     )
     fresh_report = _load_json(valid_traces / "e2e_result.json")
     fresh_report["round_traces"][0].pop("dcci_issued")
@@ -594,6 +596,7 @@ def test_t2_x1_x2_rejects_empty_none_or_incomplete_round_traces(
         output_dir=tmp_path / "fresh_x2_acc",
         case_root=case_root,
         port_base=31600,
+        track="a3-tp8-ep8",
     )
     loaded = _load_json(fresh_acc_dir / "e2e_result.json")
     loaded["round_traces"][0]["accepted"] += 1
@@ -615,6 +618,7 @@ def test_t2_x3_x7_x9_x10_rejects_protocol_and_trial_bypasses(
         formals=5,
         ab_ba=True,
         port_base=31900,
+        track="a3-tp8-ep8",
     )
     bad_order = _load_json(bundle / "e2e_result.json")
     bad_order["protocol"]["paired_order"] = "ab_ab"
@@ -635,6 +639,7 @@ def test_t2_x3_x7_x9_x10_rejects_protocol_and_trial_bypasses(
         formals=5,
         ab_ba=True,
         port_base=32200,
+        track="a3-tp8-ep8",
     )
     bad_counts = _load_json(bundle2 / "e2e_result.json")
     bad_counts["protocol"]["warmups"] = 10
@@ -657,6 +662,7 @@ def test_t2_x4_x5_x6_x8_rejects_width_history_tolerance_and_horizon_drift(
         output_dir=tmp_path / "x4568",
         case_root=case_root,
         port_base=32500,
+        track="a3-tp8-ep8",
     )
     report = _load_json(bundle / "e2e_result.json")
     rank0 = _load_json(bundle / "rank-0.json")
@@ -679,7 +685,7 @@ def test_t2_x4_x5_x6_x8_rejects_width_history_tolerance_and_horizon_drift(
     f_idx = 0
     for trial in loophole["trials"]:
         if not trial["is_warmup"]:
-            trial["rank_dt_ms"] = [true_tpots[f_idx] * float(DECODE_TOKENS)] * WORLD_SIZE
+            trial["rank_dt_ms"] = [true_tpots[f_idx] * float(DECODE_TOKENS)] * 8
             trial["max_tpot_ms"] = 2.99996
             f_idx += 1
     loophole["summary"]["formal_ms"] = [2.99996] * 5
@@ -707,11 +713,14 @@ def test_t2_r1_f4_rejects_rank_case_or_prompt_mismatch_and_typeguard(
         output_dir=tmp_path / "rank_meta",
         case_root=case_root,
         port_base=32800,
+        track="a3-tp8-ep8",
     )
     ranks = _load_ranks(bundle)
     ranks[2]["case_id"] = "case-02-review"
     with pytest.raises(VerificationError):
-        verify_8rank_states(ranks, expected_spec=get_case_spec("case-01-coding"))
+        verify_8rank_states(
+            ranks, expected_spec=get_case_spec("case-01-coding", track="a3-tp8-ep8"), world_size=8
+        )
 
 
 def test_t2_b1_b2_b3_rejects_9382_nonstrict_ipv4_glyph_mismatch_and_ram0() -> None:
@@ -783,6 +792,7 @@ def test_t2_b4_b5_rejects_shm_traversal_bad_run_id_and_port_bypass(
         output_dir=tmp_path / "bad_iso_report",
         case_root=case_root,
         port_base=33400,
+        track="a3-tp8-ep8",
     )
     bad_rep = _load_json(bundle / "e2e_result.json")
     bad_rep["isolation"]["master_port"] = bad_rep["isolation"]["master_port"] + 1
@@ -857,6 +867,7 @@ def test_t2_b10_b11_b12_rejects_low_counts_nan_tpot_and_missing_hccl(
             case_root=case_root,
             warmups=1,
             formals=5,
+            track="a3-tp8-ep8",
         )
     with pytest.raises(VerificationError):
         build_dry_run_bundle(
@@ -865,6 +876,7 @@ def test_t2_b10_b11_b12_rejects_low_counts_nan_tpot_and_missing_hccl(
             case_root=case_root,
             warmups=2,
             formals=4,
+            track="a3-tp8-ep8",
         )
     bundle = build_dry_run_bundle(
         case_id="case-01-coding",
@@ -874,6 +886,7 @@ def test_t2_b10_b11_b12_rejects_low_counts_nan_tpot_and_missing_hccl(
         formals=5,
         ab_ba=True,
         port_base=33700,
+        track="a3-tp8-ep8",
     )
     report = _load_json(bundle / "e2e_result.json")
     for bad_limit in (math.nan, math.inf, 0.0, -1.0):
@@ -899,6 +912,7 @@ def test_t2_p1_rejects_manifest_report_path_traversal_mismatch_or_missing(
         output_dir=tmp_path / "p1_bundle",
         case_root=case_root,
         port_base=34300,
+        track="a3-tp8-ep8",
     )
     orig = _load_json(bundle / "e2e_result.json")
     for bad_path in ("../../../../etc/passwd", "rank-7.json", "", None):
@@ -922,6 +936,7 @@ def test_t2_p2_p4_rejects_bool_float_equivalence_and_blank_dtype(
         output_dir=tmp_path / "p2_p4",
         case_root=case_root,
         port_base=34600,
+        track="a3-tp8-ep8",
     )
     orig_report = _load_json(bundle / "e2e_result.json")
     orig_rank0 = _load_json(bundle / "rank-0.json")
@@ -952,23 +967,29 @@ def test_t2_p2_p4_rejects_bool_float_equivalence_and_blank_dtype(
     ranks = _load_ranks(bundle)
     ranks[1]["accepted_per_round"][-1] = True
     with pytest.raises(VerificationError):
-        verify_8rank_states(ranks, expected_spec=get_case_spec("case-01-coding"))
+        verify_8rank_states(
+            ranks, expected_spec=get_case_spec("case-01-coding", track="a3-tp8-ep8"), world_size=8
+        )
 
     ranks_tok = _load_ranks(bundle)
     one_idx = ranks_tok[1]["output_token_ids"].index(1)
     ranks_tok[1]["output_token_ids"][one_idx] = True
     with pytest.raises(VerificationError):
-        verify_8rank_states(ranks_tok, expected_spec=get_case_spec("case-01-coding"))
+        verify_8rank_states(
+            ranks_tok,
+            expected_spec=get_case_spec("case-01-coding", track="a3-tp8-ep8"),
+            world_size=8,
+        )
 
     ranks_pos = _load_ranks(bundle)
     ranks_pos[0]["main_state"]["position"] = 9215.0
     with pytest.raises(VerificationError):
-        verify_8rank_states(ranks_pos)
+        verify_8rank_states(ranks_pos, world_size=8)
 
     ranks_dtype = _load_ranks(bundle)
     ranks_dtype[0]["draft_state"]["layers"][0]["latent"]["dtype"] = "   "
     with pytest.raises(VerificationError):
-        verify_8rank_states(ranks_dtype)
+        verify_8rank_states(ranks_dtype, world_size=8)
 
     bad_rank1 = deepcopy(orig_rank1)
     bad_rank1["horizon_levels"] = [
@@ -996,6 +1017,7 @@ def test_t2_p2ijkl_rejects_trace_bounds_drift_and_nan_select_optimal_w_act(
         output_dir=tmp_path / "p2ijkl",
         case_root=case_root,
         port_base=34900,
+        track="a3-tp8-ep8",
     )
     report = _load_json(bundle / "e2e_result.json")
     inv = _load_json(bundle / "rank-0.json")["runtime_invariants"]
@@ -1044,6 +1066,7 @@ def test_t2_p3abc_rejects_unpaired_abba_missing_trial_acc_and_bad_warmups_ms(
         formals=5,
         ab_ba=True,
         port_base=35200,
+        track="a3-tp8-ep8",
     )
     orig = _load_json(bundle / "e2e_result.json")
 
@@ -1052,7 +1075,7 @@ def test_t2_p3abc_rejects_unpaired_abba_missing_trial_acc_and_bad_warmups_ms(
         [t for t in diluted["trials"] if not t["is_warmup"] and t["arm"] == "candidate"][0]
     )
     extra_cand.pop("pair_idx")
-    extra_cand["rank_dt_ms"] = [1.5 * float(DECODE_TOKENS)] * WORLD_SIZE
+    extra_cand["rank_dt_ms"] = [1.5 * float(DECODE_TOKENS)] * 8
     extra_cand["max_tpot_ms"] = 1.5
     extra_base = deepcopy(
         [t for t in diluted["trials"] if not t["is_warmup"] and t["arm"] == "baseline"][0]
@@ -1141,6 +1164,7 @@ def test_t2_n3_n4_endpoint_loopback_shm_kbenv_timeout_and_16die_invariants(
         output_dir=tmp_path / "n3_rep",
         case_root=case_root,
         port_base=36200,
+        track="a3-tp8-ep8",
     )
     rep = _load_json(bundle / "e2e_result.json")
     rep["isolation"]["whole_layer_endpoint"] = "tcp://10.83.185.129:36201"
@@ -1186,6 +1210,7 @@ def test_t2_fb_trial_order_dup_idx_and_non_contiguous_abba_rejected(
         output_dir=tmp_path / "fb_single",
         case_root=case_root,
         port_base=36500,
+        track="a3-tp8-ep8",
     )
     single_rep = _load_json(single_dir / "e2e_result.json")
     warms = [t for t in single_rep["trials"] if t["is_warmup"]]
@@ -1209,6 +1234,7 @@ def test_t2_fb_trial_order_dup_idx_and_non_contiguous_abba_rejected(
         formals=5,
         ab_ba=True,
         port_base=36800,
+        track="a3-tp8-ep8",
     )
     abba_rep = _load_json(abba_dir / "e2e_result.json")
     abba_warm = [t for t in abba_rep["trials"] if t["is_warmup"]]
@@ -1241,6 +1267,7 @@ def test_t2_fd_fe_ff_cache_shape_rank_identity_dt_ms_and_head_width(
         output_dir=tmp_path / "fd_fe_ff",
         case_root=case_root,
         port_base=37100,
+        track="a3-tp8-ep8",
     )
     orig_rep = _load_json(bundle / "e2e_result.json")
 
@@ -1256,7 +1283,7 @@ def test_t2_fd_fe_ff_cache_shape_rank_identity_dt_ms_and_head_width(
     _write_json(bundle / "e2e_result.json", orig_rep)
 
     bad_shape_rep = deepcopy(orig_rep)
-    for r in range(WORLD_SIZE):
+    for r in range(8):
         rank_file = bundle / f"rank-{r}.json"
         row = _load_json(rank_file)
         for layer in row["main_state"]["layers"]:
@@ -1276,10 +1303,11 @@ def test_t2_fd_fe_ff_cache_shape_rank_identity_dt_ms_and_head_width(
         output_dir=tmp_path / "fd_fe_2",
         case_root=case_root,
         port_base=37400,
+        track="a3-tp8-ep8",
     )
     orig2 = _load_json(bundle2 / "e2e_result.json")
     slow_ranks_rep = deepcopy(orig2)
-    for r in range(WORLD_SIZE):
+    for r in range(8):
         rank_file = bundle2 / f"rank-{r}.json"
         row = _load_json(rank_file)
         row["dt_ms"] = 50000.0
@@ -1295,6 +1323,7 @@ def test_t2_fd_fe_ff_cache_shape_rank_identity_dt_ms_and_head_width(
         output_dir=tmp_path / "fe_swap",
         case_root=case_root,
         port_base=37700,
+        track="a3-tp8-ep8",
     )
     r0_path = bundle3 / "rank-0.json"
     r1_path = bundle3 / "rank-1.json"
@@ -1326,6 +1355,7 @@ def test_t2_fc_fg_fa_speculative_bounds_and_strict_isolation_typing(
         output_dir=tmp_path / "fc_fg_fa",
         case_root=case_root,
         port_base=38000,
+        track="a3-tp8-ep8",
     )
     orig = _load_json(bundle / "e2e_result.json")
     inv = _load_json(bundle / "rank-0.json")["runtime_invariants"]
@@ -1404,36 +1434,47 @@ def test_t2_r1_r2_r4_r6_visible_devices_cpp_splice_kbenv_and_py_ast(
         port_base=38600,
         target_host="7.150.99.10",
         visible_devices=range(8),
+        world_size=8,
     )
     env_b_same = allocate_isolation_env(
         "run_r1_b",
         port_base=38900,
         target_host="7.150.99.10",
         visible_devices=range(8),
+        world_size=8,
     )
     with pytest.raises(IsolationError):
-        verify_isolation_env(env_a, peer_envs=[env_b_same], target_host="7.150.99.10")
+        verify_isolation_env(
+            env_a, peer_envs=[env_b_same], target_host="7.150.99.10", world_size=8
+        )
 
     env_b_split = allocate_isolation_env(
         "run_r1_c",
         port_base=39200,
         target_host="7.150.99.10",
         visible_devices=range(8, 16),
+        world_size=8,
     )
-    verify_isolation_env(env_a, peer_envs=[env_b_split], target_host="7.150.99.10")
+    verify_isolation_env(
+        env_a, peer_envs=[env_b_split], target_host="7.150.99.10", world_size=8
+    )
 
-    env_no_host_1 = allocate_isolation_env("run_r1_d", port_base=39500, visible_devices=range(8))
-    env_no_host_2 = allocate_isolation_env("run_r1_e", port_base=39800, visible_devices=range(8))
+    env_no_host_1 = allocate_isolation_env(
+        "run_r1_d", port_base=39500, visible_devices=range(8), world_size=8
+    )
+    env_no_host_2 = allocate_isolation_env(
+        "run_r1_e", port_base=39800, visible_devices=range(8), world_size=8
+    )
     with pytest.raises(IsolationError):
-        verify_isolation_env(env_no_host_1, peer_envs=[env_no_host_2])
+        verify_isolation_env(env_no_host_1, peer_envs=[env_no_host_2], world_size=8)
 
     for bad_vis in ("16,17,18,19,20,21,22,23", "0,1,2,3,4,5,6", "0, 1,2,3,4,5,6,7", ""):
         with pytest.raises(IsolationError):
-            verify_isolation_env({**env_a, "ASCEND_RT_VISIBLE_DEVICES": bad_vis})
+            verify_isolation_env({**env_a, "ASCEND_RT_VISIBLE_DEVICES": bad_vis}, world_size=8)
     no_vis = dict(env_a)
     no_vis.pop("ASCEND_RT_VISIBLE_DEVICES")
     with pytest.raises(IsolationError):
-        verify_isolation_env(no_vis)
+        verify_isolation_env(no_vis, world_size=8)
 
     for key, padded in (
         ("TILERT_RUN_DIR", f"  {env_a['TILERT_RUN_DIR']}\n"),
@@ -1444,7 +1485,7 @@ def test_t2_r1_r2_r4_r6_visible_devices_cpp_splice_kbenv_and_py_ast(
         ("TILERT_TARGET_HOST", " 7.150.99.10 "),
     ):
         with pytest.raises(IsolationError):
-            verify_isolation_env({**env_a, key: padded})
+            verify_isolation_env({**env_a, key: padded}, world_size=8)
 
     raw_splice = tmp_path / "raw_splice.cpp"
     raw_splice.write_text(
@@ -1523,6 +1564,7 @@ def test_t2_m21_fast_parity_rejected_by_formal_gate_and_protocol_helper(
         warmups=2,
         formals=5,
         port_base=39100,
+        track="a3-tp8-ep8",
     )
     report = _load_json(bundle / "e2e_result.json")
     formal_trial = deepcopy(report["trials"][2])
@@ -1582,10 +1624,10 @@ def test_t2_m21_a3_container_isolation_fleet_prestage_and_hygiene(
             ]
         )
     )
-    sel, dies = ac.select_host_and_dies(hosts, die_slice="8..15")
+    sel, dies = ac.select_host_and_dies(hosts, die_slice="8..15", world_size=8)
     assert sel.ip == "7.150.11.91"
     assert dies == tuple(range(8, 16))
-    slots = ac.select_fleet_slots(hosts, dual_slot=True)
+    slots = ac.select_fleet_slots(hosts, dual_slot=True, world_size=8)
     assert slots == [
         ("7.150.11.91", tuple(range(8))),
         ("7.150.11.91", tuple(range(8, 16))),
@@ -1613,7 +1655,7 @@ def test_t2_m21_a3_container_isolation_fleet_prestage_and_hygiene(
     )
     assert low_shm is False and "/dev/shm" in reason_shm
 
-    run_cmd = ac.build_docker_run_cmd("run_test_m21", tuple(range(8, 16)))
+    run_cmd = ac.build_docker_run_cmd("run_test_m21", tuple(range(8, 16)), world_size=8)
     assert "--init" in run_cmd
     assert "--network=host" in run_cmd
     assert "--ipc=host" in run_cmd
@@ -1634,14 +1676,14 @@ def test_t2_m21_a3_container_isolation_fleet_prestage_and_hygiene(
             ac.select_host_and_dies(hosts, target_host=bad_host)
     for bad_id in ("agy_tp8", "../oops"):
         with pytest.raises(ac.IsolationError):
-            ac.build_docker_run_cmd(bad_id, tuple(range(8)))
+            ac.build_docker_run_cmd(bad_id, tuple(range(8)), world_size=8)
         with pytest.raises(ac.IsolationError):
             ac.build_teardown_cmd(bad_id)
 
     iso_env = allocate_isolation_env("run_test_m21", port_base=29900, target_host="7.150.11.91")
     env_sh = ac.build_container_env_script(iso_env)
     assert "export TILERT_BUILD_DIR=/dev/shm/run_test_m21/builds" in env_sh
-    assert "export WORLD_SIZE=8" in env_sh
+    assert "export WORLD_SIZE=16" in env_sh
     assert "unset PROFILER_SAMPLECONFIG PROFILING_MODE ASCEND_LAUNCH_BLOCKING" in env_sh
 
     verify_python_source_hygiene(
@@ -1925,6 +1967,18 @@ def test_t2_f5_run_m2_case01_tp16_runtime_config_and_flag_conflicts(
         report_dir=a_nf.report_dir,
         strict_formal=True,
     ) == (2, 5, True)
+
+    a_nf_nosdp = p.parse_args(
+        ["--mtp-prefix", "m", "--ckpt", "k", "--no-fast-parity", "--no-serial-draft-parity"]
+    )
+    assert rm2.resolve_trial_protocol(
+        a_nf_nosdp.warmups,
+        a_nf_nosdp.formals,
+        a_nf_nosdp.fast_parity,
+        a_nf_nosdp.serial_draft_parity,
+        report_dir=a_nf_nosdp.report_dir,
+        strict_formal=True,
+    ) == (2, 5, False)
 
     a_fast_nosdp = p.parse_args(
         ["--mtp-prefix", "m", "--ckpt", "k", "--fast-parity", "--no-serial-draft-parity"]

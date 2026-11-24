@@ -47,6 +47,9 @@ SFS_MODEL_DIR = "/mnt/sfs_turbo_new/shanshan/GLM-5.2-w4a8c8"
 SFS_CKPT_PATH = (
     "/mnt/sfs_turbo_new/shanshan/dspine-glm52/checkpoints/cal_l78_v3_hybrid_best.pt"
 )
+SFS_CKPT_D24_PATH = (
+    "/mnt/sfs_turbo_new/shanshan/dspine-glm52/checkpoints/cal_l78_v4_d24_best.pt"
+)
 SFS_AGY_TP8_DIR = "/mnt/sfs_turbo_new/shanshan/dspine-glm52/runtime_bundle_v5/agy_tp8"
 SFS_PROBE_TARGETS: tuple[str, ...] = (
     SFS_MODEL_DIR,
@@ -62,6 +65,7 @@ CONTAINER_SFS_PROBES: tuple[str, ...] = (
 DEFAULT_DSPINE_STAMP = "tests/.artifacts/checks/dspine_unit_stamp.json"
 PRESTAGE_SPECS: dict[str, tuple[str, str]] = {
     "ckpt": (SFS_CKPT_PATH, "cal_l78_v3_hybrid_best.pt"),
+    "ckpt-d24": (SFS_CKPT_D24_PATH, "cal_l78_v4_d24_best.pt"),
     "case01": (f"{SFS_AGY_TP8_DIR}/cases/case-01-coding", "case-01-coding"),
     "mtp-prefix": (f"{SFS_AGY_TP8_DIR}/mtp-prefix-rank-0.pt", "mtp-prefix-rank-0.pt"),
     "model-raw": (SFS_MODEL_DIR, "GLM-5.2-w4a8c8"),
@@ -451,6 +455,7 @@ def build_container_env_script(
             "/opt/ascend/cann-9.2.0/bin",
             "/opt/ascend/cann-9.2.0/tools/ccec_compiler/bin",
             "/opt/ascend/cann-9.2.0/tools/profiler/bin",
+            "/opt/trt-asc/venv/bin",
             "/usr/local/sbin",
             "/usr/local/bin",
             "/usr/sbin",
@@ -764,6 +769,19 @@ def _load_ssh_passwords() -> dict[str, str]:
             parts = line.split("\t")
             if len(parts) >= 2 and parts[0].strip():
                 creds[parts[0].strip()] = parts[1].strip()
+    lsenv_file = Path(
+        os.environ.get(
+            "TRT_LSENV_PATH",
+            "/home/shanshan/dotfiles/agent/skills/vibe-iris/references/env/lsenv.md",
+        )
+    )
+    if lsenv_file.is_file():
+        row_re = re.compile(r"^\|\s*[^|]+\|\s*`?(\d+\.\d+\.\d+\.\d+)`?\s*\|")
+        for line in lsenv_file.read_text(encoding="utf-8").splitlines():
+            if row_re.match(line):
+                cols = [c.strip().strip("`").strip() for c in line.split("|")]
+                if len(cols) >= 8 and cols[2] and cols[7] and cols[7] != "local credentials":
+                    creds.setdefault(cols[2], cols[7])
     return creds
 
 
@@ -1060,6 +1078,11 @@ def _detect_remote_prestage_mounts(
         "sr / 'dspine-glm52/checkpoints/cal_l78_v3_hybrid_best.pt', "
         "str(sr / 'dspine-glm52.prestage_complete.json'), "
         "'/prestage/cal_l78_v3_hybrid_best.pt'), "
+        "(pr / 'cal_l78_v4_d24_best.pt', "
+        "str(pr / 'cal_l78_v4_d24_best.pt') + '.prestage_complete.json', "
+        "sr / 'dspine-glm52/checkpoints/cal_l78_v4_d24_best.pt', "
+        "str(sr / 'dspine-glm52.prestage_complete.json'), "
+        "'/prestage/cal_l78_v4_d24_best.pt'), "
         "(pr / 'case-01-coding', "
         "str(pr / 'case-01-coding') + '.prestage_complete.json', "
         "sr / 'cases-8k1k/case-01-coding', "
@@ -1097,9 +1120,11 @@ def build_up_source_tar_cmd(repo_root: Path = REPO_ROOT) -> list[str]:
     return [
         "tar",
         "--exclude=.git",
-        "--exclude=tests/.artifacts",
-        "--exclude=docs/evidence",
-        "--exclude=docs/assets",
+        "--exclude=./tests/.artifacts",
+        "--exclude=./tests/glm52/whole_layer",
+        "--exclude=./docs/evidence",
+        "--exclude=./docs/assets",
+        "--exclude=./docs/reference",
         "--exclude=__pycache__",
         "--exclude=.pytest_cache",
         "--exclude=*.pyc",

@@ -24,8 +24,8 @@ DECODE_TOKENS: Final[int] = 1023
 FINAL_POS: Final[int] = 9215
 TARGET_LAYERS: Final[int] = 78
 DRAFT_LAYERS: Final[int] = 1
-WORLD_SIZE: Final[int] = 8
-EP_SIZE: Final[int] = 8
+WORLD_SIZE: Final[int] = 16
+EP_SIZE: Final[int] = 16
 VOCAB_SIZE: Final[int] = 154880
 TPOT_TARGET_MS: Final[float] = 3.0
 MIN_WARMUPS: Final[int] = 2
@@ -39,8 +39,8 @@ TARGET_SFA_TOPK: Final[int] = 2048
 WIDTHS: Final[tuple[int, ...]] = (1, 2, 4, 6, 8, 12, 16, 24, 32)
 PROMPT_HEAD_TOKENS: Final[tuple[int, ...]] = (154822, 154824, 154827)
 PROMPT_TAIL_TOKENS: Final[tuple[int, ...]] = (154828, 154841, 154842)
-DEFAULT_TRACK: Final[str] = "a3-tp8-ep8"
-TPOT_FORMULA: Final[str] = "max(8-rank dt_ms) / 1023.0"
+DEFAULT_TRACK: Final[str] = "a3-tp16-ep16"
+TPOT_FORMULA: Final[str] = "max(16-rank dt_ms) / 1023.0"
 ALLOW_RELAXED_PARITY: Final[bool] = False
 MILESTONES: Final[tuple[str, ...]] = ("M1", "M2", "M3", "M4", "M5")
 STRICT_LT_MILESTONES: Final[frozenset[str]] = frozenset({"M4", "M5"})
@@ -83,7 +83,7 @@ SHARED_SHM_BLOCKLIST: Final[frozenset[str]] = frozenset(
 )
 FORBIDDEN_RUN_IDS: Final[frozenset[str]] = frozenset({".", "..", "agy_tp8"})
 DEFAULT_KBENV_BIN: Final[str] = (
-    "/home/shanshan/dotfiles/harness/skills/vibe-iris/scripts/experiment/kbenv"
+    "/home/shanshan/dotfiles/agent/skills/vibe-iris/scripts/experiment/kbenv"
 )
 DEFAULT_CASE_ROOT: Final[Path] = Path(__file__).resolve().parents[1] / "cases-8k1k"
 
@@ -205,6 +205,8 @@ def resolve_track(track: str | None = None, world_size: int | None = None) -> Tr
         return spec
     if world_size is None or world_size == WORLD_SIZE:
         return GOLDEN_TRACKS[DEFAULT_TRACK]
+    if world_size == 8:
+        return GOLDEN_TRACKS["a3-tp8-ep8"]
     if world_size == 16:
         return GOLDEN_TRACKS["a3-tp16-ep16"]
     raise VerificationError(f"Unsupported world_size for track resolution: {world_size!r}")

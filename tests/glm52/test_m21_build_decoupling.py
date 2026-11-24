@@ -171,6 +171,59 @@ def test_l78_incremental_manifest_cache_and_partial_rebuild(
     assert "compile_variant 110420 " not in calls[2]
 
 
+def test_l78_effective_digest_ignores_main_chain_only_edits(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    dspine_mods: tuple[ModuleType, ModuleType],
+) -> None:
+    cal, _ = dspine_mods
+    mk_copy = tmp_path / "mk_l78"
+    shutil.copytree(bm.ROOT, mk_copy)
+    out = tmp_path / "l78_cache"
+    calls: list[int] = []
+
+    def fake_run(cmd: list[str], check: bool = True) -> SimpleNamespace:
+        del check
+        calls.append(1)
+        sh_txt = Path(cmd[1]).read_text(encoding="utf-8")
+        if "compile_variant 110419 " in sh_txt:
+            (out / "chain_K110419.so").write_bytes(b"k19-elf")
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(cal.subprocess, "run", fake_run)
+    cal.build_draft_l78_k110419(src_dir=mk_copy, out_dir=out, k_sfa=1024, world_size=16)
+    assert len(calls) == 1
+
+    base_vdig = cal._l78_variant_digest(mk_copy, 110419, 1024, world_size=16)
+    kern_cpp = mk_copy / "source/kernel.cpp"
+    orig_kern = kern_cpp.read_text(encoding="utf-8")
+    edited_kern = orig_kern.replace(
+        "#ifndef SKIP_CHAIN_KERNEL\n",
+        "#ifndef SKIP_CHAIN_KERNEL\nint main_chain_only = 1;\n",
+        1,
+    )
+    edited_kern = edited_kern.replace(
+        "#ifdef K113202_PROLOG_IDX_OVERLAP\n",
+        "#ifdef K113202_PROLOG_IDX_OVERLAP\nint prolog_only = 2;\n",
+        1,
+    )
+    kern_cpp.write_text(edited_kern, encoding="utf-8")
+    assert cal._l78_variant_digest(mk_copy, 110419, 1024, world_size=16) == base_vdig
+
+    cal.build_draft_l78_k110419(src_dir=mk_copy, out_dir=out, k_sfa=1024, world_size=16)
+    assert len(calls) == 1
+
+    edited_active = edited_kern.replace(
+        "if (q_len <= 0)",
+        "if (q_len < 0)",
+        1,
+    )
+    if edited_active == edited_kern:
+        edited_active = edited_kern + "\nint active_l78_edit = 1;\n"
+    kern_cpp.write_text(edited_active, encoding="utf-8")
+    assert cal._l78_variant_digest(mk_copy, 110419, 1024, world_size=16) != base_vdig
+
+
 def test_tp_drafter_ensure_l78_klibs_single_variant_binding(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -667,28 +720,39 @@ def test_prepare_whole_layer_json_prof_isolation(
     monkeypatch.setenv("TILERT_BUILD_DIR", str(default_dir))
     calls: list[tuple[object, bool, bool]] = []
 
-    def fake_build_chain(*, out_dir=None, union_sfa=False, enable_kernel_prof=False):
+    def fake_build_chain(
+        *,
+        out_dir: object = None,
+        union_sfa: bool = False,
+        enable_kernel_prof: bool = False,
+        world_size: int = 8,
+    ) -> tuple[Path, Path]:
         calls.append((out_dir, union_sfa, enable_kernel_prof))
         target_dir = (
             default_dir / "prof"
             if (out_dir is None and enable_kernel_prof)
-            else (default_dir if out_dir is None else Path(out_dir))
+            else (default_dir if out_dir is None else Path(str(out_dir)))
         )
         target_dir.mkdir(parents=True, exist_ok=True)
         so_p = target_dir / "chain.so"
         man_p = target_dir / "chain.manifest.json"
-        so_p.write_bytes(b"prof-elf")
+        so_p.write_bytes(f"prof-elf-{world_size}".encode("utf-8"))
         man_p.write_text("{}", encoding="utf-8")
         return so_p, man_p
 
     dspine_pkg = importlib.import_module("tilert.models.glm_5_2_ascend.dspine")
     ops_mod = importlib.import_module("tilert.models.glm_5_2_ascend.dspine.build_dspine_ops")
     monkeypatch.setattr(bm, "build_chain", fake_build_chain)
-    monkeypatch.setattr(ops_mod, "build_dspine_ops", lambda out: (Path(out) / "op.so", None))
+    monkeypatch.setattr(
+        ops_mod, "build_dspine_ops", lambda out, world_size=8: (Path(out) / "op.so", None)
+    )
     monkeypatch.setattr(
         dspine_pkg,
         "build_draft_l78_k110419",
-        lambda out_dir=None, k_sfa=1024: (Path(out_dir) / "k19.so", Path(out_dir) / "k20.so"),
+        lambda out_dir=None, k_sfa=1024, world_size=8: (
+            Path(out_dir) / "k19.so",
+            Path(out_dir) / "k20.so",
+        ),
     )
 
     wl_base = tmp_path / "base.json"
@@ -744,7 +808,9 @@ def test_run_m2_case01_emits_valid_m2_report_schema(
     run_m2 = importlib.import_module("tests.glm52.run_m2_case01")
     spec = GOLDEN_CASES["case-01-coding"]
     case_dir = REPO_ROOT / "tests/glm52/cases-8k1k/case-01-coding"
-    bench_tokens = json.loads(golden_result_path(case_dir).read_text())["output_token_ids"]
+    bench_tokens = json.loads(
+        golden_result_path(case_dir, "a3-tp8-ep8").read_text()
+    )["output_token_ids"]
     acc = _accepted_schedule_for_case("case-01-coding")
     traces, w_hist = _build_round_traces("case-01-coding", acc, width=16, min_w_act=10)
     main_state = build_synthetic_cache_state("case-01-coding", 78, "main")

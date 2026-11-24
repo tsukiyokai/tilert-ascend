@@ -73,7 +73,7 @@ def resolve_trial_protocol(
     report_dir: str | Path | None = None,
     strict_formal: bool = False,
 ) -> tuple[int, int, bool]:
-    if report_dir is not None or (strict_formal and not fast_parity):
+    if report_dir is not None:
         w = 2 if warmups is None else int(warmups)
         f = 5 if formals is None else int(formals)
         if w < 2:
@@ -88,6 +88,11 @@ def resolve_trial_protocol(
     else:
         w = 2 if warmups is None else int(warmups)
         f = 5 if formals is None else int(formals)
+        if strict_formal:
+            if w < 2:
+                raise ValueError(f"formal protocol requires warmups >= 2, got {w}")
+            if f < 5:
+                raise ValueError(f"formal protocol requires formals >= 5, got {f}")
         sdp = bool(serial_draft_parity)
     if w < 0:
         raise ValueError(f"warmups must be >= 0, got {w}")
@@ -134,7 +139,7 @@ def _prepare_build_artifacts(
     from tilert.models.glm_5_2_ascend.ops.build_megakernel import build_chain, default_build_dir
 
     enable_prof = bool(getattr(args, "enable_kernel_prof", False))
-    world_size = int(os.environ.get("WORLD_SIZE", "8"))
+    world_size = int(os.environ.get("WORLD_SIZE", "16"))
     if args.build_dir:
         build_dir = Path(args.build_dir)
         chain_out_dir: Path | None = build_dir
@@ -340,6 +345,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--union-sfa", action="store_true")
     parser.add_argument("--enable-kernel-prof", action="store_true")
+    parser.add_argument("--beta-depth", type=float, default=None)
+    parser.add_argument("--b-scheds", default=None)
+    parser.add_argument("--t-base-ms", type=float, default=None)
+    parser.add_argument("--c-w-ms", type=float, default=None)
+    parser.add_argument("--min-w-act", type=int, default=None)
+    parser.add_argument("--p-stop", type=float, default=None)
     parser.add_argument("--report-dir", default=None)
     parser.add_argument("--out-json", default="/tmp/m2_case01_summary.json")
     return parser
@@ -364,7 +375,7 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     rank = int(os.environ.get("RANK", "0"))
-    world_size = int(os.environ.get("WORLD_SIZE", "8"))
+    world_size = int(os.environ.get("WORLD_SIZE", "16"))
     if world_size > 1 and not torch.distributed.is_initialized():
         torch.distributed.init_process_group(backend="gloo", timeout=timedelta(hours=24))
     tp_group = torch.distributed.group.WORLD if torch.distributed.is_initialized() else None
@@ -392,16 +403,31 @@ def main(argv: list[str] | None = None) -> int:
         local_experts=256 // world_size,
         device=f"npu:{rank}",
     )
+    runner_kw: dict[str, Any] = {
+        "k_sfa": int(args.k_sfa),
+        "width": int(args.width),
+        "main_prefix_path": main_prefix_path,
+        "rank": rank,
+        "tp_group": tp_group,
+    }
+    if args.beta_depth is not None:
+        runner_kw["beta_depth"] = float(args.beta_depth)
+    if args.b_scheds is not None:
+        runner_kw["b_scheds"] = json.loads(args.b_scheds)
+    if args.t_base_ms is not None:
+        runner_kw["t_base_ms"] = float(args.t_base_ms)
+    if args.c_w_ms is not None:
+        runner_kw["c_w_ms"] = float(args.c_w_ms)
+    if args.min_w_act is not None:
+        runner_kw["min_w_act"] = int(args.min_w_act)
+    if args.p_stop is not None:
+        runner_kw["p_stop"] = float(args.p_stop)
     runner = Glm52AscendShowHands(
         cfg,
         case_dir,
         Path(args.mtp_prefix),
         build_dir,
-        k_sfa=int(args.k_sfa),
-        width=int(args.width),
-        main_prefix_path=main_prefix_path,
-        rank=rank,
-        tp_group=tp_group,
+        **runner_kw,
     )
     try:
         runner.load()

@@ -81,6 +81,7 @@ def resolve_case01_bundle(
         output_dir=tmp_path / "case-01-coding",
         case_root=case_root,
         milestone=e2e_milestone,
+        track="a3-tp8-ep8",
     )
 
 
