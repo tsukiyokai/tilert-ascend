@@ -1,0 +1,73 @@
+{
+  "scope": "Actual Torch212 imports and four-library co-load; CPU lifecycle/metadata/poison/CLI contracts; no graph executed",
+  "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "torch_path": "/usr/local/lib/python3.11/site-packages/torch/__init__.py",
+  "torch_npu_path": "/usr/local/lib/python3.11/site-packages/torch_npu/__init__.py",
+  "cxx11_abi": true,
+  "npu_initialized_before": false,
+  "npu_initialized_after": false,
+  "mapped_davinci_devices": [],
+  "device_execution": false,
+  "files_verified": {
+    "decoder": 816,
+    "runtime": 7953
+  },
+  "manifest_sha256": "48f8d549dbb2748e9cbaf0777346cf8091147eb56f5f24863207ced51d0b846c",
+  "actual_graph_classes": {
+    "/decoder/python/vllm_ascend/compilation/acl_graph.py": "8e1c269e331d005f1361acc5cec24402bff7ae39b75e952ea890da7812804955",
+    "/decoder/python/vllm_ascend/compilation/updatable_graph.py": "d41d912ce8f4183228fdc182dbdb6a504f07642fddb8872c657e7f4429ac0729"
+  },
+  "chain_record_bytes": [
+    664,
+    928
+  ],
+  "contracts_run": 16,
+  "contract_log": "test_actual_metadata_updates_int64_slots_in_place (test_local_chain.LocalChainContracts.test_actual_metadata_updates_int64_slots_in_place) ... ok\ntest_attention_packet_preserves_producers_and_unused_slots (test_local_chain.LocalChainContracts.test_attention_packet_preserves_producers_and_unused_slots) ... ok\ntest_byte_gate_distinguishes_signed_zero_and_shape (test_local_chain.LocalChainContracts.test_byte_gate_distinguishes_signed_zero_and_shape) ... ok\ntest_distinct_integer_poison_rejects_unwritten_codes (test_local_chain.LocalChainContracts.test_distinct_integer_poison_rejects_unwritten_codes) ... ok\ntest_poison_rejects_empty_or_partial_execution (test_local_chain.LocalChainContracts.test_poison_rejects_empty_or_partial_execution) ... ok\ntest_reference_calls_parents_and_no_external_ar1 (test_local_chain.LocalChainContracts.test_reference_calls_parents_and_no_external_ar1) ... ok\ntest_shared_views_never_expose_the_dead_prolog_arena (test_local_chain.LocalChainContracts.test_shared_views_never_expose_the_dead_prolog_arena) ... ok\ntest_successor_retains_two_original_owners (test_local_chain.LocalChainContracts.test_successor_retains_two_original_owners) ... ok\ntest_topk_refresh_preserves_owner_and_unused_rows (test_local_chain.LocalChainContracts.test_topk_refresh_preserves_owner_and_unused_rows) ... ok\ntest_view_rejects_out_of_owner_access (test_local_chain.LocalChainContracts.test_view_rejects_out_of_owner_access) ... ok\ntest_active_table_poison_detects_unwritten_defined_tail (test_local_graph.GraphContracts.test_active_table_poison_detects_unwritten_defined_tail) ... ok\ntest_capture_guard_rejects_python_fallback_and_foreign_owner (test_local_graph.GraphContracts.test_capture_guard_rejects_python_fallback_and_foreign_owner) ... ok\ntest_eager_component_classes_remain_the_frozen_imports (test_local_graph.GraphContracts.test_eager_component_classes_remain_the_frozen_imports) ... ok\ntest_graph_has_explicit_replay_owner_and_counter_guards (test_local_graph.GraphContracts.test_graph_has_explicit_replay_owner_and_counter_guards) ... ok\ntest_preallocated_consumers_survive_source_poison (test_local_graph.GraphContracts.test_preallocated_consumers_survive_source_poison) ... ok\ntest_two_layer_dependency_and_topk_copy_precede_successor (test_local_graph.GraphContracts.test_two_layer_dependency_and_topk_copy_precede_successor) ... ok\n\n----------------------------------------------------------------------\nRan 16 tests in 0.086s\n\nOK\n",
+  "cli_controls": [
+    {
+      "arguments": [
+        "--help"
+      ],
+      "exit_code": 0,
+      "stdout": "usage: device_local_graph.py [-h] --output OUTPUT --runtime RUNTIME\n                             --extension-sha256 EXTENSION_SHA256\n                             [--mode {int8,bf16}] [--timeout TIMEOUT]\n                             --adapter ADAPTER --indexed-library\n                             INDEXED_LIBRARY --shared-library SHARED_LIBRARY\n                             --sfa-library SFA_LIBRARY\n                             [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                             [--forward-replays FORWARD_REPLAYS]\n                             [--forward-sequence FORWARD_SEQUENCE]\n                             [--graph-residual-modes {none,provided} [{none,provided} ...]]\n                             [--ffn-library FFN_LIBRARY]\n                             [--chain-library CHAIN_LIBRARY]\n\nCompare real decoder layers with explicit rank-local TP boundary inputs.\n\noptions:\n  -h, --help            show this help message and exit\n  --output OUTPUT\n  --runtime RUNTIME\n  --extension-sha256 EXTENSION_SHA256\n  --mode {int8,bf16}\n  --timeout TIMEOUT\n  --adapter ADAPTER\n  --indexed-library INDEXED_LIBRARY\n  --shared-library SHARED_LIBRARY\n  --sfa-library SFA_LIBRARY\n  --forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]\n  --forward-replays FORWARD_REPLAYS\n  --forward-sequence FORWARD_SEQUENCE\n  --graph-residual-modes {none,provided} [{none,provided} ...]\n  --ffn-library FFN_LIBRARY\n  --chain-library CHAIN_LIBRARY\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "--graph-residual-modes",
+        "none"
+      ],
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "usage: device_local_graph.py [-h] --output OUTPUT --runtime RUNTIME\n                             --extension-sha256 EXTENSION_SHA256\n                             [--mode {int8,bf16}] [--timeout TIMEOUT]\n                             --adapter ADAPTER --indexed-library\n                             INDEXED_LIBRARY --shared-library SHARED_LIBRARY\n                             --sfa-library SFA_LIBRARY\n                             [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                             [--forward-replays FORWARD_REPLAYS]\n                             [--forward-sequence FORWARD_SEQUENCE]\n                             [--graph-residual-modes {none,provided} [{none,provided} ...]]\n                             [--ffn-library FFN_LIBRARY]\n                             [--chain-library CHAIN_LIBRARY]\ndevice_local_graph.py: error: The local-chain ABI requires a provided residual\n"
+    },
+    {
+      "arguments": [
+        "--forward-widths",
+        "3"
+      ],
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "usage: device_local_graph.py [-h] --output OUTPUT --runtime RUNTIME\n                             --extension-sha256 EXTENSION_SHA256\n                             [--mode {int8,bf16}] [--timeout TIMEOUT]\n                             --adapter ADAPTER --indexed-library\n                             INDEXED_LIBRARY --shared-library SHARED_LIBRARY\n                             --sfa-library SFA_LIBRARY\n                             [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                             [--forward-replays FORWARD_REPLAYS]\n                             [--forward-sequence FORWARD_SEQUENCE]\n                             [--graph-residual-modes {none,provided} [{none,provided} ...]]\n                             [--ffn-library FFN_LIBRARY]\n                             [--chain-library CHAIN_LIBRARY]\ndevice_local_graph.py: error: Use widths 1/2/12/32, 1..32 replays and a sequence covering every width\n"
+    },
+    {
+      "arguments": [
+        "--forward-replays",
+        "0"
+      ],
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "usage: device_local_graph.py [-h] --output OUTPUT --runtime RUNTIME\n                             --extension-sha256 EXTENSION_SHA256\n                             [--mode {int8,bf16}] [--timeout TIMEOUT]\n                             --adapter ADAPTER --indexed-library\n                             INDEXED_LIBRARY --shared-library SHARED_LIBRARY\n                             --sfa-library SFA_LIBRARY\n                             [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                             [--forward-replays FORWARD_REPLAYS]\n                             [--forward-sequence FORWARD_SEQUENCE]\n                             [--graph-residual-modes {none,provided} [{none,provided} ...]]\n                             [--ffn-library FFN_LIBRARY]\n                             [--chain-library CHAIN_LIBRARY]\ndevice_local_graph.py: error: Use widths 1/2/12/32, 1..32 replays and a sequence covering every width\n"
+    }
+  ],
+  "libraries": {
+    "/evidence/attention-wk-m1-build-v1/whole_layer_indexed_attention.so": "8deff750464e23bb871302c8626b86d37b60c28a00991d550f95dfcfd47ecb6f",
+    "/workspace/native/shared/whole_layer_full_attention.so": "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c",
+    "/decoder/complete_ffn.so": "381febf94f918cc7393019b6f99ec8dc38e9a5cc9e63b2d49d5fe483158e3ff2",
+    "/decoder/layer_local_chain.so": "609c973e92b61637f7768ccefb0fbd84b2e13fcfb066b241a41cd5d8376fdd0f"
+  },
+  "script_sha256": "2bb32d85730a1c879e84e33cb34b5acfb9c128c609b9254dfab549708ccd4f3e",
+  "pass": true
+}

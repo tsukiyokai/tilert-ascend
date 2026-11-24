@@ -1,0 +1,54 @@
+{
+  "scope": "Two controlled TP16-shaped shards; real HCCL2 versus SHMEM2 layer launches",
+  "script_sha256": "7426983d455ab7fdcb5666b65add23e1f57e3eb00050de37d49f4d1b3ed6aa58",
+  "arguments": {
+    "output": "/evidence/vendor-hook-tp-graph-wide-v1",
+    "runtime": "/workspace",
+    "adapter": "/workspace/tilert/models/glm_5_2_ascend/attention_native.py",
+    "indexed_library": "/evidence/attention-wk-m1-build-v1/whole_layer_indexed_attention.so",
+    "shared_library": "/workspace/native/shared/whole_layer_full_attention.so",
+    "sfa_library": "/workspace/native/sfa/vendor_sfa_adapter.so",
+    "extension_sha256": "acac5e7220b51bdd24e41352ffc52f88aac5f58dd9d262b0a43aad2ca9efd0fc",
+    "physical_devices": [
+      6,
+      7
+    ],
+    "shmem_endpoint": "tcp://127.0.0.1:24571",
+    "timeout": 900,
+    "mode": "int8",
+    "forward_widths": [
+      1,
+      2,
+      12,
+      32
+    ],
+    "forward_replays": 8,
+    "forward_sequence": 8192,
+    "graph_residual_modes": [
+      "provided"
+    ],
+    "ffn_library": "/decoder/complete_ffn.so",
+    "chain_library": "/decoder/layer_local_chain.so",
+    "tp_library": "/decoder/layer_tp_chain.so",
+    "world_size": 16
+  },
+  "exitcodes": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "success": true
+}

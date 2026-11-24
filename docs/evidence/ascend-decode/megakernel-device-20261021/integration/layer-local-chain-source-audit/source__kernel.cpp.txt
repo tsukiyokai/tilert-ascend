@@ -1,0 +1,75 @@
+1: #ifndef ASCENDC_CUBE_ONLY
+2: #define ASCENDC_CUBE_ONLY
+3: #endif
+4: 
+5: #include "contract.h"
+6: #include "../attention/source/tests/glm52/whole_layer/attention_indexed_native.h"
+7: #include "../attention/source/tests/glm52/whole_layer/attention_full_native.h"
+8: #include "../ffn/bridge/source/ffn_bridge/body_native.h"
+9: #include "../ffn/body/source/routed_int4/routed_body_native.h"
+10: 
+42: template <bool indexed>
+43: __global__ __mix__(1, 2) __schedmode__(1) __aicore__
+44: void Kernel(uint64_t sync, Config config, Addresses addresses)
+45: {
+46:     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);
+47:     InitSocState();
+48:     SetSyncBaseAddr(sync);
+49:     SetSysWorkspace((GM_ADDR)addresses.bridge[ffn_bridge::kSystem]);
+50:     TPipe pipe;
+51:     const auto rows = addresses.body.rows;
+52:     const auto blocks = addresses.body.blocks;
+53:     const auto& norm = addresses.norm;
+54:     whole_layer_norm::device::Forward(pipe,
+55:         (__gm__ bfloat16_t*)norm.input, (__gm__ bfloat16_t*)norm.residual,
+56:         (__gm__ bfloat16_t*)norm.gamma, nullptr,
+57:         (__gm__ bfloat16_t*)norm.normalized, (__gm__ bfloat16_t*)norm.retained,
+58:         (__gm__ float*)norm.rstd, (__gm__ int8_t*)norm.codes,
+59:         (__gm__ float*)norm.scales, rows, blocks, config.input_epsilon);
+60:     whole_layer_attention::EndPhase(pipe);
+61: 
+62:     const auto attention = IndexedArguments(addresses.attention);
+63:     if constexpr (indexed) {
+64:         whole_layer_indexed::Forward(pipe, config.indexed, attention,
+65:                                     config.bias_kind);
+66:     } else {
+67:         const whole_layer_attention::DeviceArgs shared{
+68:             attention.token_x, attention.token_scale,
+69:             attention.main_weights[0], attention.main_weights[1],
+70:             attention.main_weights[2], attention.main_weights[3],
+71:             attention.main_weights[4], attention.main_weights[5],
+72:             attention.main_weights[6], attention.main_weights[7],
+73:             attention.main_weights[8], attention.main_metadata[0],
+74:             attention.main_metadata[1], attention.main_metadata[2],
+75:             attention.caches[0], attention.caches[1],
+76:             (GM_ADDR)addresses.shared_topk, attention.main_metadata[3],
+77:             attention.main_metadata[4], attention.main_metadata[5],
+78:             nullptr, nullptr};
+79:         whole_layer_attention::FullForward(pipe, config.shared, shared,
+80:             attention.tail_weights[0], attention.tail_weights[1],
+81:             attention.tail_weights[2], attention.bias, config.bias_kind,
+82:             attention.scratch, attention.tiling, attention.output);
+83:     }
+84: 
+85:     // The attention callable publishes its GM outputs and resets the pipe.
+86:     // The norm residual must remain separate from the attention partial.
+87:     ffn_bridge::Addresses bridge{};
+88:     for (int i = 0; i < ffn_bridge::kBuffers; ++i) {
+89:         bridge.values[i] = (GM_ADDR)addresses.bridge[i];
+90:     }
+91:     SetSysWorkspace(bridge.values[ffn_bridge::kSystem]);
+92:     ffn_bridge::Forward(pipe, attention.output, (GM_ADDR)norm.retained,
+93:         (GM_ADDR)addresses.post_gamma, (GM_ADDR)addresses.gate,
+94:         (GM_ADDR)addresses.correction_bias, bridge, rows, blocks,
+95:         config.ffn_epsilon);
+96:     SetSysWorkspace((GM_ADDR)addresses.body.scratch[
+97:         routed_int4::kMatmulWorkspace]);
+98:     routed_body::Forward<CubeFormat::NZ, true>(pipe, addresses.body,
+99:         (__gm__ bfloat16_t*)bridge.values[ffn_bridge::kScaledRouted],
+100:         (__gm__ bfloat16_t*)bridge.values[ffn_bridge::kCombined]);
+101:     // The next consumer is a separate task on the same stream.
+102:     PipeBarrier<PIPE_ALL>();
+103:     DataSyncBarrier<MemDsbT::DDR>();
+104: }
+105: 
+106: }  // namespace layer_local_chain

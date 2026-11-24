@@ -1,0 +1,157 @@
+{
+  "scope": "Read-only source and saved-receipt audit on a3-84:trt-asc; no NPU launch. Historical repeats are not a new fba76ee M32 acceptance test.",
+  "historical_repeat_counts": {
+    "sk-shipped2": {
+      "ranks": 16,
+      "rank0": [
+        {
+          "width": 8,
+          "repeats": 6,
+          "distinct_hidden": 1,
+          "distinct_logits": 1,
+          "distinct_token_streams": 1
+        },
+        {
+          "width": 4,
+          "repeats": 6,
+          "distinct_hidden": 1,
+          "distinct_logits": 1,
+          "distinct_token_streams": 1
+        }
+      ],
+      "all_rank_status_completed": true
+    },
+    "sk-cold2": {
+      "ranks": 16,
+      "rank0": [
+        {
+          "width": 8,
+          "repeats": 20,
+          "distinct_hidden": 1,
+          "distinct_logits": 1,
+          "distinct_token_streams": 1
+        },
+        {
+          "width": 4,
+          "repeats": 20,
+          "distinct_hidden": 1,
+          "distinct_logits": 1,
+          "distinct_token_streams": 1
+        }
+      ],
+      "all_rank_status_completed": true
+    },
+    "sk-seeded": {
+      "ranks": 16,
+      "rank0": [
+        {
+          "width": 8,
+          "repeats": 6,
+          "distinct_hidden": 6,
+          "distinct_logits": 6,
+          "distinct_token_streams": 4
+        },
+        {
+          "width": 4,
+          "repeats": 6,
+          "distinct_hidden": 1,
+          "distinct_logits": 1,
+          "distinct_token_streams": 1
+        }
+      ],
+      "all_rank_status_completed": true
+    },
+    "sk-seeded-cacheoff": {
+      "ranks": 16,
+      "rank0": [
+        {
+          "width": 8,
+          "repeats": 6,
+          "distinct_hidden": 1,
+          "distinct_logits": 1,
+          "distinct_token_streams": 1
+        },
+        {
+          "width": 4,
+          "repeats": 6,
+          "distinct_hidden": 1,
+          "distinct_logits": 1,
+          "distinct_token_streams": 1
+        }
+      ],
+      "all_rank_status_completed": true
+    },
+    "sk-vendor-intree": {
+      "ranks": 16,
+      "rank0": [
+        {
+          "width": 8,
+          "repeats": 6,
+          "distinct_hidden": 6,
+          "distinct_logits": 6,
+          "distinct_token_streams": 2
+        },
+        {
+          "width": 4,
+          "repeats": 6,
+          "distinct_hidden": 6,
+          "distinct_logits": 6,
+          "distinct_token_streams": 1
+        }
+      ],
+      "all_rank_status_completed": true
+    }
+  },
+  "historical_static_cache_key": "af7873a34e83f2aaef8da1f21b7b605c6fd514d5c8e93acb0a700c37959fe76d",
+  "historical_static_packages": {
+    "pkg-cached": [
+      {
+        "path": "/workspace/experiments/w4a8-race-20261019/pkg-cached/static_kernel/ai_core/static_kernel_261019025451423344_2611687/ascend910_93/GroupedMatmulSwigluQuantV2/static_kernel_GroupedMatmulSwigluQuantV2_1c6bb75febe6fe3a632974489e68fc2247e80806075322f0c061033eabb95e15_2611687_d0.o",
+        "bytes": 264128,
+        "sha256": "d5c2f89cd79fc63902b3f9e1278efd1d96fa2bd01c0ad690e0f099d6387ec328"
+      }
+    ],
+    "pkg-fresh": [
+      {
+        "path": "/workspace/experiments/w4a8-race-20261019/pkg-fresh/static_kernel/ai_core/static_kernel_261019093743009665_662156/ascend910_93/GroupedMatmulSwigluQuantV2/static_kernel_GroupedMatmulSwigluQuantV2_6f721a0b13f8958e7a1fb8a477e622b85a8df6f45e175556870b0b417a3a4f47_662156_d0.o",
+        "bytes": 264088,
+        "sha256": "0f5f7527a8e263cc2fe16f5008b1cd138bdb74094592d63d3d1af70f3ac7e37e"
+      }
+    ],
+    "pkg-unpatched": [
+      {
+        "path": "/workspace/experiments/w4a8-race-20261019/pkg-unpatched/static_kernel/ai_core/static_kernel_261019101420819432_1342218/ascend910_93/GroupedMatmulSwigluQuantV2/static_kernel_GroupedMatmulSwigluQuantV2_eef8206c2cf57905a3fc42ef14df3da721df8e496bf5386040468151d294826c_1342218_d0.o",
+        "bytes": 264128,
+        "sha256": "9544934b2398b969e308627fe10213c28f0202307727c41a300055cab2c74fcd"
+      }
+    ]
+  },
+  "current_prod_overlay_filesystem_identity": {
+    "elf_sha256": "baaa18e24c44695737b414d3196414152f1324caf0087c00cfc102162cf16bc5",
+    "elf_bytes": 108176,
+    "header_sha256": "730e0bac7ce6ea3e085a48225d27093431debcd6f05c542378beefc7e96d3689",
+    "header_anchors": {
+      "SwiGLU": 205,
+      "barrier_after_SwiGLU": 206,
+      "DataCopy_to_inMMLocal": 209,
+      "barrier_after_DataCopy": 210
+    },
+    "loaded_runtime_identity_observed": false
+  },
+  "mechanism": {
+    "compile_static_kernel_option": "static_kernel.py:89 reads config.get(disable_static_kernel_compile_cache, False); :120 passes it to _compile_static_kernel; :387-399 gates cache lookup and update",
+    "cache_location": "safe_resolve_output_dir(None), static_kernel.py:887-919, resolves Path.cwd()/static_kernel_compile_outputs; _get_cache_path :1024-1039 places static_kernel_cache there. VLLM_CACHE_ROOT is not read on this path.",
+    "key_inputs": "static_kernel.py:1071-1092 hashes dumped per-op JSON bytes, superkernel options and deterministic flag; no vendor-header/ELF or ASCEND_CUSTOM_OPP_PATH identity.",
+    "current_vllm_caller": "compiler_interface.py:174-185 builds CompilerConfig; :128-141 enables static without disabling cache; :214 passes config to backend.",
+    "eager_boundary": "fba76ee cann_model.py create_config:144 enforce_eager=not compile_target; :145-151 compilation_config only when compile_target; :157-160 static/super only when super_kernel. Eager validation with both options false does not invoke this compiler cache.",
+    "minimal_fix": "Actual candidate launch_arm.sh now resolves TREE/OUT before chdir, cd \"$out\", and executes absolute bench path. The launch clears that output directory before starting; per-arm fresh static cache and install paths. No wrapper or vendor source modification."
+  },
+  "remaining_evidence_boundary": "Current prod overlay contains the known barrier. Historical corrected-overlay TP16 repeats are stable and the old stale-package mechanism is demonstrated. No current fba76ee M32 loaded static-package ELF receipt or repeat acceptance was produced by this CPU audit.",
+  "artifacts": {
+    "launcher_cpu": "launcher-cpu-receipt.json",
+    "server_import_cpu": "cwd-cpu-receipt.json",
+    "all_historical_ranks_and_packages": "historical-packages.json",
+    "selected_raw_server_files": "raw-server/",
+    "raw_archive": "raw-server.tar.gz"
+  }
+}

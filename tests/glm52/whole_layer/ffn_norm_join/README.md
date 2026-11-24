@@ -1,0 +1,9 @@
+# FFN norm publication
+
+This candidate removes the final `SyncAll<false>()` from the private norm helper in static-GU FFN library `381febf94f918cc7393019b6f99ec8dc38e9a5cc9e63b2d49d5fe483158e3ff2`. Its caller immediately performs `PIPE_ALL`, DDR publication, a mixed-core `SyncAll`, and a TPipe reset before Gate and shared quantization consume the normalized values. No consumer or allocation occurs between the two original joins.
+
+The per-row norm operations, local completion and TPipe resets remain unchanged. This helper is private to the composed FFN; its caller supplies the cross-core publication. The five routed-body joins, static GU tiling, shared key30013 arithmetic, terminal completion, 33 tensors and 408-byte descriptor remain unchanged.
+
+Library `ddd2f7b9` passes the [original DecoderLayer norm/MLP gate](../../../../docs/evidence/ascend-decode/megakernel-device-20261021/integration/vendor-hook-decoder212-ffn-norm-join-wide-v1-a3-194/summary.json): both layer weight sets, M1/2/12/32 and eight changing inputs per width. All 448 arithmetic boundaries and 256 poisoned immediate graph consumers match byte for byte. Four original NZ allocations retain their addresses and bytes. Only rank zero initializes the NPU; all sixteen Gloo ranks exit normally.
+
+The [same-address paired comparison](../../../../docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-norm-join-timing-v1-a3-194/summary.json) rejects this candidate for performance. At M12/24 with 65 active experts and 16 weight banks, candidate/parent medians are 205.445/204.481 us and 207.034/206.598 us. Median paired regressions are 0.953/0.475 us; none of 60 pairs favors the candidate. All 19,200 raw-byte, 360 event-tail and 696 active-table checks pass. The original norm join remains selected; the cause of the regression has not been isolated.

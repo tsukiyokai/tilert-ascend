@@ -1,0 +1,102 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: shanshan <samsom0409@gmail.com>
+Date: Sun, 19 Oct 2026 01:00:00 +0800
+Subject: [PATCH] gmm: give GroupedMatmulSwigluQuantV2 a straight line at one workspace split
+
+The A8W4 MSD schedule runs a three-stage software pipeline over
+`workspaceSplitConfig.loopCount` chunks. At `loopCount == 1` the loop body
+still issues the prefetch of a chunk that does not exist and the epilogue of
+a chunk index of -1, and still executes four device barriers where the
+correct sequence needs two.
+
+Both dead calls return immediately -- `preProcess.Process` on
+`workspaceSplitLoopIdx >= loopCount` and `postProcess.Process` on that or on
+a negative index -- so they contribute nothing but the barriers built around
+them. The `tempWorkspaceSplitConfig` the epilogue is handed on that first
+iteration is zero rather than indeterminate, because every field of
+`WorkSpaceSplitConfig` carries a default member initialiser and the schedule's
+constructor does not list the member, but the early return is forced by the
+`< 0` clause rather than by that zero.
+
+This adds a straight line for `loopCount == 1` -- preProcess(0), barrier,
+midProcess(0), barrier, postProcess(0) -- and leaves every other loop count on
+the original path, unchanged line for line.
+
+Decode never has more than one chunk. mLimit is
+`(USER_WORKSPACE_LIMIT / DOUBLE_WORKSPACE_SPLIT) / (K + DOUBLE_ROW * N *
+SIZE_OF_HALF_2)`, which for one TP16 shard of a 6144-wide model with N=256 is
+33554432 / 7168 = 4681, so `Ceil(M, mLimit)` only reaches 2 at M=4682. Batch
+one with top-8 routing dispatches 8 rows and batch four dispatches 32.
+
+Measured on one Ascend910_93 die, A8W4 MSD, K=6144 N=256, 8 active experts of
+256 each holding one row. Both schedules were built into one binary selected
+at run time, so the pair shares a process, a device context, one HBM
+allocation and one set of weight banks; six independent 192.75 MiB banks
+rotate with the active expert window so each batch of 32 calls touches
+202.1 MB of distinct weight addresses against a 192 MiB L2. Eager calls to
+this operator cost as much on the host as the kernel costs on the device, so
+the batch is captured into an ACL graph and replayed; host cost during
+replay is 0.72 to 1.48 us per call. Three runs of 40 rounds, arms replayed
+A,B,B,A per round:
+
+  original loop     98.153   99.627   97.561 us per call
+  straight line     91.735   90.473   92.705
+  paired difference -6.426   -9.171   -4.865   (sd 0.442, 0.194, 0.274)
+
+0 positive against 40 negative in each run, p = 1.8e-12. At 32 rows the same
+binary gives 114.084 -> 105.175 us, and at 8 experts of 4 rows 143.303 ->
+132.367.
+
+Of that saving 3.54 us is the two barriers themselves: replicating the
+removed pair fourteen times prices one mixed `SyncAll<false>` at 2.30 us and
+one AIV-only `SyncAll<true>` at 1.25 us, and 2.30 + 1.25 agrees with the
+3.54 us the replicated pair costs. The remainder is the two dead calls, the
+`tempWorkspaceSplitConfig` copy, one extra `pipe->Reset()` and the loop
+scaffolding.
+
+Output is unchanged, not merely close: the straight-line binary and the
+unmodified one produce bit-identical int8 codes and bit-identical output
+scales over the measured shapes, and both sit within one LSB of an
+independent host replay of the kernel's arithmetic with the per-row
+code maximum at 127.
+
+This reaches `gate_up` only. The `down` projection of the same MoE layer does
+not run through this operator -- it calls the CANN built-in
+`npu_grouped_matmul` -- so no equivalent saving is available here.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+Base: unknown
+---
+--- a/csrc/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_pipeline.h
++++ b/csrc/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_pipeline.h
+@@ -97,6 +97,26 @@
+     midProcess.Init(gmAddrParams, gmmSwigluQuantV2BaseParams);
+     postProcess.Init(gmAddrParams, gmmSwigluQuantV2BaseParams, gmmSwigluQuantV2);
+ 
++    // batch-one fast path: a single workspace split needs only pre -> mm -> post.
++    if (workspaceSplitConfig.loopCount == 1) {
++        preProcess.Process(workspaceSplitConfig, 0, pipe);
++        UpdateWorkSpaceSplitConfig(workspaceSplitConfig, 0);
++        if ASCEND_IS_AIV {
++            pipe->Reset();
++        }
++        SyncAll<false>();
++        midProcess.Process(workspaceSplitConfig, 0);
++        if ASCEND_IS_AIV {
++            pipe->Reset();
++        }
++        SyncAll<false>();
++        postProcess.Process(workspaceSplitConfig, 0, pipe);
++        if ASCEND_IS_AIV {
++            pipe->Destroy();
++        }
++        return;
++    }
++
+     // 1.前处理提前下发一次
+     preProcess.Process(workspaceSplitConfig, 0, pipe);
+     for (int64_t workspaceSplitLoopIdx = 0; workspaceSplitLoopIdx < workspaceSplitConfig.loopCount;
+-- 
+2.43.0
+

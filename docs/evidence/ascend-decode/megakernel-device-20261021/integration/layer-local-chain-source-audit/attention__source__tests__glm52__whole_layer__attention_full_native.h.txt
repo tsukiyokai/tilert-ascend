@@ -1,0 +1,20 @@
+15: __aicore__ inline void FullForward(
+16:     AscendC::TPipe& pipe, const FullConfig& config, DeviceArgs attention,
+17:     GM_ADDR value_weight, GM_ADDR output_weight, GM_ADDR output_scale,
+18:     GM_ADDR bias, int bias_kind, GM_ADDR scratch, GM_ADDR tail_tiling,
+19:     GM_ADDR output)
+20: {
+21:     GM_ADDR arena = scratch + config.arena_offset;
+22:     attention.scratch = arena;
+23:     attention.output = scratch;
+24:     Forward(pipe, config.attention, attention);
+25:     // Forward has retired all SFA reads/writes and reset both AIC and AIV
+26:     // resources. Its query/rope/work arena can now hold the entire tail.
+27:     mla_tail::device::Forward(pipe, (__gm__ bfloat16_t*)scratch,
+28:         (__gm__ bfloat16_t*)value_weight, (__gm__ int8_t*)output_weight,
+29:         (__gm__ float*)output_scale, bias, bias_kind, arena, tail_tiling,
+30:         (__gm__ bfloat16_t*)output, config.attention.rows, config.capacity,
+31:         config.attention.blocks, config.tail);
+32:     EndPhase(pipe);
+33: }
+34: 

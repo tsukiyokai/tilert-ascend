@@ -1,0 +1,633 @@
+{
+  "status": "pass",
+  "tests": 8,
+  "failures": 0,
+  "errors": 0,
+  "created_at": "2026-10-16T12:19:35.415821+00:00",
+  "hostname": "liteserver-hps-c180-00044",
+  "python": "3.13.13",
+  "command": [
+    "/root/miniconda3/bin/python3",
+    "tests/glm52/check_prefix_capture_http.py",
+    "--output",
+    "/home/shanshan/trt-asc/experiments/glm52/prefix-capture-offline/prefix-capture-http.json"
+  ],
+  "fixtures": [
+    {
+      "test": "__main__.CaptureHttpChecks.test_decode_http_and_json_failures_cancel_the_known_request",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 76, in capture_one\n    exported = request_json(args.capture_url, \"/pd/decode\", {\n        \"rid\": rid, \"first_token_id\": first, \"max_tokens\": 1,\n        \"stream\": False, \"timeout_s\": args.timeout,\n        \"sampling\": {\"temperature\": 0, \"top_k\": 1, \"ignore_eos\": True},\n    }, args.timeout)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 57, in request_json\n    connection, response = post(url, path, payload, timeout)\n                           ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/bench_pd_decode.py\", line 224, in post\n    raise RuntimeError(\n        f\"HTTP {response.status}: {response.read(4096)!r}\"\n    )\nRuntimeError: HTTP 500: b'{\"error\": \"capture fixture failure\"}'\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_decode_http_and_json_failures_cancel_the_known_request",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 76, in capture_one\n    exported = request_json(args.capture_url, \"/pd/decode\", {\n        \"rid\": rid, \"first_token_id\": first, \"max_tokens\": 1,\n        \"stream\": False, \"timeout_s\": args.timeout,\n        \"sampling\": {\"temperature\": 0, \"top_k\": 1, \"ignore_eos\": True},\n    }, args.timeout)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 59, in request_json\n    return json.loads(response.read())\n           ~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/root/miniconda3/lib/python3.13/json/__init__.py\", line 352, in loads\n    return _default_decoder.decode(s)\n           ~~~~~~~~~~~~~~~~~~~~~~~^^^\n  File \"/root/miniconda3/lib/python3.13/json/decoder.py\", line 345, in decode\n    obj, end = self.raw_decode(s, idx=_w(s, 0).end())\n               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/root/miniconda3/lib/python3.13/json/decoder.py\", line 361, in raw_decode\n    obj, end = self.scan_once(s, idx)\n               ~~~~~~~~~~~~~~^^^^^^^^\njson.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_flat_prompt_input_is_one_capture",
+      "returncode": 0,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ]
+      ],
+      "stderr": ""
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_invalid_prompt_file_is_refused_before_http",
+      "returncode": 1,
+      "requests": [],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 129, in main\n    prompts = load_prompts(args.prompt_ids)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 50, in load_prompts\n    raise ValueError(\"Supply 1..8 prompts of 1..8192 vocabulary token IDs\")\nValueError: Supply 1..8 prompts of 1..8192 vocabulary token IDs\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_invalid_prompt_file_is_refused_before_http",
+      "returncode": 1,
+      "requests": [],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 129, in main\n    prompts = load_prompts(args.prompt_ids)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 50, in load_prompts\n    raise ValueError(\"Supply 1..8 prompts of 1..8192 vocabulary token IDs\")\nValueError: Supply 1..8 prompts of 1..8192 vocabulary token IDs\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_invalid_prompt_file_is_refused_before_http",
+      "returncode": 1,
+      "requests": [],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 129, in main\n    prompts = load_prompts(args.prompt_ids)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 50, in load_prompts\n    raise ValueError(\"Supply 1..8 prompts of 1..8192 vocabulary token IDs\")\nValueError: Supply 1..8 prompts of 1..8192 vocabulary token IDs\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_invalid_prompt_file_is_refused_before_http",
+      "returncode": 1,
+      "requests": [],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 129, in main\n    prompts = load_prompts(args.prompt_ids)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 50, in load_prompts\n    raise ValueError(\"Supply 1..8 prompts of 1..8192 vocabulary token IDs\")\nValueError: Supply 1..8 prompts of 1..8192 vocabulary token IDs\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_invalid_prompt_file_is_refused_before_http",
+      "returncode": 1,
+      "requests": [],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 129, in main\n    prompts = load_prompts(args.prompt_ids)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 50, in load_prompts\n    raise ValueError(\"Supply 1..8 prompts of 1..8192 vocabulary token IDs\")\nValueError: Supply 1..8 prompts of 1..8192 vocabulary token IDs\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_invalid_prompt_file_is_refused_before_http",
+      "returncode": 1,
+      "requests": [],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 129, in main\n    prompts = load_prompts(args.prompt_ids)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 52, in load_prompts\n    raise ValueError(\"Capture prompts must be different\")\nValueError: Capture prompts must be different\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_invalid_prompt_file_is_refused_before_http",
+      "returncode": 1,
+      "requests": [],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 129, in main\n    prompts = load_prompts(args.prompt_ids)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 50, in load_prompts\n    raise ValueError(\"Supply 1..8 prompts of 1..8192 vocabulary token IDs\")\nValueError: Supply 1..8 prompts of 1..8192 vocabulary token IDs\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_invalid_prompt_file_is_refused_before_http",
+      "returncode": 1,
+      "requests": [],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 129, in main\n    prompts = load_prompts(args.prompt_ids)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 50, in load_prompts\n    raise ValueError(\"Supply 1..8 prompts of 1..8192 vocabulary token IDs\")\nValueError: Supply 1..8 prompts of 1..8192 vocabulary token IDs\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_reused_request_or_capture_index_cannot_record_second_case",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 147, in main\n    raise ValueError(\"Capture service reused a request or case\")\nValueError: Capture service reused a request or case\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_reused_request_or_capture_index_cannot_record_second_case",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 147, in main\n    raise ValueError(\"Capture service reused a request or case\")\nValueError: Capture service reused a request or case\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_short_and_8k_prompts_preserve_p_response_and_hashes",
+      "returncode": 0,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ]
+      ],
+      "stderr": ""
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_decode_identity_is_rejected_and_cancelled",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 93, in capture_one\n    raise ValueError(\"The captured request differs from prefill\")\nValueError: The captured request differs from prefill\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_decode_identity_is_rejected_and_cancelled",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 93, in capture_one\n    raise ValueError(\"The captured request differs from prefill\")\nValueError: The captured request differs from prefill\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_decode_identity_is_rejected_and_cancelled",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 93, in capture_one\n    raise ValueError(\"The captured request differs from prefill\")\nValueError: The captured request differs from prefill\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_decode_identity_is_rejected_and_cancelled",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 93, in capture_one\n    raise ValueError(\"The captured request differs from prefill\")\nValueError: The captured request differs from prefill\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_decode_identity_is_rejected_and_cancelled",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 93, in capture_one\n    raise ValueError(\"The captured request differs from prefill\")\nValueError: The captured request differs from prefill\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_decode_identity_is_rejected_and_cancelled",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 93, in capture_one\n    raise ValueError(\"The captured request differs from prefill\")\nValueError: The captured request differs from prefill\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_decode_identity_is_rejected_and_cancelled",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 93, in capture_one\n    raise ValueError(\"The captured request differs from prefill\")\nValueError: The captured request differs from prefill\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_decode_identity_is_rejected_and_cancelled",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 93, in capture_one\n    raise ValueError(\"The captured request differs from prefill\")\nValueError: The captured request differs from prefill\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_decode_identity_is_rejected_and_cancelled",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 93, in capture_one\n    raise ValueError(\"The captured request differs from prefill\")\nValueError: The captured request differs from prefill\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_decode_identity_is_rejected_and_cancelled",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/decode"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 93, in capture_one\n    raise ValueError(\"The captured request differs from prefill\")\nValueError: The captured request differs from prefill\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_engine_is_refused_before_first_prefill",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 130, in main\n    validate_capture_service(args.capture_url, args.timeout)\n    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 36, in validate_capture_service\n    raise ValueError(\"The destination is not a prefix capture service\")\nValueError: The destination is not a prefix capture service\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_prefill_usage_or_token_cancels_without_decode",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 75, in capture_one\n    first = prefill_token(response, prompt_tokens=len(prompt))\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/bench_pd_decode.py\", line 256, in prefill_token\n    raise ValueError(\n        f\"Prefill usage must be exactly {prompt_tokens} input + 1 output\"\n    )\nValueError: Prefill usage must be exactly 1 input + 1 output\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_prefill_usage_or_token_cancels_without_decode",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 75, in capture_one\n    first = prefill_token(response, prompt_tokens=len(prompt))\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/bench_pd_decode.py\", line 256, in prefill_token\n    raise ValueError(\n        f\"Prefill usage must be exactly {prompt_tokens} input + 1 output\"\n    )\nValueError: Prefill usage must be exactly 1 input + 1 output\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_prefill_usage_or_token_cancels_without_decode",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 75, in capture_one\n    first = prefill_token(response, prompt_tokens=len(prompt))\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/bench_pd_decode.py\", line 256, in prefill_token\n    raise ValueError(\n        f\"Prefill usage must be exactly {prompt_tokens} input + 1 output\"\n    )\nValueError: Prefill usage must be exactly 1 input + 1 output\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_prefill_usage_or_token_cancels_without_decode",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 75, in capture_one\n    first = prefill_token(response, prompt_tokens=len(prompt))\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/bench_pd_decode.py\", line 256, in prefill_token\n    raise ValueError(\n        f\"Prefill usage must be exactly {prompt_tokens} input + 1 output\"\n    )\nValueError: Prefill usage must be exactly 1 input + 1 output\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_prefill_usage_or_token_cancels_without_decode",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 75, in capture_one\n    first = prefill_token(response, prompt_tokens=len(prompt))\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/bench_pd_decode.py\", line 262, in prefill_token\n    raise ValueError(\"Prefill requires --return-tokens-as-token-ids\")\nValueError: Prefill requires --return-tokens-as-token-ids\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_prefill_usage_or_token_cancels_without_decode",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 75, in capture_one\n    first = prefill_token(response, prompt_tokens=len(prompt))\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/bench_pd_decode.py\", line 262, in prefill_token\n    raise ValueError(\"Prefill requires --return-tokens-as-token-ids\")\nValueError: Prefill requires --return-tokens-as-token-ids\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_prefill_usage_or_token_cancels_without_decode",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 75, in capture_one\n    first = prefill_token(response, prompt_tokens=len(prompt))\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/bench_pd_decode.py\", line 265, in prefill_token\n    raise ValueError(\"Prefill first token is outside the vocabulary\")\nValueError: Prefill first token is outside the vocabulary\n"
+    },
+    {
+      "test": "__main__.CaptureHttpChecks.test_wrong_prefill_usage_or_token_cancels_without_decode",
+      "returncode": 1,
+      "requests": [
+        [
+          "GET",
+          "/capture/capabilities"
+        ],
+        [
+          "POST",
+          "/prefill/v1/completions"
+        ],
+        [
+          "POST",
+          "/capture/pd/cancel"
+        ]
+      ],
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 169, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 144, in main\n    result = capture_one(args, prompt)\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/capture_pd_inputs.py\", line 75, in capture_one\n    first = prefill_token(response, prompt_tokens=len(prompt))\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/bench_pd_decode.py\", line 265, in prefill_token\n    raise ValueError(\"Prefill first token is outside the vocabulary\")\nValueError: Prefill first token is outside the vocabulary\n"
+    }
+  ],
+  "fixture_count": 33,
+  "test_output": "test_decode_http_and_json_failures_cancel_the_known_request (__main__.CaptureHttpChecks.test_decode_http_and_json_failures_cancel_the_known_request) ... ok\ntest_flat_prompt_input_is_one_capture (__main__.CaptureHttpChecks.test_flat_prompt_input_is_one_capture) ... ok\ntest_invalid_prompt_file_is_refused_before_http (__main__.CaptureHttpChecks.test_invalid_prompt_file_is_refused_before_http) ... ok\ntest_reused_request_or_capture_index_cannot_record_second_case (__main__.CaptureHttpChecks.test_reused_request_or_capture_index_cannot_record_second_case) ... ok\ntest_short_and_8k_prompts_preserve_p_response_and_hashes (__main__.CaptureHttpChecks.test_short_and_8k_prompts_preserve_p_response_and_hashes) ... ok\ntest_wrong_decode_identity_is_rejected_and_cancelled (__main__.CaptureHttpChecks.test_wrong_decode_identity_is_rejected_and_cancelled) ... ok\ntest_wrong_engine_is_refused_before_first_prefill (__main__.CaptureHttpChecks.test_wrong_engine_is_refused_before_first_prefill) ... ok\ntest_wrong_prefill_usage_or_token_cancels_without_decode (__main__.CaptureHttpChecks.test_wrong_prefill_usage_or_token_cancels_without_decode) ... ok\n\n----------------------------------------------------------------------\nRan 8 tests in 3.068s\n\nOK\n",
+  "source_stable": true,
+  "source_sha256": {
+    "tests/glm52/check_prefix_capture_http.py": "4442b9941f8b4a083bac053c2ea44eb9a6273360a1c236a4ebab08fc4c00bbef",
+    "tests/glm52/capture_pd_inputs.py": "9d8ab66b26743f8bcc13af789feffc9221c929b2594ca720300deca50253599f",
+    "tests/glm52/bench_pd_decode.py": "36b77a223fd8a6eee9aea368df7d17a46fefc8c4e8da82d2f46a6d64c4a255ed",
+    "tilert/pd_vllm/prefix_capture.py": "d332580d62582cda6235a47754301ebcd65702508e1225de8f5186482bd067b5",
+    "tilert/pd_vllm/decode_timing.py": "dadf53e1e73255ade88e6eae4a2bcf21c6920a1d27281285b6ecd5674280d1b5",
+    "tilert/pd_vllm/wire.py": "c91f3e5ae20d37736693470e16c34383233ec8bb88f841dffcc11b5538d7878d"
+  },
+  "torch_imported": false,
+  "scope": "Real capture CLI and loopback HTTP protocol fixtures",
+  "not_executed": [
+    "vLLM prefill",
+    "HIXL",
+    "TP16 collectives",
+    "NPU execution",
+    "tensor export",
+    "numerical parity"
+  ]
+}

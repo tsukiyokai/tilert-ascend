@@ -1,0 +1,37 @@
+{
+  "status": "pass",
+  "scope": "CPU width invariance of greedy speculation; no CANN",
+  "python": "3.14.7",
+  "tests": 6,
+  "failures": 0,
+  "errors": 0,
+  "torch_imported": false,
+  "widths": [
+    2,
+    4,
+    6,
+    8,
+    12,
+    16,
+    24,
+    32
+  ],
+  "drafters": [
+    "automaton",
+    "lookup",
+    "tree"
+  ],
+  "rules": [
+    "WholeHistoryRule",
+    "BigramRule",
+    "RecentHistoryRule"
+  ],
+  "source_sha256": {
+    "tests/glm52/check_round_invariance.py": "f032515f7d1e9d887ed6a47f31fc164cdc1450647a9b637208b05d3109077aa3",
+    "tilert/models/glm_5_2_ascend/mtp_round.py": "7d1773a0dad58a4484662fea07a0aeb49b553e9f664f81c9e3d6c2df6a4ee1a6",
+    "tilert/models/glm_5_2_ascend/mtp_state.py": "863e5e649c13cf4b9b5db78e8f49de7e515c096d17301af0d093c65828364f3f",
+    "tilert/models/glm_5_2_ascend/tree_draft.py": "99005046fa6d7356d02789ea4d080cfb09a0e1002b244f583556cc6270577e98",
+    "tilert/models/glm_5_2_ascend/tree_resolve.py": "906ba4b9e7d4199ba15cf96e43e5bdc1a1829ec03dbf30d859b7afdf65da1e9f"
+  },
+  "test_output": "test_a_leaking_verification_mask_changes_what_is_decoded (__main__.RoundInvariance.test_a_leaking_verification_mask_changes_what_is_decoded)\nThe control: the check above can see a row reading its future. ... ok\ntest_a_tree_keeps_inside_the_round_budget (__main__.RoundInvariance.test_a_tree_keeps_inside_the_round_budget)\nA node past the width has no verification row to be read from. ... ok\ntest_an_ungathered_accepted_path_changes_what_is_decoded (__main__.RoundInvariance.test_an_ungathered_accepted_path_changes_what_is_decoded)\nThe control for the tree rounds, where the gather is the risk. ... ok\ntest_every_width_and_drafter_decodes_the_serial_stream (__main__.RoundInvariance.test_every_width_and_drafter_decodes_the_serial_stream) ... ok\ntest_the_looping_target_commits_more_than_the_bonus_token (__main__.RoundInvariance.test_the_looping_target_commits_more_than_the_bonus_token)\nOtherwise the invariance checks never exercise a deep match. ... ok\ntest_tree_with_one_cache_row_only_verifies_the_pending_token (__main__.RoundInvariance.test_tree_with_one_cache_row_only_verifies_the_pending_token) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.386s\n\nOK\n"
+}

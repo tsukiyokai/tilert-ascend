@@ -1,0 +1,1204 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "scope": "Resident layer0 M4, full-P8192, TP16; fixed-input three graph replays. No full-model precision or performance claim.",
+  "audit_checks": 1315,
+  "audit_failures": [],
+  "exit": {
+    "exit_code": 0,
+    "finished_at": "2026-10-17T22:41:35.883251+00:00",
+    "wall_seconds": 74.55626436229795
+  },
+  "activation": {
+    "cached_package_install": true,
+    "recompile_calls": 0,
+    "private_paths": [
+      "/workspace/offline/cann-resident-static-super-20261018-01/profile-device-00/static_kernel_install/20261018064121792489_1640061"
+    ],
+    "reselect_pids": [
+      1640061,
+      1640062,
+      1640063,
+      1640064,
+      1640065,
+      1640066,
+      1640067,
+      1640068,
+      1640069,
+      1640070,
+      1640071,
+      1640072,
+      1640073,
+      1640074,
+      1640075,
+      1640076
+    ],
+    "installed_files_match_original_package_manifest": 146,
+    "installed_manifest_scope": "Hashed by guard before owner cleanup; removed install trees not re-read.",
+    "package": "/workspace/offline/cann-resident-static-super-20261018-01/device-00/static_kernel_compile_outputs/ts20261018062806577002_pid1544016_outputs/static_kernel_261018062809818734_1552443.run",
+    "package_sha256": "96ad21d7c69a542133122ba5f95237b7eb255631c7c2534c8e74c7aa4fe8cbb7",
+    "source_binding_count": 602
+  },
+  "input_identity": {
+    "inputs": {
+      "prompt_length": 8192,
+      "prompt_sha256": "fe53282d0b732f6a1cbd9b6587903127f73ba645f2303a246656286704142afa",
+      "last_prompt_token": 9249,
+      "initial_position": 8192,
+      "first_token_id": 6500,
+      "request_id": "ba210bea41854af3",
+      "generation": 1,
+      "prefix_file": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/main-prefix/rank-0.pt",
+      "prefix_sha256": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+      "capture_manifest_sha256": "b01cceb2d2e30564807ce9efc441ad535999b56b73d0c333e93bb18694ccda74"
+    },
+    "tokens": [
+      6500,
+      382,
+      262,
+      576
+    ],
+    "checkpoint_sha256": {
+      "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+      "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+      "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+    },
+    "shape_contract": {
+      "scheduler_max_num_seqs": 4,
+      "actual_requests": 1,
+      "query_width": 4,
+      "static_bucket": [
+        4
+      ]
+    },
+    "hidden_boundary": "Backbone final RMSNorm after resident layer0"
+  },
+  "numerical": {
+    "ranks": 16,
+    "device_checks": 912,
+    "compiled_reset_exact_ranks": 16,
+    "graph_reset_exact_ranks": 16,
+    "graph_vs_compiled_exact_ranks": 16,
+    "profile_last_output_vs_graph_reset_exact_ranks": 16,
+    "full_prefix_scope": "Source-bound exact device checks; full prefix not serialized with each phase."
+  },
+  "executed_fusion": {
+    "observed": true,
+    "profiled_ranks": [
+      0,
+      14
+    ],
+    "per_replay_super_tasks": 6,
+    "different_endpoint_groups": 4,
+    "single_endpoint_wrappers": 2,
+    "per_replay_standalone_compute_tasks": 28,
+    "per_replay_separate_allreduce_aicpu_tasks": 3,
+    "membership_scope": "Trace names directly identify first/last package entry. Package lists 16 eligible suboperators; interior group membership is not enumerated by Level0.",
+    "physical_core_activity_measured": false
+  },
+  "package_endpoint_bindings": {
+    "static_kernel_AddRmsNormBias_2b06a22c1901a97450a79c414dbe4c7f020a6ca875d500af5a9bd1da0eac4f62_1552443_d0__kernel0": {
+      "op": "AddRmsNormBias",
+      "archive_member": "./static_kernel/ai_core/static_kernel_261018062809818734_1552443/ascend910_93/AddRmsNormBias/static_kernel_AddRmsNormBias_2b06a22c1901a97450a79c414dbe4c7f020a6ca875d500af5a9bd1da0eac4f62_1552443_d0.json",
+      "json_sha256": "b30c486f4e68f8c11fa275ffed993a1e161cf4dce23b5b5c7ee02b91e26f9d27",
+      "binary_sha256": "d3fbc41ab9054436ad653fe55f3f1a362fab00443c3ce6868bb28125ef8a7db1",
+      "support_super_kernel": 1,
+      "kernel_type": "KERNEL_TYPE_AIV_ONLY",
+      "block_dim": 4,
+      "input_shapes": [
+        [
+          4,
+          6144
+        ],
+        [
+          4,
+          6144
+        ],
+        [
+          6144
+        ],
+        [
+          6144
+        ]
+      ],
+      "sub_operator_functions": {
+        "AiCore": "static_kernel_AddRmsNormBias_2b06a22c1901a97450a79c414dbe4c7f020a6ca875d500af5a9bd1da0eac4f62_1552443_d0__kernel0_middle"
+      }
+    },
+    "static_kernel_AddRmsNormDynamicQuant_8f5ed3a3389b33fb721333f74af54eee4e11f42e8c0c9f6166373d3756789d2c_1552443_d0__kernel0": {
+      "op": "AddRmsNormDynamicQuant",
+      "archive_member": "./static_kernel/ai_core/static_kernel_261018062809818734_1552443/ascend910_93/AddRmsNormDynamicQuant/static_kernel_AddRmsNormDynamicQuant_8f5ed3a3389b33fb721333f74af54eee4e11f42e8c0c9f6166373d3756789d2c_1552443_d0.json",
+      "json_sha256": "c96c0e51378b847e0d88c3f3ce1eea94c7618a8458095b2bfd30f9c1446fd106",
+      "binary_sha256": "5e5fba04b424284cac0076905c03f59977d4d8f7145e1b586fee3820e60c1899",
+      "support_super_kernel": 1,
+      "kernel_type": "KERNEL_TYPE_AIV_ONLY",
+      "block_dim": 4,
+      "input_shapes": [
+        [
+          4,
+          6144
+        ],
+        [
+          4,
+          6144
+        ],
+        [
+          6144
+        ],
+        [
+          6144
+        ]
+      ],
+      "sub_operator_functions": {
+        "AiCore": "static_kernel_AddRmsNormDynamicQuant_8f5ed3a3389b33fb721333f74af54eee4e11f42e8c0c9f6166373d3756789d2c_1552443_d0__kernel0_middle"
+      }
+    },
+    "static_kernel_LightningIndexer_73dacee9e470f2383b050f5a96343a75f6be8d7dbc6a037451e35d0c4def057d_1552443_d0": {
+      "op": "LightningIndexer",
+      "archive_member": "./static_kernel/ai_core/static_kernel_261018062809818734_1552443/ascend910_93/LightningIndexer/static_kernel_LightningIndexer_73dacee9e470f2383b050f5a96343a75f6be8d7dbc6a037451e35d0c4def057d_1552443_d0.json",
+      "json_sha256": "801d5ff40b1486e5836352553670da4c541f6a54e8eea6ea90bb3e7134049d15",
+      "binary_sha256": "c7c9cedf89770b560e6f03bedd596426a154e9d748e87211c28a72049b6f190f",
+      "support_super_kernel": 1,
+      "kernel_type": "KERNEL_TYPE_MIX_AIC_1_2",
+      "block_dim": 24,
+      "input_shapes": [
+        [
+          4,
+          32,
+          128
+        ],
+        [
+          65,
+          128,
+          1,
+          128
+        ],
+        [
+          4,
+          32
+        ],
+        [
+          1
+        ],
+        [
+          1
+        ],
+        [
+          1,
+          65
+        ]
+      ],
+      "sub_operator_functions": {
+        "dav-c220-cube": "static_kernel_LightningIndexer_73dacee9e470f2383b050f5a96343a75f6be8d7dbc6a037451e35d0c4def057d_1552443_d0_mix_aic_middle",
+        "dav-c220-vec": "static_kernel_LightningIndexer_73dacee9e470f2383b050f5a96343a75f6be8d7dbc6a037451e35d0c4def057d_1552443_d0_mix_aiv_middle"
+      }
+    },
+    "static_kernel_MlaPrologV3_4b65d3bdf4e5e12ea4151336ba71ee145d92e7d1dcdd5e1629d9a1ce23896b47_1552443_d0": {
+      "op": "MlaPrologV3",
+      "archive_member": "./static_kernel/ai_core/static_kernel_261018062809818734_1552443/ascend910_93/MlaPrologV3/static_kernel_MlaPrologV3_4b65d3bdf4e5e12ea4151336ba71ee145d92e7d1dcdd5e1629d9a1ce23896b47_1552443_d0.json",
+      "json_sha256": "2c40b29adb8ad6d425cbd117650d1d69484391aae886d0a1e7a024a1d24cc5e1",
+      "binary_sha256": "e0b3e0765ea9f6086b45fee67c411a65e3b68d17e5952ed310fb1ea83f85aa90",
+      "support_super_kernel": 1,
+      "kernel_type": "KERNEL_TYPE_MIX_AIC_1_2",
+      "block_dim": 24,
+      "input_shapes": [
+        [
+          4,
+          6144
+        ],
+        [
+          6144,
+          2048
+        ],
+        [
+          2048,
+          1024
+        ],
+        [
+          4,
+          192,
+          512
+        ],
+        [
+          6144,
+          576
+        ],
+        [
+          2048
+        ],
+        [
+          512
+        ],
+        [
+          4,
+          64
+        ],
+        [
+          4,
+          64
+        ],
+        [
+          65,
+          128,
+          1,
+          512
+        ],
+        [
+          65,
+          128,
+          1,
+          64
+        ],
+        [
+          4
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          1,
+          2048
+        ],
+        [
+          1,
+          1024
+        ],
+        [
+          1,
+          576
+        ]
+      ],
+      "sub_operator_functions": {
+        "dav-c220-cube": "static_kernel_MlaPrologV3_4b65d3bdf4e5e12ea4151336ba71ee145d92e7d1dcdd5e1629d9a1ce23896b47_1552443_d0_mix_aic_middle",
+        "dav-c220-vec": "static_kernel_MlaPrologV3_4b65d3bdf4e5e12ea4151336ba71ee145d92e7d1dcdd5e1629d9a1ce23896b47_1552443_d0_mix_aiv_middle"
+      }
+    },
+    "static_kernel_QuantBatchMatmulV3_137acff1dfb91b01e0b0928ea850e13326adc2f3adadc1c187ba01e39b3ab6da_1552443_d0": {
+      "op": "QuantBatchMatmulV3",
+      "archive_member": "./static_kernel/ai_core/static_kernel_261018062809818734_1552443/ascend910_93/QuantBatchMatmulV3/static_kernel_QuantBatchMatmulV3_137acff1dfb91b01e0b0928ea850e13326adc2f3adadc1c187ba01e39b3ab6da_1552443_d0.json",
+      "json_sha256": "d941a1c4b3553896d80eb6264040545ee462d2b426b44c2e405f788e09e570d0",
+      "binary_sha256": "4c840a1988411ffc59301361a960fadf133246a35a3d2065c9789cc5f169143a",
+      "support_super_kernel": 1,
+      "kernel_type": "KERNEL_TYPE_MIX_AIC_1_1",
+      "block_dim": 24,
+      "input_shapes": [
+        [
+          4,
+          1024
+        ],
+        [
+          192,
+          64,
+          16,
+          32
+        ],
+        [
+          6144
+        ],
+        [
+          4
+        ]
+      ],
+      "sub_operator_functions": {
+        "dav-c220-cube": "static_kernel_QuantBatchMatmulV3_137acff1dfb91b01e0b0928ea850e13326adc2f3adadc1c187ba01e39b3ab6da_1552443_d0_mix_aic_middle",
+        "dav-c220-vec": "static_kernel_QuantBatchMatmulV3_137acff1dfb91b01e0b0928ea850e13326adc2f3adadc1c187ba01e39b3ab6da_1552443_d0_mix_aiv_middle"
+      }
+    },
+    "static_kernel_QuantBatchMatmulV3_8b6d129d722013a0c4bb603009ae8a63635e026af38815eba6a8b2f40efeb43e_1552443_d0": {
+      "op": "QuantBatchMatmulV3",
+      "archive_member": "./static_kernel/ai_core/static_kernel_261018062809818734_1552443/ascend910_93/QuantBatchMatmulV3/static_kernel_QuantBatchMatmulV3_8b6d129d722013a0c4bb603009ae8a63635e026af38815eba6a8b2f40efeb43e_1552443_d0.json",
+      "json_sha256": "d420aad12c274e41b197a942d8b3dfdf621dd03d248b44ea28b2e315008b2ed5",
+      "binary_sha256": "d6de6c270d0b479ab393ef3777a327f79ba0cb74f5109c6668c96cd8c7b4fe24",
+      "support_super_kernel": 1,
+      "kernel_type": "KERNEL_TYPE_MIX_AIC_1_1",
+      "block_dim": 24,
+      "input_shapes": [
+        [
+          4,
+          768
+        ],
+        [
+          192,
+          48,
+          16,
+          32
+        ],
+        [
+          6144
+        ],
+        [
+          4
+        ]
+      ],
+      "sub_operator_functions": {
+        "dav-c220-cube": "static_kernel_QuantBatchMatmulV3_8b6d129d722013a0c4bb603009ae8a63635e026af38815eba6a8b2f40efeb43e_1552443_d0_mix_aic_middle",
+        "dav-c220-vec": "static_kernel_QuantBatchMatmulV3_8b6d129d722013a0c4bb603009ae8a63635e026af38815eba6a8b2f40efeb43e_1552443_d0_mix_aiv_middle"
+      }
+    },
+    "static_kernel_QuantBatchMatmulV3_bb3b6632c9ec8cd358b11810fc729d4b93c1b701d39d9bfc982f071a7bac01dc_1552443_d0": {
+      "op": "QuantBatchMatmulV3",
+      "archive_member": "./static_kernel/ai_core/static_kernel_261018062809818734_1552443/ascend910_93/QuantBatchMatmulV3/static_kernel_QuantBatchMatmulV3_bb3b6632c9ec8cd358b11810fc729d4b93c1b701d39d9bfc982f071a7bac01dc_1552443_d0.json",
+      "json_sha256": "d14f30e342a47a9dadfddf8ec962198313192f5e339c3826b8262db77d548860",
+      "binary_sha256": "c6846625b673c7c209d3666996c8b4ffc543af5a67a828948ba43e3cc6712b42",
+      "support_super_kernel": 1,
+      "kernel_type": "KERNEL_TYPE_MIX_AIC_1_1",
+      "block_dim": 16,
+      "input_shapes": [
+        [
+          4,
+          2048
+        ],
+        [
+          128,
+          128,
+          16,
+          32
+        ],
+        [
+          4096
+        ],
+        [
+          4
+        ]
+      ],
+      "sub_operator_functions": {
+        "dav-c220-cube": "static_kernel_QuantBatchMatmulV3_bb3b6632c9ec8cd358b11810fc729d4b93c1b701d39d9bfc982f071a7bac01dc_1552443_d0_mix_aic_middle",
+        "dav-c220-vec": "static_kernel_QuantBatchMatmulV3_bb3b6632c9ec8cd358b11810fc729d4b93c1b701d39d9bfc982f071a7bac01dc_1552443_d0_mix_aiv_middle"
+      }
+    },
+    "static_kernel_RmsNorm_0f8ff4f487f9c461452fe56cd90bd89c462b6c1d8f4b754d068dc22ff81df10f_1552443_d0__kernel0": {
+      "op": "RmsNorm",
+      "archive_member": "./static_kernel/ai_core/static_kernel_261018062809818734_1552443/ascend910_93/RmsNorm/static_kernel_RmsNorm_0f8ff4f487f9c461452fe56cd90bd89c462b6c1d8f4b754d068dc22ff81df10f_1552443_d0.json",
+      "json_sha256": "332a69e8b2d176056509f9d86f217c9fca9d2f6771edacdceedeeb07972a778f",
+      "binary_sha256": "4919cec66054aa75083da0c3271edb62f6dfca96c904fa8a02c62073e126cc78",
+      "support_super_kernel": 1,
+      "kernel_type": "KERNEL_TYPE_AIV_ONLY",
+      "block_dim": 4,
+      "input_shapes": [
+        [
+          4,
+          6144
+        ],
+        [
+          6144
+        ]
+      ],
+      "sub_operator_functions": {
+        "AiCore": "static_kernel_RmsNorm_0f8ff4f487f9c461452fe56cd90bd89c462b6c1d8f4b754d068dc22ff81df10f_1552443_d0__kernel0_middle"
+      }
+    },
+    "static_kernel_ScatterNdUpdateSk_1fd8c8cdf5d5ee2630d3b1a5439a1c09fe6d3cda62ce0fd266f63eee7f356508_1552443_d0__kernel0": {
+      "op": "ScatterNdUpdateSk",
+      "archive_member": "./static_kernel/ai_core/static_kernel_261018062809818734_1552443/ascend910_93/ScatterNdUpdateSk/static_kernel_ScatterNdUpdateSk_1fd8c8cdf5d5ee2630d3b1a5439a1c09fe6d3cda62ce0fd266f63eee7f356508_1552443_d0.json",
+      "json_sha256": "49bc3a6fd84e446b27c9a588d3653517aa87120bafa2b97908a6f3a9b7e785b7",
+      "binary_sha256": "11aaf6e33f7d188141f9d9d658f31d827e1b8cc106f752934155b6b39f123bfa",
+      "support_super_kernel": 1,
+      "kernel_type": "KERNEL_TYPE_AIV_ONLY",
+      "block_dim": 48,
+      "input_shapes": [
+        [
+          8320,
+          128
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          128
+        ]
+      ],
+      "sub_operator_functions": {
+        "AiCore": "static_kernel_ScatterNdUpdateSk_1fd8c8cdf5d5ee2630d3b1a5439a1c09fe6d3cda62ce0fd266f63eee7f356508_1552443_d0__kernel0_middle"
+      }
+    },
+    "static_kernel_SparseFlashAttention_b99e7d525ddc770a81b7cd1ff41e571f23cbb2e9ab26a17203524087d7f73622_1552443_d0": {
+      "op": "SparseFlashAttention",
+      "archive_member": "./static_kernel/ai_core/static_kernel_261018062809818734_1552443/ascend910_93/SparseFlashAttention/static_kernel_SparseFlashAttention_b99e7d525ddc770a81b7cd1ff41e571f23cbb2e9ab26a17203524087d7f73622_1552443_d0.json",
+      "json_sha256": "cbe85a53ada54f2415751347100b99997a1fcae75aace7f21da37e40ce66fafb",
+      "binary_sha256": "8697c3243003309452c321a8850e9b3c2ccda0a33a61f7ad3870fdeff121f23b",
+      "support_super_kernel": 1,
+      "kernel_type": "KERNEL_TYPE_MIX_AIC_1_2",
+      "block_dim": 24,
+      "input_shapes": [
+        [
+          4,
+          4,
+          512
+        ],
+        [
+          65,
+          128,
+          1,
+          512
+        ],
+        [
+          65,
+          128,
+          1,
+          512
+        ],
+        [
+          4,
+          1,
+          2048
+        ],
+        [
+          1,
+          65
+        ],
+        [
+          1
+        ],
+        [
+          1
+        ],
+        [
+          4,
+          4,
+          64
+        ],
+        [
+          65,
+          128,
+          1,
+          64
+        ]
+      ],
+      "sub_operator_functions": {
+        "dav-c220-cube": "static_kernel_SparseFlashAttention_b99e7d525ddc770a81b7cd1ff41e571f23cbb2e9ab26a17203524087d7f73622_1552443_d0_mix_aic_middle",
+        "dav-c220-vec": "static_kernel_SparseFlashAttention_b99e7d525ddc770a81b7cd1ff41e571f23cbb2e9ab26a17203524087d7f73622_1552443_d0_mix_aiv_middle"
+      }
+    }
+  },
+  "package_scope": "The .run contains per-op binaries with supportSuperKernel=1. sk_14..sk_19 are graph-time fused task names; first/last names bind to 10 package entries. Level0 does not enumerate interiors.",
+  "profiles": [
+    {
+      "rank": 0,
+      "model_id": 46,
+      "raw_files_verified": 73,
+      "export_manifest": "/workspace/offline/cann-resident-static-super-20261018-01/profile-analysis-01/export-0.json",
+      "export_manifest_sha256": "8f2638723b75278d80f983a12ef996beef7bc10ae6fb67323618e0344114cadb",
+      "replays": [
+        {
+          "marker": "layer0.static_super.replay0",
+          "api": "aclmdlRIExecuteAsync",
+          "api_connection_id": 21,
+          "cpu_marker_ns": [
+            1792276882520163790,
+            1792276882521456670
+          ],
+          "host_api_ns": [
+            1792276882520992210,
+            1792276882521352670
+          ],
+          "model_device_ns": [
+            1792276882521352510,
+            1792276882527880350
+          ],
+          "model_id": 46,
+          "model_stream": 8,
+          "model_execute_task": 626,
+          "model_wait_task": 627,
+          "super_tasks": 6,
+          "standalone_compute_tasks": 28,
+          "allreduce_aicpu_tasks": 3,
+          "async_tail_after_marker_us": 6423.68
+        },
+        {
+          "marker": "layer0.static_super.replay1",
+          "api": "aclmdlRIExecuteAsync",
+          "api_connection_id": 23,
+          "cpu_marker_ns": [
+            1792276882521503880,
+            1792276882521602520
+          ],
+          "host_api_ns": [
+            1792276882521543950,
+            1792276882521582240
+          ],
+          "model_device_ns": [
+            1792276882527882590,
+            1792276882533808650
+          ],
+          "model_id": 46,
+          "model_stream": 8,
+          "model_execute_task": 632,
+          "model_wait_task": 633,
+          "super_tasks": 6,
+          "standalone_compute_tasks": 28,
+          "allreduce_aicpu_tasks": 3,
+          "async_tail_after_marker_us": 12206.13
+        },
+        {
+          "marker": "layer0.static_super.replay2",
+          "api": "aclmdlRIExecuteAsync",
+          "api_connection_id": 25,
+          "cpu_marker_ns": [
+            1792276882521621580,
+            1792276882521715040
+          ],
+          "host_api_ns": [
+            1792276882521653210,
+            1792276882521697130
+          ],
+          "model_device_ns": [
+            1792276882533810910,
+            1792276882540247910
+          ],
+          "model_id": 46,
+          "model_stream": 8,
+          "model_execute_task": 638,
+          "model_wait_task": 639,
+          "super_tasks": 6,
+          "standalone_compute_tasks": 28,
+          "allreduce_aicpu_tasks": 3,
+          "async_tail_after_marker_us": 18532.87
+        }
+      ],
+      "groups": [
+        {
+          "endpoint_ops": [
+            "RmsNorm",
+            "MlaPrologV3"
+          ],
+          "multiple_distinct_endpoint_ops": true,
+          "task_id": 22,
+          "stream_id": 59,
+          "task_type": "KERNEL_MIX_AIC",
+          "recorded_block_num": 24,
+          "recorded_mix_block_num": 48,
+          "durations_us": [
+            1724.58,
+            36.72,
+            46.72
+          ],
+          "name_prefix": "sk_14",
+          "endpoint_kernels": [
+            "static_kernel_RmsNorm_0f8ff4f487f9c461452fe56cd90bd89c462b6c1d8f4b754d068dc22ff81df10f_1552443_d0__kernel0",
+            "static_kernel_MlaPrologV3_4b65d3bdf4e5e12ea4151336ba71ee145d92e7d1dcdd5e1629d9a1ce23896b47_1552443_d0"
+          ]
+        },
+        {
+          "endpoint_ops": [
+            "ScatterNdUpdateSk",
+            "QuantBatchMatmulV3"
+          ],
+          "multiple_distinct_endpoint_ops": true,
+          "task_id": 31,
+          "stream_id": 59,
+          "task_type": "KERNEL_MIX_AIC",
+          "recorded_block_num": 24,
+          "recorded_mix_block_num": 48,
+          "durations_us": [
+            17.22,
+            15.14,
+            16.7
+          ],
+          "name_prefix": "sk_15",
+          "endpoint_kernels": [
+            "static_kernel_ScatterNdUpdateSk_1fd8c8cdf5d5ee2630d3b1a5439a1c09fe6d3cda62ce0fd266f63eee7f356508_1552443_d0__kernel0",
+            "static_kernel_QuantBatchMatmulV3_bb3b6632c9ec8cd358b11810fc729d4b93c1b701d39d9bfc982f071a7bac01dc_1552443_d0"
+          ]
+        },
+        {
+          "endpoint_ops": [
+            "LightningIndexer",
+            "LightningIndexer"
+          ],
+          "multiple_distinct_endpoint_ops": false,
+          "task_id": 35,
+          "stream_id": 59,
+          "task_type": "KERNEL_MIX_AIC",
+          "recorded_block_num": 24,
+          "recorded_mix_block_num": 48,
+          "durations_us": [
+            33.52,
+            33.54,
+            34.7
+          ],
+          "name_prefix": "sk_16",
+          "endpoint_kernels": [
+            "static_kernel_LightningIndexer_73dacee9e470f2383b050f5a96343a75f6be8d7dbc6a037451e35d0c4def057d_1552443_d0",
+            "static_kernel_LightningIndexer_73dacee9e470f2383b050f5a96343a75f6be8d7dbc6a037451e35d0c4def057d_1552443_d0"
+          ]
+        },
+        {
+          "endpoint_ops": [
+            "SparseFlashAttention",
+            "QuantBatchMatmulV3"
+          ],
+          "multiple_distinct_endpoint_ops": true,
+          "task_id": 37,
+          "stream_id": 59,
+          "task_type": "KERNEL_MIX_AIC",
+          "recorded_block_num": 24,
+          "recorded_mix_block_num": 48,
+          "durations_us": [
+            88.68,
+            84.78,
+            87.44
+          ],
+          "name_prefix": "sk_17",
+          "endpoint_kernels": [
+            "static_kernel_SparseFlashAttention_b99e7d525ddc770a81b7cd1ff41e571f23cbb2e9ab26a17203524087d7f73622_1552443_d0",
+            "static_kernel_QuantBatchMatmulV3_137acff1dfb91b01e0b0928ea850e13326adc2f3adadc1c187ba01e39b3ab6da_1552443_d0"
+          ]
+        },
+        {
+          "endpoint_ops": [
+            "AddRmsNormDynamicQuant",
+            "QuantBatchMatmulV3"
+          ],
+          "multiple_distinct_endpoint_ops": true,
+          "task_id": 46,
+          "stream_id": 59,
+          "task_type": "KERNEL_MIX_AIC",
+          "recorded_block_num": 24,
+          "recorded_mix_block_num": 24,
+          "durations_us": [
+            33.08,
+            1781.64,
+            31.18
+          ],
+          "name_prefix": "sk_18",
+          "endpoint_kernels": [
+            "static_kernel_AddRmsNormDynamicQuant_8f5ed3a3389b33fb721333f74af54eee4e11f42e8c0c9f6166373d3756789d2c_1552443_d0__kernel0",
+            "static_kernel_QuantBatchMatmulV3_8b6d129d722013a0c4bb603009ae8a63635e026af38815eba6a8b2f40efeb43e_1552443_d0"
+          ]
+        },
+        {
+          "endpoint_ops": [
+            "AddRmsNormBias",
+            "AddRmsNormBias"
+          ],
+          "multiple_distinct_endpoint_ops": false,
+          "task_id": 55,
+          "stream_id": 59,
+          "task_type": "KERNEL_MIX_AIV",
+          "recorded_block_num": 4,
+          "recorded_mix_block_num": 0,
+          "durations_us": [
+            4.18,
+            4.18,
+            5.28
+          ],
+          "name_prefix": "sk_19",
+          "endpoint_kernels": [
+            "static_kernel_AddRmsNormBias_2b06a22c1901a97450a79c414dbe4c7f020a6ca875d500af5a9bd1da0eac4f62_1552443_d0__kernel0",
+            "static_kernel_AddRmsNormBias_2b06a22c1901a97450a79c414dbe4c7f020a6ca875d500af5a9bd1da0eac4f62_1552443_d0__kernel0"
+          ]
+        }
+      ],
+      "standalone_compute_counts_all_three": {
+        "aclnnGeScalar_CastAiCore_Cast": 3,
+        "aclnnGeScalar_GreaterEqual_GreaterEqual": 3,
+        "aclnnLtScalar_CastAiCore_Cast": 3,
+        "aclnnLtScalar_LessAiCore_Less": 3,
+        "aclnnBitwiseAndTensor_LogicalAndAiCore_LogicalAnd": 3,
+        "aclnnMuls_CastAiCore_Cast": 3,
+        "aclnnMuls_MulAiCore_Mul": 3,
+        "aclnnSub_CastAiCore_Cast": 3,
+        "aclnnSub_SubAiCore_Sub": 3,
+        "aclnnMul_CastAiCore_Cast": 3,
+        "aclnnMul_MulAiCore_Mul": 3,
+        "aclnnBitwiseNot_LogicalNotAiCore_LogicalNot": 3,
+        "aclnnEmbedding_GatherV2AiCore_GatherV2": 3,
+        "aclnnInplaceMaskedFillScalar_MaskedFillAiCore_MaskedFill": 3,
+        "aclnnInplaceCopy_CastAiCore_Cast": 24,
+        "aclnnMatmul_MatMulCommon_MatMulV2": 3,
+        "aclnnInplaceCopy_SliceAiCore_Slice": 3,
+        "aclnnLayerNormWithImplMode_LayerNormV3WithImplMode_LayerNormV3": 3,
+        "_triton_rope_siso": 6,
+        "aclnnContiguous_SliceAiCore_Slice": 3
+      },
+      "final_sync_ns": [
+        1792276882521777740,
+        1792276882540282020
+      ],
+      "correlation": "CPU marker -> aclmdlRIExecuteAsync connectionId -> MODEL_EXECUTE/WAIT; enclosed model tasks by interval. Capture-time task connections repeat across replay."
+    },
+    {
+      "rank": 14,
+      "model_id": 46,
+      "raw_files_verified": 73,
+      "export_manifest": "/workspace/offline/cann-resident-static-super-20261018-01/profile-analysis-01/export-14.json",
+      "export_manifest_sha256": "0fe6f78430ebbf30ef1977e1eb01ee6a4001a2a8b91750e8524790a6df96d171",
+      "replays": [
+        {
+          "marker": "layer0.static_super.replay0",
+          "api": "aclmdlRIExecuteAsync",
+          "api_connection_id": 21,
+          "cpu_marker_ns": [
+            1792276882520131680,
+            1792276882521460340
+          ],
+          "host_api_ns": [
+            1792276882520992360,
+            1792276882521361840
+          ],
+          "model_device_ns": [
+            1792276882521330770,
+            1792276882527883670
+          ],
+          "model_id": 46,
+          "model_stream": 41,
+          "model_execute_task": 626,
+          "model_wait_task": 627,
+          "super_tasks": 6,
+          "standalone_compute_tasks": 28,
+          "allreduce_aicpu_tasks": 3,
+          "async_tail_after_marker_us": 6423.33
+        },
+        {
+          "marker": "layer0.static_super.replay1",
+          "api": "aclmdlRIExecuteAsync",
+          "api_connection_id": 23,
+          "cpu_marker_ns": [
+            1792276882521505370,
+            1792276882521617500
+          ],
+          "host_api_ns": [
+            1792276882521565810,
+            1792276882521597860
+          ],
+          "model_device_ns": [
+            1792276882527886090,
+            1792276882533810770
+          ],
+          "model_id": 46,
+          "model_stream": 41,
+          "model_execute_task": 632,
+          "model_wait_task": 633,
+          "super_tasks": 6,
+          "standalone_compute_tasks": 28,
+          "allreduce_aicpu_tasks": 3,
+          "async_tail_after_marker_us": 12193.27
+        },
+        {
+          "marker": "layer0.static_super.replay2",
+          "api": "aclmdlRIExecuteAsync",
+          "api_connection_id": 25,
+          "cpu_marker_ns": [
+            1792276882521634870,
+            1792276882521783480
+          ],
+          "host_api_ns": [
+            1792276882521665900,
+            1792276882521765660
+          ],
+          "model_device_ns": [
+            1792276882533813110,
+            1792276882540248190
+          ],
+          "model_id": 46,
+          "model_stream": 41,
+          "model_execute_task": 638,
+          "model_wait_task": 639,
+          "super_tasks": 6,
+          "standalone_compute_tasks": 28,
+          "allreduce_aicpu_tasks": 3,
+          "async_tail_after_marker_us": 18464.71
+        }
+      ],
+      "groups": [
+        {
+          "endpoint_ops": [
+            "RmsNorm",
+            "MlaPrologV3"
+          ],
+          "multiple_distinct_endpoint_ops": true,
+          "task_id": 22,
+          "stream_id": 89,
+          "task_type": "KERNEL_MIX_AIC",
+          "recorded_block_num": 24,
+          "recorded_mix_block_num": 48,
+          "durations_us": [
+            48.04,
+            2143.34,
+            36.2
+          ],
+          "name_prefix": "sk_14",
+          "endpoint_kernels": [
+            "static_kernel_RmsNorm_0f8ff4f487f9c461452fe56cd90bd89c462b6c1d8f4b754d068dc22ff81df10f_1552443_d0__kernel0",
+            "static_kernel_MlaPrologV3_4b65d3bdf4e5e12ea4151336ba71ee145d92e7d1dcdd5e1629d9a1ce23896b47_1552443_d0"
+          ]
+        },
+        {
+          "endpoint_ops": [
+            "ScatterNdUpdateSk",
+            "QuantBatchMatmulV3"
+          ],
+          "multiple_distinct_endpoint_ops": true,
+          "task_id": 31,
+          "stream_id": 89,
+          "task_type": "KERNEL_MIX_AIC",
+          "recorded_block_num": 24,
+          "recorded_mix_block_num": 48,
+          "durations_us": [
+            16.68,
+            15.9,
+            16.24
+          ],
+          "name_prefix": "sk_15",
+          "endpoint_kernels": [
+            "static_kernel_ScatterNdUpdateSk_1fd8c8cdf5d5ee2630d3b1a5439a1c09fe6d3cda62ce0fd266f63eee7f356508_1552443_d0__kernel0",
+            "static_kernel_QuantBatchMatmulV3_bb3b6632c9ec8cd358b11810fc729d4b93c1b701d39d9bfc982f071a7bac01dc_1552443_d0"
+          ]
+        },
+        {
+          "endpoint_ops": [
+            "LightningIndexer",
+            "LightningIndexer"
+          ],
+          "multiple_distinct_endpoint_ops": false,
+          "task_id": 35,
+          "stream_id": 89,
+          "task_type": "KERNEL_MIX_AIC",
+          "recorded_block_num": 24,
+          "recorded_mix_block_num": 48,
+          "durations_us": [
+            34.36,
+            34.54,
+            33.9
+          ],
+          "name_prefix": "sk_16",
+          "endpoint_kernels": [
+            "static_kernel_LightningIndexer_73dacee9e470f2383b050f5a96343a75f6be8d7dbc6a037451e35d0c4def057d_1552443_d0",
+            "static_kernel_LightningIndexer_73dacee9e470f2383b050f5a96343a75f6be8d7dbc6a037451e35d0c4def057d_1552443_d0"
+          ]
+        },
+        {
+          "endpoint_ops": [
+            "SparseFlashAttention",
+            "QuantBatchMatmulV3"
+          ],
+          "multiple_distinct_endpoint_ops": true,
+          "task_id": 37,
+          "stream_id": 89,
+          "task_type": "KERNEL_MIX_AIC",
+          "recorded_block_num": 24,
+          "recorded_mix_block_num": 48,
+          "durations_us": [
+            88.96,
+            92.54,
+            86.38
+          ],
+          "name_prefix": "sk_17",
+          "endpoint_kernels": [
+            "static_kernel_SparseFlashAttention_b99e7d525ddc770a81b7cd1ff41e571f23cbb2e9ab26a17203524087d7f73622_1552443_d0",
+            "static_kernel_QuantBatchMatmulV3_137acff1dfb91b01e0b0928ea850e13326adc2f3adadc1c187ba01e39b3ab6da_1552443_d0"
+          ]
+        },
+        {
+          "endpoint_ops": [
+            "AddRmsNormDynamicQuant",
+            "QuantBatchMatmulV3"
+          ],
+          "multiple_distinct_endpoint_ops": true,
+          "task_id": 46,
+          "stream_id": 89,
+          "task_type": "KERNEL_MIX_AIC",
+          "recorded_block_num": 24,
+          "recorded_mix_block_num": 24,
+          "durations_us": [
+            33.26,
+            30.74,
+            2794.12
+          ],
+          "name_prefix": "sk_18",
+          "endpoint_kernels": [
+            "static_kernel_AddRmsNormDynamicQuant_8f5ed3a3389b33fb721333f74af54eee4e11f42e8c0c9f6166373d3756789d2c_1552443_d0__kernel0",
+            "static_kernel_QuantBatchMatmulV3_8b6d129d722013a0c4bb603009ae8a63635e026af38815eba6a8b2f40efeb43e_1552443_d0"
+          ]
+        },
+        {
+          "endpoint_ops": [
+            "AddRmsNormBias",
+            "AddRmsNormBias"
+          ],
+          "multiple_distinct_endpoint_ops": false,
+          "task_id": 55,
+          "stream_id": 89,
+          "task_type": "KERNEL_MIX_AIV",
+          "recorded_block_num": 4,
+          "recorded_mix_block_num": 0,
+          "durations_us": [
+            5.48,
+            4.28,
+            4.34
+          ],
+          "name_prefix": "sk_19",
+          "endpoint_kernels": [
+            "static_kernel_AddRmsNormBias_2b06a22c1901a97450a79c414dbe4c7f020a6ca875d500af5a9bd1da0eac4f62_1552443_d0__kernel0",
+            "static_kernel_AddRmsNormBias_2b06a22c1901a97450a79c414dbe4c7f020a6ca875d500af5a9bd1da0eac4f62_1552443_d0__kernel0"
+          ]
+        }
+      ],
+      "standalone_compute_counts_all_three": {
+        "aclnnGeScalar_CastAiCore_Cast": 3,
+        "aclnnGeScalar_GreaterEqual_GreaterEqual": 3,
+        "aclnnLtScalar_CastAiCore_Cast": 3,
+        "aclnnLtScalar_LessAiCore_Less": 3,
+        "aclnnBitwiseAndTensor_LogicalAndAiCore_LogicalAnd": 3,
+        "aclnnMuls_CastAiCore_Cast": 3,
+        "aclnnMuls_MulAiCore_Mul": 3,
+        "aclnnSub_CastAiCore_Cast": 3,
+        "aclnnSub_SubAiCore_Sub": 3,
+        "aclnnMul_CastAiCore_Cast": 3,
+        "aclnnMul_MulAiCore_Mul": 3,
+        "aclnnBitwiseNot_LogicalNotAiCore_LogicalNot": 3,
+        "aclnnEmbedding_GatherV2AiCore_GatherV2": 3,
+        "aclnnInplaceMaskedFillScalar_MaskedFillAiCore_MaskedFill": 3,
+        "aclnnInplaceCopy_CastAiCore_Cast": 24,
+        "aclnnMatmul_MatMulCommon_MatMulV2": 3,
+        "aclnnInplaceCopy_SliceAiCore_Slice": 3,
+        "aclnnLayerNormWithImplMode_LayerNormV3WithImplMode_LayerNormV3": 3,
+        "_triton_rope_siso": 6,
+        "aclnnContiguous_SliceAiCore_Slice": 3
+      },
+      "final_sync_ns": [
+        1792276882521825050,
+        1792276882540293190
+      ],
+      "correlation": "CPU marker -> aclmdlRIExecuteAsync connectionId -> MODEL_EXECUTE/WAIT; enclosed model tasks by interval. Capture-time task connections repeat across replay."
+    }
+  ],
+  "rank_reports": [
+    {
+      "rank": 0,
+      "report_sha256": "0ec1d63514a5c913198d8e718de9c36a87bc8c07151598ee18374ee961b82b7e",
+      "receipt_sha256": "e59abb95c8bc48eb752070ca4b1243c25e59164d1e893318f93b086ea28991b0",
+      "profiled_sha256": "63b8650cd6c18275726d90963ba4d26005fd363f772208dfd1fa6aeb7f30c861",
+      "device_checks": 57,
+      "raw_exact": {
+        "compiled_reset_vs_compiled": true,
+        "graph_reset_vs_graph": true,
+        "graph_vs_compiled": true
+      },
+      "profiled_vs_graph_reset_exact": true
+    },
+    {
+      "rank": 1,
+      "report_sha256": "8a50a57465821aff559d6adf4b2e079553a9df31b8124ee77d1fcfe1f57be3cf",
+      "receipt_sha256": "0d186a60cf931824cd2c1eec93db28be4b9d430cf5a3a36156c97c3648a71178",
+      "profiled_sha256": "c26bdc97fc239409b4658c662989c5b24c8871db1cdd56bc52815a1a044ff361",
+      "device_checks": 57,
+      "raw_exact": {
+        "compiled_reset_vs_compiled": true,
+        "graph_reset_vs_graph": true,
+        "graph_vs_compiled": true
+      },
+      "profiled_vs_graph_reset_exact": true
+    },
+    {
+      "rank": 2,
+      "report_sha256": "02f3b37b013e4571a3afcc225901e7917e550b40d8d8eac3ada182fca586edb2",
+      "receipt_sha256": "81c87e02346ee8237812885c02a4e2ae6aed5aacff44ddcbe63b0f8013cade23",
+      "profiled_sha256": "158a3254813856cd5396bdf0fc956b0be1c3ab94502ac2c3c6454fedac38569a",
+      "device_checks": 57,
+      "raw_exact": {
+        "compiled_reset_vs_compiled": true,
+        "graph_reset_vs_graph": true,
+        "graph_vs_compiled": true
+      },
+      "profiled_vs_graph_reset_exact": true
+    },
+    {
+      "rank": 3,
+      "report_sha256": "cacbaeaaa262926f448532b88ea1629febd4381dba18cc0a4763e699944c4466",
+      "receipt_sha256": "1ace4dffb56c0d5d8b4150a3beb54d2ac8e6dd8825d34d69636aeed20a1a1be3",
+      "profiled_sha256": "235cdbf0b9f4741349bfd503fe75ac3b39fb335a66fab0bde692066f48b9b62a",
+      "device_checks": 57,
+      "raw_exact": {
+        "compiled_reset_vs_compiled": true,
+        "graph_reset_vs_graph": true,
+        "graph_vs_compiled": true
+      },
+      "profiled_vs_graph_reset_exact": true
+    },
+    {
+      "rank": 4,
+      "report_sha256": "842ede664fa0a73470875d8d3830ebbe2616770cedd86a4e629216481df5c474",
+      "receipt_sha256": "6f555d660e14580814a3d8e4a4ed8b7dbdde2e42e432ce59422fa2acbe6d0e8e",
+      "profiled_sha256": "4fd68bf6c7094f3b08adc11c14757e66602a3a76decdb01ea8ad3cebffb59563",
+      "device_checks": 57,
+      "raw_exact": {
+        "compiled_reset_vs_compiled": true,
+        "graph_reset_vs_graph": true,
+        "graph_vs_compiled": true
+      },
+      "profiled_vs_graph_reset_exact": true
+    },
+    {
+      "rank": 5,
+      "report_sha256": "f113d55ebe80fe8abc503dfb2a627200c3593feb3356a102b30fbd26ca4e2f55",
+      "receipt_sha256": "a2b733fbab739735034a39c98040372bd4f44025dc6b5d5dbcc2bca54972bca7",
+      "profiled_sha256": "ae2ef99e91727cb882ca35fc5d4c14351d89bd8dd66f36e4da734e8c0ef1f4c9",
+      "device_checks": 57,
+      "raw_exact": {
+        "compiled_reset_vs_compiled": true,
+        "graph_reset_vs_graph": true,
+        "graph_vs_compiled": true
+      },
+      "profiled_vs_graph_reset_exact": true
+    },
+    {
+      "rank": 6,
+      "report_sha256": "2232ee116792a2c8cf1f0451812740ad348716c65738affe3dd8a1368b1f29ec",
+      "receipt_sha256": "cd7e837d1b8b486cb10be9e070a5f1fce69ff12cc50d13f08fb0b9b071088622",
+      "profiled_sha256": "a6b3f20a28c781b621c73871f9225811f2b4e2a6e6eabf70d56950df66fa2840",
+      "device_checks": 57,
+      "raw_exact": {
+        "compiled_reset_vs_compiled": true,
+        "graph_reset_vs_graph": true,
+        "graph_vs_compiled": true
+      },
+      "profiled_vs_graph_reset_exact": true
+    },
+    {
+      "rank": 7,
+      "report_sha256": "c003ec8883f14cfa79de732f05df32406cbcad1b74ab2bd97a347e72d13d18cd",
+      "receipt_sha256": "a3df46279e5c5a9624947071d983e1767673e5113a340f7b1193aa5e5ae8d05e",
+      "profiled_sha256": "eb2a7d45ecc509b1da44d1bc7777b192548fa05eee44e7f30c10424dfa45f6c2",
+      "device_checks": 57,
+      "raw_exact": {
+        "compiled_reset_vs_compiled": true,
+        "graph_reset_vs_graph": true,
+        "graph_vs_compiled": true
+      },
+      "profiled_vs_graph_reset_exact": true
+    },
+    {
+      "rank": 8,
+      "report_sha256": "2bbd12e8d58550f531c81de79c921659789a3a5f6685dbaf8ce7605f3e388c8e",
+      "receipt_sha256": "ae56d436bbdde73f9ddde592b9eaaff68f095a45af122d7b0602b72335651759",
+      "profiled_sha256": "bd6645d75b40245b4fd7802b1e1d12c59dd06b3b036f40d8925a40dda8037a3f",
+      "device_checks": 57,
+      "raw_exact": {
+        "compiled_reset_vs_compiled": true,
+        "graph_reset_vs_graph": true,
+        "graph_vs_compiled": true
+      },
+      "profiled_vs_graph_reset_exact": true
+    },
+    {
+      "rank": 9,
+      "report_sha256": "17981eedd47e0be6fb4162b2a5a12711e5f4b68ffef8fbc6288562617b12e5b9",
+      "receipt_sha256": "5e2169148f203be992e7a3d488dae7a1e7992d113c34ab4ca473353e5e8eb783",
+      "profiled_sha256": "2fc4bd9623717cf0077d89a90ef6b817be9edf1748b53ff9aa6ea5dd5243b411",
+      "device_checks": 57,
+      "raw_exact": {
+        "compiled_reset_vs_compiled": true,
+        "graph_reset_vs_graph": true,
+        "graph_vs_compiled": true
+      },
+      "profiled_vs_graph_reset_exact": true
+    },
+    {
+      "rank": 10,
+      "report_sha256": "f0a2a546a3dc992574fa35e1458802f791dfd211b1e1fdb4c47073d499160079",
+      "receipt_sha256": "5728a091b5e5b836b00d65308d17b6269a86a126987ebbee5b13bc88c9d6abf0",
+      "profiled_sha256": "0ad26fb58eb4984303717afa2d90adfc5f6cb48cfce1e6074b753e7832332018",
+      "device_checks": 57,
+      "raw_exact": {
+        "compiled_reset_vs_compiled": true,
+        "graph_reset_vs_graph": true,
+        "graph_vs_compiled": true
+      },
+      "profiled_vs_graph_reset_exact": true
+    },
+    {
+      "rank": 11,
+      "report_sha256": "a2bbe31b91d67a555912cba8640ae6d3bc7bb9c5922a7c3dcffde142b3dd4ad1",
+      "receipt_sha256": "ebfac87a9225c49bfc4d6ebb71d5976c6fe29568c0eefc54e55735009a4b2fb8",
+      "profiled_sha256": "a0d1e8370394a29b21f6eec7181212b9cda820b5bc99a976cba1d2c5d82e66de",
+      "device_checks": 57,
+      "raw_exact": {
+        "compiled_reset_vs_compiled": true,
+        "graph_reset_vs_graph": true,
+        "graph_vs_compiled": true
+      },
+      "profiled_vs_graph_reset_exact": true
+    },
+    {
+      "rank": 12,
+      "report_sha256": "d65d083017b0421581107b7adbc5c5dcc9770f7aaf309893baf778505fb6ad2d",
+      "receipt_sha256": "e929f09e1f8175b1da219614df60c21da06bc9c35eae7496a85003d49d9160d7",
+      "profiled_sha256": "a7cba67e3c767a2fd0a0af86d0e7a34a2cd22e03d567a062319d67f205030469",
+      "device_checks": 57,
+      "raw_exact": {
+        "compiled_reset_vs_compiled": true,
+        "graph_reset_vs_graph": true,
+        "graph_vs_compiled": true
+      },
+      "profiled_vs_graph_reset_exact": true
+    },
+    {
+      "rank": 13,
+      "report_sha256": "45a099dce585bacadfda1b99cd0b406eda89b5a8b052107a304b5ac427d6f580",
+      "receipt_sha256": "a9577a6878931bab58cbbabbbeba58ac1541890e28af4d9d18883a07488a8358",
+      "profiled_sha256": "8671c0ccf439a5d3ce756aeafe3c8e11e247c2c77da0f28257b1545356addc51",
+      "device_checks": 57,
+      "raw_exact": {
+        "compiled_reset_vs_compiled": true,
+        "graph_reset_vs_graph": true,
+        "graph_vs_compiled": true
+      },
+      "profiled_vs_graph_reset_exact": true
+    },
+    {
+      "rank": 14,
+      "report_sha256": "9620f8cefedd7591a5724a829fc41e300a24b70633cb6e7497520dd3f4a15d0e",
+      "receipt_sha256": "fdcdef64efbdbc366632dab9af63c7749f81977c95fb7b8b5f51a150db748614",
+      "profiled_sha256": "d601a658b0de7d182af5e534c31f5a9a178b4d61ff000f2c52352842977f26f1",
+      "device_checks": 57,
+      "raw_exact": {
+        "compiled_reset_vs_compiled": true,
+        "graph_reset_vs_graph": true,
+        "graph_vs_compiled": true
+      },
+      "profiled_vs_graph_reset_exact": true
+    },
+    {
+      "rank": 15,
+      "report_sha256": "c7448f59baee9f5ffda30327fc687e7ff00546085fc47bef5f95590f64cef6d7",
+      "receipt_sha256": "bea6c10d21152fbc1eda393491ecea7a22e2d80be782cb1de74df864c033d82c",
+      "profiled_sha256": "f640ca6cffa8786cc28f4684b7aa2a29767bf80c3c1187b4dca22cd1a1ca9e5c",
+      "device_checks": 57,
+      "raw_exact": {
+        "compiled_reset_vs_compiled": true,
+        "graph_reset_vs_graph": true,
+        "graph_vs_compiled": true
+      },
+      "profiled_vs_graph_reset_exact": true
+    }
+  ],
+  "completeness": "Three matched host launches, complete MODEL_WAIT, identical per-stream task sequences and final sync/output. CPU marker end does not truncate asynchronous model tasks.",
+  "stop_warning_present": true,
+  "physical_core_activity_measured": false,
+  "precision_verified": false,
+  "performance_measured": false,
+  "limits": [
+    "One resident dense layer, fixed M4 input, three replays.",
+    "Block Num/Mix Block Num are recorded launch dimensions.",
+    "Communication envelopes overlap AICPU tasks, not additive time.",
+    "No TPOT or unprofiled speed comparison from this trace."
+  ],
+  "files_sha256": {
+    "/workspace/offline/cann-resident-static-super-20261018-01/profile-audit.py": "96d7ab06064ebd972895f381fd7f8f9681039a2bf71c497d36a2d4ab954ab99a",
+    "/workspace/offline/cann-resident-static-super-20261018-01/profile-audit.json": "66d84ed3fff3cea8ace816d58064e426edd76a0df8fea526b54c19edcaa0e155",
+    "/workspace/offline/cann-resident-static-super-20261018-01/profile-export.py": "c400d66d989a39021d2202fc04fb7e65c593fa40c2e1889d8ef5be2e76758ad5",
+    "/workspace/offline/cann-resident-static-super-20261018-01/trace-source/build.json": "8e17e97e4a892369ac8da4c06373f682de50fa702147653ef0efb761204e1863",
+    "/workspace/offline/cann-resident-static-super-20261018-01/trace-source/source.diff": "c4c9b2f4a1fd1c2468e3c8deb76f9bc40a3f974a2740414d10006a5e776f9338",
+    "/workspace/offline/cann-resident-static-super-20261018-01/source-manifest.json": "97e386eb9edd62ddee1bd719a5b8df745b13b22725385f37bb02e7b1259ceaba",
+    "/workspace/offline/cann-resident-static-super-20261018-01/run-profile-01/launch.json": "e1ac0dbc1c92e156a7a8782cdbde2ddd41c5aa418fa379bd949336ec978f5a9d",
+    "/workspace/offline/cann-resident-static-super-20261018-01/run-profile-01/exit.json": "b483e3b94d0ae80c187830c0519fb520d71ba140c2fd16210c6f7a061de135cb",
+    "/workspace/offline/cann-resident-static-super-20261018-01/run-profile-01/run.log": "efead5a904246e4f7511a7b362a5f66601461bef40ed266dfc5201a41e915475",
+    "/workspace/offline/cann-resident-static-super-20261018-01/run-profile-01/preflight.txt": "b27389624e0290e161177e7fb1d4f19cfb5b8512d941926eeb1c57b30914006a",
+    "/workspace/offline/cann-resident-static-super-20261018-01/run-profile-01/postflight.txt": "62152597f9d255b89cbdd56bc559d602cc71ecc0306c6a8e4c5b1584384909e4"
+  },
+  "summary_source_sha256": "5b1e3a100472dd60321e69629ce6aa9824114ad40e384bf82159daadc01361aa"
+}

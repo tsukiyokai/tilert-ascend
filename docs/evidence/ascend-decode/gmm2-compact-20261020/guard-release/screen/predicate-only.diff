@@ -1,0 +1,29 @@
+--- old/grouped_matmul_active_groups_a8w4.h
+
++++ new/grouped_matmul_active_groups_a8w4.h
+
+@@ -88,16 +88,22 @@
+
+             SetFlag<HardEvent::MTE2_S>(EVENT_ID0);
+             WaitFlag<HardEvent::MTE2_S>(EVENT_ID0);
+             bool wide = true;
++            uint32_t splitExperts = 0;
+             uint32_t active = 0;
+             uint32_t end = 0;
+             for (uint32_t expert = 0; expert < EXPERTS; ++expert) {
+                 const auto rows = counts.GetValue(expert);
+                 if (rows > 0) {
+-                    wide = wide && rows <= 16;
++                    wide = wide && rows <= 32;
++                    splitExperts += rows > 16;
+                     end += rows;
+                     output.SetValue(++active, (static_cast<uint64_t>(end) << 32) | expert);
+                 }
+             }
++            // Split groups need enough parallel work to offset weight rereads.
++            // Limit the added passes to one eighth of the active experts.
++            wide = wide && (splitExperts == 0 ||
++                (end == 256 && active >= 64 && splitExperts * 8 <= active));
+             output.SetValue(0, (static_cast<uint64_t>(wide) << 32) | active);
+             const uint32_t length = ((active + 4) / 4) * 4;
+             for (uint32_t i = active + 1; i < length; ++i) {

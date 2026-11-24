@@ -1,0 +1,13 @@
+{
+  "source_sha256": "5f6130c732d764bd291bc289828eeffa3d97d2c53470ee4a21ad03796daabaa3",
+  "launcher_sha256": "be5260dd32b297085d7feefa0221b5c4da0ab59aa583641d27584ea5bfee15af",
+  "first_failed_stage": "real_worker_registration",
+  "first_failure": "Traceback (most recent call last):\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 257, in stage\n    value, detail = action()\n                    ^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 144, in <lambda>\n    (adapt_patch(), register_ascend_customop(config)), {},\n     ^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/utils.py\", line 687, in adapt_patch\n    from vllm_ascend.patch import worker  # noqa: F401\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/patch/worker/__init__.py\", line 48, in <module>\n    import vllm_ascend.patch.worker.patch_kimi_k25  # noqa\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/patch/worker/patch_kimi_k25.py\", line 21, in <module>\n    from vllm.model_executor.models.kimi_k25_vit import (\n  File \"/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/models/kimi_k25_vit.py\", line 18, in <module>\n    from transformers import Kimi_K25VisionConfig\nImportError: cannot import name 'Kimi_K25VisionConfig' from 'transformers' (/usr/local/python3.12.13/lib/python3.12/site-packages/transformers/__init__.py)\n",
+  "completed_stages": [
+    "platform_registration",
+    "real_groups",
+    "npu_bind",
+    "engine_config_tp16"
+  ],
+  "scope": "Actual16-rankGloo andNPUbinding passed; worker registration passedFLA import and failed onKimi_K25VisionConfig missing frombaseimageTransformers5.5.4. Attention construction/postprocessing/adapter install were not executed."
+}

@@ -1,0 +1,30 @@
+--- old/tilert/models/glm_5_2_ascend/weights.py
++++ current/tilert/models/glm_5_2_ascend/weights.py
+@@ -1,5 +1,6 @@
+ """Read GLM-5.2 ModelSlim weights without materializing a model or shard file."""
+ 
++from contextlib import ExitStack
+ import json
+ from dataclasses import dataclass
+ from pathlib import Path
+@@ -81,6 +82,20 @@
+                 value = checkpoint.get_slice(name)[selection]
+             return value.clone().contiguous()
+ 
++    def tensors(self, names):
++        """Yield owned CPU tensors, opening each shard once per iteration."""
++        with ExitStack() as stack:
++            shards = {}
++            for name in names:
++                filename = self.weight_map[name]
++                if filename not in shards:
++                    shards[filename] = stack.enter_context(safe_open(
++                        self.directory / filename, framework="pt",
++                        device="cpu",
++                    ))
++                value = shards[filename].get_tensor(name)
++                yield name, value.clone().contiguous()
++
+     def shape(self, name: str) -> tuple[int, ...]:
+         path = self.directory / self.weight_map[name]
+         with safe_open(path, framework="pt", device="cpu") as checkpoint:

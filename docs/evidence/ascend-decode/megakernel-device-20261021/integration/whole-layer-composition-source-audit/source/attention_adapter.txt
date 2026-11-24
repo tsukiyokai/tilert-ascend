@@ -1,0 +1,83 @@
+Original lines 391-430
+  391 def run_body(hidden, main_weights, front_weights, tail_weights, caches,
+  392              main_metadata, index_metadata, pool, *, mode, scale,
+  393              epsilon_cq, epsilon_ckv, topk=None):
+  394     """Return the rank partial and ordered top-k using the engine's pool path.
+  395 
+  396     Metadata lists contain sine, cosine, live slots, cumulative query/key
+  397     lengths, and page table. An indexed call supplies four cache tensors,
+  398     including an empty FP16 scale tensor for BF16 keys. TP reduction and
+  399     cross-layer top-k publication belong to the caller. RoPE storage is
+  400     normalized to ND; base-format conversion can retag its storage aliases.
+  401     """
+  402     import torch
+  403     import torch_npu
+  404 
+  405     geometry = geometry_for(mode, caches, main_metadata, index_metadata)
+  406     scratch, tiling, blocks, sync, partial, selected = pool.get(hidden, geometry)
+  407     main = list(main_metadata)
+  408     main[:2] = [_nd(value) for value in main[:2]]
+  409     main[2] = pool.live_slots(main[2])
+  410     codes, token_scale = torch_npu.npu_dynamic_quant(hidden)
+  411     token_scale = token_scale.view(hidden.shape[0], 1)
+  412     scalars = (scale, epsilon_cq, epsilon_ckv)
+  413     if mode == "shared":
+  414         torch.ops.tilert.shared_full_attention_out(
+  415             codes, token_scale, *main_weights, *main[:3], *caches, topk,
+  416             *main[3:], *tail_weights, None, scratch, tiling, partial,
+  417             *scalars, blocks, sync,
+  418         )
+  419         selected = topk
+  420     else:
+  421         index = list(index_metadata)
+  422         index[:2] = [_nd(value) for value in index[:2]]
+  423         index[2] = pool.live_slots(index[2])
+  424         torch.ops.tilert.indexed_attention_out(
+  425             hidden, codes, token_scale, main_weights, front_weights,
+  426             tail_weights, None, main, index, caches, scratch, tiling, partial,
+  427             *scalars, blocks, sync,
+  428         )
+  429     return partial, selected
+  430 
+
+Original lines 465-503
+  465             return original(layer_name, hidden_states, kv_cache,
+  466                             attn_metadata, output)
+  467         main = _metadata_values(attn_metadata, rows)
+  468         if main is None:
+  469             return original(layer_name, hidden_states, kv_cache,
+  470                             attn_metadata, output)
+  471         index = None
+  472         if mode != "shared":
+  473             index = _metadata_values(self._get_indexer_attn_metadata(), rows,
+  474                                      indexed=True)
+  475         if mode != "shared" and index is None:
+  476             return original(layer_name, hidden_states, kv_cache,
+  477                             attn_metadata, output)
+  478         bound = _cache_tensors(attention_layer, mode)
+  479         if (not isinstance(kv_cache, (tuple, list)) or len(kv_cache) != 2
+  480                 or any(value.data_ptr() != expected.data_ptr()
+  481                        for value, expected in zip(kv_cache, bound[:2]))):
+  482             return original(layer_name, hidden_states, kv_cache,
+  483                             attn_metadata, output)
+  484         selected = None
+  485         if mode == "shared":
+  486             selected = self._get_indexcache_topk_indices(rows)
+  487         elif mode == "bf16":
+  488             bound.append(empty_scale)
+  489         partial, selected = run_body(
+  490             hidden_states, main_weights, front_weights, tail_weights, bound,
+  491             main, index, pool, mode=mode, topk=selected, scale=self.scale,
+  492             epsilon_cq=self.q_a_layernorm.variance_epsilon,
+  493             epsilon_ckv=self.kv_a_layernorm.variance_epsilon,
+  494         )
+  495         if mode != "shared" and self.use_index_cache:
+  496             self._update_indexcache_topk_indices(selected)
+  497         if self.o_proj.reduce_results:
+  498             partial = tensor_model_parallel_all_reduce(partial)
+  499         output.copy_(partial)
+  500         return output
+  501 
+  502     impl.forward = MethodType(forward, impl)
+  503 
+

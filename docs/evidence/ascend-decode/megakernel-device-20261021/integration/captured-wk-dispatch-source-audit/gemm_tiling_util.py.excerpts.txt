@@ -1,0 +1,44 @@
+1053:         elif context.get_addition("binary_constant_type") == "matmul":
+1054:             attrs = ({"name": "transpose_x1", "dtype": "bool", "value": context.get_addition("trans_a")},
+1055:                      {"name": "transpose_x2", "dtype": "bool", "value": context.get_addition("trans_b")},
+1056:                      {"name": "offset_x", "dtype": "int64", "value": 0},
+1057:                      {"name": "input_size", "dtype": "int64", "value": -1},
+1058:                      {"name": "hidden_size", "dtype": "int64", "value": -1},
+1059:                      {"name": "_op_impl_mode_enum", "dtype": "int", "value": get_op_impl_mode_enum("MatMul")},
+1060:                      {"name": "enable_pad", "dtype": "int", "value": 0})
+1061:             run_info = do_op_tiling("MatMulV2", get_compile_info(), inputs, outputs, None, None, attrs)
+1062:             tiling_format += ["k_ori", "m_ori", "n_ori", "k", "m", "n", "batch_single_core", "m_single_core",
+1063:                                 "n_single_core", "batch_dim", "n_dim", "m_dim", "k_dim", "m_al1", "n_bl1", "cub_n1",
+1064:                                 "m_l0", "k_l0", "n_ub_l0_time", "kal0_factor", "kbl0_factor", "kal1_factor",
+1065:                                 "kbl1_factor", "kal1_16", "kbl1_16", "kl1_times", "batch_l1_factor",
+1066:                                 "batch_ub_l0_time", "batch_cub", "out_branch_flag",
+1067:                                 "bias_flag", "hf32_flag", "datatype_bf16", "al1_db", "bl1_db", "l0c_db",
+1068:                                 "l2_cache_flag", "close_k_shift"]
+1183:     block_reduce = int(UNIT_LEN_32 // DATA_SIZE.get(context.get_addition("input_a_dtype")))
+1184:     # get tiling value from tiling_data
+1185:     batch_dim = tiling_data.get("batch_dim")
+1186:     n_dim = tiling_data.get("n_dim")
+1187:     m_dim = tiling_data.get("m_dim")
+1188:     k_dim = tiling_data.get("k_dim")
+1189:     k_al1 = tiling_data.get("kal1_16")
+1190:     k_bl1 = tiling_data.get("kbl1_16")
+1191:     m_al1 = tiling_data.get("m_al1")
+1192:     n_bl1 = tiling_data.get("n_bl1")
+1193:     m_l0 = tiling_data.get("m_l0")
+1194:     k_l0 = tiling_data.get("k_l0")
+1195:     cub_n1 = tiling_data.get("cub_n1")
+1196:     n_l0 = cub_n1 * tiling_data.get("n_ub_l0_time")
+1197:     # get pb_flag from tiling_key
+1198:     if op_type == "weight_quant_batchmatmul":
+1199:         al1_pb = (tiling_key & 1) + 1
+1200:         tiling_key = tiling_key >> 1
+1201:         bl1_pb = (tiling_key & 1) + 1
+1202:         tiling_key = tiling_key >> 1
+1203:     else:
+1204:         al1_pb = tiling_data.get("al1_db") + 1
+1205:         bl1_pb = tiling_data.get("bl1_db") + 1
+1206:     l0c_pb = (tiling_key & 1) + 1
+1207:     tiling_key = tiling_key >> 3
+1208:     al1_attach_flag = (tiling_key & 3)
+1209:     tiling_key = tiling_key >> 2
+1210:     bl1_attach_flag = (tiling_key & 3)

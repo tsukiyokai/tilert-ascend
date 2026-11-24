@@ -1,0 +1,56 @@
+52: static_assert(sizeof(Config) + sizeof(Addresses) + sizeof(uint64_t) < 4096);
+53: 
+54: // Inputs are validated tensors owned by the caller. Local attention output
+55: // feeds the FFN directly; this interface performs neither TP reduction.
+56: inline bool Valid(const Config& config, const Addresses& addresses)
+57: {
+58:     const auto& main = config.indexed.attention;
+59:     const auto& norm = addresses.norm;
+60:     if (!(norm.input && norm.residual && norm.gamma && norm.normalized &&
+61:           norm.retained && norm.rstd && norm.codes && norm.scales &&
+62:           addresses.post_gamma && addresses.gate && addresses.correction_bias &&
+63:           addresses.attention.scratch && addresses.attention.tiling &&
+64:           addresses.attention.output)) {
+65:         return false;
+66:     }
+67:     for (auto address : addresses.bridge) {
+68:         if (address == 0) {
+69:             return false;
+70:         }
+71:     }
+72:     for (auto address : addresses.body.scratch) {
+73:         if (address == 0) {
+74:             return false;
+75:         }
+76:     }
+77:     return ffn_bridge::ValidGeometry(main.rows, main.blocks)
+78:         && config.shared.attention.rows == main.rows
+79:         && config.shared.attention.blocks == main.blocks
+80:         && addresses.body.rows == main.rows
+81:         && addresses.body.blocks == main.blocks
+82:         && addresses.norm.normalized == addresses.attention.hidden
+83:         && addresses.norm.codes == addresses.attention.token_x
+84:         && addresses.norm.scales == addresses.attention.token_scale
+85:         && addresses.body.dispatch.bf16_rows ==
+86:             addresses.bridge[ffn_bridge::kNormalized]
+87:         && addresses.body.dispatch.expert_ids ==
+88:             addresses.bridge[ffn_bridge::kIds]
+89:         && addresses.body.dispatch.probabilities ==
+90:             addresses.bridge[ffn_bridge::kProbabilities]
+91:         && addresses.body.dispatch.active_list ==
+92:             addresses.body.scratch[routed_int4::pipeline::kActiveList]
+93:         && addresses.body.shared.input ==
+94:             addresses.bridge[ffn_bridge::kSharedCodes]
+95:         && addresses.body.shared.input_scale ==
+96:             addresses.bridge[ffn_bridge::kSharedScales]
+97:         && addresses.body.shared.capacity == ffn_bridge::Capacity(main.rows);
+98: }
+99: 
+100: }  // namespace layer_local_chain
+101: 
+102: extern "C" int layer_local_indexed_launch(void* stream, uint64_t sync,
+103:     const layer_local_chain::Config* config,
+104:     const layer_local_chain::Addresses* addresses);
+105: extern "C" int layer_local_shared_launch(void* stream, uint64_t sync,
+106:     const layer_local_chain::Config* config,
+107:     const layer_local_chain::Addresses* addresses);

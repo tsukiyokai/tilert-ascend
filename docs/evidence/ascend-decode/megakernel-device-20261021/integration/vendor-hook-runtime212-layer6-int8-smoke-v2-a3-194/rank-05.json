@@ -1,0 +1,49 @@
+{
+  "rank": 5,
+  "stages": [
+    {
+      "name": "platform_registration",
+      "success": true,
+      "class": "vllm_ascend.platform.NPUPlatform",
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/platform.py",
+      "sha256": "686eb5c4d7e744053def9fe51caf743e79e6a3cbeddebd3c47949d6f13e503cd"
+    },
+    {
+      "name": "real_groups",
+      "success": true,
+      "tp_world_size": 16,
+      "tp_rank": 5,
+      "cpu_rank_sum": 120,
+      "expected_rank_sum": 120,
+      "coordinator": {
+        "class": "vllm.distributed.parallel_state.GroupCoordinator",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/distributed/parallel_state.py",
+        "sha256": "0e47cff9a89717183bdce6403f0454961848247f51306a0f1dfbe3d6e1b93336"
+      },
+      "device_communicator": null,
+      "registration": "actual coordinators assigned to version-scoped parallel_state fields",
+      "singleton_fields": [
+        "_DCP",
+        "_PCP",
+        "_PP",
+        "_DP",
+        "_EP"
+      ]
+    }
+  ],
+  "scope": "real Gloo groups, rank-0 local attention shard",
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+  "torch_path": "/usr/local/lib/python3.11/site-packages/torch/__init__.py",
+  "torch_npu_path": "/usr/local/lib/python3.11/site-packages/torch_npu/__init__.py",
+  "runtime_image": "sha256:1910b1acedb37acc42beda9cb695c2cf84c57c81d8dd8b5191a98a97bc6d5fe6",
+  "npu_initialized_before": false,
+  "rank_zero_status": {
+    "success": false,
+    "error": "Traceback (most recent call last):\n  File \"/usr/local/lib/python3.11/pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nFileNotFoundError: [Errno 2] No such file or directory: '/workspace/runtime/report'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_runtime212_device.py\", line 355, in worker\n    else run_rank_zero(torch, args, stage))\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_runtime212_device.py\", line 140, in run_rank_zero\n    config, prefix = stage(\"engine_config_tp16\", lambda: (\n                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_runtime212_device.py\", line 320, in stage\n    value, detail = action()\n                    ^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_runtime212_device.py\", line 141, in <lambda>\n    make_configuration(args), {\"tp\": 16, \"pp\": 1, \"dp\": 1,\n    ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_runtime212_device.py\", line 97, in make_configuration\n    ).create_engine_config()\n      ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/engine/arg_utils.py\", line 2825, in create_engine_config\n    config = VllmConfig(\n             ^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/site-packages/pydantic/_internal/_dataclasses.py\", line 121, in __init__\n    s.__pydantic_validator__.validate_python(ArgsKwargs(args, kwargs), self_instance=s)\n  File \"/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/config/vllm.py\", line 1993, in __post_init__\n    current_platform.check_and_update_config(self)\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/platform.py\", line 539, in check_and_update_config\n    ascend_config = init_ascend_config(vllm_config)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/ascend_config.py\", line 1856, in init_ascend_config\n    runtime_boot = build_runtime_config_from_additional(additional_config)\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/observability/runtime_config/__init__.py\", line 90, in build_runtime_config_from_additional\n    runtime_cfg = RuntimeConfig(\n                  ^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/observability/runtime_config/config.py\", line 528, in __init__\n    self._bootstrap(persist=ensure_file)\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/observability/runtime_config/config.py\", line 607, in _bootstrap\n    self.report_dir.mkdir(parents=True, exist_ok=True)\n  File \"/usr/local/lib/python3.11/pathlib.py\", line 1120, in mkdir\n    self.parent.mkdir(parents=True, exist_ok=True)\n  File \"/usr/local/lib/python3.11/pathlib.py\", line 1116, in mkdir\n    os.mkdir(self, mode)\nOSError: [Errno 30] Read-only file system: '/workspace/runtime'\n"
+  },
+  "npu_initialized_after": false,
+  "maximum_rss_kib": 1799344,
+  "memory_snapshot": "00400000-ffffc3633000 ---p 00000000 00:00 0                              [rollup]\nRss:             1793592 kB\nPss:             1232432 kB\nPss_Anon:        1194436 kB\nPss_File:          37612 kB\nPss_Shmem:           384 kB\nShared_Clean:     598772 kB\nShared_Dirty:          0 kB\nPrivate_Clean:         0 kB\nPrivate_Dirty:   1194820 kB\nReferenced:      1793592 kB\nAnonymous:       1194436 kB\nLazyFree:              0 kB\nAnonHugePages:    503808 kB\nShmemPmdMapped:        0 kB\nFilePmdMapped:         0 kB\nShared_Hugetlb:        0 kB\nPrivate_Hugetlb:       0 kB\nSwap:                  0 kB\nSwapPss:               0 kB\nLocked:                0 kB\n"
+}

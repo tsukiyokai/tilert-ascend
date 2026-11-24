@@ -1,0 +1,27 @@
+{
+  "sync": {
+    "path": "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/basic_api/dav_c220/kernel_operator_sync_impl.h",
+    "sha256": "695bb46047f853dd4219c731ee25cf831ea964fde778e03e07df298d3ae72c1e",
+    "excerpt": "384:     PipeBarrier<PIPE_ALL>();\n385:     if constexpr (isAIVOnly) {\n386:         ffts_cross_core_sync(PIPE_MTE3, GetffstMsg(0x0, SYNC_AIV_ONLY_ALL));\n387:         wait_flag_dev(SYNC_AIV_ONLY_ALL);\n388:         return;\n389:     }\n390:     // trans software sync to hardware sync\n391:     if ASCEND_IS_AIC {\n392:         wait_flag_dev(SYNC_AIV_FLAG);\n393:         ffts_cross_core_sync(PIPE_FIX, GetffstMsg(0x0, SYNC_AIC_FLAG));\n394:         wait_flag_dev(SYNC_AIC_FLAG);\n395:         ffts_cross_core_sync(PIPE_MTE3, GetffstMsg(0x02, SYNC_AIC_AIV_FLAG));\n396:         return;\n397:     }\n398:     if ASCEND_IS_AIV {\n399:         ffts_cross_core_sync(PIPE_MTE3, GetffstMsg(0x02, SYNC_AIV_FLAG));\n400:         wait_flag_dev(SYNC_AIC_AIV_FLAG);\n401:         return;\n402:     }\n403: }"
+  },
+  "user-workspace": {
+    "path": "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/basic_api/dav_c220/kernel_operator_common_impl.h",
+    "sha256": "ae49069a7116b929325fcd7be7be91a25a6c12915f056baa515174a1490fa3ee",
+    "excerpt": "55: __aicore__ inline GM_ADDR GetUserWorkspace(GM_ADDR workspace)\n56: {\n57: #if defined(ASCENDC_CPU_DEBUG) && ASCENDC_CPU_DEBUG == 1\n58:     ASCENDC_ASSERT((workspace != nullptr), { KERNEL_LOG(KERNEL_ERROR, \"workspace can not be nullptr\"); });\n59:     return workspace;\n60: #else\n61:     (void)(workspace);\n62: #if defined(__NPU_DEVICE__)\n63:     return __get_kfc_workspace_addr() + RESERVED_WORKSPACE;\n64: #else\n65:     return g_sysWorkspaceReserved + RESERVED_WORKSPACE;\n66: #endif\n67: #endif\n68: }"
+  },
+  "workspace-reserved": {
+    "path": "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/basic_api/utils/kernel_utils_constants.h",
+    "sha256": "b6c397099eb5ff25db1f098dca45e3f90d170dc4591e9be87b51e6ed70c877fe",
+    "excerpt": "286: // workspace system reserve 16MB\n287: #if (__NPU_ARCH__ == 1001)\n288: constexpr size_t RESERVED_WORKSPACE = 2 * 1024 * 1024;\n289: #elif (__NPU_ARCH__ == 2002)\n290: constexpr size_t RESERVED_WORKSPACE = 2 * 1024 * 1024;\n291: #elif (__NPU_ARCH__ == 2201)\n292: constexpr size_t RESERVED_WORKSPACE = 16 * 1024 * 1024;\n293: #elif (__NPU_ARCH__ == 3002)\n294: constexpr size_t RESERVED_WORKSPACE = 16 * 1024 * 1024;\n295: #elif (__NPU_ARCH__ == 3102)\n296: constexpr size_t RESERVED_WORKSPACE = 16 * 1024 * 1024;\n297: #elif defined(__NPU_ARCH__) && ((__NPU_ARCH__ == 3510))\n298: constexpr size_t RESERVED_WORKSPACE = 16 * 1024 * 1024;\n299: #elif defined(__NPU_ARCH__) && \\\n300:     (__NPU_ARCH__ == 5101 || __NPU_ARCH__ == 5161 || __NPU_ARCH__ == 5165 || __NPU_ARCH__ == 5163)\n301: constexpr size_t RESERVED_WORKSPACE = 16 * 1024 * 1024;"
+  },
+  "cache-interface": {
+    "path": "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/basic_api/kernel_operator_cache_intf_impl.h",
+    "sha256": "a36df84a4262c5806672f9932f0e0ddfe65e31894a86b97f6df9ad451e61b9f1",
+    "excerpt": "55: #if defined(__NPU_ARCH__) &&                                                                         \\\n56:     (__NPU_ARCH__ == 2201 || __NPU_ARCH__ == 3002 || __NPU_ARCH__ == 3510 || __NPU_ARCH__ == 5101 || \\\n57:      __NPU_ARCH__ == 5161 || __NPU_ARCH__ == 5165 || __NPU_ARCH__ == 5163)\n58: template <typename T, CacheLine entireType, DcciDst dcciDst>\n59: __aicore__ inline void DataCacheCleanAndInvalid(const GlobalTensor<T>& dst)\n60: {\n61:     DcciGMImpl<T, entireType, dcciDst>(const_cast<__gm__ T*>(dst.GetPhyAddr()));\n62: }"
+  },
+  "runtime": {
+    "path": "/workspace/experiments/gmm2-compact-20261020/key-logs/debug/plog/plog-9443_20261020024243437.log",
+    "sha256": "45e957bd35173e1511d531e98052ab31a6d9f008c78cdb63b83e508287d1e0e9",
+    "excerpt": "50618: [DEBUG] OP(9443,python):2026-10-20-02:42:44.083.744 [kernel_graph.cpp:320][NNOP][PrintTensors][9443] OpName:[aclnnGroupedMatmulWeightNz_29] Node[GroupedMatmul],position[0], type workspace, index 0, [lifetime Start 0->lifetime End 0] memory size 117440512.\n50622: [DEBUG] OP(9443,python):2026-10-20-02:42:44.083.754 [op_executor.cpp:625][NNOP][GetWorkspaceSize][9443] OpName:[aclnnGroupedMatmulWeightNz_29] workspaceSize_:117441024, workspaceDeviceAicpuTaskOffset_:117441024\n50628: [DEBUG] APP(9443,python):2026-10-20-02:42:44.083.844 9443 OpPreparation.cpp:unsafe_empty_workspace:420: \"[PTA]:Alloc workspace 117441024 bytes unsafely.\"\n51014: [DEBUG] OP(9443,python):2026-10-20-02:42:44.087.247 [op_executor.cpp:659][NNOP][Launch][9609] OpName:[aclnnGroupedMatmulWeightNz_29_GroupedMatmul] Tiling Key: 69325233410, len: 2032, numBlocks: 24, Workspace Num: 1."
+  }
+}

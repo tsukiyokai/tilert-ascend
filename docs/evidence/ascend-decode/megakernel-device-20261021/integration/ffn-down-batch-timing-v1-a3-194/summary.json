@@ -1,0 +1,104 @@
+{
+  "scope": "Matched-address four-tile down-overlap FFN versus accepted one-launch FFN, TP excluded",
+  "candidate": "down_batch",
+  "host": "a3-194",
+  "physical_die": 4,
+  "rows": 12,
+  "blocks": 24,
+  "weight_banks": 16,
+  "calls_per_graph": 16,
+  "graph_replays_per_event": 30,
+  "pairs_per_arena": 30,
+  "raw_byte_boundary_checks": 19200,
+  "post_event_tail_checks": 360,
+  "pass": true,
+  "performance_selected": false,
+  "scratch_matching": "All 32 tensors including system workspaces and immutable tilings share exact addresses within each pair",
+  "fresh_write_gate": "Before each checked CABI replay and timed arm warmup: logical floating outputs become NaN, bounded integer metadata becomes zero, other integer outputs become one; padding/tilings/system/inputs stay unchanged",
+  "extra_storage": "None; both C ABIs use the same 32 tensors",
+  "minimum_logical_active_matrix_bytes": 239075328,
+  "payload_interpretation": "Selected matrix sizes only; no HBM traffic or cache-miss measurement",
+  "candidate_library": {
+    "path": "/workspace/tests/glm52/whole_layer/ffn_down_overlap/build-v3/ffn_down_batch.so",
+    "sha256": "c83c9cb66f9109b810023d95794a4907734e73f66b9526ffd0c3b5987e63d984"
+  },
+  "sources": {
+    "/workspace/tests/glm52/whole_layer/ffn_down_overlap/timing-batch-v1/bench.py": "6dd44b79ba89a359cf2ca1908223559d3e6e4a9c17df1c6636e552b06629b582",
+    "/workspace/tests/glm52/whole_layer/ffn_composed/build-v2/harness-v1/check.py": "d5c1f9f3214a1461d0aff29e166ec781d894c6bd991369bbac27f80baed3c9bb",
+    "/workspace/logs/ffn-bridge-runtime212-v1/check.py": "6a36334a25bbde2f76c8749a0a385db48078deb3549c3a321aed1d43c4089afa",
+    "/workspace/logs/ffn-bridge-runtime212-v1/fixtures.py": "c0b010dadbdfe3e47918e5a84184ab295d4ac3a4da818066bee93e5e215b05f9",
+    "/workspace/logs/ffn-bridge-runtime212-v1/gate_probe.py": "0bf8e940836905d37e396e04bea1440485e0472e0c68cdb6b4b738b8e7105276",
+    "/workspace/tests/glm52/whole_layer/ffn_composed/build-v2/body/source/routed_int4/check.py": "4a28c5cdbbd4e7e4d71ea22e8b2e01e6337aacb0c7c2887442c3d25d1c2fd0fd",
+    "/workspace/tests/glm52/whole_layer/ffn_composed/build-v2/body/source/routed_int4/check_pipeline.py": "3eb8c327b01da2671d77a66f38e4bc201c4c727f113bae38a4023172ee344f25"
+  },
+  "arenas": [
+    {
+      "owner": "fused",
+      "active_experts": 65,
+      "candidate_us": {
+        "samples": 30,
+        "p50": 296.4097181955973,
+        "p90": 296.6742197672526,
+        "p99": 296.7691780726115,
+        "std": 0.18048337738213097,
+        "min": 296.11275990804035,
+        "max": 296.7830340067546
+      },
+      "base_us": {
+        "samples": 30,
+        "p50": 234.01528994242352,
+        "p90": 234.14911905924478,
+        "p99": 234.24374437332153,
+        "std": 0.11998023674569008,
+        "min": 233.71354738871256,
+        "max": 234.24715995788574
+      },
+      "paired_saving_us": {
+        "samples": 30,
+        "p50": -62.43076324462889,
+        "p90": -62.10046768188474,
+        "p99": -61.95756546656289,
+        "std": 0.24749128198894635,
+        "min": -63.02170753479007,
+        "max": -61.91657384236652
+      },
+      "paired_wins": 0,
+      "pairs": 30
+    },
+    {
+      "owner": "separate",
+      "active_experts": 65,
+      "candidate_us": {
+        "samples": 30,
+        "p50": 297.7308750152588,
+        "p90": 297.9278087615967,
+        "p99": 298.05275758107507,
+        "std": 0.16240281332412934,
+        "min": 297.33015696207684,
+        "max": 298.0597178141276
+      },
+      "base_us": {
+        "samples": 30,
+        "p50": 238.86475563049316,
+        "p90": 238.9984718958537,
+        "p99": 239.03223673502603,
+        "std": 0.10919939739715044,
+        "min": 238.69729042053223,
+        "max": 239.0350023905436
+      },
+      "paired_saving_us": {
+        "samples": 30,
+        "p50": -58.88485113779703,
+        "p90": -58.63179683685305,
+        "p99": -58.42003536224368,
+        "std": 0.21112911030114445,
+        "min": -59.3559265136719,
+        "max": -58.37874412536624
+      },
+      "paired_wins": 0,
+      "pairs": 30
+    }
+  ],
+  "report_sha256": "8648cfb3d765c7fe08c7220b2c525f739cf7086553ac456cc5913ec856ee410b",
+  "interpretation": "The batched Down overlap is rejected: all 60 pairs are slower than original3673. Local synthetic FFN only, without TP collectives or model TPOT."
+}

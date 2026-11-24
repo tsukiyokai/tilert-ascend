@@ -1,0 +1,42 @@
+{
+  "namespace": "tilert_ffn_token_split",
+  "c_abi": "ffn_token_split_launch",
+  "parent_library_sha256": "8430ef17d068ce5a1cdbe4915ba189ca38c666322d8726a42091f8acb3b36f84",
+  "library_sha256": "ecbf7937796d407405dd920d6c48b7148da380b6e12e04717b049e19aed650a6",
+  "manifest_sha256": "8ecb8fa93e2f45f4b369e121c514311d542d3473b8a201a19d477e75347782c3",
+  "checker_sha256": "6b9339a5e70ec50a55216bfcb4314defe2404a59386cba06d4bbddc56a5e5383",
+  "source_count": 88,
+  "artifact_count": 6,
+  "all_source_and_artifact_hashes_verified": true,
+  "cpu_contract_tests": {
+    "x86": 8,
+    "aarch64": 8
+  },
+  "cpu_contract_ownership_configurations": 2176,
+  "cpu_contract_int8_pairs": 65536,
+  "frozen_cpu_runner_sha256": "da962b42532e63f6d1cd1169d5bf2dfff4c9110e071fb1cf028a4d6e889c2f19",
+  "frozen_cpu_logs": {
+    "frozen-cpu-x86.log": "eae00e60e58069a280f5512e8fe212e49860ab25eda21f3743606dab568c8b0f",
+    "frozen-cpu-aarch64.log": "6026a162b4f9596ec4985a495a3b6894827b533004d4ec90fdafb66e89b51204"
+  },
+  "parent_candidate_co_load": true,
+  "npu_initialized": false,
+  "public_scratch_count": 33,
+  "descriptor_bytes": 408,
+  "additional_gm_bytes": 0,
+  "additional_ub_bytes": 0,
+  "maximum_resident_ub_bytes": 116480,
+  "split_tile": 2048,
+  "body_barriers": 5,
+  "outer_end_phases": 1,
+  "remote_host_path": "/home/shanshan/tilert-megakernel-20261021/tests/glm52/whole_layer/ffn_token_split/build-v2",
+  "remote_container_path": "/workspace/tests/glm52/whole_layer/ffn_token_split/build-v2",
+  "device_validation": "pending root-owned gate",
+  "first_device_shell_command": "source /opt/ascend/cann-9.2.0/set_env.sh\nPYTHONDONTWRITEBYTECODE=1 XDG_CACHE_HOME=/tmp/cache ASCEND_PROCESS_LOG_PATH=/evidence/driver-log OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 env -u ASCEND_DOCKER_RUNTIME python3 /workspace/tests/glm52/whole_layer/ffn_token_split/build-v2/check.py --library /workspace/tests/glm52/whole_layer/ffn_token_split/build-v2/ffn_token_split.so --bridge-library /workspace/logs/ffn-bridge-runtime212-v1/native/ffn_bridge.so --body-library /workspace/tests/glm52/whole_layer/routed_body/build-v2/routed_int4_torch.so --bridge-helper /workspace/logs/ffn-bridge-runtime212-v1/check.py --body-helper /workspace/tests/glm52/whole_layer/routed_body/build-v2/source/routed_int4/check.py --oracle-mode both --oracle-library /workspace/logs/ffn-bridge-runtime212-v1/official_bridge_oracle.so --oracle-prefix /workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle --rows 12 --blocks 24 --replays 8 --output /evidence\n",
+  "source_audit": {
+    "method": "independent peer review of inverse ownership and buffer-event contract",
+    "result": "no concrete source-level counterexample found",
+    "device_acceptance": false
+  },
+  "failed_build_v1": "Separate frozen first build retained; renamed output and split include guards collided. v2 gives split headers unique MSD guards."
+}

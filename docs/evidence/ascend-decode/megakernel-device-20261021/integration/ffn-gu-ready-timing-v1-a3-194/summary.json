@@ -1,0 +1,104 @@
+{
+  "scope": "Matched-address expert-ready GU FFN with original shared quantization versus its token-terminal parent, TP excluded",
+  "candidate": "gu_ready",
+  "host": "a3-194",
+  "physical_die": 4,
+  "rows": 12,
+  "blocks": 24,
+  "weight_banks": 16,
+  "calls_per_graph": 16,
+  "graph_replays_per_event": 30,
+  "pairs_per_arena": 30,
+  "raw_byte_boundary_checks": 19200,
+  "post_event_tail_checks": 360,
+  "pass": true,
+  "scratch_matching": "All 33 tensors, including the INT32[264] active table, share exact addresses within each pair",
+  "fresh_write_gate": "Before each checked CABI replay and timed arm warmup: logical floating outputs become NaN, bounded integer metadata becomes zero, other integer outputs become one; padding/tilings/system/inputs stay unchanged",
+  "active_table_checks": 696,
+  "active_table_gate": "Both arms replace all 264 INT32 words from identical poison",
+  "minimum_logical_active_matrix_bytes": 239075328,
+  "payload_interpretation": "Selected matrix sizes only; no HBM traffic or cache-miss measurement",
+  "candidate_library": {
+    "path": "/workspace/tests/glm52/whole_layer/ffn_gu_ready/build-v3/ffn_gu_ready.so",
+    "sha256": "cd0b54ddc68daa2f2f4bfd3ad25e424ef02c31e0ad0ea18152e7e4754f4415bc"
+  },
+  "sources": {
+    "/workspace/tests/glm52/whole_layer/ffn_gu_ready/timing-v1/bench.py": "be95e26bb0f24ed6cb4def69c5bc847235e739728f5ab229a37765db451be501",
+    "/workspace/tests/glm52/whole_layer/ffn_composed/build-v2/harness-v1/check.py": "d5c1f9f3214a1461d0aff29e166ec781d894c6bd991369bbac27f80baed3c9bb",
+    "/workspace/logs/ffn-bridge-runtime212-v1/check.py": "6a36334a25bbde2f76c8749a0a385db48078deb3549c3a321aed1d43c4089afa",
+    "/workspace/logs/ffn-bridge-runtime212-v1/fixtures.py": "c0b010dadbdfe3e47918e5a84184ab295d4ac3a4da818066bee93e5e215b05f9",
+    "/workspace/logs/ffn-bridge-runtime212-v1/gate_probe.py": "0bf8e940836905d37e396e04bea1440485e0472e0c68cdb6b4b738b8e7105276",
+    "/workspace/tests/glm52/whole_layer/ffn_composed/build-v2/body/source/routed_int4/check.py": "4a28c5cdbbd4e7e4d71ea22e8b2e01e6337aacb0c7c2887442c3d25d1c2fd0fd",
+    "/workspace/tests/glm52/whole_layer/ffn_composed/build-v2/body/source/routed_int4/check_pipeline.py": "3eb8c327b01da2671d77a66f38e4bc201c4c727f113bae38a4023172ee344f25"
+  },
+  "arenas": [
+    {
+      "owner": "fused",
+      "active_experts": 65,
+      "candidate_us": {
+        "samples": 30,
+        "p50": 207.86975224812824,
+        "p90": 208.06203524271646,
+        "p99": 208.0990432103475,
+        "std": 0.13985537592378472,
+        "min": 207.59312311808267,
+        "max": 208.10270309448242
+      },
+      "parent_us": {
+        "samples": 30,
+        "p50": 215.0955041249593,
+        "p90": 215.32433191935223,
+        "p99": 215.47718652089438,
+        "std": 0.1448055722389198,
+        "min": 214.8868719736735,
+        "max": 215.5130386352539
+      },
+      "paired_saving_us": {
+        "samples": 30,
+        "p50": 7.316501935323075,
+        "p90": 7.481231689453142,
+        "p99": 7.626518408457441,
+        "std": 0.17040410683651852,
+        "min": 6.995328267415374,
+        "max": 7.629537582397461
+      },
+      "paired_wins": 30,
+      "pairs": 30
+    },
+    {
+      "owner": "separate",
+      "active_experts": 65,
+      "candidate_us": {
+        "samples": 30,
+        "p50": 207.3543389638265,
+        "p90": 207.50853220621744,
+        "p99": 207.54684861501056,
+        "std": 0.12254055606695521,
+        "min": 207.07383155822754,
+        "max": 207.55120913187662
+      },
+      "parent_us": {
+        "samples": 30,
+        "p50": 214.8137966791789,
+        "p90": 215.01201947530112,
+        "p99": 215.05988073349,
+        "std": 0.1438994038574555,
+        "min": 214.4596735636393,
+        "max": 215.06258646647134
+      },
+      "paired_saving_us": {
+        "samples": 30,
+        "p50": 7.494791348775237,
+        "p90": 7.662337621053044,
+        "p99": 7.8607354164123535,
+        "std": 0.2076137742692561,
+        "min": 6.960550944010407,
+        "max": 7.900381088256836
+      },
+      "paired_wins": 30,
+      "pairs": 30
+    }
+  ],
+  "report_sha256": "b6269f3e0a8695ae8ebed98c26b0b44f4f9cb664e47c83000e7d50da573f6977",
+  "interpretation": "Positive paired saving means per-expert GU-to-activation overlap is faster than the original-shared terminal parent with the same corrected activation arithmetic. Local M12/24 E65 FFN only, with synthetic weights and no TP collectives or model TPOT."
+}

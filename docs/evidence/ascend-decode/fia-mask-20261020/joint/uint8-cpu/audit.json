@@ -1,0 +1,91 @@
+{
+  "scope": "Source and CPU only; no NPU launches; no repository edits",
+  "cpu_server": "a3-187:trt-asc-187",
+  "cpu_result_sha256": "a13fae3b6cef480d96b3d6b8b9d75d2ae336fcdfdc1a7ca5b053717d83e2ef2d",
+  "cpu_script_sha256": "891b0560fef7abb6c3b81ddd5e182ce9e983356ea0400b590a0fe2a6f1abd95c",
+  "installed_libopapi_so_sha256": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a",
+  "findings": {
+    "a3_basic_api_scatter": "Unsupported by actual2201 specialization; offset API would use bytes on supported platforms",
+    "scatter_values": "No AscendC ScatterValues API found in actual9.2 include/basic_api or impl/basic_api",
+    "uint8_equivalence": "A and threshold-minus-one frozen fixture masks identical byte-for-byte; CPU uses long indices",
+    "no_npu_int32_or_view_claim": true,
+    "minimal_device_ab": "Only bitmap ones dtype bool to uint8; retain long indices, scalar False, full causal GE and OR",
+    "causal_wiring": "Existing per-width persistent positions; refresh once per forward before _metadata hoisted return; compare columns > positions to avoid addition",
+    "topk_wiring": "Rebuild selected bitmap on producers, reuse through skip_topk consumers within same forward; do not cache by shared data_ptr or across rounds"
+  },
+  "files": [
+    {
+      "path": "/home/shanshan/repo/ascend/op-plugin/op_plugin/ops/opapi/ScatterKernelNpuOpApi.cpp",
+      "snapshot": "local-source/ScatterKernelNpuOpApi.cpp",
+      "sha256": "f3d21e4e6496e889a3c84246ea49125aab9aa3887c9c8138bdb53a4a534c56a0",
+      "binding": "local source; installed opapi contains matching routing log strings but source not binary-validated"
+    },
+    {
+      "path": "/home/shanshan/repo/cann/ops-nn/index/scatter_elements_v2/op_api/aclnn_scatter.cpp",
+      "snapshot": "local-source/aclnn_scatter.cpp",
+      "sha256": "6f1a9ee6f3a6410e84b9432a64dfbc7e4f51ad1b9ebd119e97e212b4beac71a8",
+      "binding": "local source; installed opapi contains matching routing log strings but source not binary-validated"
+    },
+    {
+      "path": "/home/shanshan/repo/cann/ops-nn/index/scatter_elements_v2/op_api/scatter_elements.cpp",
+      "snapshot": "local-source/scatter_elements.cpp",
+      "sha256": "46b08e7997694ba72e9380ee6cb54c92971672479085379b5f2c0f7fc807c06c",
+      "binding": "local source; installed opapi contains matching routing log strings but source not binary-validated"
+    },
+    {
+      "path": "/home/shanshan/repo/tile-ai/TileRT-Ascend/tilert/models/glm_5_2_ascend/cann_model.py",
+      "snapshot": "local-source/cann_model.py",
+      "sha256": "3ab4769bf5e255543583528d1533ea3ba399fcb5e55d10f8477b15303c0b557b",
+      "binding": "local source; installed opapi contains matching routing log strings but source not binary-validated"
+    },
+    {
+      "path": "/home/shanshan/repo/tile-ai/TileRT-Ascend/tilert/models/glm_5_2_ascend/cann_graph.py",
+      "snapshot": "local-source/cann_graph.py",
+      "sha256": "9f5e766b4a7eee122ce8332a5bd88f8ad2ec87d57878f3e217aac3c4a1995874",
+      "binding": "local source; installed opapi contains matching routing log strings but source not binary-validated"
+    },
+    {
+      "path": "/home/shanshan/repo/tile-ai/TileRT-Ascend/tilert/models/glm_5_2_ascend/cann_mtp.py",
+      "snapshot": "local-source/cann_mtp.py",
+      "sha256": "25f5bae4fda8785aed893f0dd07240c103531115f8516aad40039c139b2c6f04",
+      "binding": "local source; installed opapi contains matching routing log strings but source not binary-validated"
+    },
+    {
+      "path": "aarch64-linux/asc/impl/basic_api/dav_c220/kernel_operator_vec_duplicate_impl.h",
+      "snapshot": "installed-source/aarch64-linux/asc/impl/basic_api/dav_c220/kernel_operator_vec_duplicate_impl.h",
+      "sha256": "ffc5e60a1f75df9e896432839970dbc547806c2527ca99dc5b1e0928923246c5",
+      "binding": "copied from actual a3-84:trt-asc toolkit9.2.0"
+    },
+    {
+      "path": "aarch64-linux/asc/impl/basic_api/dav_c220/kernel_operator_vec_scatter_impl.h",
+      "snapshot": "installed-source/aarch64-linux/asc/impl/basic_api/dav_c220/kernel_operator_vec_scatter_impl.h",
+      "sha256": "3df425a32966706188c8a026e32c9d879a6eabee7b8fa51ae445ea7a184f85f2",
+      "binding": "copied from actual a3-84:trt-asc toolkit9.2.0"
+    },
+    {
+      "path": "aarch64-linux/asc/impl/basic_api/kernel_operator_vec_scatter_intf_impl.h",
+      "snapshot": "installed-source/aarch64-linux/asc/impl/basic_api/kernel_operator_vec_scatter_intf_impl.h",
+      "sha256": "9a568fedfca4fc6a0ab4204617f4701f50912f3260ec26bdd44a28d5e77c79de",
+      "binding": "copied from actual a3-84:trt-asc toolkit9.2.0"
+    },
+    {
+      "path": "aarch64-linux/asc/impl/basic_api/kernel_tensor_impl.h",
+      "snapshot": "installed-source/aarch64-linux/asc/impl/basic_api/kernel_tensor_impl.h",
+      "sha256": "18f7a88f582fb75bbf61f34f3cc9850d32d42a77f487aa8f4b126ef903e256b5",
+      "binding": "copied from actual a3-84:trt-asc toolkit9.2.0"
+    },
+    {
+      "path": "opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/scatter_elements_v2/scatter_elements_v2.h",
+      "snapshot": "installed-source/opp/built-in/op_impl/ai_core/tbe/impl/ops_nn/ascendc/scatter_elements_v2/scatter_elements_v2.h",
+      "sha256": "c063b464d170bbddf8e3cc6bf2fe9139eb334fab137b12f372b11a8c1019ec7f",
+      "binding": "copied from actual a3-84:trt-asc toolkit9.2.0"
+    },
+    {
+      "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/sfa_v1.py",
+      "snapshot": "installed-python/sfa_v1.py",
+      "sha256": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+      "binding": "copied from actual a3-187:trt-asc-187 source used by package"
+    }
+  ],
+  "primary_doc": "https://www.hiascend.com/document/detail/zh/canncommercial/900/API/ascendcopapi/atlasascendc_api_07_0095.html"
+}

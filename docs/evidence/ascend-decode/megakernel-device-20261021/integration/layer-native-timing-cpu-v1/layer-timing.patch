@@ -1,0 +1,65 @@
+--- parent/local_chain.py
++++ candidate/local_chain.py
+@@ -344,7 +344,8 @@
+         "input_rstd_contract": "Candidate diagnostic only; no invented original-rstd oracle",
+         "same_addresses": True, "fresh_output_poison": True,
+         "poison_contract": "Floating NaN; non-address integers 1/2; bounded indices/counts zero except active_list fills 1 with E=0",
+-        "timing": False,
++        "timing": True, "timings": [],
++        "timing_scope": 'Native norm/attention/FFN versus 609 whole layer; N512 and top-k copy in both',
+         "topk_write_guards": "Candidate internal slice stays at 2; inactive persistent rows stay at -1",
+         "cache_signatures": cache_signatures, "topk_signature": topk_signature,
+         "prepared": [], "cases": [], "pass": False,
+@@ -357,7 +358,12 @@
+ 
+     persist()
+     try:
+-        for rows in args.forward_widths:
++        from layer_pair_timing import run_pair_timing
++        if args.forward_widths != [12]:
++            raise ValueError("The paired timing fixture requires M12")
++        retained_arenas = []
++        for arena in range(2):
++            rows = 12
+             inputs = Inputs(torch, torch_npu, layers, rows, topk.device)
+             first = LayerCase(torch, torch_npu, layers[0], 6, inputs,
+                               inputs.hidden, inputs.residual, topk, adapter,
+@@ -372,7 +378,7 @@
+             inputs.lock_owners()
+             owners = [value.owners() for value in cases]
+             report["prepared"].append({
+-                "rows": rows, "owners": owners,
++                "rows": rows, "arena": arena, "owners": owners,
+                 "down_tiling": [case.down_tiling_before for case in cases]})
+             for iteration in range(args.forward_replays):
+                 plan = inputs.update(iteration)
+@@ -410,7 +416,7 @@
+                         if not internal_unchanged:
+                             raise RuntimeError("The candidate still writes the internal top-k slice")
+                     report["down_tiling_checks"].append({
+-                        "rows": rows, "iteration": iteration, "arm": arm,
++                        "rows": rows, "iteration": iteration, "arm": arm, "arena": arena,
+                         "layers": [check_down_tiling(torch, case.body[7])
+                                    for case in cases]})
+                     values = {f"layer{number}.{name}": snapshot(torch, value)
+@@ -434,7 +440,7 @@
+                         raise RuntimeError("A local-chain consumer overwrote a live input")
+                 checks, passed = strict_checks(
+                     torch, observed["combined"], observed["separate"], metric)
+-                record = {"rows": rows, "iteration": iteration,
++                record = {"rows": rows, "iteration": iteration, "arena": arena,
+                           "checks": checks, "pass": passed,
+                           "inputs": inputs.witness(), "candidate_diagnostics": diagnostics,
+                           "unused_internal_topk_unchanged": internal_unchanged,
+@@ -451,6 +457,11 @@
+                                 "separate": observed["separate"],
+                                 "combined": observed["combined"]}, failure)
+                     raise RuntimeError("The local-chain launch differs from its separate parents")
++            retained_arenas.append((first, second, inputs))
++            report["timings"].append(run_pair_timing(
++                torch, cases, inputs, topk, caches, bases, arena, args.output,
++                comparison='native-stages'))
++            persist()
+             del first, second, cases, inputs
+         report["pass"] = True
+         persist()

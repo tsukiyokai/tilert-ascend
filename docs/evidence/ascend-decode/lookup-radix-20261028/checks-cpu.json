@@ -1,0 +1,69 @@
+{
+  "status": "pass",
+  "scope": "CPU exact proposer, scalar cache/TP16/session state, real CPU tensors and HTTP, and 16 concurrent scalar workers; no device numerical or performance acceptance",
+  "device_execution": false,
+  "environment": {
+    "PYTHONPATH": ".:tests/glm52",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "style": {
+    "command": [
+      "uvx",
+      "--from",
+      "pycodestyle",
+      "pycodestyle",
+      "tilert/models/glm_5_2_ascend/lookup_draft.py",
+      "tests/glm52/check_lookup.py",
+      "experiments/lookup-index/radix_probe.py",
+      "experiments/lookup-index/audit.py"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "results": [
+    {
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "unittest",
+        "check_lookup",
+        "check_lookup_benchmark",
+        "check_round_invariance",
+        "check_mtp_round",
+        "check_mtp_session",
+        "check_mtp_tp",
+        "check_cann_lookup_threads"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "........................................................................\n----------------------------------------------------------------------\nRan 72 tests in 26.530s\n\nOK\n"
+    },
+    {
+      "command": [
+        "/tmp/tilert-frontier-venv/bin/python",
+        "-m",
+        "unittest",
+        "check_cann_lookup_pd"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "../private/tmp/tilert-frontier-venv/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.\n  from starlette.testclient import TestClient as TestClient  # noqa\n_client.py:1025 [INFO]: HTTP Request: POST http://testserver/pd/decode \"HTTP/1.1 200 OK\"\n_client.py:1025 [INFO]: HTTP Request: POST http://testserver/pd/decode \"HTTP/1.1 200 OK\"\n.....\n----------------------------------------------------------------------\nRan 7 tests in 0.581s\n\nOK\n"
+    }
+  ],
+  "source_sha256": {
+    "tilert/models/glm_5_2_ascend/lookup_draft.py": "4d7c8502aeba3ade42742dbc447230ab8c3765085a048073c80a427101073891",
+    "tilert/models/glm_5_2_ascend/mtp_round.py": "7d1773a0dad58a4484662fea07a0aeb49b553e9f664f81c9e3d6c2df6a4ee1a6",
+    "tilert/models/glm_5_2_ascend/mtp_session.py": "5ed92e2ed938aa922486b6816cc4e7a496c44bdf48dfbf71e601dbdc8c4de216",
+    "tilert/pd_vllm/ascend_cache.py": "c26ef9cc2a9165fe988b4d5ac3e9f3ed0926f8d09123ca88d69348480b1a11ce",
+    "tests/glm52/serve_cann_pd.py": "a7f0644d9d40b3125b7821cabf3f8c13cf49d593992eb2a7af247bebd03c8f0e",
+    "tests/glm52/check_lookup.py": "ea1c8b1d8d67e77effd9dcc23dbeea6becd80d019de8ccca7f5981b965560e61",
+    "tests/glm52/check_lookup_benchmark.py": "c84e53f5d8d466eeeba7aed331841c8c4918c0e100b582afd56fe3a9f122a60c",
+    "tests/glm52/check_round_invariance.py": "f032515f7d1e9d887ed6a47f31fc164cdc1450647a9b637208b05d3109077aa3",
+    "tests/glm52/check_mtp_round.py": "dcf9e089991daf77dc405fbab1acbd7d7418fb3f08c3798a959b3e65e45814f8",
+    "tests/glm52/check_mtp_session.py": "6675e56a4d0d882eabc52c0cad312a6d273ec1336e5023d1e61cd640afd11f22",
+    "tests/glm52/check_mtp_tp.py": "ae30438d867b4203fa63617025687903dfa90b7b7aac3a54cb1310072cd31c33",
+    "tests/glm52/check_cann_lookup_threads.py": "282376bdab0e21fc0dbe027d915a2d044c6cd1e8afeba73a7914c883cb834f15",
+    "tests/glm52/check_cann_lookup_pd.py": "81556cec62b230ed9a96a9926dbaea5405f4fba58c7a76590b0f04aa1627da6c"
+  }
+}

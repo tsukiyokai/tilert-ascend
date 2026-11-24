@@ -1,0 +1,103 @@
+{
+  "scope": "Matched-address down-overlap FFN versus accepted one-launch FFN, TP excluded",
+  "candidate": "down_overlap",
+  "host": "a3-194",
+  "physical_die": 4,
+  "rows": 12,
+  "blocks": 24,
+  "weight_banks": 16,
+  "calls_per_graph": 16,
+  "graph_replays_per_event": 30,
+  "pairs_per_arena": 30,
+  "raw_byte_boundary_checks": 19200,
+  "post_event_tail_checks": 360,
+  "pass": true,
+  "scratch_matching": "All 32 tensors including system workspaces and immutable tilings share exact addresses within each pair",
+  "fresh_write_gate": "Before each checked CABI replay and timed arm warmup: logical floating outputs become NaN, bounded integer metadata becomes zero, other integer outputs become one; padding/tilings/system/inputs stay unchanged",
+  "extra_storage": "None; both C ABIs use the same 32 tensors",
+  "minimum_logical_active_matrix_bytes": 239075328,
+  "payload_interpretation": "Selected matrix sizes only; no HBM traffic or cache-miss measurement",
+  "candidate_library": {
+    "path": "/workspace/tests/glm52/whole_layer/ffn_down_overlap/build-v2/ffn_down_overlap.so",
+    "sha256": "1d4220181c3a0235109d663aa348c4b435d9e5f91bdb8e82e0201e82c8214822"
+  },
+  "sources": {
+    "/workspace/tests/glm52/whole_layer/ffn_down_overlap/timing-v1/bench.py": "212c14eb3b22261ec7c59d1f69cf22025188437217e0106b13278e165df7db63",
+    "/workspace/tests/glm52/whole_layer/ffn_composed/build-v2/harness-v1/check.py": "d5c1f9f3214a1461d0aff29e166ec781d894c6bd991369bbac27f80baed3c9bb",
+    "/workspace/logs/ffn-bridge-runtime212-v1/check.py": "6a36334a25bbde2f76c8749a0a385db48078deb3549c3a321aed1d43c4089afa",
+    "/workspace/logs/ffn-bridge-runtime212-v1/fixtures.py": "c0b010dadbdfe3e47918e5a84184ab295d4ac3a4da818066bee93e5e215b05f9",
+    "/workspace/logs/ffn-bridge-runtime212-v1/gate_probe.py": "0bf8e940836905d37e396e04bea1440485e0472e0c68cdb6b4b738b8e7105276",
+    "/workspace/tests/glm52/whole_layer/ffn_composed/build-v2/body/source/routed_int4/check.py": "4a28c5cdbbd4e7e4d71ea22e8b2e01e6337aacb0c7c2887442c3d25d1c2fd0fd",
+    "/workspace/tests/glm52/whole_layer/ffn_composed/build-v2/body/source/routed_int4/check_pipeline.py": "3eb8c327b01da2671d77a66f38e4bc201c4c727f113bae38a4023172ee344f25"
+  },
+  "arenas": [
+    {
+      "owner": "fused",
+      "active_experts": 65,
+      "candidate_us": {
+        "samples": 30,
+        "p50": 336.3173166910807,
+        "p90": 336.50103251139325,
+        "p99": 336.56912994384766,
+        "std": 0.1364311527605959,
+        "min": 335.9940528869629,
+        "max": 336.57665252685547
+      },
+      "base_us": {
+        "samples": 30,
+        "p50": 236.90279324849448,
+        "p90": 237.0157035191854,
+        "p99": 237.0739294687907,
+        "std": 0.11662423573769029,
+        "min": 236.61270141601562,
+        "max": 237.08442052205405
+      },
+      "paired_saving_us": {
+        "samples": 30,
+        "p50": -99.41136837005617,
+        "p90": -99.25883134206137,
+        "p99": -99.15028206507364,
+        "std": 0.1704740091680229,
+        "min": -99.96395111083984,
+        "max": -99.11684989929199
+      },
+      "paired_wins": 0,
+      "pairs": 30
+    },
+    {
+      "owner": "separate",
+      "active_experts": 65,
+      "candidate_us": {
+        "samples": 30,
+        "p50": 336.07614835103357,
+        "p90": 336.27675374348956,
+        "p99": 336.3912566502889,
+        "std": 0.15245059100216582,
+        "min": 335.8577410380046,
+        "max": 336.4008903503418
+      },
+      "base_us": {
+        "samples": 30,
+        "p50": 234.6792459487915,
+        "p90": 234.81587409973145,
+        "p99": 234.86662069956463,
+        "std": 0.10459502022326808,
+        "min": 234.44137573242188,
+        "max": 234.87265904744467
+      },
+      "paired_saving_us": {
+        "samples": 30,
+        "p50": -101.36926968892416,
+        "p90": -101.19783878326416,
+        "p99": -101.0599789619446,
+        "std": 0.18661958214542637,
+        "min": -101.8164316813151,
+        "max": -101.02836290995282
+      },
+      "paired_wins": 0,
+      "pairs": 30
+    }
+  ],
+  "report_sha256": "efc8f87c8727e4b348110d1a975af5e4e8e8bfd96da262f2f5d4500ec2341f6f",
+  "interpretation": "Positive paired saving means candidate is faster. Local FFN only, with synthetic weights and no TP collectives or model TPOT."
+}

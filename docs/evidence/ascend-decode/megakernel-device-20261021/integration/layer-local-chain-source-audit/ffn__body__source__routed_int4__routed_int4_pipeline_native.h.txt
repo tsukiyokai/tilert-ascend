@@ -1,0 +1,14 @@
+93:                 mla_tail::device::ScaleOrder::CombinedScales>(
+94:                 pipe, Payload<int32_t>(input.down_offset),
+95:                 reinterpret_cast<__gm__ float*>(input.down_scale),
+96:                 Payload<float>(input.scale_offset), nullptr, 0,
+97:                 reinterpret_cast<__gm__ bfloat16_t*>(input.output),
+98:                 rows, input.capacity, AscendC::GetBlockIdx(), 2 * blocks);
+99:             shared_w8::device::Publish();
+100:         }
+101:     }
+102: };
+103: 
+104: }  // namespace routed_int4::pipeline
+105: 
+106: #endif

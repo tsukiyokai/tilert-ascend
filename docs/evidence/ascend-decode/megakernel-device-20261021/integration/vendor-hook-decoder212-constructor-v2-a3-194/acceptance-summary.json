@@ -1,0 +1,50 @@
+{
+  "pass": true,
+  "scope": "Original TP16 layer-6 and layer-7 constructors and official weight postprocessing with synthetic parameters; one NPU, no forward or TP16 collective.",
+  "rank_successes": 16,
+  "npu_rank_count": 1,
+  "layers": [
+    6,
+    7
+  ],
+  "routed_weight_contract": "Packed INT4 stored in INT32 NZ, H6144 and per-rank I128",
+  "shared_gate_up": [
+    {
+      "layer": 6,
+      "gate_up_dtype": "torch.bfloat16"
+    },
+    {
+      "layer": 7,
+      "gate_up_dtype": "torch.bfloat16"
+    }
+  ],
+  "target_shared_w8a8_fixture_contract_pass": false,
+  "remaining_fixture_issue": "Merged shared gate_up_proj is BF16 in this fixture while down_proj is INT8.",
+  "rank_zero_report_sha256": "992b75e8e31252eadab12edcf7a0b3215d548cd7084fd372e4fc9d567fd5f8f4",
+  "actual_api_libraries": {
+    "aclnnAddRmsNormBias": {
+      "path": "/oracle/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+      "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+    },
+    "aclnnAddRmsNormBiasGetWorkspaceSize": {
+      "path": "/oracle/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+      "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+    },
+    "aclnnMoeGatingTopK": {
+      "path": "/oracle/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+      "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+    },
+    "aclnnMoeGatingTopKGetWorkspaceSize": {
+      "path": "/oracle/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+      "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+    },
+    "aclnnGroupedMatmulSwigluQuantWeightNzV2": {
+      "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so",
+      "sha256": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a"
+    },
+    "aclnnGroupedMatmulSwigluQuantWeightNzV2GetWorkspaceSize": {
+      "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so",
+      "sha256": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a"
+    }
+  }
+}

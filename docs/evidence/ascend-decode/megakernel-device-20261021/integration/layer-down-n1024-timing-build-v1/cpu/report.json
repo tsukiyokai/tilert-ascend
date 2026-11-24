@@ -1,0 +1,83 @@
+{
+  "scope": "Actual Torch212 import and six-library co-load; CPU address-group, successor, metadata, poison, view and CLI contracts",
+  "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "torch_path": "/usr/local/lib/python3.11/site-packages/torch/__init__.py",
+  "torch_npu_path": "/usr/local/lib/python3.11/site-packages/torch_npu/__init__.py",
+  "cxx11_abi": true,
+  "npu_initialized_before": false,
+  "npu_initialized_after": false,
+  "mapped_davinci_devices": [],
+  "device_execution": false,
+  "decoder_files_verified": 890,
+  "runtime_files_verified": 7953,
+  "decoder_manifest_sha256": "a0fa94aa2ff3829ef5e95b949e42fa95f4ca3addf9b2b4fc90cf283bd0595cd8",
+  "storage_correction_functions_ast_unchanged_except_scope_literal": true,
+  "chain_record_bytes": [
+    664,
+    928
+  ],
+  "contracts_run": 18,
+  "contract_log": "test_actual_metadata_updates_int64_slots_in_place (test_local_chain.LocalChainContracts.test_actual_metadata_updates_int64_slots_in_place) ... ok\ntest_attention_packet_preserves_producers_and_unused_slots (test_local_chain.LocalChainContracts.test_attention_packet_preserves_producers_and_unused_slots) ... ok\ntest_byte_gate_distinguishes_signed_zero_and_shape (test_local_chain.LocalChainContracts.test_byte_gate_distinguishes_signed_zero_and_shape) ... ok\ntest_distinct_integer_poison_rejects_unwritten_codes (test_local_chain.LocalChainContracts.test_distinct_integer_poison_rejects_unwritten_codes) ... ok\ntest_poison_rejects_empty_or_partial_execution (test_local_chain.LocalChainContracts.test_poison_rejects_empty_or_partial_execution) ... ok\ntest_reference_calls_parents_and_no_external_ar1 (test_local_chain.LocalChainContracts.test_reference_calls_parents_and_no_external_ar1) ... ok\ntest_shared_views_never_expose_the_dead_prolog_arena (test_local_chain.LocalChainContracts.test_shared_views_never_expose_the_dead_prolog_arena) ... ok\ntest_successor_retains_two_original_owners (test_local_chain.LocalChainContracts.test_successor_retains_two_original_owners) ... ok\ntest_topk_refresh_preserves_owner_and_unused_rows (test_local_chain.LocalChainContracts.test_topk_refresh_preserves_owner_and_unused_rows) ... ok\ntest_view_rejects_out_of_owner_access (test_local_chain.LocalChainContracts.test_view_rejects_out_of_owner_access) ... ok\ntest_609_and_explicit_topk_copy_are_retained (test_contract.N1024LayerContract.test_609_and_explicit_topk_copy_are_retained) ... ok\ntest_all_embedded_device_sources_match_and_identities_are_frozen (test_contract.N1024LayerContract.test_all_embedded_device_sources_match_and_identities_are_frozen) ... ok\ntest_complete_tiling_rejects_mutation_and_prior_geometries (test_contract.N1024LayerContract.test_complete_tiling_rejects_mutation_and_prior_geometries) ... ok\ntest_actual_frozen_cpp_layout_and_complete_field_extents (test_benchmark.PairedTilingContract.test_actual_frozen_cpp_layout_and_complete_field_extents) ... ok\ntest_event_reset_snapshot_and_graph_retirement_match_parent (test_benchmark.PairedTilingContract.test_event_reset_snapshot_and_graph_retirement_match_parent) ... ok\ntest_every_other_record_byte_is_protected (test_benchmark.PairedTilingContract.test_every_other_record_byte_is_protected) ... ok\ntest_full_tiling_guards_reject_swaps_and_tail_changes (test_benchmark.PairedTilingContract.test_full_tiling_guards_reject_swaps_and_tail_changes) ... ok\ntest_real_host_preparation_records_without_device_execution (test_benchmark.PairedTilingContract.test_real_host_preparation_records_without_device_execution) ... ok\n\n----------------------------------------------------------------------\nRan 18 tests in 0.682s\n\nOK\n",
+  "schemas": [
+    "tilert::indexed_attention_out(Tensor hidden, Tensor token_x, Tensor token_scale, Tensor[] main_weights, Tensor[] front_weights, Tensor[] tail_weights, Tensor? bias, Tensor[] main_metadata, Tensor[] indexer_metadata, Tensor(a!)[] caches, Tensor(b!) scratch, Tensor tiling, Tensor(c!) output, float scale, float epsilon_cq, float epsilon_ckv, int blocks, int sync_base) -> Tensor(c!)",
+    "tilert::indexed_attention_prepare(Tensor token_x, int pages, int table_pages, int index_pages, int index_table_pages, bool quantized, int blocks=0) -> (Tensor, Tensor, Dict(str, int), int, int)",
+    "tilert::norm_bias_out(Tensor input, Tensor residual, Tensor gamma, Tensor? beta, Tensor(a!) normalized, Tensor(b!) retained, Tensor(c!) rstd, float epsilon, int blocks, int sync_base) -> Tensor(a!)",
+    "tilert::norm_prepare(Tensor input, int blocks=0) -> (int, int)",
+    "tilert::norm_quant_out(Tensor input, Tensor residual, Tensor gamma, Tensor? beta, Tensor(a!) normalized, Tensor(b!) retained, Tensor(c!) rstd, Tensor(d!) quantized, Tensor(e!) scales, float epsilon, int blocks, int sync_base) -> Tensor(d!)",
+    "tilert::shared_full_attention_out(Tensor token_x, Tensor token_scale, Tensor weight_dq, Tensor weight_uq_qr, Tensor weight_uk, Tensor weight_dkv_kr, Tensor scale_dq, Tensor scale_uq_qr, Tensor scale_dkv_kr, Tensor gamma_cq, Tensor gamma_ckv, Tensor sin, Tensor cos, Tensor slots, Tensor(a!) kv_cache, Tensor(b!) rope_cache, Tensor topk, Tensor query_lengths, Tensor kv_lengths, Tensor page_table, Tensor value_weight, Tensor output_weight, Tensor output_scale, Tensor? bias, Tensor(c!) scratch, Tensor tiling, Tensor(d!) output, float scale, float epsilon_cq, float epsilon_ckv, int blocks, int sync_base) -> Tensor(d!)",
+    "tilert::shared_full_attention_prepare(Tensor token_x, int pages, int table_pages, int blocks=0) -> (Tensor, Tensor, int, int)",
+    "tilert_ffn_down_n1024::forward_out(Tensor input, Tensor residual, Tensor gamma, Tensor gate, Tensor bias, Tensor[] routed_weights, Tensor[] shared_weights, Tensor(a!)[] bridge_scratch, Tensor(b!)[] body_scratch, float epsilon, int blocks, int weight_layout, int sync) -> ()",
+    "tilert_ffn_down_n1024::prepare(Tensor input, int blocks=24, int weight_layout=1) -> (Tensor[], Tensor[], int)",
+    "tilert_ffn_down_n512::forward_out(Tensor input, Tensor residual, Tensor gamma, Tensor gate, Tensor bias, Tensor[] routed_weights, Tensor[] shared_weights, Tensor(a!)[] bridge_scratch, Tensor(b!)[] body_scratch, float epsilon, int blocks, int weight_layout, int sync) -> ()",
+    "tilert_ffn_down_n512::prepare(Tensor input, int blocks=24, int weight_layout=1) -> (Tensor[], Tensor[], int)"
+  ],
+  "cli_controls": [
+    {
+      "arguments": [
+        "--help"
+      ],
+      "exit_code": 0,
+      "stdout": "usage: device_local_chain.py [-h] --output OUTPUT --runtime RUNTIME\n                             --extension-sha256 EXTENSION_SHA256\n                             [--mode {int8,bf16}] [--timeout TIMEOUT]\n                             --adapter ADAPTER --indexed-library\n                             INDEXED_LIBRARY --shared-library SHARED_LIBRARY\n                             --sfa-library SFA_LIBRARY\n                             [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                             [--forward-replays FORWARD_REPLAYS]\n                             [--forward-sequence FORWARD_SEQUENCE]\n                             [--graph-residual-modes {none,provided} [{none,provided} ...]]\n                             [--ffn-library FFN_LIBRARY]\n                             [--chain-library CHAIN_LIBRARY]\n\nCompare real decoder layers with explicit rank-local TP boundary inputs.\n\noptions:\n  -h, --help            show this help message and exit\n  --output OUTPUT\n  --runtime RUNTIME\n  --extension-sha256 EXTENSION_SHA256\n  --mode {int8,bf16}\n  --timeout TIMEOUT\n  --adapter ADAPTER\n  --indexed-library INDEXED_LIBRARY\n  --shared-library SHARED_LIBRARY\n  --sfa-library SFA_LIBRARY\n  --forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]\n  --forward-replays FORWARD_REPLAYS\n  --forward-sequence FORWARD_SEQUENCE\n  --graph-residual-modes {none,provided} [{none,provided} ...]\n  --ffn-library FFN_LIBRARY\n  --chain-library CHAIN_LIBRARY\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "--graph-residual-modes",
+        "none"
+      ],
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "usage: device_local_chain.py [-h] --output OUTPUT --runtime RUNTIME\n                             --extension-sha256 EXTENSION_SHA256\n                             [--mode {int8,bf16}] [--timeout TIMEOUT]\n                             --adapter ADAPTER --indexed-library\n                             INDEXED_LIBRARY --shared-library SHARED_LIBRARY\n                             --sfa-library SFA_LIBRARY\n                             [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                             [--forward-replays FORWARD_REPLAYS]\n                             [--forward-sequence FORWARD_SEQUENCE]\n                             [--graph-residual-modes {none,provided} [{none,provided} ...]]\n                             [--ffn-library FFN_LIBRARY]\n                             [--chain-library CHAIN_LIBRARY]\ndevice_local_chain.py: error: The local-chain ABI requires a provided residual\n"
+    },
+    {
+      "arguments": [
+        "--forward-widths",
+        "3"
+      ],
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "usage: device_local_chain.py [-h] --output OUTPUT --runtime RUNTIME\n                             --extension-sha256 EXTENSION_SHA256\n                             [--mode {int8,bf16}] [--timeout TIMEOUT]\n                             --adapter ADAPTER --indexed-library\n                             INDEXED_LIBRARY --shared-library SHARED_LIBRARY\n                             --sfa-library SFA_LIBRARY\n                             [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                             [--forward-replays FORWARD_REPLAYS]\n                             [--forward-sequence FORWARD_SEQUENCE]\n                             [--graph-residual-modes {none,provided} [{none,provided} ...]]\n                             [--ffn-library FFN_LIBRARY]\n                             [--chain-library CHAIN_LIBRARY]\ndevice_local_chain.py: error: Use widths 1/2/12/32, 1..32 replays and a sequence covering every width\n"
+    },
+    {
+      "arguments": [
+        "--forward-replays",
+        "0"
+      ],
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "usage: device_local_chain.py [-h] --output OUTPUT --runtime RUNTIME\n                             --extension-sha256 EXTENSION_SHA256\n                             [--mode {int8,bf16}] [--timeout TIMEOUT]\n                             --adapter ADAPTER --indexed-library\n                             INDEXED_LIBRARY --shared-library SHARED_LIBRARY\n                             --sfa-library SFA_LIBRARY\n                             [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                             [--forward-replays FORWARD_REPLAYS]\n                             [--forward-sequence FORWARD_SEQUENCE]\n                             [--graph-residual-modes {none,provided} [{none,provided} ...]]\n                             [--ffn-library FFN_LIBRARY]\n                             [--chain-library CHAIN_LIBRARY]\ndevice_local_chain.py: error: Use widths 1/2/12/32, 1..32 replays and a sequence covering every width\n"
+    }
+  ],
+  "libraries": {
+    "/evidence/attention-wk-m1-build-v1/whole_layer_indexed_attention.so": "8deff750464e23bb871302c8626b86d37b60c28a00991d550f95dfcfd47ecb6f",
+    "/workspace/native/shared/whole_layer_full_attention.so": "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c",
+    "/decoder/complete_ffn.so": "bbd52e425a1e94bb199e464e3bf6001c4420e8238afe993e8741e38af50b77ef",
+    "/decoder/layer_local_chain.so": "609c973e92b61637f7768ccefb0fbd84b2e13fcfb066b241a41cd5d8376fdd0f",
+    "/decoder/control_ffn.so": "c90b3666a1697070eda19d5b3e133e9ed58f36fe429abefceae6ffe102a6a032",
+    "/decoder/native_norm.so": "40a9e3c04d22355cd51228c1dff7d3dc516d3442253ee3310a6cf95c01182027"
+  },
+  "script_sha256": "c8de120eb7d0f58b6da4d3dd65934d95642e1744d39f6c05618a6fa602a1a06d",
+  "pass": true
+}

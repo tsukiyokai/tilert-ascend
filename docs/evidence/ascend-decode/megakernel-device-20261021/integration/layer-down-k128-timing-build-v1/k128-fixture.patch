@@ -1,0 +1,121 @@
+--- n1024-timing-v1/ffn_host_adapter.py
++++ k128-timing-v1/ffn_host_adapter.py
+@@ -7,8 +7,8 @@
+ from types import MethodType
+ 
+ 
+-LIBRARY_SHA = "bbd52e425a1e94bb199e464e3bf6001c4420e8238afe993e8741e38af50b77ef"
+-NAMESPACE = "tilert_ffn_down_n1024"
++LIBRARY_SHA = "0842cd0f3a946c39aefb3e926e01eb870a61d6d1ad8689aebcf52a1b3daa2b65"
++NAMESPACE = "tilert_ffn_down_k128"
+ SCALE_SOURCE_SHA = "efdcc610c05a44952c2548e0d8b0cd48ca7704c3e2cf8247f8f08f5e765b830b"
+ DECODER_SOURCE_SHA = "96f4f755f62caa85869fb884209e7f8869882ddb6efbd40c930778b27bd3e39d"
+ RUNNER_SOURCE_SHA = "d4dfab36e66bd0a2ab9d78b9a867335adfc8cf0c418c93b34f5ccef63df00e27"
+@@ -26,7 +26,7 @@
+     import torch
+ 
+     if digest(library) != LIBRARY_SHA:
+-        raise RuntimeError("Use the accepted N1024 complete FFN library")
++        raise RuntimeError("Use the accepted K128 complete FFN library")
+     torch.ops.load_library(str(library))
+     return getattr(torch.ops, NAMESPACE)
+ 
+--- n1024-timing-v1/down_tiling.py
++++ k128-timing-v1/down_tiling.py
+@@ -1,10 +1,10 @@
+-"""Check the complete TCubeTiling produced by the accepted N1024 host tiler."""
++"""Check the complete TCubeTiling produced by the accepted K128 host tiler."""
+ 
+ import hashlib
+ 
+ 
+-EXPECTED_HEX = '0100000040000000001800008000000080000000400000000018000080000000200000000004000040000000040000000c00000002000000060000000000000000000000000000000000000000100600000002000000000001000000010000000100000001000000020000000200000000000000000000000200000002000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
+-EXPECTED_SHA = 'c207230aafb11e2c2f825cd9a2ea70147ee7733046b8b2957593c9c2bc3e8009'
++EXPECTED_HEX = '0100000040000000001800008000000080000000400000000018000080000000200000000004000080000000020000000600000002000000060000000000000000000000000000000000000000100600000002000000000001000000010000000100000001000000010000000100000000000000000000000200000001000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'
++EXPECTED_SHA = 'c2b73af9d605ad8e64ea551f288d188a0cf636828a5a0471ea7c63d616f50999'
+ 
+ 
+ def check_down_tiling(torch, value):
+@@ -12,7 +12,7 @@
+         raise ValueError("Down tiling requires at least 200 explicit bytes")
+     payload = bytes(value[:200].detach().cpu().tolist())
+     if payload.hex() != EXPECTED_HEX:
+-        raise RuntimeError("Prepared Down tiling differs from the N1024 host tiler")
++        raise RuntimeError("Prepared Down tiling differs from the K128 host tiler")
+     actual = hashlib.sha256(payload).hexdigest()
+     if actual != EXPECTED_SHA:
+         raise RuntimeError("The Down tiling byte oracle is inconsistent")
+--- n1024-timing-v1/tiling_packets.py
++++ k128-timing-v1/tiling_packets.py
+@@ -12,7 +12,7 @@
+ 
+ 
+ CONTROL_SHA = "c90b3666a1697070eda19d5b3e133e9ed58f36fe429abefceae6ffe102a6a032"
+-CANDIDATE_SHA = "bbd52e425a1e94bb199e464e3bf6001c4420e8238afe993e8741e38af50b77ef"
++CANDIDATE_SHA = "0842cd0f3a946c39aefb3e926e01eb870a61d6d1ad8689aebcf52a1b3daa2b65"
+ 
+ 
+ def load_control(torch):
+--- n1024-timing-v1/local_chain_cpu_check.py
++++ k128-timing-v1/local_chain_cpu_check.py
+@@ -91,7 +91,7 @@
+     schemas = sorted(str(value) for value in torch._C._jit_get_all_schemas()
+                      if str(value).startswith(("tilert::indexed_attention",
+                                                "tilert::shared_full_attention",
+-                                               "tilert_ffn_down_n1024::",
++                                               "tilert_ffn_down_k128::",
+                                                "tilert_ffn_down_n512::",
+                                                "tilert::norm_")))
+     if len(schemas) != 11 or ffn.forward_out is None:
+--- n1024-timing-v1/local_chain.py
++++ k128-timing-v1/local_chain.py
+@@ -333,12 +333,12 @@
+         "tp_contract": "Both reductions are identity; local attention partial directly feeds FFN",
+         "successor_contract": "Layer7 consumes layer6 combined output and separately retained FFN residual",
+         "topk_contract": "Layer6 selected indices copy into the actual persistent owner before shared layer7",
+-        "reference": "Original input norm module and npu_dynamic_quant; indexed8deff/shared64108; completeFFNbbd-N1024",
++        "reference": "Original input norm module and npu_dynamic_quant; indexed8deff/shared64108; completeFFN0842-K128",
+         "input_rstd_contract": "Candidate diagnostic only; no invented original-rstd oracle",
+         "same_addresses": True, "fresh_output_poison": True,
+         "poison_contract": "Floating NaN in both arms; non-address integers 1/2; bounded indices/counts zero",
+         "timing": True, "timings": [],
+-        "timing_scope": "609 plus TopK copy, N512 versus N1024 Down tiling",
++        "timing_scope": "609 plus TopK copy, N512 versus N1024/K128 Down tiling",
+         "cache_signatures": cache_signatures, "topk_signature": topk_signature,
+         "prepared": [], "cases": [], "pass": False,
+         "down_tiling_checks": [],
+--- n1024-timing-v1/layer_pair_timing.py
++++ k128-timing-v1/layer_pair_timing.py
+@@ -63,7 +63,7 @@
+     report = {
+         "arena": arena, "rows": inputs.rows, "blocks": 24,
+         "scope": "Two consecutive local layers with identity TP reductions",
+-        "comparison": "609 plus persistent top-k copy in both arms; N512 versus N1024 Down tiling",
++        "comparison": "609 plus persistent top-k copy in both arms; N512 versus N1024/K128 Down tiling",
+         "comparison_mode": comparison,
+         "unit": "us per indexed/shared two-layer pair",
+         "weight_banks": 1, "weight_sets": 2,
+--- n1024-timing-v1/test_contract.py
++++ k128-timing-v1/test_contract.py
+@@ -55,8 +55,8 @@
+ 
+     def test_all_embedded_device_sources_match_and_identities_are_frozen(self):
+         root = Path(__file__).resolve().parent
+-        compatibility = json.loads((root / "n1024-source-compatibility.json").read_text())
+-        self.assertEqual(len(compatibility["normalized_unchanged_files"]), 49)
++        compatibility = json.loads((root / "k128-source-compatibility.json").read_text())
++        self.assertEqual(len(compatibility["normalized_unchanged_files"]), 48)
+         self.assertEqual(len(compatibility["embedded_ffn_files_identical"]), 49)
+         self.assertEqual(compatibility["changed_files"],
+                          ["body/source/routed_int4/routed_int4_tiling.cpp"])
+--- n1024-timing-v1/device_local_chain_run.sh
++++ k128-timing-v1/device_local_chain_run.sh
+@@ -14,7 +14,7 @@
+ fi
+ task_root=${VENDOR_HOOK_TASK_ROOT:-/home/shanshan/tilert-megakernel-20261021}
+ runtime_root=$task_root/vendor-hook-runtime212
+-decoder_root=$task_root/vendor-hook-layer-down-n1024-timing-v1
++decoder_root=$task_root/vendor-hook-layer-down-k128-timing-v1
+ oracle_root=$task_root/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install
+ cann_root=${VENDOR_HOOK_CANN_ROOT:-/home/shanshan/megamoe-mask-only-20261021/sdk/cann-9.2.0}
+ image=sha256:1910b1acedb37acc42beda9cb695c2cf84c57c81d8dd8b5191a98a97bc6d5fe6

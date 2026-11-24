@@ -1,0 +1,236 @@
+{
+  "scope": "Captured M1 N160 K6144 only; natural/shifted BF16 Mmad with 48 updates of one FP32 L0C tile",
+  "script": {
+    "path": "/probe/kshift_check.py",
+    "sha256": "0bec490083d74c526c6b55b456b5a26b693b776168cdf7e48f7efc9d8aa69564"
+  },
+  "helper": {
+    "path": "/probe/contract.py",
+    "sha256": "5d7ee7a53c76c4512553642c21edc96fc4ee98986cab12f4652df6573fa015db"
+  },
+  "capture": {
+    "path": "/capture/decoder-graph-index-diagnostic.pt",
+    "sha256": "a95e0c289c7e8b4f0808f185aecffc8739e602d6a72896894baf79c640e54c41"
+  },
+  "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+  "capture_report": {
+    "path": "/capture/decoder-graph-index-diagnostic.json",
+    "sha256": "6b10c24c9754b8084699905dcbfd12c2b3abcf6a56f55d0d1488c65187e50a87"
+  },
+  "cpu_only": true,
+  "cases": [],
+  "completed": true,
+  "pass": true,
+  "geometry": {
+    "blocks": 10,
+    "M": 1,
+    "N": 160,
+    "K": 6144,
+    "single_core_M": 1,
+    "single_core_N": 16,
+    "mmad_K": 128,
+    "K_segment": 512,
+    "K_segments": 12
+  },
+  "orders": {
+    "0": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "1": [
+      11,
+      10,
+      9,
+      8,
+      7,
+      6,
+      5,
+      4,
+      3,
+      2,
+      1,
+      0
+    ],
+    "2": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      0,
+      1
+    ],
+    "3": [
+      1,
+      0,
+      11,
+      10,
+      9,
+      8,
+      7,
+      6,
+      5,
+      4,
+      3,
+      2
+    ],
+    "4": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      0,
+      1,
+      2,
+      3
+    ],
+    "5": [
+      3,
+      2,
+      1,
+      0,
+      11,
+      10,
+      9,
+      8,
+      7,
+      6,
+      5,
+      4
+    ],
+    "6": [
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "7": [
+      5,
+      4,
+      3,
+      2,
+      1,
+      0,
+      11,
+      10,
+      9,
+      8,
+      7,
+      6
+    ],
+    "8": [
+      8,
+      9,
+      10,
+      11,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "9": [
+      7,
+      6,
+      5,
+      4,
+      3,
+      2,
+      1,
+      0,
+      11,
+      10,
+      9,
+      8
+    ]
+  },
+  "torch": "2.12.0+cu130",
+  "witnesses": [
+    {
+      "coordinate": [
+        0,
+        25
+      ],
+      "vendor": {
+        "value": -0.3359375,
+        "bits": "0xbeac"
+      },
+      "native": {
+        "value": -0.333984375,
+        "bits": "0xbeab"
+      },
+      "native_accumulator": {
+        "value": -0.33496055006980896,
+        "bits": "0xbeab7ff3"
+      },
+      "cpu_fp64_dot": -0.3349605367548065,
+      "cpu_fp64_cast_fp32": {
+        "value": -0.33496055006980896,
+        "bits": "0xbeab7ff3"
+      },
+      "cpu_fp64_cast_bfloat16": {
+        "value": -0.333984375,
+        "bits": "0xbeab"
+      },
+      "bf16_midpoint": -0.3349609375,
+      "native_accumulator_minus_fp64": -1.331500243395567e-08,
+      "native_accumulator_minus_midpoint": 3.8743019104003906e-07,
+      "fp64_minus_midpoint": 4.0074519347399473e-07
+    }
+  ],
+  "witness_mapping": [
+    {
+      "coordinate": [
+        0,
+        25
+      ],
+      "core": 1,
+      "M_tile": 0,
+      "N_tile": 1,
+      "K512_order": [
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2,
+        1,
+        0
+      ]
+    }
+  ]
+}

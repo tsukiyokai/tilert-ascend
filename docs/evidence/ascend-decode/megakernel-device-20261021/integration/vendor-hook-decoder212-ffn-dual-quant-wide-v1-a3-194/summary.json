@@ -1,0 +1,54 @@
+{
+  "pass": true,
+  "scope": "Actual post_attention_layernorm plus original MLP versus complete native FFN; explicit post-AR1 and retained-residual inputs; local pre-AR2 only",
+  "rows": [
+    1,
+    2,
+    12,
+    32
+  ],
+  "iterations": 8,
+  "layers": [
+    6,
+    7
+  ],
+  "raw_byte_boundary_checks": 704,
+  "immediate_consumer_checks": 256,
+  "boundaries": [
+    "combined",
+    "consumer.combined",
+    "consumer.retained",
+    "consumer.routed",
+    "consumer.shared",
+    "logits",
+    "normalized",
+    "pre_ar2",
+    "retained",
+    "routed",
+    "shared"
+  ],
+  "original_ffn_oracle": "Actual DecoderLayer post_attention_layernorm and original MLP, including original GMM1/GMM2/shared operators",
+  "candidate_library_sha256": "715060c0c50a275855eb757cd85128a6c5586deeaa7757dc2945b92bee64d69b",
+  "corrected_weight_banks": 4,
+  "original_nz_allocations_and_raw_bytes_preserved": true,
+  "scale_encoding": "FP32 bit patterns decoded from the original zero-extended INT64 carriers",
+  "native_graph_replay": true,
+  "reference_graph_replay": false,
+  "synthetic_parameters": true,
+  "full_decoder_executed": false,
+  "full_down_tiling_byte_checks": 72,
+  "down_tiling_bytes": 200,
+  "down_tiling_sha256": "bb8ef4481b8c63b00dc43940975ee5b172818bcd228e8bc553b22234cbb2a244",
+  "physical_dies": 1,
+  "npu_ranks": [
+    0
+  ],
+  "completed_gloo_ranks": 16,
+  "tp_geometry": 16,
+  "tp_collectives_executed": 0,
+  "report_sha256": {
+    "decoder-ffn.json": "1e9fe64cca0a581045b3961dd24b71f03f0fabebbf505861fe879228a9c94300",
+    "nz-storage-correction.json": "fe184b2687fa53a9404e7e34e87fbb2caff6f42e499a94892a04de29217451e7"
+  },
+  "next_gate": "Actual decoder graph integration and paired latency of the combined FFN."
+}

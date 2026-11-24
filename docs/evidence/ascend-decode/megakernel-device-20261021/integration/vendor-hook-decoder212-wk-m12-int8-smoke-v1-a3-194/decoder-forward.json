@@ -1,0 +1,1000 @@
+{
+  "scope": "Original DecoderLayer.forward for layers 6 then 7; native attention versus original attention; both arms use the official FFN",
+  "script": {
+    "path": "/decoder/decoder_forward.py",
+    "sha256": "c802ae9371103bb75c1f8f5df39e3c9b2e49d77fd3a86ef23ad5d58781fcb207"
+  },
+  "decoder_forward": {
+    "path": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py",
+    "sha256": "96f4f755f62caa85869fb884209e7f8869882ddb6efbd40c930778b27bd3e39d"
+  },
+  "forward_context": {
+    "path": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/forward_context.py",
+    "sha256": "8dab5a4dee60e46c4e52821667321c9f05c793578af49cddbdb204cf9324c403"
+  },
+  "adapter": {
+    "path": "/workspace/tilert/models/glm_5_2_ascend/attention_native.py",
+    "sha256": "336eaff0de153d32439d4d2b0557522b313a24a7e5bef82b8dc11f1257511c01"
+  },
+  "sfa_adapter": {
+    "path": "/workspace/native/sfa/vendor_sfa_adapter.so",
+    "sha256": "bd8aff02f36dca1948b4eea1aa03805d6977b5ae8bf39573b51d73b68a61be3e",
+    "schema": "_C_ascend::npu_sparse_flash_attention(Tensor query, Tensor key, Tensor value, Tensor sparse_indices, float scale_value, *, Tensor? block_table=None, Tensor? actual_seq_lengths_query=None, Tensor? actual_seq_lengths_kv=None, Tensor? query_rope=None, Tensor? key_rope=None, int sparse_block_size=1, str layout_query=\"BSND\", str layout_kv=\"BSND\", int sparse_mode=3, int pre_tokens=9223372036854775807, int next_tokens=9223372036854775807, int attention_mode=2, bool return_softmax_lse=False) -> (Tensor attention_out, Tensor softmax_max, Tensor softmax_sum)",
+    "resolved_api_libraries": {
+      "aclnnSparseFlashAttentionGetWorkspaceSize": {
+        "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so",
+        "sha256": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a"
+      },
+      "aclnnSparseFlashAttention": {
+        "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so",
+        "sha256": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a"
+      }
+    }
+  },
+  "native_libraries": [
+    {
+      "path": "/evidence/attention-wk-m12-build-v1/whole_layer_indexed_attention.so",
+      "sha256": "5f8868bf96efcfd5a53f17890ce8b619287d4463386a2f020c80546332edfabc"
+    },
+    {
+      "path": "/workspace/native/shared/whole_layer_full_attention.so",
+      "sha256": "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c"
+    }
+  ],
+  "triton_initializer": {
+    "path": "/decoder/python/vllm_ascend/ops/triton/triton_utils.py",
+    "sha256": "cd918c79138a5f93294a7b25a47a8e5fcda2f6291e726bca94c0a76237881225"
+  },
+  "device_properties": {
+    "max_shared_mem": 1,
+    "num_aicore": 24,
+    "num_vectorcore": 48
+  },
+  "mode": "int8",
+  "widths": [
+    12
+  ],
+  "iterations": 1,
+  "tp_geometry": 16,
+  "tp_collectives_executed": 0,
+  "ar1_contract": "Independent BF16 post-attention reduction input supplied identically to both arms",
+  "ar2_contract": "Return the rank-local FFN partial; no numerical multi-rank sum is emulated",
+  "successor_input_contract": "Layer7 consumes layer6 local pre-AR2 output and its separately returned residual",
+  "topk_owners_before_cache_binding": [
+    {
+      "layer": 6,
+      "device": "npu:0",
+      "data_ptr": 20618013573120,
+      "storage_ptr": 20618013573120,
+      "shape": [
+        32,
+        2048
+      ]
+    },
+    {
+      "layer": 7,
+      "device": "npu:0",
+      "data_ptr": 20618013573120,
+      "storage_ptr": 20618013573120,
+      "shape": [
+        32,
+        2048
+      ]
+    }
+  ],
+  "topk_owners_after_cache_binding": [
+    {
+      "layer": 6,
+      "device": "npu:0",
+      "data_ptr": 20618013573120,
+      "storage_ptr": 20618013573120,
+      "shape": [
+        32,
+        2048
+      ]
+    },
+    {
+      "layer": 7,
+      "device": "npu:0",
+      "data_ptr": 20618013573120,
+      "storage_ptr": 20618013573120,
+      "shape": [
+        32,
+        2048
+      ]
+    }
+  ],
+  "cache_shapes": {
+    "layer6.main_cache": [
+      66,
+      128,
+      1,
+      512
+    ],
+    "layer6.rope_cache": [
+      66,
+      128,
+      1,
+      64
+    ],
+    "layer6.index_cache": [
+      66,
+      128,
+      1,
+      128
+    ],
+    "layer6.index_scale": [
+      66,
+      128,
+      1,
+      1
+    ],
+    "layer7.main_cache": [
+      66,
+      128,
+      1,
+      512
+    ],
+    "layer7.rope_cache": [
+      66,
+      128,
+      1,
+      64
+    ]
+  },
+  "cases": [
+    {
+      "rows": 12,
+      "iteration": 0,
+      "pass": true,
+      "initial_residual": "None",
+      "input": {
+        "shape": [
+          12,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "sha256": "e2e7452e0a18667e160af978821c52115e1edf2fa699f1b3a0d9afd253b1c6cb",
+        "nonzero": 73728,
+        "finite": true
+      },
+      "lengths": [
+        8192
+      ],
+      "phase": "comparison",
+      "arms": {
+        "original": {
+          "layer6": {
+            "tp_cuts": [
+              {
+                "ordinal": 1,
+                "phase": "attention",
+                "source_data_ptr": 20622930479104,
+                "action": "external_post_ar1",
+                "stack": [
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/mla.py",
+                    "line": 298,
+                    "function": "mla_forward"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/attention/sfa_v1.py",
+                    "line": 2126,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/attention/sfa_v1.py",
+                    "line": 1789,
+                    "function": "_finalize_o_proj"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py",
+                    "line": 1778,
+                    "function": "_wrapped_call_impl"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py",
+                    "line": 1789,
+                    "function": "_call_impl"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/linear.py",
+                    "line": 391,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/layers/linear.py",
+                    "line": 1781,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/distributed/communication_op.py",
+                    "line": 14,
+                    "function": "tensor_model_parallel_all_reduce"
+                  },
+                  {
+                    "file": "/decoder/decoder_forward.py",
+                    "line": 81,
+                    "function": "<lambda>"
+                  }
+                ]
+              },
+              {
+                "ordinal": 2,
+                "phase": "ffn",
+                "source_data_ptr": 20622939931136,
+                "action": "local_pre_ar2",
+                "stack": [
+                  {
+                    "file": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py",
+                    "line": 424,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py",
+                    "line": 1778,
+                    "function": "_wrapped_call_impl"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py",
+                    "line": 1789,
+                    "function": "_call_impl"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/fused_moe/fused_moe.py",
+                    "line": 240,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/fused_moe/fused_moe.py",
+                    "line": 350,
+                    "function": "_maybe_reduce_final_output"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/_ops.py",
+                    "line": 1275,
+                    "function": "__call__"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/register_custom_ops.py",
+                    "line": 141,
+                    "function": "_maybe_all_reduce_tensor_model_parallel_impl"
+                  },
+                  {
+                    "file": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/distributed/communication_op.py",
+                    "line": 14,
+                    "function": "tensor_model_parallel_all_reduce"
+                  },
+                  {
+                    "file": "/decoder/decoder_forward.py",
+                    "line": 81,
+                    "function": "<lambda>"
+                  }
+                ]
+              }
+            ],
+            "residual_is_post_norm_owner": true,
+            "output": {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "f8a9791e166f0bcbce38dfc30751dc53baa935ebf89bdf71e37430243daabe48",
+              "nonzero": 73728,
+              "finite": true
+            },
+            "retained_residual": {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "91a02ebc87d2efa17f3e2b17716306b8588ff15a0609d5139d261221d6750a4b",
+              "nonzero": 73656,
+              "finite": true
+            },
+            "post_ar1": {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "012522d89b2829f25c3c5730add221d71a9a918566a72566fae13a51bc027e02",
+              "nonzero": 73728,
+              "finite": true
+            }
+          },
+          "layer7": {
+            "tp_cuts": [
+              {
+                "ordinal": 1,
+                "phase": "attention",
+                "source_data_ptr": 20622930380288,
+                "action": "external_post_ar1",
+                "stack": [
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/mla.py",
+                    "line": 298,
+                    "function": "mla_forward"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/attention/sfa_v1.py",
+                    "line": 2126,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/attention/sfa_v1.py",
+                    "line": 1789,
+                    "function": "_finalize_o_proj"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py",
+                    "line": 1778,
+                    "function": "_wrapped_call_impl"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py",
+                    "line": 1789,
+                    "function": "_call_impl"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/linear.py",
+                    "line": 391,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/layers/linear.py",
+                    "line": 1781,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/distributed/communication_op.py",
+                    "line": 14,
+                    "function": "tensor_model_parallel_all_reduce"
+                  },
+                  {
+                    "file": "/decoder/decoder_forward.py",
+                    "line": 81,
+                    "function": "<lambda>"
+                  }
+                ]
+              },
+              {
+                "ordinal": 2,
+                "phase": "ffn",
+                "source_data_ptr": 20622940818944,
+                "action": "local_pre_ar2",
+                "stack": [
+                  {
+                    "file": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py",
+                    "line": 424,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py",
+                    "line": 1778,
+                    "function": "_wrapped_call_impl"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py",
+                    "line": 1789,
+                    "function": "_call_impl"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/fused_moe/fused_moe.py",
+                    "line": 240,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/fused_moe/fused_moe.py",
+                    "line": 350,
+                    "function": "_maybe_reduce_final_output"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/_ops.py",
+                    "line": 1275,
+                    "function": "__call__"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/register_custom_ops.py",
+                    "line": 141,
+                    "function": "_maybe_all_reduce_tensor_model_parallel_impl"
+                  },
+                  {
+                    "file": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/distributed/communication_op.py",
+                    "line": 14,
+                    "function": "tensor_model_parallel_all_reduce"
+                  },
+                  {
+                    "file": "/decoder/decoder_forward.py",
+                    "line": 81,
+                    "function": "<lambda>"
+                  }
+                ]
+              }
+            ],
+            "residual_is_post_norm_owner": true,
+            "output": {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "fac974ae7d6f505ce609bf1d24706b745d9bc019011965d29828ad8c657ba9ba",
+              "nonzero": 73728,
+              "finite": true
+            },
+            "retained_residual": {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "9c2a8b010a2132e3b749e90b9395810006ee1fc0bb498b631499e2c2edc9a678",
+              "nonzero": 73722,
+              "finite": true
+            },
+            "post_ar1": {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "b4a4f297f9ba77bcb86d797bb67ef161a1442df84b1c1e3f79bcf31e49a7b1a5",
+              "nonzero": 73728,
+              "finite": true
+            }
+          }
+        },
+        "native_attention": {
+          "layer6": {
+            "tp_cuts": [
+              {
+                "ordinal": 1,
+                "phase": "attention",
+                "source_data_ptr": 20622930380288,
+                "action": "external_post_ar1",
+                "stack": [
+                  {
+                    "file": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py",
+                    "line": 1246,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py",
+                    "line": 1778,
+                    "function": "_wrapped_call_impl"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py",
+                    "line": 1789,
+                    "function": "_call_impl"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/mla.py",
+                    "line": 280,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/_ops.py",
+                    "line": 1275,
+                    "function": "__call__"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/mla.py",
+                    "line": 298,
+                    "function": "mla_forward"
+                  },
+                  {
+                    "file": "/workspace/tilert/models/glm_5_2_ascend/attention_native.py",
+                    "line": 498,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/distributed/communication_op.py",
+                    "line": 14,
+                    "function": "tensor_model_parallel_all_reduce"
+                  },
+                  {
+                    "file": "/decoder/decoder_forward.py",
+                    "line": 81,
+                    "function": "<lambda>"
+                  }
+                ]
+              },
+              {
+                "ordinal": 2,
+                "phase": "ffn",
+                "source_data_ptr": 20622940079104,
+                "action": "local_pre_ar2",
+                "stack": [
+                  {
+                    "file": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py",
+                    "line": 424,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py",
+                    "line": 1778,
+                    "function": "_wrapped_call_impl"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py",
+                    "line": 1789,
+                    "function": "_call_impl"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/fused_moe/fused_moe.py",
+                    "line": 240,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/fused_moe/fused_moe.py",
+                    "line": 350,
+                    "function": "_maybe_reduce_final_output"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/_ops.py",
+                    "line": 1275,
+                    "function": "__call__"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/register_custom_ops.py",
+                    "line": 141,
+                    "function": "_maybe_all_reduce_tensor_model_parallel_impl"
+                  },
+                  {
+                    "file": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/distributed/communication_op.py",
+                    "line": 14,
+                    "function": "tensor_model_parallel_all_reduce"
+                  },
+                  {
+                    "file": "/decoder/decoder_forward.py",
+                    "line": 81,
+                    "function": "<lambda>"
+                  }
+                ]
+              }
+            ],
+            "residual_is_post_norm_owner": true,
+            "output": {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "f8a9791e166f0bcbce38dfc30751dc53baa935ebf89bdf71e37430243daabe48",
+              "nonzero": 73728,
+              "finite": true
+            },
+            "retained_residual": {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "91a02ebc87d2efa17f3e2b17716306b8588ff15a0609d5139d261221d6750a4b",
+              "nonzero": 73656,
+              "finite": true
+            },
+            "post_ar1": {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "012522d89b2829f25c3c5730add221d71a9a918566a72566fae13a51bc027e02",
+              "nonzero": 73728,
+              "finite": true
+            }
+          },
+          "layer7": {
+            "tp_cuts": [
+              {
+                "ordinal": 1,
+                "phase": "attention",
+                "source_data_ptr": 20622522075136,
+                "action": "external_post_ar1",
+                "stack": [
+                  {
+                    "file": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py",
+                    "line": 1246,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py",
+                    "line": 1778,
+                    "function": "_wrapped_call_impl"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py",
+                    "line": 1789,
+                    "function": "_call_impl"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/mla.py",
+                    "line": 280,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/_ops.py",
+                    "line": 1275,
+                    "function": "__call__"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/mla.py",
+                    "line": 298,
+                    "function": "mla_forward"
+                  },
+                  {
+                    "file": "/workspace/tilert/models/glm_5_2_ascend/attention_native.py",
+                    "line": 498,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/distributed/communication_op.py",
+                    "line": 14,
+                    "function": "tensor_model_parallel_all_reduce"
+                  },
+                  {
+                    "file": "/decoder/decoder_forward.py",
+                    "line": 81,
+                    "function": "<lambda>"
+                  }
+                ]
+              },
+              {
+                "ordinal": 2,
+                "phase": "ffn",
+                "source_data_ptr": 20622941114880,
+                "action": "local_pre_ar2",
+                "stack": [
+                  {
+                    "file": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py",
+                    "line": 424,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py",
+                    "line": 1778,
+                    "function": "_wrapped_call_impl"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/nn/modules/module.py",
+                    "line": 1789,
+                    "function": "_call_impl"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/fused_moe/fused_moe.py",
+                    "line": 240,
+                    "function": "forward"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/fused_moe/fused_moe.py",
+                    "line": 350,
+                    "function": "_maybe_reduce_final_output"
+                  },
+                  {
+                    "file": "/usr/local/lib/python3.11/site-packages/torch/_ops.py",
+                    "line": 1275,
+                    "function": "__call__"
+                  },
+                  {
+                    "file": "/decoder/python/vllm_ascend/ops/register_custom_ops.py",
+                    "line": 141,
+                    "function": "_maybe_all_reduce_tensor_model_parallel_impl"
+                  },
+                  {
+                    "file": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/distributed/communication_op.py",
+                    "line": 14,
+                    "function": "tensor_model_parallel_all_reduce"
+                  },
+                  {
+                    "file": "/decoder/decoder_forward.py",
+                    "line": 81,
+                    "function": "<lambda>"
+                  }
+                ]
+              }
+            ],
+            "residual_is_post_norm_owner": true,
+            "output": {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "fac974ae7d6f505ce609bf1d24706b745d9bc019011965d29828ad8c657ba9ba",
+              "nonzero": 73728,
+              "finite": true
+            },
+            "retained_residual": {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "9c2a8b010a2132e3b749e90b9395810006ee1fc0bb498b631499e2c2edc9a678",
+              "nonzero": 73722,
+              "finite": true
+            },
+            "post_ar1": {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "b4a4f297f9ba77bcb86d797bb67ef161a1442df84b1c1e3f79bcf31e49a7b1a5",
+              "nonzero": 73728,
+              "finite": true
+            }
+          }
+        }
+      },
+      "checks": {
+        "layer6.pre_ar1": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.pre_ar2": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.post_ar1": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.input_norm.0": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.post_norm.0": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.post_norm.1": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.residual": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.topk": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 65536
+        },
+        "layer7.pre_ar1": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.pre_ar2": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.post_ar1": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.input_norm.0": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.input_norm.1": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.post_norm.0": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.post_norm.1": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.residual": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.topk": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 65536
+        },
+        "layer6.main_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 4325376
+        },
+        "layer6.rope_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 540672
+        },
+        "layer6.index_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1081344
+        },
+        "layer6.index_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 8448
+        },
+        "layer7.main_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 4325376
+        },
+        "layer7.rope_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 540672
+        }
+      },
+      "native_calls": [
+        {
+          "rows": 12,
+          "mode": "int8"
+        },
+        {
+          "rows": 12,
+          "mode": "shared"
+        }
+      ]
+    }
+  ],
+  "pass": true
+}

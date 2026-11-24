@@ -1,0 +1,22 @@
+--- baseline/gmm/grouped_matmul_swiglu_quant_v2/op_host/grouped_matmul_swiglu_quant_v2_base_tiling.cpp
++++ candidate/gmm/grouped_matmul_swiglu_quant_v2/op_host/grouped_matmul_swiglu_quant_v2_base_tiling.cpp
+@@ -361,7 +361,8 @@
+                 return ge::GRAPH_FAILED);
+     if (isA8W4MSD_ || isA4W4_) {
+         tilingData_.mmTilingData.set_baseM(A8W4_BASEM);
+-        tilingData_.mmTilingData.set_baseN(A8W4_BASEN);
++        tilingData_.mmTilingData.set_baseN(
++            (isA8W4MSD_ && n_ == 256 && k_ == 6144) ? 128 : A8W4_BASEN);
+         tilingData_.mmTilingData.set_baseK(A8W4_BASEK);
+         tilingData_.mmTilingData.set_dbL0B(DOUBLE_BUFFER);
+         tilingData_.mmTilingData.set_stepKa(NUM_FOUR);
+@@ -433,7 +434,8 @@
+     tilingData_.gmmSwigluQuantV2BaseParams.set_N(n_);
+     tilingData_.gmmSwigluQuantV2BaseParams.set_M(m_);
+     tilingData_.gmmSwigluQuantV2BaseParams.set_baseM(A8W4_BASEM);
+-    tilingData_.gmmSwigluQuantV2BaseParams.set_baseN(A8W4_BASEN);
++    tilingData_.gmmSwigluQuantV2BaseParams.set_baseN(
++        isA8W4MSD_ ? tilingData_.mmTilingData.get_baseN() : A8W4_BASEN);
+     tilingData_.gmmSwigluQuantV2BaseParams.set_quantGroupNum(quantGroupNum_);
+     tilingData_.gmmSwigluQuantV2BaseParams.set_isSingleTensor(isSingleTensor_);
+     tilingData_.gmmSwigluQuantV2BaseParams.set_groupListType(groupListType_);

@@ -1,0 +1,412 @@
+--- a/routed_int4_contract.h
++++ b/routed_int4_contract.h
+@@ -124,6 +124,9 @@
+     uint64_t inverse = 0;
+     uint64_t counts = 0;
+     uint64_t probabilities = 0;
++#ifdef ROUTED_ACTIVE_LIST
++    uint64_t active_list = 0;
++#endif
+ #ifdef ROUTED_INPUT_FRONT
+     uint64_t bf16_rows = 0;
+     uint64_t expert_ids = 0;
+--- a/routed_int4_pipeline.h
++++ b/routed_int4_pipeline.h
+@@ -2,6 +2,9 @@
+ #define TESTS_GLM52_ROUTED_INT4_PIPELINE_H
+ 
+ #include "routed_int4_contract.h"
++#ifdef ROUTED_ACTIVE_LIST
++#include "routed_int4_active_list.h"
++#endif
+ #include "../shared_w8/shared_w8.h"
+ 
+ namespace routed_int4::pipeline {
+@@ -10,6 +13,9 @@
+     kSharedPayload = kDispatchScratchCount,
+     kSharedTiling,
+     kSharedOutput,
++#ifdef ROUTED_ACTIVE_LIST
++    kActiveList,
++#endif
+     kScratchCount,
+ };
+ 
+@@ -31,7 +37,11 @@
+ constexpr size_t ExtraScratchBytes(int64_t tokens)
+ {
+     return shared_w8::MakeLayout(Capacity(tokens)).system
+-        + 2 * shared_w8::kTilingStride + tokens * kHidden * sizeof(uint16_t);
++        + 2 * shared_w8::kTilingStride + tokens * kHidden * sizeof(uint16_t)
++#ifdef ROUTED_ACTIVE_LIST
++        + kActiveListBytes
++#endif
++        ;
+ }
+ 
+ // The shared branch owns only payload. Every CUBE phase borrows the routed
+@@ -53,17 +63,27 @@
+     uint64_t down_offset = 0;
+ };
+ 
+-constexpr size_t kRoutedResidentUB = 81952;
++constexpr size_t kExtraActiveUB =
++#ifdef ROUTED_ACTIVE_LIST
++    kActiveListBytes;
++#else
++    0;
++#endif
++constexpr size_t kRoutedResidentUB = 81952 + kExtraActiveUB;
+ constexpr size_t kSharedResidentUB = 6592;
+ constexpr size_t kSharedEpilogueUB = 23808;
+ #ifdef ROUTED_INPUT_FRONT
+-constexpr size_t kFrontPhaseUB = kSharedResidentUB + 76320;
+-static_assert(kFrontPhaseUB == 82912);
++constexpr size_t kFrontPhaseUB = kSharedResidentUB + 76320 + kExtraActiveUB;
++static_assert(kFrontPhaseUB == 82912 + kExtraActiveUB);
+ static_assert(kFrontPhaseUB <= 188 * 1024);
+ #endif
+ static_assert(kRoutedResidentUB + kSharedResidentUB + kSharedEpilogueUB
+               <= 188 * 1024);
++#ifdef ROUTED_ACTIVE_LIST
++static_assert(kActiveList == 20 && kScratchCount == 21);
++#else
+ static_assert(kScratchCount == 20);
++#endif
+ static_assert(shared_w8::MakeLayout(16).system == 592384);
+ static_assert(shared_w8::MakeLayout(32).system == 1184768);
+ 
+--- a/routed_int4_front.h
++++ b/routed_int4_front.h
+@@ -3,6 +3,9 @@
+ 
+ #include "kernel_operator.h"
+ #include "routed_int4_contract.h"
++#ifdef ROUTED_ACTIVE_LIST
++#include "routed_int4_active_list.h"
++#endif
+ 
+ namespace routed_int4::front {
+ using namespace AscendC;
+@@ -14,7 +17,7 @@
+     WaitFlag<event>(EVENT_ID0);
+ }
+ 
+-// 76320 UB bytes per AIV. AIV0 owns all metadata; token%(2*blocks)
++// AIV0 owns all metadata; token%(2*blocks)
+ // owns each A8 row and its exact four-byte scale store.
+ template <class Timing>
+ __aicore__ inline void Prepare(
+@@ -44,6 +47,10 @@
+         pipe.InitBuffer(probability_buf, kMaxRoutes * sizeof(float));
+         pipe.InitBuffer(weight_buf, kMaxRoutes * sizeof(float));
+         pipe.InitBuffer(narrow_buf, kMaxRoutes * sizeof(bfloat16_t));
++#ifdef ROUTED_ACTIVE_LIST
++        TBuf<TPosition::VECCALC> active_buf;
++        pipe.InitBuffer(active_buf, kActiveListBytes);
++#endif
+ 
+         if (GetBlockIdx() == 0) {
+             auto count = count_buf.Get<int32_t>();
+@@ -55,6 +62,13 @@
+             auto probability = probability_buf.Get<float>();
+             auto weight = weight_buf.Get<float>();
+             auto narrow = narrow_buf.Get<bfloat16_t>();
++#ifdef ROUTED_ACTIVE_LIST
++            auto active = active_buf.Get<int32_t>();
++            GlobalTensor<int32_t> active_gm;
++            active_gm.SetGlobalBuffer((__gm__ int32_t*)input.active_list,
++                                      kActiveListElements);
++            Duplicate(active, int32_t(0), kActiveListElements);
++#endif
+             GlobalTensor<int32_t> choices, count_gm, start_gm, source_gm, slot_gm;
+             GlobalTensor<float> probabilities, weight_gm;
+             choices.SetGlobalBuffer((__gm__ int32_t*)input.expert_ids, tokens * kTopK);
+@@ -82,10 +96,17 @@
+                 count.SetValue(expert, count.GetValue(expert) + 1);
+             }
+             int32_t prefix = 0;
++#ifdef ROUTED_ACTIVE_LIST
++            int32_t active_count = 0;
++#endif
+             for (int64_t expert = 0; expert < kMaxExperts; ++expert) {
+                 start.SetValue(expert, prefix);
+                 cursor.SetValue(expert, prefix);
+                 prefix += count.GetValue(expert);
++#ifdef ROUTED_ACTIVE_LIST
++                active_count = AppendActiveExpert(
++                    active, active_count, expert, count.GetValue(expert));
++#endif
+             }
+             for (int64_t original = 0; original < tokens * kTopK; ++original) {
+                 const int32_t expert = choice.GetValue(original);
+@@ -95,7 +116,13 @@
+                 slot.SetValue(position, original % kTopK);
+                 weight.SetValue(position, probability.GetValue(original));
+             }
++#ifdef ROUTED_ACTIVE_LIST
++            active.SetValue(0, active_count);
++#endif
+             Fence<HardEvent::S_MTE3>();
++#ifdef ROUTED_ACTIVE_LIST
++            DataCopy(active_gm, active, kActiveListElements);
++#endif
+             DataCopy(count_gm, count, kMaxExperts);
+             DataCopy(start_gm, start, kMaxExperts);
+             DataCopy(source_gm, source, kMaxRoutes);
+--- a/routed_int4_dispatch.h
++++ b/routed_int4_dispatch.h
+@@ -3,6 +3,9 @@
+ 
+ #include "kernel_operator.h"
+ #include "routed_int4_contract.h"
++#ifdef ROUTED_ACTIVE_LIST
++#include "routed_int4_active_list.h"
++#endif
+ 
+ namespace routed_int4::dispatch {
+ using namespace AscendC;
+@@ -40,6 +43,10 @@
+         pipe.InitBuffer(probability_buf, kMaxRoutes * sizeof(float));
+         pipe.InitBuffer(narrowed_buf, kMaxRoutes * sizeof(bfloat16_t));
+         pipe.InitBuffer(weight_buf, kMaxRoutes * sizeof(float));
++#ifdef ROUTED_ACTIVE_LIST
++        TBuf<TPosition::VECCALC> active_buf;
++        pipe.InitBuffer(active_buf, kActiveListBytes);
++#endif
+         auto inverse = inverse_buf.Get<int32_t>();
+         auto row = row_buf.Get<int8_t>();
+         auto scale = scale_buf.Get<float>();
+@@ -58,6 +65,13 @@
+             auto probability = probability_buf.Get<float>();
+             auto narrowed = narrowed_buf.Get<bfloat16_t>();
+             auto weight = weight_buf.Get<float>();
++#ifdef ROUTED_ACTIVE_LIST
++            auto active = active_buf.Get<int32_t>();
++            GlobalTensor<int32_t> active_gm;
++            active_gm.SetGlobalBuffer((__gm__ int32_t*)input.active_list,
++                                      kActiveListElements);
++            Duplicate(active, int32_t(0), kActiveListElements);
++#endif
+             GlobalTensor<int64_t> counts_gm;
+             GlobalTensor<float> probability_gm, weight_gm;
+             GlobalTensor<int32_t> count_gm, start_gm, source_gm, slot_gm;
+@@ -77,11 +91,18 @@
+             Cast(probability, narrowed, RoundMode::CAST_NONE, tokens * kTopK);
+             Fence<HardEvent::V_S>();
+             int32_t prefix = 0;
++#ifdef ROUTED_ACTIVE_LIST
++            int32_t active_count = 0;
++#endif
+             for (int64_t expert = 0; expert < kMaxExperts; ++expert) {
+                 const int32_t size = static_cast<int32_t>(count64.GetValue(expert));
+                 count.SetValue(expert, size);
+                 start.SetValue(expert, prefix);
+                 prefix += size;
++#ifdef ROUTED_ACTIVE_LIST
++                active_count = AppendActiveExpert(
++                    active, active_count, expert, size);
++#endif
+             }
+             for (int64_t sorted = 0; sorted < kMaxRoutes; ++sorted) {
+                 source.SetValue(sorted, 0);
+@@ -94,7 +115,13 @@
+                 slot.SetValue(sorted, original % kTopK);
+                 weight.SetValue(sorted, probability.GetValue(original));
+             }
++#ifdef ROUTED_ACTIVE_LIST
++            active.SetValue(0, active_count);
++#endif
+             Fence<HardEvent::S_MTE3>();
++#ifdef ROUTED_ACTIVE_LIST
++            DataCopy(active_gm, active, kActiveListElements);
++#endif
+             DataCopy(count_gm, count, kMaxExperts);
+             DataCopy(start_gm, start, kMaxExperts);
+             DataCopy(source_gm, source, kMaxRoutes);
+--- a/routed_int4_binding.cpp
++++ b/routed_int4_binding.cpp
+@@ -216,6 +216,10 @@
+         {2 * int64_t(shared_w8::kTilingStride)}, options.dtype(at::kByte));
+     scratch[pipeline::kSharedOutput] = at::empty(
+         {tokens, kHidden}, options.dtype(at::kBFloat16));
++#ifdef ROUTED_ACTIVE_LIST
++    scratch[pipeline::kActiveList] = at::empty(
++        {kActiveListElements}, options.dtype(at::kInt));
++#endif
+     std::array<uint8_t, 2 * shared_w8::kTilingStride> shared_tiling{};
+     TORCH_CHECK(routed_shared_build_tiling(capacity, shared_tiling.data()) == 0,
+                 "shared projection tiling failed");
+@@ -297,6 +301,10 @@
+         {2 * int64_t(shared_w8::kTilingStride)}, device, "shared tiling");
+     CheckShape(scratch[pipeline::kSharedOutput], at::kBFloat16,
+         {tokens, kHidden}, device, "shared output");
++#ifdef ROUTED_ACTIVE_LIST
++    CheckShape(scratch[pipeline::kActiveList], at::kInt,
++        {kActiveListElements}, device, "active expert list");
++#endif
+ #endif
+ }
+ 
+@@ -373,6 +381,10 @@
+     CheckShape(source_slot, at::kInt, {kMaxRoutes}, device, "source_slot");
+     CheckShape(row_weight, at::kFloat, {kMaxRoutes}, device, "row_weight");
+     CheckScratch(scratch, rows, from_dispatch);
++#ifdef ROUTED_ACTIVE_LIST
++    dispatch.active_list = reinterpret_cast<uint64_t>(
++        scratch[pipeline::kActiveList].data_ptr<int32_t>());
++#endif
+ #ifdef ROUTED_SHARED_PIPELINE
+     const auto shared = CheckSharedInputs(shared_inputs, scratch, rows);
+ #endif
+--- a/routed_int4_kernel.cpp
++++ b/routed_int4_kernel.cpp
+@@ -95,6 +95,10 @@
+     LocalTensor<half> half_value;
+     LocalTensor<int4b_t> packed;
+     LocalTensor<int32_t> staging, mask, count, start, source, slot;
++#ifdef ROUTED_ACTIVE_LIST
++    TBuf<TPosition::VECCALC> active_buf;
++    LocalTensor<int32_t> active;
++#endif
+ 
+     __aicore__ inline void Init(TPipe& pipe)
+     {
+@@ -139,6 +143,10 @@
+         slot = slot_buf.Get<int32_t>();
+         weight = weight_buf.Get<float>();
+         original_weight = original_weight_buf.Get<float>();
++#ifdef ROUTED_ACTIVE_LIST
++        pipe.InitBuffer(active_buf, kActiveListBytes);
++        active = active_buf.Get<int32_t>();
++#endif
+         Duplicate(mask, int32_t(-8192), kVectorTile);
+         PipeBarrier<PIPE_V>();
+     }
+@@ -546,6 +554,12 @@
+     shared.Gate(pipe);
+ #endif
+     GlobalTensor<int32_t> counts, starts;
++#ifdef ROUTED_ACTIVE_LIST
++    GlobalTensor<int32_t> active_experts;
++    active_experts.SetGlobalBuffer((__gm__ int32_t*)dispatch_input.active_list,
++                                   kActiveListElements);
++    int64_t active_count = 0;
++#endif
+     if ASCEND_IS_AIC {
+         counts.SetGlobalBuffer(group_count, kMaxExperts);
+         starts.SetGlobalBuffer(group_start, kMaxExperts);
+@@ -553,6 +567,9 @@
+         // loads must discard the preceding replay's data-cache lines.
+         DataCacheCleanAndInvalid<int32_t, CacheLine::ENTIRE_DATA_CACHE,
+                                  DcciDst::CACHELINE_OUT>(counts);
++#ifdef ROUTED_ACTIVE_LIST
++        active_count = active_experts.GetValue(0);
++#endif
+     }
+     if ASCEND_IS_AIV {
+         held.Init(pipe);
+@@ -564,6 +581,9 @@
+         slots.SetGlobalBuffer(source_slot, kMaxRoutes);
+         weights.SetGlobalBuffer(row_weight, kMaxRoutes);
+         input_scales.SetGlobalBuffer(token_scale, tokens);
++#ifdef ROUTED_ACTIVE_LIST
++        DataCopy(held.active, active_experts, kActiveListElements);
++#endif
+         DataCopy(held.count, counts, kMaxExperts);
+         DataCopy(held.start, starts, kMaxExperts);
+         DataCopy(held.source, sources, kMaxRoutes);
+@@ -574,6 +594,9 @@
+                                       0, 0, 0},
+                     DataCopyPadExtParams<float>{false, 0, 0, 0});
+         Fence<HardEvent::MTE2_S>();
++#ifdef ROUTED_ACTIVE_LIST
++        active_count = held.active.GetValue(0);
++#endif
+         for (int64_t route = 0; route < tokens * kTopK; ++route) {
+             const int64_t original = held.source.GetValue(route) * kTopK
+                                      + held.slot.GetValue(route);
+@@ -586,7 +609,13 @@
+ #ifdef ROUTED_ROW_BALANCED
+         const int64_t workers = 2 * blocks;
+         int64_t next = GetBlockIdx();
++#ifdef ROUTED_ACTIVE_LIST
++        for (int64_t ordinal = 0; ordinal < active_count; ++ordinal) {
++            const int64_t expert = held.active.GetValue(
++                kActiveHeaderElements + ordinal);
++#else
+         for (int64_t expert = 0; expert < experts; ++expert) {
++#endif
+             const int64_t count = held.count.GetValue(expert);
+             const int64_t begin = held.start.GetValue(expert);
+             if (next >= begin + count) {
+@@ -634,6 +663,12 @@
+         LoadTiling(gate_cube, gu_tiling);
+         GateProjection<weight_format> gate_mm;
+         gate_mm.Init(&gate_cube, &pipe);
++#ifdef ROUTED_ACTIVE_LIST
++        for (int64_t ordinal = GetBlockIdx(); ordinal < active_count;
++             ordinal += blocks) {
++            const int64_t expert = active_experts.GetValue(
++                kActiveHeaderElements + ordinal);
++#else
+         int64_t active = 0;
+         int64_t next = GetBlockIdx();
+         for (int64_t expert = 0; expert < experts; ++expert) {
+@@ -644,6 +679,7 @@
+                 continue;
+             }
+             next += blocks;
++#endif
+             const int64_t begin = starts.GetValue(expert);
+             Project<kPadGateRows>(gate_mm,
+                     Nibbles(stacked, GateStorageRow(begin) * kHidden),
+@@ -663,7 +699,13 @@
+ #ifdef ROUTED_ROW_BALANCED
+         const int64_t workers = 2 * blocks;
+         int64_t next = GetBlockIdx();
++#ifdef ROUTED_ACTIVE_LIST
++        for (int64_t ordinal = 0; ordinal < active_count; ++ordinal) {
++            const int64_t expert = held.active.GetValue(
++                kActiveHeaderElements + ordinal);
++#else
+         for (int64_t expert = 0; expert < experts; ++expert) {
++#endif
+             const int64_t count = held.count.GetValue(expert);
+             const int64_t begin = held.start.GetValue(expert);
+             if (next >= begin + count) {
+@@ -715,6 +757,12 @@
+         LoadTiling(down_cube, down_tiling);
+         Projection<weight_format> down_mm;
+         down_mm.Init(&down_cube, &pipe);
++#ifdef ROUTED_ACTIVE_LIST
++        for (int64_t ordinal = GetBlockIdx(); ordinal < active_count;
++             ordinal += blocks) {
++            const int64_t expert = active_experts.GetValue(
++                kActiveHeaderElements + ordinal);
++#else
+         int64_t active = 0;
+         int64_t next = GetBlockIdx();
+         for (int64_t expert = 0; expert < experts; ++expert) {
+@@ -725,6 +773,7 @@
+                 continue;
+             }
+             next += blocks;
++#endif
+             const int64_t begin = starts.GetValue(expert);
+             Project(down_mm, Nibbles(middle, 2 * begin * kIntermediate),
+                     Nibbles(down, expert * kHidden * kIntermediate),
+@@ -741,7 +790,13 @@
+ #ifdef ROUTED_ROW_BALANCED
+         // Both AIVs in a group retain separate H/2 columns for each row.
+         int64_t next = GetBlockIdx() / 2;
++#ifdef ROUTED_ACTIVE_LIST
++        for (int64_t ordinal = 0; ordinal < active_count; ++ordinal) {
++            const int64_t expert = held.active.GetValue(
++                kActiveHeaderElements + ordinal);
++#else
+         for (int64_t expert = 0; expert < experts; ++expert) {
++#endif
+             const int64_t count = held.count.GetValue(expert);
+             const int64_t route_begin = held.start.GetValue(expert);
+             if (next >= route_begin + count) {

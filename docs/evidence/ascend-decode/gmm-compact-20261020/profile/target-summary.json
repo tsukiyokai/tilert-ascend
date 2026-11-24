@@ -1,0 +1,470 @@
+{
+  "scope": "Saved width8 target Graph only, seven available ranks. Groups are unions on their actual main stream. Separate-stream SuperKernel communication is excluded, not added to compute as critical-path time. All three replays saved; hot summary uses final two.",
+  "ranks": [
+    0,
+    1,
+    15,
+    2,
+    3,
+    7,
+    8
+  ],
+  "hot_summary": {
+    "main_stream_compute": {
+      "samples": 14,
+      "calls_per_round": [
+        2332
+      ],
+      "min_us": 39073.618,
+      "median_us": 40095.7895,
+      "max_us": 41223.693
+    },
+    "mla_prolog": {
+      "samples": 14,
+      "calls_per_round": [
+        78
+      ],
+      "min_us": 2951.757,
+      "median_us": 3006.9489999999996,
+      "max_us": 3051.26
+    },
+    "sfa": {
+      "samples": 14,
+      "calls_per_round": [
+        78
+      ],
+      "min_us": 6952.983,
+      "median_us": 7036.8275,
+      "max_us": 7108.075
+    },
+    "mla_v_up": {
+      "samples": 14,
+      "calls_per_round": [
+        78
+      ],
+      "min_us": 954.386,
+      "median_us": 1007.422,
+      "max_us": 1042.216
+    },
+    "mla_o_projection": {
+      "samples": 14,
+      "calls_per_round": [
+        78
+      ],
+      "min_us": 1358.141,
+      "median_us": 1413.0700000000002,
+      "max_us": 1466.066
+    },
+    "moe_router_and_permute": {
+      "samples": 14,
+      "calls_per_round": [
+        300
+      ],
+      "min_us": 3250.949,
+      "median_us": 3303.436,
+      "max_us": 3320.24
+    },
+    "routed_up_swiglu_quant": {
+      "samples": 14,
+      "calls_per_round": [
+        75
+      ],
+      "min_us": 6778.08,
+      "median_us": 7003.651,
+      "max_us": 7462.112
+    },
+    "routed_down": {
+      "samples": 14,
+      "calls_per_round": [
+        75
+      ],
+      "min_us": 5659.507,
+      "median_us": 6172.8265,
+      "max_us": 6402.852
+    },
+    "shared_expert_core": {
+      "samples": 14,
+      "calls_per_round": [
+        225
+      ],
+      "min_us": 2258.064,
+      "median_us": 2305.5255,
+      "max_us": 2356.352
+    },
+    "indexer_pipeline": {
+      "samples": 14,
+      "calls_per_round": [
+        317
+      ],
+      "min_us": 2582.742,
+      "median_us": 2644.7929999999997,
+      "max_us": 2693.007
+    },
+    "mla_input_quant": {
+      "samples": 14,
+      "calls_per_round": [
+        78
+      ],
+      "min_us": 293.596,
+      "median_us": 300.42,
+      "max_us": 309.475
+    },
+    "mla_o_input_quant": {
+      "samples": 14,
+      "calls_per_round": [
+        78
+      ],
+      "min_us": 208.444,
+      "median_us": 209.9745,
+      "max_us": 211.4
+    },
+    "routed_gmm_pair": {
+      "samples": 14,
+      "calls_per_round": [
+        150
+      ],
+      "min_us": 12444.922,
+      "median_us": 13117.137999999999,
+      "max_us": 13864.964
+    },
+    "mla_prolog_and_output": {
+      "samples": 14,
+      "calls_per_round": [
+        390
+      ],
+      "min_us": 5818.607,
+      "median_us": 5965.374,
+      "max_us": 6059.743
+    },
+    "identified_moe_core": {
+      "samples": 14,
+      "calls_per_round": [
+        675
+      ],
+      "min_us": 18013.909,
+      "median_us": 18732.625500000002,
+      "max_us": 19429.829
+    }
+  },
+  "shape_witnesses": {
+    "routed_up_swiglu_quant": [
+      {
+        "type": "GroupedMatmulSwigluQuantV2",
+        "inputs": "\"64,6144;64;256;256,4,384,16,64;256,256;256,256\"",
+        "input_dtypes": "INT8;FLOAT;INT64;DT_INT4;UINT64;FLOAT",
+        "outputs": "\"64,128;64\"",
+        "output_dtypes": "INT8;FLOAT",
+        "calls": 75,
+        "task_sum_us": 6785.414999999999
+      }
+    ],
+    "routed_down": [
+      {
+        "type": "GroupedMatmul",
+        "inputs": "\"64,128;256,128,6144;256,6144;256,1,6144;;;;256;64\"",
+        "input_dtypes": "INT8;DT_INT4;FLOAT;UINT64;FLOAT;FLOAT16;FLOAT16;INT64;FLOAT",
+        "outputs": "\"64,6144\"",
+        "output_dtypes": "DT_BF16",
+        "calls": 75,
+        "task_sum_us": 5659.507
+      }
+    ],
+    "mla_prolog": [
+      {
+        "type": "MlaPrologV3",
+        "inputs": "\"8,6144;6144,2048;2048,1024;4,192,512;6144,576;2048;512;8,64;8,64;73,128,1,512;73,128,1,64;8;8,1;1,2048;1,1024;1,576;;;;;\"",
+        "input_dtypes": "INT8;INT8;INT8;DT_BF16;INT8;DT_BF16;DT_BF16;DT_BF16;DT_BF16;DT_BF16;DT_BF16;INT64;FLOAT;FLOAT;FLOAT;FLOAT;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED",
+        "outputs": "\"8,4,512;8,4,64;73,128,1,512;73,128,1,64;;8,2048;8,1\"",
+        "output_dtypes": "DT_BF16;DT_BF16;DT_BF16;DT_BF16;FLOAT;INT8;FLOAT",
+        "calls": 21,
+        "task_sum_us": 809.7600000000002
+      },
+      {
+        "type": "MlaPrologV3",
+        "inputs": "\"8,6144;6144,2048;2048,1024;4,192,512;6144,576;2048;512;8,64;8,64;73,128,1,512;73,128,1,64;8;8,1;1,2048;1,1024;1,576;;;;;\"",
+        "input_dtypes": "INT8;INT8;INT8;DT_BF16;INT8;DT_BF16;DT_BF16;DT_BF16;DT_BF16;DT_BF16;DT_BF16;INT64;FLOAT;FLOAT;FLOAT;FLOAT;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED",
+        "outputs": "\"8,4,512;8,4,64;73,128,1,512;73,128,1,64;;;\"",
+        "output_dtypes": "DT_BF16;DT_BF16;DT_BF16;DT_BF16;FLOAT;INT8;FLOAT",
+        "calls": 57,
+        "task_sum_us": 2157.3920000000003
+      }
+    ],
+    "mla_v_up": [
+      {
+        "type": "TransposeBatchMatMul",
+        "inputs": "\"8,4,512;4,512,256\"",
+        "input_dtypes": "DT_BF16;DT_BF16",
+        "outputs": "\"8,4,256\"",
+        "output_dtypes": "DT_BF16",
+        "calls": 78,
+        "task_sum_us": 995.3210000000004
+      }
+    ],
+    "mla_o_projection": [
+      {
+        "type": "QuantBatchMatmulV3",
+        "inputs": "\"8,1024;192,64,16,32;6144;8\"",
+        "input_dtypes": "INT8;INT8;DT_BF16;FLOAT",
+        "outputs": "\"8,6144\"",
+        "output_dtypes": "DT_BF16",
+        "calls": 78,
+        "task_sum_us": 1358.1409999999998
+      }
+    ],
+    "shared_expert_core": [
+      {
+        "type": "QuantBatchMatmulV3",
+        "inputs": "\"8,6144;8,384,16,32;256\"",
+        "input_dtypes": "INT8;INT8;DT_BF16",
+        "outputs": "\"8,256\"",
+        "output_dtypes": "INT32",
+        "calls": 75,
+        "task_sum_us": 877.386
+      },
+      {
+        "type": "DequantSwigluQuant",
+        "inputs": "\"8,256;256;8;;;;\"",
+        "input_dtypes": "INT32;FLOAT;FLOAT;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED;DT_UNDEFINED",
+        "outputs": "\"8,128;8\"",
+        "output_dtypes": "INT8;FLOAT",
+        "calls": 75,
+        "task_sum_us": 236.86400000000003
+      },
+      {
+        "type": "QuantBatchMatmulV3",
+        "inputs": "\"8,128;192,8,16,32;6144;8\"",
+        "input_dtypes": "INT8;INT8;DT_BF16;FLOAT",
+        "outputs": "\"8,6144\"",
+        "output_dtypes": "DT_BF16",
+        "calls": 75,
+        "task_sum_us": 1146.112
+      }
+    ],
+    "moe_router_and_permute": [
+      {
+        "type": "MatMulV3",
+        "inputs": "\"8,6144;256,6144\"",
+        "input_dtypes": "DT_BF16;DT_BF16",
+        "outputs": "\"8,256\"",
+        "output_dtypes": "FLOAT",
+        "calls": 75,
+        "task_sum_us": 1117.6709999999998
+      },
+      {
+        "type": "MoeGatingTopK",
+        "inputs": "\"8,256;256\"",
+        "input_dtypes": "FLOAT;FLOAT",
+        "outputs": "\"8,8;8,8;8,256\"",
+        "output_dtypes": "FLOAT;INT32;FLOAT",
+        "calls": 75,
+        "task_sum_us": 382.078
+      },
+      {
+        "type": "MoeInitRoutingV3",
+        "inputs": "\"8,6144;8,8\"",
+        "input_dtypes": "DT_BF16;INT32",
+        "outputs": "\"64,6144;64;256;64\"",
+        "output_dtypes": "INT8;INT32;INT64;FLOAT",
+        "calls": 75,
+        "task_sum_us": 1418.9179999999994
+      },
+      {
+        "type": "MoeTokenUnpermute",
+        "inputs": "\"64,6144;64;8,8\"",
+        "input_dtypes": "DT_BF16;INT32;DT_BF16",
+        "outputs": "\"8,6144\"",
+        "output_dtypes": "DT_BF16",
+        "calls": 75,
+        "task_sum_us": 389.95800000000014
+      }
+    ],
+    "indexer_pipeline": [
+      {
+        "type": "MatMulV2",
+        "inputs": "\"8,6144;160,6144\"",
+        "input_dtypes": "DT_BF16;DT_BF16",
+        "outputs": "\"8,160\"",
+        "output_dtypes": "DT_BF16",
+        "calls": 21,
+        "task_sum_us": 289.307
+      },
+      {
+        "type": "Slice",
+        "inputs": "\"8,160;2;2\"",
+        "input_dtypes": "DT_BF16;INT64;INT64",
+        "outputs": "\"8,128\"",
+        "output_dtypes": "DT_BF16",
+        "calls": 21,
+        "task_sum_us": 48.284000000000006
+      },
+      {
+        "type": "Cast",
+        "inputs": "\"8,128\"",
+        "input_dtypes": "DT_BF16",
+        "outputs": "\"8,128\"",
+        "output_dtypes": "FLOAT",
+        "calls": 21,
+        "task_sum_us": 19.562999999999995
+      },
+      {
+        "type": "LayerNormV3",
+        "inputs": "\"8,128;128;128\"",
+        "input_dtypes": "FLOAT;FLOAT;FLOAT",
+        "outputs": "\"8,128;8,1;8,1\"",
+        "output_dtypes": "FLOAT;FLOAT;FLOAT",
+        "calls": 21,
+        "task_sum_us": 143.27500000000003
+      },
+      {
+        "type": "Cast",
+        "inputs": "\"8,128\"",
+        "input_dtypes": "FLOAT",
+        "outputs": "\"8,128\"",
+        "output_dtypes": "DT_BF16",
+        "calls": 21,
+        "task_sum_us": 17.38
+      },
+      {
+        "type": "ScatterNdUpdateSk",
+        "inputs": "\"9344,128;8,1;8,128\"",
+        "input_dtypes": "DT_BF16;INT32;DT_BF16",
+        "outputs": "\"9344,128\"",
+        "output_dtypes": "DT_BF16",
+        "calls": 5,
+        "task_sum_us": 56.586000000000006
+      },
+      {
+        "type": "QuantBatchMatmulV3",
+        "inputs": "\"8,2048;128,128,16,32;4096;8\"",
+        "input_dtypes": "INT8;INT8;DT_BF16;FLOAT",
+        "outputs": "\"8,4096\"",
+        "output_dtypes": "DT_BF16",
+        "calls": 21,
+        "task_sum_us": 330.916
+      },
+      {
+        "type": "Slice",
+        "inputs": "\"8,160;2;2\"",
+        "input_dtypes": "DT_BF16;INT64;INT64",
+        "outputs": "\"8,32\"",
+        "output_dtypes": "DT_BF16",
+        "calls": 5,
+        "task_sum_us": 7.821
+      },
+      {
+        "type": "LightningIndexer",
+        "inputs": "\"8,32,128;73,128,1,128;8,32;1;1;1,73\"",
+        "input_dtypes": "DT_BF16;DT_BF16;DT_BF16;INT32;INT32;INT32",
+        "outputs": "\"8,1,2048;\"",
+        "output_dtypes": "INT32;DT_BF16",
+        "calls": 5,
+        "task_sum_us": 315.152
+      },
+      {
+        "type": "MatMulV2",
+        "inputs": "\"8,128;128,128\"",
+        "input_dtypes": "DT_BF16;DT_BF16",
+        "outputs": "\"8,128\"",
+        "output_dtypes": "DT_BF16",
+        "calls": 16,
+        "task_sum_us": 45.727999999999994
+      },
+      {
+        "type": "DynamicQuant",
+        "inputs": "\"8,128\"",
+        "input_dtypes": "DT_BF16",
+        "outputs": "\"8,128;8\"",
+        "output_dtypes": "INT8;FLOAT",
+        "calls": 16,
+        "task_sum_us": 41.52300000000001
+      },
+      {
+        "type": "Cast",
+        "inputs": "\"8\"",
+        "input_dtypes": "FLOAT",
+        "outputs": "\"8\"",
+        "output_dtypes": "FLOAT16",
+        "calls": 16,
+        "task_sum_us": 17.202
+      },
+      {
+        "type": "ScatterNdUpdateSk",
+        "inputs": "\"9344,128;8,1;8,128\"",
+        "input_dtypes": "INT8;INT32;INT8",
+        "outputs": "\"9344,128\"",
+        "output_dtypes": "INT8",
+        "calls": 16,
+        "task_sum_us": 168.176
+      },
+      {
+        "type": "ScatterNdUpdateSk",
+        "inputs": "\"9344,1;8,1;8,1\"",
+        "input_dtypes": "FLOAT16;INT32;FLOAT16",
+        "outputs": "\"9344,1\"",
+        "output_dtypes": "FLOAT16",
+        "calls": 16,
+        "task_sum_us": 164.695
+      },
+      {
+        "type": "MatMulV2",
+        "inputs": "\"256,128;128,128\"",
+        "input_dtypes": "DT_BF16;DT_BF16",
+        "outputs": "\"256,128\"",
+        "output_dtypes": "DT_BF16",
+        "calls": 16,
+        "task_sum_us": 86.832
+      },
+      {
+        "type": "DynamicQuant",
+        "inputs": "\"256,128\"",
+        "input_dtypes": "DT_BF16",
+        "outputs": "\"256,128;256\"",
+        "output_dtypes": "INT8;FLOAT",
+        "calls": 16,
+        "task_sum_us": 85.80699999999999
+      },
+      {
+        "type": "Cast",
+        "inputs": "\"256\"",
+        "input_dtypes": "FLOAT",
+        "outputs": "\"256\"",
+        "output_dtypes": "FLOAT16",
+        "calls": 16,
+        "task_sum_us": 17.362000000000002
+      },
+      {
+        "type": "Slice",
+        "inputs": "\"8,160;2;2\"",
+        "input_dtypes": "DT_BF16;INT64;INT64",
+        "outputs": "\"8,32\"",
+        "output_dtypes": "DT_BF16",
+        "calls": 16,
+        "task_sum_us": 28.245000000000005
+      },
+      {
+        "type": "Cast",
+        "inputs": "\"8,32\"",
+        "input_dtypes": "DT_BF16",
+        "outputs": "\"8,32\"",
+        "output_dtypes": "FLOAT16",
+        "calls": 16,
+        "task_sum_us": 18.602
+      },
+      {
+        "type": "QuantLightningIndexer",
+        "inputs": "\"8,32,128;73,128,1,128;8,32;8,32;73,128,1;1;1;1,73\"",
+        "input_dtypes": "INT8;INT8;FLOAT16;FLOAT16;FLOAT16;INT32;INT32;INT32",
+        "outputs": "\"8,1,2048\"",
+        "output_dtypes": "INT32",
+        "calls": 16,
+        "task_sum_us": 680.3860000000001
+      }
+    ]
+  },
+  "boundaries": [
+    "Hierarchical groups overlap their component groups; do not add both. The three selected headline groups identified_moe_core, mla_prolog_and_output and indexer_pipeline are disjoint on the main stream.",
+    "No separate-stream SuperKernel durations added to compute; the measured main-stream union is not an end-to-end latency claim.",
+    "Only seven of sixteen ranks and two hot replay rounds per rank; no profiler-off critical-rank measurement or M32 projection/GMM profile.",
+    "Kernel metadata binds actual M8 shapes and dtypes. Trace does not save activation, scale, group_list/count distribution or actual_seq_lengths values; random routing cannot stand in for production input."
+  ]
+}

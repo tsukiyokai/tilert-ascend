@@ -1,0 +1,64 @@
+{
+  "deepseek_v2": {
+    "path": "/workspace/src/vllm-unified/vllm/model_executor/models/deepseek_v2.py",
+    "sha256": "5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408",
+    "snippets": [
+      {
+        "start": 1137,
+        "end": 1168,
+        "text": "1137:         self.is_v32 = hasattr(config, \"index_topk\")\n1138: \n1139:         # IndexCache config\n1140:         # Refer: https://arxiv.org/abs/2603.12201 for more details.\n1141:         _skip_topk = False\n1142:         is_mtp_layer = False\n1143:         if self.is_v32:\n1144:             _index_topk_freq = getattr(config, \"index_topk_freq\", 1)\n1145:             _index_topk_pattern = getattr(config, \"index_topk_pattern\", None)\n1146:             _index_skip_topk_offset = getattr(config, \"index_skip_topk_offset\", 2)\n1147:             layer_id = extract_layer_index(prefix)\n1148: \n1149:             if _index_topk_pattern is None:\n1150:                 _skip_topk = (\n1151:                     max(layer_id - _index_skip_topk_offset + 1, 0) % _index_topk_freq\n1152:                     != 0\n1153:                 )\n1154:             elif 0 <= layer_id < len(_index_topk_pattern):\n1155:                 _skip_topk = _index_topk_pattern[layer_id] == \"S\"\n1156: \n1157:             # The skip pattern only governs backbone layers. MTP/nextn\n1158:             # layers (layer_id >= num_hidden_layers) always build a full\n1159:             # indexer: they compute indices at draft step 0 and toggle\n1160:             # at runtime via set_skip_topk\n1161:             # (index_share_for_mtp_iteration).\n1162:             _num_hidden_layers = getattr(config, \"num_hidden_layers\", None)\n1163:             is_mtp_layer = (\n1164:                 _num_hidden_layers is not None and layer_id >= _num_hidden_layers\n1165:             )\n1166: \n1167:         if self.is_v32 and (not _skip_topk or is_mtp_layer):\n1168:             assert q_lora_rank is not None"
+      },
+      {
+        "start": 1438,
+        "end": 1475,
+        "text": "1438:         self.is_v32 = hasattr(config, \"index_topk\")\n1439:         if self.is_v32:\n1440:             topk_tokens = config.index_topk\n1441:             topk_indices_buffer = torch.empty(\n1442:                 vllm_config.scheduler_config.max_num_batched_tokens,\n1443:                 topk_tokens,\n1444:                 dtype=torch.int32,\n1445:                 device=self.device,\n1446:             )\n1447:         else:\n1448:             topk_indices_buffer = None\n1449:         index_group_builder = (\n1450:             SparseMLAIndexGroupBuilder(\n1451:                 topk_indices_buffer,\n1452:                 get_sparse_mla_index_group_max_rows(vllm_config),\n1453:             )\n1454:             if topk_indices_buffer is not None\n1455:             else None\n1456:         )\n1457: \n1458:         if get_pp_group().is_first_rank:\n1459:             self.embed_tokens = VocabParallelEmbedding(\n1460:                 config.vocab_size,\n1461:                 self.hidden_size,\n1462:                 quant_config=quant_config,\n1463:                 prefix=f\"{prefix}.embed_tokens\",\n1464:             )\n1465:         else:\n1466:             self.embed_tokens = PPMissingLayer()\n1467:         self.start_layer, self.end_layer, self.layers = make_layers(\n1468:             config.num_hidden_layers,\n1469:             lambda prefix: DeepseekV2DecoderLayer(\n1470:                 vllm_config=vllm_config,\n1471:                 prefix=prefix,\n1472:                 topk_indices_buffer=topk_indices_buffer,\n1473:                 index_group_builder=index_group_builder,\n1474:             ),\n1475:             prefix=f\"{prefix}.layers\","
+      }
+    ]
+  },
+  "sfa_v1": {
+    "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/sfa_v1.py",
+    "sha256": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+    "snippets": [
+      {
+        "start": 1575,
+        "end": 1593,
+        "text": "1575:     def _get_indexcache_topk_indices(self, num_tokens: int) -> torch.Tensor:\n1576:         if self.topk_indices_buffer is None:\n1577:             raise RuntimeError(\"IndexCache requires topk_indices_buffer when skip_topk is enabled.\")\n1578:         topk_indices = self.topk_indices_buffer[:num_tokens]\n1579:         if topk_indices.dim() == 2:\n1580:             topk_indices = topk_indices.unsqueeze(1)\n1581:         return topk_indices\n1582: \n1583:     def _update_indexcache_topk_indices(self, topk_indices: torch.Tensor) -> None:\n1584:         if self.topk_indices_buffer is None:\n1585:             return\n1586:         num_tokens = topk_indices.shape[0]\n1587:         topk_tokens = topk_indices.shape[-1]\n1588:         topk_indices_to_cache = topk_indices\n1589:         topk_indices_buffer = self.topk_indices_buffer[:num_tokens, :topk_tokens]\n1590:         if topk_indices_to_cache.dim() == 3 and topk_indices_buffer.dim() == 2:\n1591:             assert topk_indices_to_cache.shape[1] == 1\n1592:             topk_indices_to_cache = topk_indices_to_cache.squeeze(1)\n1593:         topk_indices_buffer.copy_(topk_indices_to_cache)"
+      },
+      {
+        "start": 2054,
+        "end": 2085,
+        "text": "2054:         # A sharded-decode PCP rank can own no request but must still write\n2055:         # and gather KV with the other ranks.\n2056:         has_local_query = attn_metadata.num_actual_tokens > 0\n2057:         if self.runtime_has_indexer:\n2058:             # One unified indexer call: k path -> cache write -> top-k\n2059:             # selection (the selection kernel reads the freshly written\n2060:             # cache). MTP skip_topk layers still run the k path and the write\n2061:             # (compute_topk=False) so their cache stays up to date, then\n2062:             # reuse the shared top-k indices. Cache layout, RoPE, parallel\n2063:             # sequence lengths, and decode count all come from the indexer's\n2064:             # independently built metadata.\n2065:             assert k_hidden_states is not None\n2066:             assert indexer_attn_metadata is not None\n2067:             self._prepare_indexer_metadata(indexer_attn_metadata, attn_metadata)\n2068:             topk_indices = self.indexer(\n2069:                 hidden_states,\n2070:                 q_c,\n2071:                 k_hidden_states,\n2072:                 indexer_attn_metadata,\n2073:                 compute_topk=not self.skip_topk and has_local_query,\n2074:                 attn_q_gather_handle=self._get_indexer_attn_q_gather_handle(attn_metadata),\n2075:             )\n2076:             if self.skip_topk:\n2077:                 topk_indices = self._get_indexcache_topk_indices(parallel_context.topk_num_tokens)\n2078:             elif self.use_index_cache and has_local_query:\n2079:                 self._update_indexcache_topk_indices(topk_indices)\n2080:         elif self.skip_topk:\n2081:             # Static shared-index layers keep no runtime indexer cache and\n2082:             # only reuse the shared top-k indices.\n2083:             topk_indices = self._get_indexcache_topk_indices(parallel_context.topk_num_tokens)\n2084:         else:\n2085:             raise RuntimeError(f\"skip_topk is False but indexer is None. layer_name={self.layer_name}.\")"
+      }
+    ]
+  },
+  "indexer": {
+    "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/indexer.py",
+    "sha256": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1",
+    "snippets": [
+      {
+        "start": 554,
+        "end": 567,
+        "text": "554:         self._dsa_cp_seq_buffers: dict[object, tuple[torch.Tensor, torch.Tensor]] = {}\n555:         self._dcp_block_table_buffers: dict[object, torch.Tensor] = {}\n556:         self._dcp_slot_mapping_buffers: dict[object, torch.Tensor] = {}\n557:         self._pcp_indexer_slot_mapping_buffers: dict[object, torch.Tensor] = {}\n558:         self._lim_token_masks: dict[object, CpuGpuBuffer] = {}\n559:         max_num_input_tokens = scheduler_config.max_num_batched_tokens\n560:         self._rope_capacity = max_num_input_tokens\n561:         pcp_size = vllm_config.parallel_config.prefill_context_parallel_size\n562:         self._dcp_slot_capacity = max_num_input_tokens * pcp_size\n563:         tp_size = vllm_config.parallel_config.tensor_parallel_size\n564:         self._slot_capacity = max(\n565:             max_num_input_tokens * pcp_size,\n566:             _round_up(max_num_input_tokens, tp_size),\n567:         )"
+      }
+    ]
+  },
+  "checkpoint_config": {
+    "path": "/workspace/models/GLM-5.2-w4a8c8/config.json",
+    "sha256": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+    "fields": {
+      "architectures": [
+        "GlmMoeDsaForCausalLM"
+      ],
+      "num_hidden_layers": 78,
+      "hidden_size": 6144,
+      "vocab_size": 154880,
+      "qk_rope_head_dim": 64,
+      "index_topk": 2048,
+      "index_topk_freq": 4,
+      "index_skip_topk_offset": 3,
+      "index_topk_pattern": null,
+      "first_k_dense_replace": 3,
+      "moe_layer_freq": 1
+    }
+  }
+}

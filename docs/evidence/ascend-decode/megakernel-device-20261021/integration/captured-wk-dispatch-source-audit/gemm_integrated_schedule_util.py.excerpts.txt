@@ -1,0 +1,82 @@
+1598:     def _split_core_sub_func(self, root_tensor, ax_m, ax_n, format_out, mata_fuzzy_scenario):
+1599:         m_dim = self.cache_tiling.get("m_dim")
+1600:         n_dim = self.cache_tiling.get("n_dim")
+1601:         if self.non_factor_bmn_flag:
+1602:             m_factor = self.cache_tiling.get("m_al1") * self.cache_tiling.get("m_l0")
+1603:             n_factor = (self.cache_tiling.get("n_bl1") * self.cache_tiling.get("n_ub_l0_time") *
+1604:                         self.cache_tiling.get("cub_n1"))
+1605:             if mata_fuzzy_scenario:
+1606:                 binary_tiling_data = self.tiling_strategy.get("binary_tiling_data")
+1607:                 m_l0 = binary_tiling_data.get("m_l0")
+1608:                 n_l0 = binary_tiling_data.get("n_ub_l0_time") * binary_tiling_data.get("cub_n1")
+1609:                 # the 1st 8 blocks are loaded from HBM and the 2nd 8 blocks will hit L2 cache
+1610:                 m_factor *= 2 if m_l0 == 8 else 1
+1611:                 n_factor *= 2 if n_l0 == 8 else 1
+1612:             else:
+1613:                 m_factor = self.cache_tiling.get("m_single_core") * m_factor
+1614:                 n_factor = self.cache_tiling.get("n_single_core") * n_factor
+1615:             if format_out == "ND":
+1616:                 m_factor *= tbe_platform.BLOCK_IN
+1617:                 n_factor *= tbe_platform.BLOCK_OUT
+1618:             if tbe_platform.intrinsic_check_support("Intrinsic_fix_pipe_l0c2out"):
+1619:                 # if extent smaller than factor, shift_inwards will fail
+1620:                 m_factor = tvm.min(ax_m.dom.extent, m_factor)
+1621:                 n_factor = tvm.min(ax_n.dom.extent, n_factor)
+1622:             params = SplitParam(tail_strategy="shift_inwards", active_scope="inner")
+1623:             ax_m_out, ax_m_in = self.sch_agent[root_tensor].split(ax_m, factor=m_factor, split_params=params)
+1624:             ax_n_out, ax_n_in = self.sch_agent[root_tensor].split(ax_n, factor=n_factor, split_params=params)
+1625: 
+1626:             ax_m_oo, ax_n_oo = None, None
+1627:             if mata_fuzzy_scenario:
+1628:                 ax_m_oo, ax_m_out = self.sch_agent[root_tensor].split(ax_m_out, factor=m_dim, split_params=params)
+1629:                 ax_n_oo, ax_n_out = self.sch_agent[root_tensor].split(ax_n_out, factor=n_dim, split_params=params)
+1630:             splited_axis = [ax_n_out, ax_m_out, ax_n_in, ax_m_in, ax_n_oo, ax_m_oo]
+1631:         else:
+1636:         return [splited_axis, params]
+1637: 
+1638:     def _bind_core_sub_func(self, root_tensor, ori_axis, splited_result, status_controller, mata_fuzzy_scenario):
+1639:         batch_dim = self.cache_tiling.get("batch_dim")
+1640:         m_dim = self.cache_tiling.get("m_dim")
+1641:         n_dim = self.cache_tiling.get("n_dim")
+1642:         ax_reduce, ax_batch = ori_axis
+1643:         splited_axis, params = splited_result
+1644:         ax_n_out, ax_m_out, ax_n_inner, ax_m_inner, ax_n_oo2, ax_m_oo2 = splited_axis
+1645: 
+1646:         multi_core_axes_list = [ax_n_out, ax_m_out]
+1647:         single_core_axes_list = [ax_n_inner, ax_m_inner]
+1648:         if mata_fuzzy_scenario:
+1649:             single_core_axes_list = [ax_n_oo2, ax_m_oo2, ax_n_inner, ax_m_inner]
+1650:             binary_tiling_data = self.tiling_strategy.get("binary_tiling_data")
+1651:             m_extent = binary_tiling_data.get("m")
+1652:             n_extent = binary_tiling_data.get("n")
+1653:             if m_extent >= n_extent:
+1654:                 multi_core_axes_list = [ax_m_out, ax_n_out]
+1655:                 single_core_axes_list = [ax_m_oo2, ax_n_oo2, ax_m_inner, ax_n_inner]
+1656:         axis_core = ax_n_out * m_dim + ax_m_out
+1657:         if status_controller.have_batch:
+1658:             if self.non_factor_bmn_flag:
+1659:                 ax_batch_out, ax_batch_inner = self.sch_agent[root_tensor].split(ax_batch,
+1660:                     factor=self.cache_tiling.get("batch_single_core"), split_params=params)
+1661:             else:
+1662:                 ax_batch_out, ax_batch_inner = self.sch_agent[root_tensor].split(ax_batch,
+1663:                     nparts=batch_dim, split_params=params)
+1664:             multi_core_axes_list.insert(0, ax_batch_out)
+1665:             single_core_axes_list.insert(0, ax_batch_inner)
+1666:             axis_core += ax_batch_out * (n_dim * m_dim)
+1667:         ax_k_out = 1
+1668:         if status_controller.split_k_axis_by_tiling:
+1669:             is_fp32_padfusion = status_controller.pad_flag and status_controller.ops_data_flow_mode == "fp322fp32"
+1670:             params = params if is_fp32_padfusion else None
+1671:             ax_k_out, ax_k_inner = self.sch_agent[root_tensor].split(ax_reduce, factor=1, split_params=params)
+1672:             multi_core_axes_list.insert(0, ax_k_out)
+1673:             single_core_axes_list.insert(0, ax_k_inner)
+1674:             axis_core += ax_k_out * (batch_dim * n_dim * m_dim)
+1675:         self.sch[root_tensor].reorder(*(multi_core_axes_list + single_core_axes_list))
+1676:         if status_controller.pad_flag or status_controller.nz_fusion_flag:
+1677:             block_fused = self.sch[root_tensor].fuse(*multi_core_axes_list)
+1678:             self.sch[root_tensor].bind(block_fused, tvm.thread_axis("blockIdx.x"))
+1679:         else:
+1680:             self.sch.bind_axes(multi_core_axes_list, tvm.thread_axis("blockIdx.x"))
+1681:         return [axis_core, ax_k_out, ax_m_out, ax_n_out]
+1682: 
+1683:     def _get_cache_tiling(self, compute_param, ops_data_flow_mode):

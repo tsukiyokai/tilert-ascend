@@ -1,0 +1,74 @@
+{
+  "scope": "One-launch local FFN with NZ routed weights and BF16 shared scales; two independent orchestration paths, accepted native body in both; no TP or latency claim",
+  "pass": true,
+  "host": "a3-194",
+  "physical_die": 4,
+  "rows": [
+    1,
+    2,
+    12,
+    32
+  ],
+  "blocks": [
+    16,
+    24
+  ],
+  "routed_weight_layout": "NZ",
+  "gate_weight_layout": "ND NK with transpose for reference",
+  "shared_scale_source_dtype": "bfloat16",
+  "oracle_arms": [
+    "orchestration",
+    "production"
+  ],
+  "captures": 24,
+  "candidate_changing_input_replays": 64,
+  "reference_changing_input_replays": 128,
+  "cases": 128,
+  "raw_byte_comparisons": 3840,
+  "boundaries_per_comparison": 30,
+  "boundary_names": [
+    "bridge.normalized",
+    "bridge.retained",
+    "bridge.rstd",
+    "bridge.logits",
+    "bridge.probabilities",
+    "bridge.ids",
+    "bridge.shared_codes",
+    "bridge.shared_scales",
+    "bridge.combined",
+    "bridge.scaled_routed",
+    "body.stacked",
+    "body.gate_int32",
+    "body.middle_packed",
+    "body.middle_scale",
+    "body.down_int32",
+    "body.routes_bf16",
+    "body.routed_output",
+    "body.routed_codes",
+    "body.routed_scales",
+    "body.counts",
+    "body.starts",
+    "body.source_row",
+    "body.source_slot",
+    "body.row_weight",
+    "body.shared_output",
+    "body.shared_staged",
+    "body.shared_gate_int32",
+    "body.shared_middle",
+    "body.shared_middle_scale",
+    "body.shared_down_int32"
+  ],
+  "timing": false,
+  "candidate_library_sha256": "3673c2a73b2f4b5a4a93b3c2543a4aca35b45773d6a53fc043f27e59a2482655",
+  "checker_sha256": "d5c1f9f3214a1461d0aff29e166ec781d894c6bd991369bbac27f80baed3c9bb",
+  "runs": [
+    "ffn-composed212-smoke-v2-a3-194",
+    "ffn-composed212-wide-v2-a3-194",
+    "ffn-composed212-m1b16-v2-a3-194"
+  ],
+  "reports_sha256": {
+    "ffn-composed212-smoke-v2-a3-194": "f3e0bd40107ff4bad59ca513375474b63af276b5ad397026fc3adaf5a994e4ce",
+    "ffn-composed212-wide-v2-a3-194": "f5c55dcc08181146dc871f53d52f997643706124eda5e09c38df7bbac10f0b6a",
+    "ffn-composed212-m1b16-v2-a3-194": "e17da3225766e0ad820d06f3d6a44c9764bf496fe7fdb3e0f2cc43743657df91"
+  }
+}

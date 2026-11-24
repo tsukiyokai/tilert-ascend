@@ -1,0 +1,339 @@
+{
+  "scope": "CPU library/schema/API resolution only",
+  "oracle": {
+    "mode": "pinned official schema, adapter and private operator package",
+    "library": "/workspace/logs/ffn-bridge-runtime210-v2/official_bridge_oracle.so",
+    "library_sha256": "5643439c6647ddb77370e5639a3b4594a84cc50e2652886a2e1437d66fab2f70",
+    "api_libraries": {
+      "aclnnMoeGatingTopK": {
+        "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+        "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+      },
+      "aclnnMoeGatingTopKGetWorkspaceSize": {
+        "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+        "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+      },
+      "aclnnAddRmsNormBias": {
+        "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+        "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+      },
+      "aclnnAddRmsNormBiasGetWorkspaceSize": {
+        "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+        "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+      }
+    },
+    "build_manifest": {
+      "scope": "Pinned official adapters; frozen native device/tiling objects",
+      "vendor_commit": "8237ee6d690d1399bc6eb48ef5977ac2bd470f3f",
+      "image_id": "sha256:9afbed90a0f92e228cc1ba13adf3cee2e89e34f1dd4cad1ed8eb5ce8c091b4af",
+      "python": "3.12.13 (main, Jul  7 2026, 19:40:26) [GCC 11.4.0]",
+      "torch": "2.10.0+cpu",
+      "torch_npu": "2.10.0.post2",
+      "source_sha256": {
+        "csrc/moe/moe_gating_top_k/moe_gating_top_k_torch_adpt.h": "b475c974a0d5bf4e8bb5e607a2c717bd2d59fbf5e248cabbb873e2529560aec0",
+        "csrc/moe/add_rms_norm_bias/add_rms_norm_bias_torch_adpt.h": "2c7d886260aa8dc037dcdfc139c41901f53e99b3ffaac54d4da5e39e12d39c9a",
+        "csrc/aclnn_torch_adapter/op_api_common.h": "cbd891c9fd8cfb3ad7212f425637772d2da60c21f0db8e106ccd5e5e5f4daac4",
+        "csrc/aclnn_torch_adapter/NPUBridge.h": "20afcbf147970f6779bbeeddcca3b1701f6b4087aa0b2b05954f5e0dbbbc691d",
+        "csrc/aclnn_torch_adapter/NPUBridge.cpp": "0584211ae839e6b7524887b8c24ca1222d5dff3d7c4609af9548e55f22fd8cf6",
+        "csrc/aclnn_torch_adapter/NPUStorageImpl.h": "efd9d47443a72074b774f2057923ea15144c76e12fb4f6bed98233fa3e5f30c4",
+        "csrc/aclnn_torch_adapter/NPUStorageImpl.cpp": "5adfaa3aff7f88342a6a01aa37104a9d6a9375ea6c93f795fc2d0afa6080a518",
+        "csrc/torch_binding.cpp": "ed1fe9f751f4c6c786c758ce9ff2731a9a0d89e14a81ff80438cdee96b4fc9e7"
+      },
+      "reused_objects": {
+        "kernel.o": {
+          "source": "/workspace/tests/glm52/whole_layer/ffn_bridge/build-v2/kernel.o",
+          "sha256": "88e10d9d20f79f4fcf838ebc1a78b0640a84b2774a971666588bfa722d517903"
+        },
+        "tiling.o": {
+          "source": "/workspace/tests/glm52/whole_layer/ffn_bridge/build-v2/tiling.o",
+          "sha256": "66d44edba06b61dd23bface97418a612e7b13bbb753a19c91aaf1d4bf7d0b330"
+        }
+      },
+      "parent_manifest": {
+        "torch": "2.12.0+cu130",
+        "torch_npu": "2.12.0",
+        "npu_initialized": false,
+        "sources": {
+          "source/build_common.sh": "40895a7eb28e70e8d463dfa5baaf812afe309660b27090ed3066c3a32f880935",
+          "source/ffn_bridge/README.md": "edc5df6294146ae0ea953abffe93d530a1d15c59f8250d36a081c22f3c870b05",
+          "source/ffn_bridge/binding.cpp": "038601e7f6a98d0379dd562be12b5adfd2782224516fc07b160b40f57e6fce3a",
+          "source/ffn_bridge/build.sh": "961d7e04401dae0be62a21720b1a6c341bbae3ed58f202984b2df7caa2a5ef3a",
+          "source/ffn_bridge/check.py": "dff59326635120b1f16dd142fd8458625a30bd688052df56de177200b95c99fa",
+          "source/ffn_bridge/contract.h": "f56a4bcfce45f999022012a3eb22471c59eca637b2d15e7b64b78493f0df1006",
+          "source/ffn_bridge/contract_test.cpp": "1aad87118a7842c80db85184ef1af6cefc6e85d830ae82ecd6e1b89a16fa2906",
+          "source/ffn_bridge/fixtures.py": "c0b010dadbdfe3e47918e5a84184ab295d4ac3a4da818066bee93e5e215b05f9",
+          "source/ffn_bridge/kernel.cpp": "763b2a00342ff8337ec284c97d4ab19c2f125a2caa3fe45bb2483fc289cc9c17",
+          "source/ffn_bridge/native.h": "83a336b1878193bec065bfafef7b9b57d6ea30811ad2789657e2538d00ea1fb7",
+          "source/ffn_bridge/prepare_vendor.py": "fa3c500f746cc5dd33ecc6880c5cc707ae3978b0ec9612ae39e4bfcabf1e9655",
+          "source/ffn_bridge/test_contract.py": "8cc484a8f87d39b640c9992442811e3680a89ece984c54b63a92be44e566b5e7",
+          "source/ffn_bridge/tiling.cpp": "e66f0e92f6ae10a48ec45d8baabb76fad7925d7a7c5e0cf0a761d568f36f70f6",
+          "source/norm_contract.h": "d625db3273cf4a6b7670a812d6893e241154bedea5e6cc59ccf4b6acad945b4f",
+          "source/norm_native.h": "d18573f199777f4fbf7acbe9bab378469d0655c283141008c53597026e1590b4",
+          "vendor/add_rms_norm_bias_single_n.h": "e42fccf0a3472e538b1e8da8402aba9dbbfc3af20f4489a5ddf668c72271641b",
+          "vendor/common.h": "8a671274e8be968f5f3107954a608b8211ee3738adae32af90a300c3fe649dc4",
+          "vendor/manifest.json": "03db44df8091693eabbbfdfc74f57de382dc77f0983c3b813b27fa8d8636d67a",
+          "vendor/moe_gating_top_k_without_group.h": "d02abb51af966747a25ab194b0be0076126a39603c61df9bd0b1a6f41a6d4761",
+          "vendor/reduce_common.h": "33cd7dc4bd23b645dc95067872362a619517d24f5cf51c602133d13e0334df88",
+          "vendor/rms_norm_base.h": "79590de4611dbc9b5a3efe92c4ec066b8676c1b17a9c1c9400e9c4db93e8356e"
+        },
+        "artifacts": {
+          "binding.o": "d9b852dcec528bb0bfa27c16fe493d0c319ef81e0ec969690721f6de593db0e2",
+          "kernel.o": "88e10d9d20f79f4fcf838ebc1a78b0640a84b2774a971666588bfa722d517903",
+          "tiling.o": "66d44edba06b61dd23bface97418a612e7b13bbb753a19c91aaf1d4bf7d0b330",
+          "ffn_bridge.so": "140f157225906b9ade87f63a70253ab94a2711fc61ea1024bafe713ac463b1df"
+        },
+        "schemas": {
+          "prepare": "tilert_ffn_bridge::prepare(Tensor input, int blocks=24) -> (Tensor[], int)",
+          "forward_out": "tilert_ffn_bridge::forward_out(Tensor input, Tensor residual, Tensor gamma, Tensor gate_weight, Tensor correction_bias, Tensor(a!)[] scratch, float epsilon, int blocks, int sync_base) -> ()",
+          "topk_out": "tilert_ffn_bridge::topk_out(Tensor logits, Tensor correction_bias, Tensor(a!)[] scratch, int blocks, int sync_base) -> ()",
+          "finalize_out": "tilert_ffn_bridge::finalize_out(Tensor routed, Tensor shared, Tensor(a!)[] scratch, int blocks, int sync_base) -> ()"
+        },
+        "device_validation": "not run"
+      },
+      "commands": [
+        {
+          "step": "oracle_registration",
+          "argv": [
+            "g++",
+            "-std=c++17",
+            "-O2",
+            "-fPIC",
+            "-D_GLIBCXX_USE_CXX11_ABI=1",
+            "-I",
+            "/evidence/ffn-bridge-runtime210-v2/source/csrc",
+            "-I",
+            "/usr/local/python3.12.13/include/python3.12",
+            "-I",
+            "/evidence/ffn-bridge-runtime210-v2/native/source/ffn_bridge",
+            "-I",
+            "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/include",
+            "-I",
+            "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/include/torch/csrc/api/include",
+            "-I",
+            "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/aarch64-linux/include",
+            "-c",
+            "/evidence/ffn-bridge-runtime210-v2/oracle_registration.cpp",
+            "-o",
+            "/evidence/ffn-bridge-runtime210-v2/oracle_registration.o"
+          ]
+        },
+        {
+          "step": "NPUBridge",
+          "argv": [
+            "g++",
+            "-std=c++17",
+            "-O2",
+            "-fPIC",
+            "-D_GLIBCXX_USE_CXX11_ABI=1",
+            "-I",
+            "/evidence/ffn-bridge-runtime210-v2/source/csrc",
+            "-I",
+            "/usr/local/python3.12.13/include/python3.12",
+            "-I",
+            "/evidence/ffn-bridge-runtime210-v2/native/source/ffn_bridge",
+            "-I",
+            "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/include",
+            "-I",
+            "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/include/torch/csrc/api/include",
+            "-I",
+            "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/aarch64-linux/include",
+            "-c",
+            "/evidence/ffn-bridge-runtime210-v2/source/csrc/aclnn_torch_adapter/NPUBridge.cpp",
+            "-o",
+            "/evidence/ffn-bridge-runtime210-v2/NPUBridge.o"
+          ]
+        },
+        {
+          "step": "NPUStorageImpl",
+          "argv": [
+            "g++",
+            "-std=c++17",
+            "-O2",
+            "-fPIC",
+            "-D_GLIBCXX_USE_CXX11_ABI=1",
+            "-I",
+            "/evidence/ffn-bridge-runtime210-v2/source/csrc",
+            "-I",
+            "/usr/local/python3.12.13/include/python3.12",
+            "-I",
+            "/evidence/ffn-bridge-runtime210-v2/native/source/ffn_bridge",
+            "-I",
+            "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/include",
+            "-I",
+            "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/include/torch/csrc/api/include",
+            "-I",
+            "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/aarch64-linux/include",
+            "-c",
+            "/evidence/ffn-bridge-runtime210-v2/source/csrc/aclnn_torch_adapter/NPUStorageImpl.cpp",
+            "-o",
+            "/evidence/ffn-bridge-runtime210-v2/NPUStorageImpl.o"
+          ]
+        },
+        {
+          "step": "oracle-link",
+          "argv": [
+            "g++",
+            "-shared",
+            "/evidence/ffn-bridge-runtime210-v2/oracle_registration.o",
+            "/evidence/ffn-bridge-runtime210-v2/NPUBridge.o",
+            "/evidence/ffn-bridge-runtime210-v2/NPUStorageImpl.o",
+            "-o",
+            "/evidence/ffn-bridge-runtime210-v2/official_bridge_oracle.so",
+            "-L",
+            "/opt/ascend/cann-9.2.0/aarch64-linux/lib64",
+            "-L",
+            "/opt/ascend/cann-9.2.0/lib64",
+            "-L",
+            "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/lib",
+            "-L",
+            "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/lib",
+            "-ltorch",
+            "-ltorch_cpu",
+            "-ltorch_python",
+            "-lc10",
+            "-ltorch_npu",
+            "-lascendcl",
+            "-lruntime",
+            "-lunified_dlog",
+            "-lc_sec",
+            "-lregister",
+            "-lprofapi",
+            "-ltiling_api",
+            "-lplatform",
+            "-ldl"
+          ]
+        },
+        {
+          "step": "native-binding",
+          "argv": [
+            "g++",
+            "-std=c++17",
+            "-O2",
+            "-fPIC",
+            "-D_GLIBCXX_USE_CXX11_ABI=1",
+            "-I",
+            "/evidence/ffn-bridge-runtime210-v2/source/csrc",
+            "-I",
+            "/usr/local/python3.12.13/include/python3.12",
+            "-I",
+            "/evidence/ffn-bridge-runtime210-v2/native/source/ffn_bridge",
+            "-I",
+            "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/include",
+            "-I",
+            "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/include/torch/csrc/api/include",
+            "-I",
+            "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/aarch64-linux/include",
+            "-c",
+            "/evidence/ffn-bridge-runtime210-v2/native/source/ffn_bridge/binding.cpp",
+            "-o",
+            "/evidence/ffn-bridge-runtime210-v2/native/binding.o"
+          ]
+        },
+        {
+          "step": "native-link",
+          "argv": [
+            "g++",
+            "-shared",
+            "/evidence/ffn-bridge-runtime210-v2/native/kernel.o",
+            "/evidence/ffn-bridge-runtime210-v2/native/tiling.o",
+            "/evidence/ffn-bridge-runtime210-v2/native/binding.o",
+            "-o",
+            "/evidence/ffn-bridge-runtime210-v2/native/ffn_bridge.so",
+            "-L",
+            "/opt/ascend/cann-9.2.0/aarch64-linux/lib64",
+            "-L",
+            "/opt/ascend/cann-9.2.0/lib64",
+            "-L",
+            "/usr/local/python3.12.13/lib/python3.12/site-packages/torch/lib",
+            "-L",
+            "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/lib",
+            "-ltorch",
+            "-ltorch_cpu",
+            "-ltorch_python",
+            "-lc10",
+            "-ltorch_npu",
+            "-lascendcl",
+            "-lruntime",
+            "-lunified_dlog",
+            "-lc_sec",
+            "-lregister",
+            "-lprofapi",
+            "-ltiling_api",
+            "-lplatform",
+            "-ldl"
+          ]
+        }
+      ],
+      "registration_lines": {
+        "moe_gating_top_k": [
+          3155,
+          3170
+        ],
+        "npu_add_rms_norm_bias": [
+          3172,
+          3180
+        ]
+      },
+      "registration_sha256": "682863e1eaaa71c741658db9d07e09027b23ddaea097d18cac6ebc782ef324fa",
+      "complete": true,
+      "oracle_sha256": "5643439c6647ddb77370e5639a3b4594a84cc50e2652886a2e1437d66fab2f70",
+      "native_sha256": "d979e9b7b5d963039796d2a89f08e253d368f0a61a4b4670f309aba4b7f74a3f",
+      "npu_initialized": false,
+      "api_libraries": {
+        "aclnnMoeGatingTopK": {
+          "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+          "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+        },
+        "aclnnMoeGatingTopKGetWorkspaceSize": {
+          "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+          "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+        },
+        "aclnnAddRmsNormBias": {
+          "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+          "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+        },
+        "aclnnAddRmsNormBiasGetWorkspaceSize": {
+          "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+          "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+        }
+      },
+      "schemas": {
+        "moe_gating_top_k": "_C_ascend::moe_gating_top_k(Tensor x, int k, int k_group, int group_count, int group_select_mode, int renorm, int norm_type, bool out_flag, float routed_scaling_factor, float eps, Tensor? bias_opt=None) -> (Tensor y, Tensor expert_idx, Tensor out)",
+        "npu_add_rms_norm_bias": "_C_ascend::npu_add_rms_norm_bias(Tensor x1, Tensor x2, Tensor gamma, Tensor? beta=None, float epsilon=9.9999999999999995e-07) -> (Tensor y, Tensor rstd, Tensor x)"
+      }
+    },
+    "topk_schema": "_C_ascend::moe_gating_top_k(Tensor x, int k, int k_group, int group_count, int group_select_mode, int renorm, int norm_type, bool out_flag, float routed_scaling_factor, float eps, Tensor? bias_opt=None) -> (Tensor y, Tensor expert_idx, Tensor out)",
+    "norm_schema": "_C_ascend::npu_add_rms_norm_bias(Tensor x1, Tensor x2, Tensor gamma, Tensor? beta=None, float epsilon=9.9999999999999995e-07) -> (Tensor y, Tensor rstd, Tensor x)",
+    "topk_parameters": {
+      "k": 8,
+      "k_group": 1,
+      "group_count": 1,
+      "group_select_mode": 1,
+      "renorm": 1,
+      "norm_type": 1,
+      "out_flag": false,
+      "routed_scaling_factor": 1.0,
+      "eps": 1e-20
+    },
+    "order": "Descending corrected sigmoid; exact ordered IDs compared to production",
+    "probability": "Uncorrected sigmoid selected scores; ReduceSum+eps, Div, factor1"
+  },
+  "library_sha256": "d979e9b7b5d963039796d2a89f08e253d368f0a61a4b4670f309aba4b7f74a3f",
+  "npu_initialized": false
+}

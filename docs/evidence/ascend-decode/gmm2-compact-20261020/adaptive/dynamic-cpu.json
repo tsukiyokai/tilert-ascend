@@ -1,0 +1,103 @@
+{
+  "scope": "CPU metadata and fresh-TCube state contract; no hardware synchronization or cache simulation",
+  "npu_launched": false,
+  "consumers_per_transition": 72,
+  "transition_count": 12,
+  "transitions": [
+    {
+      "state": "A",
+      "rows": 256,
+      "active": 16,
+      "header": 4294967312,
+      "retile": true
+    },
+    {
+      "state": "B",
+      "rows": 256,
+      "active": 16,
+      "header": 16,
+      "retile": false
+    },
+    {
+      "state": "A",
+      "rows": 256,
+      "active": 16,
+      "header": 4294967312,
+      "retile": true
+    },
+    {
+      "state": "C",
+      "rows": 256,
+      "active": 16,
+      "header": 4294967312,
+      "retile": true
+    },
+    {
+      "state": "D",
+      "rows": 256,
+      "active": 16,
+      "header": 16,
+      "retile": false
+    },
+    {
+      "state": "C",
+      "rows": 256,
+      "active": 16,
+      "header": 4294967312,
+      "retile": true
+    },
+    {
+      "state": "shared8",
+      "rows": 256,
+      "active": 8,
+      "header": 8,
+      "retile": false
+    },
+    {
+      "state": "active256",
+      "rows": 256,
+      "active": 256,
+      "header": 4294967552,
+      "retile": true
+    },
+    {
+      "state": "A",
+      "rows": 256,
+      "active": 16,
+      "header": 4294967312,
+      "retile": true
+    },
+    {
+      "state": "one_token",
+      "rows": 8,
+      "active": 8,
+      "header": 4294967304,
+      "retile": true
+    },
+    {
+      "state": "B",
+      "rows": 256,
+      "active": 16,
+      "header": 16,
+      "retile": false
+    },
+    {
+      "state": "A",
+      "rows": 256,
+      "active": 16,
+      "header": 4294967312,
+      "retile": true
+    }
+  ],
+  "same_active_count_threshold_crossing": true,
+  "same_header_different_experts": true,
+  "stale_header_counterexample": true,
+  "stale_local_tcube_counterexample": "If cfg survives A->B, B skips Retile and incorrectly retains 32x1024",
+  "sources": {
+    "/workspace/experiments/gmm2-compact-20261020/retile-adaptive-build/source/ops_transformer/ascendc/grouped_matmul/op_kernel/grouped_matmul.cpp": "d4c5d9923c79b6eb2dda6678f565ea516f261cc5bd17eb2df0922f57c5cf7596",
+    "/workspace/experiments/gmm2-compact-20261020/retile-adaptive-build/source/ops_transformer/ascendc/grouped_matmul/op_kernel/grouped_matmul_active_groups_a8w4.h": "97c56c6767e4fb6b51a70462bf2024497ee2e6f2ac6c62c11b7be3ccba467d99",
+    "/workspace/experiments/gmm2-compact-20261020/retile-adaptive-build/source/ops_transformer/ascendc/grouped_matmul/op_kernel/grouped_matmul_antiquant_a8w4_msd.h": "85e56bf94ba658c6535dcd8717967fad1e6856e24bceb3b6395a666ee4752527",
+    "/workspace/experiments/gmm2-compact-20261020/adaptive-cpu-agent/audit.py": "2baae0e6c80009c12260b38412d43cd9ad22b208f7e0607ce4cf2186f56569e8"
+  },
+  "input_sha256": "3a338949855c3da7ff045e544823fb40521d288b974354759ac6c4ac535122eb"
+}

@@ -1,0 +1,17 @@
+--- grouped_matmul_antiquant_a8w4_msd.h
+
++++ grouped_matmul_antiquant_a8w4_msd.h
+
+@@ -240,7 +240,10 @@
+
+     pipe->InitBuffer(perTokenScaleInQueue, BUFFER_NUM, Ceil(tiling->vBaseM * sizeof(float), 32) * 32);
+     pipe->InitBuffer(vecInQueue, BUFFER_NUM, tiling->ubCalSize * 2 * sizeof(cT::T));
+     pipe->InitBuffer(vecOutQueue, BUFFER_NUM, tiling->ubCalSize * sizeof(DTYPE_OUT));
+-    pipe->InitBuffer(tmpBuff, tiling->ubRestBytes);
++    // The FP32 epilogue owns four ubCalSize regions after the queues.
++    const uint32_t tmpBytes = activeGroups.enabled ?
++        4 * tiling->ubCalSize * sizeof(float) : tiling->ubRestBytes;
++    pipe->InitBuffer(tmpBuff, tmpBytes);
+ 
+     uint32_t ubCalSizeFloat = tiling->ubCalSize * sizeof(float);
+     // ub分配，依次划分中间结果，划分方式参考设计文档

@@ -1,0 +1,509 @@
+{
+  "status": "pass",
+  "scope": "Frozen TP16 official FP32 head gather/crop, M1/M4 Graph",
+  "audit": {
+    "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/audit-02.py",
+    "sha256": "57d2641d094e18000bd1e2f2acc2fc3491dd3ab5690588270390b37354957929",
+    "bytes": 14166
+  },
+  "prepared": {
+    "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/prepared.json",
+    "sha256": "34b1865e352dbf271f70af32d5b3274bfbde1e642490dfd5828aa32b895b2123",
+    "bytes": 24292
+  },
+  "source_bindings_verified": 44,
+  "input": {
+    "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/inputs.pt",
+    "sha256": "2ab9e50f55bebe262f084b505f2ba891c0bc6149ea345038093369a36412589a",
+    "bytes": 394850
+  },
+  "canonical": {
+    "path": "/workspace/offline/cann-head-fp32-production-20261018-01/device-00/outputs.pt",
+    "sha256": "31d1b3c07cf24b048d0c26d9fb8423abff8c2ce766836c35614198187589fb3a"
+  },
+  "canonical_report_sha256": "7b528a8737af0fc23a1a8d04baea6bc5e803acea0fe27404435d964e766465f7",
+  "teacher": {
+    "path": "/workspace/offline/cann-layer-major-20261018-02/source/docs/evidence/ascend-decode/vllm-baseline-20261017/teacher-32.json",
+    "sha256": "82d011962a288b30b777fc4964d5c96c6b9784cb13b97f509322f603b263b655"
+  },
+  "input_trace": {
+    "path": "/workspace/offline/cann-layer-major-20261018-02/device-78x32-sfa-01/rank-0/final.pt",
+    "sha256": "ae7aad6cad13b7c8a2b483696a166f1f8c63e0ec7ca00303995d5f4c1af5efe3"
+  },
+  "rows_distinct": 32,
+  "expected_next_tokens": [
+    382,
+    262,
+    576,
+    2524,
+    5496,
+    64623,
+    264,
+    3210,
+    1140,
+    13,
+    19262,
+    7168,
+    24187,
+    279,
+    198,
+    262,
+    1681,
+    6337,
+    323,
+    64019,
+    11288,
+    13,
+    6944,
+    20757,
+    5258,
+    323,
+    3796,
+    198,
+    262,
+    1105,
+    13,
+    9897
+  ],
+  "comparisons": {
+    "canonical_matrices": 96,
+    "canonical_elements": 475791360,
+    "same_rank_graph_to_eager_matrices": 64,
+    "cross_rank_to_rank0_matrices": 90,
+    "m1_to_m4_matrices": 48,
+    "teacher_rows_correct": 3072,
+    "canonical_bit_different": 0,
+    "within_rank_bit_different": 0,
+    "cross_rank_bit_different": 0,
+    "m1_to_m4_bit_different": 0,
+    "finite": true,
+    "phase_maxima": {
+      "M1.eager": {
+        "bit_different": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      },
+      "M1.graph": {
+        "bit_different": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      },
+      "M1.graph_reset": {
+        "bit_different": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      },
+      "M4.eager": {
+        "bit_different": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      },
+      "M4.graph": {
+        "bit_different": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      },
+      "M4.graph_reset": {
+        "bit_different": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      }
+    },
+    "canonical_argmax_margins": [
+      1.9358234405517578,
+      7.2824907302856445,
+      0.4755725860595703,
+      0.00261688232421875,
+      2.353191375732422,
+      0.21648597717285156,
+      0.5347480773925781,
+      0.5925216674804688,
+      0.44942283630371094,
+      0.7196826934814453,
+      0.06124305725097656,
+      2.305377960205078,
+      2.4620323181152344,
+      3.262411117553711,
+      3.912944793701172,
+      9.414857864379883,
+      1.6795825958251953,
+      3.132404327392578,
+      0.8235664367675781,
+      0.061923980712890625,
+      1.5675048828125,
+      0.09593391418457031,
+      0.382171630859375,
+      7.083768844604492,
+      1.083108901977539,
+      0.5476245880126953,
+      0.3438835144042969,
+      1.6989116668701172,
+      9.74350357055664,
+      3.2313499450683594,
+      2.199329376220703,
+      0.21665191650390625
+    ]
+  },
+  "graphs": {
+    "captures": 64,
+    "replays": 1280,
+    "per_rank_captures": 4,
+    "per_rank_replays": 80,
+    "pools_distinct_per_rank": 4,
+    "all_reset_completed_reported": true,
+    "replay_inputs": "32 distinct rows, ascending then descending batches",
+    "output_poison": "NaN before each replay",
+    "pointers": "Stable per graph; reuse after graph.reset is permitted"
+  },
+  "ranks": [
+    {
+      "rank": 0,
+      "report": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-0/result.json",
+        "sha256": "f660d1e90626395baed1cc562e70f0c6fb6806196666fe1c5fc35da3d8494bd4",
+        "bytes": 19428
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-0/outputs.pt",
+        "sha256": "e94d294ac1b99f774b9af59cd1dc242268253b5e60a20e0b9714b307447eb909"
+      },
+      "weight_sha256": "246bbe0d32783e6400630c124d13797792a529a9bf131fe6972688ea6d9c7b86",
+      "canonical_bit_different": 0,
+      "within_rank_bit_different": 0,
+      "cross_rank_bit_different": 0,
+      "peak_allocated": 143805952,
+      "peak_reserved": 195035136
+    },
+    {
+      "rank": 1,
+      "report": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-1/result.json",
+        "sha256": "51ad86fc7e6e21e3ea8a0695eadd17a3601a0152025e6e3940504d49b396d6db",
+        "bytes": 19432
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-1/outputs.pt",
+        "sha256": "e94d294ac1b99f774b9af59cd1dc242268253b5e60a20e0b9714b307447eb909"
+      },
+      "weight_sha256": "551e1ad90682322e6f75afa1eb0bed3dd517ed8c98f6b21702575b1bfe73cace",
+      "canonical_bit_different": 0,
+      "within_rank_bit_different": 0,
+      "cross_rank_bit_different": 0,
+      "peak_allocated": 143805952,
+      "peak_reserved": 195035136
+    },
+    {
+      "rank": 2,
+      "report": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-2/result.json",
+        "sha256": "70201e15b790d68ea9e1cbab4f7200b958a32a3f5c24e932928ef3d0c26e24a2",
+        "bytes": 19433
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-2/outputs.pt",
+        "sha256": "e94d294ac1b99f774b9af59cd1dc242268253b5e60a20e0b9714b307447eb909"
+      },
+      "weight_sha256": "2f0bfbd710879d3d8c0732c978904d91c12572223c597b2ba5afcd42866dac88",
+      "canonical_bit_different": 0,
+      "within_rank_bit_different": 0,
+      "cross_rank_bit_different": 0,
+      "peak_allocated": 143805952,
+      "peak_reserved": 195035136
+    },
+    {
+      "rank": 3,
+      "report": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-3/result.json",
+        "sha256": "323f65a7862cbea5e38a256d974439a4addf7fa2ac5c9210ac0f9f36081247f2",
+        "bytes": 19427
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-3/outputs.pt",
+        "sha256": "e94d294ac1b99f774b9af59cd1dc242268253b5e60a20e0b9714b307447eb909"
+      },
+      "weight_sha256": "73dc0aaf6cdbcb9a6d79391362b08c282c78bb28f5a6e0502fdfa683a7f45687",
+      "canonical_bit_different": 0,
+      "within_rank_bit_different": 0,
+      "cross_rank_bit_different": 0,
+      "peak_allocated": 143805952,
+      "peak_reserved": 195035136
+    },
+    {
+      "rank": 4,
+      "report": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-4/result.json",
+        "sha256": "0ca6599ad1045d4125086c71afe172d9e8a836dac7fa8d3b6746278114b91bae",
+        "bytes": 19433
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-4/outputs.pt",
+        "sha256": "e94d294ac1b99f774b9af59cd1dc242268253b5e60a20e0b9714b307447eb909"
+      },
+      "weight_sha256": "a0738b3cdbc6016f83219c41ce2a4fc0511d49ad4c1a0da6c0515fecb044a257",
+      "canonical_bit_different": 0,
+      "within_rank_bit_different": 0,
+      "cross_rank_bit_different": 0,
+      "peak_allocated": 143805952,
+      "peak_reserved": 195035136
+    },
+    {
+      "rank": 5,
+      "report": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-5/result.json",
+        "sha256": "2851b1362b1a4f7d789d4107a07633a19b33ca230dcdebaa58a2961b12fe135f",
+        "bytes": 19433
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-5/outputs.pt",
+        "sha256": "e94d294ac1b99f774b9af59cd1dc242268253b5e60a20e0b9714b307447eb909"
+      },
+      "weight_sha256": "540d6a915ba406d02d985140cc7eff90d8a32abce5a82c02416306df5b9a673b",
+      "canonical_bit_different": 0,
+      "within_rank_bit_different": 0,
+      "cross_rank_bit_different": 0,
+      "peak_allocated": 143805952,
+      "peak_reserved": 195035136
+    },
+    {
+      "rank": 6,
+      "report": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-6/result.json",
+        "sha256": "cbd2b500a983c70cc5ae0155000e36c9b5d20f018828a994aedb9e6d63767bfe",
+        "bytes": 19433
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-6/outputs.pt",
+        "sha256": "e94d294ac1b99f774b9af59cd1dc242268253b5e60a20e0b9714b307447eb909"
+      },
+      "weight_sha256": "212555b1380e527b67660b42981a26c91ce62814053e640b56c83fc73cce965b",
+      "canonical_bit_different": 0,
+      "within_rank_bit_different": 0,
+      "cross_rank_bit_different": 0,
+      "peak_allocated": 143805952,
+      "peak_reserved": 195035136
+    },
+    {
+      "rank": 7,
+      "report": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-7/result.json",
+        "sha256": "8253f7f36c279ae0a739a53fc7dcb42632d495ae560a138b3ed9e48ca35697d1",
+        "bytes": 19433
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-7/outputs.pt",
+        "sha256": "e94d294ac1b99f774b9af59cd1dc242268253b5e60a20e0b9714b307447eb909"
+      },
+      "weight_sha256": "79706b5d8845e25f1e7ca90b78d88947742bfaf7ac5c2c5ad81485b18936f28f",
+      "canonical_bit_different": 0,
+      "within_rank_bit_different": 0,
+      "cross_rank_bit_different": 0,
+      "peak_allocated": 143805952,
+      "peak_reserved": 195035136
+    },
+    {
+      "rank": 8,
+      "report": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-8/result.json",
+        "sha256": "db625cbb8c6f7514daf234f31a88001d2b091ce0e24f1f48f7740a17afaba705",
+        "bytes": 19433
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-8/outputs.pt",
+        "sha256": "e94d294ac1b99f774b9af59cd1dc242268253b5e60a20e0b9714b307447eb909"
+      },
+      "weight_sha256": "16e7e2da47b2cf40d2a0e9b81fe18a1650a0df20c93e3c1c8837138e0695032d",
+      "canonical_bit_different": 0,
+      "within_rank_bit_different": 0,
+      "cross_rank_bit_different": 0,
+      "peak_allocated": 143805952,
+      "peak_reserved": 195035136
+    },
+    {
+      "rank": 9,
+      "report": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-9/result.json",
+        "sha256": "127fcc0adf62b202697720ee3562b5c25347682a2e502abf17ce140094b76259",
+        "bytes": 19427
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-9/outputs.pt",
+        "sha256": "e94d294ac1b99f774b9af59cd1dc242268253b5e60a20e0b9714b307447eb909"
+      },
+      "weight_sha256": "76b922cd4bfe4a510dd105a713f8e3b7ce75a361593f369e9cf74e671a97553d",
+      "canonical_bit_different": 0,
+      "within_rank_bit_different": 0,
+      "cross_rank_bit_different": 0,
+      "peak_allocated": 143805952,
+      "peak_reserved": 195035136
+    },
+    {
+      "rank": 10,
+      "report": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-10/result.json",
+        "sha256": "4c9d0218e3142f43b04971bb9367e126a8228137f506c4769add9344aeef2a0e",
+        "bytes": 19436
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-10/outputs.pt",
+        "sha256": "e94d294ac1b99f774b9af59cd1dc242268253b5e60a20e0b9714b307447eb909"
+      },
+      "weight_sha256": "fad55c7e5202eead0ec0969c8a824c324b0416dc9901524daf85b501988b537e",
+      "canonical_bit_different": 0,
+      "within_rank_bit_different": 0,
+      "cross_rank_bit_different": 0,
+      "peak_allocated": 143805952,
+      "peak_reserved": 195035136
+    },
+    {
+      "rank": 11,
+      "report": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-11/result.json",
+        "sha256": "82cd7902113fadb3e74c319a29fa07774e598a89b772d09f84f57e9f9a74ab8f",
+        "bytes": 19437
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-11/outputs.pt",
+        "sha256": "e94d294ac1b99f774b9af59cd1dc242268253b5e60a20e0b9714b307447eb909"
+      },
+      "weight_sha256": "f7d734adc69e751d5996a540f6c0a811211434918320797a3b4ead8cd67e50f2",
+      "canonical_bit_different": 0,
+      "within_rank_bit_different": 0,
+      "cross_rank_bit_different": 0,
+      "peak_allocated": 143805952,
+      "peak_reserved": 195035136
+    },
+    {
+      "rank": 12,
+      "report": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-12/result.json",
+        "sha256": "0c219836f426681e410179a92cbb9379cfb325cca3e2ed54064e04e68ef6f096",
+        "bytes": 19437
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-12/outputs.pt",
+        "sha256": "e94d294ac1b99f774b9af59cd1dc242268253b5e60a20e0b9714b307447eb909"
+      },
+      "weight_sha256": "f8f39ccc4596a47067e407f57423d0c0cb658acc14040dc45492f10178a363db",
+      "canonical_bit_different": 0,
+      "within_rank_bit_different": 0,
+      "cross_rank_bit_different": 0,
+      "peak_allocated": 143805952,
+      "peak_reserved": 195035136
+    },
+    {
+      "rank": 13,
+      "report": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-13/result.json",
+        "sha256": "25442b475accfb3a1554a74b22efadd27f89eb399e1565918fb96f42a87f3c78",
+        "bytes": 19431
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-13/outputs.pt",
+        "sha256": "e94d294ac1b99f774b9af59cd1dc242268253b5e60a20e0b9714b307447eb909"
+      },
+      "weight_sha256": "365b77175ce4a8f4e46536b601963e159244ed078360e3e13d9aebcbc9bd5441",
+      "canonical_bit_different": 0,
+      "within_rank_bit_different": 0,
+      "cross_rank_bit_different": 0,
+      "peak_allocated": 143805952,
+      "peak_reserved": 195035136
+    },
+    {
+      "rank": 14,
+      "report": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-14/result.json",
+        "sha256": "1fd1b209d5e840fdda8d9a15f6844871bdec18fd27dbe13d5e05dd7e2a1e4174",
+        "bytes": 19437
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-14/outputs.pt",
+        "sha256": "e94d294ac1b99f774b9af59cd1dc242268253b5e60a20e0b9714b307447eb909"
+      },
+      "weight_sha256": "ddb2ed45935121a88ee604dd8fd5cef431b19071f8599e0d6e3a878132dbbcd9",
+      "canonical_bit_different": 0,
+      "within_rank_bit_different": 0,
+      "cross_rank_bit_different": 0,
+      "peak_allocated": 143805952,
+      "peak_reserved": 195035136
+    },
+    {
+      "rank": 15,
+      "report": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-15/result.json",
+        "sha256": "f96ed51987c3039019000bb31ea55e93f0250c152b9fa9607dd0530da0d72d42",
+        "bytes": 19437
+      },
+      "raw": {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/device-00/rank-15/outputs.pt",
+        "sha256": "e94d294ac1b99f774b9af59cd1dc242268253b5e60a20e0b9714b307447eb909"
+      },
+      "weight_sha256": "3b7fbf13b7d52847cec06584e87d4cda98498a764becb3b557b81672be6dd45b",
+      "canonical_bit_different": 0,
+      "within_rank_bit_different": 0,
+      "cross_rank_bit_different": 0,
+      "peak_allocated": 143805952,
+      "peak_reserved": 195035136
+    }
+  ],
+  "cleanup": {
+    "terminal": {
+      "exit_code": 0,
+      "finished_at": "2026-10-17T22:39:15.668563+00:00",
+      "wall_seconds": 39.72882300335914
+    },
+    "artifacts": [
+      {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/run-01/exit.json",
+        "sha256": "49b10a3b19f16caab4a873bdf59e9fc6f525b9d1c3c8a05f07d912a61329eec5",
+        "bytes": 111
+      },
+      {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/run-01/launch.json",
+        "sha256": "c9b343f440c105c96b5167c9ee04ade493d9b200fc0819355e82e96213061148",
+        "bytes": 421
+      },
+      {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/run-01/bindings.json",
+        "sha256": "19db43f1d34d1e50d73e99f43a8ccd639a16475058ca6375216a2db8e0aed5a7",
+        "bytes": 133
+      },
+      {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/run-01/run.log",
+        "sha256": "39e7dd6d6844a494a8769572dcd50e53febb09e6d7f8064d7115bad260427614",
+        "bytes": 82314
+      },
+      {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/run-01/preflight.txt",
+        "sha256": "0ac702bb8061e76ae167bece24a3dde82648df5ea7b22f107d9e8f9965af06a3",
+        "bytes": 8019
+      },
+      {
+        "path": "/workspace/offline/cann-fp32-head-tp-graph-20261018-01/run-01/postflight.txt",
+        "sha256": "0795a208ec8a5f10afeaa780b9c79d264dad68dce971e3286dac3af55bba1f42",
+        "bytes": 8019
+      }
+    ],
+    "postflight_healthy_dies": 16,
+    "postflight_process_names": [
+      "run_test_npu.py"
+    ],
+    "postflight_process_count": 16,
+    "warnings": [
+      {
+        "line": 533,
+        "text": "/usr/local/lib/python3.11/multiprocessing/resource_tracker.py:254: UserWarning: resource_tracker: There appear to be 1 leaked shared_memory objects to clean up at shutdown"
+      }
+    ],
+    "driver_finally": "synchronize, restore original stream, worker.shutdown",
+    "explicit_destroy_process_group": false,
+    "scope": "Graph resets recorded; shutdown reached on exit0. Postflight shows no probe device process. One resource_tracker shared_memory warning remains."
+  },
+  "weight_scope": "16 frozen BF16 shard hashes match reports/canonical; raw F32 header and checkpoint metadata rehashed. BF16 ND device state and unchanged weights were driver assertions, not retained GPU weight dumps.",
+  "npu_initialized": false,
+  "audit_device_calls": 0,
+  "performance_measured": false,
+  "mtp_own_head_executed": false,
+  "full_model_executed": false,
+  "pd_validated": false,
+  "precision_verified": false
+}

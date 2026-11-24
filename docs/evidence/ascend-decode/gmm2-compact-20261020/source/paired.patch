@@ -1,0 +1,164 @@
+--- a/grouped_matmul_active_groups_a8w4.h
++++ b/grouped_matmul_active_groups_a8w4.h
+@@ -0,0 +1,86 @@
++#ifndef GMM_ACTIVE_GROUPS_A8W4_H
++#define GMM_ACTIVE_GROUPS_A8W4_H
++
++#include "kernel_operator.h"
++
++namespace GROUPED_MATMUL {
++using namespace AscendC;
++
++class GMMActiveGroups {
++public:
++    static constexpr uint32_t EXPERTS = 256;
++    static constexpr uint32_t WORDS = 260;
++    static constexpr uint32_t SLOT_ELEMENTS = 32768;
++    bool enabled = false;
++
++    __aicore__ inline void Init(GM_ADDR workspace, const GMMBaseParams &params)
++    {
++#ifdef GMM_ANTI_QUANT_A8W4_MSD_OUT_BF16
++        enabled = params.groupNum == EXPERTS && params.k == 128 && params.n == 6144 &&
++                  params.m > 0 && params.m <= 256 && params.coreNum == 24 &&
++                  params.parallNum == 4 && params.quantGroupNum == 1 &&
++                  params.withOffset == 0 && params.isA8W4MSDPreNZ == 0 &&
++                  params.isSingleTensor == 1;
++        if (enabled) {
++            // B114 API-dequant reserves 96 MiB; its live half ring uses 6 MiB.
++            const uint64_t ringBytes =
++                static_cast<uint64_t>(SLOT_ELEMENTS) * sizeof(half) *
++                params.coreNum * params.parallNum;
++            records.SetGlobalBuffer((__gm__ uint64_t *)(workspace + ringBytes));
++        }
++#endif
++    }
++
++    __aicore__ inline void Publish(GM_ADDR countsAddress, TPipe *pipe)
++    {
++        if ASCEND_IS_AIV {
++            if (!enabled || GetBlockIdx() != 0) {
++                return;
++            }
++            TBuf<TPosition::VECCALC> buffer;
++            pipe->InitBuffer(buffer, (EXPERTS + WORDS) * sizeof(uint64_t));
++            auto counts = buffer.Get<int64_t>();
++            auto output = buffer.GetWithOffset<uint64_t>(WORDS, EXPERTS * sizeof(uint64_t));
++            GlobalTensor<int64_t> input;
++            input.SetGlobalBuffer((__gm__ int64_t *)countsAddress);
++            DataCopy(counts, input, EXPERTS);
++            SetFlag<HardEvent::MTE2_S>(EVENT_ID0);
++            WaitFlag<HardEvent::MTE2_S>(EVENT_ID0);
++            uint32_t active = 0;
++            uint32_t end = 0;
++            for (uint32_t expert = 0; expert < EXPERTS; ++expert) {
++                const auto rows = counts.GetValue(expert);
++                if (rows > 0) {
++                    end += rows;
++                    output.SetValue(++active, (static_cast<uint64_t>(end) << 32) | expert);
++                }
++            }
++            output.SetValue(0, active);
++            const uint32_t length = ((active + 4) / 4) * 4;
++            for (uint32_t i = active + 1; i < length; ++i) {
++                output.SetValue(i, 0);
++            }
++            SetFlag<HardEvent::S_MTE3>(EVENT_ID0);
++            WaitFlag<HardEvent::S_MTE3>(EVENT_ID0);
++            DataCopy(records, output, length);
++            SetFlag<HardEvent::MTE3_S>(EVENT_ID0);
++            WaitFlag<HardEvent::MTE3_S>(EVENT_ID0);
++            pipe->Reset();
++        }
++    }
++
++    __aicore__ inline void Invalidate()
++    {
++        DataCacheCleanAndInvalid<uint64_t, CacheLine::ENTIRE_DATA_CACHE,
++                                 DcciDst::CACHELINE_OUT>(records);
++    }
++
++    __aicore__ inline uint32_t Size() { return records.GetValue(0); }
++    __aicore__ inline uint64_t Get(uint32_t slot) { return records.GetValue(slot + 1); }
++
++private:
++    GlobalTensor<uint64_t> records;
++};
++} // namespace GROUPED_MATMUL
++#endif
++
+--- a/grouped_matmul.cpp
++++ b/grouped_matmul.cpp
+@@ -255,6 +255,11 @@
+     do {                                                                                                           \
+         GET_TILING_DATA_MEMBER(GMMTilingData, gmmBaseParams, gmmBaseParams_, tiling);                              \
+         if ASCEND_IS_AIV {                                                                                         \
++            if constexpr (A8W4_KERNEL_TEMPLATE == GROUPED_MATMUL_A8W4_KERNEL_TEMPLATE_MSD_API_DEQUANT) {              \
++                GMMActiveGroups activeGroups;                                                                         \
++                activeGroups.Init(user1, gmmBaseParams_); activeGroups.enabled &= (reinterpret_cast<uint64_t>(groupList) & 32) == 0;                                                             \
++                activeGroups.Publish(groupList, &tPipe);                                                              \
++            }                                                                                                         \
+             if (gmmBaseParams_.isA8W4MSDPreNZ == 1) {                                                              \
+                 GMMA8W4PreProcessNZ op1;                                                                           \
+                 op1.Init(x, user1, groupList, user1, gmmBaseParams_, &tPipe);                                      \
+--- a/grouped_matmul_antiquant_a8w4_msd.h
++++ b/grouped_matmul_antiquant_a8w4_msd.h
+@@ -19,6 +19,7 @@
+ #include "grouped_matmul_utils.h"
+ #include "grouped_matmul_kernel.h"
+ #include "kernel_operator.h"
++#include "grouped_matmul_active_groups_a8w4.h"
+ 
+ #ifdef GMM_ANTI_QUANT_A8W4_MSD
+ namespace GROUPED_MATMUL {
+@@ -43,6 +44,7 @@
+ constexpr uint64_t SYNC_AIC_TO_AIV = 5;
+ constexpr uint32_t BUFFER_NUM = 1;
+ constexpr uint32_t MM_BASE_BLOCK_OFFSET = 32768; // baseM * baseN = 128 * 256
++static_assert(MM_BASE_BLOCK_OFFSET == GMMActiveGroups::SLOT_ELEMENTS);
+ 
+ template <typename T>
+ __aicore__ inline void DataCopyPad2DA8W4(const LocalTensor<T> dst, const GlobalTensor<T> src, uint32_t dim1,
+@@ -130,6 +132,7 @@
+     GlobalTensor<DTYPE_PERTOKEN_SCALE_A8W4MSD> perTokenScaleGm;
+     GlobalTensor<DTYPE_OFFSET_A8W4MSD> offsetGm;
+     GlobalTensor<int64_t> groupTokensGm;
++    GMMActiveGroups activeGroups;
+     GlobalTensor<float> logitsGm;
+     GlobalTensor<bfloat16_t> residualGm;
+     GlobalTensor<int32_t> tokenRanksGm;
+@@ -179,6 +182,8 @@
+                                                        const TCubeTiling *mmTilingData, TPipe *tPipeIn)
+ {
+     tiling = tilingData;
++    activeGroups.Init(workspace, *tiling);
++    activeGroups.enabled &= (reinterpret_cast<uint64_t>(group_tokens) & 32) == 0;
+     xRowSumCount = tiling->m;
+     withOffset = tiling->withOffset;
+     isSingleTensor = tiling->isSingleTensor;
+@@ -268,8 +273,23 @@
+     if ASCEND_IS_AIC {
+         SyncAll<false>();
+     }
+-    for (uint32_t groupIdx = 0, preCount = 0; groupIdx < tiling->groupNum; ++groupIdx) {
+-        int32_t m = static_cast<int32_t>(groupTokensGm.GetValue(groupIdx));
++    if (activeGroups.enabled) {
++        activeGroups.Invalidate();
++    }
++    const uint32_t groups = activeGroups.enabled ? activeGroups.Size() : tiling->groupNum;
++    uint32_t previousEnd = 0;
++    for (uint32_t slot = 0, preCount = 0; slot < groups; ++slot) {
++        uint32_t groupIdx = slot;
++        int32_t m;
++        if (activeGroups.enabled) {
++            const uint64_t record = activeGroups.Get(slot);
++            groupIdx = static_cast<uint32_t>(record);
++            const uint32_t end = record >> 32;
++            m = static_cast<int32_t>(end - previousEnd);
++            previousEnd = end;
++        } else {
++            m = static_cast<int32_t>(groupTokensGm.GetValue(groupIdx));
++        }
+         if (m <= 0) {
+             continue;
+         }

@@ -1,0 +1,2700 @@
+{
+  "scope": "Frozen 8K W4A8 GMM1, M1, TP16 shard on one shared die",
+  "created_at": "2026-10-17T07:53:48.232088+00:00",
+  "npu_initialized_by_verifier": false,
+  "full_model_precision_verified": false,
+  "performance_measured": false,
+  "checkpoint_sha256": {
+    "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+    "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+    "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+  },
+  "fixed_fields_identical": [
+    "trace_sha256",
+    "input_report_sha256",
+    "checkpoint_sha256",
+    "active_payload_sha256",
+    "operator_schema",
+    "source_sha256",
+    "bank"
+  ],
+  "only_normalized_command_change": "ASCEND_CUSTOM_OPP_PATH",
+  "operator_schema": "_C_ascend::grouped_matmul_swiglu_quant_v2(Tensor x, Tensor[] weight, Tensor[] weight_scale, Tensor x_scale, Tensor group_list, Tensor? smooth_scale=None, Tensor[]? weight_assist_matrix=None, Tensor? bias=None, int? dequant_mode=0, int? dequant_dtype=0, int? quant_mode=0, int? quant_dtype=0, bool transpose_weight=False, int group_list_type=0, int[2] tuning_config=[], float swiglu_limit=0.) -> (Tensor output, Tensor output_scale)",
+  "stale_amax": {
+    "rows": 11,
+    "gate_absmax_scale_bitwise": 11,
+    "up_absmax_scale_bitwise": 0,
+    "code_elements_explained": 1408,
+    "max_abs_codes": [
+      7,
+      7,
+      5,
+      6,
+      5,
+      13,
+      7,
+      5,
+      5,
+      3,
+      5
+    ]
+  },
+  "source_patch": {
+    "path": "/workspace/offline/cann-gmm1-barrier-20261017/source/csrc/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_post.h",
+    "before_sha256": "8cf63fb3e34955a2ed28d4f9f56c2030e74744cbe5a63aaeb5d130eb0940758f",
+    "after_sha256": "730e0bac7ce6ea3e085a48225d27093431debcd6f05c542378beefc7e96d3689",
+    "patch_sha256": "38d209124145e1b51b77dc469e891629aca3e85916b25770dabf26d750bf85f8",
+    "dependency": "The SwiGLU UB-to-UB copy must finish before Abs reads its destination.",
+    "vllm_ascend_commit": "f558b58c177916424ae9dcf9bb8e66c0b9031236",
+    "build_command": "bash build.sh --pkg --ops=grouped_matmul_swiglu_quant_v2 --soc=ascend910_93 --vendor_name=gmm1barrier --build-type=Release -j8",
+    "vendor": "/workspace/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer"
+  },
+  "cases": [
+    {
+      "name": "precision-original",
+      "logical_rank": 0,
+      "physical_die": 15,
+      "repeats": 8,
+      "expert_rows": 64,
+      "exact_expert_rows": 62,
+      "calls_exact": [
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true
+      ],
+      "repeat_exact": false,
+      "amax_invariant": false,
+      "max_abs_codes": [
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          6,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          6,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ]
+      ],
+      "peak_reserved_bytes": 736100352,
+      "status": "fail",
+      "launch": {
+        "pid": 1549299,
+        "command": "source /workspace/environment/activate.sh\ncd /workspace/offline/cann-routed-stage-20261017/source\nASCEND_CUSTOM_OPP_PATH=/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer HCCL_DETERMINISTIC=true HCCL_BUFFSIZE=200 HCCL_OP_EXPANSION_MODE=AIV HCCL_NPU_SOCKET_PORT_RANGE=auto HCCL_HOST_SOCKET_PORT_RANGE=auto OMP_NUM_THREADS=1 TASK_QUEUE_ENABLE=1 TORCH_DEVICE_BACKEND_AUTOLOAD=0 PYTHONPATH=\"$PWD:${PYTHONPATH:-}\" timeout 180 python tests/glm52/replay_cann_gmm1.py --checkpoint /workspace/models/GLM-5.2-w4a8c8 --trace /workspace/offline/cann-routed-stage-20261017/continuation8k/rank-0/step-08192.pt --rank 0 --device npu:15 --output /workspace/offline/cann-gmm1-barrier-20261017/precision-original/result.json",
+        "started_at": "2026-10-17T07:34:08.266309+00:00",
+        "free_hbm_mb": {
+          "0": 3908,
+          "1": 4161,
+          "2": 3909,
+          "3": 4162,
+          "4": 3901,
+          "5": 4172,
+          "6": 3911,
+          "7": 4160,
+          "8": 3907,
+          "9": 4162,
+          "10": 3908,
+          "11": 4164,
+          "12": 3899,
+          "13": 4175,
+          "14": 3716,
+          "15": 4161
+        },
+        "processes": [
+          {
+            "die": 0,
+            "pid": 824700
+          },
+          {
+            "die": 1,
+            "pid": 824733
+          },
+          {
+            "die": 2,
+            "pid": 824751
+          },
+          {
+            "die": 3,
+            "pid": 824779
+          },
+          {
+            "die": 4,
+            "pid": 824746
+          },
+          {
+            "die": 5,
+            "pid": 824781
+          },
+          {
+            "die": 6,
+            "pid": 824737
+          },
+          {
+            "die": 7,
+            "pid": 824835
+          },
+          {
+            "die": 8,
+            "pid": 824783
+          },
+          {
+            "die": 9,
+            "pid": 824735
+          },
+          {
+            "die": 10,
+            "pid": 824777
+          },
+          {
+            "die": 11,
+            "pid": 824763
+          },
+          {
+            "die": 12,
+            "pid": 824832
+          },
+          {
+            "die": 13,
+            "pid": 824831
+          },
+          {
+            "die": 14,
+            "pid": 824772
+          },
+          {
+            "die": 15,
+            "pid": 824810
+          }
+        ],
+        "source_sha256": "32e50b355e87b9a35d237f427f75fc1f43c28fb269020980834aa94661005d4b",
+        "allocator_limit_mib": 1536,
+        "measurement": "precision_only_shared_device"
+      },
+      "trace": "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-0/step-08192.pt",
+      "trace_sha256": "11ffcdbe90174b3c2942de93ac44ee2f04d4f123974cf022d572b5eca1820f28",
+      "report_sha256": "d9ddf8fccebb9c432974ed134262962a8695d60e34d54a57ab16d27ba2cee173",
+      "capture_sha256": "affc1d3b39815b90f61cc580761b18e4336b46bafdf605a5f4a0237c78c1a283"
+    },
+    {
+      "name": "precision-patched",
+      "logical_rank": 0,
+      "physical_die": 15,
+      "repeats": 8,
+      "expert_rows": 64,
+      "exact_expert_rows": 64,
+      "calls_exact": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "repeat_exact": true,
+      "amax_invariant": true,
+      "max_abs_codes": [
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ]
+      ],
+      "peak_reserved_bytes": 736100352,
+      "status": "pass",
+      "launch": {
+        "pid": 1553218,
+        "command": "source /workspace/environment/activate.sh\ncd /workspace/offline/cann-routed-stage-20261017/source\nASCEND_CUSTOM_OPP_PATH=/workspace/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer:/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer HCCL_DETERMINISTIC=true HCCL_BUFFSIZE=200 HCCL_OP_EXPANSION_MODE=AIV HCCL_NPU_SOCKET_PORT_RANGE=auto HCCL_HOST_SOCKET_PORT_RANGE=auto OMP_NUM_THREADS=1 TASK_QUEUE_ENABLE=1 TORCH_DEVICE_BACKEND_AUTOLOAD=0 PYTHONPATH=\"$PWD:${PYTHONPATH:-}\" timeout 180 python tests/glm52/replay_cann_gmm1.py --checkpoint /workspace/models/GLM-5.2-w4a8c8 --trace /workspace/offline/cann-routed-stage-20261017/continuation8k/rank-0/step-08192.pt --rank 0 --device npu:15 --output /workspace/offline/cann-gmm1-barrier-20261017/precision-patched/result.json",
+        "started_at": "2026-10-17T07:35:12.451610+00:00",
+        "free_hbm_mb": {
+          "0": 3907,
+          "1": 4161,
+          "2": 3910,
+          "3": 4162,
+          "4": 3900,
+          "5": 4172,
+          "6": 3911,
+          "7": 4160,
+          "8": 3907,
+          "9": 4162,
+          "10": 3908,
+          "11": 4164,
+          "12": 3899,
+          "13": 4175,
+          "14": 3716,
+          "15": 4161
+        },
+        "processes": [
+          {
+            "die": 0,
+            "pid": 824700
+          },
+          {
+            "die": 1,
+            "pid": 824733
+          },
+          {
+            "die": 2,
+            "pid": 824751
+          },
+          {
+            "die": 3,
+            "pid": 824779
+          },
+          {
+            "die": 4,
+            "pid": 824746
+          },
+          {
+            "die": 5,
+            "pid": 824781
+          },
+          {
+            "die": 6,
+            "pid": 824737
+          },
+          {
+            "die": 7,
+            "pid": 824835
+          },
+          {
+            "die": 8,
+            "pid": 824783
+          },
+          {
+            "die": 9,
+            "pid": 824735
+          },
+          {
+            "die": 10,
+            "pid": 824777
+          },
+          {
+            "die": 11,
+            "pid": 824763
+          },
+          {
+            "die": 12,
+            "pid": 824832
+          },
+          {
+            "die": 13,
+            "pid": 824831
+          },
+          {
+            "die": 14,
+            "pid": 824772
+          },
+          {
+            "die": 15,
+            "pid": 824810
+          }
+        ],
+        "runner_sha256": "32e50b355e87b9a35d237f427f75fc1f43c28fb269020980834aa94661005d4b",
+        "vendor_api_sha256": "dc46ead9cde9dd3b7fcf45066c25a072512156b5b4cecc561c2c342c0e9c7e4c",
+        "allocator_limit_mib": 1536,
+        "measurement": "precision_only_shared_device"
+      },
+      "trace": "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-0/step-08192.pt",
+      "trace_sha256": "11ffcdbe90174b3c2942de93ac44ee2f04d4f123974cf022d572b5eca1820f28",
+      "report_sha256": "600c9400605bfd6d6a986ac759486570728abe6eb64185e72e83f41c0678db50",
+      "capture_sha256": "63a454168df9041fb65552fc9eeaeb9e20da759a910a64454cac075f850cccf2"
+    },
+    {
+      "name": "precision-patched-rank12",
+      "logical_rank": 12,
+      "physical_die": 15,
+      "repeats": 32,
+      "expert_rows": 256,
+      "exact_expert_rows": 256,
+      "calls_exact": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "repeat_exact": true,
+      "amax_invariant": true,
+      "max_abs_codes": [
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ]
+      ],
+      "peak_reserved_bytes": 738197504,
+      "status": "pass",
+      "launch": {
+        "pid": 1560366,
+        "command": "source /workspace/environment/activate.sh\ncd /workspace/offline/cann-routed-stage-20261017/source\nASCEND_CUSTOM_OPP_PATH=/workspace/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer:/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer HCCL_DETERMINISTIC=true HCCL_BUFFSIZE=200 HCCL_OP_EXPANSION_MODE=AIV HCCL_NPU_SOCKET_PORT_RANGE=auto HCCL_HOST_SOCKET_PORT_RANGE=auto OMP_NUM_THREADS=1 TASK_QUEUE_ENABLE=1 TORCH_DEVICE_BACKEND_AUTOLOAD=0 PYTHONPATH=\"$PWD:${PYTHONPATH:-}\" timeout 180 python tests/glm52/replay_cann_gmm1.py --checkpoint /workspace/models/GLM-5.2-w4a8c8 --trace /workspace/offline/cann-routed-stage-20261017/continuation8k/rank-12/step-08192.pt --rank 12 --device npu:15 --output /workspace/offline/cann-gmm1-barrier-20261017/precision-patched-rank12/result.json --repeats 32",
+        "started_at": "2026-10-17T07:37:22.401725+00:00",
+        "free_hbm_mb": {
+          "0": 3908,
+          "1": 4161,
+          "2": 3909,
+          "3": 4162,
+          "4": 3901,
+          "5": 4172,
+          "6": 3912,
+          "7": 4160,
+          "8": 3908,
+          "9": 4162,
+          "10": 3909,
+          "11": 4164,
+          "12": 3899,
+          "13": 4175,
+          "14": 3716,
+          "15": 4161
+        },
+        "processes": [
+          {
+            "die": 0,
+            "pid": 824700
+          },
+          {
+            "die": 1,
+            "pid": 824733
+          },
+          {
+            "die": 2,
+            "pid": 824751
+          },
+          {
+            "die": 3,
+            "pid": 824779
+          },
+          {
+            "die": 4,
+            "pid": 824746
+          },
+          {
+            "die": 5,
+            "pid": 824781
+          },
+          {
+            "die": 6,
+            "pid": 824737
+          },
+          {
+            "die": 7,
+            "pid": 824835
+          },
+          {
+            "die": 8,
+            "pid": 824783
+          },
+          {
+            "die": 9,
+            "pid": 824735
+          },
+          {
+            "die": 10,
+            "pid": 824777
+          },
+          {
+            "die": 11,
+            "pid": 824763
+          },
+          {
+            "die": 12,
+            "pid": 824832
+          },
+          {
+            "die": 13,
+            "pid": 824831
+          },
+          {
+            "die": 14,
+            "pid": 824772
+          },
+          {
+            "die": 15,
+            "pid": 824810
+          }
+        ],
+        "runner_sha256": "32e50b355e87b9a35d237f427f75fc1f43c28fb269020980834aa94661005d4b",
+        "allocator_limit_mib": 1536,
+        "measurement": "precision_only_shared_device"
+      },
+      "trace": "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-12/step-08192.pt",
+      "trace_sha256": "de5e92185b95a03c6c8c22d32e2c01552d57f4cf0269141d927acd1deadd1e21",
+      "report_sha256": "aeda25f38ccc4e41e3e6484e1a9f51790b4f50b343aa337a488bb97c7022f5a8",
+      "capture_sha256": "a6ab74241227f3930a73223298684fe0393c5e4c1aef0282be2cd2f6a245ad6c"
+    },
+    {
+      "name": "precision-patched-rank15",
+      "logical_rank": 15,
+      "physical_die": 15,
+      "repeats": 32,
+      "expert_rows": 256,
+      "exact_expert_rows": 256,
+      "calls_exact": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "repeat_exact": true,
+      "amax_invariant": true,
+      "max_abs_codes": [
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ]
+      ],
+      "peak_reserved_bytes": 738197504,
+      "status": "pass",
+      "launch": {
+        "pid": 1565298,
+        "command": "source /workspace/environment/activate.sh\ncd /workspace/offline/cann-routed-stage-20261017/source\nASCEND_CUSTOM_OPP_PATH=/workspace/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer:/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer HCCL_DETERMINISTIC=true HCCL_BUFFSIZE=200 HCCL_OP_EXPANSION_MODE=AIV HCCL_NPU_SOCKET_PORT_RANGE=auto HCCL_HOST_SOCKET_PORT_RANGE=auto OMP_NUM_THREADS=1 TASK_QUEUE_ENABLE=1 TORCH_DEVICE_BACKEND_AUTOLOAD=0 PYTHONPATH=\"$PWD:${PYTHONPATH:-}\" timeout 180 python tests/glm52/replay_cann_gmm1.py --checkpoint /workspace/models/GLM-5.2-w4a8c8 --trace /workspace/offline/cann-routed-stage-20261017/continuation8k/rank-15/step-08192.pt --rank 15 --device npu:15 --output /workspace/offline/cann-gmm1-barrier-20261017/precision-patched-rank15/result.json --repeats 32",
+        "started_at": "2026-10-17T07:38:54.366500+00:00",
+        "free_hbm_mb": {
+          "0": 3908,
+          "1": 4161,
+          "2": 3910,
+          "3": 4162,
+          "4": 3902,
+          "5": 4172,
+          "6": 3911,
+          "7": 4160,
+          "8": 3907,
+          "9": 4162,
+          "10": 3908,
+          "11": 4164,
+          "12": 3899,
+          "13": 4175,
+          "14": 3716,
+          "15": 4161
+        },
+        "processes": [
+          {
+            "die": 0,
+            "pid": 824700
+          },
+          {
+            "die": 1,
+            "pid": 824733
+          },
+          {
+            "die": 2,
+            "pid": 824751
+          },
+          {
+            "die": 3,
+            "pid": 824779
+          },
+          {
+            "die": 4,
+            "pid": 824746
+          },
+          {
+            "die": 5,
+            "pid": 824781
+          },
+          {
+            "die": 6,
+            "pid": 824737
+          },
+          {
+            "die": 7,
+            "pid": 824835
+          },
+          {
+            "die": 8,
+            "pid": 824783
+          },
+          {
+            "die": 9,
+            "pid": 824735
+          },
+          {
+            "die": 10,
+            "pid": 824777
+          },
+          {
+            "die": 11,
+            "pid": 824763
+          },
+          {
+            "die": 12,
+            "pid": 824832
+          },
+          {
+            "die": 13,
+            "pid": 824831
+          },
+          {
+            "die": 14,
+            "pid": 824772
+          },
+          {
+            "die": 15,
+            "pid": 824810
+          }
+        ],
+        "runner_sha256": "32e50b355e87b9a35d237f427f75fc1f43c28fb269020980834aa94661005d4b",
+        "allocator_limit_mib": 1536,
+        "measurement": "precision_only_shared_device"
+      },
+      "trace": "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-15/step-08192.pt",
+      "trace_sha256": "5fe6910c687b831187a0d8e1d403cd32529b39eb3519b8f4b1da704e9f59a2f0",
+      "report_sha256": "3a9e9806e0d5268a4688be7ede9f05aaeb8286d256e8f4a91ba522a9e24d54f6",
+      "capture_sha256": "d5fc3320e98fb6a0214375222980e12b59b4e3038c86a7aac4eef0dea05f74f9"
+    },
+    {
+      "name": "precision-overlay-rank0",
+      "logical_rank": 0,
+      "physical_die": 15,
+      "repeats": 32,
+      "expert_rows": 256,
+      "exact_expert_rows": 240,
+      "calls_exact": [
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true
+      ],
+      "repeat_exact": false,
+      "amax_invariant": false,
+      "max_abs_codes": [
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          3,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          7,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          3,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          7,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          7,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          5
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          6,
+          127,
+          5
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          7,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          5
+        ],
+        [
+          3,
+          127,
+          127,
+          127,
+          127,
+          127,
+          7,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          3,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          11,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          3,
+          11,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ]
+      ],
+      "peak_reserved_bytes": 738197504,
+      "status": "fail",
+      "launch": {
+        "pid": 1595239,
+        "command": "source /workspace/environment/activate.sh\ncd /workspace/offline/cann-routed-stage-20261017/source\nASCEND_CUSTOM_OPP_PATH=/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer HCCL_DETERMINISTIC=true HCCL_BUFFSIZE=200 HCCL_OP_EXPANSION_MODE=AIV HCCL_NPU_SOCKET_PORT_RANGE=auto HCCL_HOST_SOCKET_PORT_RANGE=auto OMP_NUM_THREADS=1 TASK_QUEUE_ENABLE=1 TORCH_DEVICE_BACKEND_AUTOLOAD=0 PYTHONPATH=\"$PWD:$PYTHONPATH\" timeout 180 python tests/glm52/replay_cann_gmm1.py --checkpoint /workspace/models/GLM-5.2-w4a8c8 --trace /workspace/offline/cann-routed-stage-20261017/continuation8k/rank-0/step-08192.pt --rank 0 --device npu:15 --output /workspace/offline/cann-gmm1-barrier-20261017/precision-overlay-rank0/result.json --repeats 32",
+        "started_at": "2026-10-17T07:48:37.849407+00:00",
+        "free_hbm_mb": {
+          "0": 3907,
+          "1": 4161,
+          "2": 3909,
+          "3": 4162,
+          "4": 3901,
+          "5": 4172,
+          "6": 3911,
+          "7": 4160,
+          "8": 3907,
+          "9": 4162,
+          "10": 3908,
+          "11": 4164,
+          "12": 3898,
+          "13": 4175,
+          "14": 3715,
+          "15": 4161
+        },
+        "processes": [
+          {
+            "die": 0,
+            "pid": 824700
+          },
+          {
+            "die": 1,
+            "pid": 824733
+          },
+          {
+            "die": 2,
+            "pid": 824751
+          },
+          {
+            "die": 3,
+            "pid": 824779
+          },
+          {
+            "die": 4,
+            "pid": 824746
+          },
+          {
+            "die": 5,
+            "pid": 824781
+          },
+          {
+            "die": 6,
+            "pid": 824737
+          },
+          {
+            "die": 7,
+            "pid": 824835
+          },
+          {
+            "die": 8,
+            "pid": 824783
+          },
+          {
+            "die": 9,
+            "pid": 824735
+          },
+          {
+            "die": 10,
+            "pid": 824777
+          },
+          {
+            "die": 11,
+            "pid": 824763
+          },
+          {
+            "die": 12,
+            "pid": 824832
+          },
+          {
+            "die": 13,
+            "pid": 824831
+          },
+          {
+            "die": 14,
+            "pid": 824772
+          },
+          {
+            "die": 15,
+            "pid": 824810
+          }
+        ],
+        "source_sha256": "32e50b355e87b9a35d237f427f75fc1f43c28fb269020980834aa94661005d4b",
+        "allocator_limit_mib": 1536,
+        "measurement": "precision_only_shared_device",
+        "overlay_manifest_sha256": "c597e29cb2f9dae749957edbe480e23042f6a063ae78dad285898ba79012a031",
+        "opapi_sha256": "cab8daebbbe285814636dc1839de18dc83028b69ceb28a74fcf51e2184cf0163"
+      },
+      "trace": "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-0/step-08192.pt",
+      "trace_sha256": "11ffcdbe90174b3c2942de93ac44ee2f04d4f123974cf022d572b5eca1820f28",
+      "report_sha256": "db031f3b3f125b27176cbc668ba4cf7ad71f0cb8646d8685303a9e87f0e74435",
+      "capture_sha256": "9bac7ca12b6600d3b5fc3ef3602d1a72a1e20fc0145a44fcd91e70c3960730df",
+      "role": "bootstrap_order_control"
+    },
+    {
+      "name": "precision-overlay-ordered-rank0",
+      "logical_rank": 0,
+      "physical_die": 15,
+      "repeats": 32,
+      "expert_rows": 256,
+      "exact_expert_rows": 256,
+      "calls_exact": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "repeat_exact": true,
+      "amax_invariant": true,
+      "max_abs_codes": [
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ]
+      ],
+      "peak_reserved_bytes": 738197504,
+      "status": "pass",
+      "launch": {
+        "pid": 1605647,
+        "command": "source /workspace/environment/activate.sh\ncd /workspace/offline/cann-routed-stage-20261017/source\nASCEND_CUSTOM_OPP_PATH=/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer:/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer HCCL_DETERMINISTIC=true HCCL_BUFFSIZE=200 HCCL_OP_EXPANSION_MODE=AIV HCCL_NPU_SOCKET_PORT_RANGE=auto HCCL_HOST_SOCKET_PORT_RANGE=auto OMP_NUM_THREADS=1 TASK_QUEUE_ENABLE=1 TORCH_DEVICE_BACKEND_AUTOLOAD=0 PYTHONPATH=\"$PWD:$PYTHONPATH\" timeout 180 /workspace/offline/cann-gmm1-barrier-20261017/strace -f -qq -e trace=openat -s 400 -o /workspace/offline/cann-gmm1-barrier-20261017/precision-overlay-ordered-rank0/opens.log python tests/glm52/replay_cann_gmm1.py --checkpoint /workspace/models/GLM-5.2-w4a8c8 --trace /workspace/offline/cann-routed-stage-20261017/continuation8k/rank-0/step-08192.pt --rank 0 --device npu:15 --output /workspace/offline/cann-gmm1-barrier-20261017/precision-overlay-ordered-rank0/result.json --repeats 32",
+        "started_at": "2026-10-17T07:51:47.739071+00:00",
+        "free_hbm_mb": {
+          "0": 3909,
+          "1": 4161,
+          "2": 3910,
+          "3": 4162,
+          "4": 3901,
+          "5": 4172,
+          "6": 3911,
+          "7": 4160,
+          "8": 3907,
+          "9": 4162,
+          "10": 3909,
+          "11": 4164,
+          "12": 3899,
+          "13": 4175,
+          "14": 3715,
+          "15": 4161
+        },
+        "processes": [
+          {
+            "die": 0,
+            "pid": 824700
+          },
+          {
+            "die": 1,
+            "pid": 824733
+          },
+          {
+            "die": 2,
+            "pid": 824751
+          },
+          {
+            "die": 3,
+            "pid": 824779
+          },
+          {
+            "die": 4,
+            "pid": 824746
+          },
+          {
+            "die": 5,
+            "pid": 824781
+          },
+          {
+            "die": 6,
+            "pid": 824737
+          },
+          {
+            "die": 7,
+            "pid": 824835
+          },
+          {
+            "die": 8,
+            "pid": 824783
+          },
+          {
+            "die": 9,
+            "pid": 824735
+          },
+          {
+            "die": 10,
+            "pid": 824777
+          },
+          {
+            "die": 11,
+            "pid": 824763
+          },
+          {
+            "die": 12,
+            "pid": 824832
+          },
+          {
+            "die": 13,
+            "pid": 824831
+          },
+          {
+            "die": 14,
+            "pid": 824772
+          },
+          {
+            "die": 15,
+            "pid": 824810
+          }
+        ],
+        "source_sha256": "32e50b355e87b9a35d237f427f75fc1f43c28fb269020980834aa94661005d4b",
+        "allocator_limit_mib": 1536,
+        "measurement": "precision_only_shared_device",
+        "overlay_manifest_sha256": "c597e29cb2f9dae749957edbe480e23042f6a063ae78dad285898ba79012a031",
+        "opapi_sha256": "cab8daebbbe285814636dc1839de18dc83028b69ceb28a74fcf51e2184cf0163",
+        "tracing": "strace openat; precision only, no timing"
+      },
+      "trace": "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-0/step-08192.pt",
+      "trace_sha256": "11ffcdbe90174b3c2942de93ac44ee2f04d4f123974cf022d572b5eca1820f28",
+      "report_sha256": "3220aae9d5c43a1c9593916f4f8bdf2e655055643affb97b1b464d63b2e37b74",
+      "capture_sha256": "36020d932e5e4f1897233b3529e20aa83d8abc54c102c6addd385ec37f8252a5",
+      "role": "ordered_overlay"
+    }
+  ],
+  "patched_expert_rows": 832,
+  "patched_exact_expert_rows": 832,
+  "artifacts": {
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-original/result.pt": {
+      "sha256": "affc1d3b39815b90f61cc580761b18e4336b46bafdf605a5f4a0237c78c1a283",
+      "bytes": 14357
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-original/result.json": {
+      "sha256": "d9ddf8fccebb9c432974ed134262962a8695d60e34d54a57ab16d27ba2cee173",
+      "bytes": 9389
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-original/launch.json": {
+      "sha256": "72c7d65f66d98f973bcaae33cf11cfcf7557023d2d933ed0ee151ccd18a33b99",
+      "bytes": 2088
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-original/exit.json": {
+      "sha256": "1d2c146861bf5295789b33ab1fc86906cdd43bb17009ee055b9980f180ae5690",
+      "bytes": 74
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-original/run.log": {
+      "sha256": "282226cafcdde9bb2822fea794f8b958f7925c7c1628f7d52a46ed22a135a942",
+      "bytes": 6928
+    },
+    "/workspace/offline/cann-routed-stage-20261017/source/tests/glm52/replay_cann_gmm1.py": {
+      "sha256": "32e50b355e87b9a35d237f427f75fc1f43c28fb269020980834aa94661005d4b",
+      "bytes": 9919
+    },
+    "/workspace/offline/cann-routed-stage-20261017/source/tilert/models/glm_5_2_ascend/reference_weights.py": {
+      "sha256": "dfc4de627cb83eebb48058334edf3c1c95a0f44a554d7083c70599041fba34df",
+      "bytes": 20372
+    },
+    "/workspace/offline/cann-routed-stage-20261017/source/tests/glm52/check_cann_router.py": {
+      "sha256": "774dcd49516a6a09c9b37943272f13e50132ae3cf7f8da6b91bbe5fc67cfd423",
+      "bytes": 16092
+    },
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/quantization/methods/w4a8/w4a8.py": {
+      "sha256": "d06549f45637300df3e4915823f4f71a913ce7059d1e3a4c475ab1f225e1a28a",
+      "bytes": 31736
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-0/step-08192.pt": {
+      "sha256": "11ffcdbe90174b3c2942de93ac44ee2f04d4f123974cf022d572b5eca1820f28",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-0.json": {
+      "sha256": "4f0f925bfdc8ca8b29e9aa54ee484dd7d35434be30eb5f4959c91c8ecb14bec6",
+      "bytes": 958682
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-patched/result.pt": {
+      "sha256": "63a454168df9041fb65552fc9eeaeb9e20da759a910a64454cac075f850cccf2",
+      "bytes": 14357
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-patched/result.json": {
+      "sha256": "600c9400605bfd6d6a986ac759486570728abe6eb64185e72e83f41c0678db50",
+      "bytes": 9381
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-patched/launch.json": {
+      "sha256": "122c4ddd210e6e8b3439143adfa613f5c9ac719d0a62d039bf54bb69f7525fea",
+      "bytes": 2263
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-patched/exit.json": {
+      "sha256": "766375046e0b275efe07fd450901100edd6ca6198c7a4b96719365a9a38cfba6",
+      "bytes": 74
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-patched/run.log": {
+      "sha256": "b8ad31ae2bbdff5cda8e8ff150d58f0a3821c5dc1a4751d2d7abbd2a7f5366c4",
+      "bytes": 7012
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-patched-rank12/result.pt": {
+      "sha256": "a6ab74241227f3930a73223298684fe0393c5e4c1aef0282be2cd2f6a245ad6c",
+      "bytes": 49749
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-patched-rank12/result.json": {
+      "sha256": "aeda25f38ccc4e41e3e6484e1a9f51790b4f50b343aa337a488bb97c7022f5a8",
+      "bytes": 20520
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-patched-rank12/launch.json": {
+      "sha256": "ddbdfef8d77eb24d4eba82ee6395dcaa37ce0e0331aa39fd232590a84ced20ce",
+      "bytes": 2194
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-patched-rank12/exit.json": {
+      "sha256": "57272a04e60d8d8b6597e822d5101b7485266f14c44784296a9428f22c8b6869",
+      "bytes": 74
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-patched-rank12/run.log": {
+      "sha256": "b460d445f44bcd5c57ef1b9c6110ffe2f3565ce294e36856940a803d3d0726d5",
+      "bytes": 7019
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-12/step-08192.pt": {
+      "sha256": "de5e92185b95a03c6c8c22d32e2c01552d57f4cf0269141d927acd1deadd1e21",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-12.json": {
+      "sha256": "415eae28a626b779401f0f039bd5d641731daa72fe36a5f7ae3ee99f95d15233",
+      "bytes": 958685
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-patched-rank15/result.pt": {
+      "sha256": "d5fc3320e98fb6a0214375222980e12b59b4e3038c86a7aac4eef0dea05f74f9",
+      "bytes": 49749
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-patched-rank15/result.json": {
+      "sha256": "3a9e9806e0d5268a4688be7ede9f05aaeb8286d256e8f4a91ba522a9e24d54f6",
+      "bytes": 20520
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-patched-rank15/launch.json": {
+      "sha256": "868a8989f13b34470ee2f0d37c727508927de217acc6fa480c7689945d9beb63",
+      "bytes": 2194
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-patched-rank15/exit.json": {
+      "sha256": "c308ca390b75d853a47bc5bcd980aadfa318ddbbe6eccbc56ab6ec7ee8185dc5",
+      "bytes": 74
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-patched-rank15/run.log": {
+      "sha256": "a72619d4b29bda7392479132d3e9c467e8eac43f6f23ab323ed4f541350f1a9a",
+      "bytes": 7019
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-15/step-08192.pt": {
+      "sha256": "5fe6910c687b831187a0d8e1d403cd32529b39eb3519b8f4b1da704e9f59a2f0",
+      "bytes": 26544091
+    },
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-15.json": {
+      "sha256": "829ffbf35ae33ca70219d3c40d6379dfb5d1fdcf0aadeec7f3ddd56402afef07",
+      "bytes": 958685
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/build-evidence.json": {
+      "sha256": "46207c2fc5ce818a60feeea32e79572931ff6aadb0db6afc5f0bfc0b85ec1061",
+      "bytes": 83658
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer/op_proto/lib/linux/aarch64/libcust_opsproto_rt2.0.so": {
+      "sha256": "8cd29606461f47ec31a97b55c079652c911d0a4ff7677c1a71429e1a1c2bbeb3",
+      "bytes": 264464
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer/op_impl/ai_core/tbe/op_tiling/liboptiling.so": {
+      "sha256": "7fcc10555df064a233d4af98de128694284e33abd8798b3a0734fcbd15dec849",
+      "bytes": 1247688
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer/op_impl/ai_core/tbe/kernel/config/ascend910_93/binary_info_config.json": {
+      "sha256": "24d1d2186567dc77b834f74d4fb5b0b6b15e6080b5edbd31ff3d9c606850689d",
+      "bytes": 7242
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer/op_impl/ai_core/tbe/kernel/config/ascend910_93/grouped_matmul_swiglu_quant_v2.json": {
+      "sha256": "b49ad3c9aa2c36d5ffa80836c072ddff8a257499f3da62949375a653aa8088c8",
+      "bytes": 32336
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_2df98c64d3c1eec72a45b339e9d64480.o": {
+      "sha256": "4eb81141e9d837d888636f7a9d52366b1a8e5c02a0c2eccb44e042f90d0f0ee9",
+      "bytes": 113328
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_a6b1e5f1163e9d3a18177420ab649e87.o": {
+      "sha256": "ededc0e012985487077f4ebe8b291519151f270009922592fbf70b39bccca110",
+      "bytes": 27608
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_fa3d6d3de6e1f32e170e39d2ddd3a20e.json": {
+      "sha256": "7206a41e602e858a44198a98256b65705e76fe01def8472a55f9f1b61b741979",
+      "bytes": 4790
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_ad8b7035042860380f60ef7afd0d2076.o": {
+      "sha256": "268add006a9f4cd8cd0783029686dfcb500409175397285de516a39ad4f4bf20",
+      "bytes": 113328
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_9c59f840d4e5c7d23212a04659ad060d.o": {
+      "sha256": "0aa9a78430ef4db4bf31a2c7b373ce9e5888c22efb59a03e7d6a7c6769ac6fcc",
+      "bytes": 27608
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_fa3d6d3de6e1f32e170e39d2ddd3a20e.o": {
+      "sha256": "2eb81546c23639026b979c93aef1ffc20132390cfc3395f1b837a1d0cdf24c3d",
+      "bytes": 78904
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_05bce43839b9668f79eae747781916ce.o": {
+      "sha256": "57720a4beafaf1053433d22429d04b990d851bc5be795fe5952af03803c9df47",
+      "bytes": 78904
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_1fb9c50aafc2c5d1995ebe9c37504195.o": {
+      "sha256": "44eb816d8db74210615f3c92782d907ad34b8ce25b7ae56d322b6de97bdf3f31",
+      "bytes": 27608
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/libcust_opmaster_rt2.0.so": {
+      "sha256": "7fcc10555df064a233d4af98de128694284e33abd8798b3a0734fcbd15dec849",
+      "bytes": 1247688
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer/op_api/lib/libcust_opapi.so": {
+      "sha256": "dc46ead9cde9dd3b7fcf45066c25a072512156b5b4cecc561c2c342c0e9c7e4c",
+      "bytes": 264432
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/cpu-binding.json": {
+      "sha256": "d50ffcd7c619c4a04c01853004316738c18c34afe285f140c4c95685b1138f80",
+      "bytes": 1537
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/swiglu-copy-barrier.patch": {
+      "sha256": "38d209124145e1b51b77dc469e891629aca3e85916b25770dabf26d750bf85f8",
+      "bytes": 522
+    },
+    "/workspace/src/vllm-ascend-unified/csrc/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_post.h": {
+      "sha256": "8cf63fb3e34955a2ed28d4f9f56c2030e74744cbe5a63aaeb5d130eb0940758f",
+      "bytes": 23370
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/source/csrc/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_post.h": {
+      "sha256": "730e0bac7ce6ea3e085a48225d27093431debcd6f05c542378beefc7e96d3689",
+      "bytes": 23397
+    },
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/vllm_ascend_C.cpython-311-aarch64-linux-gnu.so": {
+      "sha256": "ec36626f56ae4c75b5d2fe824d85d55d09c070eeeaebc31eb4eb7b9a71be7cc5",
+      "bytes": 934816
+    },
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_api/lib/libcust_opapi.so": {
+      "sha256": "cab8daebbbe285814636dc1839de18dc83028b69ceb28a74fcf51e2184cf0163",
+      "bytes": 1142864
+    },
+    "/workspace/offline/cann-routed-stage-20261017/routed-amax-invariant.json": {
+      "sha256": "95c3f8aace0f83b8b6995a6e07ee3b74646ef0a645c7ccff31c9df636f646dac",
+      "bytes": 17459
+    },
+    "/workspace/offline/cann-routed-stage-20261017/routed-stale-amax.json": {
+      "sha256": "1ecf378832b24b552b4b35c58e76ee5973524fc2dd93e2b39ab30cd0d4f23864",
+      "bytes": 13428
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/verify_precision.py": {
+      "sha256": "23d38dbf53a0adb75cf90ada18a37cb8459f97783b9d2800588cc22c8025135d",
+      "bytes": 9050
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-verification.json": {
+      "sha256": "d23330973b8c3589b8332c67158ff069e1cf746a04b2229502dd2b6e6c3a5215",
+      "bytes": 41237
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-overlay-rank0/result.pt": {
+      "sha256": "9bac7ca12b6600d3b5fc3ef3602d1a72a1e20fc0145a44fcd91e70c3960730df",
+      "bytes": 49749
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-overlay-rank0/result.json": {
+      "sha256": "db031f3b3f125b27176cbc668ba4cf7ad71f0cb8646d8685303a9e87f0e74435",
+      "bytes": 21028
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-overlay-rank0/launch.json": {
+      "sha256": "adf3a20c36eb798c8bc01dc5458acbd20053962110360f0b1f17288603e64efd",
+      "bytes": 2285
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-overlay-rank0/exit.json": {
+      "sha256": "0a77c14363d58659e22f3288f578ff058c9936f6fde189378bd6738b28504ff8",
+      "bytes": 75
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-overlay-rank0/run.log": {
+      "sha256": "5f0fc71cf17236678ef016e3f530b975e7e57c479a2f85aad0e9b46ab24e8e38",
+      "bytes": 6933
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-overlay-ordered-rank0/result.pt": {
+      "sha256": "36020d932e5e4f1897233b3529e20aa83d8abc54c102c6addd385ec37f8252a5",
+      "bytes": 49749
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-overlay-ordered-rank0/result.json": {
+      "sha256": "3220aae9d5c43a1c9593916f4f8bdf2e655055643affb97b1b464d63b2e37b74",
+      "bytes": 20524
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-overlay-ordered-rank0/launch.json": {
+      "sha256": "050fc12f5abc6ae966957437bad255e793d4e992f72cfd1f5f97786a96633411",
+      "bytes": 2615
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-overlay-ordered-rank0/exit.json": {
+      "sha256": "2fc7a24d3953de46a06de6aabbc18548a3222b8a9f34c7eddab85354b2fa5ba5",
+      "bytes": 75
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-overlay-ordered-rank0/run.log": {
+      "sha256": "8673d2b6cc72f1b71f490ea97a73d2c5c1ee8a863ae145a18ac5719f31ea2bd7",
+      "bytes": 7032
+    },
+    "/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/overlay-manifest.json": {
+      "sha256": "c597e29cb2f9dae749957edbe480e23042f6a063ae78dad285898ba79012a031",
+      "bytes": 340964
+    },
+    "/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer/op_api/lib/libcust_opapi.so": {
+      "sha256": "cab8daebbbe285814636dc1839de18dc83028b69ceb28a74fcf51e2184cf0163",
+      "bytes": 1142864
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/precision-overlay-ordered-rank0/opens.log": {
+      "sha256": "cdd6928b9f493f85fe99766fe8683177ecc759e1e577c68fd473be22b5a484f9",
+      "bytes": 13708046
+    },
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/utils.py": {
+      "sha256": "2cc5992b79d507f302615bee2228302c0d99fe9de7b02fbb825b76689974a115",
+      "bytes": 76383
+    },
+    "/workspace/offline/cann-gmm1-barrier-20261017/verify_integration.py": {
+      "sha256": "d399063752b59ee5fc667b6374df78fc0d51d6e245b52686828c4dbed1423006",
+      "bytes": 7411
+    }
+  },
+  "overlay": {
+    "status": "complete_vendor_overlay_verified",
+    "scope": "File identity and static variant selection only; no NPU execution",
+    "original_vendor": "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer",
+    "patch_vendor": "/home/shanshan/trt-asc/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer",
+    "overlay_vendor": "/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer",
+    "copy_method": "cp -a --reflink=auto; no hardlinks to original files",
+    "variant": "GroupedMatmulSwigluQuantV2_fa3d6d3de6e1f32e170e39d2ddd3a20e",
+    "variant_contract": {
+      "x": {
+        "dtype": "int8",
+        "format": "ND"
+      },
+      "weight": {
+        "dtype": "int4",
+        "format": "FRACTAL_NZ"
+      },
+      "weight_scale": "uint64",
+      "tiling_keys": [
+        2,
+        3
+      ],
+      "single_op_selector_equal": true,
+      "global_gmm_selector_equal": true,
+      "variant_metadata_changed_keys": [
+        "sha256"
+      ]
+    },
+    "original_unchanged": true,
+    "original_hardlinked_file_count": 0,
+    "inventory_count": 1373,
+    "unchanged_count": 1370,
+    "changed_count": 3,
+    "changed_files": {
+      "op_impl/ai_core/tbe/custom_transformer_impl/ascendc/grouped_matmul_swiglu_quant_v2/grouped_matmul_swiglu_quant_v2_a8w4_msd_post.h": {
+        "original": {
+          "kind": "file",
+          "bytes": 23370,
+          "sha256": "8cf63fb3e34955a2ed28d4f9f56c2030e74744cbe5a63aaeb5d130eb0940758f"
+        },
+        "overlay": {
+          "kind": "file",
+          "bytes": 23397,
+          "sha256": "730e0bac7ce6ea3e085a48225d27093431debcd6f05c542378beefc7e96d3689"
+        },
+        "replacement_source": "/home/shanshan/trt-asc/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer/op_impl/ai_core/tbe/gmm1barrier_transformer_impl/ascendc/grouped_matmul_swiglu_quant_v2/grouped_matmul_swiglu_quant_v2_a8w4_msd_post.h"
+      },
+      "op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_fa3d6d3de6e1f32e170e39d2ddd3a20e.json": {
+        "original": {
+          "kind": "file",
+          "bytes": 4790,
+          "sha256": "29b3966755c90e6758efd2f33d4d36ccdc8d2dd94f5dc529f2b3b3d6b94c329d"
+        },
+        "overlay": {
+          "kind": "file",
+          "bytes": 4790,
+          "sha256": "7206a41e602e858a44198a98256b65705e76fe01def8472a55f9f1b61b741979"
+        },
+        "replacement_source": "/home/shanshan/trt-asc/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_fa3d6d3de6e1f32e170e39d2ddd3a20e.json"
+      },
+      "op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_fa3d6d3de6e1f32e170e39d2ddd3a20e.o": {
+        "original": {
+          "kind": "file",
+          "bytes": 78904,
+          "sha256": "2444c7e7a4d157d69e42cb40a4841e6f7331392cd07b2f65969b382db9b5d4b2"
+        },
+        "overlay": {
+          "kind": "file",
+          "bytes": 78904,
+          "sha256": "2eb81546c23639026b979c93aef1ffc20132390cfc3395f1b837a1d0cdf24c3d"
+        },
+        "replacement_source": "/home/shanshan/trt-asc/offline/cann-gmm1-barrier-20261017/vendor/vendors/gmm1barrier_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_fa3d6d3de6e1f32e170e39d2ddd3a20e.o"
+      }
+    },
+    "original_opapi_sha256": "cab8daebbbe285814636dc1839de18dc83028b69ceb28a74fcf51e2184cf0163",
+    "device_operator_executed": false
+  },
+  "loaded_kernel_openat": [
+    [
+      "174478 openat(AT_FDCWD, \"/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_fa3d6d3de6e1f32e170e39d2ddd3a20e.o\", O_RDONLY <unfinished ...>",
+      "174478 <... openat resumed>)            = 97"
+    ]
+  ],
+  "loader": {
+    "utils_path": "/workspace/src/vllm-ascend-unified/vllm_ascend/utils.py",
+    "bootstrap_lines": [
+      446,
+      451,
+      454,
+      458,
+      565,
+      570
+    ],
+    "required_order": "/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer:/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer",
+    "overlay_only_control_passed": false,
+    "ordered_overlay_passed": true
+  },
+  "prior_verification_sha256": "d23330973b8c3589b8332c67158ff069e1cf746a04b2229502dd2b6e6c3a5215"
+}

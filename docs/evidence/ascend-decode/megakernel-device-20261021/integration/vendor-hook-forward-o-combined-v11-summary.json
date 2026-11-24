@@ -1,0 +1,117 @@
+{
+  "host": "a3-194",
+  "physical_die": 4,
+  "scope": "Real TP16 local attention shard, eager outer forward with synthetic weights; no TP reduction",
+  "candidate_indexed_sha256": "9aa71e6a385752824050368930f76a1d9d8d4989a484dbbccf8080ec02b8546e",
+  "candidate_shared_sha256": "dd66e68b9c8f46c4fdee987d7b7bb29a062e3dcae5481237c45bc21544d346b9",
+  "change": "O epilogue uses accumulator * (channel * token)",
+  "runs": [
+    {
+      "path": "vendor-hook-forward-o-combined-v11-m12-a3-194/outer-forward.json",
+      "sha256": "e53ddcaca4fe9fd754f940bdbe38fb3bdf12ba68a7a8490ec25ef7098badc807",
+      "mode": "int8",
+      "widths": [
+        12
+      ],
+      "replays_requested_per_width": 2,
+      "cases_executed": 2,
+      "cases_passed": 2,
+      "pass": true,
+      "all_observed_o_outputs_bitwise_equal": true,
+      "cpu_only_helper_ranks": 15,
+      "failures": []
+    },
+    {
+      "path": "vendor-hook-forward-o-combined-v11-int8-wide-a3-194/outer-forward.json",
+      "sha256": "121e0207508680d9c1b220e3b1d2ea4d9e008d20b0efc3e1dbe5ca2ca933da6f",
+      "mode": "int8",
+      "widths": [
+        1,
+        2,
+        12,
+        32
+      ],
+      "replays_requested_per_width": 8,
+      "cases_executed": 30,
+      "cases_passed": 29,
+      "pass": false,
+      "all_observed_o_outputs_bitwise_equal": true,
+      "cpu_only_helper_ranks": 15,
+      "failures": [
+        {
+          "rows": 32,
+          "iteration": 5,
+          "boundaries": {
+            "topk": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 89,
+              "max_abs": 7750.0,
+              "rms": 101.9258041381836,
+              "different_elements": 45,
+              "elements": 65536
+            },
+            "index_cache": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 2,
+              "max_abs": 1.0,
+              "rms": 0.0013599817175418139,
+              "different_elements": 2,
+              "elements": 1081344
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "vendor-hook-forward-o-combined-v11-bf16-wide-a3-194/outer-forward.json",
+      "sha256": "fee5ace27936ac5b58ae850d28aa028b5fa665c3e6936a09af9a86a0d8c31a23",
+      "mode": "bf16",
+      "widths": [
+        1,
+        2,
+        12,
+        32
+      ],
+      "replays_requested_per_width": 8,
+      "cases_executed": 30,
+      "cases_passed": 29,
+      "pass": false,
+      "all_observed_o_outputs_bitwise_equal": true,
+      "cpu_only_helper_ranks": 15,
+      "failures": [
+        {
+          "rows": 32,
+          "iteration": 5,
+          "boundaries": {
+            "topk": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 102,
+              "max_abs": 6996.0,
+              "rms": 83.84700012207031,
+              "different_elements": 52,
+              "elements": 65536
+            },
+            "index_cache": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 2,
+              "max_abs": 0.00152587890625,
+              "rms": 1.7421521079086233e-06,
+              "different_elements": 2,
+              "elements": 1081344
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "original_m12_o_failure_resolved": true,
+  "full_width_gate_pass": false
+}

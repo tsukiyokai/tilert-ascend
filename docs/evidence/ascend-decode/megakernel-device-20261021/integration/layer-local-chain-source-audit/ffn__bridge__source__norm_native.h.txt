@@ -1,0 +1,32 @@
+112:         const TileRTNormSingleNArgs args{
+113:             kHidden, beta == nullptr ? 12288U : 11264U,
+114:             epsilon, beta == nullptr ? 1U : 0U};
+115:         for (int64_t row = vector; row < rows; row += 2 * blocks) {
+116:             // The vendor body adds GetBlockIdx() internally. Offset only
+117:             // complete waves so its reduction and BF16 boundaries stay intact.
+118:             const int64_t wave = row - vector;
+119:             KernelAddRmsNormBiasSingleN<bfloat16_t> norm(&pipe);
+120:             norm.Init(reinterpret_cast<GM_ADDR>(input + wave * kHidden),
+121:                 reinterpret_cast<GM_ADDR>(residual + wave * kHidden),
+122:                 reinterpret_cast<GM_ADDR>(gamma), reinterpret_cast<GM_ADDR>(beta),
+123:                 reinterpret_cast<GM_ADDR>(normalized + wave * kHidden),
+124:                 reinterpret_cast<GM_ADDR>(rstd + wave),
+125:                 reinterpret_cast<GM_ADDR>(retained + wave * kHidden), &args);
+126:             norm.Process();
+127:             PipeBarrier<PIPE_ALL>();
+128:             pipe.Reset();
+129:             if (quantized != nullptr) {
+130:                 DynamicQuantRow quant;
+131:                 quant.Init(pipe);
+132:                 quant.Process(normalized + row * kHidden,
+133:                     quantized + row * kHidden, scales + row);
+134:                 PipeBarrier<PIPE_ALL>();
+135:                 pipe.Reset();
+136:             }
+137:         }
+138:     }
+139:     SyncAll<false>();
+140: }
+141: 
+142: }
+143: #endif

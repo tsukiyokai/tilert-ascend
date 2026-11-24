@@ -1,0 +1,7 @@
+# GU static tiling with original shared-expert arithmetic
+
+This candidate starts from `c39acf92728c8a3f09ee0b66988bed4cf0e312a15285a68c02d2594969a348af` and applies the GU type specialization validated in `05b3427aa29630c9af16ea829e2ecec8833d31a32615e6a052f6f4e9867ca6b2`. Both branches descend from `276352`; the generator reverses the GU-only patch and requires the two routed bodies to be byte-identical after public-symbol normalization.
+
+Only the GU `Matmul` alias and its constant-tiling include change. The 21 constants, `CFG_NORM`, dynamic M/`singleCoreM`, per-expert `SetOrgShape`/`SetSingleShape`, Down and every arithmetic boundary retain the tested implementation. The original shared activation keeps CANN 9.2 key30013's scalar `amax/127`, guarded reciprocal, multiply and INT16/FP16/INT8 cast sequence. Its header must match the original-shared parent exactly. Five body joins, terminal completion, 33 scratch tensors, the 408-byte descriptor and 116480-byte UB budget are unchanged.
+
+The independent namespace is `tilert_ffn_original_shared_gu_static`; the C ABI is `ffn_original_shared_gu_static_launch`. Device acceptance uses the actual original DecoderLayer norm/MLP and immediate same-graph consumers. The inherited synthetic checker is retained as `parent-check.py` because its historical shared-quantization oracle does not validate key30013. A positive result from either parent does not establish the combination's numerical equality or performance; compare this library directly with c39 using the same addresses and workload.

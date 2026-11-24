@@ -1,0 +1,30 @@
+Original lines 1-28
+    1 #include "native.h"
+    2 
+    3 namespace ffn_bridge {
+    4 struct Addresses { GM_ADDR values[kBuffers]; };
+    5 __aicore__ inline void Forward(AscendC::TPipe& pipe, GM_ADDR input,
+    6     GM_ADDR residual, GM_ADDR gamma, GM_ADDR gate, GM_ADDR bias,
+    7     Addresses a, int64_t rows, int64_t blocks, float epsilon)
+    8 {
+    9     using namespace AscendC;
+   10     whole_layer_norm::device::Forward(pipe,
+   11         (__gm__ bfloat16_t*)input, (__gm__ bfloat16_t*)residual,
+   12         (__gm__ bfloat16_t*)gamma, nullptr,
+   13         (__gm__ bfloat16_t*)a.values[kNormalized],
+   14         (__gm__ bfloat16_t*)a.values[kRetained],
+   15         (__gm__ float*)a.values[kRstd], nullptr, nullptr, rows, blocks, epsilon);
+   16     device::EndPhase(pipe);
+   17     device::Gate(pipe, (__gm__ bfloat16_t*)a.values[kNormalized],
+   18         (__gm__ bfloat16_t*)gate, (__gm__ float*)a.values[kLogits],
+   19         a.values[kTiling], rows, blocks);
+   20     device::Quantize(pipe, (__gm__ bfloat16_t*)a.values[kNormalized],
+   21         (__gm__ int8_t*)a.values[kSharedCodes],
+   22         (__gm__ float*)a.values[kSharedScales], rows);
+   23     device::EndPhase(pipe);
+   24     device::TopK(pipe, a.values[kLogits], bias, a.values[kProbabilities],
+   25                  a.values[kIds], a.values[kSystem], rows);
+   26     device::EndPhase(pipe);
+   27 }
+   28 }
+

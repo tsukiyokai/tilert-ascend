@@ -1,0 +1,107 @@
+{
+  "scope": "Down M32/N1024/K64 versus M64/N512/K128 FFN with 32 common scratch addresses and private prepared Down tilings, TP excluded",
+  "candidate": "down_n1024",
+  "host": "a3-194",
+  "physical_die": 4,
+  "rows": 12,
+  "blocks": 24,
+  "weight_banks": 16,
+  "calls_per_graph": 16,
+  "graph_replays_per_event": 30,
+  "pairs_per_arena": 30,
+  "raw_byte_boundary_checks": 19200,
+  "post_event_tail_checks": 360,
+  "pass": true,
+  "performance_pass": true,
+  "promotion": "candidate wins every pair",
+  "scratch_matching": "32 tensors share addresses; body[7] is each arm's immutable prepared Down tiling",
+  "fresh_write_gate": "Before each checked CABI replay and timed arm warmup: logical floating outputs become NaN, bounded integer metadata becomes zero, other integer outputs become one; padding/tilings/system/inputs stay unchanged",
+  "active_table_checks": 696,
+  "full_200_byte_tiling_checks": 20,
+  "active_table_gate": "Both arms replace all 264 INT32 words from identical poison",
+  "minimum_logical_active_matrix_bytes": 239075328,
+  "payload_interpretation": "Selected matrix sizes only; no HBM traffic or cache-miss measurement",
+  "candidate_library": {
+    "path": "/workspace/tests/glm52/whole_layer/ffn_down_n1024/build-v2/ffn_down_n1024.so",
+    "sha256": "bbd52e425a1e94bb199e464e3bf6001c4420e8238afe993e8741e38af50b77ef"
+  },
+  "sources": {
+    "/workspace/tests/glm52/whole_layer/ffn_down_n1024/timing-v1/bench.py": "477b3172c12134c2e87545ca7195ed49ad0160d257e0bf8550c15ae66b2519db",
+    "/workspace/tests/glm52/whole_layer/ffn_composed/build-v2/harness-v1/check.py": "d5c1f9f3214a1461d0aff29e166ec781d894c6bd991369bbac27f80baed3c9bb",
+    "/workspace/logs/ffn-bridge-runtime212-v1/check.py": "6a36334a25bbde2f76c8749a0a385db48078deb3549c3a321aed1d43c4089afa",
+    "/workspace/logs/ffn-bridge-runtime212-v1/fixtures.py": "c0b010dadbdfe3e47918e5a84184ab295d4ac3a4da818066bee93e5e215b05f9",
+    "/workspace/logs/ffn-bridge-runtime212-v1/gate_probe.py": "0bf8e940836905d37e396e04bea1440485e0472e0c68cdb6b4b738b8e7105276",
+    "/workspace/tests/glm52/whole_layer/ffn_composed/build-v2/body/source/routed_int4/check.py": "4a28c5cdbbd4e7e4d71ea22e8b2e01e6337aacb0c7c2887442c3d25d1c2fd0fd",
+    "/workspace/tests/glm52/whole_layer/ffn_composed/build-v2/body/source/routed_int4/check_pipeline.py": "3eb8c327b01da2671d77a66f38e4bc201c4c727f113bae38a4023172ee344f25"
+  },
+  "arenas": [
+    {
+      "owner": "fused",
+      "active_experts": 65,
+      "candidate_us": {
+        "samples": 30,
+        "p50": 201.43915017445883,
+        "p90": 201.65768941243488,
+        "p99": 201.79373502731323,
+        "std": 0.1817348574252009,
+        "min": 201.09750429789224,
+        "max": 201.80274645487467
+      },
+      "parent_us": {
+        "samples": 30,
+        "p50": 209.36173597971597,
+        "p90": 209.55076376597088,
+        "p99": 209.63384326299033,
+        "std": 0.1306667504995071,
+        "min": 209.10936991373697,
+        "max": 209.64458783467612
+      },
+      "paired_saving_us": {
+        "samples": 30,
+        "p50": 7.933123906453432,
+        "p90": 8.182989756266286,
+        "p99": 8.29536358515421,
+        "std": 0.21710814972598594,
+        "min": 7.579533259073912,
+        "max": 8.333921432495117
+      },
+      "paired_wins": 30,
+      "pairs": 30
+    },
+    {
+      "owner": "separate",
+      "active_experts": 65,
+      "candidate_us": {
+        "samples": 30,
+        "p50": 199.48597749074298,
+        "p90": 199.63593165079752,
+        "p99": 199.67090559005737,
+        "std": 0.12763094148684037,
+        "min": 199.21420415242514,
+        "max": 199.67241287231445
+      },
+      "parent_us": {
+        "samples": 30,
+        "p50": 205.8693806330363,
+        "p90": 206.1306063334147,
+        "p99": 206.16666205724079,
+        "std": 0.20068458223344368,
+        "min": 205.4963747660319,
+        "max": 206.1739126841227
+      },
+      "paired_saving_us": {
+        "samples": 30,
+        "p50": 6.370790799458831,
+        "p90": 6.72343730926512,
+        "p99": 6.777105967203763,
+        "std": 0.23030446729736165,
+        "min": 5.913782119750977,
+        "max": 6.7867120107014784
+      },
+      "paired_wins": 30,
+      "pairs": 30
+    }
+  ],
+  "report_sha256": "46cf557a17db4f15ca3e46374fc9f15ce8286891ab25599168c18010574c458b",
+  "interpretation": "Positive paired saving means Down M32/N1024/K64 tiling is faster than the N512 parent with the same corrected activation arithmetic. Local M12/24 E65 FFN only, with synthetic weights and no TP collectives or model TPOT."
+}

@@ -1,0 +1,355 @@
+{
+  "status": "pass",
+  "command": [
+    "/opt/homebrew/opt/python@3.11/bin/python3.11",
+    "experiments/lookup-index/rfind_probe.py",
+    "--root",
+    "/Users/shanshan/repo/tile-ai/TileRT-Ascend",
+    "--output",
+    "/tmp/tilert-rfind-repository-source.json"
+  ],
+  "python": "3.11.15",
+  "machine": "arm64",
+  "hostname": "fanshanshandeMacBook-Pro.local",
+  "width": 32,
+  "longest": 32,
+  "shortest": 2,
+  "warmup": 2,
+  "samples": 30,
+  "scope": "Local CPU proposer microprobe; synthetic token workloads, no target inference or NPU/TPOT conclusion",
+  "token_domain": "Valid GLM token IDs, stored as native uint32",
+  "clock": "perf_counter_ns; nanoseconds in raw samples",
+  "control": "Independent reverse-scan oracle is outside timed arms; alternate current/rfind order each sample",
+  "environment_control": "No CPU affinity or clock locking",
+  "source_sha256": {
+    "/Users/shanshan/repo/tile-ai/TileRT-Ascend/experiments/lookup-index/rfind_probe.py": "1789e560e91387c4ababebdf815dbb1f3616113955cb1461a2d52df97f710b96",
+    "/Users/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/bench_lookup.py": "6ef8d51c78a3d413f7df78e5c3f2ce2cb131d3ac3b50f2794089636a0d154813",
+    "/Users/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/ngram_acceptance.py": "157d24af3a0e376537ea58b075356867a3b02786b67a8cbf408066566d18231b",
+    "/Users/shanshan/repo/tile-ai/TileRT-Ascend/tilert/models/glm_5_2_ascend/lookup_draft.py": "8f363b3ce4817a705de4ef619e2466978685c977af20c3ae10a8d3ce81c94ea0"
+  },
+  "equivalence": {
+    "incremental_proposal_checks": 1600,
+    "unaligned_false_hit_rejected": true,
+    "earlier_aligned_overlap_preserved": true
+  },
+  "source_stable": true,
+  "raw_artifact": {
+    "file": "rfind-cpu.json.gz",
+    "sha256": "32bc9d430d0a5688d82d27610c8ef42461918bb00b1befb8b6ea3ccf85660d3e",
+    "uncompressed_sha256": "309f4cf379976abcf1ea53f9fe4e6a9197f3d31339b49ab7034edb009a869cbb"
+  },
+  "results": [
+    {
+      "name": "exact_copy",
+      "prompt_tokens": 8192,
+      "output_tokens": 1024,
+      "rounds": 32,
+      "oracle_signature_sha256": "241770d4d280f7fd6c4e5f849ec2f3fdd5c1f7a890f3c81c7908903b4858a157",
+      "samples_per_arm": {
+        "current": 30,
+        "rfind": 30
+      },
+      "summary": {
+        "current": {
+          "setup_ms": {
+            "p50": 42.469208,
+            "p95": 43.575291,
+            "p99": 44.649458,
+            "std": 0.5185296114367169
+          },
+          "steady_request_cpu_ms": {
+            "p50": 5.6986895,
+            "p95": 5.842495,
+            "p99": 5.896003,
+            "std": 0.10903543082426115
+          },
+          "total_request_cpu_ms": {
+            "p50": 48.172541,
+            "p95": 49.353786,
+            "p99": 50.357333,
+            "std": 0.5439888889131792
+          },
+          "propose_us": {
+            "p50": 5.667,
+            "p95": 6.75,
+            "p99": 11.875,
+            "std": 1.0202355398808343
+          },
+          "commit_us": {
+            "p50": 170.562,
+            "p95": 180.0,
+            "p99": 190.0,
+            "std": 7.137692552340966
+          }
+        },
+        "rfind": {
+          "setup_ms": {
+            "p50": 0.304396,
+            "p95": 0.328333,
+            "p99": 0.350375,
+            "std": 0.01281384696113284
+          },
+          "steady_request_cpu_ms": {
+            "p50": 0.09229,
+            "p95": 0.116789,
+            "p99": 0.117409,
+            "std": 0.007609018370109686
+          },
+          "total_request_cpu_ms": {
+            "p50": 0.397336,
+            "p95": 0.435868,
+            "p99": 0.467164,
+            "std": 0.019166987569951274
+          },
+          "propose_us": {
+            "p50": 1.125,
+            "p95": 1.458,
+            "p99": 5.125,
+            "std": 0.8973371763421986
+          },
+          "commit_us": {
+            "p50": 1.625,
+            "p95": 1.791,
+            "p99": 2.125,
+            "std": 0.5853108426149638
+          }
+        }
+      },
+      "all_round_signatures_equal_independent_reverse_scan": true
+    },
+    {
+      "name": "copy_5pct_edits",
+      "prompt_tokens": 8192,
+      "output_tokens": 1024,
+      "rounds": 173,
+      "oracle_signature_sha256": "ff92a0cb36bc92ce49d89bb7b93ead0ee41b3211dafdb6ef9bc9a2b8961c5391",
+      "samples_per_arm": {
+        "current": 30,
+        "rfind": 30
+      },
+      "summary": {
+        "current": {
+          "setup_ms": {
+            "p50": 42.398770999999996,
+            "p95": 45.079667,
+            "p99": 45.268333,
+            "std": 0.8776077743148192
+          },
+          "steady_request_cpu_ms": {
+            "p50": 7.3839175,
+            "p95": 8.211112,
+            "p99": 9.955051,
+            "std": 0.4911125157134665
+          },
+          "total_request_cpu_ms": {
+            "p50": 49.9292535,
+            "p95": 52.66609,
+            "p99": 52.795709,
+            "std": 1.0142931028810158
+          },
+          "propose_us": {
+            "p50": 8.333,
+            "p95": 17.375,
+            "p99": 19.709,
+            "std": 4.019557580639051
+          },
+          "commit_us": {
+            "p50": 5.959,
+            "p95": 164.625,
+            "p99": 187.167,
+            "std": 60.76524236187963
+          }
+        },
+        "rfind": {
+          "setup_ms": {
+            "p50": 0.3013125,
+            "p95": 0.316208,
+            "p99": 0.318333,
+            "std": 0.007191935394361288
+          },
+          "steady_request_cpu_ms": {
+            "p50": 49.2090205,
+            "p95": 49.34418,
+            "p99": 49.877614,
+            "std": 0.1550724367947835
+          },
+          "total_request_cpu_ms": {
+            "p50": 49.514916,
+            "p95": 49.642119,
+            "p99": 50.181781,
+            "std": 0.15564692228188207
+          },
+          "propose_us": {
+            "p50": 306.625,
+            "p95": 353.625,
+            "p99": 369.375,
+            "std": 79.45171849524836
+          },
+          "commit_us": {
+            "p50": 0.417,
+            "p95": 1.667,
+            "p99": 2.458,
+            "std": 0.6885435551367822
+          }
+        }
+      },
+      "all_round_signatures_equal_independent_reverse_scan": true
+    },
+    {
+      "name": "ambiguous_bigram",
+      "prompt_tokens": 8192,
+      "output_tokens": 1024,
+      "rounds": 1023,
+      "oracle_signature_sha256": "61d77af3855058bad298d919d3f5a271476d7799c066bfb4089dee8102aa7c4f",
+      "samples_per_arm": {
+        "current": 30,
+        "rfind": 30
+      },
+      "summary": {
+        "current": {
+          "setup_ms": {
+            "p50": 49.0221875,
+            "p95": 53.816916,
+            "p99": 54.520292,
+            "std": 1.9380396543385743
+          },
+          "steady_request_cpu_ms": {
+            "p50": 15.7744695,
+            "p95": 29.475694,
+            "p99": 31.059524,
+            "std": 4.480514275158158
+          },
+          "total_request_cpu_ms": {
+            "p50": 64.829628,
+            "p95": 80.038107,
+            "p99": 81.130277,
+            "std": 4.982854001955872
+          },
+          "propose_us": {
+            "p50": 9.417,
+            "p95": 14.0,
+            "p99": 20.583,
+            "std": 107.76057054046389
+          },
+          "commit_us": {
+            "p50": 5.292,
+            "p95": 5.875,
+            "p99": 6.917,
+            "std": 0.640062383973742
+          }
+        },
+        "rfind": {
+          "setup_ms": {
+            "p50": 0.317104,
+            "p95": 0.333334,
+            "p99": 0.337958,
+            "std": 0.0077230633099107035
+          },
+          "steady_request_cpu_ms": {
+            "p50": 439.0420935,
+            "p95": 441.583949,
+            "p99": 451.894396,
+            "std": 2.361096941317977
+          },
+          "total_request_cpu_ms": {
+            "p50": 439.356385,
+            "p95": 441.905866,
+            "p99": 452.206229,
+            "std": 2.3606813503433095
+          },
+          "propose_us": {
+            "p50": 419.125,
+            "p95": 523.625,
+            "p99": 578.791,
+            "std": 54.52434296811909
+          },
+          "commit_us": {
+            "p50": 0.375,
+            "p95": 0.541,
+            "p99": 2.875,
+            "std": 0.48906788971222775
+          }
+        }
+      },
+      "all_round_signatures_equal_independent_reverse_scan": true
+    },
+    {
+      "name": "random_no_match",
+      "prompt_tokens": 8192,
+      "output_tokens": 1024,
+      "rounds": 1023,
+      "oracle_signature_sha256": "41719323a976945d1b28f4aca858cd6d3df3fa3b6db64f88dcbdc0f3c185e5b2",
+      "samples_per_arm": {
+        "current": 30,
+        "rfind": 30
+      },
+      "summary": {
+        "current": {
+          "setup_ms": {
+            "p50": 48.1986665,
+            "p95": 56.179584,
+            "p99": 57.915083,
+            "std": 2.3227314888084236
+          },
+          "steady_request_cpu_ms": {
+            "p50": 15.3478245,
+            "p95": 17.281644,
+            "p99": 30.27218,
+            "std": 2.695600069284283
+          },
+          "total_request_cpu_ms": {
+            "p50": 63.5599055,
+            "p95": 73.461228,
+            "p99": 78.60068,
+            "std": 3.5820551746327896
+          },
+          "propose_us": {
+            "p50": 9.125,
+            "p95": 13.542,
+            "p99": 19.583,
+            "std": 65.35779514334313
+          },
+          "commit_us": {
+            "p50": 5.333,
+            "p95": 5.875,
+            "p99": 6.25,
+            "std": 0.5482068988996709
+          }
+        },
+        "rfind": {
+          "setup_ms": {
+            "p50": 0.307479,
+            "p95": 0.314875,
+            "p99": 0.323292,
+            "std": 0.006331903349178136
+          },
+          "steady_request_cpu_ms": {
+            "p50": 249.3466565,
+            "p95": 251.200999,
+            "p99": 257.839195,
+            "std": 1.5874342646521802
+          },
+          "total_request_cpu_ms": {
+            "p50": 249.652594,
+            "p95": 251.515124,
+            "p99": 258.162487,
+            "std": 1.5905929534417884
+          },
+          "propose_us": {
+            "p50": 240.792,
+            "p95": 276.583,
+            "p99": 290.208,
+            "std": 14.651281792178038
+          },
+          "commit_us": {
+            "p50": 0.375,
+            "p95": 0.5,
+            "p99": 1.666,
+            "std": 0.3511086183936367
+          }
+        }
+      },
+      "all_round_signatures_equal_independent_reverse_scan": true
+    }
+  ]
+}

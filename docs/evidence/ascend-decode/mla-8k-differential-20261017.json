@@ -1,0 +1,712 @@
+{
+  "scope": "Frozen real 8K, layer 0, TP16 weight shapes; CPU analysis and sequential single-die operators",
+  "precision_verified": false,
+  "performance_measured": false,
+  "raw_reports_sha256": {
+    "/workspace/offline/cann-mla8k-20261017/result.json": "5b9577c882dbd25232a0043cd0c9f15a121fa2a45666649a2901ea92867ca02b",
+    "/workspace/offline/cann-mla8k-20261017/early-bind/result.json": "1a300fc452d8c1aa2c71d95e3060dcd6409696e2beea61a22fa8a3c17e2a1832",
+    "/workspace/offline/cann-mla8k-20261017/fp64-ablation-01.json": "b2cfc16a9883a36160645926e4f43ecb3733ae7d7249f58b8e6c8786d7a6cf14",
+    "/workspace/offline/cann-mla8k-20261017/pv-rounding-01.json": "458a9a96c89819d505af73ebf880b6af9beca5bc2d0c018923e57f343123bc88",
+    "/workspace/offline/cann-mla8k-20261017/pv-provider-01.json": "3f62182ee5baaf4d1f6e6e6b54b5a7ab65ce4040bcbb1185c5405171fae7d9b3",
+    "/workspace/offline/cann-layer0-dense-20261017/report.json": "b5c43cfb7ea3c1f3a2450dabd00a0ee6b6e72c70fb0b03c1e2946ef065e554d4",
+    "/workspace/offline/cann-layer0-dense-20261017/pre-o.json": "cafdf8a93716143bf1c75c4099eee5ac4815c31a2b5b7b6abfb7ba01f1e19539",
+    "/workspace/offline/cann-layer0-dense-20261017/device-01.json": "265e83580974142b5bd5591080cfa1b2c639f92355c50b74e6e8784fe4fccdd0",
+    "/workspace/offline/cann-layer0-dense-20261017/no-onednn/pre-o.json": "360273bba15549a6784ce734463da48fa7c5fc964d1841f4a534d1b64f097826",
+    "/workspace/offline/cann-layer0-dense-20261017/o-proj/device-15.json": "bbe7fe3af93e537cbc43284457c0fbf12a1879a8f2dccb78c8a7f8ffa22fdd79"
+  },
+  "mla": {
+    "device": "npu:15",
+    "device_name": "Ascend910_9392",
+    "scope": "Layer0/rank0 TP16 shard, real 8K and top2048; MLA stages",
+    "operator": "_C_ascend::npu_sparse_flash_attention(Tensor query, Tensor key, Tensor value, Tensor sparse_indices, float scale_value, *, Tensor? block_table=None, Tensor? actual_seq_lengths_query=None, Tensor? actual_seq_lengths_kv=None, Tensor? query_rope=None, Tensor? key_rope=None, int sparse_block_size=1, str layout_query=\"BSND\", str layout_kv=\"BSND\", int sparse_mode=3, int pre_tokens=9223372036854775807, int next_tokens=9223372036854775807, int attention_mode=2, bool return_softmax_lse=False) -> (Tensor attention_out, Tensor softmax_max, Tensor softmax_sum)",
+    "checks": {
+      "q_codes_repeat": true,
+      "q_scale_repeat": true,
+      "latent_row_exact": true,
+      "rope_row_exact": true,
+      "latent_prefix_exact": true,
+      "rope_prefix_exact": true
+    },
+    "comparisons": {
+      "prolog_query_nope": {
+        "equal": true,
+        "shape": [
+          1,
+          4,
+          512
+        ],
+        "dtype": "torch.bfloat16",
+        "unequal": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      },
+      "prolog_query_rope": {
+        "equal": true,
+        "shape": [
+          1,
+          4,
+          64
+        ],
+        "dtype": "torch.bfloat16",
+        "unequal": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      },
+      "compressed_context": {
+        "equal": false,
+        "shape": [
+          1,
+          4,
+          512
+        ],
+        "dtype": "torch.bfloat16",
+        "unequal": 23,
+        "max_abs": 0.0078125,
+        "nrmse": 0.00046775926603004336
+      },
+      "compressed_output": {
+        "equal": false,
+        "shape": [
+          1,
+          1024
+        ],
+        "dtype": "torch.bfloat16",
+        "unequal": 170,
+        "max_abs": 7.62939453125e-06,
+        "nrmse": 0.0016421792097389698
+      },
+      "value_same_context": {
+        "equal": true,
+        "shape": [
+          1,
+          1024
+        ],
+        "dtype": "torch.bfloat16",
+        "unequal": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      },
+      "hf_expanded_output": {
+        "equal": false,
+        "shape": [
+          1,
+          1024
+        ],
+        "dtype": "torch.bfloat16",
+        "unequal": 617,
+        "max_abs": 7.62939453125e-06,
+        "nrmse": 0.004493737127631903
+      },
+      "cpu_compressed_vs_hf_expanded": {
+        "equal": false,
+        "shape": [
+          1,
+          1024
+        ],
+        "dtype": "torch.bfloat16",
+        "unequal": 621,
+        "max_abs": 7.62939453125e-06,
+        "nrmse": 0.004476885311305523
+      },
+      "index_order_context": {
+        "equal": false,
+        "shape": [
+          1,
+          4,
+          512
+        ],
+        "dtype": "torch.bfloat16",
+        "unequal": 75,
+        "max_abs": 0.0078125,
+        "nrmse": 0.0010878947796300054
+      },
+      "index_order_output": {
+        "equal": false,
+        "shape": [
+          1,
+          1024
+        ],
+        "dtype": "torch.bfloat16",
+        "unequal": 306,
+        "max_abs": 7.62939453125e-06,
+        "nrmse": 0.0031170928850769997
+      },
+      "sorted_vs_hf_expanded": {
+        "equal": false,
+        "shape": [
+          1,
+          1024
+        ],
+        "dtype": "torch.bfloat16",
+        "unequal": 613,
+        "max_abs": 7.62939453125e-06,
+        "nrmse": 0.0046639228239655495
+      }
+    },
+    "peak_reserved_bytes": 136314880,
+    "allocator_cap_bytes": 1610612736,
+    "artifacts": {
+      "/workspace/offline/cann-mla8k-20261017/probe.py": "1b4ee7ac5e7fed3eb8ac7e81316331c161e1ac769e1503c78304b6ab97c74d30",
+      "/workspace/offline/cann-indexer-20261017/device-02/input.pt": "f0b7ab04162e9d95ceb57836007b7634a77c42c67dfae22e83cf824067485f9b",
+      "/workspace/offline/cann-indexer-20261017/device-02/device.pt": "0142e3f5da1c6a984a28d67b3bdd9ffb5fe5ac4dc41565fff89e5e5dd4d982ae",
+      "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/main-prefix/rank-0.pt": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+      "/workspace/offline/cann-mla8k-20261017/result.pt": "f7ee5d9cdd6e12eb6a05a5974c1ff67d02ab246488561b8cc5cc91e0e6222fca",
+      "/workspace/offline/cann-div-reference-20261017/source/tests/glm52/check_cann_prolog.py": "d60ff89193fdd1da880187bb99c7b122ec09d6679ab2ed0d596f4fdc5512dab5",
+      "/workspace/offline/cann-div-reference-20261017/source/tests/glm52/check_cann_mla.py": "ac0fb65215e8018d38abb2d353634bf94c2f551cca0ad941af7dded999ffcfcc",
+      "/workspace/offline/cann-div-reference-20261017/source/tests/glm52/check_mla.py": "7908c89cf71b600c0558baa2d05d932e6599946da6c6eed7e9800b6f3d4ee9f4"
+    }
+  },
+  "early_binding": {
+    "query_nope": true,
+    "query_rope": true,
+    "q_codes": true,
+    "q_scale": true,
+    "context": true,
+    "output": true,
+    "sorted_context": true,
+    "sorted_output": true,
+    "latent": true,
+    "rope": true,
+    "indices": true
+  },
+  "exact_pv": {
+    "mode_matches_1024_exact_dots": {
+      "actual_bf16_pv": {
+        "RNE": {
+          "match": 607,
+          "different": 417
+        },
+        "RZ": {
+          "match": 450,
+          "different": 574
+        },
+        "RTO": {
+          "match": 469,
+          "different": 555
+        }
+      },
+      "fp32_then_bf16": {
+        "RNE": {
+          "match": 1024,
+          "different": 0
+        },
+        "RZ": {
+          "match": 507,
+          "different": 517
+        },
+        "RTO": {
+          "match": 532,
+          "different": 492
+        }
+      },
+      "fp64_then_bf16": {
+        "RNE": {
+          "match": 1024,
+          "different": 0
+        },
+        "RZ": {
+          "match": 507,
+          "different": 517
+        },
+        "RTO": {
+          "match": 532,
+          "different": 492
+        }
+      }
+    },
+    "fp32_then_bf16_vs_fp64_then_bf16": {
+      "elements": 1024,
+      "unequal": 0,
+      "max_abs": 0.0,
+      "l2": 0.0,
+      "nrmse": 0.0,
+      "cosine": 1.0
+    },
+    "fp64_vs_correctly_rounded_exact_dot": {
+      "elements": 1024,
+      "unequal": 0,
+      "max_abs": 0.0,
+      "l2": 0.0,
+      "nrmse": 0.0,
+      "cosine": 1.0000000000000002
+    },
+    "actual_bf16_pv_vs_fp32_then_bf16": {
+      "elements": 1024,
+      "unequal": 417,
+      "max_abs": 7.62939453125e-06,
+      "l2": 4.8492283615916e-05,
+      "nrmse": 0.003546934951646009,
+      "cosine": 0.9999937615691848
+    },
+    "witness": {
+      "head": 0,
+      "column": 0,
+      "terms": 2048,
+      "exact_numerator": "110732843791",
+      "exact_denominator": "281474976710656",
+      "exact_decimal_float64": 0.0003934020888287648,
+      "fraction_sum_matches_integer_dyadic": true,
+      "actual_bf16_pv": {
+        "bits": "0x39cf",
+        "value": 0.0003948211669921875
+      },
+      "fp32_then_bf16": {
+        "bits": "0x39ce",
+        "value": 0.000392913818359375
+      },
+      "fp64_then_bf16": {
+        "bits": "0x39ce",
+        "value": 0.000392913818359375
+      },
+      "exact_rounding": {
+        "RNE": {
+          "bits": "0x39ce",
+          "value": 0.000392913818359375
+        },
+        "RZ": {
+          "bits": "0x39ce",
+          "value": 0.000392913818359375
+        },
+        "RTO": {
+          "bits": "0x39cf",
+          "value": 0.0003948211669921875
+        }
+      }
+    }
+  },
+  "cpu_provider": {
+    "before": {
+      "mkldnn_enabled": true,
+      "mkldnn_available": true,
+      "mkldnn_deterministic": false,
+      "mkldnn_allow_tf32": null,
+      "mkldnn_fp32_precision": "none",
+      "float32_matmul_precision": "highest",
+      "mkldnn_matmul_fp32_precision": "none",
+      "threads": 2,
+      "interop_threads": 1,
+      "npu_initialized": false
+    },
+    "disabled": {
+      "mkldnn_enabled": false,
+      "mkldnn_available": true,
+      "mkldnn_deterministic": false,
+      "mkldnn_allow_tf32": null,
+      "mkldnn_fp32_precision": "none",
+      "float32_matmul_precision": "highest",
+      "mkldnn_matmul_fp32_precision": "none",
+      "threads": 2,
+      "interop_threads": 1,
+      "npu_initialized": false
+    },
+    "restored": {
+      "mkldnn_enabled": true,
+      "mkldnn_available": true,
+      "mkldnn_deterministic": false,
+      "mkldnn_allow_tf32": null,
+      "mkldnn_fp32_precision": "none",
+      "float32_matmul_precision": "highest",
+      "mkldnn_matmul_fp32_precision": "none",
+      "threads": 2,
+      "interop_threads": 1,
+      "npu_initialized": false
+    },
+    "after": {
+      "mkldnn_enabled": true,
+      "mkldnn_available": true,
+      "mkldnn_deterministic": false,
+      "mkldnn_allow_tf32": null,
+      "mkldnn_fp32_precision": "none",
+      "float32_matmul_precision": "highest",
+      "mkldnn_matmul_fp32_precision": "none",
+      "threads": 2,
+      "interop_threads": 1,
+      "npu_initialized": false
+    },
+    "comparisons": {
+      "default": {
+        "exact_rne_different": 417,
+        "fp32_acc_then_bf16_different": 417,
+        "vs_default": {
+          "equal": true,
+          "different": 0,
+          "max_abs": 0.0,
+          "nrmse": 0.0
+        },
+        "first_bf16_bits": "0x39cf",
+        "first_value": 0.0003948211669921875
+      },
+      "mkldnn_disabled": {
+        "exact_rne_different": 0,
+        "fp32_acc_then_bf16_different": 0,
+        "vs_default": {
+          "equal": false,
+          "different": 417,
+          "max_abs": 7.62939453125e-06,
+          "nrmse": 0.003545813994584859
+        },
+        "first_bf16_bits": "0x39ce",
+        "first_value": 0.000392913818359375
+      },
+      "restored": {
+        "exact_rne_different": 417,
+        "fp32_acc_then_bf16_different": 417,
+        "vs_default": {
+          "equal": true,
+          "different": 0,
+          "max_abs": 0.0,
+          "nrmse": 0.0
+        },
+        "first_bf16_bits": "0x39cf",
+        "first_value": 0.0003948211669921875
+      }
+    },
+    "configuration_restored": true,
+    "device_execution": false,
+    "source_and_inputs_sha256": {
+      "/workspace/offline/cann-mla8k-20261017/pv-provider-01.py": "1d49c66c65858cdccf0d7c8009ba265be84a57d2d32809a30b1f98924008c634",
+      "/workspace/offline/cann-mla8k-20261017/result.pt": "f7ee5d9cdd6e12eb6a05a5974c1ff67d02ab246488561b8cc5cc91e0e6222fca",
+      "/workspace/offline/cann-mla8k-20261017/fp64-ablation-01.pt": "ff443dac169f09327d85bb565e5c65771793daf00fac988073abe38b5ea3a2d0",
+      "/workspace/offline/cann-mla8k-20261017/pv-rounding-01.pt": "d757c312e2b081f0a2d43fa5dc4ff8fb8de3c6e8df5f30d4ddf6ab69fdebdf21",
+      "/workspace/offline/cann-indexer-20261017/device-02/input.pt": "f0b7ab04162e9d95ceb57836007b7634a77c42c67dfae22e83cf824067485f9b",
+      "/opt/trt-asc/venv/lib/python3.11/site-packages/torch/backends/mkldnn/__init__.py": "574aef1845cc930e7d2333d08adbbdf5ac96f6755b19a4c1571ea72d9d09c83a"
+    },
+    "artifact_sha256": "1207c2e151c7a9fa08b3d10fc1e1cd55f52b350cca3ea682a62a2c67707138c3"
+  },
+  "single_layer_cpu_provider": {
+    "comparisons": {
+      "layer0_to_frozen_hf": {
+        "equal": false,
+        "shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 3136,
+        "max_abs": 0.000244140625,
+        "nrmse": 0.0038225082680583
+      },
+      "layer0_to_cann": {
+        "equal": false,
+        "shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 2960,
+        "max_abs": 0.000244140625,
+        "nrmse": 0.0035946411080658436
+      },
+      "frozen_hf_layer0_to_cann": {
+        "equal": false,
+        "shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 3190,
+        "max_abs": 0.000244140625,
+        "nrmse": 0.003888999577611685
+      },
+      "pre_o_to_frozen_hf": {
+        "equal": false,
+        "shape": [
+          1,
+          1,
+          16384
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 8438,
+        "max_abs": 3.0517578125e-05,
+        "nrmse": 0.004389950539916754
+      },
+      "pre_o_rank0_to_sfa": {
+        "equal": false,
+        "shape": [
+          1,
+          1024
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 510,
+        "max_abs": 7.62939453125e-06,
+        "nrmse": 0.0033257093746215105
+      },
+      "frozen_hf_pre_o_rank0_to_sfa": {
+        "equal": false,
+        "shape": [
+          1,
+          1024
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 676,
+        "max_abs": 1.52587890625e-05,
+        "nrmse": 0.005195030942559242
+      }
+    },
+    "checks": {
+      "embedding": {
+        "equal": true,
+        "shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      },
+      "indices": {
+        "equal": true,
+        "shape": [
+          2048
+        ],
+        "dtype": "torch.int32",
+        "different": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      },
+      "latent": {
+        "equal": true,
+        "shape": [
+          512
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      },
+      "rope": {
+        "equal": true,
+        "shape": [
+          64
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      },
+      "index_key": {
+        "equal": true,
+        "shape": [
+          128
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      },
+      "same_sfa_indices": {
+        "equal": true,
+        "shape": [
+          2048
+        ],
+        "dtype": "torch.int32",
+        "different": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      }
+    },
+    "position": 8192,
+    "token": 6500,
+    "prompt_sha256": "fe53282d0b732f6a1cbd9b6587903127f73ba645f2303a246656286704142afa",
+    "checkpoint_sha256": {
+      "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+      "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+      "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+    },
+    "output": {
+      "path": "/workspace/offline/cann-layer0-dense-20261017/no-onednn/pre-o.pt",
+      "bytes": 446589,
+      "sha256": "a1617ec66a7ae8399875e1238e174aeec832279162e29d19ac3ec73ba134ac0a"
+    },
+    "source_sha256": {
+      "/workspace/offline/cann-div-reference-20261017/source/tests/glm52/run_hf_reference.py": "a2c261470f9baf1c141746035da8950f61c1f81ac99af3bf86a3c31936d4fa01",
+      "/workspace/offline/cann-div-reference-20261017/source/tests/glm52/run_native_decode.py": "bc40b579824eb6def8fa9fc7fb2acd045774088f1e841e514279aa6818870adc",
+      "/workspace/offline/cann-div-reference-20261017/source/tests/glm52/prefix_io.py": "b0f1a76b565d6d97b3ef1e64b7810d1efe7c22470e2b1c46bd64911341559c90",
+      "/workspace/offline/cann-div-reference-20261017/source/tilert/models/glm_5_2_ascend/reference.py": "1074977dc263e7e45290280aa423c5e1072b8a63bdbebc11225e6f83ed3ab827",
+      "/workspace/offline/cann-div-reference-20261017/source/tilert/models/glm_5_2_ascend/reference_weights.py": "1ae887983d3edf6a9006df7c8b849691b34775c50e8bf8738a1300220348d533",
+      "/workspace/offline/cann-div-reference-20261017/source/tilert/models/glm_5_2_ascend/ops/indexer.py": "b8536fd5f41fe1f194ef4f3f34d30d4090c3b943c69d69a0445666d41396172a",
+      "/workspace/offline/cann-div-reference-20261017/source/tilert/models/glm_5_2_ascend/reference_prolog.py": "20d184e9a17b139ed2cd2f82c9d929c0a6f0fa84778991d6e818f7f1f2e0b864",
+      "/opt/trt-asc/venv/lib/python3.11/site-packages/transformers/models/glm_moe_dsa/modeling_glm_moe_dsa.py": "adb8317a21716b01273046e46c807f14f0dbaf035af59b60d52bd6bc3007cf72",
+      "/opt/trt-asc/venv/lib/python3.11/site-packages/transformers/models/glm_moe_dsa/configuration_glm_moe_dsa.py": "5a81164be746307431ad998f789b6b0bca20eb4c14a726552eb3730268413997",
+      "/opt/trt-asc/venv/lib/python3.11/site-packages/transformers/cache_utils.py": "ee7902fbd031ed332b5e26d07756a33f09b5c90a435b8363b9330876dc33ce0e",
+      "/opt/trt-asc/venv/lib/python3.11/site-packages/transformers/utils/output_capturing.py": "28921dca36f8892e6f50c8b92ebfff3e9aff945f32a88c275e41b1dc0f1b65c1",
+      "/workspace/offline/cann-layer0-dense-20261017/no-onednn/pre_o_replay.py": "3d81779b0f1acd97e6af5a14b3cc20e522719c3026635c5a4d9412a96fced93b"
+    }
+  },
+  "fixed_input_dense": {
+    "scope": "Fixed-input norm and TP16 dense partials; CPU TP sum",
+    "device": "npu:15",
+    "hccl_executed": false,
+    "timed": false,
+    "checks": 148,
+    "bitwise_equal_checks": 146,
+    "different_checks": {
+      "rank8.down": {
+        "equal": false,
+        "shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 1,
+        "max_abs": 4.76837158203125e-07,
+        "nrmse": 1.0808419574459549e-05
+      },
+      "rank8.down_same_codes": {
+        "equal": false,
+        "shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 1,
+        "max_abs": 4.76837158203125e-07,
+        "nrmse": 1.0808419574459549e-05
+      }
+    },
+    "merged_outputs": {
+      "postnorm.residual": {
+        "equal": true,
+        "shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      },
+      "postnorm.output": {
+        "equal": true,
+        "shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      },
+      "mlp.cpu_tp_sum": {
+        "equal": true,
+        "shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      },
+      "layer0.cpu_residual": {
+        "equal": true,
+        "shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      }
+    },
+    "peak_allocated_bytes": 97835520,
+    "peak_reserved_bytes": 123731968,
+    "allocator_limit_bytes": 1610612736,
+    "source_sha256": {
+      "/workspace/offline/cann-div-reference-20261017/source/tests/glm52/check_cann_router.py": "774dcd49516a6a09c9b37943272f13e50132ae3cf7f8da6b91bbe5fc67cfd423",
+      "/workspace/src/vllm-unified/vllm/model_executor/model_loader/utils.py": "e6e3477d926deb12fd1b50d4e6a7d649f97a5c2b6524cc2e4a604c80bb653f20",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py": "47444be0a5017d012401685d89134200f39c5e706f7941797fa7ecfccf1bba0d",
+      "/workspace/offline/cann-div-reference-20261017/source/tilert/models/glm_5_2_ascend/reference.py": "1074977dc263e7e45290280aa423c5e1072b8a63bdbebc11225e6f83ed3ab827",
+      "/workspace/offline/cann-div-reference-20261017/source/tilert/models/glm_5_2_ascend/reference_weights.py": "1ae887983d3edf6a9006df7c8b849691b34775c50e8bf8738a1300220348d533",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/linear.py": "7654777d9252fc6a3cc2c95f92b67a42410a0de24a5912ef20e807cf64ab74e6",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/quantization/method_adapters.py": "341d93cae5774414a810444a50eb752cd425330156f404d1b9a10381e6bc0138",
+      "/workspace/offline/cann-layer0-dense-20261017/device_replay-01.py": "09c43e235e68212f1df1a3b25b476b7185c4138c765a079d3ccb7c3713cb2662"
+    },
+    "input": {
+      "path": "/workspace/offline/cann-layer0-dense-20261017/stages.pt",
+      "sha256": "9b9fa90d36d785853e7b61f16f186a6e7ad6192797e3d19e37d5cab21faa3bd3"
+    },
+    "output": {
+      "path": "/workspace/offline/cann-layer0-dense-20261017/device-01.pt",
+      "sha256": "075cacdb8fde349208e14474ede22ae6e8ad3b6c979e44d22f0fb2e19c8d111a"
+    }
+  },
+  "fixed_input_o_projection": {
+    "scope": "Fixed pre-O; CPU rank-order FP32 sum then BF16",
+    "device": "npu:15",
+    "hccl_executed": false,
+    "timed": false,
+    "checks": 50,
+    "bitwise_equal_checks": 49,
+    "different_checks": {
+      "rank7.partial": {
+        "equal": false,
+        "shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 1,
+        "max_abs": 3.814697265625e-06,
+        "nrmse": 2.7413338102633134e-05
+      }
+    },
+    "merged_outputs": {
+      "cpu_reference_sum": {
+        "equal": true,
+        "shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      },
+      "device_cpu_sum": {
+        "equal": true,
+        "shape": [
+          1,
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "different": 0,
+        "max_abs": 0.0,
+        "nrmse": 0.0
+      }
+    },
+    "peak_reserved_bytes": 60817408,
+    "allocator_limit_bytes": 1610612736,
+    "input": {
+      "path": "/workspace/offline/cann-layer0-dense-20261017/pre-o.pt",
+      "sha256": "5c092b39d6f9cb1f563e9ead13c8fa377d2b8690dac1241399f65f045080320e"
+    },
+    "output": {
+      "path": "/workspace/offline/cann-layer0-dense-20261017/o-proj/device-15.pt",
+      "sha256": "52acac3536d56a9c3647ca02b55ece7711f33969cf8631a8adf5fb4c5eb22823"
+    },
+    "source_sha256": {
+      "/workspace/offline/cann-div-reference-20261017/source/tests/glm52/run_hf_reference.py": "a2c261470f9baf1c141746035da8950f61c1f81ac99af3bf86a3c31936d4fa01",
+      "/workspace/offline/cann-div-reference-20261017/source/tests/glm52/run_native_decode.py": "bc40b579824eb6def8fa9fc7fb2acd045774088f1e841e514279aa6818870adc",
+      "/workspace/offline/cann-div-reference-20261017/source/tests/glm52/prefix_io.py": "b0f1a76b565d6d97b3ef1e64b7810d1efe7c22470e2b1c46bd64911341559c90",
+      "/workspace/offline/cann-div-reference-20261017/source/tilert/models/glm_5_2_ascend/reference.py": "1074977dc263e7e45290280aa423c5e1072b8a63bdbebc11225e6f83ed3ab827",
+      "/workspace/offline/cann-div-reference-20261017/source/tilert/models/glm_5_2_ascend/reference_weights.py": "1ae887983d3edf6a9006df7c8b849691b34775c50e8bf8738a1300220348d533",
+      "/workspace/offline/cann-div-reference-20261017/source/tilert/models/glm_5_2_ascend/ops/indexer.py": "b8536fd5f41fe1f194ef4f3f34d30d4090c3b943c69d69a0445666d41396172a",
+      "/workspace/offline/cann-div-reference-20261017/source/tilert/models/glm_5_2_ascend/reference_prolog.py": "20d184e9a17b139ed2cd2f82c9d929c0a6f0fa84778991d6e818f7f1f2e0b864",
+      "/opt/trt-asc/venv/lib/python3.11/site-packages/transformers/models/glm_moe_dsa/modeling_glm_moe_dsa.py": "adb8317a21716b01273046e46c807f14f0dbaf035af59b60d52bd6bc3007cf72",
+      "/opt/trt-asc/venv/lib/python3.11/site-packages/transformers/models/glm_moe_dsa/configuration_glm_moe_dsa.py": "5a81164be746307431ad998f789b6b0bca20eb4c14a726552eb3730268413997",
+      "/opt/trt-asc/venv/lib/python3.11/site-packages/transformers/cache_utils.py": "ee7902fbd031ed332b5e26d07756a33f09b5c90a435b8363b9330876dc33ce0e",
+      "/opt/trt-asc/venv/lib/python3.11/site-packages/transformers/utils/output_capturing.py": "28921dca36f8892e6f50c8b92ebfff3e9aff945f32a88c275e41b1dc0f1b65c1",
+      "/workspace/offline/cann-layer0-dense-20261017/pre_o_replay.py": "f399797423e33f4e638bfdf3686f301576d61aa95b42c22cb6d2de57aa55cc16",
+      "/workspace/offline/cann-div-reference-20261017/source/tests/glm52/check_cann_router.py": "774dcd49516a6a09c9b37943272f13e50132ae3cf7f8da6b91bbe5fc67cfd423",
+      "/workspace/src/vllm-unified/vllm/model_executor/model_loader/utils.py": "e6e3477d926deb12fd1b50d4e6a7d649f97a5c2b6524cc2e4a604c80bb653f20",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py": "47444be0a5017d012401685d89134200f39c5e706f7941797fa7ecfccf1bba0d",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/linear.py": "7654777d9252fc6a3cc2c95f92b67a42410a0de24a5912ef20e807cf64ab74e6",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/quantization/method_adapters.py": "341d93cae5774414a810444a50eb752cd425330156f404d1b9a10381e6bc0138",
+      "/workspace/offline/cann-layer0-dense-20261017/device_replay-01.py": "09c43e235e68212f1df1a3b25b476b7185c4138c765a079d3ccb7c3713cb2662",
+      "/workspace/offline/cann-layer0-dense-20261017/o-proj/device_replay.py": "4ea1a11d921ecf60408397edfa34e7cba607e6aeba0e868edb3d31f142f69aac"
+    }
+  }
+}

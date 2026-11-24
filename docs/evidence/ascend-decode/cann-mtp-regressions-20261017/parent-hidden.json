@@ -1,0 +1,41 @@
+{
+  "passed": true,
+  "tests_run": 9,
+  "elapsed_s": 10.574876707978547,
+  "scope": "CPU Torch hooks, real V1 base/localhost TCP; synthetic KV addresses",
+  "stubbed": [
+    "NPU allocation",
+    "forward context",
+    "TP rank",
+    "device synchronization",
+    "HIXL WRITE"
+  ],
+  "not_executed": [
+    "NPU",
+    "real model forward",
+    "HIXL",
+    "MTP computation"
+  ],
+  "torch": "2.12.0+cpu",
+  "torch_npu": "2.12.0",
+  "npu_initialized": false,
+  "python": "3.11.12",
+  "source_sha256": {
+    "tilert/pd_vllm/ascend_parent.py": "75932c89ad78de799cd62713045cfc882482de954b984e1ba88a41843d7e3241",
+    "tilert/pd_vllm/ascend_layout.py": "653a8bd71c697d50727e57a5c35d0dc7d2e2e32058417601ad6eb08fad81d704",
+    "tilert/pd_vllm/ascend_source.py": "c71b809215a6f24b53daab7a3b0dc2a21c42acc98d9b8b69832eedb0a1c191a3",
+    "tilert/pd_vllm/ascend_connector.py": "236c81cba081684448136c8cff19d26be3c23b9d24d9c05e357b071fa026b903",
+    "tilert/pd_vllm/ascend_cache.py": "7aec6249ce406f713bde6d90bd38e6235d3b16b63d5408b3424c802d4de5d686",
+    "tilert/pd_vllm/ascend_receiver.py": "50ff6665f217d571e1414a078f945dcacb94dbf6da558fb2a92d5fd8647c4791",
+    "tilert/pd_vllm/prefix_capture.py": "d5bf74d0ba8a6f479190f517d0e304a34115261561f593eb551fd1e35ea98f03",
+    "tests/glm52/capture_pd_prefix.py": "989db3e4c4d7cf56b76c6ef50a725f521f0c87aadce786a4a956c8630f0fd4de",
+    "tests/glm52/serve_vllm_prefill.sh": "9e13aa43660fef449b24d9d9550dfe634c13798897b13f687809e5cb2914ffad",
+    "tests/glm52/check_parent_hidden.py": "b357ca5850c718d0dcb75e52cb59b05885bf6a3d7519c41604e4fcf2337b0021"
+  },
+  "command": [
+    "tests/glm52/check_parent_hidden.py",
+    "--output",
+    "/workspace/offline/cann-full-p-20261017/check_parent_hidden-regression.json"
+  ],
+  "log": "test_cpu_freeze_serializes_parent_without_receive_alias (__main__.ParentChecks.test_cpu_freeze_serializes_parent_without_receive_alias) ... ok\ntest_default_layout_and_optional_fixed_size (__main__.ParentChecks.test_default_layout_and_optional_fixed_size) ... ok\ntest_hook_rejects_missing_duplicate_and_wrong_identity (__main__.ParentChecks.test_hook_rejects_missing_duplicate_and_wrong_identity) ... ok\ntest_hook_rejects_output_dtype_shape_and_input_shape (__main__.ParentChecks.test_hook_rejects_output_dtype_shape_and_input_shape) ... ok\ntest_parent_contract_rejects_wrong_position_dtype_and_rotation (__main__.ParentChecks.test_parent_contract_rejects_wrong_position_dtype_and_rotation) ... ok\ntest_real_connector_tcp_waits_for_all_parent_writes (__main__.ParentChecks.test_real_connector_tcp_waits_for_all_parent_writes) ... ok\ntest_real_hook_keeps_storage_identity_and_copies_last_row (__main__.ParentChecks.test_real_hook_keeps_storage_identity_and_copies_last_row) ... ok\ntest_receiver_requires_matching_parent_contract_before_admission (__main__.ParentChecks.test_receiver_requires_matching_parent_contract_before_admission) ... ok\ntest_transfer_plan_appends_one_registered_row (__main__.ParentChecks.test_transfer_plan_appends_one_registered_row) ... ok\n\n----------------------------------------------------------------------\nRan 9 tests in 10.574s\n\nOK\n"
+}

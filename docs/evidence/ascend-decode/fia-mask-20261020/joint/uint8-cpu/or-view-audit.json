@@ -1,0 +1,77 @@
+{
+  "scope": "CPU and actual installed ELF read-only audit, no NPU launches",
+  "installed_libopapi_sha256": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a",
+  "bitwise_or": {
+    "promoted_uint8_bool": 4,
+    "promotion_table_address": "0x28184c8",
+    "arch2201_branch_address": "0x4fa214 -> 0x4fa958",
+    "arch2201_dtype_list_address": "0x28160e0: [6,7,3,9] = INT16,UINT16,INT32,INT64",
+    "uint8_routes_to": "0x4fa2b8 -> 0x4fa3d0 CreatAicpuKernelLauncher",
+    "promoted_bool_routes_to": "0x5066a0 cmp12 -> 0x506db8 LogicalOr",
+    "status": "Actual installed host machine code explains dispatch; this audit did not launch the device op"
+  },
+  "view_dtype": {
+    "registration": "native_functions.yaml view.dtype -> CompositeExplicitAutograd:view_dtype",
+    "implementation": "TensorConversions.cpp shares storage and key set; same element size branch only copies sizes/strides/storage_offset",
+    "acl_bridge": "op_api_common.h ConvertType uses at_tensor.scalar_type to construct ACL dtype, same shared storage pointer",
+    "scope": "Source-supported ND uint8-to-bool alias with canonical0/1 data; NPU capture not executed in this audit"
+  },
+  "producer_correction": {
+    "checkpoint_config_sha256": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+    "index_skip_topk_offset": 3,
+    "index_topk_freq": 4,
+    "index_topk_pattern": null,
+    "backbone_producers": [
+      0,
+      1,
+      2,
+      6,
+      10,
+      14,
+      18,
+      22,
+      26,
+      30,
+      34,
+      38,
+      42,
+      46,
+      50,
+      54,
+      58,
+      62,
+      66,
+      70,
+      74
+    ],
+    "discarded_inference": "0,1,5,...,77 incorrectly used code default offset2 instead of actual checkpoint offset3"
+  },
+  "cpu_view_result_sha256": "fffc28214e2310cfc98b663dc7c4796ef567bdcc8f9db806df2721b442512ff8",
+  "source_files": [
+    {
+      "path": "/home/shanshan/repo/ascend/op-plugin/op_plugin/ops/opapi/BitwiseOrKernelNpuOpApi.cpp",
+      "snapshot": "local-source/BitwiseOrKernelNpuOpApi.cpp",
+      "sha256": "e793bd3a30f8778ce95d3fb3aced28bd89b19aaa691b514ba7aae582bcaf4d99"
+    },
+    {
+      "path": "/home/shanshan/repo/ascend/op-plugin/op_plugin/ops/opapi/LogicalOrKernelNpuOpApi.cpp",
+      "snapshot": "local-source/LogicalOrKernelNpuOpApi.cpp",
+      "sha256": "5bd336cd65412db48614193892f6a2603a768368a28e20f6e1f6336284ecc0b6"
+    },
+    {
+      "path": "/home/shanshan/repo/ascend/op-plugin/op_plugin/utils/op_api_common.h",
+      "snapshot": "local-source/op_api_common.h",
+      "sha256": "9f2315ec02958625ef158f0463a3757a5921a0671dd6fb53f7578291bafcd6b8"
+    },
+    {
+      "path": "/home/shanshan/repo/torch/pytorch/aten/src/ATen/native/native_functions.yaml",
+      "snapshot": "local-source/native_functions.yaml",
+      "sha256": "dae63ef79dd86702bf2e0e1b3ac3a5575236297044b8f9c6a1323f9cb5bd6e2d"
+    },
+    {
+      "path": "/home/shanshan/repo/torch/pytorch/aten/src/ATen/native/TensorConversions.cpp",
+      "snapshot": "local-source/TensorConversions.cpp",
+      "sha256": "245b8794e476029b94773c9b0ef055660fd9e1699cd55c6bfd36a6c2a9ba8fdc"
+    }
+  ]
+}

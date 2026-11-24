@@ -1,0 +1,184 @@
+{
+  "scope": "Source audit plus 16-case/46-call CPU scalar replay; generated patch only in /tmp and offline artifacts; no repository change, compilation, NPU import, or NPU execution.",
+  "production_config": {
+    "architectures": [
+      "GlmMoeDsaForCausalLM"
+    ],
+    "model_type": "glm_moe_dsa",
+    "qk_rope_head_dim": 64,
+    "index_topk": 2048,
+    "index_topk_freq": 4,
+    "index_skip_topk_offset": 3,
+    "index_kpool": null
+  },
+  "production_path": [
+    "cann_model.py:294-295,339-346 binds AscendSFAIndexerMetadataBuilder",
+    "deepseek_v2.py:1144-1152 uses index_topk_freq for layer_id reuse, not spatial pooling",
+    "deepseek_v2.py:1440-1445 allocates token index buffer [max_tokens,2048]",
+    "indexer.py:494-511 calls standard lightning indexer unless offload topk_selector is supplied",
+    "device_op.py:488-518 produces token indices, sparse_count2048",
+    "sfa_v1.py:2068-2083 writes/reuses the shared token indices",
+    "device_op.py:565-581 consumes indices with sparse_block_size1"
+  ],
+  "index_topk_freq": "4 is layer reuse frequency (deepseek_v2.py:1144-1152), not spatial pooling. Standard production LI emits arbitrary token IDs; device_op.py:571 consumes sparse_block_size=1.",
+  "sha256": {
+    "/workspace/models/GLM-5.2-w4a8c8/config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/device/device_op.py": "0488cb2578df5075a73245a0d540ee8de93ea71972ae8b636cc7cdef83823b8e",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/indexer.py": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/indexer_kpool.py": "4ab696098959fa74f5b801e92ccde8dadc5b89dbc8e1f8c80f143884a68ad880",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/sfa_v1.py": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+    "/workspace/src/vllm-unified/vllm/model_executor/models/deepseek_v2.py": "5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408",
+    "/workspace/src/vllm-ascend-unified/csrc/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_kernel_mla.h": "cec94843ad2144f80e5a504b33f92a682ba8908037435de65da26f5682ce7cdd",
+    "/workspace/src/vllm-ascend-unified/csrc/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_service_cube_mla.h": "dbc124eb56d0e1a3bb625930fe66653246335e28dd5f490a25ec3713262550e7",
+    "/workspace/src/vllm-ascend-unified/csrc/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_service_vector_mla.h": "5bef8d39f9949e3c4c372fd6eaf85a2e08ce0409fa4496043d6878a535f8ac82",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/ascendc/include/basic_api/impl/kernel_operator_data_copy_check.h": "c70432e4b6a118ad919975356f4b31040fe457ae60d8d18c01e6e146a5eb0bcf"
+  },
+  "patch": {
+    "path": "/tmp/c1-index-bounds-20261019.patch",
+    "sha256": "6118c2318bd4b208d06992b73f64872e6a9b9de38daf6e6d737bb1a560f26b91",
+    "candidate_header_sha256": "669c9f8733121a59926ea025f3da531e34043e45fc53365adc604ac12bac3813",
+    "repository_header_changed": false,
+    "compiled": false
+  },
+  "read_defect": {
+    "source": "/workspace/src/vllm-ascend-unified/csrc/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_kernel_mla.h:954-958",
+    "condition": "curTopKIdx == validCount; GetValue currently occurs before the bound check, including invalid new work in pipeline drain. Physical allocation overflow depends on row/shape; not claimed to recur for the current 8K K2048 C1 record.",
+    "scalar_counterexample": {
+      "sparse_block_size": 1,
+      "sparse_block_count": 3,
+      "threshold": 3,
+      "s2BaseSize": 128,
+      "indices": [
+        0,
+        1,
+        2
+      ],
+      "result": "The active scan ends with curTopKIdx=3; the first drain currently reads element3 before returning zero work."
+    }
+  },
+  "fix_invariants": [
+    "Initial GetValue executes iff curTopKIdx < validCount. Out-of-range cursor uses the existing -1 termination path, setting actual size/alignment/tail to zero; all in-range sentinel and tail arithmetic remains unchanged.",
+    "The finite outer s2 loop advances independently of the top-k cursor. Bounds termination does not return from PreloadPipeline and does not change its valid flags or older tasks.",
+    "CalcParams:641 makes new work invalid for each of the final two drain iterations. PreloadPipeline:883-898 still completes older Vec1/Mm2 and Vec2 work: first drain finishes the last Mm2 and penultimate Vec2; second drain finishes the last Vec2.",
+    "No indexer backing guard is part of this fix. Existing token index shape and original element order remain unchanged."
+  ],
+  "C1_source_contract": [
+    "Actual 9.2 API header:47-48 supports BF16 on arch2201; :234-243 permits nValue1 and NZ strides1; :305-310 requires 32B destination alignment, not a minimum row count4.",
+    "Cube:47-63,73-112,393-438: one-token copies have nValue1; BF16 destination row stride16 elements is32B. Current key/rope/value copy widths256/32/128 are32B multiples; selected rows write separate NZ rows.",
+    "Cube:528-558 maps block id*bsize and clips its causal end. For bsize1 every selected ID yields at most one token; cursor and page loops do not round to4.",
+    "Kernel:379-383,689-709 uses per-query threshold KV_length-Q_length+i+1 and original row offsets. C1 needs no block repack, shape change, or appended tail tokens.",
+    "Kernel:735-760 and vector:1091-1117 pair outer cross-core flags per M split. Cube:1054-1057 has zero K loops for zero payload, so its :1278 nUpdate wait is not reached when vector skips the corresponding signal.",
+    "Kernel:791-900 preserves two drain iterations and ring ownership independently of bsize. No source precondition bsize>=4 was found in these paths. This does not establish device numerical correctness or latency."
+  ],
+  "block4_counterexamples": [
+    {
+      "tokens": [
+        0,
+        4,
+        8,
+        12
+      ],
+      "T": 16,
+      "block_floor": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "expanded": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "failure": "Adds12 unselected tokens; reshape/select loses original selections."
+    },
+    {
+      "tokens": [
+        0,
+        4,
+        1,
+        5,
+        2,
+        6,
+        3,
+        7
+      ],
+      "T": 8,
+      "failure": "Set is block-closed but stable block expansion changes original token order."
+    },
+    {
+      "tokens": [
+        8,
+        9,
+        -1,
+        -1
+      ],
+      "T": 16,
+      "failure": "Partial selection is not a causal tail: block2 adds10,11."
+    },
+    {
+      "blocks": [
+        0,
+        -1,
+        2
+      ],
+      "T": 16,
+      "failure": "C_TEMPLATE stops at first -1, so block2 is not consumed."
+    },
+    {
+      "sentinel": -1,
+      "floor_divide4": -1,
+      "trunc_divide4": 0,
+      "failure": "Truncating division converts padding into valid block0."
+    }
+  ],
+  "block4_contract": "For each query threshold T, stable expansion of unique block IDs as [4b,min(4b+4,T)) must exactly equal the original valid token list; IDs end in -1 padding.",
+  "local_binding_source": {
+    "path": "/home/shanshan/repo/tile-ai/TileRT-Ascend/tilert/models/glm_5_2_ascend/cann_model.py",
+    "sha256": "3ab4769bf5e255543583528d1533ea3ba399fcb5e55d10f8477b15303c0b557b",
+    "anchors": "294-295 imports standard indexer builder;339-346 binds it to indexer cache specs."
+  },
+  "toolkit_identity": {
+    "install_info_path": "/opt/ascend/cann-9.2.0/aarch64-linux/ascend_toolkit_install.info",
+    "install_info_sha256": "0391193a0a405d26775cc56eeced6fd9560ebe11873205d3aec77486c5bd319e",
+    "install_info_text": "package_name=Ascend-cann-toolkit\nversion=9.2.0\ninnerversion=V100R001C25B114\ncompatible_version=[V100R001C15],[V100R001C23],[V100R001C10],[V100R001C11],[V100R001C12]\narch=aarch64\nos=linux\npath=/opt/ascend/cann-9.2.0\n",
+    "header_path": "/opt/ascend/cann-9.2.0/aarch64-linux/ascendc/include/basic_api/impl/kernel_operator_data_copy_check.h",
+    "header_resolved_path": "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/basic_api/kernel_operator_data_copy_check.h",
+    "header_sha256": "c70432e4b6a118ad919975356f4b31040fe457ae60d8d18c01e6e146a5eb0bcf",
+    "observed_utc": "2026-10-19T15:38:24.470898+00:00",
+    "version_binding": "The inspected header is bound to this install.info identity and hash, not inferred from the directory name."
+  },
+  "remaining_validation": [
+    "Ring-stage schedule transcription with one and two active tiles plus exactly two drain loops; require each active QK/Vec1/PV/Vec2 stage exactly once and no QK for drain.",
+    "Subsequent device equivalence must use ordinary unguarded indexer backing, original arbitrary token indices, last-row/page-boundary cases, and causal per-query thresholds."
+  ],
+  "cpu_validation": {
+    "server_directory": "a3-84:trt-asc:/workspace/offline/sfa-c1-source-audit-20261019",
+    "local_directory": "/tmp/c1-index-bounds-cpu-20261019",
+    "source_sha256": "79f394b9344cef5500319efa15f3fb458abffa2baac0a1d986c184437ad003df",
+    "input_cases_sha256": "088f18d97980c0a5a77bc7fce98c4ab82b26343241af6603bffaa049bfb1fcb7",
+    "results_sha256": "70484946447bd4bb8343c80da296a662459f5f7c7fdeff1181496522f02d59fd",
+    "summary_sha256": "ecdaea241b7632b5472759e713ce4cf3519d1e9367abc0b1ff7177463372cdc8",
+    "totals": {
+      "cases": 16,
+      "calls": 46,
+      "original_defined_calls_equal": 28,
+      "original_invalid_reads_prevented": 18,
+      "patched_invalid_reads": 0,
+      "extra_reads": 0
+    }
+  }
+}

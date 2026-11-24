@@ -1,0 +1,175 @@
+{
+  "status": "completed",
+  "device_execution": true,
+  "scope": "Actual frozen HF layer0 post-attention M1 operands; M8 repeats this same row, not historical M8 operands",
+  "device": "npu:9",
+  "cases": [
+    {
+      "width": 1,
+      "input_kind": "actual M1 pair",
+      "q": {
+        "bitexact": false,
+        "different": 451,
+        "elements": 6144,
+        "maxabs": 1.0,
+        "first_indices": [
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            28
+          ],
+          [
+            0,
+            30
+          ],
+          [
+            0,
+            41
+          ],
+          [
+            0,
+            58
+          ],
+          [
+            0,
+            73
+          ],
+          [
+            0,
+            94
+          ],
+          [
+            0,
+            95
+          ]
+        ]
+      },
+      "scale": {
+        "bitexact": false,
+        "different": 1,
+        "elements": 1,
+        "maxabs": 2.5644898414611816e-05,
+        "first_indices": [
+          [
+            0
+          ]
+        ]
+      },
+      "residual": {
+        "bitexact": true,
+        "different": 0,
+        "elements": 6144,
+        "maxabs": 0.0,
+        "first_indices": []
+      }
+    },
+    {
+      "width": 8,
+      "input_kind": "eight repeats of actual M1 pair",
+      "q": {
+        "bitexact": false,
+        "different": 3608,
+        "elements": 49152,
+        "maxabs": 1.0,
+        "first_indices": [
+          [
+            0,
+            8
+          ],
+          [
+            0,
+            28
+          ],
+          [
+            0,
+            30
+          ],
+          [
+            0,
+            41
+          ],
+          [
+            0,
+            58
+          ],
+          [
+            0,
+            73
+          ],
+          [
+            0,
+            94
+          ],
+          [
+            0,
+            95
+          ]
+        ]
+      },
+      "scale": {
+        "bitexact": false,
+        "different": 8,
+        "elements": 8,
+        "maxabs": 2.5644898414611816e-05,
+        "first_indices": [
+          [
+            0
+          ],
+          [
+            1
+          ],
+          [
+            2
+          ],
+          [
+            3
+          ],
+          [
+            4
+          ],
+          [
+            5
+          ],
+          [
+            6
+          ],
+          [
+            7
+          ]
+        ]
+      },
+      "residual": {
+        "bitexact": true,
+        "different": 0,
+        "elements": 49152,
+        "maxabs": 0.0,
+        "first_indices": []
+      }
+    }
+  ],
+  "timing_measured": false,
+  "fused_normalized_tensor": "not exposed by fused operator",
+  "cpu_formula": "IEEE FP32 diagnostic; native reduction/Div equivalence is not asserted",
+  "prepared_sha256": "60cd31e5fa71b552ba7c2779ad2b7b3a08552aca799e099c22c9ee60d14b86b1",
+  "outputs_sha256": "2295bcbf57630c520f9563854a9baddca46fbc6b507d83d2c9aaceb8eab7e6d8",
+  "script_sha256": "23cb609c55a74eb8f0840e58444170b776b8c1b5258dc99a295930b157fae675",
+  "hostname": "devserver-hps-41f23766-00002.novalocal",
+  "command": [
+    "/workspace/experiments/m32-full-teacher-20261020/norm-fusion/probe.py",
+    "run",
+    "--device",
+    "npu:9",
+    "--output",
+    "/workspace/experiments/m32-full-teacher-20261020/norm-fusion/device-01"
+  ],
+  "packages": {
+    "torch": "2.12.0+cpu",
+    "torch-npu": "2.12.0",
+    "vllm-ascend": "0.19.1rc2.dev2828+gf558b58c1.d20261015"
+  },
+  "peak_allocated": 17617920,
+  "native_compiled_historical_elf_identity": "unknown"
+}

@@ -1,0 +1,153 @@
+{
+  "passed": true,
+  "scope": "stdlib metadata, synthetic addresses, real localhost TCP; V1 base and HIXL WRITE stubbed",
+  "not_executed": [
+    "vLLM worker",
+    "Torch",
+    "NPU",
+    "HIXL",
+    "KV numerical parity",
+    "performance"
+  ],
+  "python": "3.11.12",
+  "checks": [
+    {
+      "name": "chunking_enabled_complete_8192_prefill",
+      "passed": true
+    },
+    {
+      "name": "chunking_disabled_still_supported",
+      "passed": true
+    },
+    {
+      "name": "parallel_drafting_changes_MTP_prefix",
+      "passed": true
+    },
+    {
+      "name": "page_and_MTP_lengths_P1",
+      "passed": true
+    },
+    {
+      "name": "page_and_MTP_lengths_P128",
+      "passed": true
+    },
+    {
+      "name": "page_and_MTP_lengths_P129",
+      "passed": true
+    },
+    {
+      "name": "page_and_MTP_lengths_P8192",
+      "passed": true
+    },
+    {
+      "name": "missing_MTP_prevents_send",
+      "passed": true
+    },
+    {
+      "name": "missing_MTP_before_device_or_transport",
+      "passed": true
+    },
+    {
+      "name": "checkpoint_mismatch",
+      "passed": true
+    },
+    {
+      "name": "chunked_prefix",
+      "passed": true
+    },
+    {
+      "name": "partial_prefill_rejected_before_transport",
+      "passed": true
+    },
+    {
+      "name": "prefix_hit",
+      "passed": true
+    },
+    {
+      "name": "wait_for_save_blocks_until_WRITE",
+      "passed": true
+    },
+    {
+      "name": "all_ranks_admitted_no_ready",
+      "passed": true
+    },
+    {
+      "name": "done_ack_reached",
+      "passed": true
+    },
+    {
+      "name": "wait_for_save_blocks_until_done_ack",
+      "passed": true
+    },
+    {
+      "name": "all_rank_calls_returned",
+      "passed": true
+    },
+    {
+      "name": "receiver_complete_79_caches",
+      "passed": true
+    },
+    {
+      "name": "all16_worker_metadata_preserve_prompt_and_pickle",
+      "passed": true
+    },
+    {
+      "name": "source_sampling_parameters_unchanged",
+      "passed": true
+    },
+    {
+      "name": "all16_wire_admissions_preserve_identical_prompt",
+      "passed": true
+    },
+    {
+      "name": "completed_request_retains_original_prompt",
+      "passed": true
+    },
+    {
+      "name": "NPU_sync_precedes_WRITE",
+      "passed": true
+    },
+    {
+      "name": "source_storage_registered_once",
+      "passed": true
+    },
+    {
+      "name": "hixl_library_forwarded",
+      "passed": true
+    },
+    {
+      "name": "rank_r_to_rank_r_all_region_bytes",
+      "passed": true
+    },
+    {
+      "name": "scheduler_frees_after_synchronous_save",
+      "passed": true
+    },
+    {
+      "name": "external_runtime_is_stubbed",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "command": [
+    "/workspace/src/TileRT-Ascend/tests/glm52/check_ascend_connector.py",
+    "--output",
+    "/workspace/experiments/glm52/cann-model-host-checks-20261017/check_ascend_connector.json"
+  ],
+  "source_api": {
+    "scope": "source anchors; external vLLM runtime was stubbed",
+    "vllm": null,
+    "vllm_ascend": null
+  },
+  "source_sha256": {
+    "tilert/pd_vllm/ascend_connector.py": "f9c941b8d3e13797990d5aefce9cad280dc1c0fcb4ed909fc1fbdb0a1e5cb241",
+    "tilert/pd_vllm/ascend_source.py": "88a863574b1220a823af5885b15e5ff7d1ba49a89f37629ae70c63abc6559128",
+    "tilert/pd_vllm/ascend_layout.py": "321d714817be2aaa97ce82899f9180ff93a706eaeb9c16c6c5815d455ed88beb",
+    "tilert/pd_vllm/ascend_receiver.py": "e48f85c0e5ab0b4f5a2d4677a4a67377017dd6144b3aafeecb9bfa523e06bdd4",
+    "tilert/pd_vllm/ascend_cache.py": "bf8ee860a0932efc0ea98dc4c01b5949565d9c5b1abfcac51a66019cc0b588ba",
+    "tilert/pd_vllm/prefill_connector.py": "cd9ebc2b4025e0dbfc7b014a2a962f448c13bc06f86de564af07fcb0abc3ece9",
+    "tilert/pd_vllm/wire.py": "c91f3e5ae20d37736693470e16c34383233ec8bb88f841dffcc11b5538d7878d",
+    "tests/glm52/check_ascend_connector.py": "71acf130fcd5e0ea538095d6f757d918e66ac594a4d3a036506999d66e2f9cce",
+    "tests/glm52/check_ascend_layout.py": "d19e81c0f0985440249c65454d84bde9a7b98a2587f77b08585c6183d68df189"
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "namespace": "tilert_ffn_token_terminal",
+  "c_abi": "ffn_token_terminal_launch",
+  "parent_library_sha256": "ecbf7937796d407405dd920d6c48b7148da380b6e12e04717b049e19aed650a6",
+  "library_sha256": "276352762139244a1ddfc8184065a856c2ae75ee2ccad5961af2af93f0dd5e00",
+  "manifest_sha256": "654593bf9e018ea77c97db05c000a47d73d449809a5f1fb2d71919bdcb9cb4c0",
+  "checker_sha256": "c5b5586376f9f412b1f9da2789089766a37231a682c8ef16c3c0f6f384e56d80",
+  "kernel_source_sha256": "3a96482f1ac122565c7d16e82431377675405d155d6b171da654101c76e83015",
+  "source_count": 89,
+  "artifact_count": 6,
+  "all_source_and_artifact_hashes_verified": true,
+  "cpu_contract_tests": {
+    "x86": 4,
+    "aarch64": 4
+  },
+  "frozen_cpu_runner_sha256": "f260a80dc1cd104db564f50332c9cb35f069cea57eefa8dd4aba69b55e238093",
+  "frozen_cpu_logs": {
+    "cpu-contract-x86.log": "b7d5fe4eb2e866668e664921ef1f8ed76e1f58e5f2922bf15b3c4eaae22a74aa",
+    "cpu-contract-arm.log": "29785046c57f5cfedc55e260da6e33bdfee73e4cc1d5c893ae1c61be5488b564"
+  },
+  "parent_candidate_co_load": true,
+  "npu_initialized": false,
+  "public_scratch_count": 33,
+  "descriptor_bytes": 408,
+  "shared_input_bytes": 112,
+  "maximum_resident_ub_bytes": 116480,
+  "additional_gm_bytes": 0,
+  "additional_ub_bytes": 0,
+  "body_barriers": 5,
+  "final_outer_end_phases": 0,
+  "immediate_same_graph_consumers": [
+    "bridge.combined",
+    "bridge.scaled_routed",
+    "body.routes_bf16",
+    "body.routed_output"
+  ],
+  "source_and_consumer_poison_each_replay": true,
+  "remote_host_path": "/home/shanshan/tilert-megakernel-20261021/tests/glm52/whole_layer/ffn_token_terminal/build-v1",
+  "remote_container_path": "/workspace/tests/glm52/whole_layer/ffn_token_terminal/build-v1",
+  "first_device_shell_command": "source /opt/ascend/cann-9.2.0/set_env.sh\nPYTHONDONTWRITEBYTECODE=1 XDG_CACHE_HOME=/tmp/cache ASCEND_PROCESS_LOG_PATH=/evidence/driver-log OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 env -u ASCEND_DOCKER_RUNTIME python3 /workspace/tests/glm52/whole_layer/ffn_token_terminal/build-v1/check.py --library /workspace/tests/glm52/whole_layer/ffn_token_terminal/build-v1/ffn_token_terminal.so --bridge-library /workspace/logs/ffn-bridge-runtime212-v1/native/ffn_bridge.so --body-library /workspace/tests/glm52/whole_layer/routed_body/build-v2/routed_int4_torch.so --bridge-helper /workspace/logs/ffn-bridge-runtime212-v1/check.py --body-helper /workspace/tests/glm52/whole_layer/routed_body/build-v2/source/routed_int4/check.py --oracle-mode both --oracle-library /workspace/logs/ffn-bridge-runtime212-v1/official_bridge_oracle.so --oracle-prefix /workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle --rows 12 --blocks 24 --replays 8 --output /evidence\n",
+  "device_validation": "pending root-owned gate",
+  "performance": "pending matched comparison with ecbf parent; previous separate gains not added",
+  "source_audit": {
+    "method": "Independent review of the terminal-only publication seam and poisoned immediate consumers",
+    "result": "No concrete source-level counterexample found",
+    "device_acceptance": false
+  }
+}

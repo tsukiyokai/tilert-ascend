@@ -1,0 +1,155 @@
+{
+  "schema": 1,
+  "config": {
+    "ranks": 16,
+    "rows": [
+      1,
+      12,
+      32
+    ],
+    "blocks": 24,
+    "warmup": 10,
+    "samples": 30,
+    "pressure_mib": 256,
+    "replays_per_sample": 32,
+    "start_lead_ms": 20
+  },
+  "abba_cycles": 3,
+  "worlds": [
+    {
+      "id": 0,
+      "cycle": 0,
+      "position": 0,
+      "arm": "control"
+    },
+    {
+      "id": 1,
+      "cycle": 0,
+      "position": 1,
+      "arm": "candidate"
+    },
+    {
+      "id": 2,
+      "cycle": 0,
+      "position": 2,
+      "arm": "candidate"
+    },
+    {
+      "id": 3,
+      "cycle": 0,
+      "position": 3,
+      "arm": "control"
+    },
+    {
+      "id": 4,
+      "cycle": 1,
+      "position": 0,
+      "arm": "control"
+    },
+    {
+      "id": 5,
+      "cycle": 1,
+      "position": 1,
+      "arm": "candidate"
+    },
+    {
+      "id": 6,
+      "cycle": 1,
+      "position": 2,
+      "arm": "candidate"
+    },
+    {
+      "id": 7,
+      "cycle": 1,
+      "position": 3,
+      "arm": "control"
+    },
+    {
+      "id": 8,
+      "cycle": 2,
+      "position": 0,
+      "arm": "control"
+    },
+    {
+      "id": 9,
+      "cycle": 2,
+      "position": 1,
+      "arm": "candidate"
+    },
+    {
+      "id": 10,
+      "cycle": 2,
+      "position": 2,
+      "arm": "candidate"
+    },
+    {
+      "id": 11,
+      "cycle": 2,
+      "position": 3,
+      "arm": "control"
+    }
+  ],
+  "scope": "single-node TP complete probe; two reductions+CUBE each repetition",
+  "semantic_boundary": "both arms use one fixed TreePlan; no claim of installed HCCL equivalence, isolated cold-call latency or decoder TPOT",
+  "measurement": {
+    "unit": "one captured graph containing K complete probes, divided by K",
+    "host": "(latest all-rank synchronized completion - earliest start)/K",
+    "event": "maximum per-rank NPU event span/K",
+    "clock": "same-host CLOCK_MONOTONIC; perf_counter and real-time anchors recorded",
+    "start": "gloo agrees a future CLOCK_MONOTONIC deadline; actual submission envelope retained",
+    "outside": "input change, CPU oracle, sentinel fill, pressure, NPU sync, gloo barrier",
+    "cache": "256 MiB or larger full read/write; first repetition is pressure-conditioned",
+    "warm_repetitions_fraction": "(K-1)/K; this is not isolated cold-call latency",
+    "first_repetition_fraction": 0.03125,
+    "cache_eviction_proven": false,
+    "outliers": "none removed",
+    "profiler": "disabled"
+  },
+  "hypothesis": {
+    "target_ranks": 16,
+    "minimum_world_pairs": 30,
+    "p50_saving_fraction_minimum": 0.1,
+    "p95_candidate_over_control_maximum": 1.0,
+    "maximum_submission_envelope_per_probe_over_control_p50": 0.01,
+    "acceptance": "every rows, both host/event; global p50/p95 and paired world p50; all numerical/rank-completion checks pass; >=30 world pairs",
+    "pilot": "fewer worlds report raw statistics but cannot accept the hypothesis"
+  },
+  "runtime_sources": {
+    "device_bench.py": "70a1c551b8c9613bf4aa0ca21100ab690841099287ab48687de8feec5b54dc8b",
+    "device_check.py": "29d4aa084ab30be0d3a39e80adbc3ed86a1c7df4d3ab35f8d1d7639142589666"
+  },
+  "libraries": {
+    "control": {
+      "library_sha256": "65c17f5b9a8e250715e09e92b3c2b79bbe53bf8363371d3c07ed17e9d20e788c",
+      "manifest_sha256": "0f5ef360070e701a99a268995f73dc309871706efc1ae5a93def1de8bf7323be",
+      "build_report_sha256": "9ff33527a3a5b3e895858e90b8d5599a811f94d0acef67a3ed945fab52dcd323",
+      "compiled_manifest_driver_sha256": "0bda19190327e52fa1b1d4f0e3f11882fe616fcfd980387990c40dbcfd3eb875",
+      "runtime_driver_sha256": "29d4aa084ab30be0d3a39e80adbc3ed86a1c7df4d3ab35f8d1d7639142589666",
+      "driver_changed": true,
+      "validated_frozen_driver": {
+        "path": "/work/source/experiments/communication-rsag/frozen/device_check_v1.py",
+        "sha256": "0bda19190327e52fa1b1d4f0e3f11882fe616fcfd980387990c40dbcfd3eb875"
+      }
+    },
+    "candidate": {
+      "library_sha256": "2e1318b56533123e3120b1e6f155143d86f0e73392f079902d1875b976bcde3e",
+      "manifest_sha256": "0f5ef360070e701a99a268995f73dc309871706efc1ae5a93def1de8bf7323be",
+      "build_report_sha256": "9ff33527a3a5b3e895858e90b8d5599a811f94d0acef67a3ed945fab52dcd323",
+      "compiled_manifest_driver_sha256": "0bda19190327e52fa1b1d4f0e3f11882fe616fcfd980387990c40dbcfd3eb875",
+      "runtime_driver_sha256": "29d4aa084ab30be0d3a39e80adbc3ed86a1c7df4d3ab35f8d1d7639142589666",
+      "driver_changed": true,
+      "validated_frozen_driver": {
+        "path": "/work/source/experiments/communication-rsag/frozen/device_check_v1.py",
+        "sha256": "0bda19190327e52fa1b1d4f0e3f11882fe616fcfd980387990c40dbcfd3eb875"
+      }
+    }
+  },
+  "launch": {
+    "hostname": "devserver-hps-41f23766-00038.novalocal",
+    "python": "/usr/bin/python",
+    "prepared": "/work/build/rsag-v1",
+    "endpoint_host": "127.0.0.1",
+    "visible_devices": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+    "source_identity": "registered actual source SHA256 and frozen compiled manifest"
+  }
+}

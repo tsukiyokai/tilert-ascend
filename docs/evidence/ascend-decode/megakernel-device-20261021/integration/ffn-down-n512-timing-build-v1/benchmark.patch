@@ -1,0 +1,178 @@
+--- original-shared-gu-static-timing-v1/bench.py
++++ down-n512/bench.py
+@@ -14,6 +14,9 @@
+ from types import SimpleNamespace
+ 
+ 
++EXPECTED_DOWN_TILINGS = {'torch': '2.12.0+cu130', 'torch_npu': '2.12.0', 'tiling_bytes': 200, 'arms': {'separate': {'path': '/workspace/tests/glm52/whole_layer/ffn_original_shared_gu_static/build-v1/ffn_original_shared_gu_static.so', 'library_sha256': '381febf94f918cc7393019b6f99ec8dc38e9a5cc9e63b2d49d5fe483158e3ff2', 'symbol': 'ffn_original_shared_gu_static_body_build_routed_tiling', 'layouts': {'0': {'hex': '0100000040000000001800008000000080000000400000000018000080000000400000000001000080000000010000001800000001000000180000000000000000000000000000000000000000100600000001000000000001000000010000000100000001000000010000000100000000000000000000000200000002000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000', 'sha256': 'b9c00da5a9374ee69e711d05d6149a5ad960bdeb8835475783a460c511bd2876'}, '1': {'hex': '0100000040000000001800008000000080000000400000000018000080000000400000000001000080000000010000001800000001000000180000000000000000000000000000000000000000100600000001000000000001000000010000000100000001000000010000000100000000000000000000000200000002000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000', 'sha256': 'b9c00da5a9374ee69e711d05d6149a5ad960bdeb8835475783a460c511bd2876'}}}, 'fused': {'path': '/workspace/tests/glm52/whole_layer/ffn_down_n512/build-v2/ffn_down_n512.so', 'library_sha256': 'c90b3666a1697070eda19d5b3e133e9ed58f36fe429abefceae6ffe102a6a032', 'symbol': 'ffn_down_n512_body_build_routed_tiling', 'layouts': {'0': {'hex': '0100000040000000001800008000000080000000400000000018000080000000400000000002000080000000010000000c000000010000000c0000000000000000000000000000000000000000100600000002000000000001000000010000000100000001000000010000000100000000000000000000000200000002000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000', 'sha256': 'bb8ef4481b8c63b00dc43940975ee5b172818bcd228e8bc553b22234cbb2a244'}, '1': {'hex': '0100000040000000001800008000000080000000400000000018000080000000400000000002000080000000010000000c000000010000000c0000000000000000000000000000000000000000100600000002000000000001000000010000000100000001000000010000000100000000000000000000000200000002000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000', 'sha256': 'bb8ef4481b8c63b00dc43940975ee5b172818bcd228e8bc553b22234cbb2a244'}}}}, 'npu_initialized': False}
++
++
+ class DispatchInput(ctypes.Structure):
+     _fields_ = [(name, ctypes.c_uint64) for name in (
+         "rows", "scales", "inverse", "counts", "probabilities", "bf16_rows", "expert_ids")]
+@@ -36,11 +39,13 @@
+     def __init__(self, fused, bridge, body, candidate, kind, active):
+         self.libraries = [ctypes.CDLL(str(path.resolve())) for path in (fused, bridge, body)]
+         self.libraries.append(ctypes.CDLL(str(active.resolve())))
+-        self.base = self.libraries[-1].ffn_original_shared_terminal_launch
++        self.base = self.libraries[-1].ffn_original_shared_gu_static_launch
+         self.libraries.append(ctypes.CDLL(str(candidate.resolve())))
+-        self.fused = self.libraries[-1].ffn_original_shared_gu_static_launch
++        self.fused = self.libraries[-1].ffn_down_n512_launch
+         self.kind = kind
+         self.extra_by_arena = {}
++        self.down_tilings = {}
++        self.down_owners = {}
+         array = ctypes.POINTER(ctypes.c_void_p)
+         self.fused.argtypes = ([ctypes.c_void_p, ctypes.c_uint64]
+             + [ctypes.c_void_p] * 5 + [array] * 3
+@@ -84,7 +89,11 @@
+                 raise RuntimeError("Extra variant storage aliases the common arena")
+             launchers.extra_by_arena[key] = extra
+         self.extra = launchers.extra_by_arena[key]
+-        self.candidate_body_ptrs = pointers([*r, self.extra]) if launchers.kind == "active" else self.body_ptrs
++        self.body_by_arm = {arm: [*r, self.extra] for arm in ("fused", "separate")}
++        for arm, values in self.body_by_arm.items():
++            values[7] = launchers.down_tilings[arm]
++        self.candidate_body_ptrs = pointers(self.body_by_arm["fused"])
++        self.base_body_ptrs = pointers(self.body_by_arm["separate"])
+         capacity = 16 if rows <= 16 else 32
+         partial = capacity * 6144
+         middle = partial + 6 * 256 * capacity * 4
+@@ -115,22 +124,46 @@
+     def separate(self):
+         stream = self.torch.npu.current_stream().npu_stream
+         self.launchers.base(stream, self.sync, *self.input_arguments(), self.weight_ptrs,
+-            self.bridge_ptrs, self.candidate_body_ptrs, self.shared, self.rows, self.blocks, self.layout, 1e-5)
++            self.bridge_ptrs, self.base_body_ptrs, self.shared, self.rows, self.blocks, self.layout, 1e-5)
+ 
+     def owning_torch(self, owner):
+         b, r, sync = self.arena
+         torch, bank = self.torch, self.bank
+-        torch.ops.tilert_ffn_original_shared_terminal.forward_out(
++        namespace = ("tilert_ffn_down_n512" if owner == "fused"
++                     else "tilert_ffn_original_shared_gu_static")
++        getattr(torch.ops, namespace).forward_out(
+             self.hidden, self.residual, bank["gamma"], bank["gate"], bank["bias"],
+             bank["routed"], bank["shared"], b, [*r, self.extra],
+             1e-5, self.blocks, self.layout, sync)
+ 
+ 
+-def prepare_arena(torch, launchers, hidden, blocks):
+-    bridge, body, sync = torch.ops.tilert_ffn_original_shared_terminal.prepare(
+-        hidden, blocks, 1)
++def prepare_arena(torch, launchers, hidden, blocks, owner):
++    namespace = ("tilert_ffn_down_n512" if owner == "fused"
++                 else "tilert_ffn_original_shared_gu_static")
++    bridge, body, sync = getattr(torch.ops, namespace).prepare(hidden, blocks, 1)
+     launchers.extra_by_arena[bridge[8].data_ptr()] = body[20]
++    launchers.down_tilings[owner] = body[7]
++    launchers.down_owners[owner] = (bridge, body, sync)
+     return bridge, body[:20], sync
++
++
++def check_down_tilings(torch, launchers):
++    records = {}
++    for arm, expected in EXPECTED_DOWN_TILINGS["arms"].items():
++        value = launchers.down_tilings[arm]
++        if value is not launchers.down_owners[arm][1][7]:
++            raise RuntimeError("Down tiling lost its original prepared Tensor owner")
++        if value.dtype != torch.uint8 or value.ndim != 1 or value.numel() < 200:
++            raise RuntimeError("Down tiling must be an explicit uint8 buffer of at least 200 bytes")
++        payload = bytes(value[:200].detach().cpu().tolist())
++        if payload.hex() != expected["layouts"]["1"]["hex"]:
++            raise RuntimeError(f"Prepared Down tiling differs from the loaded host tiler: {arm}")
++        records[arm] = {"address": value.data_ptr(), "bytes": 200,
++                        "sha256": hashlib.sha256(payload).hexdigest(),
++                        "hex": payload.hex(), "pass": True}
++    if records["fused"]["address"] == records["separate"]["address"]:
++        raise RuntimeError("Distinct Down geometries cannot share their tiling storage")
++    return records
+ 
+ 
+ def load_module(name, path):
+@@ -226,10 +259,10 @@
+                           args.candidate_kind, args.active_library)
+     args.output.mkdir(parents=True, exist_ok=True)
+     report = {
+-        "scope": "Matched-address static-GU FFN with original shared quantization versus its token-terminal parent, TP excluded",
+-        "arm_names": {"fused": "original_shared_gu_static", "separate": "original_shared_terminal_parent"},
++        "scope": "Down N512 versus N256 FFN with 32 common scratch addresses and private prepared Down tilings, TP excluded",
++        "arm_names": {"fused": "down_n512", "separate": "down_n256_parent"},
+         "candidate_library": {"path": str(args.candidate_library), "sha256": digest(args.candidate_library)},
+-        "scratch_matching": "All 33 tensors, including the INT32[264] active table, share exact addresses within each pair",
++        "scratch_matching": "32 tensors share addresses; body[7] is each arm's immutable prepared Down tiling",
+         "owner_validation": "Original-shared Torch validator checks all 33 tensors in both independently allocated arenas before CABI comparison",
+         "utc": datetime.now(timezone.utc).isoformat(),
+         "hostname": socket.gethostname(), "command": sys.argv,
+@@ -375,14 +408,14 @@
+ 
+     try:
+         with torch.inference_mode():
+-            cb, cr, cs = prepare_arena(torch, launchers, hidden, args.blocks)
+-            sb, sr, ss = prepare_arena(torch, launchers, hidden, args.blocks)
++            cb, cr, cs = prepare_arena(torch, launchers, hidden, args.blocks, "fused")
++            sb, sr, ss = prepare_arena(torch, launchers, hidden, args.blocks, "separate")
+             if cs != ss:
+                 raise RuntimeError("Owner arenas have different device sync bases")
+             arenas = {"fused": (cb, cr, cs), "separate": (sb, sr, ss)}
+             for slot in (8,):
+                 checked({"tiling": cb[slot]}, {"tiling": sb[slot]}, "bridge-tiling")
+-            for slot in (6, 7, 18):
++            for slot in (6, 18):
+                 checked({"tiling": cr[slot]}, {"tiling": sr[slot]}, f"body-tiling-{slot}")
+             for owner, arena in arenas.items():
+                 calls = [Calls(torch, launchers, arena, bank, hidden, residual,
+@@ -393,6 +426,16 @@
+                     "scratch_bytes": sum(value.nbytes for value in (*arena[0], *arena[1])),
+                     "prechecks": [], "samples": [], "postchecks": [], "pass": False}
+                 result["extra_checks"] = []
++                result["down_tiling_checks"] = [{"stage": "before_capture",
++                    "values": check_down_tilings(torch, launchers)}]
++                result["body_addresses_by_arm"] = {
++                    arm: [value.data_ptr() for value in calls[0].body_by_arm[arm]]
++                    for arm in ("fused", "separate")}
++                for slot, (left, right) in enumerate(zip(
++                        result["body_addresses_by_arm"]["fused"],
++                        result["body_addresses_by_arm"]["separate"], strict=True)):
++                    if (left == right) != (slot != 7):
++                        raise RuntimeError("Only Down tiling may have distinct body addresses")
+                 result["extra_storage"] = {"address": calls[0].extra.data_ptr(),
+                     "shape": list(calls[0].extra.shape), "dtype": str(calls[0].extra.dtype),
+                     "bytes": calls[0].extra.nbytes}
+@@ -404,6 +447,8 @@
+                 torch.npu.synchronize()
+                 graphs = [{name: capture(getattr(call, name)) for name in ("fused", "separate")}
+                           for call in calls]
++                result["down_tiling_checks"].append({"stage": "after_capture",
++                    "values": check_down_tilings(torch, launchers)})
+                 for iteration in range(args.replays):
+                     update(iteration)
+                     for index, call in enumerate(calls):
+@@ -453,6 +498,8 @@
+                         getattr(call, arm)()
+ 
+                 timed = {arm: capture(lambda arm=arm: sequence(arm)) for arm in ("fused", "separate")}
++                result["down_tiling_checks"].append({"stage": "after_timing_capture",
++                    "values": check_down_tilings(torch, launchers)})
+                 expected_tail = {key: expected_banks[-1][key] for key in
+                                  ("bridge.combined", "bridge.retained", "body.counts")}
+                 for sample in range(args.samples):
+@@ -481,6 +528,8 @@
+                     record["post_event_tail_byte_equal"] = True
+                     result["samples"].append(record)
+                     persist()
++                result["down_tiling_checks"].append({"stage": "after_timing",
++                    "values": check_down_tilings(torch, launchers)})
+                 for arm in ("fused", "separate"):
+                     for index, call in enumerate(calls):
+                         poison(arena)
+@@ -502,6 +551,8 @@
+                                         for arm in ("fused", "separate")}
+                 result["paired_saving_us"] = summary([item["paired_saving_us"] for item in result["samples"]])
+                 result["paired_wins"] = sum(item["paired_saving_us"] > 0 for item in result["samples"])
++                result["down_tiling_checks"].append({"stage": "after_postchecks",
++                    "values": check_down_tilings(torch, launchers)})
+                 result["pass"] = True
+                 for group in graphs:
+                     for graph in group.values():

@@ -1,0 +1,33 @@
+{
+  "compile_argv": [
+    "g++",
+    "-std=c++17",
+    "-O2",
+    "-I",
+    "/opt/ascend/cann-9.2.0/include",
+    "-I",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/tikcpp/tikcfw",
+    "/workspace/logs/down-m32n1024-host-audit-v1/tiling_probe.cpp",
+    "-o",
+    "/workspace/logs/down-m32n1024-host-audit-v1/probe",
+    "-L",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64",
+    "-L",
+    "/opt/ascend/cann-9.2.0/lib64",
+    "-ltiling_api",
+    "-lplatform",
+    "-lregister",
+    "-lunified_dlog",
+    "-lc_sec"
+  ],
+  "remote_argv": [
+    "docker",
+    "exec",
+    "shanshan-tilert-megakernel-20261021",
+    "bash",
+    "-lc",
+    "set -e\nsource /opt/ascend/cann-9.2.0/set_env.sh\ng++ -std=c++17 -O2 -I /opt/ascend/cann-9.2.0/include -I /opt/ascend/cann-9.2.0/aarch64-linux/tikcpp/tikcfw /workspace/logs/down-m32n1024-host-audit-v1/tiling_probe.cpp -o /workspace/logs/down-m32n1024-host-audit-v1/probe -L /opt/ascend/cann-9.2.0/aarch64-linux/lib64 -L /opt/ascend/cann-9.2.0/lib64 -ltiling_api -lplatform -lregister -lunified_dlog -lc_sec\n/workspace/logs/down-m32n1024-host-audit-v1/probe > /workspace/logs/down-m32n1024-host-audit-v1/tilings.jsonl\nsha256sum /opt/ascend/cann-9.2.0/aarch64-linux/lib64/libtiling_api.so /opt/ascend/cann-9.2.0/aarch64-linux/data/platform_config/Ascend910_9392.ini\n"
+  ],
+  "source_sha256": "1c08dcea0e825122c625176956f936033624fa1f5622ca90aa3a9ac1f295f9bd",
+  "device_execution": false
+}

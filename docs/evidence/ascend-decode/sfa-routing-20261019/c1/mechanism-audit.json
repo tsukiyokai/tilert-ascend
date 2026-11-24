@@ -1,0 +1,83 @@
+{
+  "route_only_change": "s2Size != 0 && sparseBlockSize <= 4 && sparseBlockSize != 1 selects V; all other cases select C",
+  "source_version": "Installed source identified by per-file SHA256; no assumed local Git HEAD.",
+  "source_anchors": [
+    {
+      "file": "csrc/attention/sparse_flash_attention/op_host/sparse_flash_attention_tiling.cpp",
+      "lines": [
+        280,
+        288
+      ],
+      "fact": "Only block size 1 changes template. Sizes 2 and 4 retain V, sizes >=8 retain C."
+    },
+    {
+      "file": "csrc/attention/sparse_flash_attention/op_host/sparse_flash_attention_tiling.cpp",
+      "lines": [
+        314,
+        331
+      ],
+      "fact": "S2 outer tile 512 is computed independently of sparse block size."
+    },
+    {
+      "file": "csrc/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_kernel_mla.h",
+      "lines": [
+        948,
+        1013
+      ],
+      "fact": "Each sparse index expands to [id*size,min(id*size+size,threshold)); size 1 is the identical token. Future entries skip and -1 terminates."
+    },
+    {
+      "file": "csrc/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_kernel_mla.h",
+      "lines": [
+        951,
+        952
+      ],
+      "fact": "The pipeline can read one index before checking its validCount boundary; fixture uses numel+1 guarded backing without changing shape."
+    },
+    {
+      "file": "csrc/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_service_cube_mla.h",
+      "lines": [
+        528,
+        555
+      ],
+      "fact": "The copy walker advances by actual blockLen and preserves arbitrary selected-index ordering."
+    },
+    {
+      "file": "csrc/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_service_cube_mla.h",
+      "lines": [
+        75,
+        112
+      ],
+      "fact": "DataCopyPA allows actual copyRowCnt=1 and writes each NZ row at a 32-byte aligned offset."
+    },
+    {
+      "file": "csrc/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_service_cube_mla.h",
+      "lines": [
+        671,
+        707
+      ],
+      "fact": "C MM1 writes selected K and RoPE directly into L1; 128-row tile is independent from sparse block length."
+    },
+    {
+      "file": "csrc/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_service_cube_mla.h",
+      "lines": [
+        930,
+        955
+      ],
+      "fact": "C MM2 uses the same walker for V with 128-row L0 slices and actual tail lengths."
+    },
+    {
+      "file": "/home/shanshan/repo/cann/asc-devkit/docs/zh/api/SIMD-API/basic_api/cube_compute_ISASI/cube_compute_load/DataCopy_GMToL1_ND2NZ.md",
+      "lines": [
+        82,
+        96
+      ],
+      "fact": "Documented nValue range is 0..16384 and destination alignment is 32 bytes; no minimum of 4 or 8."
+    }
+  ],
+  "selection": "Original [8,1,2048] arbitrary token tensor retained identically in every arm; no token expansion, coarsening, or conversion kernel.",
+  "boundary": "Source does not prove performance or full-model registration compatibility. Single-op SFA-only host overlay remains experimental.",
+  "actual_model_pool4_premise": false,
+  "actual_model_config_sha256": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+  "actual_chain_record": "/workspace/experiments/lookup-20261019/chain-w8/rank-0.json"
+}

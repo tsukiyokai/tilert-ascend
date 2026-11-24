@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-10-17T05:35:33.697114+00:00",
+  "versions": {
+    "cann": "9.2.0",
+    "torch": "2.12.0+cpu",
+    "torch_npu": "2.12.0",
+    "compiler": "g++ (GCC) 12.3.1 20230508 (openEuler 12.3.1-18.oe2203sp4)"
+  },
+  "libraries": [
+    {
+      "path": "/workspace/offline/prefix8k-20261017/hixl-listen-port/libtilert_hixl.so",
+      "sha256": "9d1421f2033d1ee0e9d11325e7d5bdd34aa5bbc78d50c42a80079af305c3ea5d"
+    },
+    {
+      "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libcann_hixl.so",
+      "sha256": "8c106ffd4a170d901d6feb5f2ddbc6b47e2b347728ab9cb14570838cff1e2c7c"
+    }
+  ],
+  "sources": [
+    {
+      "path": "/workspace/offline/prefix8k-20261017/source/tilert/pd_vllm/hixl_transport.cpp",
+      "sha256": "586d99ecddd0d7d33a55b78d435a8364a6373e227513009769e42793cb002c36"
+    },
+    {
+      "path": "/workspace/offline/prefix8k-20261017/source/tilert/pd_vllm/hixl_transport.py",
+      "sha256": "1ab6358e401be6eec80873ffffaae98b1b008e6345d565a540e3f5982c4a1f7a"
+    },
+    {
+      "path": "/workspace/offline/prefix8k-20261017/source/tests/hixl/check_transport.py",
+      "sha256": "96f38595e304a9ebbd5d96725cff6f8884e8436bcb84d2ba1298a5c176eb515c"
+    },
+    {
+      "path": "/workspace/offline/prefix8k-20261017/hixl-listen-port/check_overlap.py",
+      "sha256": "89f80bfcea9b9dbe235cb63795942418bc213e1de57e0fc290aa7104c39fffcd"
+    }
+  ],
+  "processes": [
+    {
+      "pid": 69136,
+      "role": "sender",
+      "physical_die": 0,
+      "endpoint_port": 29200,
+      "observed_device_port": 29200,
+      "listen_success": true,
+      "ranktable_port_present": true,
+      "process_exited": true,
+      "listen_log": {
+        "path": "/root/ascend/log/run/plog/plog-69136_20261017133459486.log",
+        "sha256": "db04032cb89a569769cbeb04a78fa0e92084bfa398a52f603ec85a4f7998b3b9",
+        "line": 217
+      }
+    },
+    {
+      "pid": 69137,
+      "role": "receiver",
+      "physical_die": 1,
+      "endpoint_port": 29201,
+      "observed_device_port": 29201,
+      "listen_success": true,
+      "ranktable_port_present": true,
+      "process_exited": true,
+      "listen_log": {
+        "path": "/root/ascend/log/run/plog/plog-69137_20261017133453120.log",
+        "sha256": "ac0419c0367ee1b383d6e3b7e5d92e589a07717a9a275631a74225c2512e6fb3",
+        "line": 216
+      }
+    },
+    {
+      "pid": 69372,
+      "role": "sender",
+      "physical_die": 1,
+      "endpoint_port": 29202,
+      "observed_device_port": 29202,
+      "listen_success": true,
+      "ranktable_port_present": true,
+      "process_exited": true,
+      "listen_log": {
+        "path": "/root/ascend/log/run/plog/plog-69372_20261017133512747.log",
+        "sha256": "803d45a3dbdbdc5351186dd6bb67bfa39ad5dfe835a56cd1962381faf489cb82",
+        "line": 217
+      }
+    },
+    {
+      "pid": 69373,
+      "role": "receiver",
+      "physical_die": 0,
+      "endpoint_port": 29203,
+      "observed_device_port": 29203,
+      "listen_success": true,
+      "ranktable_port_present": true,
+      "process_exited": true,
+      "listen_log": {
+        "path": "/root/ascend/log/run/plog/plog-69373_20261017133506317.log",
+        "sha256": "f79b614359ef1db012d8569dfab297dd99f524e33bac5a4a6d9496a73e7e1301",
+        "line": 216
+      }
+    }
+  ],
+  "transfer_result": {
+    "status": "pass",
+    "first_held_until_reverse_pair_exit": true,
+    "elapsed_seconds": 42.04499681480229,
+    "free_mib_before": {
+      "0": 62390,
+      "1": 62633
+    },
+    "transfers": [
+      {
+        "sender_pid": 69136,
+        "receiver_pid": 69137,
+        "sender_die": 0,
+        "receiver_die": 1,
+        "bytes": 1024,
+        "status": "pass",
+        "write_completed": true,
+        "exact_pattern": true,
+        "received_sha256": "2bce1ba628720664be4b9fdd77aae0678e5f0f3f02fc6ff641ec879094f6a404",
+        "receiver_exit": 0,
+        "error": null
+      },
+      {
+        "sender_pid": 69372,
+        "receiver_pid": 69373,
+        "sender_die": 1,
+        "receiver_die": 0,
+        "bytes": 1024,
+        "status": "pass",
+        "write_completed": true,
+        "exact_pattern": true,
+        "received_sha256": "2bce1ba628720664be4b9fdd77aae0678e5f0f3f02fc6ff641ec879094f6a404",
+        "receiver_exit": 0,
+        "error": null
+      }
+    ]
+  },
+  "raw_files": [
+    {
+      "path": "/workspace/offline/prefix8k-20261017/hixl-listen-port/build.sha256",
+      "sha256": "69d5f6be61a0125b6b77f1b567dbf41850e71b093e2baddf80cccaa347162fff"
+    },
+    {
+      "path": "/workspace/offline/prefix8k-20261017/hixl-listen-port/overlap.json",
+      "sha256": "a5b5466e4eaa768fbe4a3a832519e833dc39bce9349c2ed3bceafa2dbc8c1554"
+    },
+    {
+      "path": "/workspace/offline/prefix8k-20261017/hixl-listen-port/device-ports.json",
+      "sha256": "ca9fc4e7207dcf8105ae1c5bd53ae64680db53772ca2085b1f2f5cdbc04e763f"
+    },
+    {
+      "path": "/workspace/offline/prefix8k-20261017/hixl-listen-port/pair-0-to-1.json",
+      "sha256": "70fbd906f6ea95880271d5d6f835fa1da7cc869b06911e4e986333d4fa96278a"
+    },
+    {
+      "path": "/workspace/offline/prefix8k-20261017/hixl-listen-port/pair-1-to-0.json",
+      "sha256": "42d704272fde6e4a50a332687c1dcba459113ee96aefbcea31c449d77aa0dbe6"
+    },
+    {
+      "path": "/workspace/offline/prefix8k-20261017/hixl-listen-port/overlap.log",
+      "sha256": "0aa1c60055c059b06b29c81f4b2ae6dd378d7575f36df3015c520cef20ca798d"
+    },
+    {
+      "path": "/workspace/offline/prefix8k-20261017/hixl-listen-port/overlap-hbm-before.txt",
+      "sha256": "d3363b6e77baf95abd52f309988dd46f65b19d81cd430cc9e9061f093ee69221"
+    }
+  ],
+  "source_rebuild": {
+    "files_sha256": {
+      "/workspace/offline/prefix8k-listen-port-20261017/source/tilert/pd_vllm/hixl_transport.cpp": "a8724c6f23d8487e8ea3818e197009673db522b74d7b50de2ab29c6a835860a7",
+      "/workspace/offline/prefix8k-listen-port-20261017/source/tests/glm52/serve_vllm_prefill.sh": "1b0f78c5652d6011cc568bae56bd64e46b15d851629d6d0348ef52597451724e",
+      "/workspace/offline/prefix8k-listen-port-20261017/hixl/libtilert_hixl.so": "9d1421f2033d1ee0e9d11325e7d5bdd34aa5bbc78d50c42a80079af305c3ea5d",
+      "/workspace/offline/prefix8k-listen-port-20261017/hixl/build.sha256": "c846aca74aadbcd0bb0618e8175bbf4762486cda78b0a18b6204fc810dad34a3"
+    },
+    "binary_identical_to_measured": true,
+    "base_git_commit": "5bee97b89288acf8260464a8bc7c25724a9569dc"
+  }
+}

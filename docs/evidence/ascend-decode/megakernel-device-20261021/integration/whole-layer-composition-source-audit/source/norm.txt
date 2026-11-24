@@ -1,0 +1,145 @@
+Original lines 1-143
+    1 #ifndef TILERT_WHOLE_LAYER_NORM_NATIVE_H
+    2 #define TILERT_WHOLE_LAYER_NORM_NATIVE_H
+    3 
+    4 #include "kernel_operator.h"
+    5 #include "norm_contract.h"
+    6 
+    7 // Fields consumed by the external single-N implementation. No serialized
+    8 // tiling blob crosses this interface; the structure is local to this source.
+    9 struct TileRTNormSingleNArgs {
+   10     uint32_t num_col;
+   11     uint32_t ub_factor;
+   12     float epsilon;
+   13     uint32_t nullptr_beta;
+   14 };
+   15 
+   16 #define AddRMSNormBiasTilingData TileRTNormSingleNArgs
+   17 #include "add_rms_norm_bias_single_n.h"
+   18 #undef AddRMSNormBiasTilingData
+   19 
+   20 namespace whole_layer_norm::device {
+   21 using namespace AscendC;
+   22 
+   23 template <HardEvent Event>
+   24 __aicore__ inline void Fence()
+   25 {
+   26     const auto event = GetTPipePtr()->FetchEventID(Event);
+   27     SetFlag<Event>(event);
+   28     WaitFlag<Event>(event);
+   29 }
+   30 
+   31 class DynamicQuantRow {
+   32 public:
+   33     __aicore__ inline void Init(TPipe& pipe)
+   34     {
+   35         pipe.InitBuffer(storage_, 15 * kHidden + 32);
+   36         auto bytes = storage_.Get<uint8_t>();
+   37         bf16_ = bytes.ReinterpretCast<bfloat16_t>();
+   38         value_ = bytes[2 * kHidden].ReinterpretCast<float>();
+   39         other_ = bytes[6 * kHidden].ReinterpretCast<float>();
+   40         work_ = bytes[10 * kHidden].ReinterpretCast<float>();
+   41         codes_ = bytes[14 * kHidden].ReinterpretCast<int8_t>();
+   42         scalar_ = bytes[15 * kHidden].ReinterpretCast<float>();
+   43     }
+   44 
+   45     __aicore__ inline void Process(__gm__ bfloat16_t* input,
+   46         __gm__ int8_t* output, __gm__ float* scale)
+   47     {
+   48         GlobalTensor<bfloat16_t> source;
+   49         GlobalTensor<int8_t> destination;
+   50         GlobalTensor<float> scales;
+   51         source.SetGlobalBuffer(input, kHidden);
+   52         destination.SetGlobalBuffer(output, kHidden);
+   53         scales.SetGlobalBuffer(scale, 1);
+   54         DataCopy(bf16_, source, kHidden);
+   55         Fence<HardEvent::MTE2_V>();
+   56         Cast(value_, bf16_, RoundMode::CAST_NONE, kHidden);
+   57         PipeBarrier<PIPE_V>();
+   58         Abs(other_, value_, kHidden);
+   59         Duplicate(scalar_, 0.0F, 8);
+   60         PipeBarrier<PIPE_V>();
+   61         ReduceMax(scalar_, other_, work_, kHidden, false);
+   62         Fence<HardEvent::V_S>();
+   63         const float maximum = scalar_.GetValue(0);
+   64         Fence<HardEvent::S_V>();
+   65         Duplicate(work_, maximum == 0.0F ? 1.0F : maximum, kHidden);
+   66         Duplicate(other_, 127.0F, kHidden);
+   67         PipeBarrier<PIPE_V>();
+   68         Div(other_, other_, work_, kHidden);
+   69         PipeBarrier<PIPE_V>();
+   70         Mul(value_, value_, other_, kHidden);
+   71         Muls(scalar_, scalar_, 1.0F / 127.0F, 8);
+   72         PipeBarrier<PIPE_V>();
+   73         Mins(value_, value_, 127.0F, kHidden);
+   74         PipeBarrier<PIPE_V>();
+   75         Maxs(value_, value_, -127.0F, kHidden);
+   76         PipeBarrier<PIPE_V>();
+   77         auto integers = work_.ReinterpretCast<int32_t>();
+   78         Cast(integers, value_, RoundMode::CAST_RINT, kHidden);
+   79         PipeBarrier<PIPE_V>();
+   80         SetDeqScale(static_cast<half>(1.0F));
+   81         PipeBarrier<PIPE_V>();
+   82         auto fp16 = bf16_.ReinterpretCast<half>();
+   83         Cast(fp16, integers, RoundMode::CAST_ROUND, kHidden);
+   84         PipeBarrier<PIPE_V>();
+   85         Cast(codes_, fp16, RoundMode::CAST_TRUNC, kHidden);
+   86         Fence<HardEvent::V_MTE3>();
+   87         DataCopy(destination, codes_, kHidden);
+   88         RmsNorm::DataCopyCustom<float>(scales, scalar_, 1);
+   89         Fence<HardEvent::MTE3_V>();
+   90     }
+   91 
+   92 private:
+   93     TBuf<TPosition::VECCALC> storage_;
+   94     LocalTensor<bfloat16_t> bf16_;
+   95     LocalTensor<float> value_;
+   96     LocalTensor<float> other_;
+   97     LocalTensor<float> work_;
+   98     LocalTensor<float> scalar_;
+   99     LocalTensor<int8_t> codes_;
+  100 };
+  101 
+  102 __aicore__ inline void Forward(
+  103     TPipe& pipe, __gm__ bfloat16_t* input, __gm__ bfloat16_t* residual,
+  104     __gm__ bfloat16_t* gamma, __gm__ bfloat16_t* beta,
+  105     __gm__ bfloat16_t* normalized, __gm__ bfloat16_t* retained,
+  106     __gm__ float* rstd, __gm__ int8_t* quantized,
+  107     __gm__ float* scales, int64_t rows, int64_t blocks, float epsilon)
+  108 {
+  109     if ASCEND_IS_AIV {
+  110         const int64_t vector = GetBlockIdx();
+  111         // These are the A2/A3 host tiler's BF16 single-N choices for H=6144.
+  112         const TileRTNormSingleNArgs args{
+  113             kHidden, beta == nullptr ? 12288U : 11264U,
+  114             epsilon, beta == nullptr ? 1U : 0U};
+  115         for (int64_t row = vector; row < rows; row += 2 * blocks) {
+  116             // The vendor body adds GetBlockIdx() internally. Offset only
+  117             // complete waves so its reduction and BF16 boundaries stay intact.
+  118             const int64_t wave = row - vector;
+  119             KernelAddRmsNormBiasSingleN<bfloat16_t> norm(&pipe);
+  120             norm.Init(reinterpret_cast<GM_ADDR>(input + wave * kHidden),
+  121                 reinterpret_cast<GM_ADDR>(residual + wave * kHidden),
+  122                 reinterpret_cast<GM_ADDR>(gamma), reinterpret_cast<GM_ADDR>(beta),
+  123                 reinterpret_cast<GM_ADDR>(normalized + wave * kHidden),
+  124                 reinterpret_cast<GM_ADDR>(rstd + wave),
+  125                 reinterpret_cast<GM_ADDR>(retained + wave * kHidden), &args);
+  126             norm.Process();
+  127             PipeBarrier<PIPE_ALL>();
+  128             pipe.Reset();
+  129             if (quantized != nullptr) {
+  130                 DynamicQuantRow quant;
+  131                 quant.Init(pipe);
+  132                 quant.Process(normalized + row * kHidden,
+  133                     quantized + row * kHidden, scales + row);
+  134                 PipeBarrier<PIPE_ALL>();
+  135                 pipe.Reset();
+  136             }
+  137         }
+  138     }
+  139     SyncAll<false>();
+  140 }
+  141 
+  142 }
+  143 #endif
+

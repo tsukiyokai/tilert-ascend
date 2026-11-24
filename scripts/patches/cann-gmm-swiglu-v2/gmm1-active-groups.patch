@@ -1,0 +1,287 @@
+--- /dev/null
++++ b/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/active_groups.h
+@@ -0,0 +1,93 @@
++#ifndef GMM_A8W4_ACTIVE_GROUPS_H
++#define GMM_A8W4_ACTIVE_GROUPS_H
++
++#include "kernel_operator.h"
++
++namespace GroupedMatmulDequantSwigluQuant {
++using namespace AscendC;
++
++// Single-chunk decode reserves its unused second activation bank for this table.
++// Word 0 is the count; each following word packs (exclusive row end, expert id).
++class ActiveGroups {
++public:
++    static constexpr uint32_t EXPERTS = 256;
++    static constexpr uint32_t WORDS = 260;
++    bool enabled = false;
++
++    __aicore__ inline void Init(GM_ADDR address)
++    {
++        enabled = address != nullptr;
++        if (enabled) {
++            records.SetGlobalBuffer((__gm__ uint64_t *)address);
++        }
++    }
++
++    __aicore__ inline void Publish(GM_ADDR countsAddress, TPipe *pipe)
++    {
++        if ASCEND_IS_AIV {
++            if (!enabled || GetBlockIdx() != 0) {
++                return;
++            }
++            TBuf<TPosition::VECCALC> buffer;
++            pipe->InitBuffer(buffer, (EXPERTS + WORDS) * sizeof(uint64_t));
++            auto counts = buffer.Get<int64_t>();
++            auto output = buffer.GetWithOffset<uint64_t>(WORDS, EXPERTS * sizeof(uint64_t));
++            GlobalTensor<int64_t> input;
++            input.SetGlobalBuffer((__gm__ int64_t *)countsAddress);
++            DataCopy(counts, input, EXPERTS);
++            SetFlag<HardEvent::MTE2_S>(EVENT_ID0);
++            WaitFlag<HardEvent::MTE2_S>(EVENT_ID0);
++            uint32_t active = 0;
++            uint32_t end = 0;
++            for (uint32_t expert = 0; expert < EXPERTS; ++expert) {
++                const auto rows = counts.GetValue(expert);
++                if (rows > 0) {
++                    end += rows;
++                    output.SetValue(++active, (static_cast<uint64_t>(end) << 32) | expert);
++                }
++            }
++            output.SetValue(0, active);
++            const uint32_t length = ((active + 4) / 4) * 4;
++            for (uint32_t i = active + 1; i < length; ++i) {
++                output.SetValue(i, 0);
++            }
++            SetFlag<HardEvent::S_MTE3>(EVENT_ID0);
++            WaitFlag<HardEvent::S_MTE3>(EVENT_ID0);
++            DataCopy(records, output, length);
++            SetFlag<HardEvent::MTE3_S>(EVENT_ID0);
++            WaitFlag<HardEvent::MTE3_S>(EVENT_ID0);
++            pipe->Reset();
++        }
++    }
++
++    __aicore__ inline void Invalidate()
++    {
++        // SyncAll publishes MTE3 writes, but scalar GM reads use per-core DCache.
++        DataCacheCleanAndInvalid<uint64_t, CacheLine::ENTIRE_DATA_CACHE,
++                                 DcciDst::CACHELINE_OUT>(records);
++    }
++
++    __aicore__ inline uint32_t Size() { return records.GetValue(0); }
++    __aicore__ inline uint64_t Get(uint32_t slot) { return records.GetValue(slot + 1); }
++    __aicore__ inline uint32_t End(uint32_t slot) { return Get(slot) >> 32; }
++
++    __aicore__ inline uint32_t FindRow(uint32_t row)
++    {
++        uint32_t left = 0;
++        uint32_t right = Size();
++        while (left < right) {
++            const uint32_t mid = (left + right) / 2;
++            if (End(mid) <= row) {
++                left = mid + 1;
++            } else {
++                right = mid;
++            }
++        }
++        return left;
++    }
++
++private:
++    GlobalTensor<uint64_t> records;
++};
++} // namespace GroupedMatmulDequantSwigluQuant
++#endif
+--- a/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_mid.h
++++ b/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_mid.h
+@@ -17,6 +17,7 @@
+ #define OP_KERNEL_GROUPED_MATMUL_SWIGLU_QUANT_V2_A8W4_MSD_MID_H
+
+ #include "grouped_matmul_swiglu_quant_v2_utils.h"
++#include "active_groups.h"
+
+ #ifdef GMM_SWIGLU_QUANT_V2_A8W4_MSD
+
+@@ -99,6 +100,7 @@
+     GlobalTensor<half> mmOutGM1;
+     GlobalTensor<half> mmOutGM2;
+     GlobalTensor<int64_t> groupListGM;
++    ActiveGroups activeGroups;
+     GlobalTensor<uint64_t> weightScaleGM;
+
+     GM_ADDR weightTensorPtr;
+@@ -120,6 +122,7 @@
+ {
+     if ASCEND_IS_AIC {
+         gmmSwigluQuantV2BaseParams = gmmSwigluQuantV2BaseParamsIN;
++        activeGroups.Init(gmAddrParams.activeGroupsGM);
+         xRowSumCount = gmmSwigluQuantV2BaseParams->M;
+         xGM1.SetGlobalBuffer((__gm__ int4b_t *)gmAddrParams.workSpaceGM); // 从前处理中获得的结果
+         xGM2.SetGlobalBuffer(
+@@ -188,11 +191,20 @@
+                 totalTmp += groupListGM.GetValue(i);
+             }
+         }
+-        for (uint32_t groupIdx = workspaceSplitConfig.rightMatrixExpertStartIndex, preCount = 0;
+-             groupIdx <= workspaceSplitConfig.rightMatrixExpertEndIndex; ++groupIdx) {
++        if (activeGroups.enabled) {
++            activeGroups.Invalidate();
++        }
++        const uint32_t groups = activeGroups.enabled ? activeGroups.Size() :
++            workspaceSplitConfig.rightMatrixExpertEndIndex - workspaceSplitConfig.rightMatrixExpertStartIndex + 1;
++        for (uint32_t slot = 0, preCount = 0; slot < groups; ++slot) {
++            uint32_t groupIdx = workspaceSplitConfig.rightMatrixExpertStartIndex + slot;
+             UpdateMnConfig(mnConfig);
+             int32_t currSplitValue = 0;
+-            if (gmmSwigluQuantV2BaseParams->groupListType == 0) {
++            if (activeGroups.enabled) {
++                const uint64_t record = activeGroups.Get(slot);
++                groupIdx = static_cast<uint32_t>(record);
++                currSplitValue = record >> 32;
++            } else if (gmmSwigluQuantV2BaseParams->groupListType == 0) {
+                 currSplitValue = static_cast<int32_t>(groupListGM.GetValue(groupIdx));
+             } else {
+                 totalTmp += static_cast<int32_t>(groupListGM.GetValue(groupIdx));
+--- a/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_pipeline.h
++++ b/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_pipeline.h
+@@ -87,6 +87,14 @@
+         gmmSwigluQuantV2BaseParams->workSpaceOffset1 + gmmSwigluQuantV2BaseParams->workSpaceOffset2 / 2;
+     groupListGM.SetGlobalBuffer((__gm__ int64_t *)gmAddrParams.groupListGM);
+     InitWorkSpaceSplitConfig(workspaceSplitConfig);
++    if (workspaceSplitConfig.loopCount == 1 &&
++        gmmSwigluQuantV2BaseParams->groupListType == 1 &&
++        gmmSwigluQuantV2->groupListLen == ActiveGroups::EXPERTS &&
++        gmmSwigluQuantV2BaseParams->K == 6144 &&
++        gmmSwigluQuantV2BaseParams->N == 256 &&
++        gmmSwigluQuantV2BaseParams->M <= 256) {
++        gmAddrParams.activeGroupsGM = workspace + gmAddrParams.workSpaceOffset1;
++    }
+ }
+
+ template <class mmType>
+@@ -99,6 +107,9 @@
+
+     // batch-one fast path: a single workspace split needs only pre -> mm -> post.
+     if (workspaceSplitConfig.loopCount == 1) {
++        ActiveGroups activeGroups;
++        activeGroups.Init(gmAddrParams.activeGroupsGM);
++        activeGroups.Publish(gmAddrParams.groupListGM, pipe);
+         preProcess.Process(workspaceSplitConfig, 0, pipe);
+         // Every cumulative row count stays at or below mLimit here, so no break
+         // condition in UpdateWorkSpaceSplitConfig's walk can fire and its answer
+--- a/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_post.h
++++ b/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_post.h
+@@ -17,6 +17,7 @@
+ #define OP_KERNEL_GROUPED_MATMUL_SWIGLU_QUANT_V2_A8W4_MSD_POST_H
+
+ #include "grouped_matmul_swiglu_quant_v2_utils.h"
++#include "active_groups.h"
+ #include "kernel_operator.h"
+
+ #ifdef GMM_SWIGLU_QUANT_V2_A8W4_MSD
+@@ -64,6 +65,8 @@
+     const GMMSwigluQuantV2BaseParams *__restrict gmmSwigluQuantV2BaseParams;
+     GlobalTensor<float> perTokenScaleGM;
+     GlobalTensor<int64_t> groupListGM;
++    ActiveGroups activeGroups;
++    uint32_t activeSlot = 0;
+     GlobalTensor<int8_t> quantOutputGM;
+     GlobalTensor<float> weightAuxiliaryMatrixGM;
+     GlobalTensor<float> quantScaleOutputGM;
+@@ -92,6 +95,7 @@
+         aivCoreNum = aicCoreNum * 2;
+         blockIdx = GetBlockIdx();
+         gmmSwigluQuantV2BaseParams = gmmSwigluQuantV2BaseParamsIN;
++        activeGroups.Init(gmAddrParams.activeGroupsGM);
+         gmmSwigluQuantV2 = gmmSwigluIN;
+         weightAuxiliaryMatrixGM.SetGlobalBuffer(GetTensorAddr<float>(0, gmAddrParams.weightAuxiliaryMatrixGM));
+         groupListGM.SetGlobalBuffer((__gm__ int64_t *)gmAddrParams.groupListGM, gmmSwigluQuantV2->groupListLen);
+@@ -266,30 +270,40 @@
+     vecConfig.curIdx = vecConfig.startIdx;
+     vecConfig.startOffset = vecConfig.startIdx * gmmSwigluQuantV2->tokenLen;
+     vecConfig.curOffset = vecConfig.startOffset;
+-    int64_t curStartIdx = vecConfig.startIdx;
+-    int64_t prevM = workspaceSplitLoopIdx * workspaceSplitConfig.notLastTaskSize;
+-    int64_t totalTmp = 0;
+-    if (gmmSwigluQuantV2BaseParams->groupListType == 1) {
+-        for (uint32_t i = 0; i < workspaceSplitConfig.rightMatrixExpertStartIndex; i++) {
+-            totalTmp += groupListGM.GetValue(i);
++    if (activeGroups.enabled) {
++        activeGroups.Invalidate();
++        if (blockIdx < vecConfig.usedCoreNum) {
++            activeSlot = activeGroups.FindRow(vecConfig.startIdx);
++            const uint64_t record = activeGroups.Get(activeSlot);
++            vecConfig.curGroupIdx = static_cast<uint32_t>(record);
++            vecConfig.nextUpdateInterVal = (record >> 32) - vecConfig.startIdx;
+         }
+-    }
+-    for (uint32_t groupIdx = workspaceSplitConfig.rightMatrixExpertStartIndex;
+-         groupIdx <= workspaceSplitConfig.rightMatrixExpertEndIndex; groupIdx++) {
+-        int64_t currM = 0;
+-        if (gmmSwigluQuantV2BaseParams->groupListType == 0) {
+-            currM = groupListGM.GetValue(groupIdx);
+-        } else {
+-            totalTmp += groupListGM.GetValue(groupIdx);
+-            currM = totalTmp;
++    } else {
++        int64_t curStartIdx = vecConfig.startIdx;
++        int64_t prevM = workspaceSplitLoopIdx * workspaceSplitConfig.notLastTaskSize;
++        int64_t totalTmp = 0;
++        if (gmmSwigluQuantV2BaseParams->groupListType == 1) {
++            for (uint32_t i = 0; i < workspaceSplitConfig.rightMatrixExpertStartIndex; i++) {
++                totalTmp += groupListGM.GetValue(i);
++            }
+         }
+-        int64_t tempM = currM - prevM;
+-        prevM = currM;
+-        if (curStartIdx >= 0 && curStartIdx - tempM < 0) {
+-            vecConfig.curGroupIdx = groupIdx;
+-            vecConfig.nextUpdateInterVal = tempM - curStartIdx;
++        for (uint32_t groupIdx = workspaceSplitConfig.rightMatrixExpertStartIndex;
++             groupIdx <= workspaceSplitConfig.rightMatrixExpertEndIndex; groupIdx++) {
++            int64_t currM = 0;
++            if (gmmSwigluQuantV2BaseParams->groupListType == 0) {
++                currM = groupListGM.GetValue(groupIdx);
++            } else {
++                totalTmp += groupListGM.GetValue(groupIdx);
++                currM = totalTmp;
++            }
++            int64_t tempM = currM - prevM;
++            prevM = currM;
++            if (curStartIdx >= 0 && curStartIdx - tempM < 0) {
++                vecConfig.curGroupIdx = groupIdx;
++                vecConfig.nextUpdateInterVal = tempM - curStartIdx;
++            }
++            curStartIdx -= tempM;
+         }
+-        curStartIdx -= tempM;
+     }
+     // 第三步 计算总数据量
+     vecConfig.outLoopNum =
+@@ -336,6 +350,14 @@
+ {
+     // 更新weightAuxiliaryMatrix
+     if (unlikely(vecConfig.nextUpdateInterVal == 0)) {
++        if (activeGroups.enabled) {
++            const uint32_t previousEnd = activeGroups.End(activeSlot);
++            const uint64_t record = activeGroups.Get(++activeSlot);
++            vecConfig.curGroupIdx = static_cast<uint32_t>(record);
++            vecConfig.nextUpdateInterVal = (record >> 32) - previousEnd;
++            PreLoadAuxiliaryMatrix(vecConfig);
++            return;
++        }
+         int64_t loop = gmmSwigluQuantV2->groupListLen - vecConfig.curGroupIdx;
+         while (loop--) {
+             if (gmmSwigluQuantV2BaseParams->groupListType == 0) {
+--- a/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_utils.h
++++ b/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_utils.h
+@@ -148,6 +148,7 @@
+     GM_ADDR yGM;      // 输出量化矩阵
+     GM_ADDR yScaleGM; // 输出scale矩阵
+     // workspace GM Tensor
++    GM_ADDR activeGroupsGM = nullptr;
+     GM_ADDR workSpaceGM; // 左矩阵前处理结果矩阵 (double workspace) + 中间处理结果矩阵 (double workspace)
+     int64_t workSpaceOffset1;
+     int64_t workSpaceOffset2;

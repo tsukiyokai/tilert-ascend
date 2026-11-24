@@ -1,0 +1,14 @@
+--- a/csrc/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_kernel_mla.h
++++ b/csrc/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_kernel_mla.h
+@@ -954,7 +954,10 @@
+     uint64_t thresholdSparseCount = (info.threshold + constInfo.sparseBlockSize - 1) / constInfo.sparseBlockSize;
+     uint64_t validCount = (constInfo.sparseBlockCount > thresholdSparseCount) ? thresholdSparseCount : constInfo.sparseBlockCount;
+ 
+-    int32_t sparseIndices = topKGm.GetValue(info.topKBaseOffset + curTopKIdx);
++    int32_t sparseIndices = -1;
++    if (curTopKIdx < validCount) {
++        sparseIndices = topKGm.GetValue(info.topKBaseOffset + curTopKIdx);
++    }
+     if (sparseIndices == -1 || curTopKIdx == validCount) {
+         info.actualSingleProcessSInnerSize = 0;
+         info.actualSingleProcessSInnerSizeAlign = 0;

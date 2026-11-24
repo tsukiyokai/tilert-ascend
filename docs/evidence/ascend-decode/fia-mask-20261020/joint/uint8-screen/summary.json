@@ -1,0 +1,61 @@
+{
+  "scope": "One synthetic M8/C9344 uint8-bitmap paired graph micro-screen",
+  "status": "single_screen_completed",
+  "source_sha256": "c807b5f1ec922c8c19404b8a25d76451a09267a68ee51006e9393b284211f731",
+  "audit_source_sha256": "708bfdbf9b54695bb16d1933632593b5748ed3c71245caa41f910960863bc040",
+  "raw_result_sha256": "69ba55493adb85a9c50d49fbf829bbeb04d33c654eae0bea9be744c43718b54a",
+  "input_sha256": "de64a6e9d8a3565751098836880efcdc1eaff23eedb1650176ef901585e914d9",
+  "original_input_sha256": "d8b00212e619c88383dcb79c487c050fa38b26a29467240e8ac66d7261f5d23a",
+  "baseline_source_sha256": "0a0bc242f829daf03abaa2b2d00741d8bf8c68cbb1beacd20fba437664a673c5",
+  "only_device_function_change_ast_verified": "torch.ones dtype bool to uint8",
+  "bool_baseline_eager_all_states_bit_equal": true,
+  "self_eager_graph_all_states_bit_equal": true,
+  "attention_calls": {
+    "eager": 20,
+    "capture": 20,
+    "validation": 60,
+    "measured": 600
+  },
+  "summary": {
+    "sfa": {
+      "event_us_per_call_median": 94.40300166606903,
+      "wall_us_per_call_median": 108.72925000000001,
+      "host_graph_enqueue_us_median": 74.376
+    },
+    "joint": {
+      "event_us_per_call_median": 693.8250064849854,
+      "wall_us_per_call_median": 709.6112,
+      "host_graph_enqueue_us_median": 74.096
+    }
+  },
+  "paired_event_ratio_median": 7.34056580264469,
+  "paired_wall_ratio_median": 6.5165879016944235,
+  "paired_event_delta_us_median": 599.2680042982101,
+  "paired_event_ratio_range": [
+    6.6175627135768735,
+    7.467693167118049
+  ],
+  "order_parity_event_ratio_medians": {
+    "0": 7.395273897116466,
+    "1": 7.2701631021920745
+  },
+  "actual_sfa_key": 1158,
+  "actual_fia_key": 105000000010122221,
+  "actual_scatter_launches": [
+    {
+      "line": 74753,
+      "text": "[INFO] RUNTIME(13186,python3):2026-10-20-00:29:50.934.917 [aix_stars.cc:682] 13271 StreamLaunchKernelV2: kernel info : device_id=0, stream_id=45, task_id=0, kernelAttrType=KERNEL_ATTR_TYPE_VECTOR(2), kernel_name=ScatterElementsV2_e13d3e47fa14436e81c0bc36b58ec410_high_performance_410, arg_size=448, coreDim=8, taskRation=0, funcType=5, addr1=0x12c087abf358, addr2=0x0, mixType=2, kernelFlag=0x0, qos=0, partId=0, schemMode=0, infoAddr=(nil), atomicIndex=4120283713281982464, prefetchCnt1=8, prefetchCnt2=0, isNoNeedH2DCopy=0."
+    },
+    {
+      "line": 83430,
+      "text": "[INFO] RUNTIME(13186,python3):2026-10-20-00:29:51.027.929 [aix_stars.cc:682] 13271 StreamLaunchKernelV2: kernel info : device_id=0, stream_id=45, task_id=0, kernelAttrType=KERNEL_ATTR_TYPE_VECTOR(2), kernel_name=ScatterElementsV2_e13d3e47fa14436e81c0bc36b58ec410_high_performance_410, arg_size=448, coreDim=8, taskRation=0, funcType=5, addr1=0x12c087abf358, addr2=0x0, mixType=2, kernelFlag=0x0, qos=0, partId=0, schemMode=0, infoAddr=(nil), atomicIndex=3471766466452258816, prefetchCnt1=8, prefetchCnt2=0, isNoNeedH2DCopy=0."
+    }
+  ],
+  "scatter_route": "Actual launch is ScatterElementsV2 vector kernel, coreDim=8, mixType=2; LinearIndex vector kernel precedes it. The API still receives INT64 indices; its internal scatter indices are INT32.",
+  "or_route": "The mixed uint8/bool OR first casts the bool comparator to uint8 with CastAiCore, then creates and launches BitwiseOrAiCpu. Actual first launch is launch.log:75321; dispatch entry is launch.log:75218. The uint8 change removes the bool-scatter AICPU route but introduces an AICPU route in OR.",
+  "attribution_limit": "This uint8 screen has no per-task device profile. The OR AICPU route is directly observed, but its device duration and share of the full path are unknown.",
+  "peak_allocated_bytes": 92798976,
+  "peak_reserved_bytes": 184549376,
+  "model_tpot_measured": false,
+  "decoder_precision_verified": false
+}

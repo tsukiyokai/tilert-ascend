@@ -1,0 +1,31 @@
+--- v2/kshift_kernel.cpp
++++ v3/kshift_kernel.cpp
+@@ -69,14 +69,18 @@
+     copy.nValue = kRows;
+     copy.dValue = kMmadInner;
+     copy.srcDValue = kInner;
+-    copy.dstNzC0Stride = kTile;
++    // A3 Mmad(m=1) uses GEMV: L0A holds a contiguous K vector.
++    copy.dstNzC0Stride = 1;
+     copy.dstNzNStride = 1;
+     Nd2NzParams copy_b = copy;
+     copy_b.nValue = kTile;
++    copy_b.dstNzC0Stride = kTile;
+     LoadData2DParams load{};
+     load.repeatTimes = kMmadInner / kTile;
+     load.srcStride = 1;
+     load.ifTranspose = false;
++    LoadData2DParams load_a = load;
++    load_a.repeatTimes = (kMmadInner + kTile * kTile - 1) / (kTile * kTile);
+     for (int32_t outer = 0; outer < kOuterCount; ++outer) {
+         const int32_t k_segment = OuterK(outer, column_tile, shifted != 0);
+         for (int32_t step = 0; step < 4; ++step) {
+@@ -85,7 +89,7 @@
+             DataCopy(b_l1, b_gm[column_tile * kTile * kInner + k_start], copy_b);
+             SetFlag<HardEvent::MTE2_MTE1>(EVENT_ID0);
+             WaitFlag<HardEvent::MTE2_MTE1>(EVENT_ID0);
+-            LoadData(a_l0, a_l1, load);
++            LoadData(a_l0, a_l1, load_a);
+             LoadData(b_l0, b_l1, load);
+             SetFlag<HardEvent::MTE1_M>(EVENT_ID0);
+             WaitFlag<HardEvent::MTE1_M>(EVENT_ID0);

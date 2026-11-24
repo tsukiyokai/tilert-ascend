@@ -1,0 +1,67 @@
+{
+  "scope": "One frozen old 8K+1024 trajectory; CPU proposal/acceptance only",
+  "server": "trt-asc",
+  "python": "3.11.12",
+  "npu_execution": false,
+  "model_timing": false,
+  "independent_inputs": 1,
+  "source_commit": "d49ed4f",
+  "longest": 8,
+  "shortest": 1,
+  "paper": "https://arxiv.org/html/2411.04975v1#S3",
+  "ablation": "Keep longest suffix1..8; replace latest occurrence with greedy highest-count child under that fixed suffix node. Frequency ties choose latest supporting occurrence. No tree, global corpus, alpha, or suffix-score selection.",
+  "data_limit": "The old trajectory first diverges from frozen teacher at output index4. This replay is not a precision gate.",
+  "source_sha256": {
+    "/workspace/offline/lookup-frequency-path-20261020-codex/lookup_draft.py": "1cf747142b9acdcfcb4aeac211bb2e8cd3c47439f02ce28e0e9df6f24b5d6a55",
+    "/workspace/offline/lookup-frequency-path-20261020-codex/replay.py": "09719da5c5a02bb0938b07a3e505f6ffb60010bffdbf3946214ff38f5819b219",
+    "/workspace/experiments/lookup-20261019/chain-w8/rank-0.json": "3aa6cce191de24a06a1131f45db3c93f30716ffe5024ad0c23ca4f8c7524d671",
+    "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/manifest.json": "b01cceb2d2e30564807ce9efc441ad535999b56b73d0c333e93bb18694ccda74"
+  },
+  "repeats": 3,
+  "raw_result_sha256": "9b71fa8150493a6cbead633909fe920380f0ae6cab560e0509d985ff2ee26128",
+  "results": [
+    {
+      "width": 8,
+      "arms": {
+        "latest": {
+          "rounds": 228,
+          "verified_rows": 1824,
+          "committed": 1023,
+          "changed_proposal_rounds": 0,
+          "proposal_cpu_ms_median": 0.456432,
+          "total_cpu_ms_median": 22.591982
+        },
+        "frequency_path": {
+          "rounds": 226,
+          "verified_rows": 1808,
+          "committed": 1023,
+          "changed_proposal_rounds": 60,
+          "proposal_cpu_ms_median": 7.697579,
+          "total_cpu_ms_median": 40.068187
+        }
+      }
+    },
+    {
+      "width": 32,
+      "arms": {
+        "latest": {
+          "rounds": 147,
+          "verified_rows": 4704,
+          "committed": 1023,
+          "changed_proposal_rounds": 0,
+          "proposal_cpu_ms_median": 0.373312,
+          "total_cpu_ms_median": 22.820443
+        },
+        "frequency_path": {
+          "rounds": 146,
+          "verified_rows": 4672,
+          "committed": 1023,
+          "changed_proposal_rounds": 73,
+          "proposal_cpu_ms_median": 13.176858,
+          "total_cpu_ms_median": 45.695305
+        }
+      }
+    }
+  ],
+  "decision": "Defer: M32 saves one round on an unaccepted trajectory and adds 22.9ms CPU per request; no device gain measured."
+}

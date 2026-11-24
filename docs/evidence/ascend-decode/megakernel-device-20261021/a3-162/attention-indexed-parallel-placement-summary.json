@@ -1,0 +1,124 @@
+{
+  "scope": "M32, 8 weight banks and 16 calls per graph; 30 alternating pairs per arena with 30 graph replays per event. Four graphs O(A), P(A), O(B), P(B) reuse every scratch/tiling/output/cache address within an arena; all share weights/input/metadata. Each arm restores identical cache values and runs three warmup replays outside its event.",
+  "source_report": "attention-indexed-parallel-placement-m32-bank8.json",
+  "source_sha256": "960b023104f76102d72c7272ae37023948d801f90a7d7446c17112b2b495ed13",
+  "decision": "Keep the sequential default. BF16 has opposite median signs on arenas A and B. The initial 9.98 us regression cannot be attributed solely to Q/K scheduling. This comparison detects address sensitivity without identifying a particular cache mechanism.",
+  "cases": [
+    {
+      "mode": "int8",
+      "rows": 32,
+      "independent_arenas": {
+        "medians_us": {
+          "ordinary": 408.78750483194983,
+          "candidate": 407.13108380635583
+        },
+        "median_ordinary_minus_candidate_us": 1.6424020131429131
+      },
+      "placements": {
+        "A": {
+          "medians_us": {
+            "ordinary": 409.82004801432294,
+            "candidate": 406.939427057902
+          },
+          "median_ordinary_minus_candidate_us": 2.375968297322572,
+          "candidate_wins": 30,
+          "paired_min_us": 0.6612459818522325,
+          "paired_max_us": 3.7172317504882812
+        },
+        "B": {
+          "medians_us": {
+            "ordinary": 409.0552647908529,
+            "candidate": 407.82688458760583
+          },
+          "median_ordinary_minus_candidate_us": 1.378409067789704,
+          "candidate_wins": 24,
+          "paired_min_us": -0.6372451782226562,
+          "paired_max_us": 2.0963350931803575
+        }
+      },
+      "arena_addresses": {
+        "A": {
+          "scratch": 20618374283264,
+          "tiling": 20618223158784,
+          "output": 20618506403840,
+          "caches": [
+            20618338632192,
+            20618278275072,
+            20618242345472,
+            20618149797888
+          ]
+        },
+        "B": {
+          "scratch": 20618546249728,
+          "tiling": 20618507585536,
+          "output": 20618507667968,
+          "caches": [
+            20618362225152,
+            20618316310016,
+            20618504422400,
+            20618149856256
+          ]
+        }
+      },
+      "pre_post_all_production_bytes_equal": true
+    },
+    {
+      "mode": "bf16",
+      "rows": 32,
+      "independent_arenas": {
+        "medians_us": {
+          "ordinary": 385.4105313618978,
+          "candidate": 386.15754445393884
+        },
+        "median_ordinary_minus_candidate_us": -0.7267316182454238
+      },
+      "placements": {
+        "A": {
+          "medians_us": {
+            "ordinary": 378.6600907643636,
+            "candidate": 378.84202003479004
+          },
+          "median_ordinary_minus_candidate_us": -0.18555323282876657,
+          "candidate_wins": 10,
+          "paired_min_us": -0.9816805521647325,
+          "paired_max_us": 0.8175532023112169
+        },
+        "B": {
+          "medians_us": {
+            "ordinary": 384.55375035603845,
+            "candidate": 383.7467511494955
+          },
+          "median_ordinary_minus_candidate_us": 0.9353637695312784,
+          "candidate_wins": 30,
+          "paired_min_us": 0.05664825439453125,
+          "paired_max_us": 2.1668752034505587
+        }
+      },
+      "arena_addresses": {
+        "A": {
+          "scratch": 20618850336768,
+          "tiling": 20618149790720,
+          "output": 20618506403840,
+          "caches": [
+            20618338632192,
+            20618278275072,
+            20618347545600,
+            0
+          ]
+        },
+        "B": {
+          "scratch": 20622285471744,
+          "tiling": 20618296559616,
+          "output": 20618507716608,
+          "caches": [
+            20618517414400,
+            20618371171840,
+            20618311369728,
+            0
+          ]
+        }
+      },
+      "pre_post_all_production_bytes_equal": true
+    }
+  ]
+}

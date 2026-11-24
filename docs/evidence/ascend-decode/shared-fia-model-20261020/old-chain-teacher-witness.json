@@ -1,0 +1,126 @@
+{
+  "scope": "CPU token comparison only; old chain is not a teacher-accepted 1024-token trajectory",
+  "record_file": "/tmp/lookup-offline/chain-w8-rank0.json",
+  "record_sha256": "3aa6cce191de24a06a1131f45db3c93f30716ffe5024ad0c23ca4f8c7524d671",
+  "record_server_path": "/workspace/experiments/lookup-20261019/chain-w8/rank-0.json",
+  "teacher_file": "/home/shanshan/repo/tile-ai/TileRT-Ascend/docs/evidence/ascend-decode/vllm-baseline-20261017/teacher-32.json",
+  "teacher_sha256": "82d011962a288b30b777fc4964d5c96c6b9784cb13b97f509322f603b263b655",
+  "record_command": [
+    "/opt/trt-asc/venv/bin/python",
+    "tests/glm52/bench_cann_mtp.py",
+    "--checkpoint",
+    "/workspace/models/GLM-5.2-w4a8c8",
+    "--capture-case",
+    "/workspace/offline/prefix8k-allocation-20261017/capture/case-00",
+    "--source-commit",
+    "chain-w8",
+    "--max-tokens",
+    "1024",
+    "--capacity",
+    "9344",
+    "--warmup",
+    "3",
+    "--requests",
+    "3",
+    "--width",
+    "8",
+    "--output",
+    "/workspace/experiments/lookup-20261019/chain-w8",
+    "--gpu-memory-utilization",
+    "0.78",
+    "--target-graph",
+    "--compile-target",
+    "--super-kernel",
+    "--attention-kernel",
+    "sfa",
+    "--fp32-head",
+    "--draft-graph",
+    "--draft-projection-tp",
+    "--conditioned-graph"
+  ],
+  "record_declared_fp32_head": true,
+  "record_head_source_sha256": {
+    "/workspace/experiments/lookup-20261019/tree/tilert/models/glm_5_2_ascend/cann_head.py": "b8392261a07cc3e9803e479f3e2b4c5edb5c5cd7f80698291db0bb0a8cb44922"
+  },
+  "fba76ee_head_source_sha256": "b8392261a07cc3e9803e479f3e2b4c5edb5c5cd7f80698291db0bb0a8cb44922",
+  "record_head_hash_matches_fba76ee": true,
+  "same_prompt_binding_witness": "teacher-binding-witness.json",
+  "requests": [
+    {
+      "request_index_in_record": 3,
+      "measured_request_index": 0,
+      "output_tokens": 1024,
+      "comparisons": {
+        "inputs32": {
+          "compared_items": 32,
+          "different_items": 27,
+          "first_difference": {
+            "offset": 4,
+            "old_chain_token": 6500,
+            "frozen_teacher_token": 2524
+          }
+        },
+        "successors32": {
+          "compared_items": 32,
+          "different_items": 27,
+          "first_difference": {
+            "offset": 3,
+            "old_chain_token": 6500,
+            "frozen_teacher_token": 2524
+          }
+        }
+      }
+    },
+    {
+      "request_index_in_record": 4,
+      "measured_request_index": 1,
+      "output_tokens": 1024,
+      "comparisons": {
+        "inputs32": {
+          "compared_items": 32,
+          "different_items": 27,
+          "first_difference": {
+            "offset": 4,
+            "old_chain_token": 6500,
+            "frozen_teacher_token": 2524
+          }
+        },
+        "successors32": {
+          "compared_items": 32,
+          "different_items": 27,
+          "first_difference": {
+            "offset": 3,
+            "old_chain_token": 6500,
+            "frozen_teacher_token": 2524
+          }
+        }
+      }
+    },
+    {
+      "request_index_in_record": 5,
+      "measured_request_index": 2,
+      "output_tokens": 1024,
+      "comparisons": {
+        "inputs32": {
+          "compared_items": 32,
+          "different_items": 27,
+          "first_difference": {
+            "offset": 4,
+            "old_chain_token": 6500,
+            "frozen_teacher_token": 2524
+          }
+        },
+        "successors32": {
+          "compared_items": 32,
+          "different_items": 27,
+          "first_difference": {
+            "offset": 3,
+            "old_chain_token": 6500,
+            "frozen_teacher_token": 2524
+          }
+        }
+      }
+    }
+  ],
+  "interpretation": "First output offset4 is6500 versus teacher2524; cause is not attributed. Old147-round lookup results remain a policy screen on this old trajectory."
+}

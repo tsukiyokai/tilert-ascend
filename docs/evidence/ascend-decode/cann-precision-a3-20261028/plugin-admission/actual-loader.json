@@ -1,0 +1,31 @@
+{
+  "scope": "CPU-only actual registry and loader contract; no NPU numerical or timing claim",
+  "base_error": "There is no module or parameter named 'rot' in Target.",
+  "loaded_parameters": [
+    "lm_head.weight"
+  ],
+  "actual_lm_head_exact": true,
+  "source_sha256": {
+    "/assets/vllm-ascend-unified/vllm_ascend/models/deepseek_mtp.py": "4ed40eae69848d1fac7c901a1c73b0532a71473a045af1aa79508f9c74be0a2b",
+    "/assets/vllm-unified/vllm/model_executor/models/deepseek_v2.py": "5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408",
+    "/assets/vllm-unified/vllm/model_executor/models/utils.py": "4886c5afbae659c26c389cc1a1a6e637dcad7b6320b32776586cce17e71e22d3"
+  },
+  "plugins": [
+    {
+      "group": "vllm.platform_plugins",
+      "name": "ascend",
+      "value": "vllm_ascend:register",
+      "metadata_path": "/assets/vendor-hook-runtime212-int8/vendor-hook-pinned/vendor-metadata/vllm_ascend.egg-info/entry_points.txt",
+      "metadata_sha256": "e65d9af560e6b915692eacde028678e1aadd15fe2bb2bf9c99ff8a4e46a26686"
+    },
+    {
+      "group": "vllm.general_plugins",
+      "name": "ascend_model",
+      "value": "vllm_ascend:register_model",
+      "metadata_path": "/assets/vendor-hook-runtime212-int8/vendor-hook-pinned/vendor-metadata/vllm_ascend.egg-info/entry_points.txt",
+      "metadata_sha256": "e65d9af560e6b915692eacde028678e1aadd15fe2bb2bf9c99ff8a4e46a26686"
+    }
+  ],
+  "npu_executed": false,
+  "precision_verified": false
+}

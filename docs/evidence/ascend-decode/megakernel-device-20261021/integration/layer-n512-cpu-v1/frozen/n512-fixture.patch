@@ -1,0 +1,57 @@
+--- parent/local_chain.py
++++ candidate/local_chain.py
+@@ -9,6 +9,7 @@
+ import traceback
+ 
+ from decoder_forward import bind_caches, metadata_for_layers
++from down_tiling import check_down_tiling
+ from ffn_host_adapter import LayerFFNAdapter, load as load_ffn
+ from ffn_views import all_values as ffn_values
+ from local_chain_host import Library, Prepared
+@@ -204,6 +205,7 @@
+         self.partial = empty((self.rows, 6144), torch.bfloat16)
+         self.bridge, self.body, ffn_sync = ffn.native.prepare(
+             self.partial, BLOCKS, 1)
++        self.down_tiling_before = check_down_tiling(torch, self.body[7])
+         if blocks != BLOCKS or self.sync != ffn_sync or not self.sync:
+             raise RuntimeError("The parent launches need one physical mixed-core context")
+         self.scalars = (self.impl.scale,
+@@ -338,7 +340,7 @@
+         "tp_contract": "Both reductions are identity; local attention partial directly feeds FFN",
+         "successor_contract": "Layer7 consumes layer6 combined output and separately retained FFN residual",
+         "topk_contract": "The indexed candidate writes directly into the persistent owner; only the separate parent copies its selected indices",
+-        "reference": "Original input norm module and npu_dynamic_quant; indexed8deff/shared64108; completeFFN381",
++        "reference": "Original input norm module and npu_dynamic_quant; indexed8deff/shared64108; completeFFNc90-N512",
+         "input_rstd_contract": "Candidate diagnostic only; no invented original-rstd oracle",
+         "same_addresses": True, "fresh_output_poison": True,
+         "poison_contract": "Floating NaN; non-address integers 1/2; bounded indices/counts zero except active_list fills 1 with E=0",
+@@ -346,6 +348,7 @@
+         "topk_write_guards": "Candidate internal slice stays at 2; inactive persistent rows stay at -1",
+         "cache_signatures": cache_signatures, "topk_signature": topk_signature,
+         "prepared": [], "cases": [], "pass": False,
++        "down_tiling_checks": [],
+     }
+     destination = args.output / "local-chain.json"
+ 
+@@ -368,7 +371,9 @@
+             cases = first, second
+             inputs.lock_owners()
+             owners = [value.owners() for value in cases]
+-            report["prepared"].append({"rows": rows, "owners": owners})
++            report["prepared"].append({
++                "rows": rows, "owners": owners,
++                "down_tiling": [case.down_tiling_before for case in cases]})
+             for iteration in range(args.forward_replays):
+                 plan = inputs.update(iteration)
+                 torch.npu.synchronize()
+@@ -404,6 +409,10 @@
+                         internal_unchanged = bool((first.selected == 2).all())
+                         if not internal_unchanged:
+                             raise RuntimeError("The candidate still writes the internal top-k slice")
++                    report["down_tiling_checks"].append({
++                        "rows": rows, "iteration": iteration, "arm": arm,
++                        "layers": [check_down_tiling(torch, case.body[7])
++                                   for case in cases]})
+                     values = {f"layer{number}.{name}": snapshot(torch, value)
+                               for number, case in zip((6, 7), cases)
+                               for name, value in case.values.items()}

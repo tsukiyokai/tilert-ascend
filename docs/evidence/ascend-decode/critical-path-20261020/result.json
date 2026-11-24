@@ -1,0 +1,48 @@
+{
+  "capture": "profiles/width8-20261019/rank-0",
+  "kernel_details_md5": "acde4cf368e464b7cb54580c7bff0857",
+  "kernels": 9803,
+  "tool": "tests/glm52/critical_path.py",
+  "command": "python3 -I tests/glm52/critical_path.py <capture>",
+  "normalisation": {
+    "backbone_layers": 78,
+    "moe_layers": 75,
+    "rounds_in_capture": 3.29,
+    "note": "a round is every 78th attention call; the first is dropped"
+  },
+  "profiled_round_ms": [63.003, 61.871],
+  "unprofiled_round_ms": 53.05,
+  "alone_ms": {
+    "81_backbone_compute": [35.632, 35.588],
+    "80_tp_reduction": [5.451, 5.248],
+    "83_draft_chain": [3.539, 3.549],
+    "79": [0.980, 0.978],
+    "19_indexer": [0.648, 0.643],
+    "hcom_collectives": [0.0, 0.0]
+  },
+  "no_kernel_anywhere_ms": [11.608, 11.347],
+  "reduction_sites_per_round": 146,
+  "fp32_cast_bracket_ms": [1.991, 1.988],
+  "reduction_between_casts_ms": [5.644, 5.418],
+  "cast_share_of_bracket": [0.261, 0.268],
+  "per_site_us": {
+    "measured_vendor": 37.9,
+    "onesided_docstring": 22.3,
+    "vendor_docstring": 63.5,
+    "headroom_ms_per_round": 2.28,
+    "headroom_claimed_ms_per_round": 6.47
+  },
+  "ai_vector_core": {
+    "spent_ms": [8.733, 8.693],
+    "bytes_bound_ms": [0.345, 0.347],
+    "ratio": 25,
+    "overcounted_gathers_ms": [0.338, 0.334]
+  },
+  "residual_combine_us_per_layer": {
+    "Muls": 8.46,
+    "ForeachAddList": 21.403,
+    "Cast_widen": 6.86,
+    "Cast_narrow": 6.681,
+    "AddRmsNormBias_it_feeds": 4.08
+  }
+}

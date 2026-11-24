@@ -1,0 +1,65 @@
+{
+  "scope": "Original FFN hot c17/c32 gate; no new library or NPU run by agent",
+  "local_stage": "/tmp/tilert-megakernel-validation-20261021/vendor-hook-decoder212-ffn-down-k128-hot-v1",
+  "remote_stage": "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-ffn-down-k128-hot-v1",
+  "host": "a3-194",
+  "manifest_sha256": "2f1fca7c059dffff9cf74448a56d26b417b9c8ff55f37d92e698f4e490c4e232",
+  "decoder_sha256": "21c094ced4e644b296ebd4f974cfffe68431ad02d4c8245a8bce22904bff2923",
+  "library_sha256": "0842cd0f3a946c39aefb3e926e01eb870a61d6d1ad8689aebcf52a1b3daa2b65",
+  "remote_verified_files": 793,
+  "cpu": {
+    "x86_tests": 6,
+    "arm_tests": 6,
+    "torch": "2.12.0+cu130",
+    "torch_npu": "2.12.0",
+    "npu_initialized": false,
+    "evidence": "/tmp/tilert-megakernel-validation-20261021/ffn-down-k128-hot-cpu-v1"
+  },
+  "commands": {
+    "24": [
+      "bash",
+      "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-ffn-down-k128-hot-v1/device_ffn_run.sh",
+      "4",
+      "ffn-down-k128-hot-b24-v1",
+      "--forward-widths",
+      "17",
+      "32",
+      "--forward-replays",
+      "8",
+      "--native-blocks",
+      "24"
+    ],
+    "16": [
+      "bash",
+      "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-ffn-down-k128-hot-v1/device_ffn_run.sh",
+      "4",
+      "ffn-down-k128-hot-b16-v1",
+      "--forward-widths",
+      "17",
+      "32",
+      "--forward-replays",
+      "8",
+      "--native-blocks",
+      "16"
+    ]
+  },
+  "expected_per_blocks": {
+    "captures": 4,
+    "cases": 32,
+    "checks_per_case": 15,
+    "raw_checks": 480,
+    "immediate_consumers_in_raw_checks": 128,
+    "metadata_in_raw_checks": 128,
+    "down_tiling_checks": 36,
+    "widths": [
+      17,
+      32
+    ],
+    "active_count": 8,
+    "counts_per_active_expert": "M",
+    "down_M32_tiles": 2,
+    "tiling_sha256": "c2b73af9d605ad8e64ea551f288d188a0cf636828a5a0471ea7c63d616f50999"
+  },
+  "runtime_mounts": "Unchanged frozen original-FFN launcher; runtime212/oracle-package-v4/CANN9.2/actual extension",
+  "actual_device_execution": false
+}

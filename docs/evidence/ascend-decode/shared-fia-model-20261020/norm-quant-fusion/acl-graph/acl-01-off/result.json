@@ -1,0 +1,243 @@
+{
+  "status": "pass",
+  "mode": "device",
+  "flag": "off",
+  "input_kind": "eight repeats of actual frozen M1 post-attention row",
+  "inputs_sha256": "5e59d7dc1f27f545c21ea4f9fb58efb9015ea5fc8b8ca73167c1437d384c6673",
+  "script_sha256": "4680fd8d368595eed67e6b61115dc7903b628780c9add49034fb7de0881e9f6c",
+  "timing_measured": false,
+  "npu_initialized_before": false,
+  "stages": {
+    "before": {
+      "path": "/workspace/experiments/m32-full-teacher-20261020/norm-fusion/compiled-check/acl-01-off/before.py",
+      "sha256": "2bf9fe0edfb8f291591f2f34df0509de2c260c91a52782b7f7b51373157ca3f5",
+      "operators": {
+        "_C_ascend.npu_add_rms_norm_bias.default": 1,
+        "<built-in function getitem>": 4,
+        "npu.npu_dynamic_quant.default": 1
+      }
+    },
+    "vllm": {
+      "path": "/workspace/experiments/m32-full-teacher-20261020/norm-fusion/compiled-check/acl-01-off/after-vllm.py",
+      "sha256": "2bf9fe0edfb8f291591f2f34df0509de2c260c91a52782b7f7b51373157ca3f5",
+      "operators": {
+        "_C_ascend.npu_add_rms_norm_bias.default": 1,
+        "<built-in function getitem>": 4,
+        "npu.npu_dynamic_quant.default": 1
+      }
+    },
+    "backend": {
+      "path": "/workspace/experiments/m32-full-teacher-20261020/norm-fusion/compiled-check/acl-01-off/after-backend.py",
+      "sha256": "2bf9fe0edfb8f291591f2f34df0509de2c260c91a52782b7f7b51373157ca3f5",
+      "operators": {
+        "_C_ascend.npu_add_rms_norm_bias.default": 1,
+        "<built-in function getitem>": 4,
+        "npu.npu_dynamic_quant.default": 1
+      }
+    }
+  },
+  "passes": [
+    "QKNormRopeFusionPass",
+    "MulsAddFusionPass"
+  ],
+  "validated_ascend_config": {
+    "enable_npugraph_ex": true,
+    "enable_static_kernel": true,
+    "enable_super_kernel": true,
+    "fuse_norm_quant": false,
+    "fuse_qknorm_rope": true,
+    "fuse_muls_add": true
+  },
+  "profile": "HardwareProfile(_device_type=<AscendDeviceType.A3: 1>, attention_backend_family=<AttentionBackendFamily.STANDARD: 1>, cpu_binding_mode=<CPUBindingMode.GLOBAL_SLICE: 'global_slice'>, default_worker_cls='vllm_ascend.worker.worker.NPUWorker', device_adaptor_family=<DeviceAdaptorFamily.STANDARD: 1>, device_addressing_mode=<DeviceAddressingMode.DUAL_CHIP_CARD: 2>, deepseek_v4_tp_policy=<DeepSeekV4TPPolicy.STANDARD_LIMITS: 1>, weight_layout_policy=<WeightLayoutPolicy.CONFIGURABLE: 1>, moe_comm_policy=<MoECommPolicy.FUSED_OR_CAPACITY: 2>, quantization_backend_family=<QuantizationBackendFamily.STANDARD: 1>, capabilities=frozenset({<HardwareCapability.STANDARD_MAMBA_PATCH: 51>, <HardwareCapability.TURBOQUANT_4BIT_NC_CACHE: 54>, <HardwareCapability.SCATTER_ND_CACHE_STORE: 5>, <HardwareCapability.GRAPH_QKV_NORM_ROPE_FUSION: 31>, <HardwareCapability.ATB_EXTENSIONS: 2>, <HardwareCapability.IRQ_CPU_RESERVATION: 33>, <HardwareCapability.NPUGRAPH_EX: 44>, <HardwareCapability.RUNTIME_CUSTOM_OPS: 49>, <HardwareCapability.SCATTER_ND_STRIDED_CACHE_STORE: 6>, <HardwareCapability.FLA_GDN_PREFILL: 21>, <HardwareCapability.RMS_NORM_CAST: 48>, <HardwareCapability.GRAPH_MM_REDUCE_SCATTER_FUSION: 28>, <HardwareCapability.MOE_GATING_TOP_K_HASH_VISION: 42>, <HardwareCapability.BGMV_SGMV_META_REGISTRATION: 4>, <HardwareCapability.CANN_MEGAMOE: 8>, <HardwareCapability.ATB_WARMUP: 3>, <HardwareCapability.GMM_DEQUANT_SITU_QUANT: 27>, <HardwareCapability.INPLACE_PARTIAL_ROTARY_MUL_NEGATE_SIN: 32>, <HardwareCapability.TRITON_BATCH_MEMCPY: 53>, <HardwareCapability.STANDARD_WORKER_PATCHES: 50>, <HardwareCapability.MC2_HIERARCHY_COMM: 39>, <HardwareCapability.FUSED_SWIGLU_TUNING_ARGS: 25>, <HardwareCapability.PAGED_ATTENTION: 46>, <HardwareCapability.GRAPH_MULS_ADD_FUSION: 29>, <HardwareCapability.LORA_CUSTOM_OPS: 35>, <HardwareCapability.FUSED_ROTARY_MUL_INTERLEAVE: 24>, <HardwareCapability.AUTO_ENABLE_CUSTOM_OPS: 1>, <HardwareCapability.NPU_TOP_K_TOP_P: 45>, <HardwareCapability.MOE_DISPATCH_EXTRA_ARGS: 40>, <HardwareCapability.MC2_FULLMESH_V2_COMM: 38>, <HardwareCapability.GRAPH_NORM_QUANT_FUSION: 30>}))",
+  "supports_norm_quant_fusion": true,
+  "backend_options": {
+    "force_eager": true,
+    "static_kernel_compile": true,
+    "super_kernel_optimize": true,
+    "pattern_fusion_pass": true
+  },
+  "config_factory_source": "/workspace/src/TileRT-Ascend",
+  "vllm_config_hash": "9cf434f392",
+  "use_v2_model_runner": false,
+  "source_sha256": {
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/torch_npu/dynamo/npugraph_ex/configs/compiler_config.py": "cecbe61b1e8ba514bb56c466b888e9e26ca7e53ca45ce6bfb43317ee4aa96b27",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/torch_npu/dynamo/npugraph_ex/npu_fx_compiler.py": "926818c66e7fae1cc5191ff994935b746c46fcd9e6fba23e1938a0f84fe1382c",
+    "/workspace/src/TileRT-Ascend/tilert/models/glm_5_2_ascend/cann_model.py": "4b21d956ebbc5554ca0d6d5e2a7fd91ca2f8efb8196e1bdedd30f2bec3c9592c",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/compilation/acl_graph.py": "8e1c269e331d005f1361acc5cec24402bff7ae39b75e952ea890da7812804955",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/compilation/compiler_interface.py": "d31c36db24ee40cb7b49a0e75d13a8cc9375a37af94637034dcc4f637072ecce",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/compilation/graph_fusion_pass_manager.py": "38e1a649abefd3bc8f81713faa14256589f9651dc6572552efe6f68863f3268b",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/compilation/updatable_graph.py": "d41d912ce8f4183228fdc182dbdb6a504f07642fddb8872c657e7f4429ac0729",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/utils.py": "2cc5992b79d507f302615bee2228302c0d99fe9de7b02fbb825b76689974a115",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/model_runner_v1.py": "f0a3079900c9b2628437195ef21d0631c747aa1a49b663c1b27fddf379cbf8f5",
+    "/workspace/src/vllm-unified/vllm/forward_context.py": "8dab5a4dee60e46c4e52821667321c9f05c793578af49cddbdb204cf9324c403"
+  },
+  "operator_checks": {
+    "before": true,
+    "vllm": true,
+    "backend": true
+  },
+  "device_result": {
+    "passed": true,
+    "compiled_ir_sha256": "fc04b220babda7d70639669c2da918aa4769d0a6f7e29c8e3524d37205fd31d3",
+    "compiled_ir_operators": {
+      "globals().update": 2,
+      "AclGraph": 1,
+      "AclGraphCacheInfo": 1,
+      "acl_graph.load": 1,
+      "_get_closure_vars": 1,
+      "_C_ascend.npu_add_rms_norm_bias.default": 1,
+      "npu.npu_dynamic_quant.default": 1,
+      "acl_graph": 1,
+      "rand_strided": 4,
+      "kernel": 1,
+      "globals": 2,
+      "float": 1,
+      "torch.npu.Stream": 1,
+      "OrderedDict": 1,
+      "set": 1,
+      "assert_size_stride": 4
+    },
+    "compiled_ir_operator_check": true,
+    "compiled_handle": [
+      "norm-m8",
+      "/workspace/experiments/m32-full-teacher-20261020/norm-fusion/compiled-check/acl-01-off/cache/norm-m8"
+    ],
+    "outer_graph": {
+      "wrapper": "ACLGraphWrapper",
+      "graph": "UpdatableGraph",
+      "captures": 1,
+      "replays": 3,
+      "scope": "full_model",
+      "super_kernel_enabled": true,
+      "optimizer_options": {
+        "dcci_after_kernel_end": [
+          ".*"
+        ]
+      },
+      "forward_context": "V1 inner vLLM context; no TP or attention"
+    },
+    "persistent_input_addresses": [
+      20618009378816,
+      20618009477632,
+      20618009576448,
+      20618009589248
+    ],
+    "persistent_addresses_preserved": true,
+    "comparisons": [
+      {
+        "input": "original",
+        "expected_vs_graph": {
+          "q": {
+            "bitexact": true,
+            "different": 0,
+            "maxabs": 0.0
+          },
+          "scale": {
+            "bitexact": true,
+            "different": 0,
+            "maxabs": 0.0
+          },
+          "residual": {
+            "bitexact": true,
+            "different": 0,
+            "maxabs": 0.0
+          }
+        },
+        "eager_vs_graph": {
+          "q": {
+            "bitexact": true,
+            "different": 0,
+            "maxabs": 0.0
+          },
+          "scale": {
+            "bitexact": true,
+            "different": 0,
+            "maxabs": 0.0
+          },
+          "residual": {
+            "bitexact": true,
+            "different": 0,
+            "maxabs": 0.0
+          }
+        }
+      },
+      {
+        "input": "changed",
+        "expected_vs_graph": {
+          "q": {
+            "bitexact": true,
+            "different": 0,
+            "maxabs": 0.0
+          },
+          "scale": {
+            "bitexact": true,
+            "different": 0,
+            "maxabs": 0.0
+          },
+          "residual": {
+            "bitexact": true,
+            "different": 0,
+            "maxabs": 0.0
+          }
+        },
+        "eager_vs_graph": {
+          "q": {
+            "bitexact": true,
+            "different": 0,
+            "maxabs": 0.0
+          },
+          "scale": {
+            "bitexact": true,
+            "different": 0,
+            "maxabs": 0.0
+          },
+          "residual": {
+            "bitexact": true,
+            "different": 0,
+            "maxabs": 0.0
+          }
+        }
+      },
+      {
+        "input": "restored",
+        "expected_vs_graph": {
+          "q": {
+            "bitexact": true,
+            "different": 0,
+            "maxabs": 0.0
+          },
+          "scale": {
+            "bitexact": true,
+            "different": 0,
+            "maxabs": 0.0
+          },
+          "residual": {
+            "bitexact": true,
+            "different": 0,
+            "maxabs": 0.0
+          }
+        },
+        "eager_vs_graph": {
+          "q": {
+            "bitexact": true,
+            "different": 0,
+            "maxabs": 0.0
+          },
+          "scale": {
+            "bitexact": true,
+            "different": 0,
+            "maxabs": 0.0
+          },
+          "residual": {
+            "bitexact": true,
+            "different": 0,
+            "maxabs": 0.0
+          }
+        }
+      }
+    ],
+    "outputs_sha256": "46c28d4db81a30e3f238cd4c6126206d5ef6c31c9da8db1269ac17f78ddf6896",
+    "peak_allocated": 17250816
+  },
+  "npu_initialized_after": true
+}

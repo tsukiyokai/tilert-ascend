@@ -1,0 +1,131 @@
+{
+  "timestamp": "2026-10-16T17:54:54.796783+00:00",
+  "scope": "stdlib syntax and pinned source API contracts only",
+  "torch_imported": false,
+  "npu_execution": false,
+  "runtime_verified": false,
+  "source_sha256": {
+    "tilert/models/glm_5_2_ascend/cann_model.py": "7a71ed46b521e0dd7c97814d503dec29c579d562c889d7b2cee9c375fa2bfb93",
+    "tests/glm52/run_cann_model.py": "9be402fe32411d06bdeebb0f3771697508a423252a41b23d8071c9cdadd654f8"
+  },
+  "pinned_source_sha256": {
+    "/home/shanshan/trt-asc/src/vllm-unified/vllm/engine/arg_utils.py": "95be1adb96f55933f6a52260c8cb2181d04707401ca21d97c33108c5ab58f3ac",
+    "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/attention/utils.py": "6afa8083b509f3e076f59fe40f3cf85a534dbdc8b3290c547639ef752fba1772",
+    "/home/shanshan/trt-asc/src/vllm-unified/vllm/v1/attention/backend.py": "77ac35180c1e0f854c6307f5deb3c7c0ac4a9e8702578d406ce058981488a137",
+    "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/worker/worker.py": "1859b05db9bdbb9fd69a86e08bb67a1de2c964ed4b7ab75abc88492c9b910abc",
+    "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/patch/worker/patch_bind_kv_cache.py": "3076e899374cb26848f1360eaa2584161c9c97a2e6bcbeb91ac833c889046974",
+    "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/ascend_forward_context.py": "848112214c9f56371b4bf43a59d39fadbed0e0e864581e300a3a89778d4083cb",
+    "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/worker/model_runner_v1.py": "f0a3079900c9b2628437195ef21d0631c747aa1a49b663c1b27fddf379cbf8f5",
+    "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/attention/sfa_v1.py": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+    "/home/shanshan/trt-asc/src/vllm-ascend-unified/vllm_ascend/attention/indexer.py": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1"
+  },
+  "repository_heads": {
+    "vllm": "c4df37dfcc7f72ca41cd43801a468526ecf99a2b",
+    "vllm_ascend": "f558b58c177916424ae9dcf9bb8e66c0b9031236"
+  },
+  "checks": [
+    {
+      "name": "tilert/models/glm_5_2_ascend/cann_model.py.syntax",
+      "passed": true
+    },
+    {
+      "name": "tilert/models/glm_5_2_ascend/cann_model.py.line_length",
+      "passed": true,
+      "lines": []
+    },
+    {
+      "name": "tests/glm52/run_cann_model.py.syntax",
+      "passed": true
+    },
+    {
+      "name": "tests/glm52/run_cann_model.py.line_length",
+      "passed": true,
+      "lines": []
+    },
+    {
+      "name": "EngineArgs.fields",
+      "passed": true,
+      "missing": []
+    },
+    {
+      "name": "AscendCommonAttentionMetadata.fields",
+      "passed": true,
+      "missing": []
+    },
+    {
+      "name": "NPUWorker.constructor",
+      "passed": true
+    },
+    {
+      "name": "NPUWorker.init_device",
+      "passed": true
+    },
+    {
+      "name": "NPUWorker.load_model",
+      "passed": true
+    },
+    {
+      "name": "AscendSFAMetadataBuilder.constructor",
+      "passed": true
+    },
+    {
+      "name": "AscendSFAMetadataBuilder.build",
+      "passed": true
+    },
+    {
+      "name": "AscendSFAIndexerMetadataBuilder.constructor",
+      "passed": true
+    },
+    {
+      "name": "AscendSFAIndexerMetadataBuilder.build",
+      "passed": true
+    },
+    {
+      "name": "Ascend.tuple_cache_binding",
+      "passed": true
+    },
+    {
+      "name": "Ascend.forward_current_config",
+      "passed": true
+    },
+    {
+      "name": "NPUModelRunner.drafter_none",
+      "passed": true,
+      "source_lines": [
+        729,
+        744,
+        747,
+        752
+      ]
+    },
+    {
+      "name": "NPUModelRunner.get_kv_cache_spec",
+      "passed": true
+    },
+    {
+      "name": "runner.stdlib_help",
+      "passed": true,
+      "stderr": "",
+      "stdout": "usage: run_cann_model.py [-h] --checkpoint CHECKPOINT --output OUTPUT\n                         (--capture-case CAPTURE_CASE |\n                         --tokens TOKENS [TOKENS ...]) [--steps STEPS]\n                         [--capacity CAPACITY]\n                         [--device-offset {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15}]\n                         [--gpu-memory-utilization GPU_MEMORY_UTILIZATION]\n                         [--init-method INIT_METHOD] [--reference REFERENCE]\n\nCapture M1 TP16 CANN decode from a full-P prefix and check exact reset. Run\nwith torchrun --nproc-per-node=16. A capture case supplies the original\nprompt, main KV with P rows, and the prefill first token. No prompt replay or\nMTP model is used. An optional matching HF trace adds numerical comparison;\nexact reset alone is reported as repeatability, not independent precision.\n\noptions:\n  -h, --help            show this help message and exit\n  --checkpoint CHECKPOINT\n  --output OUTPUT\n  --capture-case CAPTURE_CASE\n  --tokens TOKENS [TOKENS ...]\n                        Cold-cache teacher tokens, then greedy decode\n  --steps STEPS         Total M1 forwards, including teacher tokens\n  --capacity CAPACITY\n  --device-offset {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15}\n                        Physical device=(rank+offset)%16\n  --gpu-memory-utilization GPU_MEMORY_UTILIZATION\n  --init-method INIT_METHOD\n  --reference REFERENCE\n                        Matching independent HF trace directory\n"
+    },
+    {
+      "name": "checkpoint.fixed_shape",
+      "passed": true
+    },
+    {
+      "name": "runner.help_without_torch",
+      "passed": true
+    },
+    {
+      "name": "runner.scoped_precision_only",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "runtime_pending": [
+    "NPUWorker init/load with external_launcher and explicit physical local_rank",
+    "SFA/indexer metadata builders on manually bound full-P split caches",
+    "M1 full model and gathered logits inside current config/forward contexts",
+    "cold/full-P outputs and KV compared to independent HF; exact reset across all 16 ranks"
+  ]
+}

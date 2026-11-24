@@ -1,0 +1,47 @@
+--- a/vllm_ascend/attention/sfa_v1.py
++++ b/vllm_ascend/attention/sfa_v1.py
+@@ -1789,6 +1789,21 @@
+         output[...] = self.o_proj(attn_output)[0]
+         return output
+ 
++    def _project_attention_output(
++        self,
++        attn_output: torch.Tensor,
++        gate_hidden_states: torch.Tensor | None,
++        output: torch.Tensor,
++        gather_full_o_proj: bool,
++        input_is_latent: bool,
++    ) -> torch.Tensor:
++        if input_is_latent:
++            attn_output = self._v_up_proj(attn_output)
++        if gate_hidden_states is not None:
++            assert self.g_proj is not None
++            attn_output.mul_(torch.sigmoid(self.g_proj(gate_hidden_states.contiguous())[0]))
++        return self._finalize_o_proj(attn_output, output, gather_full_o_proj)
++
+     def _get_sfa_kv_slot_mapping(
+         self,
+         attn_metadata: M,
+@@ -2115,18 +2130,15 @@
+                     actual_seq_lengths_key,
+                 )
+ 
+-        if has_local_query:
+-            attn_output = self._v_up_proj(attn_output)
+-        else:
++        if not has_local_query:
+             # The O-proj below still joins its PCP/TP collectives.
+             attn_output = hidden_states.new_zeros((ql_nope.shape[0], self.local_num_heads * self.v_head_dim))
+-        if gate_hidden_states is not None:
+-            assert self.g_proj is not None
+-            attn_output.mul_(torch.sigmoid(self.g_proj(gate_hidden_states.contiguous())[0]))
+-        self._finalize_o_proj(
++        self._project_attention_output(
+             attn_output,
++            gate_hidden_states,
+             output[:num_input_tokens],
+             parallel_context.gather_full_o_proj,
++            has_local_query,
+         )
+ 
+         maybe_save_kv_layer_to_connector(layer_name, list(kv_cache))

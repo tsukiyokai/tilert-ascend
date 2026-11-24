@@ -1,0 +1,64 @@
+{
+  "scope": "Original outer-forward failure and official Triton initialization change; no v8 device conclusion recorded here.",
+  "v7": {
+    "device": {
+      "path": "docs/evidence/ascend-decode/megakernel-device-20261021/integration/vendor_hook_device-forward-v7.py",
+      "sha256": "55e69dc8eab4b552c2ab62a268543ba9f6b4917c7b95ebd3d3cc57f807fc27bf"
+    },
+    "raw": "vendor-hook-forward-m1-v7/outer-forward.json",
+    "failure": "Original indexer key RoPE calls get_vectorcore_num before official Triton device-property initialization.",
+    "native_body_executed": false
+  },
+  "v8": {
+    "device": {
+      "path": "docs/evidence/ascend-decode/megakernel-device-20261021/integration/vendor_hook_device-forward-v8.py",
+      "sha256": "3975ac675651864d095d2ffcabd0324f5aa283372e9237458c45f9c2a732bbfe"
+    },
+    "change": "Invoke the official init_device_properties_triton after real group/device initialization, before model construction; record actual getters and driver properties."
+  },
+  "unchanged": {
+    "forward": {
+      "path": "tests/glm52/whole_layer/vendor_hook_forward.py",
+      "sha256": "3fac14cbbab97297df95d081376c50277773237873705d0dd5acfefc210edc2d"
+    },
+    "launcher": {
+      "path": "tests/glm52/whole_layer/vendor_hook_run.sh",
+      "sha256": "a18be18f28fbc2bab670052edb0f3ed80606f6e5f0f9aed6302e3e8a4ed7d495"
+    },
+    "adapter": {
+      "path": "tilert/models/glm_5_2_ascend/attention_native.py",
+      "sha256": "be9291452b30e98da8a210c2cd1fcfdef01a2247138a5eea1285bde38bcea729"
+    }
+  },
+  "official_sources": [
+    {
+      "path": "/tmp/vllm-ascend-clone/va/vllm_ascend/worker/worker.py",
+      "sha256": "b07ff40d14b659cbeb5d16b6d64673c89318e7b20ba7903cc78af8dbad3bf7c9",
+      "commit": "8237ee6d690d1399bc6eb48ef5977ac2bd470f3f",
+      "lines": [
+        537,
+        541
+      ]
+    },
+    {
+      "path": "/tmp/vllm-ascend-clone/va/vllm_ascend/ops/triton/triton_utils.py",
+      "sha256": "cd918c79138a5f93294a7b25a47a8e5fcda2f6291e726bca94c0a76237881225",
+      "commit": "8237ee6d690d1399bc6eb48ef5977ac2bd470f3f",
+      "lines": [
+        69,
+        115
+      ]
+    }
+  ],
+  "device_diff": "--- vendor_hook_device-forward-v7.py\n+++ vendor_hook_device-forward-v8.py\n@@ -143,6 +143,29 @@\n         stage(\"real_worker_registration\", lambda: (\n             (adapt_patch(), register_ascend_customop(config)), {},\n         ))\n+\n+        def initialize_triton_properties():\n+            import triton\n+            from vllm_ascend.ops.triton.triton_utils import (\n+                get_aicore_num,\n+                get_ub_size_bytes,\n+                get_vectorcore_num,\n+                init_device_properties_triton,\n+            )\n+\n+            init_device_properties_triton()\n+            properties = triton.runtime.driver.active.utils.get_device_properties(\n+                torch.npu.current_device())\n+            return None, {\n+                \"initializer\": identity(init_device_properties_triton),\n+                \"logical_device\": torch.npu.current_device(),\n+                \"aicore_count\": get_aicore_num(),\n+                \"vectorcore_count\": get_vectorcore_num(),\n+                \"ub_size_bytes\": get_ub_size_bytes(),\n+                \"driver_properties\": properties,\n+            }\n+\n+        stage(\"official_triton_device_properties\", initialize_triton_properties)\n         from vllm.model_executor.models.deepseek_v2 import DeepseekV2MLAAttention\n \n         def construct():\n",
+  "libraries_sha256": {
+    "indexed_torch210": "5d5e8ddb6527bcf50ee4e90507723d2b37cd66ea5f7a4734f7ce5995b13e46f7",
+    "shared_torch210": "245ae243c779594664ebe80ce91b5f84bc133457d47da56734261bce2347ee0f",
+    "official_sfa_torch210": "956e5382e4629d63e4a2e9f8b9381063c6dd70921cf0b32c879e53fbf939fdad"
+  },
+  "cpu_checks": [
+    "python3 -m py_compile vendor_hook_device.py",
+    "python3 vendor_hook_device.py --help",
+    "bash -n vendor_hook_run.sh"
+  ]
+}

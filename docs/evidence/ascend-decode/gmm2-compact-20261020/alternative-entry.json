@@ -1,0 +1,27 @@
+{
+  "scope": "a3-194:trt-asc CANN9.2 installed source and vllm-ascend-unified source, CPU reads only; no NPU, builds, or repo edits",
+  "shape": {
+    "K": 128,
+    "N": 6144,
+    "logical_routed_rows": 8,
+    "unique_topk": 8,
+    "weight": "original INT4 FRACTAL_NZ",
+    "output": "BF16"
+  },
+  "quant_api_blocker": "Actual ascend910_93 nn registry has no INT8 x INT4 QuantBatchMatmulV3/V4 signature; INT4 V3 signatures all use ND weights. QuantMatmulWeightNz installed header excludes INT4.",
+  "best_additional_source_reuse": "mc2/dispatch_ffn_combine_w4_a8 BlockMmad W4A4 per-channel Fixpipe dequant + existing MSD post epilogue",
+  "supported_in_source": [
+    "INT4 A/B, layout::zN NZ B, uint64 channel scales, FP16 C",
+    "MSD result: BF16_RINT((16*float(FP16_hi)+float(FP16_lo)+float_aux)*token_scale)",
+    "K128: L1 ceil(128/1024)=1, kActual128; L0 ceil(128/256)=1, kPartActual128; no K>128 guard"
+  ],
+  "missing": [
+    "No standalone GMM2 entry; public kernel runs GMM1 then GMM2 with EP dispatch/combine",
+    "GMM2 still loops all expertPerRank; no active tile list entry",
+    "Existing epilogue output copies through HcclShmem and tokenPerExpert/preSumBeforeRank; needs local destination binding",
+    "Exact same loaded GMM2 template/compiler and output equivalence still need independent binding before performance claims"
+  ],
+  "minimal_source_boundary": "Reuse existing CANN preprocessor (reset mutated INT8 x per arm); wrapper maps 192 tasks=(<=8 active experts)*24 N256 tiles to original expert/row prefix and calls existing block + existing MSD arithmetic; retain rounding/scale order and explicit producer-consumer fence. This is an unimplemented source-reuse design, not existing API support.",
+  "counterexample": "Replacing MSD two FP16 outputs with one INT8 matmul removes separate FP16 rounding and is not generally equal. Applying float auxiliary correction after token_scale also changes (p+b)*s to p*s+b.",
+  "timing": "No latency inferred from source; removal of dense traversal does not remove required preprocessing, Fixpipe, epilogue, or launch costs."
+}

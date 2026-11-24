@@ -1,0 +1,77 @@
+{
+  "pass": false,
+  "scope": "Original DecoderLayer.forward for layers 6 then 7; native attention versus original attention; both arms use the official FFN",
+  "passed_cases": [
+    {
+      "rows": 1,
+      "iterations": 8
+    },
+    {
+      "rows": 2,
+      "iterations": 8
+    }
+  ],
+  "failed_case": {
+    "rows": 12,
+    "iteration": 0
+  },
+  "unreached_rows": [
+    32
+  ],
+  "raw_byte_checks": 433,
+  "raw_byte_passes": 430,
+  "failures": [
+    {
+      "rows": 12,
+      "iteration": 0,
+      "boundary": "layer6.topk",
+      "pass": false,
+      "exact": false,
+      "bitwise_equal": false,
+      "bitwise_different_bytes": 10,
+      "max_abs": 7296.0,
+      "rms": 48.5653076171875,
+      "different_elements": 5,
+      "elements": 65536
+    },
+    {
+      "rows": 12,
+      "iteration": 0,
+      "boundary": "layer7.topk",
+      "pass": false,
+      "exact": false,
+      "bitwise_equal": false,
+      "bitwise_different_bytes": 10,
+      "max_abs": 7296.0,
+      "rms": 48.5653076171875,
+      "different_elements": 5,
+      "elements": 65536
+    },
+    {
+      "rows": 12,
+      "iteration": 0,
+      "boundary": "layer6.index_cache",
+      "pass": false,
+      "exact": false,
+      "bitwise_equal": false,
+      "bitwise_different_bytes": 1,
+      "max_abs": 1.0,
+      "rms": 0.0009616523166187108,
+      "different_elements": 1,
+      "elements": 1081344
+    }
+  ],
+  "both_layers_output_and_residual_byte_equal": true,
+  "corrected_weight_banks": 4,
+  "weight_raw_bytes_preserved": true,
+  "diagnostic_pre_post_sync_retained": false,
+  "physical_dies": 1,
+  "tp_geometry": 16,
+  "tp_collectives_executed": 0,
+  "alias_library_sha256": "d420080a55500e4d908161bcd23b6bf92f4a5c9ee8d8f0d3020a1ba2a2a9ad4a",
+  "report_sha256": {
+    "decoder-forward.json": "5ff1267ca5a49a78425336e07238a1ade0e59d02dcab13ae844e5080a0ec9b09",
+    "nz-storage-correction.json": "2f4095cbb99105505d243378c5e3008226c4b8c1d4087d3345d691a75556cb36"
+  },
+  "next_gate": "Locate the one-byte index-cache mismatch and dependent Top-K differences without weakening byte acceptance."
+}

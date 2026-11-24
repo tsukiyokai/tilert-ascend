@@ -1,0 +1,50 @@
+Original lines 390-437
+  390                     DataCopyExtParams{1, sizeof(half), 0, 0, 0});
+  391         Fence<HardEvent::MTE3_MTE2>();
+  392     }
+  393 }
+  394 
+  395 __aicore__ inline void Forward(TPipe& pipe, const Config& c,
+  396                                const DeviceArgs& args)
+  397 {
+  398     SetSysWorkspace(args.scratch + c.system);
+  399     if ASCEND_IS_AIC {
+  400         Project<int8_t, int32_t>(pipe, c, args.query_norm, args.query_weight,
+  401             args.scratch + c.query_acc, args.tiling,
+  402             kQueryTile, kQueryRank, kQueryColumns / kQueryTile);
+  403         pipe.Reset();
+  404         if (c.rows == 32) {
+  405             indexer_wk_m32::device::Project(pipe, c, args.hidden,
+  406                 args.key_weight, args.scratch + c.key_acc);
+  407         } else {
+  408             Project<bfloat16_t, float>(pipe, c, args.hidden, args.key_weight,
+  409                 args.scratch + c.key_acc, args.tiling + kTilingStride,
+  410                 kKeyTile, kHidden, kKeyColumns / kKeyTile);
+  411         }
+  412     }
+  413     EndPhase(pipe);
+  414     if ASCEND_IS_AIV {
+  415         VectorWorkspace held;
+  416         held.Init(pipe);
+  417         QueryEpilogue(held, c, args);
+  418         KeyEpilogue(held, c, args);
+  419     }
+  420     EndPhase(pipe);
+  421     if (c.quantized) {
+  422         if ASCEND_IS_AIC {
+  423             Hadamard(pipe, c, args);
+  424         }
+  425         EndPhase(pipe);
+  426         if ASCEND_IS_AIV {
+  427             VectorWorkspace held;
+  428             held.Init(pipe);
+  429             Quantize(held, c, args);
+  430         }
+  431         EndPhase(pipe);
+  432     }
+  433 }
+  434 
+  435 }  // namespace indexer_front::device
+  436 
+  437 #endif
+

@@ -1,0 +1,92 @@
+{
+  "status": "pass",
+  "scope": "CPU scalar MTP orchestration/cache provenance; no CANN",
+  "python": "3.11.12",
+  "tests": 9,
+  "failures": 0,
+  "errors": 0,
+  "torch_imported": false,
+  "boundary_enumeration": {
+    "fixtures": 11664,
+    "rounds": 9424,
+    "accepted_spans": [
+      [
+        1,
+        1
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        4,
+        4
+      ]
+    ],
+    "finish_reasons": [
+      "capacity",
+      "eos",
+      "length"
+    ],
+    "widths": [
+      2,
+      4
+    ],
+    "prefixes": [
+      1,
+      127,
+      128
+    ],
+    "missing_seeds": [
+      false,
+      true
+    ],
+    "modes": [
+      "accept",
+      "reject",
+      "mixed"
+    ],
+    "budgets": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "capacities_left": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "eos_choices": "none or each of the first five serial output IDs"
+  },
+  "source_sha256": {
+    "tests/glm52/check_mtp_round.py": "94c9917c6f2f0d5d1152ff6aad7180f162f08027e253295118dc62e54b581d2c",
+    "tilert/models/glm_5_2_ascend/mtp_round.py": "a370e342a8342730022d3d26bb18304d7ade977670657991d835a4df6b996006",
+    "tilert/models/glm_5_2_ascend/mtp_state.py": "ff8ee34ae8703e2c84ee7d358f9689cffa571e3279090edb9b3c90c0123ac59c"
+  },
+  "test_output": "test_capacity_closes_with_width_one (__main__.MtpRoundChecks.test_capacity_closes_with_width_one) ... ok\ntest_chained_rows_share_seed_indices_and_are_recomputed (__main__.MtpRoundChecks.test_chained_rows_share_seed_indices_and_are_recomputed) ... ok\ntest_eos_budget_capacity_cross_product (__main__.MtpRoundChecks.test_eos_budget_capacity_cross_product) ... ok\ntest_eos_truncates_accepted_span (__main__.MtpRoundChecks.test_eos_truncates_accepted_span) ... ok\ntest_first_rejection_commits_one_main_and_one_mtp_row (__main__.MtpRoundChecks.test_first_rejection_commits_one_main_and_one_mtp_row) ... ok\ntest_missing_parent_marks_failed_round (__main__.MtpRoundChecks.test_missing_parent_marks_failed_round) ... ok\ntest_normal_import_does_not_load_torch (__main__.MtpRoundChecks.test_normal_import_does_not_load_torch) ... ok\ntest_outputs_and_committed_cache_match_serial_oracle (__main__.MtpRoundChecks.test_outputs_and_committed_cache_match_serial_oracle) ... ok\ntest_zero_and_one_output_launch_no_round (__main__.MtpRoundChecks.test_zero_and_one_output_launch_no_round) ... ok\n\n----------------------------------------------------------------------\nRan 9 tests in 3.219s\n\nOK\n"
+}

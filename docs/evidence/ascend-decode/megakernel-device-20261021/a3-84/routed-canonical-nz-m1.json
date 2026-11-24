@@ -1,0 +1,623 @@
+{
+  "scope": "one TP16 W4A8 routed stage, before shared expert and TP reduction",
+  "status": "passed",
+  "arguments": {
+    "device": "npu:0",
+    "library": "/workspace/tests/glm52/routed_int4/build-route/routed_int4_torch.so",
+    "native_layout": "nz",
+    "native_routing": "dispatch",
+    "vendor_library": "/workspace/tests/glm52/routed_int4/build-reference/nz_reference.so",
+    "vendor_backend": "cann-nz",
+    "vendor_layout": "nz",
+    "checkpoint": null,
+    "fixture": null,
+    "layer": 3,
+    "rank": 0,
+    "widths": [
+      1
+    ],
+    "blocks": 8,
+    "seed": 20261021,
+    "replays": 4,
+    "warmup": 1,
+    "iterations": 50,
+    "timing_pairs": 5,
+    "no_timing": true,
+    "eager": false,
+    "atol": 0,
+    "rtol": 0,
+    "output": "logs/routed-canonical-nz-m1.json"
+  },
+  "timestamp_utc": "2026-10-21T10:29:56.398087+00:00",
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "cann": {
+    "CANN": "9.2.0",
+    "RUNTIME": "9.2.0",
+    "COMPILER": "9.2.0",
+    "OPP": "9.2.0",
+    "OPP_KERNEL": "9.2.0",
+    "DRIVER": "9.2.0"
+  },
+  "device": "_NPUDeviceProperties(name='Ascend910_9392', total_memory=62740MB, cube_core_num=24, vector_core_num=48, uuid=00cc0800-d001-0000-0000-60109ef917a8, L2_cache_size=192MB)",
+  "library_sha256": "18f509c88fb652f49094bac7c4b17300b7452ae3c1f6166749ed17450df0903c",
+  "vendor_library_sha256": "bd04f6a350fe1e10e8207fe069b12187ce9f278f3e986b993b023c15eeefafc2",
+  "operator_schemas": {
+    "native": "tilert::routed_experts(Tensor rows, Tensor gate_up, Tensor gu_bias, Tensor gu_scale, Tensor down, Tensor down_bias, Tensor down_scale, Tensor token_scale, Tensor group_count, Tensor group_start, Tensor source_row, Tensor source_slot, Tensor row_weight, Tensor(a!)[] scratch, int sync_base, int experts=256, int blocks=16, int weight_layout=0) -> Tensor(a!)",
+    "vendor_gmm1": "tilert_reference::nz_gmm1(Tensor rows, Tensor weight, Tensor weight_scale, Tensor input_scale, Tensor counts, Tensor correction) -> (Tensor, Tensor)",
+    "native_from_dispatch": "tilert::routed_experts_from_dispatch(Tensor sorted_rows, Tensor gate_up, Tensor gu_bias, Tensor gu_scale, Tensor down, Tensor down_bias, Tensor down_scale, Tensor sorted_scales, Tensor inverse, Tensor counts, Tensor probabilities, Tensor(a!)[] scratch, int sync_base, int experts=256, int blocks=16, int weight_layout=0) -> Tensor(a!)"
+  },
+  "weight_storage": {
+    "native": {
+      "gate_up": {
+        "dtype": "torch.int32",
+        "logical_shape": [
+          256,
+          6144,
+          32
+        ],
+        "npu_format": 29,
+        "physical_bytes": 201326592
+      },
+      "down": {
+        "dtype": "torch.int32",
+        "logical_shape": [
+          256,
+          128,
+          768
+        ],
+        "npu_format": 29,
+        "physical_bytes": 100663296
+      }
+    },
+    "vendor": {
+      "gate_up": {
+        "dtype": "torch.int32",
+        "logical_shape": [
+          256,
+          6144,
+          32
+        ],
+        "npu_format": 29,
+        "physical_bytes": 201326592
+      },
+      "down": {
+        "dtype": "torch.int32",
+        "logical_shape": [
+          256,
+          128,
+          768
+        ],
+        "npu_format": 29,
+        "physical_bytes": 100663296
+      }
+    }
+  },
+  "source_sha256": {
+    "tests/glm52/routed_int4/build.sh": "90861903396bdc9f396140e93affe26d8704dc5c52104ff0e02ad67d45c152ed",
+    "tests/glm52/routed_int4/build_common.sh": "40895a7eb28e70e8d463dfa5baaf812afe309660b27090ed3066c3a32f880935",
+    "tests/glm52/routed_int4/build_nz_reference.sh": "c5021df832fcf56dc9d46fc925a90e7e7503c0f67eb2ff6310098842c4d58b2e",
+    "tests/glm52/routed_int4/build_so.sh": "83dd0632a8ab978b31fbeed73f445a28a4e7cc8245d7b5efd949bf18ec6c6b0a",
+    "tests/glm52/routed_int4/check.py": "5fc438a73249b3f76f530ba83fa6417213a20e474fae08f83c7362a3946a63aa",
+    "tests/glm52/routed_int4/contract_test.cpp": "a9fc30ddc08a6c80fe7bf6c68f6c03083ed0f95b73e95a5acdf3f57cfd4bc0ed",
+    "tests/glm52/routed_int4/nz_reference.cpp": "0bdcb535f774490679de20a951b0426b8d1e07bab9397b192d8656b4263db905",
+    "tests/glm52/routed_int4/routed_int4_binding.cpp": "5714c47f1e5ae7c4248d3e5aacc63826e968ba136686d311561cc681352be820",
+    "tests/glm52/routed_int4/routed_int4_contract.h": "7ea36d0e82946d3610bb821f68d3af20d3c1662557d9e8e7e99aafbdb37b4bdf",
+    "tests/glm52/routed_int4/routed_int4_dispatch.h": "d3c2989f18b4350021682da8e5ba3f4430f3a797bd214544e43e2f32d4fbcb36",
+    "tests/glm52/routed_int4/routed_int4_kernel.cpp": "9b73996d3fd4764403bb6de9a511cb4eaf9df4b078939fbc7f90785709eaa295",
+    "tests/glm52/routed_int4/routed_int4_kernel.h": "05cadb9c1bfde2bcb60596fff53573a17b68058dbdbdee5fd9c60634ef106f36",
+    "tests/glm52/routed_int4/routed_int4_main.cpp": "f1f8339fac029f8cc70035d3d4923fc46c9a3fdff5e91787da35ac7f01dc2fa1",
+    "tests/glm52/routed_int4/routed_int4_tiling.cpp": "0606394251528fd9124fcdc7140404c102fd87e0b9ec2b1e60f529845dfb53cb"
+  },
+  "cases": [
+    {
+      "width": 1,
+      "scratch_bytes": 17359396,
+      "checks": [
+        {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 6144,
+          "max_abs": 0.0,
+          "nrmse": 0.0,
+          "iteration": 0,
+          "maximum_expert_rows": 1,
+          "input_routing_codes": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 49152,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "input_routing_scale": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 8,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "standalone_quant_diagnostic": {
+            "codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 6144,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 1,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          },
+          "original_full_chain": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 6144,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "dispatch_metadata": {
+            "counts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "starts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "original_slots": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 8,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "weights": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 8,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        },
+        {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 6144,
+          "max_abs": 0.0,
+          "nrmse": 0.0,
+          "iteration": 1,
+          "maximum_expert_rows": 1,
+          "input_routing_codes": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 49152,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "input_routing_scale": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 8,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "standalone_quant_diagnostic": {
+            "codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 6144,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 1,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          },
+          "original_full_chain": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 6144,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "dispatch_metadata": {
+            "counts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "starts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "original_slots": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 8,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "weights": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 8,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        },
+        {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 6144,
+          "max_abs": 0.0,
+          "nrmse": 0.0,
+          "iteration": 2,
+          "maximum_expert_rows": 1,
+          "input_routing_codes": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 49152,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "input_routing_scale": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 8,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "standalone_quant_diagnostic": {
+            "codes": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 20,
+              "unequal": 20,
+              "elements": 6144,
+              "max_abs": 1.0,
+              "nrmse": 0.0015842779539525509,
+              "actual": {
+                "finite": 6144,
+                "nan": 0,
+                "zero": 51,
+                "prefix": [
+                  80.0,
+                  -41.0,
+                  -6.0,
+                  -40.0,
+                  7.0,
+                  -23.0,
+                  45.0,
+                  26.0,
+                  17.0,
+                  -20.0,
+                  -33.0,
+                  91.0,
+                  59.0,
+                  23.0,
+                  -27.0,
+                  12.0
+                ]
+              },
+              "expected": {
+                "finite": 6144,
+                "nan": 0,
+                "zero": 51,
+                "prefix": [
+                  80.0,
+                  -41.0,
+                  -6.0,
+                  -40.0,
+                  7.0,
+                  -23.0,
+                  45.0,
+                  26.0,
+                  17.0,
+                  -20.0,
+                  -33.0,
+                  91.0,
+                  59.0,
+                  23.0,
+                  -27.0,
+                  12.0
+                ]
+              }
+            },
+            "scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 1,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          },
+          "original_full_chain": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 6144,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "dispatch_metadata": {
+            "counts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "starts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "original_slots": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 8,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "weights": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 8,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        },
+        {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 6144,
+          "max_abs": 0.0,
+          "nrmse": 0.0,
+          "iteration": 3,
+          "maximum_expert_rows": 1,
+          "input_routing_codes": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 49152,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "input_routing_scale": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 8,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "standalone_quant_diagnostic": {
+            "codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 6144,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 1,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          },
+          "original_full_chain": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "unequal": 0,
+            "elements": 6144,
+            "max_abs": 0.0,
+            "nrmse": 0.0
+          },
+          "dispatch_metadata": {
+            "counts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "starts": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 256,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "original_slots": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 8,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            },
+            "weights": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "unequal": 0,
+              "elements": 8,
+              "max_abs": 0.0,
+              "nrmse": 0.0
+            }
+          }
+        }
+      ],
+      "pass": true
+    }
+  ],
+  "timing_scope": "complete routed replacement from BF16 vendor init-routing through BF16 combine, including all route metadata and row restoration; paired against the original native chain and vendor GMM chain; input copies, router/top-k, weights, shared experts and TP reduction are outside all measurements; not model TPOT",
+  "reference_contract": {
+    "implementation": "stock CANN SDK WeightNz APIs with canonical descriptors; not the deployed vLLM custom library",
+    "gmm1_api": "aclnnGroupedMatmulSwigluQuantWeightNzV2",
+    "gmm2_api": "aclnnGroupedMatmulWeightNz",
+    "weight_descriptor_dtype": "ACL_INT32",
+    "weight_descriptor_storage": {
+      "gate_up": [
+        256,
+        4,
+        384,
+        16,
+        8
+      ],
+      "down": [
+        256,
+        96,
+        8,
+        16,
+        8
+      ]
+    },
+    "scale_descriptor_dtype": "ACL_UINT64",
+    "copies_weight_bytes": false,
+    "mutates_torch_storage_descriptor": false
+  },
+  "loaded_libraries_sha256": {
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libascendcl.so": "1c06b9c4a8910cfb585eab4ed0066bc09e28a0cf273dfcb15458f7cc49a78cea",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libruntime.so": "f664ffa8934e702e7d8858d7b301bd8c610365f38ce2e12ab9a631114e45b3bb",
+    "/usr/local/lib/python3.11/site-packages/torch_npu/lib/libtorch_npu.so": "4c886c78d4c032bd96afa8155106d2d2d223b4e118e9020a59944b75cb269362"
+  }
+}

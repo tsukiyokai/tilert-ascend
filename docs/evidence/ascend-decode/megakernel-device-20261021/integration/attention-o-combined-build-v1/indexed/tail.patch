@@ -1,0 +1,12 @@
+--- accepted-indexed/tests/glm52/mla_tail/mla_tail_native.h
++++ candidate-indexed/tests/glm52/mla_tail/mla_tail_native.h
+@@ -469,7 +469,8 @@
+     }
+     SyncAll<false>();
+     if ASCEND_IS_AIV {
+-        DequantizeOutputRows(pipe, accumulators, output_scale, scales, bias,
++        DequantizeOutputRows<ScaleOrder::CombinedScales>(
++            pipe, accumulators, output_scale, scales, bias,
+                             bias_kind, output, rows, capacity, GetBlockIdx(),
+                             2 * blocks);
+         Publish();

@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-17",
+  "status": "source_contract_differences",
+  "scope": {
+    "evidence": "Static dispatch and arithmetic source inspection, plus the existing frozen single-row RMS comparison.",
+    "prefill_kernel_profiling": false,
+    "prefill_runtime_preprocess_capture": false,
+    "new_numerical_execution": false,
+    "npu_execution": false,
+    "conclusion": "The current Native replay and the selected Prefill paths do not share one arithmetic contract. These differences are not established causes of the complete trajectory error."
+  },
+  "versions": {
+    "vllm": {
+      "commit": "c4df37dfcc7f72ca41cd43801a468526ecf99a2b",
+      "host_root": "/home/shanshan/trt-asc/src/vllm-unified"
+    },
+    "vllm_ascend": {
+      "commit": "f558b58c177916424ae9dcf9bb8e66c0b9031236",
+      "host_root": "/home/shanshan/trt-asc/src/vllm-ascend-unified"
+    },
+    "tilert_local": {
+      "commit": "0aa8898c97d28f442809b153e3270da21e65eb4b",
+      "root": "/home/shanshan/repo/tile-ai/TileRT-Ascend"
+    },
+    "cann_container": {
+      "host": "a3-gs",
+      "container": "trt-asc",
+      "version": "9.2.0",
+      "arch": "arch22",
+      "root": "/opt/ascend/cann-9.2.0",
+      "read_method": "docker cp to an in-memory archive; no process started in the container"
+    },
+    "checkpoint_container": {
+      "root": "/workspace/models/GLM-5.2-w4a8c8"
+    },
+    "file_identity": "SHA256 below identifies the inspected working-tree or installed file; repository commit alone does not identify local patches."
+  },
+  "selection": {
+    "model": "GLM-5.2-W4A8C8",
+    "dtype": "bfloat16",
+    "tp": 16,
+    "prefill_rows": 8192,
+    "hidden_size": 6144,
+    "q_lora_rank": 2048,
+    "kv_lora_rank": 512,
+    "epsilon": 0.00001,
+    "conditions": [
+      "Launcher disables DSA CP and FlashComm1; the inspected target is an unsharded 8192-row Prefill norm.",
+      "Main MLA cache is BF16 (kv_cache_dtype=auto); indexer_kv_dtype=int8 is a separate cache setting.",
+      "q_a_proj, kv_a_proj_with_mqa and indexer.wq_b have W8A8_DYNAMIC recipes.",
+      "PROLOG_V3 selection additionally requires no dcp_group, no chunked q_proj, no TurboQuant, and a quantized indexer query when an indexer exists; these are source-selection conditions, not a captured per-layer runtime attribute.",
+      "For H=6144 BF16 and more rows than AIV cores, AddRmsNormBias has blockFactor>1, fits UB, exceeds merge-N and performance thresholds, and retains MODE_NORMAL (key 30). M=1 selects MODE_SINGLE_N (key 33).",
+      "Residual formulas below set beta=0. No learned ordinary RMS bias is assumed."
+    ],
+    "source_ids": [
+      "launcher",
+      "model_config",
+      "quantization",
+      "sfa",
+      "add_rms_tiling",
+      "add_rms_dispatch"
+    ],
+    "prefill_rows_scope": "Source-derived selection for an 8192-row norm; no kernel trace from this Prefill request."
+  },
+  "notation": {
+    "B": "Round to BF16; F converts a value to FP32.",
+    "F_gamma": "torch_npu.npu_rms_norm(x, gamma, epsilon)[0].",
+    "U": "F_ones(x), returned as BF16 by the current Native unit-gamma call.",
+    "N_add": "FP32 kernel sequence: square each element; multiply each square by FP32(1/H); ReduceSumCustom; add epsilon; sqrt; divide 1 by that result; multiply the original FP32 input by this reciprocal.",
+    "N_prolog": "FP32 kernel sequence: square; source-specific reduction; multiply the sum by FP32(1/H); add epsilon; sqrt; divide each input element by this result.",
+    "Q_prolog": "The cited Prolog DynamicQuant and CastFP32ToINT8 calls, including their returned token scale.",
+    "boundary_scope": "Formulas preserve dtype and operation boundaries. N_add and N_prolog retain their own source reduction order and device FP32 operations; they are not claims of bitwise equivalence to an ideal CPU formula."
+  },
+  "contracts": [
+    {
+      "id": "ordinary_rms",
+      "location": "First target-layer input RMS, with residual=None.",
+      "prefill": "y_P = F_gamma(x)",
+      "native": "y_D = B(U(x) * gamma)",
+      "difference": "Prefill supplies the learned gamma to one RMS operator; Native exposes the unit-gamma BF16 output before multiplying gamma. The existing input and q frozen samples demonstrate that these decompositions can differ.",
+      "source_ids": [
+        "layernorm",
+        "decoder",
+        "native",
+        "frozen_rms"
+      ],
+      "limit": "The ordinary API call does not by itself specify every internal CANN reduction or rounding instruction."
+    },
+    {
+      "id": "residual_rms",
+      "location": "Post-attention RMS, later-layer input RMS, and final RMS.",
+      "prefill_mode_normal": {
+        "sum": "s = ADD_F32(F(x), F(residual))",
+        "stored_residual": "residual_out = B(s)",
+        "normalized": "y_P = B(MUL_F32(F(B(N_add(s))), F(gamma)))"
+      },
+      "native": {
+        "sum": "s_B = B(x + residual)",
+        "normalized": "y_D = B(U(s_B) * gamma)"
+      },
+      "difference": "The 8192-row custom path normalizes the unrounded FP32 sum while separately storing BF16 residual. Native rounds the sum before its RMS call. Both paths already round the normalized value before gamma; replacing every Native norm with F_gamma does not reproduce this custom path.",
+      "single_row_exception": "MODE_SINGLE_N casts the sum to BF16 and back to FP32 before its reduction. A one-row AddRmsNormBias check cannot establish the 8192-row residual contract.",
+      "source_ids": [
+        "decoder",
+        "layernorm",
+        "add_rms_tiling",
+        "add_rms_dispatch",
+        "add_rms_normal",
+        "add_rms_single",
+        "native"
+      ]
+    },
+    {
+      "id": "prolog_lora_rms",
+      "location": "qA H=2048 and kvA H=512 in SFA PROLOG_V3, full W8A8 and BF16 main KV.",
+      "prefill": {
+        "dequant": "z = MUL_F32(MUL_F32(CAST_F32(I32), token_scale), channel_scale)",
+        "weighted_norm": "u = MUL_F32(N_prolog(z), F(gamma))",
+        "q_a": "(q_INT8, q_scale) = Q_prolog(u)",
+        "kv_a": "latent_BF16 = B(u)"
+      },
+      "native": {
+        "projection": "z_B = npu_quant_matmul(..., output_dtype=bfloat16)",
+        "weighted_norm": "u_B = B(U(z_B) * gamma)",
+        "q_a": "npu_dynamic_quant(u_B) inside the next quantized projection",
+        "kv_a": "cache latent = u_B"
+      },
+      "difference": "Prolog carries projection dequantization into FP32 RMS and gamma multiplication without intermediate BF16. qA is then quantized from FP32; kvA is rounded to BF16 after gamma. Native materializes BF16 projection, unit-normalized BF16 and weighted BF16 values.",
+      "fallback": "If preprocessing selects NATIVE instead, qA invokes q_a_layernorm and KV uses npu_kv_rmsnorm_rope_cache; this is a separate branch, not evidence that PROLOG_V3 uses those calls.",
+      "source_ids": [
+        "sfa",
+        "prolog_entry",
+        "prolog_types",
+        "prolog_dequant",
+        "prolog_norm",
+        "prolog_norm_service",
+        "prolog_kernel",
+        "native",
+        "native_quantized"
+      ]
+    }
+  ],
+  "frozen_rms": {
+    "source_id": "frozen_rms",
+    "reference": "HF-style two-stage RMS on the saved single-row inputs.",
+    "input": {
+      "shape": [
+        1,
+        6144
+      ],
+      "fused_nrmse": 0.002810693850138557,
+      "two_stage_nrmse": 0
+    },
+    "q": {
+      "shape": [
+        1,
+        2048
+      ],
+      "fused_nrmse": 0.002752141786102929,
+      "two_stage_nrmse": 0
+    },
+    "kv_and_post": "Both decompositions matched those saved samples; this does not establish equivalence for other inputs.",
+    "scope": "No Prefill residual fusion or Prolog execution was exercised by this report."
+  },
+  "sources": {
+    "layernorm": {"root":"vllm_ascend","path":"vllm_ascend/ops/layernorm.py","sha256":"d2fda42ad99935725c98b9505a8d2e94696d9cdb2906e5cb2f1e37bf21fb27bc","line_ranges":["90-103"],"excerpts":"94: x, _, residual = torch.ops._C_ascend.npu_add_rms_norm_bias(\n95: x, residual, self.weight, self.bias, self.variance_epsilon\n99: x, residual = torch_npu.npu_rms_norm(x, self.weight, self.variance_epsilon)"},
+    "decoder": {"root":"vllm","path":"vllm/model_executor/models/deepseek_v2.py","sha256":"5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408","line_ranges":["1365-1370","1404-1405","1420-1422","1585-1588"],"excerpts":"1368: hidden_states = self.input_layernorm(hidden_states)\n1370: hidden_states, residual = self.input_layernorm(hidden_states, residual)\n1405: hidden_states, residual = self.post_attention_layernorm(hidden_states, residual)\n1588: hidden_states, _ = self.norm(hidden_states, residual)"},
+    "sfa": {"root":"vllm_ascend","path":"vllm_ascend/attention/sfa_v1.py","sha256":"b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0","line_ranges":["1002-1013","1030-1036","1067-1080","1407-1421","1450-1484","1932-1936","1967-1969","1991-1998","1307-1317"],"excerpts":"1033: qt is AscendW8A8DynamicLinearMethod or qt is AscendW8A8MXFP8DynamicLinearMethod or qt is None\n1036: return PreprocessType.PROLOG_V3\n1412: rmsnorm_gamma_cq=self.q_a_layernorm.weight.data,\n1413: rmsnorm_gamma_ckv=self.kv_a_layernorm.weight.data,\n1473: ql_nope, q_pe, _, q_c, q_c_scale = torch_npu.npu_mla_prolog_v3(\n1934: # prefill); only MLAPO carries a per-call token-count limit."},
+    "add_rms_tiling": {"root":"vllm_ascend","path":"csrc/moe/add_rms_norm_bias/op_host/add_rms_norm_bias_tiling.cpp","sha256":"a41e1a18619292a715d5d41b23387c83d31eaaee929f71206736125dec4cc6f9","line_ranges":["23-44","67-85","250-258","274-282","303-314","419-432"],"excerpts":"29: constexpr uint32_t UB_FACTOR_B16_WITH_BETA = 11264;\n69: constexpr int32_t PERFORMANC_DIM_THREE_MAX = 5120;\n254: uint32_t tileNum = CeilDiv(numRow, numCore * blockFactor);\n280: modeKey = MODE_SINGLE_N;\n303: } else if ((dataType == ge::DT_FLOAT16 || isPerformance == 1) && numCol == numColAlign) {\n419: uint32_t mode_key = MODE_NORMAL;"},
+    "add_rms_dispatch": {"root":"vllm_ascend","path":"csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.cpp","sha256":"b1bd7dfac1143bfe2161237a1f26253d0d938862e369ff3aa1aa4b54ecae32ce","line_ranges":["35-42","63-66"],"excerpts":"39: } else if (TILING_KEY_IS(30)) {\n41: GENERAL_OP_IMPL(KernelAddRmsNormBias, bfloat16_t);\n63: } else if (TILING_KEY_IS(33)) {\n65: GENERAL_OP_IMPL(KernelAddRmsNormBiasSingleN, bfloat16_t);"},
+    "add_rms_normal": {"root":"vllm_ascend","path":"csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias.h","sha256":"5ad66e31f5cdea5c7c61ddf3bde84743deca97965381f049fd197a272a281eed","line_ranges":["131-139","217-231","242-259"],"excerpts":"137: Add(x1_fp32, x1_fp32, x2_fp32, numCol);\n139: Cast(xLocal, x1_fp32, RoundMode::CAST_RINT, numCol);\n245: Cast(yLocal, x_fp32, RoundMode::CAST_RINT, numCol);\n251: Mul(x_fp32, x_fp32, sqx, numCol);\n259: Cast(yLocal, x_fp32, RoundMode::CAST_RINT, numCol);"},
+    "add_rms_single": {"root":"vllm_ascend","path":"csrc/moe/add_rms_norm_bias/op_kernel/add_rms_norm_bias_single_n.h","sha256":"e42fccf0a3472e538b1e8da8402aba9dbbfc3af20f4489a5ddf668c72271641b","line_ranges":["260-267","286-288","318-333"],"excerpts":"267: Cast(x1Local, xFp32Local, RoundMode::CAST_RINT, numCol);\n286: Cast(xFp32Local, x1Local, RoundMode::CAST_NONE, numCol);\n322: Cast(x1Local, xFp32Local, RoundMode::CAST_RINT, numCol);\n333: Mul(xFp32Local, xFp32Local, sqxLocal, numCol);"},
+    "prolog_entry": {"root":"cann_container","path":"opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc/mla_prolog_v3/op_kernel/mla_prolog_v3.cpp","sha256":"da68a7a1536da460e8bacff60f970db637f56a1b28618040ef216dc6e52b3684","line_ranges":["28-34","102-107"],"excerpts":"104: MlaPrologVecS1CubS2<MLAPType<int8_t, int8_t, bfloat16_t, float, cacheMode, EnableDequantOpt,"},
+    "prolog_types": {"root":"cann_container","path":"opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc/mla_prolog/op_kernel/arch22/mla_prolog_comm_arch22.h","sha256":"13032d6868c15c3c047ac04b171f2267ef26e4c14543e73b3946e649ad40d288","line_ranges":["225-245"],"excerpts":"228: using mmCqOutputType = typename std::conditional<std::is_same<X_T, int8_t>::value, int32_t,\n233: using mmCkvKrOutputType = typename std::conditional<std::is_same<X_T, int8_t>::value, int32_t,\n235: using rmsNormGammaType = bfloat16_t;                                   // gamma的输入类型\n236: using rmsNormComputType = float;\n237: using rmsNormCkvOutputType = C_T;\n238: using rmsNormCqOutputType = W_T;"},
+    "prolog_dequant": {"root":"cann_container","path":"opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc/mla_prolog/op_kernel/arch22/mla_prolog_vector_comm_arch22.h","sha256":"60a5897443a6c61efa17d3d7509b3552ea3ecf1dd775c1afd1f79319216888e6","line_ranges":["227-237"],"excerpts":"232: Cast(outputLocal, inputLocal, RoundMode::CAST_RINT, cnt);\n234: RowMuls(outputLocal, outputLocal, scale2Local, rectangleParams);\n236: VecMulMat(outputLocal, scaleLocal, outputLocal, rectangleParams);"},
+    "prolog_norm": {"root":"cann_container","path":"opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc/mla_prolog/op_kernel/arch22/rms_norm.h","sha256":"bbfb3d1fe6e0ddea3e321d0a91f4f9660db4738a3a1bebb82afccabca175c6d9","line_ranges":["55-63","72-84"],"excerpts":"76: Div(inputLocal, inputLocal, xSquareLocal, mask, cnt / 64, divParams);\n84: Mul(outLocal, inputLocal, xSquareLocal, cnt);"},
+    "prolog_norm_service": {"root":"cann_container","path":"opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc/mla_prolog/op_kernel/arch22/service_rms_norm_arch22.h","sha256":"0563fa43b4389fe4b21cc30627ba7792357403a8837c2bd319d3fc2b4a268f39","line_ranges":["55-65","80-88","119-135"],"excerpts":"64: Dequant(xFp32Local, xInt32Local, dequantScaleWDqLocal, dequantScaleXLocal, rectangleParams);\n87: Cast(outputLocal, xFp32Local, RoundMode::CAST_RINT, cnt);\n121: RmsNormNormal<T, GammaType, C, C, U>(xFp32Local, inputGm, gammaLocal, dequantScaleWDqLocal, dequantScaleXLocal,\n132: DynamicQuant(xFp32Local, outputScales, xFp32Local, maxInt8Tensor, shareTmpUb[(cnt + rowAlign) * sizeof(C)],\n135: CastFP32ToINT8(outputLocal, xFp32Local, shareTmpUb, cnt);"},
+    "prolog_kernel": {"root":"cann_container","path":"opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc/mla_prolog/op_kernel/arch22/kernel_mla_prolog_split_n_arch22.h","sha256":"ea32ad7c8e4af21684281e18f5b0bc16e9195550f3133ce820582e96dc772998","line_ranges":["1341-1350","1509-1512"],"excerpts":"1346: RmsNormDynamicQuant<mmCqOutputType, rmsNormGammaType, float, rmsNormComputType, rmsNormCqOutputType,\n1510: RmsNormNormal<mmCkvKrOutputType, rmsNormGammaType, rmsNormComputType, rmsNormCkvOutputType, dequantScaleType>("},
+    "model_config": {"root":"checkpoint_container","path":"config.json","sha256":"817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073","line_ranges":["7","17","108","204","208"],"excerpts":"7: \"dtype\": \"bfloat16\",\n17: \"hidden_size\": 6144,\n108: \"kv_lora_rank\": 512,\n204: \"q_lora_rank\": 2048,\n208: \"rms_norm_eps\": 1e-05,"},
+    "quantization": {"root":"checkpoint_container","path":"quant_model_description.json","sha256":"a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985","line_ranges":["2","9","17"],"excerpts":"2: \"model.layers.0.self_attn.q_a_proj.weight\": \"W8A8_DYNAMIC\",\n9: \"model.layers.0.self_attn.kv_a_proj_with_mqa.weight\": \"W8A8_DYNAMIC\",\n17: \"model.layers.0.self_attn.indexer.wq_b.weight\": \"W8A8_DYNAMIC\","},
+    "native": {"root":"tilert_local","path":"tilert/models/glm_5_2_ascend/native_engine.py","sha256":"8dbc1d11315d3c6877512b87e6e8f0c2e9177e77dd5efefe6a9093aa81373204","line_ranges":["302-310","361-373","464-478"],"excerpts":"306: output, _ = torch_npu.npu_rms_norm(\n307: x.contiguous(), self.norm_units[weight.numel()],\n310: return output * weight\n361: q_latent = self._norm(layer.projections[\"q_a\"](x), layer.norms[\"q\"])\n372: latent = self._norm(latent, layer.norms[\"kv\"])\n466: x = x + attention\n467: normalized = self._norm(x, layer.norms[\"post\"])\n472: x = x + self._sum(output)\n477: x = self._norm(x, self.final_norm)"},
+    "native_quantized": {"root":"tilert_local","path":"tilert/models/glm_5_2_ascend/ops/quantized.py","sha256":"64a90d36caf37d213f54e7f299dbb51166254c56a28bd7ca0ccf739656af6560","line_ranges":["57-64","81-85"],"excerpts":"58: return torch_npu.npu_quant_matmul(\n63: output_dtype=torch.bfloat16,\n84: activation, scale = torch_npu.npu_dynamic_quant(x, dst_type=torch.int8)"},
+    "launcher": {"root":"tilert_local","path":"tests/glm52/serve_vllm_prefill.sh","sha256":"5f1cafcea2fb7e068d86752e7e81e1c7f2cdaf8c85c4202a0ff8a14c9741bee2","line_ranges":["59-68"],"excerpts":"59: --tensor-parallel-size 16 --pipeline-parallel-size 1 --data-parallel-size 1\n60: --dtype bfloat16 --quantization ascend --trust-remote-code\n61: --attention-config '{\"indexer_kv_dtype\":\"int8\"}'\n62: --kv-cache-dtype auto --block-size 128\n63: --max-num-seqs 1 --max-num-batched-tokens 8192 --max-model-len 9344\n67: --additional-config '{\"enable_flashcomm1\":false,\"enable_dsa_cp\":false,\"enable_shared_expert_dp\":false,\"enable_fused_mc2\":0}'"},
+    "frozen_rms": {"root":"tilert_local","path":"docs/evidence/ascend-decode/rmsnorm-rounding-20261016.json","sha256":"793edd1a1e81a3eaaccc8ba837d6e3fb486f73080b5796dc87cd8ea4b2c9c0fb","line_ranges":["4-24","28-48","52-60","76-84"],"excerpts":"4: \"name\": \"input.fused\",\n12: \"nrmse\": 0.002810693850138557,\n28: \"name\": \"q.fused\",\n36: \"nrmse\": 0.002752141786102929,"}
+  }
+}

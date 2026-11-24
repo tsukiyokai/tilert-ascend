@@ -1,0 +1,5954 @@
+{
+  "scope": "One rank-local FFN launch; TP and model latency excluded",
+  "oracle_mode": "both",
+  "orchestration_reference": "frozen native bridge, accepted callable body, native BF16 epilogue",
+  "production_reference": "official norm/gate/top-k/DynamicQuant, accepted body, separate BF16 multiply/add",
+  "official_bridge": {
+    "mode": "pinned official schema, adapter and private operator package",
+    "library": "/workspace/logs/ffn-bridge-runtime212-v1/official_bridge_oracle.so",
+    "library_sha256": "a7dc6b3e54d41ecf7068d5c7e18d96513c827f97c62039b5483ea905178d0708",
+    "api_libraries": {
+      "aclnnMoeGatingTopK": {
+        "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+        "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+      },
+      "aclnnMoeGatingTopKGetWorkspaceSize": {
+        "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+        "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+      },
+      "aclnnAddRmsNormBias": {
+        "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+        "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+      },
+      "aclnnAddRmsNormBiasGetWorkspaceSize": {
+        "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+        "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+      }
+    },
+    "build_manifest": {
+      "scope": "Pinned official adapters; frozen native device/tiling objects",
+      "vendor_commit": "8237ee6d690d1399bc6eb48ef5977ac2bd470f3f",
+      "image_id": "sha256:7448df539bcb40397063c4b7e83a6a1590ba20bcc16639c0aa83f1c60f1a0449",
+      "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+      "torch": "2.12.0+cu130",
+      "torch_npu": "2.12.0",
+      "source_sha256": {
+        "csrc/moe/moe_gating_top_k/moe_gating_top_k_torch_adpt.h": "b475c974a0d5bf4e8bb5e607a2c717bd2d59fbf5e248cabbb873e2529560aec0",
+        "csrc/moe/add_rms_norm_bias/add_rms_norm_bias_torch_adpt.h": "2c7d886260aa8dc037dcdfc139c41901f53e99b3ffaac54d4da5e39e12d39c9a",
+        "csrc/aclnn_torch_adapter/op_api_common.h": "cbd891c9fd8cfb3ad7212f425637772d2da60c21f0db8e106ccd5e5e5f4daac4",
+        "csrc/aclnn_torch_adapter/NPUBridge.h": "20afcbf147970f6779bbeeddcca3b1701f6b4087aa0b2b05954f5e0dbbbc691d",
+        "csrc/aclnn_torch_adapter/NPUBridge.cpp": "0584211ae839e6b7524887b8c24ca1222d5dff3d7c4609af9548e55f22fd8cf6",
+        "csrc/aclnn_torch_adapter/NPUStorageImpl.h": "efd9d47443a72074b774f2057923ea15144c76e12fb4f6bed98233fa3e5f30c4",
+        "csrc/aclnn_torch_adapter/NPUStorageImpl.cpp": "5adfaa3aff7f88342a6a01aa37104a9d6a9375ea6c93f795fc2d0afa6080a518",
+        "csrc/torch_binding.cpp": "ed1fe9f751f4c6c786c758ce9ff2731a9a0d89e14a81ff80438cdee96b4fc9e7"
+      },
+      "reused_objects": {
+        "kernel.o": {
+          "source": "/workspace/tests/glm52/whole_layer/ffn_bridge/build-v2/kernel.o",
+          "sha256": "88e10d9d20f79f4fcf838ebc1a78b0640a84b2774a971666588bfa722d517903"
+        },
+        "tiling.o": {
+          "source": "/workspace/tests/glm52/whole_layer/ffn_bridge/build-v2/tiling.o",
+          "sha256": "66d44edba06b61dd23bface97418a612e7b13bbb753a19c91aaf1d4bf7d0b330"
+        }
+      },
+      "parent_manifest": {
+        "torch": "2.12.0+cu130",
+        "torch_npu": "2.12.0",
+        "npu_initialized": false,
+        "sources": {
+          "source/build_common.sh": "40895a7eb28e70e8d463dfa5baaf812afe309660b27090ed3066c3a32f880935",
+          "source/ffn_bridge/README.md": "edc5df6294146ae0ea953abffe93d530a1d15c59f8250d36a081c22f3c870b05",
+          "source/ffn_bridge/binding.cpp": "038601e7f6a98d0379dd562be12b5adfd2782224516fc07b160b40f57e6fce3a",
+          "source/ffn_bridge/build.sh": "961d7e04401dae0be62a21720b1a6c341bbae3ed58f202984b2df7caa2a5ef3a",
+          "source/ffn_bridge/check.py": "dff59326635120b1f16dd142fd8458625a30bd688052df56de177200b95c99fa",
+          "source/ffn_bridge/contract.h": "f56a4bcfce45f999022012a3eb22471c59eca637b2d15e7b64b78493f0df1006",
+          "source/ffn_bridge/contract_test.cpp": "1aad87118a7842c80db85184ef1af6cefc6e85d830ae82ecd6e1b89a16fa2906",
+          "source/ffn_bridge/fixtures.py": "c0b010dadbdfe3e47918e5a84184ab295d4ac3a4da818066bee93e5e215b05f9",
+          "source/ffn_bridge/kernel.cpp": "763b2a00342ff8337ec284c97d4ab19c2f125a2caa3fe45bb2483fc289cc9c17",
+          "source/ffn_bridge/native.h": "83a336b1878193bec065bfafef7b9b57d6ea30811ad2789657e2538d00ea1fb7",
+          "source/ffn_bridge/prepare_vendor.py": "fa3c500f746cc5dd33ecc6880c5cc707ae3978b0ec9612ae39e4bfcabf1e9655",
+          "source/ffn_bridge/test_contract.py": "8cc484a8f87d39b640c9992442811e3680a89ece984c54b63a92be44e566b5e7",
+          "source/ffn_bridge/tiling.cpp": "e66f0e92f6ae10a48ec45d8baabb76fad7925d7a7c5e0cf0a761d568f36f70f6",
+          "source/norm_contract.h": "d625db3273cf4a6b7670a812d6893e241154bedea5e6cc59ccf4b6acad945b4f",
+          "source/norm_native.h": "d18573f199777f4fbf7acbe9bab378469d0655c283141008c53597026e1590b4",
+          "vendor/add_rms_norm_bias_single_n.h": "e42fccf0a3472e538b1e8da8402aba9dbbfc3af20f4489a5ddf668c72271641b",
+          "vendor/common.h": "8a671274e8be968f5f3107954a608b8211ee3738adae32af90a300c3fe649dc4",
+          "vendor/manifest.json": "03db44df8091693eabbbfdfc74f57de382dc77f0983c3b813b27fa8d8636d67a",
+          "vendor/moe_gating_top_k_without_group.h": "d02abb51af966747a25ab194b0be0076126a39603c61df9bd0b1a6f41a6d4761",
+          "vendor/reduce_common.h": "33cd7dc4bd23b645dc95067872362a619517d24f5cf51c602133d13e0334df88",
+          "vendor/rms_norm_base.h": "79590de4611dbc9b5a3efe92c4ec066b8676c1b17a9c1c9400e9c4db93e8356e"
+        },
+        "artifacts": {
+          "binding.o": "d9b852dcec528bb0bfa27c16fe493d0c319ef81e0ec969690721f6de593db0e2",
+          "kernel.o": "88e10d9d20f79f4fcf838ebc1a78b0640a84b2774a971666588bfa722d517903",
+          "tiling.o": "66d44edba06b61dd23bface97418a612e7b13bbb753a19c91aaf1d4bf7d0b330",
+          "ffn_bridge.so": "140f157225906b9ade87f63a70253ab94a2711fc61ea1024bafe713ac463b1df"
+        },
+        "schemas": {
+          "prepare": "tilert_ffn_bridge::prepare(Tensor input, int blocks=24) -> (Tensor[], int)",
+          "forward_out": "tilert_ffn_bridge::forward_out(Tensor input, Tensor residual, Tensor gamma, Tensor gate_weight, Tensor correction_bias, Tensor(a!)[] scratch, float epsilon, int blocks, int sync_base) -> ()",
+          "topk_out": "tilert_ffn_bridge::topk_out(Tensor logits, Tensor correction_bias, Tensor(a!)[] scratch, int blocks, int sync_base) -> ()",
+          "finalize_out": "tilert_ffn_bridge::finalize_out(Tensor routed, Tensor shared, Tensor(a!)[] scratch, int blocks, int sync_base) -> ()"
+        },
+        "device_validation": "not run"
+      },
+      "commands": [
+        {
+          "step": "oracle_registration",
+          "argv": [
+            "g++",
+            "-std=c++17",
+            "-O2",
+            "-fPIC",
+            "-D_GLIBCXX_USE_CXX11_ABI=1",
+            "-I",
+            "/workspace/logs/ffn-bridge-runtime212-v1/source/csrc",
+            "-I",
+            "/usr/local/include/python3.11",
+            "-I",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/source/ffn_bridge",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch/include",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch/include/torch/csrc/api/include",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch_npu/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/aarch64-linux/include",
+            "-c",
+            "/workspace/logs/ffn-bridge-runtime212-v1/oracle_registration.cpp",
+            "-o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/oracle_registration.o"
+          ]
+        },
+        {
+          "step": "NPUBridge",
+          "argv": [
+            "g++",
+            "-std=c++17",
+            "-O2",
+            "-fPIC",
+            "-D_GLIBCXX_USE_CXX11_ABI=1",
+            "-I",
+            "/workspace/logs/ffn-bridge-runtime212-v1/source/csrc",
+            "-I",
+            "/usr/local/include/python3.11",
+            "-I",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/source/ffn_bridge",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch/include",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch/include/torch/csrc/api/include",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch_npu/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/aarch64-linux/include",
+            "-c",
+            "/workspace/logs/ffn-bridge-runtime212-v1/source/csrc/aclnn_torch_adapter/NPUBridge.cpp",
+            "-o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/NPUBridge.o"
+          ]
+        },
+        {
+          "step": "NPUStorageImpl",
+          "argv": [
+            "g++",
+            "-std=c++17",
+            "-O2",
+            "-fPIC",
+            "-D_GLIBCXX_USE_CXX11_ABI=1",
+            "-I",
+            "/workspace/logs/ffn-bridge-runtime212-v1/source/csrc",
+            "-I",
+            "/usr/local/include/python3.11",
+            "-I",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/source/ffn_bridge",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch/include",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch/include/torch/csrc/api/include",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch_npu/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/aarch64-linux/include",
+            "-c",
+            "/workspace/logs/ffn-bridge-runtime212-v1/source/csrc/aclnn_torch_adapter/NPUStorageImpl.cpp",
+            "-o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/NPUStorageImpl.o"
+          ]
+        },
+        {
+          "step": "oracle-link",
+          "argv": [
+            "g++",
+            "-shared",
+            "/workspace/logs/ffn-bridge-runtime212-v1/oracle_registration.o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/NPUBridge.o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/NPUStorageImpl.o",
+            "-o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/official_bridge_oracle.so",
+            "-L",
+            "/opt/ascend/cann-9.2.0/aarch64-linux/lib64",
+            "-L",
+            "/opt/ascend/cann-9.2.0/lib64",
+            "-L",
+            "/usr/local/lib/python3.11/site-packages/torch/lib",
+            "-L",
+            "/usr/local/lib/python3.11/site-packages/torch_npu/lib",
+            "-ltorch",
+            "-ltorch_cpu",
+            "-ltorch_python",
+            "-lc10",
+            "-ltorch_npu",
+            "-lascendcl",
+            "-lruntime",
+            "-lunified_dlog",
+            "-lc_sec",
+            "-lregister",
+            "-lprofapi",
+            "-ltiling_api",
+            "-lplatform",
+            "-ldl"
+          ]
+        },
+        {
+          "step": "native-binding",
+          "argv": [
+            "g++",
+            "-std=c++17",
+            "-O2",
+            "-fPIC",
+            "-D_GLIBCXX_USE_CXX11_ABI=1",
+            "-I",
+            "/workspace/logs/ffn-bridge-runtime212-v1/source/csrc",
+            "-I",
+            "/usr/local/include/python3.11",
+            "-I",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/source/ffn_bridge",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch/include",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch/include/torch/csrc/api/include",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch_npu/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/aarch64-linux/include",
+            "-c",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/source/ffn_bridge/binding.cpp",
+            "-o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/binding.o"
+          ]
+        },
+        {
+          "step": "native-link",
+          "argv": [
+            "g++",
+            "-shared",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/kernel.o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/tiling.o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/binding.o",
+            "-o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/ffn_bridge.so",
+            "-L",
+            "/opt/ascend/cann-9.2.0/aarch64-linux/lib64",
+            "-L",
+            "/opt/ascend/cann-9.2.0/lib64",
+            "-L",
+            "/usr/local/lib/python3.11/site-packages/torch/lib",
+            "-L",
+            "/usr/local/lib/python3.11/site-packages/torch_npu/lib",
+            "-ltorch",
+            "-ltorch_cpu",
+            "-ltorch_python",
+            "-lc10",
+            "-ltorch_npu",
+            "-lascendcl",
+            "-lruntime",
+            "-lunified_dlog",
+            "-lc_sec",
+            "-lregister",
+            "-lprofapi",
+            "-ltiling_api",
+            "-lplatform",
+            "-ldl"
+          ]
+        }
+      ],
+      "registration_lines": {
+        "moe_gating_top_k": [
+          3155,
+          3170
+        ],
+        "npu_add_rms_norm_bias": [
+          3172,
+          3180
+        ]
+      },
+      "registration_sha256": "682863e1eaaa71c741658db9d07e09027b23ddaea097d18cac6ebc782ef324fa",
+      "complete": true,
+      "oracle_sha256": "a7dc6b3e54d41ecf7068d5c7e18d96513c827f97c62039b5483ea905178d0708",
+      "native_sha256": "57392089102d11b0d3c9389228345406e7473c50b9877876332ba147dba55e6c",
+      "npu_initialized": false,
+      "api_libraries": {
+        "aclnnMoeGatingTopK": {
+          "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+          "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+        },
+        "aclnnMoeGatingTopKGetWorkspaceSize": {
+          "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+          "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+        },
+        "aclnnAddRmsNormBias": {
+          "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+          "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+        },
+        "aclnnAddRmsNormBiasGetWorkspaceSize": {
+          "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+          "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+        }
+      },
+      "schemas": {
+        "moe_gating_top_k": "_C_ascend::moe_gating_top_k(Tensor x, int k, int k_group, int group_count, int group_select_mode, int renorm, int norm_type, bool out_flag, float routed_scaling_factor, float eps, Tensor? bias_opt=None) -> (Tensor y, Tensor expert_idx, Tensor out)",
+        "npu_add_rms_norm_bias": "_C_ascend::npu_add_rms_norm_bias(Tensor x1, Tensor x2, Tensor gamma, Tensor? beta=None, float epsilon=9.9999999999999995e-07) -> (Tensor y, Tensor rstd, Tensor x)"
+      },
+      "container_image_inspect": "sha256:7448df539bcb40397063c4b7e83a6a1590ba20bcc16639c0aa83f1c60f1a0449",
+      "image_id_argument_was_prefix": "sha256:7448df539"
+    },
+    "topk_schema": "_C_ascend::moe_gating_top_k(Tensor x, int k, int k_group, int group_count, int group_select_mode, int renorm, int norm_type, bool out_flag, float routed_scaling_factor, float eps, Tensor? bias_opt=None) -> (Tensor y, Tensor expert_idx, Tensor out)",
+    "norm_schema": "_C_ascend::npu_add_rms_norm_bias(Tensor x1, Tensor x2, Tensor gamma, Tensor? beta=None, float epsilon=9.9999999999999995e-07) -> (Tensor y, Tensor rstd, Tensor x)",
+    "topk_parameters": {
+      "k": 8,
+      "k_group": 1,
+      "group_count": 1,
+      "group_select_mode": 1,
+      "renorm": 1,
+      "norm_type": 1,
+      "out_flag": false,
+      "routed_scaling_factor": 1.0,
+      "eps": 1e-20
+    },
+    "order": "Descending corrected sigmoid; exact ordered IDs compared to production",
+    "probability": "Uncorrected sigmoid selected scores; ReduceSum+eps, Div, factor1"
+  },
+  "utc": "2026-10-21T19:24:17.139401+00:00",
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "libraries": {
+    "/workspace/tests/glm52/whole_layer/ffn_token_join/build-v1/ffn_token_join.so": "4417fd158e48a2da4d59e61fec48ebd0dd6e113022f13cbeb4f01d596eead757",
+    "/workspace/logs/ffn-bridge-runtime212-v1/native/ffn_bridge.so": "57392089102d11b0d3c9389228345406e7473c50b9877876332ba147dba55e6c",
+    "/workspace/tests/glm52/whole_layer/routed_body/build-v2/routed_int4_torch.so": "6dcb8401cf722f9b3c3650d2432321ce6100d79aa98ff329d3a17a63a0f1d6c4"
+  },
+  "sources": {
+    "/workspace/tests/glm52/whole_layer/ffn_token_join/build-v1/check.py": "4a4c47573fc9066040079a2ca35c0aa03e617d62151d31a20b175cb6c216347b",
+    "/workspace/logs/ffn-bridge-runtime212-v1/check.py": "6a36334a25bbde2f76c8749a0a385db48078deb3549c3a321aed1d43c4089afa",
+    "/workspace/logs/ffn-bridge-runtime212-v1/fixtures.py": "c0b010dadbdfe3e47918e5a84184ab295d4ac3a4da818066bee93e5e215b05f9",
+    "/workspace/logs/ffn-bridge-runtime212-v1/gate_probe.py": "0bf8e940836905d37e396e04bea1440485e0472e0c68cdb6b4b738b8e7105276",
+    "/workspace/tests/glm52/whole_layer/routed_body/build-v2/source/routed_int4/check.py": "4a28c5cdbbd4e7e4d71ea22e8b2e01e6337aacb0c7c2887442c3d25d1c2fd0fd",
+    "/workspace/tests/glm52/whole_layer/routed_body/build-v2/source/routed_int4/check_pipeline.py": "3eb8c327b01da2671d77a66f38e4bc201c4c727f113bae38a4023172ee344f25"
+  },
+  "build_manifest": {
+    "parent_library_sha256": "e92a9cbe4d11307a8ea8beae20b5cbe845be10f9aba5280cbc3f438b049ed041",
+    "parent_manifest_sha256": "f2f539ae16ca9c19ebdf694e470cb96fbeaaa9b17199e38b68a8b6e5999de1aa",
+    "public_scratch_count": 32,
+    "additional_gm_bytes": 0,
+    "additional_ub_bytes": 0,
+    "maximum_resident_ub_bytes": 115424,
+    "body_barriers": 5,
+    "outer_end_phases": 1,
+    "removed": [
+      "Body barrier 5",
+      "Second adjacent outer EndPhase"
+    ],
+    "profile_supported": false,
+    "system_workspace_behavior": "Original calls and initial bridge selection retained",
+    "numeric_contract": "All token-output statements and 30 retained boundaries unchanged",
+    "sources": {
+      "body/source/mla_tail/mla_tail.h": "ca13e082d775154ea9357c2b12968da0a234b180f2ce6621675602414a8c7e9e",
+      "body/source/mla_tail/mla_tail_dequant.h": "f0557964f075db75987e5df8fff87d28718595ac1f8c654a292e47d34bc3c362",
+      "body/source/mla_tail/mla_tail_native.h": "b7ad1b066ffda77cf6f43bf44ec632a3e23819723452107a0d654e72ce31d6f3",
+      "body/source/routed_int4/build_common.sh": "40895a7eb28e70e8d463dfa5baaf812afe309660b27090ed3066c3a32f880935",
+      "body/source/routed_int4/build_pipeline_front.sh": "c4abebf0da2949c00ba573b6ea18d2b97d502c5cffd702b18231b961059ecf6d",
+      "body/source/routed_int4/build_so.sh": "92a61c046a0f06e3bb10269e98b80ce1256685ca29040d0ac85b57e7e217196c",
+      "body/source/routed_int4/check.py": "4a28c5cdbbd4e7e4d71ea22e8b2e01e6337aacb0c7c2887442c3d25d1c2fd0fd",
+      "body/source/routed_int4/check_input_front.py": "dbef7bc8945c090a0933cd7086a154cea9159e808ba057151b6d7b4497e70b40",
+      "body/source/routed_int4/check_pipeline.py": "3eb8c327b01da2671d77a66f38e4bc201c4c727f113bae38a4023172ee344f25",
+      "body/source/routed_int4/check_pipeline_front.py": "c439573005382a96870f2e0a2b7583a2321730236883b3ebc99824b18d440f55",
+      "body/source/routed_int4/contract_test.cpp": "6370a2a4df2088dceffd5703643f01cfe763180d9e5bd4fcfef464f9fcc60928",
+      "body/source/routed_int4/dump_tiling.cpp": "a6181d851185a5d20a07019722626fa78b4d63998c77375f15d74f9fbb3c1aea",
+      "body/source/routed_int4/host_validate.h": "b5f32a2ba379756c075cccc347d4dbf0e9e059a9129b701a7d89d80987fe0a29",
+      "body/source/routed_int4/routed_body_native.h": "74fdbcc4b89651c261d266854f05b64a48b6e80c587a030bcdb35983c659fdbb",
+      "body/source/routed_int4/routed_int4_binding.cpp": "a460bc91f961014c7aebcd587481e7b2e1adc73a4764662386dc9e0334a69ace",
+      "body/source/routed_int4/routed_int4_contract.h": "be9e4d95274fb43cae0cbb03d29429fd70ba1558295db8dd0f28db32baf5fbd6",
+      "body/source/routed_int4/routed_int4_dispatch.h": "5fd7e469f1230ff8feb9a554b4bfd5a8cb653fb28fd7cd3bfce1da61ac724c7f",
+      "body/source/routed_int4/routed_int4_front.h": "a1ea7c3d71ba29d8a0f8613cb216dcb6b45a24e27be0567ee9433fbab3dfe4ec",
+      "body/source/routed_int4/routed_int4_kernel.cpp": "4a9772185e787ce5cf49e2d2c4c8efaa73791dbfe6071900b2ca90737a1d36e8",
+      "body/source/routed_int4/routed_int4_kernel.h": "25628f578d00f88fd6ae98225f648b9987348b98a49324eeb82dc4c1b0601cbb",
+      "body/source/routed_int4/routed_int4_pipeline.h": "83b952dc65207e90ecdd6bb91f4c61f4048b9098bd33cbe47b09c1545b52ec4b",
+      "body/source/routed_int4/routed_int4_pipeline_native.h": "cedc8b1f3440da10b3b641a230c27a8517e2972d292a7c08de18f09f007bf3e9",
+      "body/source/routed_int4/routed_int4_pipeline_tiling.cpp": "7d7a6fe6a83c6fb7f5cf1729b03b114da39415159629b4c81e51c7633d3ab0bf",
+      "body/source/routed_int4/routed_int4_profile.h": "59d7c3b99bc1632e22c60d0d52969db62505b8829f9aa658655ed1d703909372",
+      "body/source/routed_int4/routed_int4_tiling.cpp": "de97bdaa15146d50d6357a8a0cfd65ed7f74a82164bdd81bafad3c3d5e5ebae3",
+      "body/source/routed_int4/routed_int4_trace.h": "cab822760d5ea544d8ba0666b548b4dd16a0bcf29252fea6e26a6b83d14f9749",
+      "body/source/routed_int4/test_input_front.py": "4808bea92cecbb469d2d517841d52f7a87dd4ecb50bb89a633b4f7024d3ddeda",
+      "body/source/routed_int4/test_pipeline_front.py": "8299ea1f42183087e3458595d7011c1cb686a47444597114a3baa833322f2c79",
+      "body/source/shared_w8/shared_w8.h": "4bd2f8d5651ea4e7c9ccbc3677e6bf00228bc34649332220b52a31b5e25c0ed5",
+      "body/source/shared_w8/shared_w8_native.h": "faa1c9ca599e2c7a26397ef687153cb1ebdc40d8696b2e90b6317722da03d7c5",
+      "bridge/source/build_common.sh": "40895a7eb28e70e8d463dfa5baaf812afe309660b27090ed3066c3a32f880935",
+      "bridge/source/ffn_bridge/README.md": "edc5df6294146ae0ea953abffe93d530a1d15c59f8250d36a081c22f3c870b05",
+      "bridge/source/ffn_bridge/binding.cpp": "ec6c34be5ad2020e2f69f7d6e1219a13c5210c60eff9d4ab252a1cae0b3cd2ba",
+      "bridge/source/ffn_bridge/body_native.h": "f75ae3bb7ea18d0ef8ebc4bc5ece23e7d135ab2205107baa7a74d008f59b3745",
+      "bridge/source/ffn_bridge/build.sh": "961d7e04401dae0be62a21720b1a6c341bbae3ed58f202984b2df7caa2a5ef3a",
+      "bridge/source/ffn_bridge/check.py": "dff59326635120b1f16dd142fd8458625a30bd688052df56de177200b95c99fa",
+      "bridge/source/ffn_bridge/contract.h": "adf821c560b3e168decf98a012b68b3bf56bcdfe0913b8aeaf4f8030b34574ae",
+      "bridge/source/ffn_bridge/contract_test.cpp": "1aad87118a7842c80db85184ef1af6cefc6e85d830ae82ecd6e1b89a16fa2906",
+      "bridge/source/ffn_bridge/fixtures.py": "c0b010dadbdfe3e47918e5a84184ab295d4ac3a4da818066bee93e5e215b05f9",
+      "bridge/source/ffn_bridge/host_validate.h": "b54c0a79c28450d534548af761848a85809f2913eed4c41cab962f35640a99f2",
+      "bridge/source/ffn_bridge/kernel.cpp": "763b2a00342ff8337ec284c97d4ab19c2f125a2caa3fe45bb2483fc289cc9c17",
+      "bridge/source/ffn_bridge/native.h": "83a336b1878193bec065bfafef7b9b57d6ea30811ad2789657e2538d00ea1fb7",
+      "bridge/source/ffn_bridge/prepare_vendor.py": "fa3c500f746cc5dd33ecc6880c5cc707ae3978b0ec9612ae39e4bfcabf1e9655",
+      "bridge/source/ffn_bridge/test_contract.py": "8cc484a8f87d39b640c9992442811e3680a89ece984c54b63a92be44e566b5e7",
+      "bridge/source/ffn_bridge/tiling.cpp": "f7d9e0f58cde6bf94080e6baf935596f370b6430ebea08c8331edca1217a478b",
+      "bridge/source/norm_contract.h": "d625db3273cf4a6b7670a812d6893e241154bedea5e6cc59ccf4b6acad945b4f",
+      "bridge/source/norm_native.h": "d18573f199777f4fbf7acbe9bab378469d0655c283141008c53597026e1590b4",
+      "bridge/vendor/add_rms_norm_bias_single_n.h": "e42fccf0a3472e538b1e8da8402aba9dbbfc3af20f4489a5ddf668c72271641b",
+      "bridge/vendor/common.h": "8a671274e8be968f5f3107954a608b8211ee3738adae32af90a300c3fe649dc4",
+      "bridge/vendor/manifest.json": "03db44df8091693eabbbfdfc74f57de382dc77f0983c3b813b27fa8d8636d67a",
+      "bridge/vendor/moe_gating_top_k_without_group.h": "d02abb51af966747a25ab194b0be0076126a39603c61df9bd0b1a6f41a6d4761",
+      "bridge/vendor/reduce_common.h": "33cd7dc4bd23b645dc95067872362a619517d24f5cf51c602133d13e0334df88",
+      "bridge/vendor/rms_norm_base.h": "79590de4611dbc9b5a3efe92c4ec066b8676c1b17a9c1c9400e9c4db93e8356e",
+      "candidate_tools/README.md": "aab0ccf1f1848fa0d57e1f1d69382add93fad6cdda9125f9f89ea10a0a051b02",
+      "candidate_tools/build.py": "0ea3fedcf121a021aa2990963c363221377c9e1c0614c720a8781344488c102c",
+      "candidate_tools/prepare.py": "86af2e08d4ca883dad64424a8d56b4d6106434800c293ec4cf2e0a578f86651c",
+      "candidate_tools/test_contract.py": "1fc6d9f3873b6f6802f8b6a0b9f20db12421c0e68ae40b87cab483e3366f0f9b",
+      "check.py": "4a4c47573fc9066040079a2ca35c0aa03e617d62151d31a20b175cb6c216347b",
+      "parent-manifest.json": "f2f539ae16ca9c19ebdf694e470cb96fbeaaa9b17199e38b68a8b6e5999de1aa",
+      "source/README.md": "fd7b8515a573fc9c544e292896857293a1a4b0b8b13589c6e57ad828b6b8fc0b",
+      "source/binding.cpp": "23dc7ebbe8f1a7497830277ae8ec4ad46a59ba67212931fc0c483a91c73e1d14",
+      "source/build.py": "fc72d4e0d380136e1d1bc568c845b513bd60417089c5f3475209966676e0d041",
+      "source/build.sh": "3d0b52077657eddfcafac6b8e839f7a56ad84815e8d9ebdd14296a1aa73a8027",
+      "source/contract.h": "7a6dd37707737cac6531cd58c446812e906190514d8f15d814d7bb9e35ac44c4",
+      "source/contract_test.cpp": "8cc0b2b79e904ba2cc2e52fa9e453e0a26eb9caa1d541841b881f204fa191e81",
+      "source/kernel.cpp": "4b4d3cdb6d949528afedbca491fe9a3f2bf29b59927e10869026e599f2b49a16",
+      "source/output_contract.h": "e00d7f0b3a9aa214d2a5a941174df897109429acfd233aa6678ba3fa636c4c7c",
+      "source/output_native.h": "38b7278d05bdf294f6a86399edf7c413eb9f09329adfbffc7827838d67d3fdd3",
+      "source/ownership_probe.cpp": "05aaf52d142fcab692e409183355bb7db6f0282c3e2900fa5ee0156ed0cffe9f",
+      "source/prepare.py": "b3cba43730367ac0cbcc5f78b705441a56f7e852949eb8fc212de81ea44d2356",
+      "source/test_contract.py": "5772235281abd8886f41f1a0eb0aae31c248c42aae810e16ebbc9d2f146d42c2",
+      "source/test_prepare.py": "a6811143e01bae1688bdd6d1716af300b92c685adf6a6931881a6f33c6efc190",
+      "tail-join.patch": "0e50f9af40d8eb4279fdea9eac8eb535dcf38a6dfcf27a273b7148c042d3170e",
+      "token-output.patch": "006c67dfc6647263d299990a5ea73860898c9ae9da0fd4a0d22f546ac5c0ff1f"
+    },
+    "namespace": "tilert_ffn_token_join",
+    "torch": "2.12.0+cu130",
+    "torch_npu": "2.12.0",
+    "npu_initialized": false,
+    "parent_co_load": true,
+    "schemas": {
+      "prepare": "tilert_ffn_token_join::prepare(Tensor input, int blocks=24, int weight_layout=1) -> (Tensor[], Tensor[], int)",
+      "forward_out": "tilert_ffn_token_join::forward_out(Tensor input, Tensor residual, Tensor gamma, Tensor gate, Tensor bias, Tensor[] routed_weights, Tensor[] shared_weights, Tensor(a!)[] bridge_scratch, Tensor(b!)[] body_scratch, float epsilon, int blocks, int weight_layout, int sync) -> ()"
+    },
+    "artifacts": {
+      "shared-tiling.o": "4adc29409d4eff7ce0081161d30e2c0cd0347e7096d3925d171a3ae5db7be627",
+      "binding.o": "ce12476062a25e17d1d5e8ae1fede9d02c5e59da291230aa7f815cac67abf39c",
+      "bridge-tiling.o": "ba07c7568b3bcd62ebb5d22281c8511fa22a6788935c19b2ccad110d1ec4db7a",
+      "kernel.o": "cc56a155c04f4b87e3f1154e6e726c0611903016f3aea53c948799aac7efb594",
+      "routed-tiling.o": "b998ae545a71b9d440dc86c909de2b41408d919146dc844f84a63322e3dab90a",
+      "ffn_token_join.so": "4417fd158e48a2da4d59e61fec48ebd0dd6e113022f13cbeb4f01d596eead757"
+    },
+    "device_validation": "not run"
+  },
+  "queued_clone_producers": true,
+  "warmup": 2,
+  "replays": 8,
+  "timing": false,
+  "cases": [
+    {
+      "name": "b16-m12-r0-orchestration",
+      "checks": {
+        "bridge.normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "bridge.shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "bridge.shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.stacked": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            3072
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.middle_packed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            64
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            96
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            6144
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.routes_bf16": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.routed_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.counts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.starts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_row": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_slot": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.row_weight": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.shared_staged": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            12,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            4,
+            12,
+            64
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.shared_middle": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            128
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            24,
+            12,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true,
+      "first_mismatch": null
+    },
+    {
+      "name": "b16-m12-r0-production",
+      "checks": {
+        "bridge.normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "bridge.shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "bridge.shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.stacked": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            3072
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.middle_packed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            64
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            96
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            6144
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.routes_bf16": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.routed_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.counts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.starts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_row": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_slot": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.row_weight": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.shared_staged": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            12,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            4,
+            12,
+            64
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.shared_middle": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            128
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            24,
+            12,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true,
+      "first_mismatch": null
+    },
+    {
+      "name": "b16-m12-r1-orchestration",
+      "checks": {
+        "bridge.normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "bridge.shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "bridge.shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.stacked": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            3072
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.middle_packed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            64
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            96
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            6144
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.routes_bf16": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.routed_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.counts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.starts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_row": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_slot": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.row_weight": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.shared_staged": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            12,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            4,
+            12,
+            64
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.shared_middle": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            128
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            24,
+            12,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true,
+      "first_mismatch": null
+    },
+    {
+      "name": "b16-m12-r1-production",
+      "checks": {
+        "bridge.normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "bridge.shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "bridge.shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.stacked": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            3072
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.middle_packed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            64
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            96
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            6144
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.routes_bf16": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.routed_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.counts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.starts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_row": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_slot": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.row_weight": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.shared_staged": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            12,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            4,
+            12,
+            64
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.shared_middle": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            128
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            24,
+            12,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true,
+      "first_mismatch": null
+    },
+    {
+      "name": "b16-m12-r2-orchestration",
+      "checks": {
+        "bridge.normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "bridge.shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "bridge.shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.stacked": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            3072
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.middle_packed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            64
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            96
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            6144
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.routes_bf16": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.routed_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.counts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.starts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_row": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_slot": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.row_weight": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.shared_staged": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            12,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            4,
+            12,
+            64
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.shared_middle": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            128
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            24,
+            12,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true,
+      "first_mismatch": null
+    },
+    {
+      "name": "b16-m12-r2-production",
+      "checks": {
+        "bridge.normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "bridge.shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "bridge.shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.stacked": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            3072
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.middle_packed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            64
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            96
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            6144
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.routes_bf16": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.routed_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.counts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.starts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_row": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_slot": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.row_weight": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.shared_staged": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            12,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            4,
+            12,
+            64
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.shared_middle": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            128
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            24,
+            12,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true,
+      "first_mismatch": null
+    },
+    {
+      "name": "b16-m12-r3-orchestration",
+      "checks": {
+        "bridge.normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "bridge.shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "bridge.shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.stacked": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            3072
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.middle_packed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            64
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            96
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            6144
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.routes_bf16": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.routed_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.counts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.starts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_row": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_slot": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.row_weight": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.shared_staged": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            12,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            4,
+            12,
+            64
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.shared_middle": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            128
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            24,
+            12,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true,
+      "first_mismatch": null
+    },
+    {
+      "name": "b16-m12-r3-production",
+      "checks": {
+        "bridge.normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "bridge.shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "bridge.shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.stacked": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            3072
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.middle_packed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            64
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            96
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            6144
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.routes_bf16": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.routed_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.counts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.starts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_row": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_slot": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.row_weight": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.shared_staged": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            12,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            4,
+            12,
+            64
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.shared_middle": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            128
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            24,
+            12,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true,
+      "first_mismatch": null
+    },
+    {
+      "name": "b16-m12-r4-orchestration",
+      "checks": {
+        "bridge.normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "bridge.shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "bridge.shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.stacked": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            3072
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.middle_packed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            64
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            96
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            6144
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.routes_bf16": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.routed_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.counts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.starts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_row": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_slot": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.row_weight": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.shared_staged": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            12,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            4,
+            12,
+            64
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.shared_middle": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            128
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            24,
+            12,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true,
+      "first_mismatch": null
+    },
+    {
+      "name": "b16-m12-r4-production",
+      "checks": {
+        "bridge.normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "bridge.shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "bridge.shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.stacked": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            3072
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.middle_packed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            64
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            96
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            6144
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.routes_bf16": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.routed_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.counts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.starts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_row": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_slot": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.row_weight": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.shared_staged": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            12,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            4,
+            12,
+            64
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.shared_middle": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            128
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            24,
+            12,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true,
+      "first_mismatch": null
+    },
+    {
+      "name": "b16-m12-r5-orchestration",
+      "checks": {
+        "bridge.normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "bridge.shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "bridge.shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.stacked": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            3072
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.middle_packed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            64
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            96
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            6144
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.routes_bf16": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.routed_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.counts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.starts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_row": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_slot": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.row_weight": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.shared_staged": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            12,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            4,
+            12,
+            64
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.shared_middle": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            128
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            24,
+            12,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true,
+      "first_mismatch": null
+    },
+    {
+      "name": "b16-m12-r5-production",
+      "checks": {
+        "bridge.normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "bridge.shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "bridge.shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.stacked": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            3072
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.middle_packed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            64
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            96
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            6144
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.routes_bf16": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.routed_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.counts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.starts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_row": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_slot": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.row_weight": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.shared_staged": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            12,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            4,
+            12,
+            64
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.shared_middle": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            128
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            24,
+            12,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true,
+      "first_mismatch": null
+    },
+    {
+      "name": "b16-m12-r6-orchestration",
+      "checks": {
+        "bridge.normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "bridge.shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "bridge.shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.stacked": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            3072
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.middle_packed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            64
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            96
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            6144
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.routes_bf16": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.routed_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.counts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.starts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_row": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_slot": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.row_weight": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.shared_staged": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            12,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            4,
+            12,
+            64
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.shared_middle": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            128
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            24,
+            12,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true,
+      "first_mismatch": null
+    },
+    {
+      "name": "b16-m12-r6-production",
+      "checks": {
+        "bridge.normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "bridge.shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "bridge.shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.stacked": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            3072
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.middle_packed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            64
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            96
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            6144
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.routes_bf16": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.routed_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.counts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.starts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_row": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_slot": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.row_weight": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.shared_staged": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            12,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            4,
+            12,
+            64
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.shared_middle": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            128
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            24,
+            12,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true,
+      "first_mismatch": null
+    },
+    {
+      "name": "b16-m12-r7-orchestration",
+      "checks": {
+        "bridge.normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "bridge.shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "bridge.shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.stacked": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            3072
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.middle_packed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            64
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            96
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            6144
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.routes_bf16": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.routed_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.counts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.starts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_row": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_slot": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.row_weight": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.shared_staged": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            12,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            4,
+            12,
+            64
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.shared_middle": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            128
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            24,
+            12,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true,
+      "first_mismatch": null
+    },
+    {
+      "name": "b16-m12-r7-production",
+      "checks": {
+        "bridge.normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "bridge.shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "bridge.shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "bridge.combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "bridge.scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.stacked": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            3072
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.middle_packed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            64
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            96
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            192,
+            6144
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.routes_bf16": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.routed_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.routed_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.counts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.starts": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_row": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.source_slot": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.row_weight": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_output": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "body.shared_staged": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            12,
+            1024
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_gate_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            6,
+            4,
+            12,
+            64
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "body.shared_middle": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            128
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "body.shared_middle_scale": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "body.shared_down_int32": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            24,
+            12,
+            256
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true,
+      "first_mismatch": null
+    }
+  ],
+  "pass": true,
+  "device": "_NPUDeviceProperties(name='Ascend910_9392', total_memory=62740MB, cube_core_num=24, vector_core_num=48, uuid=00cc0800-d001-0000-0000-bcd20648923c, L2_cache_size=192MB)",
+  "cann": {
+    "CANN": "9.2.0",
+    "RUNTIME": "9.2.0",
+    "COMPILER": "9.2.0",
+    "OPP": "9.2.0",
+    "OPP_KERNEL": "9.2.0",
+    "DRIVER": "9.2.0"
+  },
+  "weight_descriptors": {
+    "gate_up": {
+      "shape": [
+        256,
+        6144,
+        32
+      ],
+      "stride": [
+        196608,
+        32,
+        1
+      ],
+      "dtype": "torch.int32",
+      "format": 29,
+      "storage_offset": 0
+    },
+    "gu_bias": {
+      "shape": [
+        256,
+        256
+      ],
+      "stride": [
+        256,
+        1
+      ],
+      "dtype": "torch.float32",
+      "format": 2,
+      "storage_offset": 0
+    },
+    "gu_scale": {
+      "shape": [
+        256,
+        256
+      ],
+      "stride": [
+        256,
+        1
+      ],
+      "dtype": "torch.float32",
+      "format": 2,
+      "storage_offset": 0
+    },
+    "down": {
+      "shape": [
+        256,
+        128,
+        768
+      ],
+      "stride": [
+        98304,
+        768,
+        1
+      ],
+      "dtype": "torch.int32",
+      "format": 29,
+      "storage_offset": 0
+    },
+    "down_bias": {
+      "shape": [
+        256,
+        6144
+      ],
+      "stride": [
+        6144,
+        1
+      ],
+      "dtype": "torch.float32",
+      "format": 2,
+      "storage_offset": 0
+    },
+    "down_scale": {
+      "shape": [
+        256,
+        6144
+      ],
+      "stride": [
+        6144,
+        1
+      ],
+      "dtype": "torch.float32",
+      "format": 2,
+      "storage_offset": 0
+    }
+  },
+  "gate_weight_descriptors": {
+    "original": {
+      "shape": [
+        256,
+        6144
+      ],
+      "stride": [
+        6144,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "format": 2,
+      "storage_offset": 0
+    },
+    "reference_operand": {
+      "shape": [
+        6144,
+        256
+      ],
+      "stride": [
+        1,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "format": 2,
+      "storage_offset": 0
+    },
+    "candidate": {
+      "shape": [
+        6144,
+        256
+      ],
+      "stride": [
+        256,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "format": 2,
+      "storage_offset": 0
+    }
+  }
+}

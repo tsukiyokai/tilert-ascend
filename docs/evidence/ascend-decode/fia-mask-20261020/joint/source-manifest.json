@@ -1,0 +1,100 @@
+{
+  "scope": "read-only source audit; CPU replay of checked-out original split_core.cpp; no NPU launches and no repo edits",
+  "installed_server": "a3-84:trt-asc",
+  "installed_toolkit": "9.2.0/V100R001C25B114",
+  "installed_root": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe",
+  "installed_host_sha256": "cdddc810eb47c57fce1df81356ba2069726c12e8bf77e47a40c26d44fd725beb",
+  "installed_host_path": "op_host/lib/linux/aarch64/libophost_transformer.so",
+  "installed_host_binding": "Contains FiaTilingNonQuantMla, sparse 0/3/4/9 mask-checker and FIA aic/aiv log strings; host source not byte-for-byte validated against binary",
+  "local_repo_head": "e027a008be2766fa5cb6198bebbc7b9dcc08310b",
+  "files": [
+    {
+      "path": "attention/fused_infer_attention_score/op_kernel/arch22/fia_kernel_nonquant_mla.h",
+      "sha256": "19e1e9a15220b6df0c514b5de5b7d9a4f3338946274883982cb1aea868247b15",
+      "installed_match": true
+    },
+    {
+      "path": "attention/fused_infer_attention_score/op_kernel/arch22/fia_block_cube_nonquant_mla.h",
+      "sha256": "5b6e2459788367a0e122dc7edb5d31797abf3a8c1972e1b9d46cf6bed0868a2c",
+      "installed_match": true
+    },
+    {
+      "path": "attention/fused_infer_attention_score/op_kernel/arch22/fia_block_vec_nonquant_mla.h",
+      "sha256": "14737c7bca3cad6d8500d777fbc61997dbbb2d3cfa70e80e308fa09995d9c037",
+      "installed_match": true
+    },
+    {
+      "path": "attention/fused_infer_attention_score/op_kernel/arch22/fused_infer_attention_score_tilingkey.h",
+      "sha256": "fe0160d92ad73d7761f79d8959e70097af4d84820b70d7b0341de002ab7e2ad5",
+      "installed_match": null
+    },
+    {
+      "path": "attention/common/op_kernel/vector_common.h",
+      "sha256": "39afdbefe83cb86120137386951d6da8b30ef6f33b3a24fc5ecc0c0df9e26514",
+      "installed_match": true
+    },
+    {
+      "path": "attention/fused_infer_attention_score/op_host/arch22/fia_tiling_nonquant_mla.cpp",
+      "sha256": "b96f73ffbcb743a5e5e5ad346106a903154c318b27b2c355dc4cfff8383ebaf3",
+      "installed_match": null
+    },
+    {
+      "path": "attention/fused_infer_attention_score/op_host/arch22/fia_tiling_nonquant_mla_arch22.h",
+      "sha256": "18450ef5f78bbc214e85c9ec6afde73a1be7f7c22e60c6f785d6d785eb454cc5",
+      "installed_match": null
+    },
+    {
+      "path": "attention/fused_infer_attention_score/op_host/checkers/mask_checker.cpp",
+      "sha256": "c12b7f64d8d98cb8c25b805b20d0c918f5c07adfcf6e74fdc0e74f0a87962dba",
+      "installed_match": null
+    },
+    {
+      "path": "attention/fused_infer_attention_score/op_host/fused_infer_attention_score_tiling_info_parser.cpp",
+      "sha256": "ece5391f96770e4d04de72b285ec2b06001399cb4098e49f855481f9c0a3493d",
+      "installed_match": null
+    },
+    {
+      "path": "attention/common/op_host/split_core.cpp",
+      "sha256": "7a45c1e33258acd1b85b9a4919f1dd3d315f35201431983ddfdd79fa19710452",
+      "installed_match": null
+    },
+    {
+      "path": "attention/common/op_host/split_core.h",
+      "sha256": "66bbf019c72f28cac7bb6f11848b6d7ec04265eabfb67d3b28fb7590c4ab8ddc",
+      "installed_match": null
+    }
+  ],
+  "replay_inputs": {
+    "B": 1,
+    "N2": 1,
+    "G": 4,
+    "S1": 8,
+    "S2": 8192,
+    "isS1G": true,
+    "attenMaskFlag": true,
+    "sparseMode": 0,
+    "preToken": 2147483647,
+    "nextToken": 2147483647,
+    "mBaseSize": 256,
+    "s2BaseSize": 512,
+    "gS1BaseSizeOfFd": 8,
+    "coreNums": [
+      16,
+      20,
+      24
+    ],
+    "cvRatio": 2
+  },
+  "replay_summary": {
+    "usedCoreNum": 16,
+    "numOfFdHead": 1,
+    "maxS2SplitNum": 16,
+    "usedVecNumOfFd": 4,
+    "mRowsPerMainTask": 32,
+    "s2RowsPerMainTask": 512
+  },
+  "predicted_keys_not_observed": {
+    "BNSD": "105000000000122220",
+    "BSND": "105000000010122221"
+  }
+}

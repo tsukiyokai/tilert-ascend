@@ -1,0 +1,60 @@
+{
+  "scope": "FFN residual/norm, gate, top8 routing and shared input quantization; independent TopK and output epilogue checks",
+  "pass": true,
+  "host": "a3-194",
+  "physical_die": 4,
+  "rows": [
+    1,
+    2,
+    12,
+    32
+  ],
+  "blocks": [
+    16,
+    24
+  ],
+  "gate_weight_layout": "ND [256,6144] with transposed reference operand",
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "captures": 24,
+  "changing_input_replays": 192,
+  "raw_byte_comparisons": 768,
+  "complete_bridge_captures": 8,
+  "complete_bridge_replays": 64,
+  "complete_bridge_raw_byte_comparisons": 512,
+  "complete_bridge_boundaries": [
+    "normalized",
+    "retained",
+    "rstd",
+    "logits",
+    "probabilities",
+    "ids",
+    "shared_codes",
+    "shared_scales"
+  ],
+  "fixed_logit_topk_replays": 64,
+  "output_epilogue_replays": 64,
+  "timing": false,
+  "not_exercised": [
+    "routed/shared body in same launch",
+    "TP reduction",
+    "whole-model latency"
+  ],
+  "native_library_sha256": "57392089102d11b0d3c9389228345406e7473c50b9877876332ba147dba55e6c",
+  "checker_sha256": "6a36334a25bbde2f76c8749a0a385db48078deb3549c3a321aed1d43c4089afa",
+  "official_oracle_sha256": "a7dc6b3e54d41ecf7068d5c7e18d96513c827f97c62039b5483ea905178d0708",
+  "reports": [
+    {
+      "path": "ffn-bridge212-smoke-v1-a3-194/result.json",
+      "sha256": "f89678c2dc62c7034a6b21e622ad0c177e3b8f900027ae9c70971247da062124"
+    },
+    {
+      "path": "ffn-bridge212-wide-v1-a3-194/result.json",
+      "sha256": "dc947ada73be5e79694d071fc1ad3b88a0803926687952a4b371bfd75cd02d58"
+    },
+    {
+      "path": "ffn-bridge212-m1b16-v1-a3-194/result.json",
+      "sha256": "e129560e6a56f2e2bbf6c2a3b6ff310fb0747f61d451de1da59edcc739a5476b"
+    }
+  ]
+}

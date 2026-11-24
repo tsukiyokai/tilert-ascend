@@ -1,0 +1,59 @@
+{
+  "source_sha256": "154b02a1f7cee4a13c0cfc831ebe66897b40b34acee2c855da7bc2ef24920842",
+  "launcher_sha256": "4a86f7074a9e9c0ad87e98ff37eb3f0ed9f0b729a5bcb42ea8bbfdf40f56ba3d",
+  "first_failed_stage": "real_worker_registration",
+  "first_failure": "Traceback (most recent call last):\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 257, in stage\n    value, detail = action()\n                    ^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 144, in <lambda>\n    (adapt_patch(), register_ascend_customop(config)), {},\n     ^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/utils.py\", line 687, in adapt_patch\n    from vllm_ascend.patch import worker  # noqa: F401\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/patch/worker/__init__.py\", line 40, in <module>\n    import vllm_ascend.patch.worker.patch_qwen3_5  # noqa\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/patch/worker/patch_qwen3_5.py\", line 37, in <module>\n    from vllm_ascend.ops.gdn import AscendGatedDeltaNetAttention, initialize_packed_conv_weight\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/ops/gdn.py\", line 23, in <module>\n    from fla_npu.ops.ascendc import (\nModuleNotFoundError: No module named 'fla_npu'\n",
+  "stages": [
+    {
+      "name": "platform_registration",
+      "success": true,
+      "class": "vllm_ascend.platform.NPUPlatform",
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/platform.py",
+      "sha256": "686eb5c4d7e744053def9fe51caf743e79e6a3cbeddebd3c47949d6f13e503cd"
+    },
+    {
+      "name": "real_groups",
+      "success": true,
+      "tp_world_size": 16,
+      "tp_rank": 0,
+      "cpu_rank_sum": 120,
+      "expected_rank_sum": 120,
+      "coordinator": {
+        "class": "vllm.distributed.parallel_state.GroupCoordinator",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982/vllm/distributed/parallel_state.py",
+        "sha256": "0e47cff9a89717183bdce6403f0454961848247f51306a0f1dfbe3d6e1b93336"
+      },
+      "device_communicator": null,
+      "registration": "actual coordinators assigned to version-scoped parallel_state fields",
+      "singleton_fields": [
+        "_DCP",
+        "_PCP",
+        "_PP",
+        "_DP",
+        "_EP"
+      ]
+    },
+    {
+      "name": "Ascend910_9392",
+      "success": true,
+      "device_count": 1,
+      "logical_device": 0
+    },
+    {
+      "name": "engine_config_tp16",
+      "success": true,
+      "tp": 16,
+      "pp": 1,
+      "dp": 1,
+      "synthetic_checkpoint": true,
+      "indexer_mode": "int8"
+    },
+    {
+      "name": "real_worker_registration",
+      "success": false,
+      "error": "Traceback (most recent call last):\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 257, in stage\n    value, detail = action()\n                    ^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 144, in <lambda>\n    (adapt_patch(), register_ascend_customop(config)), {},\n     ^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/utils.py\", line 687, in adapt_patch\n    from vllm_ascend.patch import worker  # noqa: F401\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/patch/worker/__init__.py\", line 40, in <module>\n    import vllm_ascend.patch.worker.patch_qwen3_5  # noqa\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/patch/worker/patch_qwen3_5.py\", line 37, in <module>\n    from vllm_ascend.ops.gdn import AscendGatedDeltaNetAttention, initialize_packed_conv_weight\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/ops/gdn.py\", line 23, in <module>\n    from fla_npu.ops.ascendc import (\nModuleNotFoundError: No module named 'fla_npu'\n"
+    }
+  ],
+  "scope": "Actual16-rankGloo andNPUbinding passed; officialworkerregistration failed onmissingfla_npu beforeattentionconstructor",
+  "recording_limit": "The npu_bind stage name was overwritten by its device-name detail field in this frozen version; its success/device_count/logical_device fields identify the actual completed binding."
+}

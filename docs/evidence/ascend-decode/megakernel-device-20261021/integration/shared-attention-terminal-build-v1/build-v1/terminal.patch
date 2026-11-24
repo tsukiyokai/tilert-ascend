@@ -1,0 +1,37 @@
+--- parent/tests/glm52/whole_layer/attention_full_kernel.cpp
++++ candidate/tests/glm52/whole_layer/attention_full_kernel.cpp
+@@ -23,7 +23,7 @@
+         weight_uk, weight_dkv_kr, scale_dq, scale_uq_qr, scale_dkv_kr,
+         gamma_cq, gamma_ckv, sin, cos, slots, kv_cache, rope_cache, topk,
+         query_lengths, kv_lengths, page_table, nullptr, nullptr};
+-    FullForward(pipe, config, args, value_weight, output_weight, output_scale,
++    FullForward<true>(pipe, config, args, value_weight, output_weight, output_scale,
+         bias, bias_kind, scratch, tail_tiling, output);
+ }
+ 
+--- parent/tests/glm52/whole_layer/attention_full_native.h
++++ candidate/tests/glm52/whole_layer/attention_full_native.h
+@@ -12,6 +12,7 @@
+ 
+ namespace whole_layer_attention {
+ 
++template <bool Terminal = false>
+ __aicore__ inline void FullForward(
+     AscendC::TPipe& pipe, const FullConfig& config, DeviceArgs attention,
+     GM_ADDR value_weight, GM_ADDR output_weight, GM_ADDR output_scale,
+@@ -29,7 +30,14 @@
+         (__gm__ float*)output_scale, bias, bias_kind, arena, tail_tiling,
+         (__gm__ bfloat16_t*)output, config.attention.rows, config.capacity,
+         config.attention.blocks, config.tail);
+-    EndPhase(pipe);
++    if constexpr (Terminal) {
++        // The global task boundary orders consumers in subsequent kernels.
++        // Callable use still requires every output producer to join here.
++        AscendC::PipeBarrier<PIPE_ALL>();
++        AscendC::DataSyncBarrier<AscendC::MemDsbT::DDR>();
++    } else {
++        EndPhase(pipe);
++    }
+ }
+ 
+ }  // namespace whole_layer_attention

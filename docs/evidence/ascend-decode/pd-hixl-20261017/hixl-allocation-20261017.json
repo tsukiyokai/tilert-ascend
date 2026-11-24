@@ -1,0 +1,637 @@
+{
+  "scope": "A3 CANN9.2 Torch-NPU logical ranges and IPC physical allocations",
+  "reports": {
+    "contrast": {
+      "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/allocator-contrast-evidence.json",
+      "sha256": "744f648db30919ad3fa83b8857d43f9ccb94c58273797dff45d91d1d9b47818b",
+      "summary": {
+        "scope": "HIXL registration of independent and allocator-suballocated device storage",
+        "library": {
+          "path": "/workspace/offline/prefix8k-listen-port-20261017/hixl/libtilert_hixl.so",
+          "sha256": "9d1421f2033d1ee0e9d11325e7d5bdd34aa5bbc78d50c42a80079af305c3ea5d"
+        },
+        "sources": [
+          {
+            "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-ab/run_one.py",
+            "sha256": "2dc7e9ac0bf2dd790bc876a0df85d580ebb1ed52898c8c5924fab59424c702de"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/check_transport.py",
+            "sha256": "d915d50d4a90cbde3a068f0a095ae69fb9bc360e12cef21d8fc944df5af3de80"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-listen-port-20261017/source/tests/hixl/check_transport.py",
+            "sha256": "96f38595e304a9ebbd5d96725cff6f8884e8436bcb84d2ba1298a5c176eb515c"
+          }
+        ],
+        "original_failure": {
+          "sender_pid": 73320,
+          "receiver_pid": 71323,
+          "sender_die": 9,
+          "receiver_die": 10,
+          "device_ports": [
+            26009,
+            27109
+          ],
+          "communicator_initialization": "success",
+          "export_ptr": "0x12d808b8c000",
+          "export_bytes": 7897088,
+          "ptr_mod_2mib": 1622016,
+          "driver_errno": 22,
+          "driver_return": 8,
+          "runtime_error": 507899,
+          "hccl_prepare_return": 15,
+          "hixl_status": 503900
+        },
+        "cases": [
+          {
+            "suballocation": false,
+            "allocator_environment": "expandable_segments:True",
+            "sender_pid": 84789,
+            "receiver_pid": 84791,
+            "bytes": 7897088,
+            "status": "pass",
+            "error": null,
+            "receiver_exact": true,
+            "receiver_unchanged": false,
+            "registered_source_ptr": "0x12c1c0000000",
+            "source_ptr_mod_2mib": 0,
+            "report": {
+              "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-ab/expandable-true.json",
+              "sha256": "4696f7c7ae36293c4093ac568d075c4d2c1193162e9adcdfdfd6a1bde028cef6"
+            }
+          },
+          {
+            "suballocation": false,
+            "allocator_environment": "expandable_segments:False",
+            "sender_pid": 85052,
+            "receiver_pid": 85054,
+            "bytes": 7897088,
+            "status": "pass",
+            "error": null,
+            "receiver_exact": true,
+            "receiver_unchanged": false,
+            "registered_source_ptr": "0x12c081200000",
+            "source_ptr_mod_2mib": 0,
+            "report": {
+              "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-ab/expandable-false.json",
+              "sha256": "23dc50f64a9d6baa825388fa99c7b55e8c71f5895c7714bcc5c0af2c1119ef27"
+            }
+          },
+          {
+            "suballocation": true,
+            "allocator_environment": "expandable_segments:True",
+            "sender_pid": 86747,
+            "receiver_pid": 86749,
+            "bytes": 7897088,
+            "status": "fail",
+            "error": "HIXL write: Connect status=503900",
+            "receiver_exact": false,
+            "receiver_unchanged": true,
+            "registered_source_ptr": "0x12c1c0190000",
+            "source_ptr_mod_2mib": 1638400,
+            "report": {
+              "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/expandable-true.json",
+              "sha256": "1bebd217b849e70fa8fc869a44da8568f341f47b3e04a5000926f546e83c4a95"
+            },
+            "allocations": [
+              {
+                "role": "sender",
+                "ptr": "0x12c1c0190000",
+                "storage_bytes": 7897088,
+                "segment_base": "0x12c1c0000000",
+                "segment_bytes": 20971520,
+                "is_expandable": true,
+                "snapshot": {
+                  "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/expandable-true-sender-allocation.json",
+                  "sha256": "344add88b655864f5a3558e272785de32924b03cc3286da2a73c20c396b71ca0"
+                }
+              },
+              {
+                "role": "receiver",
+                "ptr": "0x12c1c0190000",
+                "storage_bytes": 7897088,
+                "segment_base": "0x12c1c0000000",
+                "segment_bytes": 20971520,
+                "is_expandable": true,
+                "snapshot": {
+                  "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/expandable-true-receiver-allocation.json",
+                  "sha256": "b33ec2cf7efb409dc528d14c2449f409a8b2ec2fd1dcf1bb30fefb9ce9f9225f"
+                }
+              }
+            ]
+          },
+          {
+            "suballocation": true,
+            "allocator_environment": "expandable_segments:False",
+            "sender_pid": 87264,
+            "receiver_pid": 87266,
+            "bytes": 7897088,
+            "status": "fail",
+            "error": "HIXL write: Connect status=503900",
+            "receiver_exact": false,
+            "receiver_unchanged": true,
+            "registered_source_ptr": "0x12c08138c200",
+            "source_ptr_mod_2mib": 1622528,
+            "report": {
+              "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/expandable-false.json",
+              "sha256": "22d04b964dda8fa61a602008d676db9c4367648a51d464ff2a2c807782d7d929"
+            },
+            "allocations": [
+              {
+                "role": "sender",
+                "ptr": "0x12c08138c200",
+                "storage_bytes": 7897088,
+                "segment_base": "0x12c081200000",
+                "segment_bytes": 20971520,
+                "is_expandable": false,
+                "snapshot": {
+                  "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/expandable-false-sender-allocation.json",
+                  "sha256": "ae1e1b9bc5ed20eb17cda8e49b7628696d43acd35e127e780d9a926d057c538b"
+                }
+              },
+              {
+                "role": "receiver",
+                "ptr": "0x12c08138c200",
+                "storage_bytes": 7897088,
+                "segment_base": "0x12c081200000",
+                "segment_bytes": 20971520,
+                "is_expandable": false,
+                "snapshot": {
+                  "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/expandable-false-receiver-allocation.json",
+                  "sha256": "3f895804d41245bc402a3b00d29e4b738a3158e9de475d58184ce903386c7605"
+                }
+              }
+            ]
+          }
+        ],
+        "own_processes_exited": {
+          "84789": true,
+          "84791": true,
+          "85052": true,
+          "85054": true,
+          "86747": true,
+          "86749": true,
+          "87264": true,
+          "87266": true
+        },
+        "raw_logs": {
+          "73320": [
+            {
+              "kind": "debug",
+              "original_path": "/root/ascend/log/debug/plog/plog-73320_20261017134811451.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/debug-plog-73320_20261017134811451.log",
+              "bytes": 4806,
+              "sha256": "b7740f7700a6184c3fa3b7849698dbe2003f7bdfc267d4813d61278a204f2ec1"
+            },
+            {
+              "kind": "run",
+              "original_path": "/root/ascend/log/run/plog/plog-73320_20261017134417445.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/run-plog-73320_20261017134417445.log",
+              "bytes": 312863,
+              "sha256": "2c0f20a5c21dace8caaa95165c4baea7c7aee230167e4973733bdd93b4bc5e99"
+            }
+          ],
+          "71323": [
+            {
+              "kind": "debug",
+              "original_path": "/root/ascend/log/debug/plog/plog-71323_20261017134811605.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/debug-plog-71323_20261017134811605.log",
+              "bytes": 3250,
+              "sha256": "fbcb153a484017aa54c63153e79af386c2ed45b623f8c06ac5ab5ef57381fce8"
+            },
+            {
+              "kind": "run",
+              "original_path": "/root/ascend/log/run/plog/plog-71323_20261017134142774.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/run-plog-71323_20261017134142774.log",
+              "bytes": 118154,
+              "sha256": "197ebbe42f40e0191931886aad64b053c3a48309d5b8b163dd030cf838bf5b32"
+            }
+          ],
+          "84789": [
+            {
+              "kind": "debug",
+              "original_path": "/root/ascend/log/debug/plog/plog-84789_20261017135204492.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/debug-plog-84789_20261017135204492.log",
+              "bytes": 3046272,
+              "sha256": "d71924c911795e77d76e896ec2323a0cfa69d9dc17231a6e17525be788aa9bcf"
+            },
+            {
+              "kind": "run",
+              "original_path": "/root/ascend/log/run/plog/plog-84789_20261017135204692.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/run-plog-84789_20261017135204692.log",
+              "bytes": 91361,
+              "sha256": "275884512282a3e70754b6e2bf70e217bde6be934790ab68768d3de5a917ace8"
+            }
+          ],
+          "84791": [
+            {
+              "kind": "debug",
+              "original_path": "/root/ascend/log/debug/plog/plog-84791_20261017135158061.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/debug-plog-84791_20261017135158061.log",
+              "bytes": 3050144,
+              "sha256": "5c49bb6f467a3a706d66d2bf6149ce58196ce278b52d013370d69e5ef37d8f03"
+            },
+            {
+              "kind": "run",
+              "original_path": "/root/ascend/log/run/plog/plog-84791_20261017135158262.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/run-plog-84791_20261017135158262.log",
+              "bytes": 91093,
+              "sha256": "febeef8a01d77fd0d437cd99b64c9783dc520e41f0515bec84225d018c74e7d1"
+            }
+          ],
+          "85052": [
+            {
+              "kind": "debug",
+              "original_path": "/root/ascend/log/debug/plog/plog-85052_20261017135225768.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/debug-plog-85052_20261017135225768.log",
+              "bytes": 3043172,
+              "sha256": "fa7f2926bee7e7c394af1bce147ebacb32b94d54b6ae5237f8e0534c2fb5150e"
+            },
+            {
+              "kind": "run",
+              "original_path": "/root/ascend/log/run/plog/plog-85052_20261017135225969.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/run-plog-85052_20261017135225969.log",
+              "bytes": 91361,
+              "sha256": "7304484274fa1e10d99106adcdd25a078e25f788c83514d9123d622661c8927a"
+            }
+          ],
+          "85054": [
+            {
+              "kind": "debug",
+              "original_path": "/root/ascend/log/debug/plog/plog-85054_20261017135219174.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/debug-plog-85054_20261017135219174.log",
+              "bytes": 3047051,
+              "sha256": "8ad632f644af20637b16ad25eb0c82eb9fb56954176414ec4fc3068eb873d748"
+            },
+            {
+              "kind": "run",
+              "original_path": "/root/ascend/log/run/plog/plog-85054_20261017135219375.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/run-plog-85054_20261017135219375.log",
+              "bytes": 91095,
+              "sha256": "3cf2616d2645adecd2b69132c3bffab37a14577b20cfde44fbe2000d38e223f7"
+            }
+          ],
+          "86747": [
+            {
+              "kind": "debug",
+              "original_path": "/root/ascend/log/debug/plog/plog-86747_20261017135507831.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/debug-plog-86747_20261017135507831.log",
+              "bytes": 16608008,
+              "sha256": "36997446ff31b8e81d349fd2c9c5c416b951e47a6d80561e3d60302627df7960"
+            },
+            {
+              "kind": "run",
+              "original_path": "/root/ascend/log/run/plog/plog-86747_20261017135508032.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/run-plog-86747_20261017135508032.log",
+              "bytes": 90374,
+              "sha256": "d28788c322e828fd894e703f39de6fccc3da2eb2a5dff213ac558a5c9d975d25"
+            }
+          ],
+          "86749": [
+            {
+              "kind": "debug",
+              "original_path": "/root/ascend/log/debug/plog/plog-86749_20261017135501106.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/debug-plog-86749_20261017135501106.log",
+              "bytes": 16857938,
+              "sha256": "99cd836f8a040993958e775485760f1d6d66f9b57d3c2c3b1dc74b617b114f17"
+            },
+            {
+              "kind": "run",
+              "original_path": "/root/ascend/log/run/plog/plog-86749_20261017135501308.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/run-plog-86749_20261017135501308.log",
+              "bytes": 90498,
+              "sha256": "4c5a231a1898f0441e6ce638f8ef3d8edf61a25d222d88ec4236067e7bfe6316"
+            }
+          ],
+          "87264": [
+            {
+              "kind": "debug",
+              "original_path": "/root/ascend/log/debug/plog/plog-87264_20261017135530371.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/debug-plog-87264_20261017135530371.log",
+              "bytes": 16599802,
+              "sha256": "72f4dd6522888c0bf49081f149afb98df2b4f671fda995cf7330b4fc0f3f52ac"
+            },
+            {
+              "kind": "run",
+              "original_path": "/root/ascend/log/run/plog/plog-87264_20261017135530572.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/run-plog-87264_20261017135530572.log",
+              "bytes": 90372,
+              "sha256": "43086502df146f99a4b63f0eba869d20adbc8923bb3ab7af89eb2c6a4983bf41"
+            }
+          ],
+          "87266": [
+            {
+              "kind": "debug",
+              "original_path": "/root/ascend/log/debug/plog/plog-87266_20261017135523778.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/debug-plog-87266_20261017135523778.log",
+              "bytes": 16849480,
+              "sha256": "44c2bb2885d9c5a467b3d52280f2190f0b0deea5c7e1fb559a8a374c9a4f0c1b"
+            },
+            {
+              "kind": "run",
+              "original_path": "/root/ascend/log/run/plog/plog-87266_20261017135523980.log",
+              "saved_path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/raw-logs/run-plog-87266_20261017135523980.log",
+              "bytes": 90498,
+              "sha256": "5b3972f12a5451f7cfaaf0399c33b7ca83b16ffe0557f4e7cb1076ba8825e160"
+            }
+          ]
+        }
+      }
+    },
+    "allocation": {
+      "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/allocation-base-evidence.json",
+      "sha256": "db0f3b881ae8a85b5578fa3a0f6b0841080ed92a318452cda3574935e7ca9898",
+      "summary": {
+        "created_at": "2026-10-17T06:04:52.484705+00:00",
+        "status": "pass",
+        "claim": "With expandable_segments=False, registering the actual containing allocator segment permits an exact HIXL WRITE from the unchanged suballocation pointer.",
+        "counterpart": {
+          "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-suballoc-ab/expandable-false.json",
+          "sha256": "22d04b964dda8fa61a602008d676db9c4367648a51d464ff2a2c807782d7d929"
+        },
+        "acl_query": {
+          "status": 207000,
+          "name": "ACL_ERROR_RT_FEATURE_NOT_SUPPORT",
+          "range_api_header": {
+            "path": "/opt/ascend/cann-9.2.0/aarch64-linux/include/acl/acl_rt.h",
+            "sha256": "5ffca8a8cd22258c587a0a1c6c66e8a8605deac00005d9de896be0ab1f7c3769",
+            "lines": [
+              5925,
+              5935
+            ]
+          },
+          "error_header": {
+            "path": "/opt/ascend/cann-9.2.0/aarch64-linux/include/acl/error_codes/rt_error_codes.h",
+            "sha256": "12fbd6bd67ab4e638ad1ce9bb3448c8b20beb0661f193f41997a467d0ad781a6",
+            "line": 69
+          },
+          "result": "No address range returned for the tested non-expandable suballocation; snapshot supplies the registration range."
+        },
+        "allocator": "expandable_segments:False",
+        "payload_bytes": 7897088,
+        "registration_source": "torch.npu.memory_snapshot unique containing non-expandable segment",
+        "library_sha256": "9d1421f2033d1ee0e9d11325e7d5bdd34aa5bbc78d50c42a80079af305c3ea5d",
+        "source_sha256": "9ae732e1aa13416e2f27a25c37e9ff186a7df51bcf5a274fa186939d783cb029",
+        "allocations": [
+          {
+            "role": "sender",
+            "pid": 90765,
+            "device": "npu:0",
+            "tensor_ptr": 20618011001344,
+            "tensor_bytes": 7897088,
+            "storage_ptr": 20618011001344,
+            "storage_bytes": 7897088,
+            "padding_ptr": 20618009378816,
+            "padding_bytes": 1622016,
+            "registered_base": 20618009378816,
+            "registered_bytes": 20971520,
+            "memory_allocated": 9520128,
+            "memory_reserved": 20971520,
+            "acl_address_range": {
+              "status": 207000,
+              "base": null,
+              "bytes": 0,
+              "matches_snapshot": false
+            },
+            "artifact": {
+              "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/non-expandable-snapshot-sender-allocation.json",
+              "sha256": "f3094fe0e444f5a05b7885119c4a1f03e3402c85a5d4d3c348ef41354e663b6f"
+            }
+          },
+          {
+            "role": "receiver",
+            "pid": 90767,
+            "device": "npu:1",
+            "tensor_ptr": 20618011001344,
+            "tensor_bytes": 7897088,
+            "storage_ptr": 20618011001344,
+            "storage_bytes": 7897088,
+            "padding_ptr": 20618009378816,
+            "padding_bytes": 1622016,
+            "registered_base": 20618009378816,
+            "registered_bytes": 20971520,
+            "memory_allocated": 9520128,
+            "memory_reserved": 20971520,
+            "acl_address_range": {
+              "status": 207000,
+              "base": null,
+              "bytes": 0,
+              "matches_snapshot": false
+            },
+            "artifact": {
+              "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/non-expandable-snapshot-receiver-allocation.json",
+              "sha256": "6677edc017ff94cacf8d875de4c6fc883ca293c182059293cb25f3aeb8ec40b3"
+            }
+          }
+        ],
+        "transfer": {
+          "source_device": 0,
+          "destination_device": 1,
+          "source_port": 29322,
+          "destination_port": 29323,
+          "source_ptr": 20618011001344,
+          "destination_ptr": 20618011001344,
+          "bytes": 7897088,
+          "exact": true,
+          "sha256": "644f27b789f5231d4aeeae6d28720f5c7e9c9745d1f14b389a2faa79a13af999",
+          "exit": 0
+        },
+        "processes_absent": {
+          "90097": true,
+          "90765": true,
+          "90767": true
+        },
+        "lifetimes": {
+          "padding_and_payload": "Both local tensors remain referenced until transport.close returns.",
+          "registration": "One physical allocation per endpoint, deregistered at transport close."
+        },
+        "artifacts": [
+          {
+            "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/check_transport.py",
+            "sha256": "705ffab213f7dee0281cead3d0901b0e09c283194c35c228bd1420827673d564"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/check_snapshot.py",
+            "sha256": "9ae732e1aa13416e2f27a25c37e9ff186a7df51bcf5a274fa186939d783cb029"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/non-expandable.log",
+            "sha256": "d93dd755020ba75968a969fe2452d63fb1901104be66d55110bac5d8adefab50"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/non-expandable.exit",
+            "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/non-expandable-receiver-allocation.json",
+            "sha256": "cff2f2d11085a123496f56b7595a119bf37e9c19d10789ef7e182e41ac5a73d8"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/non-expandable-snapshot.json",
+            "sha256": "48d2ef8ee59e4861c4ebf718bb1d556267edefafaf45c819cc7e4d862f5af2c6"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/non-expandable-snapshot.log",
+            "sha256": "15c7e16c1a651b32a655ce99628d5ca2b518d83022ae10b888711f48b5a2c7b4"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/non-expandable-snapshot.exit",
+            "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/non-expandable-snapshot.started",
+            "sha256": "44cce037abe6bdd31a22590315c1a943c9c4911b7d18185f301d833574242498"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/non-expandable-snapshot.ended",
+            "sha256": "8d6f07dc0558fbd860a157e27d82991dde2b6670388233692e30f7848311bd25"
+          }
+        ],
+        "raw_logs": [
+          {
+            "role": "acl_range_receiver",
+            "pid": 90097,
+            "source": "/root/ascend/log/run/plog/plog-90097_20261017140223567.log",
+            "copy": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/raw-logs/run-plog-90097_20261017140223567.log",
+            "sha256": "a85fede00b8dd1e05ac8fe18536a7968f9ac22089ca1d9a590db8db424c27385",
+            "bytes": 40008
+          },
+          {
+            "role": "snapshot_sender",
+            "pid": 90765,
+            "source": "/root/ascend/log/run/plog/plog-90765_20261017140333204.log",
+            "copy": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/raw-logs/run-plog-90765_20261017140333204.log",
+            "sha256": "c75898a14d9a8be63ee17c85f3c250ece49b495fd09ab65c2ef7aa30fc854398",
+            "bytes": 91362
+          },
+          {
+            "role": "snapshot_receiver",
+            "pid": 90767,
+            "source": "/root/ascend/log/run/plog/plog-90767_20261017140326666.log",
+            "copy": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/raw-logs/run-plog-90767_20261017140326666.log",
+            "sha256": "f31f3650625415d1299b7ae4ee5926c7831324d8087843f8476031e8284fc292",
+            "bytes": 91096
+          },
+          {
+            "role": "acl_range_receiver",
+            "pid": 90097,
+            "source": "/root/ascend/log/debug/plog/plog-90097_20261017140223366.log",
+            "copy": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/raw-logs/debug-plog-90097_20261017140223366.log",
+            "sha256": "7d46d51b63b28103d95a13bf2d2e0e526382e3d69ba513ea150f32a00968c509",
+            "bytes": 1949010
+          },
+          {
+            "role": "snapshot_sender",
+            "pid": 90765,
+            "source": "/root/ascend/log/debug/plog/plog-90765_20261017140333003.log",
+            "copy": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/raw-logs/debug-plog-90765_20261017140333003.log",
+            "sha256": "27266fadb4eba941bac46f764227cec44730dad078bc0e49be59697a3797f367",
+            "bytes": 3043481
+          },
+          {
+            "role": "snapshot_receiver",
+            "pid": 90767,
+            "source": "/root/ascend/log/debug/plog/plog-90767_20261017140326465.log",
+            "copy": "/workspace/offline/prefix8k-listen-port-20261017/allocator-base-ab/raw-logs/debug-plog-90767_20261017140326465.log",
+            "sha256": "f83534e2b11ab1cd98504addba0f1856df851a794a2bff4fc7f0bc886963a100",
+            "bytes": 3047513
+          }
+        ]
+      }
+    },
+    "production": {
+      "path": "/workspace/offline/prefix8k-allocation-20261017/micro/production-evidence.json",
+      "sha256": "deec2eb1aede1918d889592d8fe11b9b17ef5a3e2e465991cf4b06730c3f52d2",
+      "summary": {
+        "created_at": "2026-10-17T06:11:46.314100+00:00",
+        "status": "pass",
+        "scope": "One real NPU HIXL pair using the production HixlTransport allocation resolver.",
+        "checks": {
+          "7897088_payload_bytes_exact": true,
+          "metadata_remains_logical": true,
+          "second_nonoverlapping_logical_region_registers_and_closes": true,
+          "invalid_source_rejected_before_native": true
+        },
+        "allocator": "expandable_segments:False",
+        "transfer_sha256": "644f27b789f5231d4aeeae6d28720f5c7e9c9745d1f14b389a2faa79a13af999",
+        "transport_source": {
+          "path": "/workspace/offline/prefix8k-allocation-20261017/source/tilert/pd_vllm/hixl_transport.py",
+          "sha256": "d692ed07ec44ab312986ba31eba44825a18389edcbc535c8513d90263719b25d"
+        },
+        "library_sha256": "9d1421f2033d1ee0e9d11325e7d5bdd34aa5bbc78d50c42a80079af305c3ea5d",
+        "micro_script_sha256": "9b9cc52fc231940f81234406c3544d55029ba782129fbdc96df46b3d67d1cb3d",
+        "registrations": [
+          {
+            "role": "sender",
+            "pid": 91332,
+            "process_absent": true,
+            "physical_registration_count": 1,
+            "physical_deregistration_count": 1,
+            "physical_base": "0x12c081200000",
+            "physical_bytes": 20971520,
+            "logical_registration_count": 2,
+            "handle": "0x38706cc0",
+            "log_path": "/workspace/offline/prefix8k-allocation-20261017/micro/raw-logs/plog-91332_20261017141039102.log",
+            "log_sha256": "e12452316df4f6609eac7e0bf8ea91f69dd337c1f635809bbebd9171f35036fa",
+            "register_line": 153,
+            "deregister_line": 421
+          },
+          {
+            "role": "receiver",
+            "pid": 91334,
+            "process_absent": true,
+            "physical_registration_count": 1,
+            "physical_deregistration_count": 1,
+            "physical_base": "0x12c081200000",
+            "physical_bytes": 20971520,
+            "logical_registration_count": 2,
+            "handle": "0x52ab21c0",
+            "log_path": "/workspace/offline/prefix8k-allocation-20261017/micro/raw-logs/plog-91334_20261017141032582.log",
+            "log_sha256": "225f4811d2b9b6a4deebcd43515887c905a2c031cbd513d4edea9f0e31aec0fa",
+            "register_line": 153,
+            "deregister_line": 419
+          }
+        ],
+        "artifacts": [
+          {
+            "path": "/workspace/offline/prefix8k-allocation-20261017/micro/check_transport.py",
+            "sha256": "9b9cc52fc231940f81234406c3544d55029ba782129fbdc96df46b3d67d1cb3d"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-allocation-20261017/micro/production.json",
+            "sha256": "de09cd865b1f0a83b83afd3aae687f2a8c782d8fdab624095f6905b4eb8ee5c4"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-allocation-20261017/micro/production.log",
+            "sha256": "83d05b9e3573b52c51962f11f440d72e5d1c3b8b5d46953ed646b61762921648"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-allocation-20261017/micro/production.exit",
+            "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-allocation-20261017/micro/production.started",
+            "sha256": "2343e96740ca928c7b4d7896ca30bf2d290bf212b154f5353548e6de294654b6"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-allocation-20261017/micro/production.ended",
+            "sha256": "59220a19ed5c871e68add5e167cdfd9c986ec6d1b2fe8b95662cc748b6e3b686"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-allocation-20261017/micro/production-sender-allocation.json",
+            "sha256": "0d30098020a678df019fba9858da252214cbb51f121e2d316dbc98fe2511f493"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-allocation-20261017/micro/production-receiver-allocation.json",
+            "sha256": "d8cfb6b7b1adcb7c5642371117f4cf31f4ac79935f6975c24d198709b40afad0"
+          },
+          {
+            "path": "/workspace/offline/prefix8k-allocation-20261017/micro/device-guard.json",
+            "sha256": "3d3b3088f546642fc4587a80ed57ad14eb2185fd700d959f145fd9af1da1dc07"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+Original lines 120-159
+  120 }
+  121 
+  122 // Every resident AIC and AIV enters both outer barriers. Vendor ProcessDecode
+  123 // uses its own AIV-only SyncAll before merging top-k lists; its hardware flag
+  124 // differs from the mixed-core barrier and its scratch remains live until the
+  125 // final mixed barrier completes.
+  126 __aicore__ inline void Forward(AscendC::TPipe& pipe, const Config& config,
+  127                                const DeviceArgs& args)
+  128 {
+  129     if (config.quantized) {
+  130         WriteCache<int8_t, true>(pipe, config, args);
+  131     } else {
+  132         WriteCache<bfloat16_t, false>(pipe, config, args);
+  133     }
+  134     EndPhase(pipe);
+  135     if (config.quantized) {
+  136         const auto tiling = QuantTiling(config);
+  137         using Type = QLICommon::QLIType<int8_t, int8_t, int32_t, true,
+  138             QLICommon::LI_LAYOUT::TND, QLICommon::LI_LAYOUT::PA_BSND>;
+  139         QLIKernel::QLIPreload<Type> selector;
+  140         selector.Init(args.query, args.key_cache, args.weights, args.query_scale,
+  141             args.scale_cache, args.query_lengths, args.key_lengths,
+  142             args.page_table, args.output, args.scratch, &tiling, &pipe);
+  143         selector.Process();
+  144     } else {
+  145         const auto tiling = Bf16Tiling(config);
+  146         using Type = LICommon::LIType<bfloat16_t, bfloat16_t, int32_t, true,
+  147             LICommon::LI_LAYOUT::TND, LICommon::LI_LAYOUT::PA_BSND, false>;
+  148         LIKernel::LightningIndexerKernel<Type> selector;
+  149         selector.Init(args.query, args.key_cache, args.weights,
+  150             args.query_lengths, args.key_lengths, args.page_table, args.output,
+  151             nullptr, args.scratch, &tiling, &pipe);
+  152         selector.Process();
+  153     }
+  154     EndPhase(pipe);
+  155 }
+  156 
+  157 }  // namespace whole_layer_indexer
+  158 
+  159 #endif
+

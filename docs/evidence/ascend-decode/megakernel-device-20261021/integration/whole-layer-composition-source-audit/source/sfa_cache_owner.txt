@@ -1,0 +1,44 @@
+Original lines 1585-1603
+ 1585     def _get_indexcache_topk_indices(self, num_tokens: int) -> torch.Tensor:
+ 1586         if self.topk_indices_buffer is None:
+ 1587             raise RuntimeError("IndexCache requires topk_indices_buffer when skip_topk is enabled.")
+ 1588         topk_indices = self.topk_indices_buffer[:num_tokens]
+ 1589         if topk_indices.dim() == 2:
+ 1590             topk_indices = topk_indices.unsqueeze(1)
+ 1591         return topk_indices
+ 1592 
+ 1593     def _update_indexcache_topk_indices(self, topk_indices: torch.Tensor) -> None:
+ 1594         if self.topk_indices_buffer is None:
+ 1595             return
+ 1596         num_tokens = topk_indices.shape[0]
+ 1597         topk_tokens = topk_indices.shape[-1]
+ 1598         topk_indices_to_cache = topk_indices
+ 1599         topk_indices_buffer = self.topk_indices_buffer[:num_tokens, :topk_tokens]
+ 1600         if topk_indices_to_cache.dim() == 3 and topk_indices_buffer.dim() == 2:
+ 1601             assert topk_indices_to_cache.shape[1] == 1
+ 1602             topk_indices_to_cache = topk_indices_to_cache.squeeze(1)
+ 1603         topk_indices_buffer.copy_(topk_indices_to_cache)
+
+Original lines 2110-2130
+ 2110                     q_pe,
+ 2111                     kv_cache,
+ 2112                     topk_indices,
+ 2113                     attn_metadata,
+ 2114                     actual_seq_lengths_query,
+ 2115                     actual_seq_lengths_key,
+ 2116                 )
+ 2117 
+ 2118         if has_local_query:
+ 2119             attn_output = self._v_up_proj(attn_output)
+ 2120         else:
+ 2121             # The O-proj below still joins its PCP/TP collectives.
+ 2122             attn_output = hidden_states.new_zeros((ql_nope.shape[0], self.local_num_heads * self.v_head_dim))
+ 2123         if gate_hidden_states is not None:
+ 2124             assert self.g_proj is not None
+ 2125             attn_output.mul_(torch.sigmoid(self.g_proj(gate_hidden_states.contiguous())[0]))
+ 2126         self._finalize_o_proj(
+ 2127             attn_output,
+ 2128             output[:num_input_tokens],
+ 2129             parallel_context.gather_full_o_proj,
+ 2130         )
+

@@ -1,0 +1,184 @@
+{
+  "utc": "2026-10-22T05:53:31.639137+00:00",
+  "scope": "independent routed chains with configurable weight reuse",
+  "rows": 12,
+  "blocks": 24,
+  "calls": 4,
+  "seed": 20261021,
+  "warmup": 3,
+  "arguments": {
+    "device": "npu:0",
+    "library": "/out/unified-balanced/routed_int4_torch.so",
+    "native_partial": "int32",
+    "native_schedule": "row",
+    "native_cube": "norm",
+    "compare_native": false,
+    "compare_balanced": false,
+    "balanced_library": "/tree/tests/glm52/routed_int4/build-balanced-zero/routed_int4_torch.so",
+    "original_library": "/tree/tests/glm52/routed_int4/build-route/routed_int4_torch.so",
+    "control_library": "/tree/tests/glm52/routed_int4/build-control/routed_int4_torch.so",
+    "vendor_library": "/tree/tests/glm52/routed_int4/build-reference/nz_reference.so",
+    "fixture": null,
+    "checkpoint": null,
+    "layer": 3,
+    "rank": 0,
+    "rows": 12,
+    "blocks": 24,
+    "banks": 2,
+    "calls": 4,
+    "reuse_bank": false,
+    "seed": 20261021,
+    "iterations": 10,
+    "timing_pairs": 2,
+    "output": "/out/routed-baseline.json"
+  },
+  "unique_weight_banks": 2,
+  "shared_weight_allocations_between_arms": true,
+  "weight_bytes": 603979776,
+  "minimum_selected_weight_bytes": 191102976,
+  "scratch_bytes": 23701424,
+  "scratch_bytes_per_arm": {
+    "native": 23701424
+  },
+  "input_copies_in_capture": false,
+  "dispatch_in_each_call": true,
+  "last_output_checks": [
+    {
+      "replay": 0,
+      "active_experts": 8,
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "unequal": 0,
+      "elements": 73728,
+      "max_abs": 0.0,
+      "nrmse": 0.0,
+      "arms": {
+        "native": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 73728,
+          "max_abs": 0.0,
+          "nrmse": 0.0
+        }
+      }
+    },
+    {
+      "replay": 1,
+      "active_experts": 8,
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "unequal": 0,
+      "elements": 73728,
+      "max_abs": 0.0,
+      "nrmse": 0.0,
+      "arms": {
+        "native": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 73728,
+          "max_abs": 0.0,
+          "nrmse": 0.0
+        }
+      }
+    },
+    {
+      "replay": 2,
+      "active_experts": 87,
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "unequal": 0,
+      "elements": 73728,
+      "max_abs": 0.0,
+      "nrmse": 0.0,
+      "arms": {
+        "native": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 73728,
+          "max_abs": 0.0,
+          "nrmse": 0.0
+        }
+      }
+    },
+    {
+      "replay": 3,
+      "active_experts": 81,
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "unequal": 0,
+      "elements": 73728,
+      "max_abs": 0.0,
+      "nrmse": 0.0,
+      "arms": {
+        "native": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "unequal": 0,
+          "elements": 73728,
+          "max_abs": 0.0,
+          "nrmse": 0.0
+        }
+      }
+    }
+  ],
+  "pass": true,
+  "torch": "2.12.0+cpu",
+  "torch_npu": "2.12.0",
+  "cann": {
+    "CANN": "9.2.0",
+    "RUNTIME": "9.2.0",
+    "COMPILER": "9.2.0",
+    "OPP": "9.2.0",
+    "OPP_KERNEL": "9.2.0",
+    "DRIVER": "9.2.0"
+  },
+  "device": "_NPUDeviceProperties(name='Ascend910_9392', total_memory=62740MB, cube_core_num=24, vector_core_num=48, uuid=00cc0800-d001-0000-0000-bcd20648923c, L2_cache_size=192MB)",
+  "library_sha256": "f6ff47cf134ab6c9edf8edc0afa284647a1daacb7a86b19918e6200e186ce75c",
+  "comparison_library_sha256": null,
+  "balanced_library_sha256": null,
+  "reference_library_sha256": "719fad323e4c226dff724aa1e889463825aa88bb058f46c32fd3beb681e4f01e",
+  "harness_sha256": "63cd0b62a777175e8047197741b355fcc1d4a2a8fa05bbbbcd70cac3132c4448",
+  "helpers_sha256": "4a28c5cdbbd4e7e4d71ea22e8b2e01e6337aacb0c7c2887442c3d25d1c2fd0fd",
+  "reference": "stock CANN canonical NZ descriptor bridge",
+  "iterations": 10,
+  "pairs_us_per_graph": [
+    {
+      "native": 667.4339771270752,
+      "vendor": 1073.6760139465332
+    },
+    {
+      "vendor": 1072.3699569702148,
+      "native": 669.2339897155762
+    }
+  ],
+  "median_us_per_call": {
+    "native": 167.08349585533142,
+    "vendor": 268.2557463645935
+  },
+  "loaded_libraries_sha256": {
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libascendcl.so": "1c06b9c4a8910cfb585eab4ed0066bc09e28a0cf273dfcb15458f7cc49a78cea",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libruntime.so": "f664ffa8934e702e7d8858d7b301bd8c610365f38ce2e12ab9a631114e45b3bb",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib/libcust_opapi.so": "f81c882edadb261acdce7f85bf4aa7c7cc7e4a94571a665ffc8a41cb150238a6",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/torch_npu/lib/libtorch_npu.so": "4c886c78d4c032bd96afa8155106d2d2d223b4e118e9020a59944b75cb269362"
+  }
+}

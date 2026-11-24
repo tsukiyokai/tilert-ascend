@@ -1,0 +1,104 @@
+--- parent/body/source/routed_int4/routed_body_native.h
++++ candidate/body/source/routed_int4/routed_body_native.h
+@@ -11,6 +11,7 @@
+ #define ASCENDC_CUBE_ONLY
+ 
+ #include "routed_int4_kernel.h"
++#include "../../../source/output_contract.h"
+ #include "routed_int4_dispatch.h"
+ #include "routed_int4_trace.h"
+ #include "kernel_operator.h"
+@@ -495,6 +496,8 @@
+     }
+ }
+ 
++#include "../../../source/output_native.h"
++
+ }  // namespace
+ 
+ template <CubeFormat weight_format, bool from_dispatch>
+@@ -515,6 +518,7 @@
+ #ifdef ROUTED_SHARED_PIPELINE
+     , pipeline::Input shared_input
+ #endif
++    , __gm__ bfloat16_t* scaled_output, __gm__ bfloat16_t* combined_output
+     )
+ {
+     Timing timing;
+@@ -736,53 +740,14 @@
+     timing.Barrier(4);
+     timing.Begin(5);
+     if ASCEND_IS_AIV {
+-        const int64_t begin = GetSubBlockIdx() * (kHidden / 2);
+-#ifdef ROUTED_ROW_BALANCED
+-        // Both AIVs in a group retain separate H/2 columns for each row.
+-        int64_t next = GetBlockIdx() / 2;
+-        for (int64_t expert = 0; expert < experts; ++expert) {
+-            const int64_t count = held.count.GetValue(expert);
+-            const int64_t route_begin = held.start.GetValue(expert);
+-            if (next >= route_begin + count) {
+-                continue;
+-            }
+-            StoreRoutes<true>(held, count, route_begin,
+-                wide + 2 * route_begin * kHidden,
+-                down_bias + expert * kHidden, down_scale + expert * kHidden,
+-                middle_scale + route_begin, route_output,
+-                begin, begin + kHidden / 2, tokens, next - route_begin, blocks);
+-            do {
+-                next += blocks;
+-            } while (next < route_begin + count);
+-        }
+-#else
+-        int64_t active = 0;
+-        int64_t next = GetBlockIdx() / 2;
+-        for (int64_t expert = 0; expert < experts; ++expert) {
+-            if (held.count.GetValue(expert) == 0) {
+-                continue;
+-            }
+-            if (active++ != next) {
+-                continue;
+-            }
+-            next += blocks;
+-            const int64_t route_begin = held.start.GetValue(expert);
+-            StoreRoutes(held, held.count.GetValue(expert),
+-                        held.start.GetValue(expert),
+-                        wide + 2 * route_begin * kHidden,
+-                        down_bias + expert * kHidden,
+-                        down_scale + expert * kHidden,
+-                        middle_scale + route_begin, route_output,
+-                        begin, begin + kHidden / 2, tokens);
+-        }
+-#endif
++        TokenOutputs(pipe, held, wide, down_bias, down_scale, middle_scale,
++            (__gm__ int32_t*)dispatch_input.expert_ids, route_output, out,
++            (__gm__ bfloat16_t*)shared_input.output, scaled_output,
++            combined_output, tokens, blocks);
+         Publish();
+     }
+     timing.Barrier(5);
+     timing.Begin(6);
+-    if ASCEND_IS_AIV {
+-        CombineTokens(held, route_output, out, tokens, blocks);
+-    }
+     timing.FinishFinal(6);
+     timing.Store(trace, tokens, blocks);
+ }
+--- parent/source/kernel.cpp
++++ candidate/source/kernel.cpp
+@@ -60,13 +60,12 @@
+         (__gm__ bfloat16_t*)body.values[kOutput],
+         body.values[kGateTiling], body.values[kDownTiling],
+         body.values[kMatmulWorkspace], ffn_bridge::kExperts, rows, blocks,
+-        dispatch, nullptr, shared);
++        dispatch, nullptr, shared,
++        (__gm__ bfloat16_t*)bridge.values[ffn_bridge::kScaledRouted],
++        (__gm__ bfloat16_t*)bridge.values[ffn_bridge::kCombined]);
+     // NoTrace::FinishFinal is empty. This is the required publication seam,
+     // after every body-local TBuf and matrix object has left scope.
+     ffn_bridge::device::EndPhase(pipe);
+-    ffn_bridge::device::Epilogue(pipe, body.values[kOutput],
+-        body.values[pipeline::kSharedOutput], bridge.values[ffn_bridge::kScaledRouted],
+-        bridge.values[ffn_bridge::kCombined], rows, blocks);
+     ffn_bridge::device::EndPhase(pipe);
+ }
+ }  // namespace ffn_composed_device

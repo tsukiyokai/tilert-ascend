@@ -1,0 +1,38 @@
+{
+  "scope": "same single-process Python, launcher flags, image, explicit environment and loaded library hashes; existing task-owned main container stopped between runs",
+  "script_sha256": "7710217c714f92bce62f67647d93d8b4fa9775754f26d5568f4d36d539d16fdb",
+  "source_records": [
+    "runtime-single-v1/source-sha256.txt",
+    "runtime-single-v2/source-sha256.txt"
+  ],
+  "same_recorded_environment": true,
+  "same_hashed_loaded_libraries": true,
+  "before": {
+    "report": "runtime-single-v1/report.json",
+    "drvGetDevNum": {
+      "return_code": 87,
+      "device_count": 0
+    },
+    "success": false
+  },
+  "after": {
+    "report": "runtime-single-v2/report.json",
+    "drvGetDevNum": {
+      "return_code": 0,
+      "device_count": 1
+    },
+    "torch_set_device": {
+      "name": "torch_set_device",
+      "result": {
+        "device_count": 1,
+        "device_name": "Ascend910_9392",
+        "npu_initialized": true
+      },
+      "success": true
+    },
+    "success": true
+  },
+  "source_evidence": "runtime-single-v1/driver-source-evidence.json",
+  "kernel_evidence": "runtime-single-v1/kernel-uda.log",
+  "conclusion": "A live mount-namespace owner prevented the new container from opening physical device4. Stopping the task-owned main container cleared enumeration and Torch binding without driver configuration changes. This proves runtime bootstrap only; it does not execute the vendor attention layer or native operators."
+}

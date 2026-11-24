@@ -1,0 +1,29 @@
+--- a/grouped_matmul_swiglu_quant_v2.cpp
++++ b/grouped_matmul_swiglu_quant_v2.cpp
+@@ -39,6 +39,26 @@
+                                tiling);
+         GET_TILING_DATA_MEMBER(GMMSwigluQuantV2TilingData, mmTilingData, mmTilingData_, tiling);
+         GET_TILING_DATA_MEMBER(GMMSwigluQuantV2TilingData, gmmSwigluQuantV2, gmmSwiglu_, tiling);
++        // Paired experiment: identical count tables at 0/32/64-byte tags.
++        const uint64_t arm = reinterpret_cast<uint64_t>(groupList) & 96U;
++        if ((arm == 32U || arm == 64U) &&
++            gmmSwigluQuantV2BaseParams_.K == 6144 &&
++            gmmSwigluQuantV2BaseParams_.N == 256 &&
++            gmmSwigluQuantV2BaseParams_.quantGroupNum == 1 &&
++            gmmSwigluQuantV2BaseParams_.groupListType == 1 &&
++            gmmSwigluQuantV2BaseParams_.M > 0 &&
++            gmmSwigluQuantV2BaseParams_.M <= 256 &&
++            gmmSwigluQuantV2BaseParams_.M <= gmmSwigluQuantV2BaseParams_.mLimit &&
++            gmmSwiglu_.groupListLen == 256) {
++            gmmSwigluQuantV2BaseParams_.baseM = 64;
++            mmTilingData_.baseM = 64;
++            mmTilingData_.singleCoreM = 64;
++            mmTilingData_.shareL0CSize = 65536;
++            if (arm == 64U) {
++                mmTilingData_.stepKa = 24;
++                mmTilingData_.depthA1 = 24;
++            }
++        }
+         using xType = MatmulType<TPosition::GM, CubeFormat::ND, int4b_t, false>;
+         using weightType = MatmulType<TPosition::GM, wFormat, int4b_t, false>;
+         using yType = MatmulType<TPosition::GM, CubeFormat::ND, half, false>;

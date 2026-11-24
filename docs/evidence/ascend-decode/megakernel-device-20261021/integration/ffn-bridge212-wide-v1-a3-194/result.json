@@ -1,0 +1,7604 @@
+{
+  "scope": "Rank-local bridge only; TP and model latency are not exercised",
+  "started_utc": "2026-10-21T17:15:49.345684+00:00",
+  "library": "/workspace/logs/ffn-bridge-runtime212-v1/native/ffn_bridge.so",
+  "library_sha256": "57392089102d11b0d3c9389228345406e7473c50b9877876332ba147dba55e6c",
+  "script_sha256": "6a36334a25bbde2f76c8749a0a385db48078deb3549c3a321aed1d43c4089afa",
+  "fixtures_sha256": "c0b010dadbdfe3e47918e5a84184ab295d4ac3a4da818066bee93e5e215b05f9",
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "device": "_NPUDeviceProperties(name='Ascend910_9392', total_memory=62740MB, cube_core_num=24, vector_core_num=48, uuid=00cc0800-d001-0000-0000-bcd20648923c, L2_cache_size=192MB)",
+  "warmup": 2,
+  "replays": 8,
+  "timing": false,
+  "oracle": {
+    "mode": "pinned official schema, adapter and private operator package",
+    "library": "/workspace/logs/ffn-bridge-runtime212-v1/official_bridge_oracle.so",
+    "library_sha256": "a7dc6b3e54d41ecf7068d5c7e18d96513c827f97c62039b5483ea905178d0708",
+    "api_libraries": {
+      "aclnnMoeGatingTopK": {
+        "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+        "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+      },
+      "aclnnMoeGatingTopKGetWorkspaceSize": {
+        "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+        "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+      },
+      "aclnnAddRmsNormBias": {
+        "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+        "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+      },
+      "aclnnAddRmsNormBiasGetWorkspaceSize": {
+        "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+        "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+      }
+    },
+    "build_manifest": {
+      "scope": "Pinned official adapters; frozen native device/tiling objects",
+      "vendor_commit": "8237ee6d690d1399bc6eb48ef5977ac2bd470f3f",
+      "image_id": "sha256:7448df539bcb40397063c4b7e83a6a1590ba20bcc16639c0aa83f1c60f1a0449",
+      "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+      "torch": "2.12.0+cu130",
+      "torch_npu": "2.12.0",
+      "source_sha256": {
+        "csrc/moe/moe_gating_top_k/moe_gating_top_k_torch_adpt.h": "b475c974a0d5bf4e8bb5e607a2c717bd2d59fbf5e248cabbb873e2529560aec0",
+        "csrc/moe/add_rms_norm_bias/add_rms_norm_bias_torch_adpt.h": "2c7d886260aa8dc037dcdfc139c41901f53e99b3ffaac54d4da5e39e12d39c9a",
+        "csrc/aclnn_torch_adapter/op_api_common.h": "cbd891c9fd8cfb3ad7212f425637772d2da60c21f0db8e106ccd5e5e5f4daac4",
+        "csrc/aclnn_torch_adapter/NPUBridge.h": "20afcbf147970f6779bbeeddcca3b1701f6b4087aa0b2b05954f5e0dbbbc691d",
+        "csrc/aclnn_torch_adapter/NPUBridge.cpp": "0584211ae839e6b7524887b8c24ca1222d5dff3d7c4609af9548e55f22fd8cf6",
+        "csrc/aclnn_torch_adapter/NPUStorageImpl.h": "efd9d47443a72074b774f2057923ea15144c76e12fb4f6bed98233fa3e5f30c4",
+        "csrc/aclnn_torch_adapter/NPUStorageImpl.cpp": "5adfaa3aff7f88342a6a01aa37104a9d6a9375ea6c93f795fc2d0afa6080a518",
+        "csrc/torch_binding.cpp": "ed1fe9f751f4c6c786c758ce9ff2731a9a0d89e14a81ff80438cdee96b4fc9e7"
+      },
+      "reused_objects": {
+        "kernel.o": {
+          "source": "/workspace/tests/glm52/whole_layer/ffn_bridge/build-v2/kernel.o",
+          "sha256": "88e10d9d20f79f4fcf838ebc1a78b0640a84b2774a971666588bfa722d517903"
+        },
+        "tiling.o": {
+          "source": "/workspace/tests/glm52/whole_layer/ffn_bridge/build-v2/tiling.o",
+          "sha256": "66d44edba06b61dd23bface97418a612e7b13bbb753a19c91aaf1d4bf7d0b330"
+        }
+      },
+      "parent_manifest": {
+        "torch": "2.12.0+cu130",
+        "torch_npu": "2.12.0",
+        "npu_initialized": false,
+        "sources": {
+          "source/build_common.sh": "40895a7eb28e70e8d463dfa5baaf812afe309660b27090ed3066c3a32f880935",
+          "source/ffn_bridge/README.md": "edc5df6294146ae0ea953abffe93d530a1d15c59f8250d36a081c22f3c870b05",
+          "source/ffn_bridge/binding.cpp": "038601e7f6a98d0379dd562be12b5adfd2782224516fc07b160b40f57e6fce3a",
+          "source/ffn_bridge/build.sh": "961d7e04401dae0be62a21720b1a6c341bbae3ed58f202984b2df7caa2a5ef3a",
+          "source/ffn_bridge/check.py": "dff59326635120b1f16dd142fd8458625a30bd688052df56de177200b95c99fa",
+          "source/ffn_bridge/contract.h": "f56a4bcfce45f999022012a3eb22471c59eca637b2d15e7b64b78493f0df1006",
+          "source/ffn_bridge/contract_test.cpp": "1aad87118a7842c80db85184ef1af6cefc6e85d830ae82ecd6e1b89a16fa2906",
+          "source/ffn_bridge/fixtures.py": "c0b010dadbdfe3e47918e5a84184ab295d4ac3a4da818066bee93e5e215b05f9",
+          "source/ffn_bridge/kernel.cpp": "763b2a00342ff8337ec284c97d4ab19c2f125a2caa3fe45bb2483fc289cc9c17",
+          "source/ffn_bridge/native.h": "83a336b1878193bec065bfafef7b9b57d6ea30811ad2789657e2538d00ea1fb7",
+          "source/ffn_bridge/prepare_vendor.py": "fa3c500f746cc5dd33ecc6880c5cc707ae3978b0ec9612ae39e4bfcabf1e9655",
+          "source/ffn_bridge/test_contract.py": "8cc484a8f87d39b640c9992442811e3680a89ece984c54b63a92be44e566b5e7",
+          "source/ffn_bridge/tiling.cpp": "e66f0e92f6ae10a48ec45d8baabb76fad7925d7a7c5e0cf0a761d568f36f70f6",
+          "source/norm_contract.h": "d625db3273cf4a6b7670a812d6893e241154bedea5e6cc59ccf4b6acad945b4f",
+          "source/norm_native.h": "d18573f199777f4fbf7acbe9bab378469d0655c283141008c53597026e1590b4",
+          "vendor/add_rms_norm_bias_single_n.h": "e42fccf0a3472e538b1e8da8402aba9dbbfc3af20f4489a5ddf668c72271641b",
+          "vendor/common.h": "8a671274e8be968f5f3107954a608b8211ee3738adae32af90a300c3fe649dc4",
+          "vendor/manifest.json": "03db44df8091693eabbbfdfc74f57de382dc77f0983c3b813b27fa8d8636d67a",
+          "vendor/moe_gating_top_k_without_group.h": "d02abb51af966747a25ab194b0be0076126a39603c61df9bd0b1a6f41a6d4761",
+          "vendor/reduce_common.h": "33cd7dc4bd23b645dc95067872362a619517d24f5cf51c602133d13e0334df88",
+          "vendor/rms_norm_base.h": "79590de4611dbc9b5a3efe92c4ec066b8676c1b17a9c1c9400e9c4db93e8356e"
+        },
+        "artifacts": {
+          "binding.o": "d9b852dcec528bb0bfa27c16fe493d0c319ef81e0ec969690721f6de593db0e2",
+          "kernel.o": "88e10d9d20f79f4fcf838ebc1a78b0640a84b2774a971666588bfa722d517903",
+          "tiling.o": "66d44edba06b61dd23bface97418a612e7b13bbb753a19c91aaf1d4bf7d0b330",
+          "ffn_bridge.so": "140f157225906b9ade87f63a70253ab94a2711fc61ea1024bafe713ac463b1df"
+        },
+        "schemas": {
+          "prepare": "tilert_ffn_bridge::prepare(Tensor input, int blocks=24) -> (Tensor[], int)",
+          "forward_out": "tilert_ffn_bridge::forward_out(Tensor input, Tensor residual, Tensor gamma, Tensor gate_weight, Tensor correction_bias, Tensor(a!)[] scratch, float epsilon, int blocks, int sync_base) -> ()",
+          "topk_out": "tilert_ffn_bridge::topk_out(Tensor logits, Tensor correction_bias, Tensor(a!)[] scratch, int blocks, int sync_base) -> ()",
+          "finalize_out": "tilert_ffn_bridge::finalize_out(Tensor routed, Tensor shared, Tensor(a!)[] scratch, int blocks, int sync_base) -> ()"
+        },
+        "device_validation": "not run"
+      },
+      "commands": [
+        {
+          "step": "oracle_registration",
+          "argv": [
+            "g++",
+            "-std=c++17",
+            "-O2",
+            "-fPIC",
+            "-D_GLIBCXX_USE_CXX11_ABI=1",
+            "-I",
+            "/workspace/logs/ffn-bridge-runtime212-v1/source/csrc",
+            "-I",
+            "/usr/local/include/python3.11",
+            "-I",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/source/ffn_bridge",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch/include",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch/include/torch/csrc/api/include",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch_npu/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/aarch64-linux/include",
+            "-c",
+            "/workspace/logs/ffn-bridge-runtime212-v1/oracle_registration.cpp",
+            "-o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/oracle_registration.o"
+          ]
+        },
+        {
+          "step": "NPUBridge",
+          "argv": [
+            "g++",
+            "-std=c++17",
+            "-O2",
+            "-fPIC",
+            "-D_GLIBCXX_USE_CXX11_ABI=1",
+            "-I",
+            "/workspace/logs/ffn-bridge-runtime212-v1/source/csrc",
+            "-I",
+            "/usr/local/include/python3.11",
+            "-I",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/source/ffn_bridge",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch/include",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch/include/torch/csrc/api/include",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch_npu/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/aarch64-linux/include",
+            "-c",
+            "/workspace/logs/ffn-bridge-runtime212-v1/source/csrc/aclnn_torch_adapter/NPUBridge.cpp",
+            "-o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/NPUBridge.o"
+          ]
+        },
+        {
+          "step": "NPUStorageImpl",
+          "argv": [
+            "g++",
+            "-std=c++17",
+            "-O2",
+            "-fPIC",
+            "-D_GLIBCXX_USE_CXX11_ABI=1",
+            "-I",
+            "/workspace/logs/ffn-bridge-runtime212-v1/source/csrc",
+            "-I",
+            "/usr/local/include/python3.11",
+            "-I",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/source/ffn_bridge",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch/include",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch/include/torch/csrc/api/include",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch_npu/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/aarch64-linux/include",
+            "-c",
+            "/workspace/logs/ffn-bridge-runtime212-v1/source/csrc/aclnn_torch_adapter/NPUStorageImpl.cpp",
+            "-o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/NPUStorageImpl.o"
+          ]
+        },
+        {
+          "step": "oracle-link",
+          "argv": [
+            "g++",
+            "-shared",
+            "/workspace/logs/ffn-bridge-runtime212-v1/oracle_registration.o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/NPUBridge.o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/NPUStorageImpl.o",
+            "-o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/official_bridge_oracle.so",
+            "-L",
+            "/opt/ascend/cann-9.2.0/aarch64-linux/lib64",
+            "-L",
+            "/opt/ascend/cann-9.2.0/lib64",
+            "-L",
+            "/usr/local/lib/python3.11/site-packages/torch/lib",
+            "-L",
+            "/usr/local/lib/python3.11/site-packages/torch_npu/lib",
+            "-ltorch",
+            "-ltorch_cpu",
+            "-ltorch_python",
+            "-lc10",
+            "-ltorch_npu",
+            "-lascendcl",
+            "-lruntime",
+            "-lunified_dlog",
+            "-lc_sec",
+            "-lregister",
+            "-lprofapi",
+            "-ltiling_api",
+            "-lplatform",
+            "-ldl"
+          ]
+        },
+        {
+          "step": "native-binding",
+          "argv": [
+            "g++",
+            "-std=c++17",
+            "-O2",
+            "-fPIC",
+            "-D_GLIBCXX_USE_CXX11_ABI=1",
+            "-I",
+            "/workspace/logs/ffn-bridge-runtime212-v1/source/csrc",
+            "-I",
+            "/usr/local/include/python3.11",
+            "-I",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/source/ffn_bridge",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch/include",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch/include/torch/csrc/api/include",
+            "-I",
+            "/usr/local/lib/python3.11/site-packages/torch_npu/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/include",
+            "-I",
+            "/opt/ascend/cann-9.2.0/aarch64-linux/include",
+            "-c",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/source/ffn_bridge/binding.cpp",
+            "-o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/binding.o"
+          ]
+        },
+        {
+          "step": "native-link",
+          "argv": [
+            "g++",
+            "-shared",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/kernel.o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/tiling.o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/binding.o",
+            "-o",
+            "/workspace/logs/ffn-bridge-runtime212-v1/native/ffn_bridge.so",
+            "-L",
+            "/opt/ascend/cann-9.2.0/aarch64-linux/lib64",
+            "-L",
+            "/opt/ascend/cann-9.2.0/lib64",
+            "-L",
+            "/usr/local/lib/python3.11/site-packages/torch/lib",
+            "-L",
+            "/usr/local/lib/python3.11/site-packages/torch_npu/lib",
+            "-ltorch",
+            "-ltorch_cpu",
+            "-ltorch_python",
+            "-lc10",
+            "-ltorch_npu",
+            "-lascendcl",
+            "-lruntime",
+            "-lunified_dlog",
+            "-lc_sec",
+            "-lregister",
+            "-lprofapi",
+            "-ltiling_api",
+            "-lplatform",
+            "-ldl"
+          ]
+        }
+      ],
+      "registration_lines": {
+        "moe_gating_top_k": [
+          3155,
+          3170
+        ],
+        "npu_add_rms_norm_bias": [
+          3172,
+          3180
+        ]
+      },
+      "registration_sha256": "682863e1eaaa71c741658db9d07e09027b23ddaea097d18cac6ebc782ef324fa",
+      "complete": true,
+      "oracle_sha256": "a7dc6b3e54d41ecf7068d5c7e18d96513c827f97c62039b5483ea905178d0708",
+      "native_sha256": "57392089102d11b0d3c9389228345406e7473c50b9877876332ba147dba55e6c",
+      "npu_initialized": false,
+      "api_libraries": {
+        "aclnnMoeGatingTopK": {
+          "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+          "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+        },
+        "aclnnMoeGatingTopKGetWorkspaceSize": {
+          "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+          "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+        },
+        "aclnnAddRmsNormBias": {
+          "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+          "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+        },
+        "aclnnAddRmsNormBiasGetWorkspaceSize": {
+          "path": "/workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle/op_api/lib/libcust_opapi.so",
+          "sha256": "b24a676805eac8a528fd6534ad890c038fd68e01e28935f2cb9d22d9f6f53cda"
+        }
+      },
+      "schemas": {
+        "moe_gating_top_k": "_C_ascend::moe_gating_top_k(Tensor x, int k, int k_group, int group_count, int group_select_mode, int renorm, int norm_type, bool out_flag, float routed_scaling_factor, float eps, Tensor? bias_opt=None) -> (Tensor y, Tensor expert_idx, Tensor out)",
+        "npu_add_rms_norm_bias": "_C_ascend::npu_add_rms_norm_bias(Tensor x1, Tensor x2, Tensor gamma, Tensor? beta=None, float epsilon=9.9999999999999995e-07) -> (Tensor y, Tensor rstd, Tensor x)"
+      },
+      "container_image_inspect": "sha256:7448df539bcb40397063c4b7e83a6a1590ba20bcc16639c0aa83f1c60f1a0449",
+      "image_id_argument_was_prefix": "sha256:7448df539"
+    },
+    "topk_schema": "_C_ascend::moe_gating_top_k(Tensor x, int k, int k_group, int group_count, int group_select_mode, int renorm, int norm_type, bool out_flag, float routed_scaling_factor, float eps, Tensor? bias_opt=None) -> (Tensor y, Tensor expert_idx, Tensor out)",
+    "norm_schema": "_C_ascend::npu_add_rms_norm_bias(Tensor x1, Tensor x2, Tensor gamma, Tensor? beta=None, float epsilon=9.9999999999999995e-07) -> (Tensor y, Tensor rstd, Tensor x)",
+    "topk_parameters": {
+      "k": 8,
+      "k_group": 1,
+      "group_count": 1,
+      "group_select_mode": 1,
+      "renorm": 1,
+      "norm_type": 1,
+      "out_flag": false,
+      "routed_scaling_factor": 1.0,
+      "eps": 1e-20
+    },
+    "order": "Descending corrected sigmoid; exact ordered IDs compared to production",
+    "probability": "Uncorrected sigmoid selected scores; ReduceSum+eps, Div, factor1"
+  },
+  "cases": [
+    {
+      "name": "topk-b16-m2-r0-all_tied_zero",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m2-r1-eighth_ninth_tie",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m2-r2-negative_correction",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m2-r3-all_positive_extreme",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m2-r4-all_negative_extreme",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m2-r5-alternating_extreme",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m2-r6-random",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m2-r7-random_tied_pairs",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m2-r0",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m2-r1",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m2-r2",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m2-r3",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m2-r4",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m2-r5",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m2-r6",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m2-r7",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m2-r0",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m2-r1",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m2-r2",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m2-r3",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m2-r4",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m2-r5",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m2-r6",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m2-r7",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m12-r0-all_tied_zero",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m12-r1-eighth_ninth_tie",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m12-r2-negative_correction",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m12-r3-all_positive_extreme",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m12-r4-all_negative_extreme",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m12-r5-alternating_extreme",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m12-r6-random",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m12-r7-random_tied_pairs",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m12-r0",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m12-r1",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m12-r2",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m12-r3",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m12-r4",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m12-r5",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m12-r6",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m12-r7",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m12-r0",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m12-r1",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m12-r2",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m12-r3",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m12-r4",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m12-r5",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m12-r6",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m12-r7",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m32-r0-all_tied_zero",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m32-r1-eighth_ninth_tie",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m32-r2-negative_correction",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m32-r3-all_positive_extreme",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m32-r4-all_negative_extreme",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m32-r5-alternating_extreme",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m32-r6-random",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b16-m32-r7-random_tied_pairs",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m32-r0",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m32-r1",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m32-r2",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m32-r3",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m32-r4",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m32-r5",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m32-r6",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b16-m32-r7",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m32-r0",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m32-r1",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m32-r2",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m32-r3",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m32-r4",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m32-r5",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m32-r6",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b16-m32-r7",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m2-r0-all_tied_zero",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m2-r1-eighth_ninth_tie",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m2-r2-negative_correction",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m2-r3-all_positive_extreme",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m2-r4-all_negative_extreme",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m2-r5-alternating_extreme",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m2-r6-random",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m2-r7-random_tied_pairs",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m2-r0",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m2-r1",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m2-r2",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m2-r3",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m2-r4",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m2-r5",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m2-r6",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m2-r7",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m2-r0",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m2-r1",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m2-r2",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m2-r3",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m2-r4",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m2-r5",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m2-r6",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m2-r7",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            2,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m12-r0-all_tied_zero",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m12-r1-eighth_ninth_tie",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m12-r2-negative_correction",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m12-r3-all_positive_extreme",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m12-r4-all_negative_extreme",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m12-r5-alternating_extreme",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m12-r6-random",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m12-r7-random_tied_pairs",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m12-r0",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m12-r1",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m12-r2",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m12-r3",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m12-r4",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m12-r5",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m12-r6",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m12-r7",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m12-r0",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m12-r1",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m12-r2",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m12-r3",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m12-r4",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m12-r5",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m12-r6",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m12-r7",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m32-r0-all_tied_zero",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m32-r1-eighth_ninth_tie",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m32-r2-negative_correction",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m32-r3-all_positive_extreme",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m32-r4-all_negative_extreme",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m32-r5-alternating_extreme",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m32-r6-random",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "topk-b24-m32-r7-random_tied_pairs",
+      "checks": {
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m32-r0",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m32-r1",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m32-r2",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m32-r3",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m32-r4",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m32-r5",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m32-r6",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "bridge-b24-m32-r7",
+      "checks": {
+        "normalized": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "retained": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "rstd": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "logits": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            256
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "probabilities": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        },
+        "ids": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            8
+          ],
+          "dtype": "torch.int32",
+          "finite": true
+        },
+        "shared_codes": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.int8",
+          "finite": true
+        },
+        "shared_scales": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            1
+          ],
+          "dtype": "torch.float32",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m32-r0",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m32-r1",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m32-r2",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m32-r3",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m32-r4",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m32-r5",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m32-r6",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "epilogue-b24-m32-r7",
+      "checks": {
+        "scaled_routed": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        },
+        "combined": {
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "numerical_equal": true,
+          "shape": [
+            32,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "finite": true
+        }
+      },
+      "pass": true
+    }
+  ],
+  "pass": true,
+  "gate_dispatch": {
+    "schema": "aten::mm.dtype(Tensor self, Tensor mat2, ScalarType out_dtype) -> Tensor",
+    "privateuse1_kernel": true,
+    "dispatch_table": "CUDA: registered at /pytorch/build/aten/src/ATen/RegisterCUDA_0.cpp:16218 [kernel]\nPrivateUse1: registered at ../torch_npu/csrc/aten/RegisterNPU.cpp:34420 [kernel]\nMeta: registered at /usr/local/lib/python3.11/site-packages/torch/_meta_registrations.py:53 [kernel]\nSparsePrivateUse1: registered at ../torch_npu/csrc/aten/VariableFallbackKernel.cpp:270 [backend fallback]\nBackendSelect: fallthrough registered at /pytorch/aten/src/ATen/core/BackendSelectFallbackKernel.cpp:3 [backend fallback]\nPython: registered at /pytorch/aten/src/ATen/core/PythonFallbackKernel.cpp:198 [backend fallback]\nFuncTorchDynamicLayerBackMode: registered at /pytorch/aten/src/ATen/functorch/DynamicLayer.cpp:479 [backend fallback]\nFunctionalize: registered at /pytorch/aten/src/ATen/FunctionalizeFallbackKernel.cpp:409 [backend fallback]\nNamed: registered at /pytorch/aten/src/ATen/core/NamedRegistrations.cpp:5 [backend fallback]\nConjugate: registered at /pytorch/aten/src/ATen/ConjugateFallback.cpp:17 [backend fallback]\nNegative: registered at /pytorch/aten/src/ATen/native/NegateFallback.cpp:18 [backend fallback]\nZeroTensor: registered at /pytorch/aten/src/ATen/ZeroTensorFallback.cpp:115 [backend fallback]\nADInplaceOrView: fallthrough registered at /pytorch/aten/src/ATen/core/VariableFallbackKernel.cpp:103 [backend fallback]\nAutogradOther: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradCPU: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradCUDA: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradHIP: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradXLA: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradMPS: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradIPU: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradXPU: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradHPU: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradVE: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradLazy: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradMTIA: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradMAIA: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradPrivateUse1: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradPrivateUse2: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradPrivateUse3: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradMeta: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nAutogradNestedTensor: registered at /pytorch/torch/csrc/autograd/generated/VariableType_3.cpp:20294 [autograd kernel]\nTracer: registered at /pytorch/torch/csrc/autograd/generated/TraceType_3.cpp:15355 [kernel]\nAutocastCPU: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:336 [backend fallback]\nAutocastMTIA: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:480 [backend fallback]\nAutocastMAIA: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:518 [backend fallback]\nAutocastXPU: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:556 [backend fallback]\nAutocastMPS: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:221 [backend fallback]\nAutocastCUDA: fallthrough registered at /pytorch/aten/src/ATen/autocast_mode.cpp:177 [backend fallback]\nAutocastPrivateUse1: fallthrough registered at ../torch_npu/csrc/aten/AutoCastOps.cpp:20 [backend fallback]\nFuncTorchBatched: registered at /pytorch/aten/src/ATen/functorch/LegacyBatchingRegistrations.cpp:729 [backend fallback]\nBatchedNestedTensor: registered at /pytorch/aten/src/ATen/functorch/LegacyBatchingRegistrations.cpp:756 [backend fallback]\nFuncTorchVmapMode: fallthrough registered at /pytorch/aten/src/ATen/functorch/VmapModeRegistrations.cpp:22 [backend fallback]\nBatched: registered at /pytorch/aten/src/ATen/LegacyBatchingRegistrations.cpp:1072 [backend fallback]\nVmapMode: fallthrough registered at /pytorch/aten/src/ATen/VmapModeRegistrations.cpp:32 [backend fallback]\nFuncTorchGradWrapper: registered at /pytorch/aten/src/ATen/functorch/TensorWrapper.cpp:210 [backend fallback]\nPythonTLSSnapshot: registered at /pytorch/aten/src/ATen/core/PythonFallbackKernel.cpp:206 [backend fallback]\nFuncTorchDynamicLayerFrontMode: registered at /pytorch/aten/src/ATen/functorch/DynamicLayer.cpp:475 [backend fallback]\nPreDispatch: registered at /pytorch/aten/src/ATen/core/PythonFallbackKernel.cpp:210 [backend fallback]\nPythonDispatcher: registered at /pytorch/aten/src/ATen/core/PythonFallbackKernel.cpp:202 [backend fallback]\n"
+  },
+  "gate_weight_layout": "nd",
+  "gate_reference_call": "torch.mm(normalized, original_nk.t(), out_dtype=torch.float32)",
+  "gate_candidate_layout": "contiguous ND [6144,256]",
+  "cann": "9.2.0",
+  "gate_weight_descriptors": {
+    "original": {
+      "shape": [
+        256,
+        6144
+      ],
+      "stride": [
+        6144,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "format": 2,
+      "storage_offset": 0
+    },
+    "reference_operand": {
+      "shape": [
+        6144,
+        256
+      ],
+      "stride": [
+        1,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "format": 2,
+      "storage_offset": 0
+    },
+    "candidate": {
+      "shape": [
+        6144,
+        256
+      ],
+      "stride": [
+        256,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "format": 2,
+      "storage_offset": 0
+    }
+  },
+  "gate_entry_executed": true
+}

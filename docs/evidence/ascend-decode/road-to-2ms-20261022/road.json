@@ -1,0 +1,106 @@
+{
+  "width_12": {
+    "rows": 12,
+    "accepted": 5.441,
+    "touched_experts_a_rank": 5.07,
+    "bank_full_us": 240.64,
+    "bank_narrowed_us": 76.24,
+    "steps": [
+      {
+        "step": "the bank narrowed to what a round touches",
+        "saving_us_a_layer": 164.4,
+        "tpot_ms": 6.967,
+        "basis": "measured"
+      },
+      {
+        "step": "the routed metadata as one kernel",
+        "saving_us_a_layer": 25.0,
+        "tpot_ms": 6.608,
+        "basis": "estimate, bounded by measurement"
+      },
+      {
+        "step": "the expert combine in the matmul epilogue",
+        "saving_us_a_layer": 20.0,
+        "tpot_ms": 6.322,
+        "basis": "estimate"
+      },
+      {
+        "step": "the latent and rope made contiguous",
+        "saving_us_a_layer": 23.0,
+        "tpot_ms": 5.992,
+        "basis": "estimate"
+      },
+      {
+        "step": "the four projections fused",
+        "saving_us_a_layer": 35.0,
+        "tpot_ms": 5.49,
+        "basis": "estimate"
+      },
+      {
+        "step": "one reduction a layer, not two",
+        "saving_us_a_layer": 34.0,
+        "tpot_ms": 5.003,
+        "basis": "measured, costs 13.91 GB a rank"
+      },
+      {
+        "step": "both reductions inside the launch",
+        "saving_us_a_layer": 11.5,
+        "tpot_ms": 4.838,
+        "basis": "measured, confounded with SHMEM"
+      }
+    ],
+    "tpot_ms": 4.838
+  },
+  "width_32": {
+    "rows": 32,
+    "accepted": 6.872,
+    "touched_experts_a_rank": 10.21,
+    "bank_full_us": 240.64,
+    "bank_narrowed_us": 153.51,
+    "steps": [
+      {
+        "step": "the bank narrowed to what a round touches",
+        "saving_us_a_layer": 87.12,
+        "tpot_ms": 6.543,
+        "basis": "measured"
+      },
+      {
+        "step": "the routed metadata as one kernel",
+        "saving_us_a_layer": 25.0,
+        "tpot_ms": 6.259,
+        "basis": "estimate, bounded by measurement"
+      },
+      {
+        "step": "the expert combine in the matmul epilogue",
+        "saving_us_a_layer": 20.0,
+        "tpot_ms": 6.032,
+        "basis": "estimate"
+      },
+      {
+        "step": "the latent and rope made contiguous",
+        "saving_us_a_layer": 23.0,
+        "tpot_ms": 5.771,
+        "basis": "estimate"
+      },
+      {
+        "step": "the four projections fused",
+        "saving_us_a_layer": 35.0,
+        "tpot_ms": 5.374,
+        "basis": "estimate"
+      },
+      {
+        "step": "one reduction a layer, not two",
+        "saving_us_a_layer": 34.0,
+        "tpot_ms": 4.988,
+        "basis": "measured, costs 13.91 GB a rank"
+      },
+      {
+        "step": "both reductions inside the launch",
+        "saving_us_a_layer": 11.5,
+        "tpot_ms": 4.858,
+        "basis": "measured, confounded with SHMEM"
+      }
+    ],
+    "tpot_ms": 4.858
+  }
+}

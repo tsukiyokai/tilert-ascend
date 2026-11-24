@@ -1,0 +1,23 @@
+{
+  "created_at": "2026-10-28T23:33:48.459200+00:00",
+  "scope": "One resident actual A3 TP16 world; original/copied/sorted consumer indices only atlayer68; M1x14/M32/reset; one8Kinput; numerical experiment",
+  "source_sha256": {
+    "run.py": "7e5028edb20bd552b8a0861eb8ff7cca049ac0793126344afd262de8a21ce216",
+    "observe.py": "0c2f0ccff671b19a9625759c0cb1e6057dbad549512740fa4a040dff9cd49d5e",
+    "routes.py": "8a0a3d8b863145a86bd2f75a04a114b07f69db1f3565317852aca6ad7bbed334"
+  },
+  "control_requirements": [
+    "original firstM1, row13M1 andfullM32 outputs bitexact old reference",
+    "all saved tensors repeat bitexact on M32reset",
+    "all16 global norm/attention/MLP/route/output states agree",
+    "frozen prefix exact all phases"
+  ],
+  "predictions": {
+    "copy_indices": "Expected same stage values and row13h69 divergence as original; a change weakens an order-only explanation",
+    "sorted_indices": "If norm inputs, actual query and causal KV agree, canonical positions alone should make M1/M32 row13SFA output andh69 bitexact (h69NRMSE=0) onall16ranks"
+  },
+  "reference_sha256": "1f3b3d62119d4e887dff91fbabefd397391d787a04414cbe7601e2a290af76fe",
+  "formal_precision_gate_passed": false,
+  "performance_measured": false,
+  "caches": "Shared resident model and operator caches, numerical comparisons only"
+}

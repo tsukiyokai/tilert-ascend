@@ -1,0 +1,178 @@
+{
+  "status": "single_four_layer_screen_completed",
+  "scope": "Synthetic frozen M16/C9344 four-layer group; actual production SharedKVAttention binder; shared single-die, unlocked clocks; not model TPOT",
+  "host": "a3-194",
+  "container": "trt-asc",
+  "die": 15,
+  "shape": {
+    "M": 16,
+    "capacity": 9344,
+    "layers": 4,
+    "heads": 4,
+    "topk": 2048
+  },
+  "source_sha256": "61b5d3964c00d3d27bc3b48f264407558419eb56570cbb4a6b4e00ac71b6f6dc",
+  "helper_sha256": "47503e3cd1b730cfcc3b21f27f8d1709f2bcf003cb72d3537d383d65df3417e6",
+  "fixture_sha256": "5b8d6bba4a1aeb286f26cfa9152fd534c4025f30f2501cb35e106796059dc9be",
+  "cpu_contract_source_sha256": "14e174ef971584bf3319c2c17a1100cdafaf21717af10d979ab15804dbe435b3",
+  "cpu_result_sha256": "4e48012a0916b0abdb80f885fa46d018d1e55afb109d50cf6888ea76ba037815",
+  "cpu_causal_contract": {
+    "written_A": 8208,
+    "written_B": 8207,
+    "thresholds_A": "8193..8208",
+    "thresholds_B": "8192..8207",
+    "capacity_tail_zero_begin": 8208,
+    "rightdown_all_rows_checked": true
+  },
+  "device_checks": {
+    "shared_vs_rebuilt": {
+      "passed": 12,
+      "count": 12
+    },
+    "graph_vs_eager": {
+      "passed": 24,
+      "count": 24
+    },
+    "within_arm_A_reset_equal_B_different": true,
+    "all_outputs_finite_nonzero": true,
+    "SFA_FIA_numeric_diagnostic": {
+      "max_abs": 0.001953125,
+      "nrmse_min": 0.0020704630547294218,
+      "nrmse_max": 0.002171413600566302
+    }
+  },
+  "measurement": {
+    "unit": "microseconds per complete four-layer group, including one selection-mask construction for shared path",
+    "method": "30 ABBA pairs; mean of two samples per arm per pair; event and wall; one graph replay per sample; LOG3; no profiler",
+    "raw_samples": 120,
+    "raw_sample_medians": {
+      "sfa": {
+        "event_group_us_median": 372.82000482082367,
+        "wall_group_us_median": 439.108,
+        "event_amortized_attention_us_median": 93.20500120520592,
+        "wall_amortized_attention_us_median": 109.777
+      },
+      "shared": {
+        "event_group_us_median": 329.5300006866455,
+        "wall_group_us_median": 394.56600000000003,
+        "event_amortized_attention_us_median": 82.38250017166138,
+        "wall_amortized_attention_us_median": 98.64150000000001
+      }
+    },
+    "paired_arm_mean_medians": {
+      "sfa": {
+        "event_group_us": 373.36500734090805,
+        "wall_group_us": 443.8555
+      },
+      "shared": {
+        "event_group_us": 328.6199942231178,
+        "wall_group_us": 397.591
+      }
+    },
+    "paired_event_ratio_median": 0.8813471775245423,
+    "paired_wall_ratio_median": 0.8965718343713945,
+    "paired_event_delta_us_median": -44.189997017383575,
+    "paired_wall_delta_us_median": -45.49924999999999,
+    "shared_event_wins": 29,
+    "shared_wall_wins": 29,
+    "attention_calls": {
+      "eager": 80,
+      "rebuilt_reference": 12,
+      "capture": 8,
+      "validation": 24,
+      "measured": 480
+    },
+    "total_attention_calls": 604,
+    "graph_scope": "Hot fixed addresses and same synthetic values; four address-distinct Q/KV layers; prepared thresholds/static columns; actual binder derives causal mask from refreshed slot_mapping. No projection or decoder."
+  },
+  "memory": {
+    "quota_bytes": 536870912,
+    "peak_allocated_bytes": 135064576,
+    "peak_reserved_bytes": 245366784,
+    "runtime_context_excluded_from_allocator_quota": true
+  },
+  "occupancy": {
+    "pre": [
+      {
+        "aicore_pct": 0,
+        "free_mib": 6936,
+        "used_mib": 58600,
+        "total_mib": 65536
+      },
+      {
+        "aicore_pct": 0,
+        "free_mib": 6936,
+        "used_mib": 58600,
+        "total_mib": 65536
+      }
+    ],
+    "post": [
+      {
+        "aicore_pct": 0,
+        "used_mib": 58600,
+        "free_mib": 6936,
+        "total_mib": 65536
+      }
+    ],
+    "inventory": "inventory/summary.json",
+    "launch_audit": "device/launch-audit.json"
+  },
+  "loaded_libraries": {
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so": "347437ef3aaf109b4088af90763a2330fb66bb5278e63245366afa8fd7a2233a",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_cv.so": "06074c70f58f5af0702c6326dcf98289584eef65f3996690229587119c488521",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_math.so": "93972cb9266eb1e0ff1d29b767c1e13e1f6023b80c07ffaf77bc75e557b8b045",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_nn.so": "336946436f1e8d71670137a9b43fc6b9ca87fbb3f52b5a2c65663e8b589936c8",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_oam.so": "c4bd82763ebb67dfb517575047480b24e8e6c134b6ee840a3f3bff2a443371f3",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_ras.so": "4ef4862b1c4f20037b84ed3afdde3c907b18bd459852a09ceacf6de1a22ffc86",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_transformer.so": "3eebcd29e93860ea2aafaf9dfe269e98a28dc90c7cc325914e479be43bd247cf",
+    "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/liboptiling.so": "0d603b1fe5375b069d870747cb6ef3da588db9e6c7e4d86bdd7b507aba0b7ac3",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib/libcust_opapi.so": "f81c882edadb261acdce7f85bf4aa7c7cc7e4a94571a665ffc8a41cb150238a6",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/libcust_opmaster_rt2.0.so": "d06d3f127e2c179ed5f4d3dc366b39f829e0c5e3ec39df63ccb1993befcd3f39",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_impl/ai_core/tbe/op_tiling/liboptiling.so": "d06d3f127e2c179ed5f4d3dc366b39f829e0c5e3ec39df63ccb1993befcd3f39",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_api/lib/libcust_opapi.so": "cab8daebbbe285814636dc1839de18dc83028b69ceb28a74fcf51e2184cf0163",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/libcust_opmaster_rt2.0.so": "ded74980ff29c3985de70e67e2ed5ae791a0914aa1b4b427d3a6d96d2aeba69d"
+  },
+  "elf_access": {
+    "fia-bf16-optional-elf-access": {
+      "binary": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/kernel/ascend910_93/ops_transformer/fused_infer_attention_score/FusedInferAttentionScore_3b093497fc536d61a77a7a3293a524da.o",
+      "sha256": "50541743c96c7e2f1705cf9b894e5025ce0b00b2185a302c2055d6dddd2bc3fd",
+      "event_masks": [
+        32,
+        1,
+        1,
+        1
+      ],
+      "opened": true,
+      "accessed": true,
+      "returncode": 0
+    },
+    "fia-fp16-optional-elf-access": {
+      "binary": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/kernel/ascend910_93/ops_transformer/fused_infer_attention_score/FusedInferAttentionScore_29c62fc24e72bbc0878b0bd85b4a328d.o",
+      "sha256": "d92050f2d6ef9768cb1df4c55206d7747386be34ed4301cf85582ebb7441f537",
+      "event_masks": [],
+      "opened": false,
+      "accessed": false,
+      "returncode": 0
+    },
+    "sfa-elf-access": {
+      "binary": "/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/sparse_flash_attention/SparseFlashAttention_2e25ad8fefac1f04c03bd78f2d2ab366.o",
+      "sha256": "819e6563a88d36ec0143d80fdb8aed21768ae451f9edbcca53d35c0e3b96dea2",
+      "event_masks": [
+        32,
+        1
+      ],
+      "opened": true,
+      "accessed": true,
+      "returncode": 0
+    }
+  },
+  "artifacts": {
+    "raw_result": "device/result.json",
+    "raw_sample_pairs": "device/result.json: paired_comparisons and samples",
+    "outputs_server": "/workspace/experiments/fia-m16-20261020/device/outputs.pt",
+    "outputs_sha256": "1176a297150111f5b5bdd7b299e78e2cefd07260826a8f9fbc6f5420e1e6c735",
+    "fixture_server": "/workspace/experiments/fia-m16-20261020/contract/fixture.pt"
+  },
+  "repository_edited": false,
+  "installed_vendor_edited": false
+}

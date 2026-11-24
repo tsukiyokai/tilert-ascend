@@ -1,0 +1,45 @@
+{
+  "scope": "Two consecutive local MoE layers: one MIX launch per layer, separate accepted components as reference",
+  "host": "a3-194",
+  "physical_die": 4,
+  "mode": "int8",
+  "rows": [
+    12
+  ],
+  "blocks": 24,
+  "cases": 8,
+  "raw_byte_checks": 872,
+  "pass": true,
+  "weight_source": "Synthetic parameters in original Decoder6/7 classes with official postprocessing",
+  "norm_reference": "Original input norm and npu_dynamic_quant",
+  "reference_libraries": [
+    "8deff750464e23bb871302c8626b86d37b60c28a00991d550f95dfcfd47ecb6f",
+    "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c",
+    "c90b3666a1697070eda19d5b3e133e9ed58f36fe429abefceae6ffe102a6a032"
+  ],
+  "candidate_library_sha256": "6a326292287a17254b48376400e1b852093ebfe10fbf228938336693402aa528",
+  "defined_boundaries_per_case": 109,
+  "changing_inputs_and_outputs": {
+    "12": {
+      "output_hashes": 8,
+      "retained_hashes": 8,
+      "hidden_hashes": 8,
+      "main_slots_hashes": 8,
+      "index_slots_hashes": 8,
+      "live_length_sets": 8
+    }
+  },
+  "down_tiling_200_byte_checks": 34,
+  "down_tiling_sha256": "bb8ef4481b8c63b00dc43940975ee5b172818bcd228e8bc553b22234cbb2a244",
+  "tp_contract": "Both TP reductions are identity; actual local attention output feeds FFN",
+  "next_layer_input": "Previous layer combined output and retained residual, same GPU owners",
+  "topk_transfer": "Candidate selector writes the persistent owner directly; separate parent retains explicit copy",
+  "unused_internal_topk_unchanged": true,
+  "inactive_persistent_rows_unchanged": true,
+  "candidate_topk_copy_calls": 0,
+  "graph_capture": false,
+  "timing": false,
+  "tp16_collectives": 0,
+  "checkpoint_loaded": false,
+  "report_sha256": "6987b38bc3d11dce01c1d94f6b2cc9bca4637968aa311624061429821eaf9236"
+}

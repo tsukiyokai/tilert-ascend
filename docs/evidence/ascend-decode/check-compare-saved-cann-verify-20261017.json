@@ -1,0 +1,413 @@
+{
+  "created_at": "2026-10-16T20:41:17.525840+00:00",
+  "scope": "Synthetic host-validator fixtures with real CPU tensors; not HF/NPU model precision or execution",
+  "torch": "2.12.0+cpu",
+  "torch_npu": "2.12.0",
+  "npu_initialized_before": false,
+  "npu_initialized_after": false,
+  "source_sha256": {
+    "check_compare_saved_cann_verify.py": "74f0c7475682a7926d7907da0445ca350acff98d11363bb442c2159b74ce5a41",
+    "compare_saved_cann_verify.py": "4d3608bc9a5865537624c5d0f90720d671ebab499d98853df1042d1f69402c9b",
+    "compare_saved_cann.py": "3f58f77d3dd23440bd51fb3ef18247d590c9ad83c55ea1c181b6d68de5c9e486",
+    "check_compare_saved_cann.py": "9a86190a5d602b3a9ccfcd54e1289bd7d2e8ace1200dbb051a6b4719348f230c",
+    "run_cann_verify.py": "cefe4d15c04f3121196b870ed373457cbde5343ebb7bc39eac2ce18fda1d4069",
+    "run_cann_model.py": "921b297d8b24e08e01d9367ad6fe8385a36f9a3d9fa11eef21293625ef7e662c",
+    "run_native_decode.py": "bc40b579824eb6def8fa9fc7fb2acd045774088f1e841e514279aa6818870adc"
+  },
+  "checks": [
+    {
+      "name": "actual_cli_m4_all_16_ranks",
+      "passed": true,
+      "checks_total": 87016,
+      "stdout": "{\"status\": \"pass\", \"checks_total\": 87016, \"checks_failed\": 0, \"completed_rank_steps\": 64, \"saved_wide_hf_parity\": true, \"precision_verified\": false}\n",
+      "stderr": ""
+    },
+    {
+      "name": "m2_all_16_ranks",
+      "passed": true
+    },
+    {
+      "name": "nontransitive_tolerance_counterexample",
+      "passed": true,
+      "comparisons": [
+        {
+          "name": "serial_to_hf",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.0078125,
+          "cosine": 0.9999998807907104,
+          "max_abs": 0.0078125
+        },
+        {
+          "name": "wide_to_serial",
+          "passed": true,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.007751937896760435,
+          "cosine": 0.9999999403953552,
+          "max_abs": 0.0078125
+        },
+        {
+          "name": "wide_to_hf",
+          "passed": false,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.015625,
+          "cosine": 0.9999999403953552,
+          "max_abs": 0.015625
+        }
+      ]
+    },
+    {
+      "name": "direct_rejects_false_transitivity",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.row.0.hidden_states.3",
+          "passed": false,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.015625,
+          "cosine": 0.9999999403953552,
+          "max_abs": 0.015625
+        },
+        {
+          "name": "rank.15.row.1.hidden_states.3",
+          "passed": false,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.015625,
+          "cosine": 0.9999999403953552,
+          "max_abs": 0.015625
+        },
+        {
+          "name": "rank.15.row.2.hidden_states.3",
+          "passed": false,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.015625,
+          "cosine": 0.9999999403953552,
+          "max_abs": 0.015625
+        },
+        {
+          "name": "rank.15.row.3.hidden_states.3",
+          "passed": false,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 0.015625,
+          "cosine": 0.9999999403953552,
+          "max_abs": 0.015625
+        }
+      ]
+    },
+    {
+      "name": "rank_report_hash",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.report_hash",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.report_hash"
+        }
+      ]
+    },
+    {
+      "name": "wide_hash",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.wide_hash",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.wide_hash"
+        }
+      ]
+    },
+    {
+      "name": "hf_trace_hash",
+      "passed": true,
+      "failures": [
+        {
+          "name": "hf.step-08193.pt.hash",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: hf.step-08193.pt.hash"
+        }
+      ]
+    },
+    {
+      "name": "teacher",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.0.teacher_tokens_and_positions",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.0.teacher_tokens_and_positions"
+        }
+      ]
+    },
+    {
+      "name": "prefix",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.prefix_hash",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.prefix_hash"
+        }
+      ]
+    },
+    {
+      "name": "rank",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.execution_identity",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.execution_identity"
+        }
+      ]
+    },
+    {
+      "name": "checkpoint",
+      "passed": true,
+      "failures": [
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: HF reference TP layout or checkpoint mismatch"
+        }
+      ]
+    },
+    {
+      "name": "source",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.execution_identity",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.execution_identity"
+        }
+      ]
+    },
+    {
+      "name": "capture_generation",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.capture_agreement",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.capture_agreement"
+        }
+      ]
+    },
+    {
+      "name": "missing_hidden",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.complete_hidden_states",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.complete_hidden_states"
+        }
+      ]
+    },
+    {
+      "name": "missing_layer_logits",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.complete_layer_logits",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.complete_layer_logits"
+        }
+      ]
+    },
+    {
+      "name": "missing_indices",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.complete_indices",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.complete_indices"
+        }
+      ]
+    },
+    {
+      "name": "missing_routes",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.complete_routes",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.complete_routes"
+        }
+      ]
+    },
+    {
+      "name": "choice_sources",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.choice_source.tilert/models/glm_5_2_ascend/cann_choices.py",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.choice_source.tilert/models/glm_5_2_ascend/cann_choices.py"
+        }
+      ]
+    },
+    {
+      "name": "partial_choice_coverage",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.choice_coverage",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.choice_coverage"
+        }
+      ]
+    },
+    {
+      "name": "reset_not_exact",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.reset.row-1.complete_exact",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.reset.row-1.complete_exact"
+        }
+      ]
+    },
+    {
+      "name": "original_files_unchanged",
+      "passed": true
+    },
+    {
+      "name": "no_npu_initialization",
+      "passed": true
+    }
+  ],
+  "passed": true
+}

@@ -1,0 +1,51 @@
+--- /workspace/experiments/hoist-20261019/backup/ascend_forward_context.py	2026-10-19 02:50:42.934250436 +0800
++++ /workspace/experiments/hoist-20261019/vllm-ascend-overlay/vllm_ascend/ascend_forward_context.py	2026-10-19 02:50:42.966251657 +0800
+@@ -226,9 +226,14 @@
+             forward_context.padded_num_tokens = math.ceil(max_tokens_across_dp / tp_world_size) * tp_world_size
+             reserved_mc2_mask = get_mc2_mask()
+             if reserved_mc2_mask is not None:
+-                mc2_mask = reserved_mc2_mask[: forward_context.padded_num_tokens]
+-                mc2_mask[:num_actual_tokens] = True
+-                mc2_mask[num_actual_tokens:] = False
++                if _hoisted_mc2_masks is None:
++                    mc2_mask = reserved_mc2_mask[: forward_context.padded_num_tokens]
++                    mc2_mask[:num_actual_tokens] = True
++                    mc2_mask[num_actual_tokens:] = False
++                else:
++                    mc2_mask = _prebuilt_mc2_mask(
++                        reserved_mc2_mask, forward_context.padded_num_tokens, num_actual_tokens
++                    )
+                 forward_context.mc2_mask = mc2_mask
+         try:
+             yield
+@@ -238,6 +243,30 @@
+ 
+ _mc2_tokens_capacity: int | None = None
+ _reserved_mc2_mask: torch.Tensor | None = None
++_hoisted_mc2_masks: dict[tuple[int, int], torch.Tensor] | None = None
++
++
++def hoist_mc2_mask(enabled: bool) -> None:
++    """Serve a prebuilt mask per token width instead of rewriting one.
++
++    Both bounds are host integers fixed by the call site's width, so a decode
++    that replays the same widths every round rewrites the same values. Keeping
++    one filled buffer per bound pair removes those writes from the round and
++    still gives every captured graph a single stable address.
++    """
++    global _hoisted_mc2_masks
++    _hoisted_mc2_masks = {} if enabled else None
++
++
++def _prebuilt_mc2_mask(reserved, padded_num_tokens, num_actual_tokens):
++    key = (padded_num_tokens, num_actual_tokens)
++    mask = _hoisted_mc2_masks.get(key)
++    if mask is None:
++        mask = reserved[:padded_num_tokens].clone()
++        mask[:num_actual_tokens] = True
++        mask[num_actual_tokens:] = False
++        _hoisted_mc2_masks[key] = mask
++    return mask
+ 
+ 
+ def set_mc2_tokens_capacity(vllm_config, max_num_reqs, uniform_decode_query_len):

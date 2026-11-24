@@ -1,0 +1,208 @@
+--- native-v3/layer_pair_timing.py
++++ paired-tiling/layer_pair_timing.py
+@@ -5,9 +5,7 @@
+ from pathlib import Path
+ import statistics
+ 
+-from down_tiling import check_down_tiling
+-from local_control_host import Library as ControlLibrary
+-from local_control_host import Prepared as ControlPrepared
++from tiling_packets import TilingPair, load_control
+ from local_chain_views import poison, strict_checks
+ from vendor_hook_forward import snapshot
+ from vendor_hook_graph import tensor_witness
+@@ -31,31 +29,6 @@
+     return {"samples": len(values), "p50": percentile(.5), "p90": percentile(.9),
+             "p99": percentile(.99), "std": statistics.pstdev(values),
+             "min": min(values), "max": max(values)}
+-
+-
+-def control_packet(case, library):
+-    from local_chain import BLOCKS, attention_addresses
+-
+-    slots = attention_addresses(
+-        case.norm, case.main, case.front, case.tail, case.main_metadata,
+-        case.index_metadata, case.caches, case.scratch, case.tiling, case.partial)
+-    index_pages, index_columns = (66, 64) if case.mode == "shared" else (
+-        case.caches[2].shape[0], case.index_metadata[5].shape[1])
+-    geometry = (case.rows, case.caches[0].shape[0],
+-                case.main_metadata[5].shape[1], index_pages, index_columns,
+-                BLOCKS, int(case.mode == "int8"),
+-                int(bool(case.front) and case.front[1].dtype == case.torch.bfloat16), 0)
+-    packet = ControlPrepared(
+-        library, case.norm, slots, [case.ffn.gamma, case.ffn.gate, case.ffn.bias],
+-        case.ffn.weights, case.bridge, case.body, case.ffn.shared,
+-        case.persistent_topk, geometry,
+-        (*case.scalars, case.input_norm.variance_epsilon, case.ffn.epsilon),
+-        case.sync, case.mode != "shared")
+-    if (bytes(packet.config) != bytes(case.prepared.config)
+-            or bytes(packet.addresses) != bytes(case.prepared.addresses)
+-            or packet.owner_pointers != case.prepared.owner_pointers):
+-        raise RuntimeError("The two libraries received different records or owners")
+-    return packet
+ 
+ 
+ def pair_values(cases, caches, topk):
+@@ -71,21 +44,17 @@
+ 
+ 
+ def run_pair_timing(torch, cases, inputs, topk, caches, bases, arena, output,
+-                    comparison="topk-owner"):
++                    comparison="down-tiling"):
+     from attention_check import metric
+     from local_chain import publish_topk, signature
+ 
+-    if comparison not in ("topk-owner", "whole-layer", "native-stages"):
+-        raise ValueError("Use the Top-K destination or whole-layer fusion comparison")
+-    direct_topk = comparison == "topk-owner"
+-    native_entry = None
+-    if comparison == "native-stages":
+-        from native_components import prepare, separate as native_entry
+-
+-        prepare(torch, cases)
+-    library = ControlLibrary(Path(__file__).with_name("control_local_chain.so"),
+-                             CONTROL_SHA)
+-    controls = [control_packet(case, library) for case in cases]
++    if comparison != "down-tiling":
++        raise ValueError("Both arms must be 609 with a private Down tiling")
++    from native_components import prepare, separate as native_entry
++
++    prepare(torch, cases)
++    control_native = load_control(torch)
++    packets = [TilingPair(case, control_native) for case in cases]
+     owners = [case.owners() for case in cases]
+     topk_signature = signature(topk)
+     values = pair_values(cases, caches, topk)
+@@ -94,24 +63,21 @@
+     report = {
+         "arena": arena, "rows": inputs.rows, "blocks": 24,
+         "scope": "Two consecutive local layers with identity TP reductions",
+-        "comparison": {
+-            "topk-owner": "609 plus persistent top-k copy versus 6a direct owner; both use N512",
+-            "whole-layer": "Original norm plus owner copies, native attention/FFN versus 609 whole layer",
+-            "native-stages": "Three native norm/attention/FFN launches versus 609 whole layer; no owner copies",
+-        }[comparison],
++        "comparison": "609 plus persistent top-k copy in both arms; N512 versus N1024 Down tiling",
+         "comparison_mode": comparison,
+         "unit": "us per indexed/shared two-layer pair",
+         "weight_banks": 1, "weight_sets": 2,
+         "weight_reuse": "The same two actual synthetic Decoder weight sets repeat in each graph",
+         "shared_between_arenas": "Weights, original persistent top-k owner and caches",
+-        "scratch_owners": owners, "same_host_record_bytes": True,
++        "scratch_owners": owners, "same_host_record_bytes": False,
++        "host_record_contract": "Only body.scratch[7] differs per layer",
++        "prepared_records": [packet.check() for packet in packets],
+         "graph_pair_calls": CALLS, "graph_replays_per_event": REPLAYS,
+         "samples_per_arm": SAMPLES, "warm_replays_before_event": 3,
+         "profiler_enabled": False, "copies_and_poison_outside_events": True,
+         "observation_copies_inside_graph": 0,
+-        "norm_owner_copies_per_layer": {"control": 4 if comparison == "whole-layer" else 0,
+-                                        "candidate": 0},
+-        "topk_copy_calls_per_pair": {"control": 1, "candidate": 0 if direct_topk else 1},
++        "norm_owner_copies_per_layer": {"control": 0, "candidate": 0},
++        "topk_copy_calls_per_pair": {"control": 1, "candidate": 1},
+         "checks": [], "samples": [], "pass": False,
+     }
+     destination = output / f"layer-pair-timing-arena{arena}.json"
+@@ -131,23 +97,16 @@
+         cases[0].selected.fill_(1 if arm == "control" else 2)
+ 
+     def pair(arm):
++        for index, packet in enumerate(packets):
++            getattr(packet, arm).launch()
++            if index == 0:
++                publish_topk(cases[index].selected, topk, inputs.rows)
++
++    def native_pair():
+         for index, case in enumerate(cases):
+-            if not direct_topk:
+-                if arm == "control":
+-                    if native_entry is None:
+-                        case.separate()
+-                    else:
+-                        native_entry(case)
+-                else:
+-                    controls[index].launch()
+-                if index == 0:
+-                    publish_topk(case.selected, topk, inputs.rows)
+-            elif arm == "control":
+-                controls[index].launch()
+-                if index == 0:
+-                    publish_topk(case.selected, topk, inputs.rows)
+-            else:
+-                case.combined()
++            native_entry(case)
++            if index == 0:
++                publish_topk(case.selected, topk, inputs.rows)
+ 
+     def sequence(arm):
+         for _ in range(CALLS):
+@@ -171,16 +130,15 @@
+             raise RuntimeError("A timed graph replaced a retained owner")
+         if not bool((topk[inputs.rows:] == -1).all()):
+             raise RuntimeError("A timed graph overwrote inactive top-k rows")
+-        if direct_topk and arm == "candidate" and not bool((cases[0].selected == 2).all()):
+-            raise RuntimeError("The direct selector wrote its unused arena slice")
+         inputs.check_owners()
+-        return [check_down_tiling(torch, case.body[7]) for case in cases]
++        return [packet.check() for packet in packets]
+ 
+     graphs = {}
+     persist()
+     try:
+         if native_entry is not None:
+             report["native_component_checks"] = []
++            report["control_owner_checks"] = []
+             for iteration in range(8):
+                 inputs.update(iteration)
+                 reset(iteration, "control")
+@@ -190,12 +148,21 @@
+                         publish_topk(case.selected, topk, inputs.rows)
+                 expected = collect()
+                 reset(iteration, "candidate")
+-                pair("control")
++                native_pair()
+                 actual = collect()
+                 report["native_component_checks"].append({
+                     "iteration": iteration,
+                     "checks": compare(actual, expected, f"native-input{iteration}"),
+                     "inputs": inputs.witness(), "down_tiling": guards("control")})
++                for packet in packets:
++                    expected_ffn = {name: actual[f"layer{packet.case.number}.{name}"]
++                                    for name in packet.values}
++                    observed = packet.validate_control()
++                    report["control_owner_checks"].append({
++                        "iteration": iteration, "layer": packet.case.number,
++                        "checks": compare(observed, expected_ffn,
++                                          f"control-owner-{iteration}-{packet.case.number}"),
++                        "records": packet.check()})
+                 persist()
+         inputs.update(8)
+         for arm in ("control", "candidate"):
+@@ -207,6 +174,8 @@
+             with torch.npu.graph(graph):
+                 sequence(arm)
+             graphs[arm] = graph
++            report.setdefault("capture_records", {})[arm] = guards(arm)
++            persist()
+ 
+         for iteration in range(8, 16):
+             inputs.update(iteration)
+@@ -276,6 +245,17 @@
+                                          - record["per_pair_us"]["candidate"])
+             report["samples"].append(record)
+             persist()
++        report["post_timing_checks"] = []
++        reset(16, "control")
++        native_pair()
++        expected_full = collect()
++        for arm in ("control", "candidate"):
++            reset(16, arm)
++            graphs[arm].replay()
++            observed = collect()
++            report["post_timing_checks"].append({
++                "arm": arm, "checks": compare(observed, expected_full, f"post-{arm}"),
++                "records": guards(arm)})
+         report["summary"] = {arm: distribution([
+             sample["per_pair_us"][arm] for sample in report["samples"]])
+             for arm in ("control", "candidate")}

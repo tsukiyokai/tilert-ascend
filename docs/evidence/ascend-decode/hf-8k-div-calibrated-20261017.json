@@ -1,0 +1,121 @@
+{
+  "scope": "CPU 8K two-step HF reference and exact reset; NPU acceptance separate",
+  "manifest_path": "/workspace/offline/cann-div-reference-20261017/hf-8k/manifest.json",
+  "manifest_sha256": "cadc87d38bf213686e97294144b16832b65e4b68636832049ee138220837417e",
+  "summary": {
+    "status": "pass",
+    "checks_total": 1273,
+    "checks_failed": 0,
+    "scope": "CPU HF traces with selected MLA arithmetic and exact reset",
+    "checkpoint": "/workspace/models/GLM-5.2-w4a8c8",
+    "metadata_sha256": {
+      "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+      "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+      "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+    },
+    "initial_position": 8192,
+    "position": 8194,
+    "teacher_tokens": [
+      6500,
+      382
+    ],
+    "generated_tokens": [
+      262
+    ],
+    "mla_preprocess": "prolog_v3",
+    "prefix_scope": "decode from the same frozen compressed prefix; prefill not checked",
+    "prompt_length": 8192,
+    "prompt_sha256": "fe53282d0b732f6a1cbd9b6587903127f73ba645f2303a246656286704142afa",
+    "prefix_files_sha256": {
+      "rank-0.pt": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+      "rank-1.pt": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+      "rank-2.pt": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+      "rank-3.pt": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+      "rank-4.pt": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+      "rank-5.pt": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+      "rank-6.pt": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+      "rank-7.pt": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+      "rank-8.pt": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+      "rank-9.pt": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+      "rank-10.pt": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+      "rank-11.pt": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+      "rank-12.pt": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+      "rank-13.pt": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+      "rank-14.pt": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+      "rank-15.pt": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6"
+    },
+    "trace_sha256": {
+      "step-08192.pt": "d02cb32ac12fefa2f93259daa82b1addb24117537231d5ad039783555775393e",
+      "step-08193.pt": "7d9a4294763fc9db507bcab9fdeeb82758baf3e16752dd2f054ef661d5311034"
+    },
+    "source_sha256": {
+      "tests/glm52/run_hf_reference.py": "a2c261470f9baf1c141746035da8950f61c1f81ac99af3bf86a3c31936d4fa01",
+      "tests/glm52/run_native_decode.py": "bc40b579824eb6def8fa9fc7fb2acd045774088f1e841e514279aa6818870adc",
+      "tests/glm52/prefix_io.py": "b0f1a76b565d6d97b3ef1e64b7810d1efe7c22470e2b1c46bd64911341559c90",
+      "tilert/models/glm_5_2_ascend/reference.py": "1074977dc263e7e45290280aa423c5e1072b8a63bdbebc11225e6f83ed3ab827",
+      "tilert/models/glm_5_2_ascend/reference_weights.py": "1ae887983d3edf6a9006df7c8b849691b34775c50e8bf8738a1300220348d533",
+      "tilert/models/glm_5_2_ascend/ops/indexer.py": "b8536fd5f41fe1f194ef4f3f34d30d4090c3b943c69d69a0445666d41396172a",
+      "tilert/models/glm_5_2_ascend/reference_prolog.py": "20d184e9a17b139ed2cd2f82c9d929c0a6f0fa84778991d6e818f7f1f2e0b864"
+    },
+    "weight_arithmetic": {
+      "tp_size": 16,
+      "activation_quantization": "BF16: calibrated A3 Div(127,amax), FP32 Mul, RINT; scale=amax*FP32(1/127)",
+      "a8_source_sha256": "fd0fb30d924b48ed4455cb505d2d530e822fa48d78b526db663d0bee69ffaefc",
+      "integer_projection": "W8: INT32 dot * FP32 weight scale * FP32 A8 scale; W4: CANN 9.2.0 API-dequant MSD with FP16 partials",
+      "projection_output": "BF16 before TP reduction",
+      "tp_sum": "FP32 rank-order sum, final BF16; not bitwise HCCL",
+      "w4_scale_bias": "Checkpoint correction added once after 16H+L",
+      "w4_msd_source_sha256": "a8b7c446d5373f5f50d3ee22bdf6631a8468973da420791bb97ccf0e2f351fbb",
+      "c8_quantization": "128-channel NPU operation order uncalibrated",
+      "fused_rounding": "W4 FP16 partials; activation boundaries set by HF adapters",
+      "metadata_sha256": {
+        "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+        "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+        "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+      },
+      "rotary": {
+        "intermediates": "FP32 products and sum; one BF16 output cast",
+        "angles": "HF FP32 generation followed by BF16 cast",
+        "main_basis": "real half, imaginary half",
+        "index_basis": "alternating real and imaginary",
+        "cann_source_sha256": "96028ea9c3f2b5426b60c00e03951fafbcd4903ceff5880b4ad31482d37e0a8a",
+        "hf_adapter": "Instance forward globals; HF bytecode unchanged"
+      },
+      "c8_index_scoring": {
+        "implementation": "CANN-9.2.0-QuantLightningIndexer-arch22",
+        "source_sha256": {
+          "quant_lightning_indexer_service_cube_arch22.h": "75b676cd308c2b8c573798f9a5ec16636122af85cb626e59dcefbe8b01147252",
+          "quant_lightning_indexer_service_vector_arch22.h": "55098dd4589260d526c3ede3decf6d0757fc8458c9a74253849a63dfa6ace1ae"
+        },
+        "source_verified": true,
+        "reference_module": "tilert.models.glm_5_2_ascend.ops.indexer",
+        "reference_source_sha256": "b8536fd5f41fe1f194ef4f3f34d30d4090c3b943c69d69a0445666d41396172a",
+        "formula": "FP32_MATMUL(FP16(weight*q_scale), FP16(ReLU(INT32(QK)/1024))) * FP32(k_scale)",
+        "scale_restoration": "none; scores retain the common 1/1024 factor",
+        "cpu_fp16": "IEEE nearest-even with subnormals",
+        "device_validation": "pending",
+        "unverified_device_boundaries": [
+          "FP16 subnormal handling and overflow saturation",
+          "FP32 Cube accumulation order"
+        ],
+        "accepted_fp16_domain": "finite normal values or zero for wire operands and weight*q_scale",
+        "source_directory": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc/quant_lightning_indexer/op_kernel/arch22"
+      },
+      "mla_preprocess": {
+        "implementation": "CPU W8 MLA Prolog V3; unabsorbed HF query",
+        "input_quant": "BF16 DynamicQuant with calibrated A3 FP32 vdiv",
+        "projection": "INT32 dot; FP32 token scale then channel scale",
+        "rms": "FP32 64-lane fold; Div by sqrt(mean+1e-5); FP32 gamma",
+        "query_quant": "FP32 Div(amax,127) and Div(127,amax); RINT to INT8",
+        "q_nope": "BF16 after Q-B dequantization",
+        "rope": "FP32 dequantization/products/addition; final BF16 half basis",
+        "latent": "BF16 after weighted FP32 RMS",
+        "index_query": "Reuse Prolog query codes/scale; channel then token scale",
+        "index_query_boundary": "Scale order retains the existing W8 reference",
+        "input_norm": "Layer0 FP32 norm and gamma; one BF16 output"
+      },
+      "expert_combine": "Unscaled BF16 probabilities; FP32 weighted sum; BF16 output; BF16 routed scale; BF16 shared add; FP32 TP sum; BF16 output",
+      "fused_expert_quantization": "FP32 GMM1 and SwiGLU; scale=amax/127; reciprocal scale; FP16 then INT8 nearest-even; BF16 GMM2"
+    }
+  }
+}

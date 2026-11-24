@@ -1,0 +1,45 @@
+{
+  "rank": 15,
+  "stages": [
+    {
+      "name": "platform_registration",
+      "success": true,
+      "class": "vllm_ascend.platform.NPUPlatform",
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/platform.py",
+      "sha256": "686eb5c4d7e744053def9fe51caf743e79e6a3cbeddebd3c47949d6f13e503cd"
+    },
+    {
+      "name": "real_groups",
+      "success": true,
+      "tp_world_size": 16,
+      "tp_rank": 15,
+      "cpu_rank_sum": 120,
+      "expected_rank_sum": 120,
+      "coordinator": {
+        "class": "vllm.distributed.parallel_state.GroupCoordinator",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982/vllm/distributed/parallel_state.py",
+        "sha256": "0e47cff9a89717183bdce6403f0454961848247f51306a0f1dfbe3d6e1b93336"
+      },
+      "device_communicator": null,
+      "registration": "actual coordinators assigned to version-scoped parallel_state fields",
+      "singleton_fields": [
+        "_DCP",
+        "_PCP",
+        "_PP",
+        "_DP",
+        "_EP"
+      ]
+    }
+  ],
+  "scope": "real Gloo groups, rank-0 local attention shard",
+  "torch": "2.10.0+cpu",
+  "torch_npu": "2.10.0.post2",
+  "npu_initialized_before": false,
+  "rank_zero_status": {
+    "success": false,
+    "error": "Traceback (most recent call last):\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 289, in worker\n    else run_rank_zero(torch, args, stage))\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 190, in run_rank_zero\n    stage(\"official_weight_postprocessing\", lambda: (\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 257, in stage\n    value, detail = action()\n                    ^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 191, in <lambda>\n    process_weights_after_loading(layer, config.model_config, torch.device(\"npu\")),\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/model_loader/utils.py\", line 180, in process_weights_after_loading\n    quant_method.process_weights_after_loading(module)\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/quantization/method_adapters.py\", line 195, in process_weights_after_loading\n    self.quant_method.process_weights_after_loading(layer)\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py\", line 140, in process_weights_after_loading\n    layer.weight.data = maybe_trans_nz(layer.weight.data)\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/utils.py\", line 406, in maybe_trans_nz\n    return torch_npu.npu_format_cast(weight, ACL_FORMAT_FRACTAL_NZ, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/_ops.py\", line 1209, in __call__\n    return self._op(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: SetPrecisionMode:../torch_npu/csrc/framework/LazyInitAclops.cpp:223 NPU function error: at_npu::native::AclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, precision_mode), error code is 500001\n[ERROR] 2026-10-21-14:42:51 (PID:167, Device:0, RankID:-1) ERR00100 PTA call acl api failed\n[Error]: The internal ACL of the system is incorrect.\n        Rectify the fault based on the error information in the ascend log.\n[PID: 167] 2026-10-21-14:42:51.066.733 Directory_Operation_Error(EC0006): Directory operation failed. Reason: [Errno 30] Read-only file system: '/root/Ascend'.\nTraceBack (most recent call last):\n        AOE failed to call InitCannKB.[FUNC:Initialize][FILE:python_adapter_manager.cc][LINE:50]\n        Failed to initialize TeConfigInfo.[FUNC:TeInnerErrMessageReport][FILE:common_utils.cc][LINE:374]\n        [GraphOpt][InitializeInner][InitTbeFunc] Failed to init tbe.[FUNC:InitializeTeFusion][FILE:tbe_op_store_adapter.cc][LINE:1981]\n        [GraphOpt][InitializeInner][InitTeFusion]: Failed to initialize TeFusion.[FUNC:InitializeInner][FILE:tbe_op_store_adapter.cc][LINE:1948]\n        [SubGraphOpt][PreCompileOp][InitAdapter] InitializeAdapter adapter [tbe_op_adapter] failed! Ret [4294967295][FUNC:InitializeAdapter][FILE:op_store_adapter_manager.cc][LINE:80]\n        [SubGraphOpt][PreCompileOp][Init] Initialize op store adapter failed, OpsStoreName[tbe-custom].[FUNC:Initialize][FILE:op_store_adapter_manager.cc][LINE:121]\n        [FusionMngr][Init] Op store adapter manager init failed.[FUNC:Initialize][FILE:fusion_manager.cc][LINE:119]\n        PluginManager InvokeAll failed.[FUNC:Initialize][FILE:ops_kernel_manager.cc][LINE:98]\n        OpsManager initialize failed.[FUNC:InnerInitialize][FILE:gelib.cc][LINE:225]\n        GELib::InnerInitialize failed.[FUNC:Initialize][FILE:gelib.cc][LINE:163]\n        GEInitializeV2 failed.[FUNC:GEInitializeV2][FILE:ge_api_v2.cc][LINE:379]\n        GEInitializeV2 initialize failed.[FUNC:GEInitialize][FILE:ge_api.cc][LINE:221]\n        [Initialize][Ge]GEInitialize failed. ge result = 4294967295[FUNC:ReportCallError][FILE:log_inner.cpp][LINE:138]\n        [Init][Compiler]Init compiler failed[FUNC:ReportInnerError][FILE:log_inner.cpp][LINE:123]\n        [Set][Options]OpCompileProcessor init failed![FUNC:ReportInnerError][FILE:log_inner.cpp][LINE:123]\n\n"
+  },
+  "npu_initialized_after": false,
+  "maximum_rss_kib": 1479432,
+  "memory_snapshot": "3feb6000000-ffffd54ed000 ---p 00000000 00:00 0                           [rollup]\nRss:             1473604 kB\nPss:             1050749 kB\nPss_Anon:        1022408 kB\nPss_File:          28317 kB\nPss_Shmem:            24 kB\nShared_Clean:     451072 kB\nShared_Dirty:        124 kB\nPrivate_Clean:         0 kB\nPrivate_Dirty:   1022408 kB\nReferenced:      1471932 kB\nAnonymous:       1022408 kB\nLazyFree:              0 kB\nAnonHugePages:    401408 kB\nShmemPmdMapped:        0 kB\nFilePmdMapped:         0 kB\nShared_Hugetlb:        0 kB\nPrivate_Hugetlb:       0 kB\nSwap:                  0 kB\nSwapPss:               0 kB\nLocked:                0 kB\n"
+}

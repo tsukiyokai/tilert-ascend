@@ -1,0 +1,158 @@
+{
+  "status": "source design and CPU contracts; no candidate compilation or NPU run",
+  "parent": {
+    "directory": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n512-build-v2",
+    "library_sha256": "c90b3666a1697070eda19d5b3e133e9ed58f36fe429abefceae6ffe102a6a032",
+    "manifest_sha256": "6a8780321d41b5d834e1d268ff08c30b675bf39558367a10134c53e28bebf613",
+    "verified_sources": 97,
+    "verified_artifacts": 6
+  },
+  "scope": "Share only the load/widen/Abs/ReduceMax prefix; retain two quantization suffixes, all public addresses and joins",
+  "public_scratch_count": 33,
+  "descriptor_bytes": 408,
+  "shared_input_bytes": 112,
+  "additional_gm_bytes": 0,
+  "additional_ub_bytes": 0,
+  "peak_ub_bytes": {
+    "complete_ffn": 195584,
+    "dual_quant_phase": 92192,
+    "body_phase0": 83968,
+    "routed_body": 116480
+  },
+  "sources": {
+    "parent/source/kernel.cpp": {
+      "sha256": "156297839a5f6ad51c0975848a44eed2a8775251dba571b6aefe52b1c21a94b2",
+      "original": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n512-build-v2/source/kernel.cpp"
+    },
+    "parent/source/descriptor.h": {
+      "sha256": "0b19a5878136833863b6add5d7f19c59f7f410a526459237986d84617fb5cd04",
+      "original": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n512-build-v2/source/descriptor.h"
+    },
+    "parent/source/binding.cpp": {
+      "sha256": "ff55580fd5dcacadc3e27a268027cd5eaeb2292cd0cc3a9af1e92dfd3c27437f",
+      "original": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n512-build-v2/source/binding.cpp"
+    },
+    "parent/source/contract.h": {
+      "sha256": "cffdc78d01bf5720678b137bcd55bb08db5b06bfa5e70399742ff1351d4a262f",
+      "original": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n512-build-v2/source/contract.h"
+    },
+    "parent/bridge/source/norm_native.h": {
+      "sha256": "d18573f199777f4fbf7acbe9bab378469d0655c283141008c53597026e1590b4",
+      "original": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n512-build-v2/bridge/source/norm_native.h"
+    },
+    "parent/bridge/source/ffn_bridge/body_native.h": {
+      "sha256": "f75ae3bb7ea18d0ef8ebc4bc5ece23e7d135ab2205107baa7a74d008f59b3745",
+      "original": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n512-build-v2/bridge/source/ffn_bridge/body_native.h"
+    },
+    "parent/bridge/source/ffn_bridge/native.h": {
+      "sha256": "83a336b1878193bec065bfafef7b9b57d6ea30811ad2789657e2538d00ea1fb7",
+      "original": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n512-build-v2/bridge/source/ffn_bridge/native.h"
+    },
+    "parent/bridge/source/ffn_bridge/contract.h": {
+      "sha256": "8187942e8c42bd14413b03f7e9570bc1cbc86044abfa6de2469ba42212ce393b",
+      "original": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n512-build-v2/bridge/source/ffn_bridge/contract.h"
+    },
+    "parent/bridge/source/ffn_bridge/host_validate.h": {
+      "sha256": "70487b994618776fb6564243bbde765d8e9d2b70b478b3bf72d4bd47f13cccc7",
+      "original": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n512-build-v2/bridge/source/ffn_bridge/host_validate.h"
+    },
+    "parent/bridge/vendor/add_rms_norm_bias_single_n.h": {
+      "sha256": "e42fccf0a3472e538b1e8da8402aba9dbbfc3af20f4489a5ddf668c72271641b",
+      "original": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n512-build-v2/bridge/vendor/add_rms_norm_bias_single_n.h"
+    },
+    "parent/bridge/vendor/rms_norm_base.h": {
+      "sha256": "79590de4611dbc9b5a3efe92c4ec066b8676c1b17a9c1c9400e9c4db93e8356e",
+      "original": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n512-build-v2/bridge/vendor/rms_norm_base.h"
+    },
+    "parent/body/source/routed_int4/routed_int4_front.h": {
+      "sha256": "eb11c5ea3191301b7c9bd550399ba65ba1541bd7a167df9ce36f91b847bb7e06",
+      "original": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n512-build-v2/body/source/routed_int4/routed_int4_front.h"
+    },
+    "parent/body/source/routed_int4/routed_body_native.h": {
+      "sha256": "837bbabfc15ccdb6b8ab12994076efc13659cc0431dee56c306495181072c583",
+      "original": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n512-build-v2/body/source/routed_int4/routed_body_native.h"
+    },
+    "parent/body/source/routed_int4/routed_int4_contract.h": {
+      "sha256": "dcda633bc985b00a886df6688074b72be8b1eb656660cefd1a7ab17abea33fb1",
+      "original": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n512-build-v2/body/source/routed_int4/routed_int4_contract.h"
+    },
+    "parent/body/source/routed_int4/routed_int4_pipeline_native.h": {
+      "sha256": "3b30b04f86111867ae305f0c4608a9554a69347078a417e0584dbf0be71b3bbb",
+      "original": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n512-build-v2/body/source/routed_int4/routed_int4_pipeline_native.h"
+    },
+    "parent/body/source/routed_int4/host_validate.h": {
+      "sha256": "84af3fccd322435e1310978d30259eebfebfeed9a609f4fd9ac887fa3d1f8a9b",
+      "original": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n512-build-v2/body/source/routed_int4/host_validate.h"
+    },
+    "parent/body/source/shared_w8/shared_w8_native.h": {
+      "sha256": "c6fdab0eb2e2b36644c8c520b6ee060db6c5dc54870f66ca27b919e3636e3760",
+      "original": "/tmp/tilert-megakernel-validation-20261021/ffn-down-n512-build-v2/body/source/shared_w8/shared_w8_native.h"
+    },
+    "installed/include/basic_api/kernel_operator_vec_reduce_intf.h": {
+      "sha256": "a07554fae23e1294be48c1f0f6052b3e00d55d18fa9593537307c84dd66f4f19",
+      "original": "a3-78:/home/shanshan/megamoe-mask-only-20261021/sdk/cann-9.2.0/aarch64-linux/asc/include/basic_api/kernel_operator_vec_reduce_intf.h"
+    },
+    "installed/impl/basic_api/kernel_operator_vec_reduce_intf_impl.h": {
+      "sha256": "7dba0539d40dfa4381b5d4153c6bb37ec5bca2e0f1644a46f22eb574dda978b6",
+      "original": "a3-78:/home/shanshan/megamoe-mask-only-20261021/sdk/cann-9.2.0/aarch64-linux/asc/impl/basic_api/kernel_operator_vec_reduce_intf_impl.h"
+    },
+    "installed/impl/basic_api/dav_c220/kernel_operator_vec_reduce_impl.h": {
+      "sha256": "c9750c59e0d77a3fdd8e4c1890b763e8b146e236dcf2a5518834f1be40414f4e",
+      "original": "a3-78:/home/shanshan/megamoe-mask-only-20261021/sdk/cann-9.2.0/aarch64-linux/asc/impl/basic_api/dav_c220/kernel_operator_vec_reduce_impl.h"
+    },
+    "ReduceMax.md": {
+      "sha256": "e67b58e0303e163ce715de7f2d8ba62ba04d9279a12c61372f5d9f12a9ff58a6",
+      "original": "/home/shanshan/repo/cann/asc-devkit/docs/zh/api/SIMD-API/basic_api/memory_vector_compute/reduction_compute/ReduceMax.md",
+      "repository_commit": "6a51d0b167dd8f5555456a0ebb783ef0427e366e",
+      "installed_sdk_document": false
+    }
+  },
+  "anchors": {
+    "normalized_pointer": [
+      "parent/source/descriptor.h:41-49",
+      "parent/bridge/source/ffn_bridge/body_native.h:10-22"
+    ],
+    "shared_quant": [
+      "parent/bridge/source/norm_native.h:35-89"
+    ],
+    "routed_quant": [
+      "parent/body/source/routed_int4/routed_int4_front.h:145-174"
+    ],
+    "metadata_and_join": [
+      "parent/body/source/routed_int4/routed_int4_front.h:53-131",
+      "parent/body/source/routed_int4/routed_int4_front.h:177-180"
+    ],
+    "stage_order": [
+      "parent/body/source/routed_int4/routed_body_native.h:518-611",
+      "parent/body/source/routed_int4/routed_int4_pipeline_native.h:26-39"
+    ],
+    "host_ownership": [
+      "parent/source/binding.cpp:19-28",
+      "parent/source/binding.cpp:44-61",
+      "parent/body/source/routed_int4/host_validate.h:256-310"
+    ],
+    "reduce_count_overload": [
+      "installed/include/basic_api/kernel_operator_vec_reduce_intf.h:169-172",
+      "installed/impl/basic_api/kernel_operator_vec_reduce_intf_impl.h:1328-1382"
+    ],
+    "reduce_noindex_tree": [
+      "installed/impl/basic_api/dav_c220/kernel_operator_vec_reduce_impl.h:426-449",
+      "installed/impl/basic_api/dav_c220/kernel_operator_vec_reduce_impl.h:748-791",
+      "installed/impl/basic_api/dav_c220/kernel_operator_vec_reduce_impl.h:819-871"
+    ],
+    "documented_src_tmp_alias": [
+      "ReduceMax.md:158-162",
+      "ReduceMax.md:219-223"
+    ]
+  },
+  "design_sha256": "52f2f066e7543e3ad13df7f762934958dee5a21ea0862216bea9cd528235dc74",
+  "cpu_contract_sha256": "ea39f0ab5bcba01c52522f99d5a66a806c537e7688b37c0420befb5e93e049da",
+  "check_script_sha256": "034f6a48be0a6d0984ccef8581208928d8f774d77fb92d3f89b83862d6efdd70",
+  "device_obligations": [
+    "both independent A8/scale pairs raw bytes",
+    "NaN/Inf and zero row direct-quant differential",
+    "all original Decoder FFN boundaries and immediate consumers",
+    "all 8 M/groups geometries",
+    "same-address full-FFN paired timing; no local-window speed claim"
+  ]
+}

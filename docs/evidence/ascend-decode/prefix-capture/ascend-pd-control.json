@@ -1,0 +1,35 @@
+{
+  "status": "pass",
+  "created_at": "2026-10-16T12:18:41.008840+00:00",
+  "hostname": "liteserver-hps-c180-00044",
+  "python": "3.13.13",
+  "command": [
+    "/root/miniconda3/bin/python3",
+    "tests/glm52/check_ascend_pd.py",
+    "--output",
+    "/home/shanshan/trt-asc/experiments/glm52/prefix-capture-offline/ascend-pd-control.json"
+  ],
+  "tests": 29,
+  "failures": 0,
+  "errors": 0,
+  "test_output": "test_cancel_waits_for_admitted_write_completion (__main__.ReceiveChecks.test_cancel_waits_for_admitted_write_completion) ... ok\ntest_complete_prompt_identity_reaches_the_descriptor (__main__.ReceiveChecks.test_complete_prompt_identity_reaches_the_descriptor) ... ok\ntest_disconnected_writer_keeps_memory_quarantined (__main__.ReceiveChecks.test_disconnected_writer_keeps_memory_quarantined) ... ok\ntest_invalid_prompt_ids_do_not_reserve_the_slot (__main__.ReceiveChecks.test_invalid_prompt_ids_do_not_reserve_the_slot) ... ok\ntest_invalid_rank_and_lengths_are_not_admitted (__main__.ReceiveChecks.test_invalid_rank_and_lengths_are_not_admitted) ... ok\ntest_only_one_writer_per_rank (__main__.ReceiveChecks.test_only_one_writer_per_rank) ... ok\ntest_pre_http_cancel_cannot_be_reannounced (__main__.ReceiveChecks.test_pre_http_cancel_cannot_be_reannounced) ... ok\ntest_rank_metadata_must_agree (__main__.ReceiveChecks.test_rank_metadata_must_agree) ... ok\ntest_rank_prompt_conflict_is_rejected_before_write (__main__.ReceiveChecks.test_rank_prompt_conflict_is_rejected_before_write) ... ok\ntest_sixteen_completions_and_release_own_the_slot (__main__.ReceiveChecks.test_sixteen_completions_and_release_own_the_slot) ... ok\ntest_virtual_addresses_are_rank_local (__main__.ReceiveChecks.test_virtual_addresses_are_rank_local) ... ok\ntest_wrong_generation_cannot_publish_or_free_memory (__main__.ReceiveChecks.test_wrong_generation_cannot_publish_or_free_memory) ... ok\ntest_both_consumers_reject_invalid_prefix_metadata (__main__.FrozenPrefixChecks.test_both_consumers_reject_invalid_prefix_metadata) ... ok\ntest_decode_and_freeze_share_one_generation_consumption (__main__.FrozenPrefixChecks.test_decode_and_freeze_share_one_generation_consumption) ... ok\ntest_frozen_main_and_mtp_keep_exact_lengths_dtypes_and_aliases (__main__.FrozenPrefixChecks.test_frozen_main_and_mtp_keep_exact_lengths_dtypes_and_aliases) ... ok\ntest_invalid_prompt_or_failed_view_does_not_consume_generation (__main__.FrozenPrefixChecks.test_invalid_prompt_or_failed_view_does_not_consume_generation) ... ok\ntest_bursts_preserve_order_and_terminal_message (__main__.TokenQueueChecks.test_bursts_preserve_order_and_terminal_message) ... ok\ntest_cancelled_wait_does_not_consume_a_later_token (__main__.TokenQueueChecks.test_cancelled_wait_does_not_consume_a_later_token) ... ok\ntest_each_token_arrives_before_producer_can_finish (__main__.TokenQueueChecks.test_each_token_arrives_before_producer_can_finish) ... ok\ntest_queued_tokens_survive_event_clear (__main__.TokenQueueChecks.test_queued_tokens_survive_event_clear) ... ok\ntest_replay_recovers_target_hidden_and_keeps_mtp_at_p_minus_one (__main__.PromptReplayChecks.test_replay_recovers_target_hidden_and_keeps_mtp_at_p_minus_one) ... ok\ntest_join_timeout_retains_the_slot_until_worker_exits (__main__.WorkerOwnershipChecks.test_join_timeout_retains_the_slot_until_worker_exits) ... ok\ntest_terminated_worker_releases_immediately (__main__.WorkerOwnershipChecks.test_terminated_worker_releases_immediately) ... ok\ntest_known_prefill_request_is_cancelled_before_decode_dispatch (__main__.LeaseChecks.test_known_prefill_request_is_cancelled_before_decode_dispatch) ... ok\ntest_terminated_decode_does_not_issue_another_cancel (__main__.LeaseChecks.test_terminated_decode_does_not_issue_another_cancel) ... ok\ntest_active_cancel_sets_only_the_matching_event_under_lock (__main__.HttpOwnershipChecks.test_active_cancel_sets_only_the_matching_event_under_lock) ... ok\ntest_failed_reset_retains_request_and_http_lock (__main__.HttpOwnershipChecks.test_failed_reset_retains_request_and_http_lock) ... ok\ntest_pending_cancel_does_not_reset_the_active_engine (__main__.HttpOwnershipChecks.test_pending_cancel_does_not_reset_the_active_engine) ... ok\ntest_successful_reset_releases_ownership_after_reset (__main__.HttpOwnershipChecks.test_successful_reset_releases_ownership_after_reset) ... ok\n\n----------------------------------------------------------------------\nRan 29 tests in 3.199s\n\nOK\n",
+  "scope": "CPU TCP receiver, frozen-prefix view metadata, request ownership, replay, token wakeups",
+  "torch_imported": false,
+  "not_executed": [
+    "HIXL DMA",
+    "NPU arithmetic",
+    "NPU-to-CPU copy",
+    "frozen tensor values",
+    "HTTP delivery timing"
+  ],
+  "source_sha256": {
+    "tests/glm52/check_ascend_pd.py": "84fa387cab156fb11c9cfe7e3c0b72b07503ae9280e734a66d2315384a586c92",
+    "tilert/pd_vllm/ascend_receiver.py": "e48f85c0e5ab0b4f5a2d4677a4a67377017dd6144b3aafeecb9bfa523e06bdd4",
+    "tilert/pd_vllm/ascend_cache.py": "f6d3f0e7e416b6e4acf002bf2cae8c770522594401e891ef8e7387cda22164d0",
+    "tilert/pd_vllm/ascend_layout.py": "321d714817be2aaa97ce82899f9180ff93a706eaeb9c16c6c5815d455ed88beb",
+    "tilert/pd_vllm/ascend_server.py": "354a6f5459893ddc66528cdc1b2777332e78c3e199b5a3500dff4efff18b4fbe",
+    "tilert/pd_vllm/token_queue.py": "d773d42d090476952849d3f4012097e2f821ad38016bf3bb4b99638394520848",
+    "tilert/pd_vllm/decode_server.py": "9a07ad1913522a6d2b07bd6bcfc457ea76a4b5f7073f4c3117b6617714049901",
+    "tilert/pd_vllm/decode_pool.py": "9c3c07f094a760a8fcd27b838c609fa5db585e3e5d2cbe13fbc8f0594b87ba9f"
+  }
+}

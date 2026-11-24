@@ -1,0 +1,16 @@
+--- original-norm/LayerCase.separate
++++ native-norm/separate
+@@ -1,10 +1,7 @@
+ def separate(self):
+-    normalized, retained = self.input_norm(self.norm[0], self.norm[1])
+-    self.norm[3].copy_(normalized)
+-    self.norm[4].copy_(retained)
+-    codes, scales = self.torch_npu.npu_dynamic_quant(self.norm[3])
+-    self.norm[6].copy_(codes)
+-    self.norm[7].copy_(scales.view(self.rows, 1))
++    self.torch.ops.tilert.norm_quant_out(
++        *self.norm[:3], None, *self.norm[3:8],
++        self.input_norm.variance_epsilon, BLOCKS, self.sync)
+     if self.mode == "shared":
+         self.torch.ops.tilert.shared_full_attention_out(
+             *self.norm[6:8], *self.main, *self.main_metadata[:3],

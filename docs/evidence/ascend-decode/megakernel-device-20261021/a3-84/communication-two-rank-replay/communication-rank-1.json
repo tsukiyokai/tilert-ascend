@@ -1,0 +1,1392 @@
+{
+  "timestamp_utc": "2026-10-21T10:34:34.381492+00:00",
+  "scope": "one MIX launch with two TP reductions and dependent CUBE projection",
+  "rank": 1,
+  "ranks": 2,
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "device": "_NPUDeviceProperties(name='Ascend910_9392', total_memory=62748MB, cube_core_num=24, vector_core_num=48, uuid=00cc0800-d001-0000-0000-60109ef917a9, L2_cache_size=192MB)",
+  "visible_devices": null,
+  "cann": {
+    "CANN": "9.2.0",
+    "RUNTIME": "9.2.0",
+    "COMPILER": "9.2.0",
+    "OPP": "9.2.0",
+    "OPP_KERNEL": "9.2.0",
+    "DRIVER": "9.2.0"
+  },
+  "library": {
+    "path": "/workspace/tests/glm52/whole_layer/communication_build/communication_probe.so",
+    "sha256": "d851685ffcd963d19173e8c31b649f5ddb815a5388d50b6b6e5f086e5313bcdb"
+  },
+  "loaded_shmem": [
+    {
+      "path": "/usr/local/lib/python3.11/lib-dynload/_posixshmem.cpython-311-aarch64-linux-gnu.so",
+      "sha256": "c3f6606b7c1dc6d9493b253d8a754152d721e3dcee48340f108acfd2605418c3"
+    },
+    {
+      "path": "/usr/local/lib/python3.11/site-packages/nvidia/nvshmem/lib/libnvshmem_host.so.3",
+      "sha256": "868de4fbf53f19f0a2537e42c70d77396db981475303f3c57ce40e82653c8bba"
+    },
+    {
+      "path": "/usr/local/lib/python3.11/site-packages/torch/lib/libtorch_nvshmem.so",
+      "sha256": "26829470df0bd7817ddf7ceb5a24f3e5ffcea6cee7a48f2674acce2e9ddf0437"
+    },
+    {
+      "path": "/workspace/communication-deps/shmem-build/lib/aclshmem_bootstrap_config_store.so",
+      "sha256": "ef9160f3706a7eac573ff0a83160ae2d38579550dd923f45b330f309a33d6541"
+    },
+    {
+      "path": "/workspace/communication-deps/shmem-build/lib/libshmem.so",
+      "sha256": "cf9b853bb7612ce1e44853b1d16851016c4a2c279bdc9bb32da0640bc411f532"
+    },
+    {
+      "path": "/workspace/communication-deps/shmem-build/lib/libshmem_utils.so",
+      "sha256": "743ea9661dbc6707fba5030967a22c59ebfdd0daed4884fdff39da12ae008ac0"
+    }
+  ],
+  "source_sha256": {
+    "communication.h": "be3b248287e3cb51c288b68f3f466fcb4d4750979f36eee2b7ab9378ff0efff8",
+    "communication.md": "6b2746e2612d2d64ac202e922635fe2fa4d2c2df2656aa0afb84452b033243fd",
+    "communication_build.sh": "2453d0bb7372249fd17333dcedc530ed5ef5b1f30c517f8eb826a03e22199cc6",
+    "communication_device.h": "e051a30aacb124f80f3d64293e82693beafa2263f3a906e643cd4eaf2b858bb9",
+    "communication_devicecheck.py": "13937a913e17a8a619a315cc7b1a9fbf833f82378c69d19e855151acc2e29255",
+    "communication_host.cpp": "0c1cc5abde6fec3812b844833b7631958a4ae965f2b13fcc7fef1f93167e4701",
+    "communication_probe.cpp": "83ae9cf423836bfc5b466073190da3d98a79b60953b7c07faf8ef280677a5225",
+    "communication_probe.h": "7b60c5589b1b428bf8cb791b59b20eaba964402b540a700a8299b97b298dadfe",
+    "communication_probe_host.cpp": "e530a7d66813f26d06c74a6c64f1b6c3dde85cf6385ff48b240c3eb3ff606121",
+    "communication_protocol_check.py": "d14b7211e0c2b93df6dcc863a505bdf56f9cce52502a7c9e30ff9c8e3fb2611b"
+  },
+  "build_identity": "2026-10-21T09:29:19+00:00\n2026-09-15T22:19:26+08:00 clang version 15.0.5 (clang-5c68a1cb1231 flang-5c68a1cb1231)\nTarget: aarch64-unknown-linux-gnu\nThread model: posix\nInstalledDir: /opt/ascend/cann-9.2.0/bin\nbe3b248287e3cb51c288b68f3f466fcb4d4750979f36eee2b7ab9378ff0efff8  /workspace/tests/glm52/whole_layer/communication.h\ne051a30aacb124f80f3d64293e82693beafa2263f3a906e643cd4eaf2b858bb9  /workspace/tests/glm52/whole_layer/communication_device.h\n7b60c5589b1b428bf8cb791b59b20eaba964402b540a700a8299b97b298dadfe  /workspace/tests/glm52/whole_layer/communication_probe.h\n0c1cc5abde6fec3812b844833b7631958a4ae965f2b13fcc7fef1f93167e4701  /workspace/tests/glm52/whole_layer/communication_host.cpp\n83ae9cf423836bfc5b466073190da3d98a79b60953b7c07faf8ef280677a5225  /workspace/tests/glm52/whole_layer/communication_probe.cpp\ne530a7d66813f26d06c74a6c64f1b6c3dde85cf6385ff48b240c3eb3ff606121  /workspace/tests/glm52/whole_layer/communication_probe_host.cpp\n2453d0bb7372249fd17333dcedc530ed5ef5b1f30c517f8eb826a03e22199cc6  /workspace/tests/glm52/whole_layer/communication_build.sh\n24c15d21c26972404b0bb0e9cfd08d03930d15c6\ncf9b853bb7612ce1e44853b1d16851016c4a2c279bdc9bb32da0640bc411f532  /workspace/communication-deps/shmem-build/lib/libshmem.so\nd851685ffcd963d19173e8c31b649f5ddb815a5388d50b6b6e5f086e5313bcdb  /workspace/tests/glm52/whole_layer/communication_build/communication_probe.so\n",
+  "warmup": 3,
+  "changed_input_replays": 12,
+  "timed_iterations": 0,
+  "blocks": 4,
+  "oracle": "rank-ascending FP32 sum, BF16; FP32 16x16 dot, BF16; same sum",
+  "hccl_comparison": "installed torch.distributed HCCL BF16 SUM; no equality assumed",
+  "shapes": [
+    {
+      "rows": 1,
+      "checks": [
+        {
+          "replay": 0,
+          "fixture": "tagged",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          }
+        },
+        {
+          "replay": 1,
+          "fixture": "random",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          }
+        },
+        {
+          "replay": 2,
+          "fixture": "tagged",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          }
+        },
+        {
+          "replay": 3,
+          "fixture": "random",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          }
+        },
+        {
+          "replay": 4,
+          "fixture": "tagged",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          }
+        },
+        {
+          "replay": 5,
+          "fixture": "random",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          }
+        },
+        {
+          "replay": 6,
+          "fixture": "tagged",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          }
+        },
+        {
+          "replay": 7,
+          "fixture": "random",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          }
+        },
+        {
+          "replay": 8,
+          "fixture": "tagged",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          }
+        },
+        {
+          "replay": 9,
+          "fixture": "random",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          }
+        },
+        {
+          "replay": 10,
+          "fixture": "tagged",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          }
+        },
+        {
+          "replay": 11,
+          "fixture": "random",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "mismatch_count": 0,
+            "max_absolute": 0.0,
+            "mean_absolute": 0.0
+          }
+        }
+      ],
+      "timing_us": [],
+      "median_us": null,
+      "timing_scope": "disabled",
+      "passed": true
+    },
+    {
+      "rows": 12,
+      "checks": [
+        {
+          "replay": 0,
+          "fixture": "tagged",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 81215,
+            "mismatch_count": 43509,
+            "max_absolute": 30.0,
+            "mean_absolute": 10.032307624816895
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 103568,
+            "mismatch_count": 56258,
+            "max_absolute": 29.75,
+            "mean_absolute": 7.943276405334473
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 81215,
+            "mismatch_count": 43509,
+            "max_absolute": 30.0,
+            "mean_absolute": 10.032307624816895
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 103568,
+            "mismatch_count": 56258,
+            "max_absolute": 29.75,
+            "mean_absolute": 7.943276405334473
+          }
+        },
+        {
+          "replay": 1,
+          "fixture": "random",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 100120,
+            "mismatch_count": 54968,
+            "max_absolute": 0.880859375,
+            "mean_absolute": 0.1291402280330658
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 104684,
+            "mismatch_count": 56824,
+            "max_absolute": 0.605712890625,
+            "mean_absolute": 0.09032347798347473
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 100120,
+            "mismatch_count": 54968,
+            "max_absolute": 0.880859375,
+            "mean_absolute": 0.1291402280330658
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 104684,
+            "mismatch_count": 56824,
+            "max_absolute": 0.605712890625,
+            "mean_absolute": 0.09032347798347473
+          }
+        },
+        {
+          "replay": 2,
+          "fixture": "tagged",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 85670,
+            "mismatch_count": 45897,
+            "max_absolute": 30.0,
+            "mean_absolute": 10.581950187683105
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 103615,
+            "mismatch_count": 56349,
+            "max_absolute": 29.75,
+            "mean_absolute": 7.774895668029785
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 85670,
+            "mismatch_count": 45897,
+            "max_absolute": 30.0,
+            "mean_absolute": 10.581950187683105
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 103615,
+            "mismatch_count": 56349,
+            "max_absolute": 29.75,
+            "mean_absolute": 7.774895668029785
+          }
+        },
+        {
+          "replay": 3,
+          "fixture": "random",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 102603,
+            "mismatch_count": 56357,
+            "max_absolute": 0.916015625,
+            "mean_absolute": 0.13165044784545898
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 105274,
+            "mismatch_count": 57085,
+            "max_absolute": 0.689453125,
+            "mean_absolute": 0.08982034772634506
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 102603,
+            "mismatch_count": 56357,
+            "max_absolute": 0.916015625,
+            "mean_absolute": 0.13165044784545898
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 105274,
+            "mismatch_count": 57085,
+            "max_absolute": 0.689453125,
+            "mean_absolute": 0.08982034772634506
+          }
+        },
+        {
+          "replay": 4,
+          "fixture": "tagged",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 84117,
+            "mismatch_count": 45059,
+            "max_absolute": 30.0,
+            "mean_absolute": 10.392619132995605
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 103129,
+            "mismatch_count": 56163,
+            "max_absolute": 29.75,
+            "mean_absolute": 7.852444171905518
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 84117,
+            "mismatch_count": 45059,
+            "max_absolute": 30.0,
+            "mean_absolute": 10.392619132995605
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 103129,
+            "mismatch_count": 56163,
+            "max_absolute": 29.75,
+            "mean_absolute": 7.852444171905518
+          }
+        },
+        {
+          "replay": 5,
+          "fixture": "random",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 102993,
+            "mismatch_count": 56589,
+            "max_absolute": 0.95703125,
+            "mean_absolute": 0.13179267942905426
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 105831,
+            "mismatch_count": 57119,
+            "max_absolute": 0.6796875,
+            "mean_absolute": 0.08928021043539047
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 102993,
+            "mismatch_count": 56589,
+            "max_absolute": 0.95703125,
+            "mean_absolute": 0.13179267942905426
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 105831,
+            "mismatch_count": 57119,
+            "max_absolute": 0.6796875,
+            "mean_absolute": 0.08928021043539047
+          }
+        },
+        {
+          "replay": 6,
+          "fixture": "tagged",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 91039,
+            "mismatch_count": 48773,
+            "max_absolute": 30.0,
+            "mean_absolute": 11.243597984313965
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 102932,
+            "mismatch_count": 55902,
+            "max_absolute": 29.75,
+            "mean_absolute": 8.4632568359375
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 91039,
+            "mismatch_count": 48773,
+            "max_absolute": 30.0,
+            "mean_absolute": 11.243597984313965
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 102932,
+            "mismatch_count": 55902,
+            "max_absolute": 29.75,
+            "mean_absolute": 8.4632568359375
+          }
+        },
+        {
+          "replay": 7,
+          "fixture": "random",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 103929,
+            "mismatch_count": 57018,
+            "max_absolute": 0.96484375,
+            "mean_absolute": 0.13356678187847137
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 105665,
+            "mismatch_count": 57269,
+            "max_absolute": 0.734375,
+            "mean_absolute": 0.09054027497768402
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 103929,
+            "mismatch_count": 57018,
+            "max_absolute": 0.96484375,
+            "mean_absolute": 0.13356678187847137
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 105665,
+            "mismatch_count": 57269,
+            "max_absolute": 0.734375,
+            "mean_absolute": 0.09054027497768402
+          }
+        },
+        {
+          "replay": 8,
+          "fixture": "tagged",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 90997,
+            "mismatch_count": 48742,
+            "max_absolute": 30.0,
+            "mean_absolute": 11.24241828918457
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 103370,
+            "mismatch_count": 56312,
+            "max_absolute": 29.75,
+            "mean_absolute": 8.075324058532715
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 90997,
+            "mismatch_count": 48742,
+            "max_absolute": 30.0,
+            "mean_absolute": 11.24241828918457
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 103370,
+            "mismatch_count": 56312,
+            "max_absolute": 29.75,
+            "mean_absolute": 8.075324058532715
+          }
+        },
+        {
+          "replay": 9,
+          "fixture": "random",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 102969,
+            "mismatch_count": 56408,
+            "max_absolute": 1.015625,
+            "mean_absolute": 0.13245049118995667
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 104960,
+            "mismatch_count": 56857,
+            "max_absolute": 0.681640625,
+            "mean_absolute": 0.0911320224404335
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 102969,
+            "mismatch_count": 56408,
+            "max_absolute": 1.015625,
+            "mean_absolute": 0.13245049118995667
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 104960,
+            "mismatch_count": 56857,
+            "max_absolute": 0.681640625,
+            "mean_absolute": 0.0911320224404335
+          }
+        },
+        {
+          "replay": 10,
+          "fixture": "tagged",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 86472,
+            "mismatch_count": 46325,
+            "max_absolute": 30.0,
+            "mean_absolute": 10.681721687316895
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 102819,
+            "mismatch_count": 55810,
+            "max_absolute": 29.75,
+            "mean_absolute": 8.073878288269043
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 86472,
+            "mismatch_count": 46325,
+            "max_absolute": 30.0,
+            "mean_absolute": 10.681721687316895
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 102819,
+            "mismatch_count": 55810,
+            "max_absolute": 29.75,
+            "mean_absolute": 8.073878288269043
+          }
+        },
+        {
+          "replay": 11,
+          "fixture": "random",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 100858,
+            "mismatch_count": 55408,
+            "max_absolute": 1.009765625,
+            "mean_absolute": 0.12967455387115479
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 105305,
+            "mismatch_count": 57137,
+            "max_absolute": 0.63671875,
+            "mean_absolute": 0.08973954617977142
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 100858,
+            "mismatch_count": 55408,
+            "max_absolute": 1.009765625,
+            "mean_absolute": 0.12967455387115479
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 105305,
+            "mismatch_count": 57137,
+            "max_absolute": 0.63671875,
+            "mean_absolute": 0.08973954617977142
+          }
+        }
+      ],
+      "timing_us": [],
+      "median_us": null,
+      "timing_scope": "disabled",
+      "passed": false
+    },
+    {
+      "rows": 32,
+      "checks": [
+        {
+          "replay": 0,
+          "fixture": "tagged",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 304182,
+            "mismatch_count": 162952,
+            "max_absolute": 30.0,
+            "mean_absolute": 14.089248657226562
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 320566,
+            "mismatch_count": 172655,
+            "max_absolute": 29.75,
+            "mean_absolute": 10.035502433776855
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 304182,
+            "mismatch_count": 162952,
+            "max_absolute": 30.0,
+            "mean_absolute": 14.089248657226562
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 320566,
+            "mismatch_count": 172655,
+            "max_absolute": 29.75,
+            "mean_absolute": 10.035502433776855
+          }
+        },
+        {
+          "replay": 1,
+          "fixture": "random",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 310684,
+            "mismatch_count": 170693,
+            "max_absolute": 0.9462890625,
+            "mean_absolute": 0.14964444935321808
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 321513,
+            "mismatch_count": 174507,
+            "max_absolute": 0.64501953125,
+            "mean_absolute": 0.10193450003862381
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 310684,
+            "mismatch_count": 170693,
+            "max_absolute": 0.9462890625,
+            "mean_absolute": 0.14964444935321808
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 321513,
+            "mismatch_count": 174507,
+            "max_absolute": 0.64501953125,
+            "mean_absolute": 0.10193450003862381
+          }
+        },
+        {
+          "replay": 2,
+          "fixture": "tagged",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 263664,
+            "mismatch_count": 141247,
+            "max_absolute": 30.0,
+            "mean_absolute": 12.2127685546875
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 298169,
+            "mismatch_count": 161159,
+            "max_absolute": 29.75,
+            "mean_absolute": 9.210213661193848
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 263664,
+            "mismatch_count": 141247,
+            "max_absolute": 30.0,
+            "mean_absolute": 12.2127685546875
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 298169,
+            "mismatch_count": 161159,
+            "max_absolute": 29.75,
+            "mean_absolute": 9.210213661193848
+          }
+        },
+        {
+          "replay": 3,
+          "fixture": "random",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 298198,
+            "mismatch_count": 163727,
+            "max_absolute": 0.92578125,
+            "mean_absolute": 0.1435365527868271
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 313047,
+            "mismatch_count": 170521,
+            "max_absolute": 0.634765625,
+            "mean_absolute": 0.09854716062545776
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 298198,
+            "mismatch_count": 163727,
+            "max_absolute": 0.92578125,
+            "mean_absolute": 0.1435365527868271
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 313047,
+            "mismatch_count": 170521,
+            "max_absolute": 0.634765625,
+            "mean_absolute": 0.09854716062545776
+          }
+        },
+        {
+          "replay": 4,
+          "fixture": "tagged",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 276653,
+            "mismatch_count": 148209,
+            "max_absolute": 30.0,
+            "mean_absolute": 12.814651489257812
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 303837,
+            "mismatch_count": 165556,
+            "max_absolute": 29.75,
+            "mean_absolute": 9.570611000061035
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 276653,
+            "mismatch_count": 148209,
+            "max_absolute": 30.0,
+            "mean_absolute": 12.814651489257812
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 303837,
+            "mismatch_count": 165556,
+            "max_absolute": 29.75,
+            "mean_absolute": 9.570611000061035
+          }
+        },
+        {
+          "replay": 5,
+          "fixture": "random",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 275783,
+            "mismatch_count": 151563,
+            "max_absolute": 0.95703125,
+            "mean_absolute": 0.13262836635112762
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 311607,
+            "mismatch_count": 171007,
+            "max_absolute": 0.708984375,
+            "mean_absolute": 0.09726274758577347
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 275783,
+            "mismatch_count": 151563,
+            "max_absolute": 0.95703125,
+            "mean_absolute": 0.13262836635112762
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 311607,
+            "mismatch_count": 171007,
+            "max_absolute": 0.708984375,
+            "mean_absolute": 0.09726274758577347
+          }
+        },
+        {
+          "replay": 6,
+          "fixture": "tagged",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 261457,
+            "mismatch_count": 140068,
+            "max_absolute": 30.0,
+            "mean_absolute": 12.109395027160645
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 293596,
+            "mismatch_count": 159300,
+            "max_absolute": 29.75,
+            "mean_absolute": 9.085250854492188
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 261457,
+            "mismatch_count": 140068,
+            "max_absolute": 30.0,
+            "mean_absolute": 12.109395027160645
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 293596,
+            "mismatch_count": 159300,
+            "max_absolute": 29.75,
+            "mean_absolute": 9.085250854492188
+          }
+        },
+        {
+          "replay": 7,
+          "fixture": "random",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 293982,
+            "mismatch_count": 161310,
+            "max_absolute": 1.017578125,
+            "mean_absolute": 0.14179843664169312
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 308782,
+            "mismatch_count": 167941,
+            "max_absolute": 0.6904296875,
+            "mean_absolute": 0.09734364598989487
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 293982,
+            "mismatch_count": 161310,
+            "max_absolute": 1.017578125,
+            "mean_absolute": 0.14179843664169312
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 308782,
+            "mismatch_count": 167941,
+            "max_absolute": 0.6904296875,
+            "mean_absolute": 0.09734364598989487
+          }
+        },
+        {
+          "replay": 8,
+          "fixture": "tagged",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 279193,
+            "mismatch_count": 149571,
+            "max_absolute": 30.0,
+            "mean_absolute": 12.932454109191895
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 303501,
+            "mismatch_count": 164769,
+            "max_absolute": 29.75,
+            "mean_absolute": 9.168780326843262
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 279193,
+            "mismatch_count": 149571,
+            "max_absolute": 30.0,
+            "mean_absolute": 12.932454109191895
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 303501,
+            "mismatch_count": 164769,
+            "max_absolute": 29.75,
+            "mean_absolute": 9.168780326843262
+          }
+        },
+        {
+          "replay": 9,
+          "fixture": "random",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 311919,
+            "mismatch_count": 171141,
+            "max_absolute": 1.2109375,
+            "mean_absolute": 0.15042458474636078
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 321610,
+            "mismatch_count": 174717,
+            "max_absolute": 0.8359375,
+            "mean_absolute": 0.10240400582551956
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 311919,
+            "mismatch_count": 171141,
+            "max_absolute": 1.2109375,
+            "mean_absolute": 0.15042458474636078
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 321610,
+            "mismatch_count": 174717,
+            "max_absolute": 0.8359375,
+            "mean_absolute": 0.10240400582551956
+          }
+        },
+        {
+          "replay": 10,
+          "fixture": "tagged",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 293736,
+            "mismatch_count": 157349,
+            "max_absolute": 30.0,
+            "mean_absolute": 13.608149528503418
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 310355,
+            "mismatch_count": 168034,
+            "max_absolute": 29.75,
+            "mean_absolute": 9.804436683654785
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 293736,
+            "mismatch_count": 157349,
+            "max_absolute": 30.0,
+            "mean_absolute": 13.608149528503418
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 310355,
+            "mismatch_count": 168034,
+            "max_absolute": 29.75,
+            "mean_absolute": 9.804436683654785
+          }
+        },
+        {
+          "replay": 11,
+          "fixture": "random",
+          "first_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 297094,
+            "mismatch_count": 163158,
+            "max_absolute": 1.009765625,
+            "mean_absolute": 0.1436326950788498
+          },
+          "output_vs_ordered_oracle": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 312409,
+            "mismatch_count": 169578,
+            "max_absolute": 0.63671875,
+            "mean_absolute": 0.09905201196670532
+          },
+          "first_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 297094,
+            "mismatch_count": 163158,
+            "max_absolute": 1.009765625,
+            "mean_absolute": 0.1436326950788498
+          },
+          "output_vs_hccl": {
+            "finite": true,
+            "bitwise_equal": false,
+            "bitwise_different_bytes": 312409,
+            "mismatch_count": 169578,
+            "max_absolute": 0.63671875,
+            "mean_absolute": 0.09905201196670532
+          }
+        }
+      ],
+      "timing_us": [],
+      "median_us": null,
+      "timing_scope": "disabled",
+      "passed": false
+    }
+  ]
+}

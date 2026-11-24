@@ -1,0 +1,99 @@
+{
+  "scope": "Actual Torch212 and five-DSO co-load; CPU reduction/owner/group-call-order contracts; no process group or NPU created",
+  "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "torch_path": "/usr/local/lib/python3.11/site-packages/torch/__init__.py",
+  "torch_npu_path": "/usr/local/lib/python3.11/site-packages/torch_npu/__init__.py",
+  "cxx11_abi": true,
+  "npu_initialized_before": false,
+  "npu_initialized_after": false,
+  "mapped_davinci_devices": [],
+  "device_execution": false,
+  "files_verified": {
+    "decoder": 825,
+    "runtime": 7953
+  },
+  "manifest_sha256": "36114cfbd59de3e675f7068b51b0472e34e64e48978c1d76c01549cee948d2c9",
+  "actual_sources": {
+    "/decoder/tp_constructor.py": "6cda36dbd723eb7b7b274d07bef74d1ee92587170e3a4bd023ab6dcdac054484",
+    "/decoder/tp_device.py": "7dd9f8b0a6b1e5d4aa0e6af3de48fd295f1d63bf9c8adc3b622f9f1cc591d44b",
+    "/decoder/tp_groups.py": "0243d644718b78873f3d56af8b08d329580ab5230029f32da5177c3b72d072c3",
+    "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/distributed/parallel_state.py": "0e47cff9a89717183bdce6403f0454961848247f51306a0f1dfbe3d6e1b93336",
+    "/decoder/python/vllm_ascend/patch/worker/patch_distributed.py": "7ea4353f2dd0fa7cd222e47617b03074b678225dd6d7595a0c3e3d85e3c38943",
+    "/decoder/python/vllm_ascend/utils.py": "5212ebb9e1ca8d35d76a38d4c9f1f180343763955d6bcfd917b4c9085ee79978"
+  },
+  "local_record_bytes": [
+    664,
+    928
+  ],
+  "tp_record_bytes": [
+    664,
+    928,
+    48
+  ],
+  "contracts_run": 20,
+  "contract_log": "test_actual_metadata_updates_int64_slots_in_place (test_local_chain.LocalChainContracts.test_actual_metadata_updates_int64_slots_in_place) ... ok\ntest_attention_packet_preserves_producers_and_unused_slots (test_local_chain.LocalChainContracts.test_attention_packet_preserves_producers_and_unused_slots) ... ok\ntest_byte_gate_distinguishes_signed_zero_and_shape (test_local_chain.LocalChainContracts.test_byte_gate_distinguishes_signed_zero_and_shape) ... ok\ntest_distinct_integer_poison_rejects_unwritten_codes (test_local_chain.LocalChainContracts.test_distinct_integer_poison_rejects_unwritten_codes) ... ok\ntest_poison_rejects_empty_or_partial_execution (test_local_chain.LocalChainContracts.test_poison_rejects_empty_or_partial_execution) ... ok\ntest_reference_calls_parents_and_no_external_ar1 (test_local_chain.LocalChainContracts.test_reference_calls_parents_and_no_external_ar1) ... ok\ntest_shared_views_never_expose_the_dead_prolog_arena (test_local_chain.LocalChainContracts.test_shared_views_never_expose_the_dead_prolog_arena) ... ok\ntest_successor_retains_two_original_owners (test_local_chain.LocalChainContracts.test_successor_retains_two_original_owners) ... ok\ntest_topk_refresh_preserves_owner_and_unused_rows (test_local_chain.LocalChainContracts.test_topk_refresh_preserves_owner_and_unused_rows) ... ok\ntest_view_rejects_out_of_owner_access (test_local_chain.LocalChainContracts.test_view_rejects_out_of_owner_access) ... ok\ntest_all_processes_have_identical_group_order (test_tp_contract.TPContracts.test_all_processes_have_identical_group_order) ... ok\ntest_both_reduction_results_feed_the_real_seams (test_tp_contract.TPContracts.test_both_reduction_results_feed_the_real_seams) ... ok\ntest_constructor_transform_preserves_original_functions (test_tp_contract.TPContracts.test_constructor_transform_preserves_original_functions) ... ok\ntest_cpu_peers_do_not_enter_device_constructor_context (test_tp_contract.TPContracts.test_cpu_peers_do_not_enter_device_constructor_context) ... ok\ntest_eager_window_is_shared_across_widths_and_closed_after_rendezvous (test_tp_contract.TPContracts.test_eager_window_is_shared_across_widths_and_closed_after_rendezvous) ... ok\ntest_parameter_gate_rejects_replica_or_geometry_changes (test_tp_contract.TPContracts.test_parameter_gate_rejects_replica_or_geometry_changes) ... ok\ntest_parent_math_is_exactly_recoverable (test_tp_contract.TPContracts.test_parent_math_is_exactly_recoverable) ... ok\ntest_rank_witness_rejects_own_plus_own_and_disagreement (test_tp_contract.TPContracts.test_rank_witness_rejects_own_plus_own_and_disagreement) ... ok\ntest_sharded_names_are_actual_recorded_parameters (test_tp_contract.TPContracts.test_sharded_names_are_actual_recorded_parameters) ... ok\ntest_sum_preserves_bf16_rounding_and_zero_signs (test_tp_contract.TPContracts.test_sum_preserves_bf16_rounding_and_zero_signs) ... ok\n\n----------------------------------------------------------------------\nRan 20 tests in 0.135s\n\nOK\n",
+  "cli_controls": [
+    {
+      "arguments": [
+        "--help"
+      ],
+      "exit_code": 0,
+      "stdout": "usage: tp_device.py [-h] --output OUTPUT --runtime RUNTIME --adapter ADAPTER\n                    --indexed-library INDEXED_LIBRARY --shared-library\n                    SHARED_LIBRARY --sfa-library SFA_LIBRARY\n                    --extension-sha256 EXTENSION_SHA256 --physical-devices\n                    PHYSICAL_DEVICES PHYSICAL_DEVICES\n                    [--shmem-endpoint SHMEM_ENDPOINT] [--timeout TIMEOUT]\n                    [--mode {int8}]\n                    [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                    [--forward-replays FORWARD_REPLAYS]\n                    [--forward-sequence FORWARD_SEQUENCE]\n                    [--graph-residual-modes {provided} [{provided} ...]]\n                    [--ffn-library FFN_LIBRARY]\n                    [--chain-library CHAIN_LIBRARY] [--tp-library TP_LIBRARY]\n\nRun two device participants and fourteen CPU constructor-geometry peers.\n\noptions:\n  -h, --help            show this help message and exit\n  --output OUTPUT\n  --runtime RUNTIME\n  --adapter ADAPTER\n  --indexed-library INDEXED_LIBRARY\n  --shared-library SHARED_LIBRARY\n  --sfa-library SFA_LIBRARY\n  --extension-sha256 EXTENSION_SHA256\n  --physical-devices PHYSICAL_DEVICES PHYSICAL_DEVICES\n  --shmem-endpoint SHMEM_ENDPOINT\n  --timeout TIMEOUT\n  --mode {int8}\n  --forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]\n  --forward-replays FORWARD_REPLAYS\n  --forward-sequence FORWARD_SEQUENCE\n  --graph-residual-modes {provided} [{provided} ...]\n  --ffn-library FFN_LIBRARY\n  --chain-library CHAIN_LIBRARY\n  --tp-library TP_LIBRARY\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "--physical-devices",
+        "7",
+        "6"
+      ],
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "usage: tp_device.py [-h] --output OUTPUT --runtime RUNTIME --adapter ADAPTER\n                    --indexed-library INDEXED_LIBRARY --shared-library\n                    SHARED_LIBRARY --sfa-library SFA_LIBRARY\n                    --extension-sha256 EXTENSION_SHA256 --physical-devices\n                    PHYSICAL_DEVICES PHYSICAL_DEVICES\n                    [--shmem-endpoint SHMEM_ENDPOINT] [--timeout TIMEOUT]\n                    [--mode {int8}]\n                    [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                    [--forward-replays FORWARD_REPLAYS]\n                    [--forward-sequence FORWARD_SEQUENCE]\n                    [--graph-residual-modes {provided} [{provided} ...]]\n                    [--ffn-library FFN_LIBRARY]\n                    [--chain-library CHAIN_LIBRARY] [--tp-library TP_LIBRARY]\ntp_device.py: error: Use ordered distinct devices, unique M1/2/12/32, 1..32 inputs and sequence8192\n"
+    },
+    {
+      "arguments": [
+        "--forward-widths",
+        "3"
+      ],
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "usage: tp_device.py [-h] --output OUTPUT --runtime RUNTIME --adapter ADAPTER\n                    --indexed-library INDEXED_LIBRARY --shared-library\n                    SHARED_LIBRARY --sfa-library SFA_LIBRARY\n                    --extension-sha256 EXTENSION_SHA256 --physical-devices\n                    PHYSICAL_DEVICES PHYSICAL_DEVICES\n                    [--shmem-endpoint SHMEM_ENDPOINT] [--timeout TIMEOUT]\n                    [--mode {int8}]\n                    [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                    [--forward-replays FORWARD_REPLAYS]\n                    [--forward-sequence FORWARD_SEQUENCE]\n                    [--graph-residual-modes {provided} [{provided} ...]]\n                    [--ffn-library FFN_LIBRARY]\n                    [--chain-library CHAIN_LIBRARY] [--tp-library TP_LIBRARY]\ntp_device.py: error: Use ordered distinct devices, unique M1/2/12/32, 1..32 inputs and sequence8192\n"
+    },
+    {
+      "arguments": [
+        "--forward-replays",
+        "0"
+      ],
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "usage: tp_device.py [-h] --output OUTPUT --runtime RUNTIME --adapter ADAPTER\n                    --indexed-library INDEXED_LIBRARY --shared-library\n                    SHARED_LIBRARY --sfa-library SFA_LIBRARY\n                    --extension-sha256 EXTENSION_SHA256 --physical-devices\n                    PHYSICAL_DEVICES PHYSICAL_DEVICES\n                    [--shmem-endpoint SHMEM_ENDPOINT] [--timeout TIMEOUT]\n                    [--mode {int8}]\n                    [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                    [--forward-replays FORWARD_REPLAYS]\n                    [--forward-sequence FORWARD_SEQUENCE]\n                    [--graph-residual-modes {provided} [{provided} ...]]\n                    [--ffn-library FFN_LIBRARY]\n                    [--chain-library CHAIN_LIBRARY] [--tp-library TP_LIBRARY]\ntp_device.py: error: Use ordered distinct devices, unique M1/2/12/32, 1..32 inputs and sequence8192\n"
+    },
+    {
+      "arguments": [
+        "--graph-residual-modes",
+        "none"
+      ],
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "usage: tp_device.py [-h] --output OUTPUT --runtime RUNTIME --adapter ADAPTER\n                    --indexed-library INDEXED_LIBRARY --shared-library\n                    SHARED_LIBRARY --sfa-library SFA_LIBRARY\n                    --extension-sha256 EXTENSION_SHA256 --physical-devices\n                    PHYSICAL_DEVICES PHYSICAL_DEVICES\n                    [--shmem-endpoint SHMEM_ENDPOINT] [--timeout TIMEOUT]\n                    [--mode {int8}]\n                    [--forward-widths FORWARD_WIDTHS [FORWARD_WIDTHS ...]]\n                    [--forward-replays FORWARD_REPLAYS]\n                    [--forward-sequence FORWARD_SEQUENCE]\n                    [--graph-residual-modes {provided} [{provided} ...]]\n                    [--ffn-library FFN_LIBRARY]\n                    [--chain-library CHAIN_LIBRARY] [--tp-library TP_LIBRARY]\ntp_device.py: error: argument --graph-residual-modes: invalid choice: 'none' (choose from 'provided')\n"
+    }
+  ],
+  "launcher_syntax_exit": 0,
+  "libraries": {
+    "/evidence/attention-wk-m1-build-v1/whole_layer_indexed_attention.so": "8deff750464e23bb871302c8626b86d37b60c28a00991d550f95dfcfd47ecb6f",
+    "/workspace/native/shared/whole_layer_full_attention.so": "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c",
+    "/decoder/complete_ffn.so": "381febf94f918cc7393019b6f99ec8dc38e9a5cc9e63b2d49d5fe483158e3ff2",
+    "/decoder/layer_local_chain.so": "609c973e92b61637f7768ccefb0fbd84b2e13fcfb066b241a41cd5d8376fdd0f",
+    "/decoder/layer_tp_chain.so": "c2b72e469c3ee80a5fe7d9df4a3cceedc0e65cca95e6f426aea762c213392462"
+  },
+  "shmem_libraries": {
+    "libshmem.so": "cf9b853bb7612ce1e44853b1d16851016c4a2c279bdc9bb32da0640bc411f532",
+    "libshmem_utils.so": "743ea9661dbc6707fba5030967a22c59ebfdd0daed4884fdff39da12ae008ac0",
+    "aclshmem_bootstrap_config_store.so": "ef9160f3706a7eac573ff0a83160ae2d38579550dd923f45b330f309a33d6541"
+  },
+  "script_sha256": "c5ba43d18ba0dd01f68cbf36317641f793c154862727b7799844e942ab6ecd59",
+  "pass": true
+}

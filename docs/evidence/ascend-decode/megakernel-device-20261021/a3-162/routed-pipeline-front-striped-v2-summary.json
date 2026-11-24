@@ -1,0 +1,147 @@
+{
+  "scope": "Routed/shared local body before final addition, routed scaling and TP reduction; each arm includes shared DynamicQuant.",
+  "candidate_library_sha256": "82472048dac5b3a5b4a08226675c9e582a93bce935cfd15488f5135dbd91d7b4",
+  "control_library_sha256": "b0a87a13cf07ce653e6e602c4dfad9eadbbe4ace91cf6f65b0ef673efce74016",
+  "build": "routed-pipeline-front-striped-v2-build/build-manifest.json",
+  "harness": "routed-pipeline-front-striped-v2-harness/source-identities.json",
+  "change": "Three N2048 Down stripes per active expert at 24 groups and no more than eight active experts. Original K128 reduction and INT32 output retained. Other configurations use the original expert loop.",
+  "numerical": [
+    {
+      "report": "routed-front-striped-v2-shared8-b24.json",
+      "sha256": "fa3a5a4376ea40b253db4512934ce8d0de9b783a393f54830a598461ee4cc931",
+      "blocks": 24,
+      "route_pattern": "shared8",
+      "widths": [
+        1,
+        2,
+        12,
+        32
+      ],
+      "replays": 32,
+      "boundaries_per_replay": 37,
+      "all_production_bytes_pass": true
+    },
+    {
+      "report": "routed-front-striped-v2-mixed-b24.json",
+      "sha256": "0a94f4a0cd65c6c9945ea32f149ac7c5baee7aaccaa035493a8bacc0b5f76636",
+      "blocks": 24,
+      "route_pattern": "mixed",
+      "widths": [
+        1,
+        2,
+        12,
+        32
+      ],
+      "replays": 32,
+      "boundaries_per_replay": 37,
+      "all_production_bytes_pass": true
+    },
+    {
+      "report": "routed-front-striped-v2-shared8-b16.json",
+      "sha256": "1a7a637e4a793db4c0abcb96fe0c2a44bc20b5276a1ec3f981aa9ebb466e3cbd",
+      "blocks": 16,
+      "route_pattern": "shared8",
+      "widths": [
+        1,
+        2,
+        12,
+        32
+      ],
+      "replays": 32,
+      "boundaries_per_replay": 37,
+      "all_production_bytes_pass": true
+    }
+  ],
+  "timing": [
+    {
+      "width": 12,
+      "report": "routed-front-striped-v2-shared8-m12-bank24.json",
+      "sha256": "8d6aae49e159e96a6fe581d42604cb840c7b137e0fb9fb196c03038b862c9477",
+      "banks": 24,
+      "calls": 24,
+      "samples_per_arm": 30,
+      "replays_per_event": 30,
+      "statistics_us_per_call": {
+        "interleaved_front": {
+          "samples": 30,
+          "p50": 116.63386027018228,
+          "p90": 116.68789227803549,
+          "p99": 117.5060206519233,
+          "std": 0.22141910946806373
+        },
+        "interleaved_front_control": {
+          "samples": 30,
+          "p50": 118.01054212782117,
+          "p90": 118.12783665127225,
+          "p99": 118.71696080101862,
+          "std": 0.1857131404534366
+        },
+        "vendor": {
+          "samples": 30,
+          "p50": 224.58070119222003,
+          "p90": 224.64959038628473,
+          "p99": 226.16913647121854,
+          "std": 0.3989219976485643
+        }
+      },
+      "paired_median_saving_us": 1.3644960191514812,
+      "candidate_wins": 30,
+      "numerical_replays": 192,
+      "boundaries_per_replay": 37,
+      "all_production_bytes_pass": true,
+      "input_sha256": {
+        "routed": "be38611aef48cc993556d18ccdad4b26e5e519e65f9e27ce78cfefc9eac1f5ce",
+        "shared": "d06348bba5f66a65c15e605e14ca582a98cbc4e0e018b3961ffcfa1e973ffc1b",
+        "probabilities": "8e6e02ce626186a1aa37509cf9448f44f0e1867f0672409087fa1922a402e9b1",
+        "choices": "265890fc650cac9f2d12b46f135250fede64852c5f4727e3f3f9205dee20f925"
+      },
+      "arena_placement": "separate native allocations in one process"
+    },
+    {
+      "width": 32,
+      "report": "routed-front-striped-v2-shared8-m32-bank24.json",
+      "sha256": "632528c582afe5e0f1414b3a8097c4b011d7f47203282e8bab3a61339c663ca2",
+      "banks": 24,
+      "calls": 24,
+      "samples_per_arm": 30,
+      "replays_per_event": 30,
+      "statistics_us_per_call": {
+        "interleaved_front": {
+          "samples": 30,
+          "p50": 159.9197228749593,
+          "p90": 160.05662706163196,
+          "p99": 160.95985412597656,
+          "std": 0.27452405537551994
+        },
+        "interleaved_front_control": {
+          "samples": 30,
+          "p50": 163.07698355780707,
+          "p90": 163.20982933044434,
+          "p99": 163.93303754594592,
+          "std": 0.21362133528888216
+        },
+        "vendor": {
+          "samples": 30,
+          "p50": 246.33355670505097,
+          "p90": 246.39963997734918,
+          "p99": 247.82406361897787,
+          "std": 0.3816711477085027
+        }
+      },
+      "paired_median_saving_us": 3.189569049411361,
+      "candidate_wins": 30,
+      "numerical_replays": 192,
+      "boundaries_per_replay": 37,
+      "all_production_bytes_pass": true,
+      "input_sha256": {
+        "routed": "a1678ed2706533bc0132b76cff0295478665edb6ef416623a02003b56fde9339",
+        "shared": "99d7b32c9ae659778404a8c49710014c1e0f910ab0b19e70b39798d24d1693d3",
+        "probabilities": "2882e3e89008891a6f136b08154d49ec87b5388e5c61d92f6d73a89776411244",
+        "choices": "8f22a0f9bf3cd0c2a1c8db2b84005e9285be445cdddac6a555fe7007c517bb95"
+      },
+      "arena_placement": "separate native allocations in one process"
+    }
+  ],
+  "decision": "The selected b0a library remains unchanged. Shared8 M12 loses 2.51/3.83 us, shared8 M32 saves 2.35/2.15 us, and mixed M32 with 158 active experts loses 2.85/2.33 us on the two native arenas. The isolated shared8 M32 gain does not justify selecting this candidate for all M32 calls.",
+  "placement_comparison": "routed-pipeline-front-striped-v2-placement-summary.json"
+}

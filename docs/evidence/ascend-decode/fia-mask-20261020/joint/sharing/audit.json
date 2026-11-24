@@ -1,0 +1,218 @@
+{
+  "scope": "Read-only deployed source plus server CPU state-machine audit; no repository edit, model load or NPU launch",
+  "checkpoint_sha256": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+  "installed_sfa_v1_sha256": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+  "actual_registration": "ascend_models_init.py:74 -> AscendGlmMoeDsaForCausalLM -> GlmMoeDsaForCausalLM (deepseek_v2.py:2008) -> DeepseekV2ForCausalLM",
+  "actual_init": "patch_deepseek_v2.py:213 should_reuse_topk -> :284 skip_topk -> ascend_ops_mla.py:227 inner impl",
+  "groups": [
+    [
+      0
+    ],
+    [
+      1
+    ],
+    [
+      2,
+      3,
+      4,
+      5
+    ],
+    [
+      6,
+      7,
+      8,
+      9
+    ],
+    [
+      10,
+      11,
+      12,
+      13
+    ],
+    [
+      14,
+      15,
+      16,
+      17
+    ],
+    [
+      18,
+      19,
+      20,
+      21
+    ],
+    [
+      22,
+      23,
+      24,
+      25
+    ],
+    [
+      26,
+      27,
+      28,
+      29
+    ],
+    [
+      30,
+      31,
+      32,
+      33
+    ],
+    [
+      34,
+      35,
+      36,
+      37
+    ],
+    [
+      38,
+      39,
+      40,
+      41
+    ],
+    [
+      42,
+      43,
+      44,
+      45
+    ],
+    [
+      46,
+      47,
+      48,
+      49
+    ],
+    [
+      50,
+      51,
+      52,
+      53
+    ],
+    [
+      54,
+      55,
+      56,
+      57
+    ],
+    [
+      58,
+      59,
+      60,
+      61
+    ],
+    [
+      62,
+      63,
+      64,
+      65
+    ],
+    [
+      66,
+      67,
+      68,
+      69
+    ],
+    [
+      70,
+      71,
+      72,
+      73
+    ],
+    [
+      74,
+      75,
+      76,
+      77
+    ]
+  ],
+  "invariant": "For each fixed M8 forward, every consumer uses the current nearest prior producer selected set, and every layer uses the same query positions. Mask(j)=not_selected(j) or j>position therefore equals independent per-layer construction.",
+  "minimal_wiring": [
+    "Install the M8 hook on all 78 target impls before graph warmup/capture; determine producer from each real impl.skip_topk and validate against actual checkpoint/indexer_types.",
+    "Keep M1 seed and MTP/draft on original SFA; do not extend this static-role cache to dynamically toggled MTP.",
+    "Producer rebuilds shared uint8 bitmap and bool final mask after actual topk returns; consumer reads existing final mask. Each layer passes its own current ql_nope/q_pe/kv_cache to FIA.",
+    "Refresh shared causal mask once per target forward after persistent positions update and before hoisted metadata early return; or retain per-producer causal work for first bounded group experiment.",
+    "Capture unconditional mask-build tasks for every producer on every replay. No runtime Python ready flag or data_ptr-based memoization.",
+    "Single owner M8 workspace may be reused only with ordered same-stream forwards; no overlapping independent replays or different owners using it."
+  ],
+  "counterexamples": {
+    "pointer_only_cache": {
+      "first_bad_layer": 1,
+      "same_index_storage": true
+    },
+    "reuse_mask_across_forwards": {
+      "first_bad_layer": 0,
+      "forward": "B"
+    }
+  },
+  "cpu_result": "cpu-lifecycle-result.json",
+  "cpu_scope": "Synthetic producer-specific selection shifts of frozen fixture, not captured per-layer model selections; A/B/reset verifies representation/state invariants only",
+  "source_scope": {
+    "cann_model.py": "Actual a3-84 /workspace/src/TileRT-Ascend snapshot; may differ from current local workspace",
+    "deepseek_v2.py": "Installed vllm upstream class, with actual Ascend constructor patch separately included",
+    "index_group.py": "Upstream helper included for reference; actual Ascend MLAModules construction does not forward its group object to SFA",
+    "glm4_moe_lite.py": "Adjacent upstream class only; not used as the deployed GLM5.2 proof"
+  },
+  "files": [
+    {
+      "file": "ascend_deepseek_mtp.py",
+      "sha256": "4ed40eae69848d1fac7c901a1c73b0532a71473a045af1aa79508f9c74be0a2b"
+    },
+    {
+      "file": "ascend_models_init.py",
+      "sha256": "0b2eb26fe39ac411954344bc11cd04ad64dc8a2e053ead42467c0249b2d1a248"
+    },
+    {
+      "file": "ascend_ops_mla.py",
+      "sha256": "e14080c6c0106f2734f5441254e285e7a39fd8980046febe5232b4c9dba75400"
+    },
+    {
+      "file": "ascend_utils.py",
+      "sha256": "2cc5992b79d507f302615bee2228302c0d99fe9de7b02fbb825b76689974a115"
+    },
+    {
+      "file": "cann_graph.py",
+      "sha256": "9f5e766b4a7eee122ce8332a5bd88f8ad2ec87d57878f3e217aac3c4a1995874"
+    },
+    {
+      "file": "cann_model.py",
+      "sha256": "4b21d956ebbc5554ca0d6d5e2a7fd91ca2f8efb8196e1bdedd30f2bec3c9592c"
+    },
+    {
+      "file": "checkpoint-config.json",
+      "sha256": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073"
+    },
+    {
+      "file": "cpu-lifecycle-result.json",
+      "sha256": "76c7c2320319cb44d0e1e08261ba50a4edef3a6e1602b6558ca00eae74b34824"
+    },
+    {
+      "file": "cpu-lifecycle.py",
+      "sha256": "59921fed1bff2666721e5266056abee2cd0c6cad06fcac847786d51c1f6f7625"
+    },
+    {
+      "file": "deepseek_v2.py",
+      "sha256": "5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408"
+    },
+    {
+      "file": "glm4_moe_lite.py",
+      "sha256": "54c0aa46b234a4297b9f37513b1478cfe715acbae65efb2068afc2c6e4643f05"
+    },
+    {
+      "file": "index_group.py",
+      "sha256": "8e65e29e3b2b2b1352cd2f4225b17efc54719f8e330f225087a3ae7be39b6f38"
+    },
+    {
+      "file": "mla.py",
+      "sha256": "594f71cb59ca7e9d7e26d76914272ce1f5b7ca280107756ca9dd03b1403cf1a2"
+    },
+    {
+      "file": "patch_deepseek_v2.py",
+      "sha256": "eff4dc9ab181b5f3cdbe34e2df71334522093362dba30834f51b8db81b540b9c"
+    },
+    {
+      "file": "sfa_v1.py",
+      "sha256": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0"
+    }
+  ]
+}

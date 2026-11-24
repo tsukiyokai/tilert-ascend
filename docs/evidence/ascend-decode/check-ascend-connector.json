@@ -1,0 +1,283 @@
+{
+  "passed": true,
+  "scope": "stdlib metadata, synthetic addresses, real localhost TCP; V1 base and HIXL WRITE stubbed",
+  "not_executed": [
+    "vLLM worker",
+    "Torch",
+    "NPU",
+    "HIXL",
+    "KV numerical parity",
+    "performance"
+  ],
+  "python": "3.13.13",
+  "checks": [
+    {
+      "name": "page_and_MTP_lengths_P1",
+      "passed": true
+    },
+    {
+      "name": "page_and_MTP_lengths_P128",
+      "passed": true
+    },
+    {
+      "name": "page_and_MTP_lengths_P129",
+      "passed": true
+    },
+    {
+      "name": "page_and_MTP_lengths_P8192",
+      "passed": true
+    },
+    {
+      "name": "missing_MTP_prevents_send",
+      "passed": true
+    },
+    {
+      "name": "missing_MTP_before_device_or_transport",
+      "passed": true
+    },
+    {
+      "name": "checkpoint_mismatch",
+      "passed": true
+    },
+    {
+      "name": "chunked_prefix",
+      "passed": true
+    },
+    {
+      "name": "prefix_hit",
+      "passed": true
+    },
+    {
+      "name": "wait_for_save_blocks_until_WRITE",
+      "passed": true
+    },
+    {
+      "name": "all_ranks_admitted_no_ready",
+      "passed": true
+    },
+    {
+      "name": "done_ack_reached",
+      "passed": true
+    },
+    {
+      "name": "wait_for_save_blocks_until_done_ack",
+      "passed": true
+    },
+    {
+      "name": "all_rank_calls_returned",
+      "passed": true
+    },
+    {
+      "name": "receiver_complete_79_caches",
+      "passed": true
+    },
+    {
+      "name": "NPU_sync_precedes_WRITE",
+      "passed": true
+    },
+    {
+      "name": "source_storage_registered_once",
+      "passed": true
+    },
+    {
+      "name": "hixl_library_forwarded",
+      "passed": true
+    },
+    {
+      "name": "rank_r_to_rank_r_all_region_bytes",
+      "passed": true
+    },
+    {
+      "name": "scheduler_frees_after_synchronous_save",
+      "passed": true
+    },
+    {
+      "name": "external_runtime_is_stubbed",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "command": [
+    "tests/glm52/check_ascend_connector.py",
+    "--output",
+    "/home/shanshan/trt-asc/experiments/glm52/check-ascend-connector.json",
+    "--vllm-root",
+    "/home/shanshan/trt-asc/src/vllm-unified",
+    "--vllm-ascend-root",
+    "/home/shanshan/trt-asc/src/vllm-ascend-unified"
+  ],
+  "source_api": {
+    "scope": "source anchors; external vLLM runtime was stubbed",
+    "vllm": {
+      "root": "/home/shanshan/trt-asc/src/vllm-unified",
+      "revision": "c4df37dfcc7f72ca41cd43801a468526ecf99a2b",
+      "files": {
+        "vllm/config/parallel.py": {
+          "sha256": "45feb706b3cdbef407df18dcddd6aa10ccb7c8cc823f33a32ea771ac3f596029",
+          "anchors": {
+            "pipeline_parallel_size:": [
+              128
+            ],
+            "tensor_parallel_size:": [
+              130
+            ],
+            "data_parallel_size:": [
+              135
+            ],
+            "prefill_context_parallel_size:": [
+              132
+            ],
+            "decode_context_parallel_size:": [
+              360
+            ],
+            "enable_expert_parallel:": [
+              173
+            ]
+          }
+        },
+        "vllm/config/cache.py": {
+          "sha256": "5c51794afb12def59c3e19d01714487ba59978191bbcf4ae4ba9efaff5cbd061",
+          "anchors": {
+            "block_size:": [
+              73
+            ],
+            "enable_prefix_caching:": [
+              142
+            ]
+          }
+        },
+        "vllm/config/scheduler.py": {
+          "sha256": "82bc6805ecf30a9b3d1b678d3270dad919abed011782ad16f1e805a78aa6c241",
+          "anchors": {
+            "max_num_batched_tokens:": [
+              49
+            ],
+            "max_num_seqs:": [
+              63
+            ],
+            "enable_chunked_prefill:": [
+              135
+            ]
+          }
+        },
+        "vllm/config/speculative.py": {
+          "sha256": "88cec427b52bb1cb56842f9034a4d49a915d05302b92b0249227feaf4d81f3e1",
+          "anchors": {
+            "num_speculative_tokens:": [
+              151,
+              394
+            ],
+            "method:": [
+              400
+            ],
+            "num_speculative_tokens_per_batch_size:": [
+              492
+            ],
+            "draft_model_config:": [
+              150,
+              500,
+              1760
+            ]
+          }
+        },
+        "vllm/config/kv_transfer.py": {
+          "sha256": "f8f933b9565994b5a05aa51cbd23ce58827e44ed8c6fceb19aa35a2ef4dfe670",
+          "anchors": {
+            "def is_kv_producer(": [
+              146
+            ]
+          }
+        },
+        "vllm/v1/worker/kv_connector_model_runner_mixin.py": {
+          "sha256": "c201b6f21e100bc6fa56b39b5c3e5b8e52e4a77511d730ca98afccecdc2a1317",
+          "anchors": {
+            "def finalize_kv_connector(": [
+              53
+            ],
+            "kv_connector.wait_for_save()": [
+              60,
+              92
+            ]
+          }
+        },
+        "vllm/model_executor/models/deepseek_mtp.py": {
+          "sha256": "aae80e30b2dbfd1df41b83f51aaba4722e9f2dc3b4479d2a38ce1e32926fac11",
+          "anchors": {
+            "self.mtp_block = DeepseekV2DecoderLayer(": [
+              106
+            ],
+            "vllm_config, f\"{prefix}.layers.{idx}\"": [
+              158
+            ]
+          }
+        }
+      }
+    },
+    "vllm_ascend": {
+      "root": "/home/shanshan/trt-asc/src/vllm-ascend-unified",
+      "revision": "f558b58c177916424ae9dcf9bb8e66c0b9031236",
+      "files": {
+        "vllm_ascend/worker/model_runner_v1.py": {
+          "sha256": "f0a3079900c9b2628437195ef21d0631c747aa1a49b663c1b27fddf379cbf8f5",
+          "anchors": {
+            "defer_kv_connector_finalize =": [
+              2639
+            ],
+            "self.finalize_kv_connector()": [
+              2999
+            ],
+            "get_kv_transfer_group().register_kv_caches(kv_caches)": [
+              4790
+            ],
+            "if current_kv_cache_spec.cache_sparse_li_c4:": [
+              5763
+            ],
+            "indexer_scale_cache_shape =": [
+              5757,
+              5764
+            ]
+          }
+        },
+        "vllm_ascend/spec_decode/llm_base_proposer.py": {
+          "sha256": "b4925648562de8cffd7bf678bf695d512c184d70484b949c42a40897793b8b07",
+          "anchors": {
+            "if self.num_speculative_tokens == 0:": [
+              1049
+            ],
+            "self.input_ids[: num_tokens - 1] = target_token_ids[1:]": [
+              1803
+            ],
+            "self.input_ids[token_indices_to_sample] = next_token_ids": [
+              1806
+            ],
+            "self._set_positions(num_tokens, target_positions)": [
+              1835
+            ]
+          }
+        },
+        "vllm_ascend/attention/sfa_v1.py": {
+          "sha256": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+          "anchors": {
+            "def _compose_sfa_kv_cache(": [
+              1788
+            ],
+            "maybe_save_kv_layer_to_connector(": [
+              2122
+            ]
+          }
+        }
+      }
+    }
+  },
+  "source_sha256": {
+    "tilert/pd_vllm/ascend_connector.py": "068d66bf2c36e203d73892f9a5e99fe8df3d3e2c8a713a9c4b376d68189d69c0",
+    "tilert/pd_vllm/ascend_source.py": "88a863574b1220a823af5885b15e5ff7d1ba49a89f37629ae70c63abc6559128",
+    "tilert/pd_vllm/ascend_layout.py": "326e2b0796990a5cbd94ca13c00fb997bd867dcfdf2c51f1ab9835839818b7e7",
+    "tilert/pd_vllm/ascend_receiver.py": "f378614326bb96ee104e07eeb127d4f834862ea7cea022af5ea549e644433be5",
+    "tilert/pd_vllm/ascend_cache.py": "22dc8dc4923e76364438bb2d802aa23e0b4621946671f0e30de9c6967d8607ba",
+    "tilert/pd_vllm/prefill_connector.py": "cd9ebc2b4025e0dbfc7b014a2a962f448c13bc06f86de564af07fcb0abc3ece9",
+    "tilert/pd_vllm/wire.py": "c91f3e5ae20d37736693470e16c34383233ec8bb88f841dffcc11b5538d7878d",
+    "tests/glm52/check_ascend_connector.py": "5a10a25114f9f91c2c2f5f5d7a322a71cc8931eb22ebcceb1d61074253e017cf",
+    "tests/glm52/check_ascend_layout.py": "d19e81c0f0985440249c65454d84bde9a7b98a2587f77b08585c6183d68df189"
+  }
+}

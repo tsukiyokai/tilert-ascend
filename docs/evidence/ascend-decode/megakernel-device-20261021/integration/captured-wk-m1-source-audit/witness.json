@@ -1,0 +1,114 @@
+{
+  "scope": "CPU interpretation of retained device WK inputs/accumulators; no observation of the original internal accumulator",
+  "capture": {
+    "path": "/capture/decoder-graph-index-diagnostic.pt",
+    "sha256": "a95e0c289c7e8b4f0808f185aecffc8739e602d6a72896894baf79c640e54c41"
+  },
+  "capture_report": {
+    "path": "/capture/decoder-graph-index-diagnostic.json",
+    "sha256": "6b10c24c9754b8084699905dcbfd12c2b3abcf6a56f55d0d1488c65187e50a87"
+  },
+  "descriptors": {
+    "key_hidden": {
+      "shape": [
+        1,
+        6144
+      ],
+      "stride": [
+        6144,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "data_ptr": 20618829221888,
+      "storage_ptr": 20618829221888,
+      "storage_offset": 0,
+      "format": 2
+    },
+    "key_weight": {
+      "shape": [
+        160,
+        6144
+      ],
+      "stride": [
+        6144,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "data_ptr": 20618187637248,
+      "storage_ptr": 20618187637248,
+      "storage_offset": 0,
+      "format": 2
+    }
+  },
+  "witnesses": [
+    {
+      "coordinate": [
+        0,
+        25
+      ],
+      "vendor": {
+        "value": -0.3359375,
+        "bits": "0xbeac"
+      },
+      "native": {
+        "value": -0.333984375,
+        "bits": "0xbeab"
+      },
+      "native_accumulator": {
+        "value": -0.33496055006980896,
+        "bits": "0xbeab7ff3"
+      },
+      "cpu_fp64_dot": -0.3349605367548065,
+      "cpu_fp64_cast_fp32": {
+        "value": -0.33496055006980896,
+        "bits": "0xbeab7ff3"
+      },
+      "cpu_fp64_cast_bfloat16": {
+        "value": -0.333984375,
+        "bits": "0xbeab"
+      },
+      "bf16_midpoint": -0.3349609375,
+      "native_accumulator_minus_fp64": -1.331500243395567e-08,
+      "native_accumulator_minus_midpoint": 3.8743019104003906e-07,
+      "fp64_minus_midpoint": 4.0074519347399473e-07
+    }
+  ],
+  "checks": {
+    "native_accumulator_rne": {
+      "bitwise_equal": true,
+      "different_elements": 0,
+      "different_bytes": 0,
+      "elements": 160,
+      "first_differences": []
+    },
+    "fp64_cast_native": {
+      "bitwise_equal": true,
+      "different_elements": 0,
+      "different_bytes": 0,
+      "elements": 160,
+      "first_differences": []
+    },
+    "fp64_cast_vendor": {
+      "bitwise_equal": false,
+      "different_elements": 1,
+      "different_bytes": 1,
+      "elements": 160,
+      "first_differences": [
+        {
+          "coordinate": [
+            0,
+            25
+          ],
+          "actual": {
+            "value": -0.333984375,
+            "bits": "0xbeab"
+          },
+          "expected": {
+            "value": -0.3359375,
+            "bits": "0xbeac"
+          }
+        }
+      ]
+    }
+  }
+}

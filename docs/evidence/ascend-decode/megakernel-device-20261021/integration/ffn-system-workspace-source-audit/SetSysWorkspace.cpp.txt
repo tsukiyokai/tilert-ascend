@@ -1,0 +1,24 @@
+30: [[deprecated("NOTICE: SetSysWorkSpace has been deprecated and will be removed in the next version.")]]
+31: __aicore__ inline void SetSysWorkspace(GM_ADDR workspace)
+32: {
+33: #if defined(ASCENDC_CPU_DEBUG) && ASCENDC_CPU_DEBUG == 1
+34:     ASCENDC_ASSERT((workspace != nullptr), { KERNEL_LOG(KERNEL_ERROR, "workspace can not be nullptr"); });
+35: #else
+36:     if (g_sysWorkspaceReserved == nullptr) {
+37:         g_sysWorkspaceReserved = workspace;
+38:     }
+39: #endif
+40: }
+41: 
+42: __aicore__ inline void SetSysWorkspaceForce(GM_ADDR workspace)
+43: {
+44: #if defined(ASCENDC_CPU_DEBUG) && ASCENDC_CPU_DEBUG == 1
+45:     ASCENDC_ASSERT((workspace != nullptr), { KERNEL_LOG(KERNEL_ERROR, "workspace can not be nullptr"); });
+46: #else
+47: #if defined(__NPU_DEVICE__)
+48:     __set_kfc_workspace_addr(workspace);
+49: #else
+50:     g_sysWorkspaceReserved = workspace;
+51: #endif
+52: #endif
+53: }

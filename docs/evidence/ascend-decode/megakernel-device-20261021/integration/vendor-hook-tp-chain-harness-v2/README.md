@@ -1,0 +1,9 @@
+# TP nonmember setup correction
+
+The v1 device run stopped before the layer kernel: a CPU nonmember asked the official TP options helper to calculate buffer sizes without a current vLLM configuration. V2 changes only the nonmember call to `new_group([0,1], backend="hccl", pg_options=None)`. The two actual device participants still use the official configured options. All sixteen processes retain the same group creation order; no model arithmetic or binary changed.
+
+The actual Torch212 CPU gate passed 21 contracts, five CLI controls, all 826 overlay and 7,953 runtime hashes, five-library co-load and the C2 record ABI. A real three-rank Gloo world exercised the public HCCL nonmember entry on rank2: it returned `NON_GROUP_MEMBER` (-100); all three processes exited normally and never initialized an NPU. A separate regression reproduces the missing-config failure in the actual options helper and confirms CPU nonmembers no longer request it. No HCCL communicator was created in this CPU probe.
+
+The installed path is TorchNPU's `_patched_new_process_group_helper`, whose source SHA is `6afceb0425ee4229e1bdab21dd1c3965f7e4a599c8f495a42cba70fad997fec7`. Lines584–597 return for a nonmember before the prefix store and backend are created. The exact function, source identities and raw CPU report are retained. The direct public-entry test establishes this installed behavior without relying only on the source.
+
+The original v1 sources and device failure remain separate. The [M12 device gate](../vendor-hook-tp-chain-m12-v2-a3-194/) passed two changing inputs per rank: 452 raw-byte boundaries and 16 HCCL2 ordered-sum checks. All sixteen processes exited normally; only ranks0/1 initialized NPUs, mapped to physical devices6/7. This is two-rank eager evidence with TP16-shaped shards, not TP16 model acceptance or graph evidence.

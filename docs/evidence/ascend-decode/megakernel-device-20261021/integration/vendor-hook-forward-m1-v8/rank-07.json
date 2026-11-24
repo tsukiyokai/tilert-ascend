@@ -1,0 +1,45 @@
+{
+  "rank": 7,
+  "stages": [
+    {
+      "name": "platform_registration",
+      "success": true,
+      "class": "vllm_ascend.platform.NPUPlatform",
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/platform.py",
+      "sha256": "686eb5c4d7e744053def9fe51caf743e79e6a3cbeddebd3c47949d6f13e503cd"
+    },
+    {
+      "name": "real_groups",
+      "success": true,
+      "tp_world_size": 16,
+      "tp_rank": 7,
+      "cpu_rank_sum": 120,
+      "expected_rank_sum": 120,
+      "coordinator": {
+        "class": "vllm.distributed.parallel_state.GroupCoordinator",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982/vllm/distributed/parallel_state.py",
+        "sha256": "0e47cff9a89717183bdce6403f0454961848247f51306a0f1dfbe3d6e1b93336"
+      },
+      "device_communicator": null,
+      "registration": "actual coordinators assigned to version-scoped parallel_state fields",
+      "singleton_fields": [
+        "_DCP",
+        "_PCP",
+        "_PP",
+        "_DP",
+        "_EP"
+      ]
+    }
+  ],
+  "scope": "real Gloo groups, rank-0 local attention shard",
+  "torch": "2.10.0+cpu",
+  "torch_npu": "2.10.0.post2",
+  "npu_initialized_before": false,
+  "rank_zero_status": {
+    "success": false,
+    "error": "Traceback (most recent call last):\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 324, in worker\n    else run_rank_zero(torch, args, stage))\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 268, in run_rank_zero\n    stage(\"real_outer_forward\", lambda: (\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 292, in stage\n    value, detail = action()\n                    ^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 269, in <lambda>\n    run_outer_forward(torch, layer, config, adapter,\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_forward.py\", line 222, in run_outer_forward\n    native = call(installed_forward, hidden, plan)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_forward.py\", line 193, in call\n    result = layer(positions, hidden.clone(), None)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1776, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1787, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/vllm-a982/vllm/model_executor/models/deepseek_v2.py\", line 1246, in forward\n    return self.mla_attn(positions, hidden_states, llama_4_scaling)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1776, in _wrapped_call_impl\n    return self._call_impl(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/nn/modules/module.py\", line 1787, in _call_impl\n    return forward_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/ops/mla.py\", line 280, in forward\n    torch.ops.vllm.mla_forward(hidden_states, output, self.prefix)\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/_ops.py\", line 1209, in __call__\n    return self._op(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/ops/mla.py\", line 298, in mla_forward\n    self.mla_attn.impl.forward(self.mla_attn.layer_name, hidden_states, kv_cache, attn_metadata, output)\n  File \"/workspace/tilert/models/glm_5_2_ascend/attention_native.py\", line 486, in forward\n    partial, selected = run_body(\n                        ^^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_forward.py\", line 97, in counted\n    result = original(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/tilert/models/glm_5_2_ascend/attention_native.py\", line 421, in run_body\n    torch.ops.tilert.indexed_attention_out(\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch/_ops.py\", line 1209, in __call__\n    return self._op(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^\nRuntimeError: indexer_sin has the wrong physical format; expected 2\n"
+  },
+  "npu_initialized_after": false,
+  "maximum_rss_kib": 1482272,
+  "memory_snapshot": "5d79a000000-fffff0d2a000 ---p 00000000 00:00 0                           [rollup]\nRss:             1476456 kB\nPss:             1052068 kB\nPss_Anon:        1024288 kB\nPss_File:          27656 kB\nPss_Shmem:           124 kB\nShared_Clean:     452044 kB\nShared_Dirty:          0 kB\nPrivate_Clean:         0 kB\nPrivate_Dirty:   1024412 kB\nReferenced:      1473616 kB\nAnonymous:       1024288 kB\nLazyFree:              0 kB\nAnonHugePages:    399360 kB\nShmemPmdMapped:        0 kB\nFilePmdMapped:         0 kB\nShared_Hugetlb:        0 kB\nPrivate_Hugetlb:       0 kB\nSwap:                  0 kB\nSwapPss:               0 kB\nLocked:                0 kB\n"
+}

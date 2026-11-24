@@ -1,0 +1,134 @@
+--- a/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_service_vector_mla.h
++++ b/attention/sparse_flash_attention/op_kernel/arch22/sparse_flash_attention_service_vector_mla.h
+@@ -14,6 +14,10 @@
+  */
+ #ifndef SPARSE_FLASH_ATTENTION_SERVICE_VECTOR_MLA_H
+ #define SPARSE_FLASH_ATTENTION_SERVICE_VECTOR_MLA_H
++
++#ifndef SFA_PACKED_SHADOW_KV
++#error "This private SFA overlay requires packed BF16 [physical row, 576] keys."
++#endif
+ 
+ #include "kernel_operator.h"
+ #include "kernel_operator_list_tensor_intf.h"
+@@ -138,6 +142,12 @@
+     static constexpr SFA_LAYOUT LAYOUT_T = SFAT::layout;
+     static constexpr SFA_LAYOUT KV_LAYOUT_T = SFAT::kvLayout;
+ 
++    static_assert(PAGE_ATTENTION && TEMPLATE_MODE == V_TEMPLATE && SFAT::hasRope &&
++                  KV_LAYOUT_T == SFA_LAYOUT::PA_BSND &&
++                  IsSameType<KV_T, bfloat16_t>::value,
++                  "Packed shadow KV requires paged BF16 V_TEMPLATE with RoPE.");
++    static constexpr uint32_t PACKED_KV_WIDTH = 576;
++
+     static constexpr uint64_t MERGE_CACHE_GM_BUF_NUM = 4;
+     static constexpr uint64_t SYNC_INPUT_BUF1_FLAG = 2;
+     static constexpr uint64_t SYNC_INPUT_BUF1_PONG_FLAG = 3;
+@@ -217,7 +227,7 @@
+ template <typename SFAT>
+ __aicore__ inline void SFAVectorService<SFAT>::InitBuffers(TPipe* pipe)
+ {
+-    pipe->InitBuffer(inputBuff1, ConstInfo::SFA_BUFFER_BYTES_32K * 2); // 2:pingpong
++    pipe->InitBuffer(inputBuff1, 2 * 32 * PACKED_KV_WIDTH * sizeof(KV_T));
+     pipe->InitBuffer(inputBuff2, ConstInfo::SFA_BUFFER_BYTES_8K * 2);  // 2:pingpong
+     pipe->InitBuffer(outputBuff1, ConstInfo::SFA_BUFFER_BYTES_32K);
+     pipe->InitBuffer(outputBuff2, ConstInfo::SFA_BUFFER_BYTES_4K);
+@@ -908,21 +918,14 @@
+     int64_t validS2Count = (realS2Idx + sfaVecConstInfo.sparseBlockSize > s2IdLimit ? s2IdLimit - realS2Idx :
+                                                                                       sfaVecConstInfo.sparseBlockSize);
+     DataCopyExtParams intriParams;
+-    intriParams.blockLen = validS2Count * sfaVecConstInfo.headDim * sizeof(KV_T);
++    intriParams.blockLen = validS2Count * PACKED_KV_WIDTH * sizeof(KV_T);
+     intriParams.blockCount = 1;
+     intriParams.dstStride = 0;
+     intriParams.srcStride = 0;
+     DataCopyPadExtParams<KV_T> padParams;
+-    DataCopyPad(kvMergUb_[mergeMte3Idx % 2 * 32 * 512 + (mte2Size - mte3Size) * sfaVecConstInfo.headDim],
+-                keyGm_[keyBNBOffset * sfaVecConstInfo.headDim], intriParams, padParams);
+-    if constexpr (!SFAT::hasRope) {
+-        mte2Size += validS2Count;
+-        return;
+-    }
+-    intriParams.blockLen = validS2Count * sfaVecConstInfo.headDimRope * sizeof(KV_T);
+-
+-    DataCopyPad(ropeMergUb_[mergeMte3Idx % 2 * 32 * 64 + (mte2Size - mte3Size) * sfaVecConstInfo.headDimRope],
+-                keyRopeGm_[keyBNBOffset * sfaVecConstInfo.headDimRope], intriParams, padParams);
++    DataCopyPad(kvMergUb_[mergeMte3Idx % 2 * 32 * PACKED_KV_WIDTH +
++                             (mte2Size - mte3Size) * PACKED_KV_WIDTH],
++                keyGm_[keyBNBOffset * PACKED_KV_WIDTH], intriParams, padParams);
+     mte2Size += validS2Count;
+ }
+ 
+@@ -971,26 +974,37 @@
+         CopyInSingleKv(mte2Size, mte3Size, mergeMte3Idx, realS2Idx2, keyOffset2, s2IdLimit, sfaVecRunInfo);
+     } else {
+         DataCopyExtParams intriParams;
+-        intriParams.blockLen = sfaVecConstInfo.sparseBlockSize * sfaVecConstInfo.headDim * sizeof(KV_T);
++        intriParams.blockLen = sfaVecConstInfo.sparseBlockSize * PACKED_KV_WIDTH * sizeof(KV_T);
+         intriParams.blockCount = (keyOffset1 >= 0) + (keyOffset2 >= 0);
+         intriParams.dstStride = 0;
+-        intriParams.srcStride = keySrcStride;
++        int64_t packedStride = keySrcStride / sfaVecConstInfo.headDim * PACKED_KV_WIDTH;
++        if (intriParams.blockCount == 2 && packedStride >= INT32_MAX) {
++            // Preserve the original fast path's physical pair order if the
++            // larger packed stride needs two separate DMA commands.
++            if (keyOffset1 <= keyOffset2) {
++                CopyInSingleKv(mte2Size, mte3Size, mergeMte3Idx, realS2Idx1,
++                               keyOffset1, s2IdLimit, sfaVecRunInfo);
++                CopyInSingleKv(mte2Size, mte3Size, mergeMte3Idx, realS2Idx2,
++                               keyOffset2, s2IdLimit, sfaVecRunInfo);
++            } else {
++                CopyInSingleKv(mte2Size, mte3Size, mergeMte3Idx, realS2Idx2,
++                               keyOffset2, s2IdLimit, sfaVecRunInfo);
++                CopyInSingleKv(mte2Size, mte3Size, mergeMte3Idx, realS2Idx1,
++                               keyOffset1, s2IdLimit, sfaVecRunInfo);
++            }
++            return;
++        }
++        intriParams.srcStride = intriParams.blockCount == 1 ? 0 : packedStride;
+         DataCopyPadExtParams<KV_T> padParams;
+ 
+         int64_t startGmOffset = keyOffset1 > -1 ? keyOffset1 : keyOffset2;
+         if (keyOffset2 > -1 && keyOffset2 < keyOffset1) {
+             startGmOffset = keyOffset2;
+         }
+-        DataCopyPad(kvMergUb_[mergeMte3Idx % 2 * 32 * 512 + (mte2Size - mte3Size) * sfaVecConstInfo.headDim],
+-                    keyGm_[startGmOffset * sfaVecConstInfo.headDim], intriParams, padParams);
+-
+-        if constexpr (SFAT::hasRope) {
+-            intriParams.blockLen = sfaVecConstInfo.sparseBlockSize * sfaVecConstInfo.headDimRope * sizeof(KV_T);
+-            intriParams.dstStride = 0;
+-            intriParams.srcStride = keyRopeSrcStride;
+-            DataCopyPad(ropeMergUb_[mergeMte3Idx % 2 * 32 * 64 + (mte2Size - mte3Size) * sfaVecConstInfo.headDimRope],
+-                        keyRopeGm_[startGmOffset * sfaVecConstInfo.headDimRope], intriParams, padParams);
+-        }
++        DataCopyPad(kvMergUb_[mergeMte3Idx % 2 * 32 * PACKED_KV_WIDTH +
++                                 (mte2Size - mte3Size) * PACKED_KV_WIDTH],
++                    keyGm_[startGmOffset * PACKED_KV_WIDTH], intriParams, padParams);
++
+         mte2Size += ((keyOffset1 > -1) + (keyOffset2 > -1)) * sfaVecConstInfo.sparseBlockSize;
+     }
+ }
+@@ -1009,17 +1023,19 @@
+     DataCopyExtParams dataCopyParams;
+     dataCopyParams.blockCount = mte2Size - mte3Size;
+     dataCopyParams.blockLen = sfaVecConstInfo.headDim * sizeof(KV_T);
+-    dataCopyParams.srcStride = 0;
++    dataCopyParams.srcStride = sfaVecConstInfo.headDimRope * sizeof(KV_T) / BYTE_BLOCK;
+     dataCopyParams.dstStride = 0;
+ 
+     DataCopyPad(kvMergeGm_[sfaVecRunInfo.loop % 4 * 512 * 576 + (s2GmStartOffset + mte3Size) * sfaVecConstInfo.headDim],
+-                kvMergUb_[mergeMte3Idx % 2 * 32 * 512], dataCopyParams);
++                kvMergUb_[mergeMte3Idx % 2 * 32 * PACKED_KV_WIDTH], dataCopyParams);
+ 
+     if constexpr (SFAT::hasRope) {
+         dataCopyParams.blockLen = sfaVecConstInfo.headDimRope * sizeof(KV_T);
++        dataCopyParams.srcStride = sfaVecConstInfo.headDim * sizeof(KV_T) / BYTE_BLOCK;
+         DataCopyPad(kvMergeGm_[sfaVecRunInfo.loop % 4 * 512 * 576 + 512 * 512 +
+                                (s2GmStartOffset + mte3Size) * sfaVecConstInfo.headDimRope],
+-                    ropeMergUb_[mergeMte3Idx % 2 * 32 * 64], dataCopyParams);
++                    kvMergUb_[mergeMte3Idx % 2 * 32 * PACKED_KV_WIDTH +
++                                  sfaVecConstInfo.headDim], dataCopyParams);
+     }
+ }
+ 

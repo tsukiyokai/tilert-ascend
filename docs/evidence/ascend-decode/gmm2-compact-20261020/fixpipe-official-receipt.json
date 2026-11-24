@@ -1,0 +1,15 @@
+{
+  "repository": "/home/shanshan/repo/cann/asc-devkit",
+  "commit": "6a51d0b167dd8f5555456a0ebb783ef0427e366e",
+  "path": "/home/shanshan/repo/cann/asc-devkit/docs/zh/api/SIMD-API/basic_api/cube_compute_ISASI/cube_compute_store/Fixpipe_L0CToGM.md",
+  "sha256": "04aef53811281c1db783de60eea2288bf409dbdb7134b8dbec9c32bdca77e7fb",
+  "worktree_path_clean": true,
+  "excerpt": "191: <!-- npu=\"A3\" id20 -->\n192: 针对Atlas A3 训练系列产品/Atlas A3 推理系列产品，Fixpipe接口支持的数据类型组合如下：\n193: \n194: | 源矩阵（L0C Buffer） | 目的矩阵（GM） |\n195: | ---------- | ---------- |\n196: | float | int8_t、uint8_t、half、bfloat16_t、float。 |\n197: | int32_t | int8_t、uint8_t、half、int32_t。 |\n198: <!-- end id20 -->\n240: ## 约束说明<a id=\"zh-cn_topic_0000002542828493_section2045914466492\"></a>\n241: \n242: - 对于量化输入为float32数据类型的说明如下：\n243:     - 标准的IEEE 754 float32格式为：1bit符号位，8bits指数位，23bits尾数位；当前AI处理器支持的float32格式为：1bit符号位，8bits指数位，10bits尾数位。\n244:     - 如果用户提供的是标准的IEEE 754 float32输入，API内部会处理成处理器支持的float32格式进行计算，此时如果golden数据生成过程中使用的是标准的IEEE 754 float32数据，则可能引入精度不匹配问题，需要修正golden数据的生成，将量化参数的23bits尾数位的低13bits数据位清零再参与量化计算。",
+  "matching_quant_test": {
+    "repository": "/home/shanshan/repo/cann/ops-nn",
+    "commit": "af66e479728bed0889c32b25c66afa4ece44a460",
+    "path": "/home/shanshan/repo/cann/ops-nn/matmul/quant_batch_matmul_v3/tests/assets/inputs.py",
+    "sha256": "22eb87d14006aebbb85db6566292bbe27cf3717495e691871140b9b78360dc81",
+    "excerpt": "36: def scale_generate(deq_scale_shape, offset, out_dtype, testcase_name):\n37:     has_offset = offset is not None\n38: \n39:     fp32_deq_scale = np.random.uniform(low=-5, high=5, size=deq_scale_shape).astype(np.float32)\n40:     uint32_deq_scale = np.frombuffer(fp32_deq_scale, np.uint32).reshape(deq_scale_shape)\n41:     # 与高19位运算，模拟硬件\n42:     uint32_deq_scale &= 0XFFFFE000\n43: \n44:     if has_offset:"
+  }
+}

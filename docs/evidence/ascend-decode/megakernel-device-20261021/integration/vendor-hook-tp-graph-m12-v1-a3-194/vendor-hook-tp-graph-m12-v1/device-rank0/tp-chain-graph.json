@@ -1,0 +1,3541 @@
+{
+  "scope": "Official ACL graph of two TP16-shaped local shards with SHMEM2; eager separate parents plus HCCL2 oracle",
+  "rank": 0,
+  "ranks": 2,
+  "constructor_tp_size": 16,
+  "tp16_collectives_executed": 0,
+  "original_decoder_forward_called": false,
+  "original_hccl_entry": "torch.distributed.all_reduce(SUM, group=actual_hccl2)",
+  "residual_contract": "Next layer consumes reduced FFN output and separately retained residual",
+  "script": {
+    "path": "/decoder/tp_graph.py",
+    "sha256": "f2d1be7cc270c1b73ee1be45b9b833fc0aa4cc8c0c998a40eb9542255c7ad6a7"
+  },
+  "actual_decoder": {
+    "path": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py",
+    "sha256": "96f4f755f62caa85869fb884209e7f8869882ddb6efbd40c930778b27bd3e39d"
+  },
+  "parent_phases": {
+    "path": "/decoder/tp_parent.py",
+    "sha256": "7beffa704c491f956e54f20620668dec42d8b134e8daa0b0260d0cd5ba903a6b"
+  },
+  "tp_host": {
+    "path": "/decoder/tp_host.py",
+    "sha256": "c3caf00eaf135c963c5ef5e990ae309531e9802aa03574edbbdc0fd310534493"
+  },
+  "libraries": {
+    "/decoder/layer_local_chain.so": "609c973e92b61637f7768ccefb0fbd84b2e13fcfb066b241a41cd5d8376fdd0f",
+    "/decoder/layer_tp_chain.so": "c2b72e469c3ee80a5fe7d9df4a3cceedc0e65cca95e6f426aea762c213392462",
+    "/evidence/attention-wk-m1-build-v1/whole_layer_indexed_attention.so": "8deff750464e23bb871302c8626b86d37b60c28a00991d550f95dfcfd47ecb6f",
+    "/workspace/native/shared/whole_layer_full_attention.so": "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c",
+    "/decoder/complete_ffn.so": "381febf94f918cc7393019b6f99ec8dc38e9a5cc9e63b2d49d5fe483158e3ff2"
+  },
+  "cache_signatures": {
+    "layer6.main_cache": [
+      20618543500288,
+      [
+        66,
+        128,
+        1,
+        512
+      ],
+      [
+        65536,
+        512,
+        512,
+        1
+      ],
+      "torch.bfloat16",
+      "npu:0",
+      0
+    ],
+    "layer6.rope_cache": [
+      20618034545152,
+      [
+        66,
+        128,
+        1,
+        64
+      ],
+      [
+        8192,
+        64,
+        64,
+        1
+      ],
+      "torch.bfloat16",
+      "npu:0",
+      0
+    ],
+    "layer6.index_cache": [
+      20619030692864,
+      [
+        66,
+        128,
+        1,
+        128
+      ],
+      [
+        16384,
+        128,
+        128,
+        1
+      ],
+      "torch.int8",
+      "npu:0",
+      0
+    ],
+    "layer6.index_scale": [
+      20618015465984,
+      [
+        66,
+        128,
+        1,
+        1
+      ],
+      [
+        128,
+        1,
+        1,
+        1
+      ],
+      "torch.float16",
+      "npu:0",
+      0
+    ],
+    "layer7.main_cache": [
+      20618552151552,
+      [
+        66,
+        128,
+        1,
+        512
+      ],
+      [
+        65536,
+        512,
+        512,
+        1
+      ],
+      "torch.bfloat16",
+      "npu:0",
+      0
+    ],
+    "layer7.rope_cache": [
+      20618460267008,
+      [
+        66,
+        128,
+        1,
+        64
+      ],
+      [
+        8192,
+        64,
+        64,
+        1
+      ],
+      "torch.bfloat16",
+      "npu:0",
+      0
+    ]
+  },
+  "topk_signature": [
+    20618013573120,
+    [
+      32,
+      2048
+    ],
+    [
+      2048,
+      1
+    ],
+    "torch.int32",
+    "npu:0",
+    0
+  ],
+  "widths": [
+    12
+  ],
+  "iterations": 2,
+  "blocks": 24,
+  "eager": false,
+  "graph_capture": true,
+  "timing": false,
+  "captures": [
+    {
+      "rows": 12,
+      "phase": "captured_not_executed",
+      "runnable_calls": 1,
+      "capture_counter_delta": 1,
+      "capture_stream": 1715637368,
+      "window_stream": 1715637368,
+      "outer_capture_stream": 1715670264,
+      "caller_stream": 1715637368,
+      "output_owner_ptrs": [
+        20623236420096,
+        20623236568064
+      ],
+      "unchanged_capture_boundaries": 113,
+      "graph_type": "UpdatableGraph",
+      "graph_tasks": 0,
+      "wrapper": {
+        "path": "/decoder/python/vllm_ascend/compilation/acl_graph.py",
+        "sha256": "8e1c269e331d005f1361acc5cec24402bff7ae39b75e952ea890da7812804955"
+      },
+      "capture_context": {
+        "path": "/decoder/python/vllm_ascend/worker/model_runner_v1.py",
+        "sha256": "a6c51c8bf24d676816f0d4450d24520abd6029cd3a1031a2b8d9140eed40407f"
+      },
+      "torch_graph_manager": {
+        "path": "/usr/local/lib/python3.11/site-packages/torch_npu/npu/graphs.py",
+        "sha256": "7d76706e096c0249dd63a3000a625b956df3841f62a163efb8dbc1bf76b26c6a"
+      },
+      "workspace_preallocated": true,
+      "window_allocated_before_capture": true
+    }
+  ],
+  "cases": [
+    {
+      "rows": 12,
+      "iteration": 0,
+      "pass": true,
+      "checks": {
+        "layer6.input_norm.normalized": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.input_norm.retained": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.input_norm.codes": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.input_norm.scales": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer6.attention.partial": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.attention.latent": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 24576
+        },
+        "layer6.attention.attention_query": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 24576
+        },
+        "layer6.attention.attention_rope": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 3072
+        },
+        "layer6.attention.query_norm": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 24576
+        },
+        "layer6.attention.query_norm_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer6.attention.query": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 49152
+        },
+        "layer6.attention.key": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1536
+        },
+        "layer6.attention.weights": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 384
+        },
+        "layer6.attention.topk": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 24576
+        },
+        "layer6.attention.front_query_projection": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 49152
+        },
+        "layer6.attention.front_key_projection": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1920
+        },
+        "layer6.attention.front_key_normalized": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1536
+        },
+        "layer6.attention.front_query_rope": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 49152
+        },
+        "layer6.attention.front_key_rope": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1536
+        },
+        "layer6.attention.query_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 384
+        },
+        "layer6.attention.key_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer6.attention.front_query_hadamard": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 49152
+        },
+        "layer6.attention.front_key_hadamard": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1536
+        },
+        "layer6.attention.tail_values": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12288
+        },
+        "layer6.attention.tail_quantized": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12288
+        },
+        "layer6.attention.tail_scales": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 96
+        },
+        "layer6.attention.tail_accumulators": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.bridge.normalized": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.bridge.retained": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.bridge.rstd": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer6.bridge.logits": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 3072
+        },
+        "layer6.bridge.probabilities": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 96
+        },
+        "layer6.bridge.ids": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 96
+        },
+        "layer6.bridge.shared_codes": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.bridge.shared_scales": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer6.bridge.combined": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.bridge.scaled_routed": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.body.stacked": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 589824
+        },
+        "layer6.body.gate_int32": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 49152
+        },
+        "layer6.body.middle_packed": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12288
+        },
+        "layer6.body.middle_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 96
+        },
+        "layer6.body.down_int32": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1179648
+        },
+        "layer6.body.routes_bf16": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 589824
+        },
+        "layer6.body.routed_output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.body.routed_codes": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.body.routed_scales": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer6.body.counts": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer6.body.starts": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer6.body.source_row": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer6.body.source_slot": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer6.body.row_weight": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer6.body.shared_output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.body.shared_staged": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.body.shared_gate_int32": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 18432
+        },
+        "layer6.body.shared_middle": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1536
+        },
+        "layer6.body.shared_middle_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer6.body.shared_down_int32": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.body.active_list": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 264
+        },
+        "layer6.reduction.attention": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.reduction.output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.input_norm.normalized": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.input_norm.retained": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.input_norm.codes": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.input_norm.scales": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer7.attention.partial": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.attention.latent": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 24576
+        },
+        "layer7.attention.tail_values": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12288
+        },
+        "layer7.attention.tail_quantized": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12288
+        },
+        "layer7.attention.tail_scales": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 96
+        },
+        "layer7.attention.tail_accumulators": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.bridge.normalized": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.bridge.retained": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.bridge.rstd": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer7.bridge.logits": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 3072
+        },
+        "layer7.bridge.probabilities": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 96
+        },
+        "layer7.bridge.ids": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 96
+        },
+        "layer7.bridge.shared_codes": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.bridge.shared_scales": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer7.bridge.combined": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.bridge.scaled_routed": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.body.stacked": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 589824
+        },
+        "layer7.body.gate_int32": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 49152
+        },
+        "layer7.body.middle_packed": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12288
+        },
+        "layer7.body.middle_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 96
+        },
+        "layer7.body.down_int32": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1179648
+        },
+        "layer7.body.routes_bf16": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 589824
+        },
+        "layer7.body.routed_output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.body.routed_codes": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.body.routed_scales": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer7.body.counts": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer7.body.starts": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer7.body.source_row": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer7.body.source_slot": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer7.body.row_weight": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer7.body.shared_output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.body.shared_staged": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.body.shared_gate_int32": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 18432
+        },
+        "layer7.body.shared_middle": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1536
+        },
+        "layer7.body.shared_middle_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer7.body.shared_down_int32": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.body.active_list": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 264
+        },
+        "layer7.reduction.attention": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.reduction.output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.main_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 4325376
+        },
+        "layer6.rope_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 540672
+        },
+        "layer6.index_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1081344
+        },
+        "layer6.index_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 8448
+        },
+        "layer7.main_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 4325376
+        },
+        "layer7.rope_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 540672
+        },
+        "layer6.persistent_topk": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 24576
+        },
+        "layer7.persistent_topk": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 24576
+        },
+        "consumer.output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "consumer.retained": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        }
+      },
+      "hccl_ordered_checks": [
+        {
+          "layer": 6,
+          "phase": "ar1",
+          "check": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "partials": [
+            {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "b217a59b2de6f1483b572a83ef1988298d7d663e1f1133aed2ca04efe870c5c3",
+              "nonzero_elements": 73722,
+              "finite": true
+            },
+            {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "531f88203cd6ab119f992c8c161435734992761e0d5bb84c62f683fbfe36d5ca",
+              "nonzero_elements": 73720,
+              "finite": true
+            }
+          ]
+        },
+        {
+          "layer": 6,
+          "phase": "ar2",
+          "check": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "partials": [
+            {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "55bcd972d27455a33e19492f2e3f0ebac215564a7895281f92f08d46bf4da933",
+              "nonzero_elements": 73728,
+              "finite": true
+            },
+            {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "6762dc3587880d1cacf1a5e50a24296a97c17ba7286986e75d6b80ad08a4e34f",
+              "nonzero_elements": 73728,
+              "finite": true
+            }
+          ]
+        },
+        {
+          "layer": 7,
+          "phase": "ar1",
+          "check": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "partials": [
+            {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "650f62d24136739149810f817e8f2671220957c16d6d04078dc1985352b3d4af",
+              "nonzero_elements": 73725,
+              "finite": true
+            },
+            {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "49b676eef9839336fe26a6fa86c816fc96e281fda8b28207a645d04a15e7f2c6",
+              "nonzero_elements": 73725,
+              "finite": true
+            }
+          ]
+        },
+        {
+          "layer": 7,
+          "phase": "ar2",
+          "check": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "partials": [
+            {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "abc27bda592add07d9073a0c17c798d13ffb5334d5cda539a425e04fc1634d1b",
+              "nonzero_elements": 73728,
+              "finite": true
+            },
+            {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "03c5ef26ee18169d0dff1916ac938908869ddfbb84a04d9c1d4676edefa02433",
+              "nonzero_elements": 73728,
+              "finite": true
+            }
+          ]
+        }
+      ],
+      "rank_witnesses": [
+        {
+          "rank": 0,
+          "input_hidden": "e2e7452e0a18667e160af978821c52115e1edf2fa699f1b3a0d9afd253b1c6cb",
+          "input_residual": "012522d89b2829f25c3c5730add221d71a9a918566a72566fae13a51bc027e02",
+          "layer6.retained": "61120a11c82aa7a4084dddc5fb7fb30902a5e4ed818fc079b933deb33c967f19",
+          "layer6.attention_partial": "b217a59b2de6f1483b572a83ef1988298d7d663e1f1133aed2ca04efe870c5c3",
+          "layer6.ffn_partial": "55bcd972d27455a33e19492f2e3f0ebac215564a7895281f92f08d46bf4da933",
+          "layer6.ar1": "6b17e4fd36c6bde42e7ff67725e72d682825bf7f2f1b7ea831a9ecf97b714360",
+          "layer6.ar2": "66d804edb70f2d8d0e992a04537ff1126678fc05afef350b83569d40444cc95e",
+          "layer7.retained": "7076172d2e623492f25a08637898aae4362df43318f67bfcdf4b29c7d73faf6b",
+          "layer7.attention_partial": "650f62d24136739149810f817e8f2671220957c16d6d04078dc1985352b3d4af",
+          "layer7.ffn_partial": "abc27bda592add07d9073a0c17c798d13ffb5334d5cda539a425e04fc1634d1b",
+          "layer7.ar1": "4b99bc1d8734256e03c45d14ccf41b9bbad8a164a8273dc86b224537dce43bc1",
+          "layer7.ar2": "9bcadc31db838333e2835d03cc80a459de8286968978caf092eb638f91d9a26e"
+        },
+        {
+          "rank": 1,
+          "input_hidden": "e2e7452e0a18667e160af978821c52115e1edf2fa699f1b3a0d9afd253b1c6cb",
+          "input_residual": "012522d89b2829f25c3c5730add221d71a9a918566a72566fae13a51bc027e02",
+          "layer6.retained": "61120a11c82aa7a4084dddc5fb7fb30902a5e4ed818fc079b933deb33c967f19",
+          "layer6.attention_partial": "531f88203cd6ab119f992c8c161435734992761e0d5bb84c62f683fbfe36d5ca",
+          "layer6.ffn_partial": "6762dc3587880d1cacf1a5e50a24296a97c17ba7286986e75d6b80ad08a4e34f",
+          "layer6.ar1": "6b17e4fd36c6bde42e7ff67725e72d682825bf7f2f1b7ea831a9ecf97b714360",
+          "layer6.ar2": "66d804edb70f2d8d0e992a04537ff1126678fc05afef350b83569d40444cc95e",
+          "layer7.retained": "7076172d2e623492f25a08637898aae4362df43318f67bfcdf4b29c7d73faf6b",
+          "layer7.attention_partial": "49b676eef9839336fe26a6fa86c816fc96e281fda8b28207a645d04a15e7f2c6",
+          "layer7.ffn_partial": "03c5ef26ee18169d0dff1916ac938908869ddfbb84a04d9c1d4676edefa02433",
+          "layer7.ar1": "4b99bc1d8734256e03c45d14ccf41b9bbad8a164a8273dc86b224537dce43bc1",
+          "layer7.ar2": "9bcadc31db838333e2835d03cc80a459de8286968978caf092eb638f91d9a26e"
+        }
+      ],
+      "inputs": {
+        "actual_main_lengths": [
+          [
+            8192
+          ],
+          [
+            8192
+          ]
+        ],
+        "actual_index_length": [
+          8192
+        ],
+        "tensors": {
+          "positions": {
+            "shape": [
+              12
+            ],
+            "dtype": "torch.int64",
+            "sha256": "411978abf88411b49ef4da5b8a2cf0d35c6e181f5cb4d2925a4ea87e2b7a97d0",
+            "nonzero_elements": 12,
+            "finite": true
+          },
+          "model.layers.6.self_attn.attn:slot_mapping": {
+            "shape": [
+              12
+            ],
+            "dtype": "torch.int32",
+            "sha256": "a3e2e0ba83e54d4676cc6284e3ccf6a98a30f930de8449b6e7d3529428291e4c",
+            "nonzero_elements": 12,
+            "finite": true
+          },
+          "model.layers.6.self_attn.attn:seq_lens": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "5e4af92d1b61923dfb73d2bb1f11c68b0be4b47ac2e0ed8390962c74df7aa6c1",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.6.self_attn.attn:seq_lens_cpu": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "5e4af92d1b61923dfb73d2bb1f11c68b0be4b47ac2e0ed8390962c74df7aa6c1",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.6.self_attn.attn:cum_query_lens": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "42f4aeb81c1ef81f771f3de8abca9dcf66901c575530e7672e4b1146474ae650",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.6.self_attn.attn:block_table": {
+            "shape": [
+              1,
+              64
+            ],
+            "dtype": "torch.int32",
+            "sha256": "eab861b8bcd30c1209b997b4b64d3ccf378d8137d6cbb680d4e36028cca41022",
+            "nonzero_elements": 63,
+            "finite": true
+          },
+          "model.layers.6.self_attn.attn:sin": {
+            "shape": [
+              12,
+              1,
+              1,
+              64
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "83345234b8d2999777702557e6aa86b140395df4315baf07622138b5d697d1de",
+            "nonzero_elements": 768,
+            "finite": true
+          },
+          "model.layers.6.self_attn.attn:cos": {
+            "shape": [
+              12,
+              1,
+              1,
+              64
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "44b8b79acf02c2e9468205c7a0db31d6334cf7d04b6ef3f5da669033e30415aa",
+            "nonzero_elements": 768,
+            "finite": true
+          },
+          "model.layers.6.self_attn.attn:positions": {
+            "shape": [
+              12
+            ],
+            "dtype": "torch.int64",
+            "sha256": "411978abf88411b49ef4da5b8a2cf0d35c6e181f5cb4d2925a4ea87e2b7a97d0",
+            "nonzero_elements": 12,
+            "finite": true
+          },
+          "model.layers.6.self_attn.attn:query_start_loc": {
+            "shape": [
+              2
+            ],
+            "dtype": "torch.int32",
+            "sha256": "930abd7018357244643ccb484f82d27689e127e46fff106e23bbc9c20a0dd1b8",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.6.self_attn.indexer.k_cache:slot_mapping": {
+            "shape": [
+              12
+            ],
+            "dtype": "torch.int32",
+            "sha256": "18e3c722a552d215a9ba095af126fb3be148eab3477d045021a97da58f889fbd",
+            "nonzero_elements": 12,
+            "finite": true
+          },
+          "model.layers.6.self_attn.indexer.k_cache:seq_lens": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "5e4af92d1b61923dfb73d2bb1f11c68b0be4b47ac2e0ed8390962c74df7aa6c1",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.6.self_attn.indexer.k_cache:cum_query_lens": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "42f4aeb81c1ef81f771f3de8abca9dcf66901c575530e7672e4b1146474ae650",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.6.self_attn.indexer.k_cache:block_table": {
+            "shape": [
+              1,
+              64
+            ],
+            "dtype": "torch.int32",
+            "sha256": "1f9898066fc05193cfbcb5aae985d2ab1ffd2f73afef5f5ffdf9bc001e316d59",
+            "nonzero_elements": 63,
+            "finite": true
+          },
+          "model.layers.6.self_attn.indexer.k_cache:sin": {
+            "shape": [
+              12,
+              1,
+              1,
+              64
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "83345234b8d2999777702557e6aa86b140395df4315baf07622138b5d697d1de",
+            "nonzero_elements": 768,
+            "finite": true
+          },
+          "model.layers.6.self_attn.indexer.k_cache:cos": {
+            "shape": [
+              12,
+              1,
+              1,
+              64
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "44b8b79acf02c2e9468205c7a0db31d6334cf7d04b6ef3f5da669033e30415aa",
+            "nonzero_elements": 768,
+            "finite": true
+          },
+          "model.layers.6.self_attn.indexer.k_cache:actual_seq_lengths_query": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "42f4aeb81c1ef81f771f3de8abca9dcf66901c575530e7672e4b1146474ae650",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.6.self_attn.indexer.k_cache:actual_seq_lengths_key": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "5e4af92d1b61923dfb73d2bb1f11c68b0be4b47ac2e0ed8390962c74df7aa6c1",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.7.self_attn.attn:slot_mapping": {
+            "shape": [
+              12
+            ],
+            "dtype": "torch.int32",
+            "sha256": "a3e2e0ba83e54d4676cc6284e3ccf6a98a30f930de8449b6e7d3529428291e4c",
+            "nonzero_elements": 12,
+            "finite": true
+          },
+          "model.layers.7.self_attn.attn:seq_lens": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "5e4af92d1b61923dfb73d2bb1f11c68b0be4b47ac2e0ed8390962c74df7aa6c1",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.7.self_attn.attn:seq_lens_cpu": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "5e4af92d1b61923dfb73d2bb1f11c68b0be4b47ac2e0ed8390962c74df7aa6c1",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.7.self_attn.attn:cum_query_lens": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "42f4aeb81c1ef81f771f3de8abca9dcf66901c575530e7672e4b1146474ae650",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.7.self_attn.attn:block_table": {
+            "shape": [
+              1,
+              64
+            ],
+            "dtype": "torch.int32",
+            "sha256": "eab861b8bcd30c1209b997b4b64d3ccf378d8137d6cbb680d4e36028cca41022",
+            "nonzero_elements": 63,
+            "finite": true
+          },
+          "model.layers.7.self_attn.attn:sin": {
+            "shape": [
+              12,
+              1,
+              1,
+              64
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "83345234b8d2999777702557e6aa86b140395df4315baf07622138b5d697d1de",
+            "nonzero_elements": 768,
+            "finite": true
+          },
+          "model.layers.7.self_attn.attn:cos": {
+            "shape": [
+              12,
+              1,
+              1,
+              64
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "44b8b79acf02c2e9468205c7a0db31d6334cf7d04b6ef3f5da669033e30415aa",
+            "nonzero_elements": 768,
+            "finite": true
+          },
+          "model.layers.7.self_attn.attn:positions": {
+            "shape": [
+              12
+            ],
+            "dtype": "torch.int64",
+            "sha256": "411978abf88411b49ef4da5b8a2cf0d35c6e181f5cb4d2925a4ea87e2b7a97d0",
+            "nonzero_elements": 12,
+            "finite": true
+          },
+          "model.layers.7.self_attn.attn:query_start_loc": {
+            "shape": [
+              2
+            ],
+            "dtype": "torch.int32",
+            "sha256": "930abd7018357244643ccb484f82d27689e127e46fff106e23bbc9c20a0dd1b8",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "hidden": {
+            "shape": [
+              12,
+              6144
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "e2e7452e0a18667e160af978821c52115e1edf2fa699f1b3a0d9afd253b1c6cb",
+            "nonzero_elements": 73728,
+            "finite": true
+          },
+          "residual": {
+            "shape": [
+              12,
+              6144
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "012522d89b2829f25c3c5730add221d71a9a918566a72566fae13a51bc027e02",
+            "nonzero_elements": 73728,
+            "finite": true
+          },
+          "slot_i64:0": {
+            "shape": [
+              12
+            ],
+            "dtype": "torch.int64",
+            "sha256": "fcce792a8ebe0df66c9a140dd02f06fae08c58b20a901589be3ab2fc47c93880",
+            "nonzero_elements": 12,
+            "finite": true
+          },
+          "slot_i64:1": {
+            "shape": [
+              12
+            ],
+            "dtype": "torch.int64",
+            "sha256": "fcce792a8ebe0df66c9a140dd02f06fae08c58b20a901589be3ab2fc47c93880",
+            "nonzero_elements": 12,
+            "finite": true
+          },
+          "slot_i64:2": {
+            "shape": [
+              12
+            ],
+            "dtype": "torch.int64",
+            "sha256": "88503657499d5b9eb7bba1f8dcbf5987740e87979f910e11d107005090a42571",
+            "nonzero_elements": 12,
+            "finite": true
+          }
+        }
+      },
+      "explicit_replay": 1,
+      "python_calls_during_replay": 0,
+      "capture_stream": 1715637368,
+      "outputs": {
+        "consumer.output": {
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "sha256": "9bcadc31db838333e2835d03cc80a459de8286968978caf092eb638f91d9a26e",
+          "nonzero_elements": 73728,
+          "finite": true
+        },
+        "consumer.retained": {
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "sha256": "7076172d2e623492f25a08637898aae4362df43318f67bfcdf4b29c7d73faf6b",
+          "nonzero_elements": 73728,
+          "finite": true
+        }
+      }
+    },
+    {
+      "rows": 12,
+      "iteration": 1,
+      "pass": true,
+      "checks": {
+        "layer6.input_norm.normalized": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.input_norm.retained": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.input_norm.codes": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.input_norm.scales": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer6.attention.partial": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.attention.latent": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 24576
+        },
+        "layer6.attention.attention_query": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 24576
+        },
+        "layer6.attention.attention_rope": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 3072
+        },
+        "layer6.attention.query_norm": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 24576
+        },
+        "layer6.attention.query_norm_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer6.attention.query": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 49152
+        },
+        "layer6.attention.key": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1536
+        },
+        "layer6.attention.weights": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 384
+        },
+        "layer6.attention.topk": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 24576
+        },
+        "layer6.attention.front_query_projection": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 49152
+        },
+        "layer6.attention.front_key_projection": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1920
+        },
+        "layer6.attention.front_key_normalized": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1536
+        },
+        "layer6.attention.front_query_rope": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 49152
+        },
+        "layer6.attention.front_key_rope": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1536
+        },
+        "layer6.attention.query_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 384
+        },
+        "layer6.attention.key_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer6.attention.front_query_hadamard": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 49152
+        },
+        "layer6.attention.front_key_hadamard": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1536
+        },
+        "layer6.attention.tail_values": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12288
+        },
+        "layer6.attention.tail_quantized": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12288
+        },
+        "layer6.attention.tail_scales": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 96
+        },
+        "layer6.attention.tail_accumulators": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.bridge.normalized": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.bridge.retained": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.bridge.rstd": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer6.bridge.logits": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 3072
+        },
+        "layer6.bridge.probabilities": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 96
+        },
+        "layer6.bridge.ids": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 96
+        },
+        "layer6.bridge.shared_codes": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.bridge.shared_scales": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer6.bridge.combined": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.bridge.scaled_routed": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.body.stacked": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 589824
+        },
+        "layer6.body.gate_int32": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 49152
+        },
+        "layer6.body.middle_packed": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12288
+        },
+        "layer6.body.middle_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 96
+        },
+        "layer6.body.down_int32": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1179648
+        },
+        "layer6.body.routes_bf16": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 589824
+        },
+        "layer6.body.routed_output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.body.routed_codes": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.body.routed_scales": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer6.body.counts": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer6.body.starts": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer6.body.source_row": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer6.body.source_slot": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer6.body.row_weight": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer6.body.shared_output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.body.shared_staged": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.body.shared_gate_int32": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 18432
+        },
+        "layer6.body.shared_middle": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1536
+        },
+        "layer6.body.shared_middle_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer6.body.shared_down_int32": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.body.active_list": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 264
+        },
+        "layer6.reduction.attention": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.reduction.output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.input_norm.normalized": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.input_norm.retained": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.input_norm.codes": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.input_norm.scales": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer7.attention.partial": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.attention.latent": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 24576
+        },
+        "layer7.attention.tail_values": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12288
+        },
+        "layer7.attention.tail_quantized": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12288
+        },
+        "layer7.attention.tail_scales": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 96
+        },
+        "layer7.attention.tail_accumulators": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.bridge.normalized": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.bridge.retained": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.bridge.rstd": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer7.bridge.logits": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 3072
+        },
+        "layer7.bridge.probabilities": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 96
+        },
+        "layer7.bridge.ids": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 96
+        },
+        "layer7.bridge.shared_codes": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.bridge.shared_scales": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer7.bridge.combined": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.bridge.scaled_routed": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.body.stacked": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 589824
+        },
+        "layer7.body.gate_int32": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 49152
+        },
+        "layer7.body.middle_packed": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12288
+        },
+        "layer7.body.middle_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 96
+        },
+        "layer7.body.down_int32": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1179648
+        },
+        "layer7.body.routes_bf16": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 589824
+        },
+        "layer7.body.routed_output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.body.routed_codes": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.body.routed_scales": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer7.body.counts": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer7.body.starts": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer7.body.source_row": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer7.body.source_slot": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer7.body.row_weight": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 256
+        },
+        "layer7.body.shared_output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.body.shared_staged": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.body.shared_gate_int32": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 18432
+        },
+        "layer7.body.shared_middle": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1536
+        },
+        "layer7.body.shared_middle_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 12
+        },
+        "layer7.body.shared_down_int32": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.body.active_list": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 264
+        },
+        "layer7.reduction.attention": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer7.reduction.output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "layer6.main_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 4325376
+        },
+        "layer6.rope_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 540672
+        },
+        "layer6.index_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 1081344
+        },
+        "layer6.index_scale": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 8448
+        },
+        "layer7.main_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 4325376
+        },
+        "layer7.rope_cache": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 540672
+        },
+        "layer6.persistent_topk": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 24576
+        },
+        "layer7.persistent_topk": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 24576
+        },
+        "consumer.output": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        },
+        "consumer.retained": {
+          "pass": true,
+          "exact": true,
+          "bitwise_equal": true,
+          "bitwise_different_bytes": 0,
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "different_elements": 0,
+          "elements": 73728
+        }
+      },
+      "hccl_ordered_checks": [
+        {
+          "layer": 6,
+          "phase": "ar1",
+          "check": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "partials": [
+            {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "4063e6f6ba55c7fb24264b11e5ad41b86983236cb3f16a41f0b68e084a7172ad",
+              "nonzero_elements": 73721,
+              "finite": true
+            },
+            {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "55e6e9dc1810cce84a3e9e10abe1d80c28ff2f0b9a80762edd830813310ac56c",
+              "nonzero_elements": 73726,
+              "finite": true
+            }
+          ]
+        },
+        {
+          "layer": 6,
+          "phase": "ar2",
+          "check": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "partials": [
+            {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "0d004f39fc10ca9b7635b303048b4d56c99cee9822a3a3eeec2088630551b7eb",
+              "nonzero_elements": 73728,
+              "finite": true
+            },
+            {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "70e239aa8ec9508d8374b52b756651933a0b61942d992da18abf759ed587ff99",
+              "nonzero_elements": 73728,
+              "finite": true
+            }
+          ]
+        },
+        {
+          "layer": 7,
+          "phase": "ar1",
+          "check": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "partials": [
+            {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "3e578533ea95e7e97a825153180ebddcfca9d06132a66a7eb5c76dd030a6dfc7",
+              "nonzero_elements": 73722,
+              "finite": true
+            },
+            {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "84dadb275b15b6b9fb2b4dcad263693474f8a73db29664681dcf79fc5fd761e5",
+              "nonzero_elements": 73724,
+              "finite": true
+            }
+          ]
+        },
+        {
+          "layer": 7,
+          "phase": "ar2",
+          "check": {
+            "pass": true,
+            "exact": true,
+            "bitwise_equal": true,
+            "bitwise_different_bytes": 0,
+            "max_abs": 0.0,
+            "rms": 0.0,
+            "different_elements": 0,
+            "elements": 73728
+          },
+          "partials": [
+            {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "d4c2b9baeee9f2c4c6811a247ede417550662aa7b4df42d1a0f86783840f069f",
+              "nonzero_elements": 73728,
+              "finite": true
+            },
+            {
+              "shape": [
+                12,
+                6144
+              ],
+              "dtype": "torch.bfloat16",
+              "sha256": "21efbf54acfad7ee1e59e8c6ec38e40aa9bc1ed56f51f96c2a2b9d32056737fb",
+              "nonzero_elements": 73728,
+              "finite": true
+            }
+          ]
+        }
+      ],
+      "rank_witnesses": [
+        {
+          "rank": 0,
+          "input_hidden": "a1ada3ba531e79a7f9119c7b9c80485e69231018829b4ef5d70e026f7a21945c",
+          "input_residual": "ee485bba052abbcafcd7c06386e4bc1f8c20f4abbf5d7a4e9919d16d99584fd9",
+          "layer6.retained": "f893e6636fb60286493f19d30403ba7e39693e31dacabe43e28470b52a048b64",
+          "layer6.attention_partial": "4063e6f6ba55c7fb24264b11e5ad41b86983236cb3f16a41f0b68e084a7172ad",
+          "layer6.ffn_partial": "0d004f39fc10ca9b7635b303048b4d56c99cee9822a3a3eeec2088630551b7eb",
+          "layer6.ar1": "5377813e8eae836b80eb58cb6d7fbf391e4a7a68fc22688132b6e64321be2654",
+          "layer6.ar2": "0274a4720b6ff8ab85a0bc259c5eaca6025bf7823ecbeb94065192bbafde02d6",
+          "layer7.retained": "42eb750e161a1f069c4080262d5bb4e04edda3f1e9c5ced2d5b2a507900856df",
+          "layer7.attention_partial": "3e578533ea95e7e97a825153180ebddcfca9d06132a66a7eb5c76dd030a6dfc7",
+          "layer7.ffn_partial": "d4c2b9baeee9f2c4c6811a247ede417550662aa7b4df42d1a0f86783840f069f",
+          "layer7.ar1": "8fe17e816128c602e58b839eb4a60d4d95d0383bf247222d82b6501c82113ef7",
+          "layer7.ar2": "437428c8c824400895989fd3c04f6fb0a9b85098c3ff3f0dfe36a17d36cd613d"
+        },
+        {
+          "rank": 1,
+          "input_hidden": "a1ada3ba531e79a7f9119c7b9c80485e69231018829b4ef5d70e026f7a21945c",
+          "input_residual": "ee485bba052abbcafcd7c06386e4bc1f8c20f4abbf5d7a4e9919d16d99584fd9",
+          "layer6.retained": "f893e6636fb60286493f19d30403ba7e39693e31dacabe43e28470b52a048b64",
+          "layer6.attention_partial": "55e6e9dc1810cce84a3e9e10abe1d80c28ff2f0b9a80762edd830813310ac56c",
+          "layer6.ffn_partial": "70e239aa8ec9508d8374b52b756651933a0b61942d992da18abf759ed587ff99",
+          "layer6.ar1": "5377813e8eae836b80eb58cb6d7fbf391e4a7a68fc22688132b6e64321be2654",
+          "layer6.ar2": "0274a4720b6ff8ab85a0bc259c5eaca6025bf7823ecbeb94065192bbafde02d6",
+          "layer7.retained": "42eb750e161a1f069c4080262d5bb4e04edda3f1e9c5ced2d5b2a507900856df",
+          "layer7.attention_partial": "84dadb275b15b6b9fb2b4dcad263693474f8a73db29664681dcf79fc5fd761e5",
+          "layer7.ffn_partial": "21efbf54acfad7ee1e59e8c6ec38e40aa9bc1ed56f51f96c2a2b9d32056737fb",
+          "layer7.ar1": "8fe17e816128c602e58b839eb4a60d4d95d0383bf247222d82b6501c82113ef7",
+          "layer7.ar2": "437428c8c824400895989fd3c04f6fb0a9b85098c3ff3f0dfe36a17d36cd613d"
+        }
+      ],
+      "inputs": {
+        "actual_main_lengths": [
+          [
+            8191
+          ],
+          [
+            8191
+          ]
+        ],
+        "actual_index_length": [
+          8191
+        ],
+        "tensors": {
+          "positions": {
+            "shape": [
+              12
+            ],
+            "dtype": "torch.int64",
+            "sha256": "8f68965ccad84e20b11bfa3c777e817bae036468e80a456db6f64007e7f456e8",
+            "nonzero_elements": 12,
+            "finite": true
+          },
+          "model.layers.6.self_attn.attn:slot_mapping": {
+            "shape": [
+              12
+            ],
+            "dtype": "torch.int32",
+            "sha256": "8f981148f127a8b1d56fda312a138cb9f18209eccb94558a712628cef3befac1",
+            "nonzero_elements": 12,
+            "finite": true
+          },
+          "model.layers.6.self_attn.attn:seq_lens": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "43dc47de9d2d95755576d98102e6c49d592a77d55e22e685ec0575ac20bc086b",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.6.self_attn.attn:seq_lens_cpu": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "43dc47de9d2d95755576d98102e6c49d592a77d55e22e685ec0575ac20bc086b",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.6.self_attn.attn:cum_query_lens": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "42f4aeb81c1ef81f771f3de8abca9dcf66901c575530e7672e4b1146474ae650",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.6.self_attn.attn:block_table": {
+            "shape": [
+              1,
+              64
+            ],
+            "dtype": "torch.int32",
+            "sha256": "6a24eee9d84bf5672c5675e839392e68ef881a6eba13cc09037f2995c74e22b6",
+            "nonzero_elements": 63,
+            "finite": true
+          },
+          "model.layers.6.self_attn.attn:sin": {
+            "shape": [
+              12,
+              1,
+              1,
+              64
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "d6c4498b05850478a3e986e91fe79fd21455debc95b4897053b13180fe09ee29",
+            "nonzero_elements": 768,
+            "finite": true
+          },
+          "model.layers.6.self_attn.attn:cos": {
+            "shape": [
+              12,
+              1,
+              1,
+              64
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "1aa0bfc3d348f98e7f35ec0379df4827cfde0ef949e33e4925cdd3527d1c65ae",
+            "nonzero_elements": 768,
+            "finite": true
+          },
+          "model.layers.6.self_attn.attn:positions": {
+            "shape": [
+              12
+            ],
+            "dtype": "torch.int64",
+            "sha256": "8f68965ccad84e20b11bfa3c777e817bae036468e80a456db6f64007e7f456e8",
+            "nonzero_elements": 12,
+            "finite": true
+          },
+          "model.layers.6.self_attn.attn:query_start_loc": {
+            "shape": [
+              2
+            ],
+            "dtype": "torch.int32",
+            "sha256": "930abd7018357244643ccb484f82d27689e127e46fff106e23bbc9c20a0dd1b8",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.6.self_attn.indexer.k_cache:slot_mapping": {
+            "shape": [
+              12
+            ],
+            "dtype": "torch.int32",
+            "sha256": "46e8c78e543b5bdd2d88028bc48bab1ea84e1f45aa3676d1a5f9c82b71410c38",
+            "nonzero_elements": 12,
+            "finite": true
+          },
+          "model.layers.6.self_attn.indexer.k_cache:seq_lens": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "43dc47de9d2d95755576d98102e6c49d592a77d55e22e685ec0575ac20bc086b",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.6.self_attn.indexer.k_cache:cum_query_lens": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "42f4aeb81c1ef81f771f3de8abca9dcf66901c575530e7672e4b1146474ae650",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.6.self_attn.indexer.k_cache:block_table": {
+            "shape": [
+              1,
+              64
+            ],
+            "dtype": "torch.int32",
+            "sha256": "7bd4beb27a68ee9bce35c4dec5b7ba5527b4e609e5e65e0a4d259fcd339f3029",
+            "nonzero_elements": 63,
+            "finite": true
+          },
+          "model.layers.6.self_attn.indexer.k_cache:sin": {
+            "shape": [
+              12,
+              1,
+              1,
+              64
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "d6c4498b05850478a3e986e91fe79fd21455debc95b4897053b13180fe09ee29",
+            "nonzero_elements": 768,
+            "finite": true
+          },
+          "model.layers.6.self_attn.indexer.k_cache:cos": {
+            "shape": [
+              12,
+              1,
+              1,
+              64
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "1aa0bfc3d348f98e7f35ec0379df4827cfde0ef949e33e4925cdd3527d1c65ae",
+            "nonzero_elements": 768,
+            "finite": true
+          },
+          "model.layers.6.self_attn.indexer.k_cache:actual_seq_lengths_query": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "42f4aeb81c1ef81f771f3de8abca9dcf66901c575530e7672e4b1146474ae650",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.6.self_attn.indexer.k_cache:actual_seq_lengths_key": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "43dc47de9d2d95755576d98102e6c49d592a77d55e22e685ec0575ac20bc086b",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.7.self_attn.attn:slot_mapping": {
+            "shape": [
+              12
+            ],
+            "dtype": "torch.int32",
+            "sha256": "8f981148f127a8b1d56fda312a138cb9f18209eccb94558a712628cef3befac1",
+            "nonzero_elements": 12,
+            "finite": true
+          },
+          "model.layers.7.self_attn.attn:seq_lens": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "43dc47de9d2d95755576d98102e6c49d592a77d55e22e685ec0575ac20bc086b",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.7.self_attn.attn:seq_lens_cpu": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "43dc47de9d2d95755576d98102e6c49d592a77d55e22e685ec0575ac20bc086b",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.7.self_attn.attn:cum_query_lens": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.int32",
+            "sha256": "42f4aeb81c1ef81f771f3de8abca9dcf66901c575530e7672e4b1146474ae650",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "model.layers.7.self_attn.attn:block_table": {
+            "shape": [
+              1,
+              64
+            ],
+            "dtype": "torch.int32",
+            "sha256": "6a24eee9d84bf5672c5675e839392e68ef881a6eba13cc09037f2995c74e22b6",
+            "nonzero_elements": 63,
+            "finite": true
+          },
+          "model.layers.7.self_attn.attn:sin": {
+            "shape": [
+              12,
+              1,
+              1,
+              64
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "d6c4498b05850478a3e986e91fe79fd21455debc95b4897053b13180fe09ee29",
+            "nonzero_elements": 768,
+            "finite": true
+          },
+          "model.layers.7.self_attn.attn:cos": {
+            "shape": [
+              12,
+              1,
+              1,
+              64
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "1aa0bfc3d348f98e7f35ec0379df4827cfde0ef949e33e4925cdd3527d1c65ae",
+            "nonzero_elements": 768,
+            "finite": true
+          },
+          "model.layers.7.self_attn.attn:positions": {
+            "shape": [
+              12
+            ],
+            "dtype": "torch.int64",
+            "sha256": "8f68965ccad84e20b11bfa3c777e817bae036468e80a456db6f64007e7f456e8",
+            "nonzero_elements": 12,
+            "finite": true
+          },
+          "model.layers.7.self_attn.attn:query_start_loc": {
+            "shape": [
+              2
+            ],
+            "dtype": "torch.int32",
+            "sha256": "930abd7018357244643ccb484f82d27689e127e46fff106e23bbc9c20a0dd1b8",
+            "nonzero_elements": 1,
+            "finite": true
+          },
+          "hidden": {
+            "shape": [
+              12,
+              6144
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "a1ada3ba531e79a7f9119c7b9c80485e69231018829b4ef5d70e026f7a21945c",
+            "nonzero_elements": 73728,
+            "finite": true
+          },
+          "residual": {
+            "shape": [
+              12,
+              6144
+            ],
+            "dtype": "torch.bfloat16",
+            "sha256": "ee485bba052abbcafcd7c06386e4bc1f8c20f4abbf5d7a4e9919d16d99584fd9",
+            "nonzero_elements": 73728,
+            "finite": true
+          },
+          "slot_i64:0": {
+            "shape": [
+              12
+            ],
+            "dtype": "torch.int64",
+            "sha256": "84048d732358b0105755315f997e5fd4d1734fbf96ffad0a70ffdbca0106c45f",
+            "nonzero_elements": 12,
+            "finite": true
+          },
+          "slot_i64:1": {
+            "shape": [
+              12
+            ],
+            "dtype": "torch.int64",
+            "sha256": "84048d732358b0105755315f997e5fd4d1734fbf96ffad0a70ffdbca0106c45f",
+            "nonzero_elements": 12,
+            "finite": true
+          },
+          "slot_i64:2": {
+            "shape": [
+              12
+            ],
+            "dtype": "torch.int64",
+            "sha256": "fcb9abd31f6e6486fb97b708a56aaf40dd72a08db8eb857c0a890439f1a682df",
+            "nonzero_elements": 12,
+            "finite": true
+          }
+        }
+      },
+      "explicit_replay": 2,
+      "python_calls_during_replay": 0,
+      "capture_stream": 1715637368,
+      "outputs": {
+        "consumer.output": {
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "sha256": "437428c8c824400895989fd3c04f6fb0a9b85098c3ff3f0dfe36a17d36cd613d",
+          "nonzero_elements": 73728,
+          "finite": true
+        },
+        "consumer.retained": {
+          "shape": [
+            12,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "sha256": "42eb750e161a1f069c4080262d5bb4e04edda3f1e9c5ced2d5b2a507900856df",
+          "nonzero_elements": 73728,
+          "finite": true
+        }
+      }
+    }
+  ],
+  "pass": true,
+  "window": {
+    "address": 20623364588032,
+    "bytes": 1573184,
+    "capacity": 32,
+    "stream": 1715637368,
+    "epoch_contract": "Four device increments per explicit two-layer replay; never reset by host",
+    "capture_manager_retained": true
+  }
+}

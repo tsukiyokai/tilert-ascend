@@ -1,0 +1,191 @@
+{
+  "created_at": "2026-10-16T10:47:18.656640+00:00",
+  "scope": "Server stdlib CPU regression; no Torch/NPU/container execution",
+  "status": "fail",
+  "results": [
+    {
+      "name": "check_ascend_pd.py",
+      "returncode": 0,
+      "report": "/home/shanshan/trt-asc/experiments/glm52/ascend-pd-control.json",
+      "counts": {
+        "tests": 22,
+        "failures": 0,
+        "errors": 0
+      },
+      "command": [
+        "/root/miniconda3/bin/python3",
+        "tests/glm52/check_ascend_pd.py",
+        "--output",
+        "/home/shanshan/trt-asc/experiments/glm52/ascend-pd-control.json"
+      ],
+      "stdout": "test_cancel_waits_for_admitted_write_completion (__main__.ReceiveChecks.test_cancel_waits_for_admitted_write_completion) ... ok\ntest_disconnected_writer_keeps_memory_quarantined (__main__.ReceiveChecks.test_disconnected_writer_keeps_memory_quarantined) ... ok\ntest_invalid_rank_and_lengths_are_not_admitted (__main__.ReceiveChecks.test_invalid_rank_and_lengths_are_not_admitted) ... ok\ntest_only_one_writer_per_rank (__main__.ReceiveChecks.test_only_one_writer_per_rank) ... ok\ntest_pre_http_cancel_cannot_be_reannounced (__main__.ReceiveChecks.test_pre_http_cancel_cannot_be_reannounced) ... ok\ntest_rank_metadata_must_agree (__main__.ReceiveChecks.test_rank_metadata_must_agree) ... ok\ntest_sixteen_completions_and_release_own_the_slot (__main__.ReceiveChecks.test_sixteen_completions_and_release_own_the_slot) ... ok\ntest_virtual_addresses_are_rank_local (__main__.ReceiveChecks.test_virtual_addresses_are_rank_local) ... ok\ntest_wrong_generation_cannot_publish_or_free_memory (__main__.ReceiveChecks.test_wrong_generation_cannot_publish_or_free_memory) ... ok\ntest_bursts_preserve_order_and_terminal_message (__main__.TokenQueueChecks.test_bursts_preserve_order_and_terminal_message) ... ok\ntest_cancelled_wait_does_not_consume_a_later_token (__main__.TokenQueueChecks.test_cancelled_wait_does_not_consume_a_later_token) ... ok\ntest_each_token_arrives_before_producer_can_finish (__main__.TokenQueueChecks.test_each_token_arrives_before_producer_can_finish) ... ok\ntest_queued_tokens_survive_event_clear (__main__.TokenQueueChecks.test_queued_tokens_survive_event_clear) ... ok\ntest_replay_recovers_target_hidden_and_keeps_mtp_at_p_minus_one (__main__.PromptReplayChecks.test_replay_recovers_target_hidden_and_keeps_mtp_at_p_minus_one) ... ok\ntest_join_timeout_retains_the_slot_until_worker_exits (__main__.WorkerOwnershipChecks.test_join_timeout_retains_the_slot_until_worker_exits) ... ok\ntest_terminated_worker_releases_immediately (__main__.WorkerOwnershipChecks.test_terminated_worker_releases_immediately) ... ok\ntest_known_prefill_request_is_cancelled_before_decode_dispatch (__main__.LeaseChecks.test_known_prefill_request_is_cancelled_before_decode_dispatch) ... ok\ntest_terminated_decode_does_not_issue_another_cancel (__main__.LeaseChecks.test_terminated_decode_does_not_issue_another_cancel) ... ok\ntest_active_cancel_sets_only_the_matching_event_under_lock (__main__.HttpOwnershipChecks.test_active_cancel_sets_only_the_matching_event_under_lock) ... ok\ntest_failed_reset_retains_request_and_http_lock (__main__.HttpOwnershipChecks.test_failed_reset_retains_request_and_http_lock) ... ok\ntest_pending_cancel_does_not_reset_the_active_engine (__main__.HttpOwnershipChecks.test_pending_cancel_does_not_reset_the_active_engine) ... ok\ntest_successful_reset_releases_ownership_after_reset (__main__.HttpOwnershipChecks.test_successful_reset_releases_ownership_after_reset) ... ok\n\n----------------------------------------------------------------------\nRan 22 tests in 2.429s\n\nOK\n{\"status\": \"pass\", \"report\": \"/home/shanshan/trt-asc/experiments/glm52/ascend-pd-control.json\"}\n",
+      "stderr": "decode_server.py:80 [INFO]: cancel requested for active\n"
+    },
+    {
+      "name": "check_ascend_connector.py",
+      "returncode": 1,
+      "report": "/home/shanshan/trt-asc/experiments/glm52/check-ascend-connector.json",
+      "counts": {
+        "errors": []
+      },
+      "command": [
+        "/root/miniconda3/bin/python3",
+        "tests/glm52/check_ascend_connector.py",
+        "--output",
+        "/home/shanshan/trt-asc/experiments/glm52/check-ascend-connector.json",
+        "--vllm-root",
+        "/home/shanshan/trt-asc/src/vllm-unified",
+        "--vllm-ascend-root",
+        "/home/shanshan/trt-asc/src/vllm-ascend-unified"
+      ],
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/check_ascend_connector.py\", line 488, in <module>\n    main()\n    ~~~~^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/check_ascend_connector.py\", line 375, in main\n    checks, errors = run(root)\n                     ~~~^^^^^^\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/check_ascend_connector.py\", line 149, in run\n    from tilert.pd_vllm import ascend_connector as connector\nModuleNotFoundError: No module named 'tilert'\n"
+    },
+    {
+      "name": "check_ascend_layout.py",
+      "returncode": 0,
+      "report": "/home/shanshan/trt-asc/experiments/glm52/ascend-layout-v2-source-binding.json",
+      "counts": {
+        "checks_total": 63,
+        "checks_failed": 0
+      },
+      "command": [
+        "/root/miniconda3/bin/python3",
+        "tests/glm52/check_ascend_layout.py",
+        "--output",
+        "/home/shanshan/trt-asc/experiments/glm52/ascend-layout-v2-source-binding.json",
+        "--vllm-root",
+        "/home/shanshan/trt-asc/src/vllm-unified",
+        "--vllm-ascend-root",
+        "/home/shanshan/trt-asc/src/vllm-ascend-unified"
+      ],
+      "stdout": "{\"status\": \"pass\", \"checks_total\": 63, \"checks_failed\": 0}\n",
+      "stderr": ""
+    },
+    {
+      "name": "check_hf_reference.py",
+      "returncode": 1,
+      "report": "/home/shanshan/trt-asc/experiments/glm52/c8-arch22/hf-reference-metadata.json",
+      "counts": {
+        "checks_total": 42,
+        "checks_failed": 0
+      },
+      "command": [
+        "/root/miniconda3/bin/python3",
+        "tests/glm52/check_hf_reference.py",
+        "--output",
+        "/home/shanshan/trt-asc/experiments/glm52/c8-arch22/hf-reference-metadata.json"
+      ],
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/check_hf_reference.py\", line 14, in <module>\n    from tilert.models.glm_5_2_ascend.ops.indexer import (\n        cann_arch22_scoring_contract,\n    )\nModuleNotFoundError: No module named 'tilert'\n"
+    },
+    {
+      "name": "check_mtp_contract.py",
+      "returncode": 1,
+      "report": "/home/shanshan/trt-asc/experiments/glm52/c8-arch22/mtp-contract-metadata.json",
+      "counts": {},
+      "command": [
+        "/root/miniconda3/bin/python3",
+        "tests/glm52/check_mtp_contract.py",
+        "--output",
+        "/home/shanshan/trt-asc/experiments/glm52/c8-arch22/mtp-contract-metadata.json",
+        "--checkpoint",
+        "/data/shanshan/trt-asc/models/GLM-5.2-w4a8c8",
+        "--vllm",
+        "/home/shanshan/trt-asc/src/vllm-unified",
+        "--ascend",
+        "/home/shanshan/trt-asc/src/vllm-ascend-unified"
+      ],
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/check_mtp_contract.py\", line 15, in <module>\n    from tilert.models.glm_5_2_ascend.native_mtp import checkpoint_contract\nModuleNotFoundError: No module named 'tilert'\n"
+    },
+    {
+      "name": "check_c8_scoring.py",
+      "returncode": 1,
+      "report": "/home/shanshan/trt-asc/experiments/glm52/c8-arch22/scoring-stdlib.json",
+      "counts": {
+        "tests_run": 6,
+        "failures": [],
+        "errors": []
+      },
+      "command": [
+        "/root/miniconda3/bin/python3",
+        "tests/glm52/check_c8_scoring.py",
+        "--output",
+        "/home/shanshan/trt-asc/experiments/glm52/c8-arch22/scoring-stdlib.json",
+        "--cann-source-dir",
+        "/home/shanshan/trt-asc/experiments/glm52/c8-arch22"
+      ],
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/check_c8_scoring.py\", line 15, in <module>\n    from tilert.models.glm_5_2_ascend.ops.indexer import (\n    ...<3 lines>...\n    )\nModuleNotFoundError: No module named 'tilert'\n"
+    },
+    {
+      "name": "check_session.py",
+      "returncode": 0,
+      "report": "/home/shanshan/trt-asc/experiments/glm52/session.json",
+      "counts": {
+        "tests": 20,
+        "failures": 0,
+        "errors": 0
+      },
+      "command": [
+        "/root/miniconda3/bin/python3",
+        "tests/glm52/check_session.py",
+        "--output",
+        "/home/shanshan/trt-asc/experiments/glm52/session.json"
+      ],
+      "stdout": "test_accepts_greedy_top_one (__main__.SessionChecks.test_accepts_greedy_top_one) ... ok\ntest_bad_prefix_length_rejected_before_broadcast (__main__.SessionChecks.test_bad_prefix_length_rejected_before_broadcast) ... ok\ntest_callback_cancellation_does_not_launch_another_step (__main__.SessionChecks.test_callback_cancellation_does_not_launch_another_step) ... ok\ntest_cancel_before_first_token (__main__.SessionChecks.test_cancel_before_first_token) ... ok\ntest_capacity_preserves_last_output_outside_kv (__main__.SessionChecks.test_capacity_preserves_last_output_outside_kv) ... ok\ntest_close_is_broadcast_to_every_rank (__main__.SessionChecks.test_close_is_broadcast_to_every_rank) ... ok\ntest_decode_requires_a_fresh_prefix (__main__.SessionChecks.test_decode_requires_a_fresh_prefix) ... ok\ntest_eos_is_not_emitted (__main__.SessionChecks.test_eos_is_not_emitted) ... ok\ntest_eos_successor_consumes_predecessor_once (__main__.SessionChecks.test_eos_successor_consumes_predecessor_once) ... ok\ntest_first_token_needs_no_step (__main__.SessionChecks.test_first_token_needs_no_step) ... ok\ntest_grammar_and_logprobs_rejected (__main__.SessionChecks.test_grammar_and_logprobs_rejected) ... ok\ntest_ignore_eos (__main__.SessionChecks.test_ignore_eos) ... ok\ntest_normal_import_does_not_load_torch (__main__.SessionChecks.test_normal_import_does_not_load_torch) ... ok\ntest_out_of_order_and_stale_position_rejected (__main__.SessionChecks.test_out_of_order_and_stale_position_rejected) ... ok\ntest_prefix_descriptor_has_no_tensor_or_other_rank_storage (__main__.SessionChecks.test_prefix_descriptor_has_no_tensor_or_other_rank_storage) ... ok\ntest_rejects_invalid_output_budget (__main__.SessionChecks.test_rejects_invalid_output_budget) ... ok\ntest_rejects_unsupported_sampling_before_advancing (__main__.SessionChecks.test_rejects_unsupported_sampling_before_advancing) ... ok\ntest_reset_then_new_request_replays_exactly (__main__.SessionChecks.test_reset_then_new_request_replays_exactly) ... ok\ntest_token_and_cache_oracle_on_all_sixteen_ranks (__main__.SessionChecks.test_token_and_cache_oracle_on_all_sixteen_ranks) ... ok\ntest_uninjected_worker_cannot_step (__main__.SessionChecks.test_uninjected_worker_cannot_step) ... ok\n\n----------------------------------------------------------------------\nRan 20 tests in 0.039s\n\nOK\n\n{\"status\": \"pass\", \"tests\": 20, \"failures\": 0, \"errors\": 0, \"torch_imported\": false}\n",
+      "stderr": ""
+    },
+    {
+      "name": "check_mtp_round.py",
+      "returncode": 0,
+      "report": "/home/shanshan/trt-asc/experiments/glm52/mtp-round.json",
+      "counts": {
+        "tests": 9,
+        "failures": 0,
+        "errors": 0
+      },
+      "command": [
+        "/root/miniconda3/bin/python3",
+        "tests/glm52/check_mtp_round.py",
+        "--output",
+        "/home/shanshan/trt-asc/experiments/glm52/mtp-round.json"
+      ],
+      "stdout": "test_capacity_closes_with_width_one (__main__.MtpRoundChecks.test_capacity_closes_with_width_one) ... ok\ntest_chained_rows_share_seed_indices_and_are_recomputed (__main__.MtpRoundChecks.test_chained_rows_share_seed_indices_and_are_recomputed) ... ok\ntest_eos_budget_capacity_cross_product (__main__.MtpRoundChecks.test_eos_budget_capacity_cross_product) ... ok\ntest_eos_truncates_accepted_span (__main__.MtpRoundChecks.test_eos_truncates_accepted_span) ... ok\ntest_first_rejection_commits_one_main_and_one_mtp_row (__main__.MtpRoundChecks.test_first_rejection_commits_one_main_and_one_mtp_row) ... ok\ntest_missing_parent_marks_failed_round (__main__.MtpRoundChecks.test_missing_parent_marks_failed_round) ... ok\ntest_normal_import_does_not_load_torch (__main__.MtpRoundChecks.test_normal_import_does_not_load_torch) ... ok\ntest_outputs_and_committed_cache_match_serial_oracle (__main__.MtpRoundChecks.test_outputs_and_committed_cache_match_serial_oracle) ... ok\ntest_zero_and_one_output_launch_no_round (__main__.MtpRoundChecks.test_zero_and_one_output_launch_no_round) ... ok\n\n----------------------------------------------------------------------\nRan 9 tests in 2.848s\n\nOK\n\n{\"status\": \"pass\", \"tests\": 9, \"failures\": 0, \"errors\": 0, \"torch_imported\": false}\n",
+      "stderr": ""
+    },
+    {
+      "name": "check_mtp_state.py",
+      "returncode": 1,
+      "report": "/home/shanshan/trt-asc/experiments/glm52/check-mtp-state.json",
+      "counts": {},
+      "command": [
+        "/root/miniconda3/bin/python3",
+        "tests/glm52/check_mtp_state.py",
+        "--output",
+        "/home/shanshan/trt-asc/experiments/glm52/check-mtp-state.json"
+      ],
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"/home/shanshan/trt-asc/src/TileRT-Ascend/tests/glm52/check_mtp_state.py\", line 13, in <module>\n    from tilert.models.glm_5_2_ascend.mtp_state import MtpState\nModuleNotFoundError: No module named 'tilert'\n"
+    },
+    {
+      "name": "check_verify_layout.py",
+      "returncode": 0,
+      "report": "/home/shanshan/trt-asc/experiments/glm52/verify-layout.json",
+      "counts": {
+        "tests_run": 21,
+        "failures": 0,
+        "errors": 0
+      },
+      "command": [
+        "/root/miniconda3/bin/python3",
+        "tests/glm52/check_verify_layout.py",
+        "--output",
+        "/home/shanshan/trt-asc/experiments/glm52/verify-layout.json"
+      ],
+      "stdout": "test_actual_cache_reset_uses_zero_length (__main__.VerifyLayoutChecks.test_actual_cache_reset_uses_zero_length) ... ok\ntest_actual_cache_truncate_updates_both_length_fields (__main__.VerifyLayoutChecks.test_actual_cache_truncate_updates_both_length_fields) ... ok\ntest_append_capacity_and_row_counts_are_checked (__main__.VerifyLayoutChecks.test_append_capacity_and_row_counts_are_checked) ... ok\ntest_append_slices_cover_each_query_once (__main__.VerifyLayoutChecks.test_append_slices_cover_each_query_once) ... ok\ntest_boundary_rows_have_distinct_valid_counts (__main__.VerifyLayoutChecks.test_boundary_rows_have_distinct_valid_counts) ... ok\ntest_duplicate_and_out_of_range_indices_are_rejected (__main__.VerifyLayoutChecks.test_duplicate_and_out_of_range_indices_are_rejected) ... ok\ntest_exact_selection_rejects_missing_or_extra_keys (__main__.VerifyLayoutChecks.test_exact_selection_rejects_missing_or_extra_keys) ... ok\ntest_future_indices_are_rejected_before_global_cache_end (__main__.VerifyLayoutChecks.test_future_indices_are_rejected_before_global_cache_end) ... ok\ntest_import_and_metadata_calls_do_not_load_torch (__main__.VerifyLayoutChecks.test_import_and_metadata_calls_do_not_load_torch) ... ok\ntest_index_row_shapes_are_checked (__main__.VerifyLayoutChecks.test_index_row_shapes_are_checked) ... ok\ntest_invalid_layout_sizes_are_rejected (__main__.VerifyLayoutChecks.test_invalid_layout_sizes_are_rejected) ... ok\ntest_invalid_truncate_is_atomic_for_length_metadata (__main__.VerifyLayoutChecks.test_invalid_truncate_is_atomic_for_length_metadata) ... ok\ntest_layout_is_frozen (__main__.VerifyLayoutChecks.test_layout_is_frozen) ... ok\ntest_m1_retains_original_visible_length (__main__.VerifyLayoutChecks.test_m1_retains_original_visible_length) ... ok\ntest_one_request_length_and_operator_output_shape (__main__.VerifyLayoutChecks.test_one_request_length_and_operator_output_shape) ... ok\ntest_partial_mtp_indices_require_explicit_opt_in (__main__.VerifyLayoutChecks.test_partial_mtp_indices_require_explicit_opt_in) ... ok\ntest_partial_mtp_indices_still_reject_holes_and_empty_sets (__main__.VerifyLayoutChecks.test_partial_mtp_indices_still_reject_holes_and_empty_sets) ... ok\ntest_right_down_bounds_match_scalar_causal_mask (__main__.VerifyLayoutChecks.test_right_down_bounds_match_scalar_causal_mask) ... ok\ntest_rollback_then_append_overwrites_only_rejected_suffix (__main__.VerifyLayoutChecks.test_rollback_then_append_overwrites_only_rejected_suffix) ... ok\ntest_row_permutation_cannot_hide_future_keys (__main__.VerifyLayoutChecks.test_row_permutation_cannot_hide_future_keys) ... ok\ntest_valid_rows_cover_all_shapes_and_leave_inputs_unchanged (__main__.VerifyLayoutChecks.test_valid_rows_cover_all_shapes_and_leave_inputs_unchanged) ... ok\n\n----------------------------------------------------------------------\nRan 21 tests in 0.097s\n\nOK\n{\n  \"status\": \"pass\",\n  \"scope\": \"stdlib causal layout and cache-length checks\",\n  \"device_execution\": false,\n  \"tensor_paths_executed\": false,\n  \"hostname\": \"liteserver-hps-c180-00044\",\n  \"python\": \"3.13.13\",\n  \"tests_run\": 21,\n  \"failures\": 0,\n  \"errors\": 0,\n  \"query_rows\": [\n    1,\n    2,\n    4\n  ],\n  \"prefixes\": [\n    0,\n    1,\n    7,\n    8,\n    124,\n    125,\n    126,\n    127,\n    128,\n    129,\n    2044,\n    2047,\n    2048,\n    2049,\n    8188,\n    8191,\n    8192\n  ],\n  \"layout_fixtures\": 51,\n  \"causal_key_bound\": \"prefix_length + query_row + 1\",\n  \"query_lengths\": \"[M]\",\n  \"key_lengths\": \"[P+M]\",\n  \"native_index_shape\": \"[M,1,2048]\",\n  \"source_sha256\": {\n    \"tests/glm52/check_verify_layout.py\": \"1c5faaa228bc14e25e14cee9a2696beffc2dff151a698d2be089f15abdbab209\",\n    \"tilert/models/glm_5_2_ascend/ops/indexer.py\": \"b8536fd5f41fe1f194ef4f3f34d30d4090c3b943c69d69a0445666d41396172a\",\n    \"tilert/models/glm_5_2_ascend/ops/mla.py\": \"431c496d6e84300b90236592bd2938b50133b158f9622b60d149e41a62162b9c\",\n    \"tilert/models/glm_5_2_ascend/ops/__init__.py\": \"e62e964bcb4a5191716452bbe321beed37ff619fc9f16e3354a8df286c3d1c8f\"\n  }\n}\n",
+      "stderr": ""
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+--- parent/source/overlap_native.h
++++ candidate/source/overlap_native.h
+@@ -43,6 +43,8 @@
+     }
+ }
+ 
++static_assert(ffn_down_overlap::kDownConsumerHalfSpan <= kVectorTile);
++
+ __aicore__ inline void ConsumeDown(
+     Workspace& held, __gm__ RoutedProduct* wide, __gm__ float* correction,
+     __gm__ ScaleStorage* scales, __gm__ float* middle_scales,
+@@ -50,7 +52,7 @@
+ {
+     int64_t active = 0;
+     int64_t next = GetBlockIdx() / 2;
+-    const int64_t half = GetSubBlockIdx() * ffn_down_overlap::kDownHalfTile;
++    const int64_t half = GetSubBlockIdx() * ffn_down_overlap::kDownConsumerHalfSpan;
+     for (int64_t expert = 0; expert < experts; ++expert) {
+         const int64_t count = held.count.GetValue(expert);
+         if (count == 0) {
+@@ -61,15 +63,22 @@
+         }
+         next += blocks;
+         const int64_t begin = held.start.GetValue(expert);
+-        for (int64_t tile = 0; tile < ffn_down_overlap::kDownTilesPerExpert; ++tile) {
+-            CrossCoreWaitFlag(ffn_down_overlap::kDownReadyFlag);
++        for (int64_t tile = 0; tile < ffn_down_overlap::kDownTilesPerExpert;
++             tile += ffn_down_overlap::kDownConsumerBatchTiles) {
++            for (int64_t ready = 0; ready < ffn_down_overlap::kDownConsumerBatchTiles;
++                 ++ready) {
++                CrossCoreWaitFlag(ffn_down_overlap::kDownReadyFlag);
++            }
+             const int64_t column = tile * ffn_down_overlap::kDownTile + half;
+             StoreRoutes(held, count, begin, wide + 2 * begin * kHidden,
+                 correction + expert * kHidden, scales + expert * kHidden,
+                 middle_scales + begin, routes, column,
+-                column + ffn_down_overlap::kDownHalfTile, tokens);
+-            // StoreRoutes drains each route store before reusing its UB source.
+-            CrossCoreSetFlag<2, PIPE_MTE3>(ffn_down_overlap::kDownFreeFlag);
++                column + ffn_down_overlap::kDownConsumerHalfSpan, tokens);
++            // Both workers complete all four tiles before releasing their credits.
++            for (int64_t free = 0; free < ffn_down_overlap::kDownConsumerBatchTiles;
++                 ++free) {
++                CrossCoreSetFlag<2, PIPE_MTE3>(ffn_down_overlap::kDownFreeFlag);
++            }
+         }
+     }
+ }
+--- parent/source/overlap_contract.h
++++ candidate/source/overlap_contract.h
+@@ -12,6 +12,8 @@
+ constexpr int64_t kDownHalfTile = kDownTile / 2;
+ constexpr int64_t kDownTilesPerExpert = kDownHidden / kDownTile;
+ constexpr int64_t kDownCredits = 4;
++constexpr int64_t kDownConsumerBatchTiles = 4;
++constexpr int64_t kDownConsumerHalfSpan = kDownTile * kDownConsumerBatchTiles / 2;
+ constexpr uint16_t kDownReadyFlag = 8;
+ constexpr uint16_t kDownFreeFlag = 9;
+ 
+@@ -25,6 +27,10 @@
+ 
+ static_assert(kDownTilesPerExpert == 24);
+ static_assert(kDownHalfTile == 128);
++static_assert(kDownConsumerHalfSpan == 512);
++static_assert(kDownConsumerBatchTiles <= kDownCredits);
++static_assert(kDownTilesPerExpert % kDownConsumerBatchTiles == 0);
++static_assert(kDownConsumerHalfSpan % kDownTile == 0);
+ static_assert(kDownCredits < 15);
+ static_assert(kDownReadyFlag > 7 && kDownFreeFlag < 11);
+ static_assert(IsDownTiling(64, 256, 128, 64, 6144, 128));

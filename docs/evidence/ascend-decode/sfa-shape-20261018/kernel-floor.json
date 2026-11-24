@@ -1,0 +1,56 @@
+{
+  "status": "pass",
+  "created_at": "2026-10-18T03:27:53.122115+00:00",
+  "command": [
+    "/opt/trt-asc/venv/bin/python3",
+    "tests/glm52/bench_kernel_floor.py",
+    "--output",
+    "/workspace/experiments/sfa-shape-20261018/kernel-floor.json"
+  ],
+  "hostname": "trt-asc",
+  "device": 0,
+  "calls": 50,
+  "warmup": 50,
+  "batches": 20,
+  "hidden": 6144,
+  "scope": "one die, one rank, shared with another tenant",
+  "issue_note": "calls are back to back with one synchronize per batch",
+  "results": [
+    {
+      "operation": "add_1_element",
+      "median_us": 10.16008,
+      "min_us": 8.803120000000002,
+      "p90_us": 10.758799999999999
+    },
+    {
+      "operation": "add_1_row",
+      "median_us": 10.09367,
+      "min_us": 9.16014,
+      "p90_us": 10.5848
+    },
+    {
+      "operation": "add_4_rows",
+      "median_us": 10.2462,
+      "min_us": 9.09594,
+      "p90_us": 10.86062
+    },
+    {
+      "operation": "rms_norm_1_row",
+      "median_us": 24.85803,
+      "min_us": 24.34252,
+      "p90_us": 25.958779999999997
+    },
+    {
+      "operation": "index_select_1_row",
+      "median_us": 12.25437,
+      "min_us": 10.05898,
+      "p90_us": 13.1045
+    },
+    {
+      "operation": "empty_like_1_row",
+      "median_us": 4.9017800000000005,
+      "min_us": 4.86718,
+      "p90_us": 4.95698
+    }
+  ]
+}

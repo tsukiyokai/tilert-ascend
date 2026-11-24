@@ -1,0 +1,59 @@
+423: 
+424: __aicore__ inline void Forward(
+425:     TPipe& pipe, __gm__ bfloat16_t* latent,
+426:     __gm__ bfloat16_t* value_weight, __gm__ int8_t* output_weight,
+427:     __gm__ float* output_scale, __gm__ uint8_t* bias, int bias_kind,
+428:     __gm__ uint8_t* scratch, __gm__ uint8_t* tiling,
+429:     __gm__ bfloat16_t* output, int64_t rows, int64_t capacity,
+430:     int64_t blocks, const WorkspaceLayout& layout)
+431: {
+432:     SetSysWorkspace(scratch + layout.system);
+433:     const uint64_t values_offset = layout.values;
+434:     const uint64_t quantized_offset = layout.quantized;
+435:     const uint64_t scales_offset = layout.token_scales;
+436:     const uint64_t accumulators_offset = layout.accumulators;
+437:     auto* heads = reinterpret_cast<__gm__ bfloat16_t*>(scratch);
+438:     auto* values = reinterpret_cast<__gm__ float*>(scratch + values_offset);
+439:     auto* quantized = reinterpret_cast<__gm__ int8_t*>(scratch + quantized_offset);
+440:     auto* scales = reinterpret_cast<__gm__ float*>(scratch + scales_offset);
+441:     auto* accumulators =
+442:         reinterpret_cast<__gm__ int32_t*>(scratch + accumulators_offset);
+443:     VectorWorkspace held;
+444:     if ASCEND_IS_AIV {
+445:         held.Init(pipe);
+446:         StageHeads(held, latent, heads, rows, capacity, GetBlockIdx(), 2 * blocks);
+447:         Publish();
+448:     }
+449:     // Every AIC and AIV participates, including cores with no tile in a phase.
+450:     // Batch scheduling and the physical-core launch limit ensure residency.
+451:     SyncAll<false>();
+452:     if ASCEND_IS_AIC {
+453:         ProjectValues(pipe, heads, value_weight, values, tiling, capacity, blocks);
+454:         Publish();
+455:     }
+456:     SyncAll<false>();
+457:     if ASCEND_IS_AIV {
+458:         QuantizeValues(held, values, quantized, scales, capacity,
+459:                        GetBlockIdx(), 2 * blocks);
+460:         Publish();
+461:     }
+462:     SyncAll<false>();
+463:     if ASCEND_IS_AIC {
+464:         // Value matmul and its object have ended before reclaiming L1/events.
+465:         pipe.Reset();
+466:         ProjectOutput(pipe, quantized, output_weight, accumulators,
+467:                       tiling + kCubeTilingBytes, capacity, blocks);
+468:         Publish();
+469:     }
+470:     SyncAll<false>();
+471:     if ASCEND_IS_AIV {
+472:         DequantizeOutputRows<ScaleOrder::CombinedScales>(
+473:             pipe, accumulators, output_scale, scales, bias,
+474:                             bias_kind, output, rows, capacity, GetBlockIdx(),
+475:                             2 * blocks);
+476:         Publish();
+477:     }
+478: }
+479: 
+480: }  // namespace mla_tail::device
+481: 

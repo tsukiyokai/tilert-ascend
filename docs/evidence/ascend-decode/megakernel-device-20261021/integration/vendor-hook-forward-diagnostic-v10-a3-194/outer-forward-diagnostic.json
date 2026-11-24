@@ -1,0 +1,730 @@
+{
+  "scope": "Actual eager outer calls with retained stage references; no arithmetic substitution",
+  "script": {
+    "path": "/workspace/tests/glm52/whole_layer/vendor_hook_diagnostic.py",
+    "sha256": "d797c12d06fa714f9aa4756115020b3ae822d76e8ba17497aeec3b350c5e76b3"
+  },
+  "sources_before_taps": {
+    "adapter_run_body": {
+      "path": "/workspace/tilert/models/glm_5_2_ascend/attention_native.py",
+      "sha256": "336eaff0de153d32439d4d2b0557522b313a24a7e5bef82b8dc11f1257511c01"
+    },
+    "vendor_prolog": {
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/attention/sfa_v1.py",
+      "sha256": "b3e7bc578fdc00cddca3dd066af49c353a5abdc75571d7fa602340a4aece1e2b"
+    },
+    "vendor_sfa": {
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/attention/sfa_v1.py",
+      "sha256": "b3e7bc578fdc00cddca3dd066af49c353a5abdc75571d7fa602340a4aece1e2b"
+    },
+    "vendor_value_up": {
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/attention/sfa_v1.py",
+      "sha256": "b3e7bc578fdc00cddca3dd066af49c353a5abdc75571d7fa602340a4aece1e2b"
+    }
+  },
+  "reference_lifetime_change": "Taps extend tensor lifetimes and may change allocator addresses",
+  "sampling": "Latest complete vendor/native call; all CPU reads occur after outer-forward synchronization",
+  "case": {
+    "rows": 12,
+    "iteration": 1,
+    "original_final_gate_pass": false
+  },
+  "calls": {
+    "vendor_prolog": 2,
+    "native_body": 2
+  },
+  "blocks": 24,
+  "outer_error": "Traceback (most recent call last):\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_diagnostic.py\", line 363, in run_outer_diagnostic\n    result = run_outer_forward(torch, layer, config, adapter,\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_forward.py\", line 256, in run_outer_forward\n    raise RuntimeError(\"The real outer attention call differs; see outer-forward.json\")\nRuntimeError: The real outer attention call differs; see outer-forward.json\n",
+  "first_unequal_production_boundary": "output",
+  "checks": {
+    "attention_query": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 24576,
+      "first_differences": []
+    },
+    "attention_rope": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 3072,
+      "first_differences": []
+    },
+    "query_norm": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 24576,
+      "first_differences": []
+    },
+    "query_norm_scale": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 12,
+      "first_differences": []
+    },
+    "latent": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 24576,
+      "first_differences": []
+    },
+    "value_up": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 12288,
+      "first_differences": []
+    },
+    "o_codes": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 12288,
+      "first_differences": []
+    },
+    "o_token_scale": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 12,
+      "first_differences": []
+    },
+    "o_weight": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 6291456,
+      "first_differences": []
+    },
+    "value_weight": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 524288,
+      "first_differences": []
+    },
+    "o_weight_scale_f32": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 6144,
+      "first_differences": []
+    },
+    "o_accumulators_native_oracle": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 73728,
+      "first_differences": []
+    },
+    "o_accumulators_vendor_oracle": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 73728,
+      "first_differences": []
+    },
+    "output": {
+      "pass": false,
+      "exact": false,
+      "bitwise_equal": false,
+      "bitwise_different_bytes": 2,
+      "max_abs": 1.52587890625e-05,
+      "rms": 6.282881059860301e-08,
+      "different_elements": 2,
+      "elements": 73728,
+      "first_differences": [
+        {
+          "coordinate": [
+            0,
+            4423
+          ],
+          "native": 0.0034637451171875,
+          "vendor": 0.00347900390625
+        },
+        {
+          "coordinate": [
+            5,
+            2813
+          ],
+          "native": -0.0015716552734375,
+          "vendor": -0.00157928466796875
+        }
+      ]
+    }
+  },
+  "cpu_scale_order_reconstructions": {
+    "vendor_channel_then_token": {
+      "pass": false,
+      "exact": false,
+      "bitwise_equal": false,
+      "bitwise_different_bytes": 2,
+      "max_abs": 1.52587890625e-05,
+      "rms": 6.282881059860301e-08,
+      "different_elements": 2,
+      "elements": 73728,
+      "first_differences": [
+        {
+          "coordinate": [
+            0,
+            4423
+          ],
+          "native": 0.0034637451171875,
+          "vendor": 0.00347900390625
+        },
+        {
+          "coordinate": [
+            5,
+            2813
+          ],
+          "native": -0.0015716552734375,
+          "vendor": -0.00157928466796875
+        }
+      ]
+    },
+    "vendor_combined_scales": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 73728,
+      "first_differences": []
+    },
+    "native_channel_then_token": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 73728,
+      "first_differences": []
+    },
+    "native_combined_scales": {
+      "pass": false,
+      "exact": false,
+      "bitwise_equal": false,
+      "bitwise_different_bytes": 2,
+      "max_abs": 1.52587890625e-05,
+      "rms": 6.282881059860301e-08,
+      "different_elements": 2,
+      "elements": 73728,
+      "first_differences": [
+        {
+          "coordinate": [
+            0,
+            4423
+          ],
+          "native": 0.00347900390625,
+          "vendor": 0.0034637451171875
+        },
+        {
+          "coordinate": [
+            5,
+            2813
+          ],
+          "native": -0.00157928466796875,
+          "vendor": -0.0015716552734375
+        }
+      ]
+    }
+  },
+  "integer_oracle": {
+    "expression": "INT64 CPU matrix product of actual INT8 codes and logical weights, checked before INT32 conversion",
+    "accumulator_bounds": {
+      "vendor": {
+        "minimum": -27201,
+        "maximum": 25260
+      },
+      "native": {
+        "minimum": -27201,
+        "maximum": 25260
+      }
+    }
+  },
+  "vendor_o_descriptor": {
+    "positional_arguments": [
+      {
+        "shape": [
+          12,
+          1024
+        ],
+        "dtype": "torch.int8",
+        "format": 2
+      },
+      {
+        "shape": [
+          1024,
+          6144
+        ],
+        "dtype": "torch.int8",
+        "format": 29
+      },
+      {
+        "shape": [
+          6144
+        ],
+        "dtype": "torch.bfloat16",
+        "format": 2
+      }
+    ],
+    "keyword_arguments": {
+      "pertoken_scale": {
+        "shape": [
+          12
+        ],
+        "dtype": "torch.float32",
+        "format": 2
+      },
+      "bias": null,
+      "output_dtype": "torch.bfloat16"
+    },
+    "weight_shape": [
+      1024,
+      6144
+    ],
+    "weight_dtype": "torch.int8",
+    "weight_format": 29,
+    "scale_shape": [
+      6144
+    ],
+    "scale_dtype": "torch.bfloat16",
+    "scale_format": 2,
+    "bias": null,
+    "offset_passed_to_quant_matmul": false,
+    "output_dtype": "torch.bfloat16"
+  },
+  "vendor_original_shapes": {
+    "hidden": [
+      12,
+      6144
+    ],
+    "attention_query": [
+      12,
+      4,
+      512
+    ],
+    "attention_rope": [
+      12,
+      4,
+      64
+    ],
+    "query_norm": [
+      12,
+      2048
+    ],
+    "query_norm_scale": [
+      12
+    ],
+    "latent": [
+      12,
+      4,
+      512
+    ],
+    "value_up": [
+      12,
+      1024
+    ],
+    "value_weight": [
+      4,
+      512,
+      256
+    ],
+    "o_codes": [
+      12,
+      1024
+    ],
+    "o_weight": [
+      1024,
+      6144
+    ],
+    "o_weight_scale": [
+      6144
+    ],
+    "o_token_scale": [
+      12
+    ],
+    "o_quant_matmul_output": [
+      12,
+      6144
+    ],
+    "o_weight_offset": [
+      6144
+    ]
+  },
+  "shape_normalization": "CPU views only: logical [M,H,D] tensors and one scale per token/channel",
+  "o_projection_class": {
+    "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/ops/linear.py",
+    "sha256": "7654777d9252fc6a3cc2c95f92b67a42410a0de24a5912ef20e807cf64ab74e6"
+  },
+  "o_quantization_classes": [
+    {
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/quantization/method_adapters.py",
+      "sha256": "341d93cae5774414a810444a50eb752cd425330156f404d1b9a10381e6bc0138"
+    },
+    {
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py",
+      "sha256": "47444be0a5017d012401685d89134200f39c5e706f7941797fa7ecfccf1bba0d"
+    }
+  ],
+  "quant_matmul_schema": "npu::npu_quant_matmul(Tensor x1, Tensor x2, Tensor scale, *, Tensor? offset=None, Tensor? pertoken_scale=None, Tensor? bias=None, int? output_dtype=None, int? x1_dtype=None, int? x2_dtype=None, int? pertoken_scale_dtype=None, int? scale_dtype=None, int[]? group_sizes=None, Tensor? y_scale=None) -> Tensor",
+  "vendor_tensors": {
+    "hidden": {
+      "shape": [
+        12,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "raw_sha256": "81b9fbd97962b54dfd5d9b67f42618b9313e0126bfbea7691dd877ab67079882",
+      "nonzero_elements": 73728,
+      "finite": true
+    },
+    "attention_query": {
+      "shape": [
+        12,
+        4,
+        512
+      ],
+      "dtype": "torch.bfloat16",
+      "raw_sha256": "9d8c54b2f4948b73178ecff25939e1da0978048678b3343192a02fbd9c6723e0",
+      "nonzero_elements": 24576,
+      "finite": true
+    },
+    "attention_rope": {
+      "shape": [
+        12,
+        4,
+        64
+      ],
+      "dtype": "torch.bfloat16",
+      "raw_sha256": "80a9e95ec13e69dfe7c004725bf25841863d6a35e2f6f10b1f1de207cfbf3a95",
+      "nonzero_elements": 3072,
+      "finite": true
+    },
+    "query_norm": {
+      "shape": [
+        12,
+        2048
+      ],
+      "dtype": "torch.int8",
+      "raw_sha256": "496cb87b05be471df20132f37d4e1c50ffc46864c46a4f992632112b94a36cc6",
+      "nonzero_elements": 24258,
+      "finite": true
+    },
+    "query_norm_scale": {
+      "shape": [
+        12
+      ],
+      "dtype": "torch.float32",
+      "raw_sha256": "edb964ba0cf22a3c8942bb93a6886ea9b1d5c157916e8d4efe6060d9d50365e0",
+      "nonzero_elements": 12,
+      "finite": true
+    },
+    "latent": {
+      "shape": [
+        12,
+        4,
+        512
+      ],
+      "dtype": "torch.bfloat16",
+      "raw_sha256": "5af3034b330175a3c94b16ac3deba82d4653109a7a6625d9eddaa643da4c4d97",
+      "nonzero_elements": 24576,
+      "finite": true
+    },
+    "value_up": {
+      "shape": [
+        12,
+        1024
+      ],
+      "dtype": "torch.bfloat16",
+      "raw_sha256": "c638271811701a7ed696af06a5d2b248eef9e297dd43748e8f7625194e46fb0d",
+      "nonzero_elements": 12288,
+      "finite": true
+    },
+    "value_weight": {
+      "shape": [
+        4,
+        512,
+        256
+      ],
+      "dtype": "torch.bfloat16",
+      "raw_sha256": "fd0bc2e2ab06b782b35d156a271b1ab1a31892468f5ee64b7a0d3cfe643a1caf",
+      "nonzero_elements": 524288,
+      "finite": true
+    },
+    "o_codes": {
+      "shape": [
+        12,
+        1024
+      ],
+      "dtype": "torch.int8",
+      "raw_sha256": "773fe46b95addd324f403bc3c0a3c306181739ec68ecc152df7a92cec5939a27",
+      "nonzero_elements": 12154,
+      "finite": true
+    },
+    "o_weight": {
+      "shape": [
+        1024,
+        6144
+      ],
+      "dtype": "torch.int8",
+      "raw_sha256": "0562ddc51a0a674a7a0c046a287138ebe6b82fa2d62462343f7516b9040f4d04",
+      "nonzero_elements": 5921325,
+      "finite": true
+    },
+    "o_weight_scale": {
+      "shape": [
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "raw_sha256": "9f83cac6ba0c15d4a99aed3cc23105484d64602b929b81bb5fe36446015ca466",
+      "nonzero_elements": 6144,
+      "finite": true
+    },
+    "o_token_scale": {
+      "shape": [
+        12
+      ],
+      "dtype": "torch.float32",
+      "raw_sha256": "d3f38bc53f3f3d850342442d9f4c054b1aeba9d6008b85b8a5e5adb6973863d2",
+      "nonzero_elements": 12,
+      "finite": true
+    },
+    "o_quant_matmul_output": {
+      "shape": [
+        12,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "raw_sha256": "5c26f11573f5f674241dc4c87cb69978dc9fb3c930492195fd92fb9fd64242eb",
+      "nonzero_elements": 73726,
+      "finite": true
+    },
+    "o_weight_offset": {
+      "shape": [
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "raw_sha256": "f3cc103136423a57975750907ebc1d367e2985ac6338976d4d5a439f50323f4a",
+      "nonzero_elements": 0,
+      "finite": true
+    }
+  },
+  "native_tensors": {
+    "attention_query": {
+      "shape": [
+        12,
+        4,
+        512
+      ],
+      "dtype": "torch.bfloat16",
+      "raw_sha256": "9d8c54b2f4948b73178ecff25939e1da0978048678b3343192a02fbd9c6723e0",
+      "nonzero_elements": 24576,
+      "finite": true
+    },
+    "attention_rope": {
+      "shape": [
+        12,
+        4,
+        64
+      ],
+      "dtype": "torch.bfloat16",
+      "raw_sha256": "80a9e95ec13e69dfe7c004725bf25841863d6a35e2f6f10b1f1de207cfbf3a95",
+      "nonzero_elements": 3072,
+      "finite": true
+    },
+    "query_norm": {
+      "shape": [
+        12,
+        2048
+      ],
+      "dtype": "torch.int8",
+      "raw_sha256": "496cb87b05be471df20132f37d4e1c50ffc46864c46a4f992632112b94a36cc6",
+      "nonzero_elements": 24258,
+      "finite": true
+    },
+    "query_norm_scale": {
+      "shape": [
+        12
+      ],
+      "dtype": "torch.float32",
+      "raw_sha256": "edb964ba0cf22a3c8942bb93a6886ea9b1d5c157916e8d4efe6060d9d50365e0",
+      "nonzero_elements": 12,
+      "finite": true
+    },
+    "latent": {
+      "shape": [
+        12,
+        4,
+        512
+      ],
+      "dtype": "torch.bfloat16",
+      "raw_sha256": "5af3034b330175a3c94b16ac3deba82d4653109a7a6625d9eddaa643da4c4d97",
+      "nonzero_elements": 24576,
+      "finite": true
+    },
+    "value_up_fp32": {
+      "shape": [
+        12,
+        1024
+      ],
+      "dtype": "torch.float32",
+      "raw_sha256": "c20ff0efb2d8641d570d0578a8c55d448c33eaf588108acd8b75120ec26e0559",
+      "nonzero_elements": 12288,
+      "finite": true
+    },
+    "value_up": {
+      "shape": [
+        12,
+        1024
+      ],
+      "dtype": "torch.bfloat16",
+      "raw_sha256": "c638271811701a7ed696af06a5d2b248eef9e297dd43748e8f7625194e46fb0d",
+      "nonzero_elements": 12288,
+      "finite": true
+    },
+    "o_codes": {
+      "shape": [
+        12,
+        1024
+      ],
+      "dtype": "torch.int8",
+      "raw_sha256": "773fe46b95addd324f403bc3c0a3c306181739ec68ecc152df7a92cec5939a27",
+      "nonzero_elements": 12154,
+      "finite": true
+    },
+    "o_token_scale": {
+      "shape": [
+        12
+      ],
+      "dtype": "torch.float32",
+      "raw_sha256": "d3f38bc53f3f3d850342442d9f4c054b1aeba9d6008b85b8a5e5adb6973863d2",
+      "nonzero_elements": 12,
+      "finite": true
+    },
+    "o_accumulators": {
+      "shape": [
+        12,
+        6144
+      ],
+      "dtype": "torch.int32",
+      "raw_sha256": "f70bf20da89a361388dd47322d9017e88f9a823526f24afbe3e36e061b398395",
+      "nonzero_elements": 73726,
+      "finite": true
+    },
+    "output": {
+      "shape": [
+        12,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "raw_sha256": "281083bd950b5e0401434ca636e7d99082c307aacd36e25601f00ad40cb3f4b7",
+      "nonzero_elements": 73726,
+      "finite": true
+    },
+    "hidden": {
+      "shape": [
+        12,
+        6144
+      ],
+      "dtype": "torch.bfloat16",
+      "raw_sha256": "81b9fbd97962b54dfd5d9b67f42618b9313e0126bfbea7691dd877ab67079882",
+      "nonzero_elements": 73728,
+      "finite": true
+    },
+    "value_weight": {
+      "shape": [
+        4,
+        512,
+        256
+      ],
+      "dtype": "torch.bfloat16",
+      "raw_sha256": "fd0bc2e2ab06b782b35d156a271b1ab1a31892468f5ee64b7a0d3cfe643a1caf",
+      "nonzero_elements": 524288,
+      "finite": true
+    },
+    "o_weight": {
+      "shape": [
+        1024,
+        6144
+      ],
+      "dtype": "torch.int8",
+      "raw_sha256": "0562ddc51a0a674a7a0c046a287138ebe6b82fa2d62462343f7516b9040f4d04",
+      "nonzero_elements": 5921325,
+      "finite": true
+    },
+    "o_weight_scale": {
+      "shape": [
+        6144
+      ],
+      "dtype": "torch.float32",
+      "raw_sha256": "9e72ed3bffc9eb2caa0114013ae79362e81de77bbd939c2681537571f289a27b",
+      "nonzero_elements": 6144,
+      "finite": true
+    }
+  },
+  "dump": {
+    "path": "/evidence/vendor-hook-forward-diagnostic-v10/outer-forward-diagnostic.pt",
+    "sha256": "a07c2505cc9ac44bcd48125ec107c135c85e925b3ebf2c494f17c1a6f7ddb60d"
+  }
+}

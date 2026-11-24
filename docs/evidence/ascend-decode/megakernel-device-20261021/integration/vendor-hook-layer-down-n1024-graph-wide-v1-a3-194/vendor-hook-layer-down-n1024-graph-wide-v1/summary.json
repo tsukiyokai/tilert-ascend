@@ -1,0 +1,48 @@
+{
+  "scope": "Actual Decoder weights; official ACL local-component graph versus eager separate components; no TP reduction",
+  "script_sha256": "660eff4af44da4633eb4019c03350473a520ad709956fb3b160e53c555179a0e",
+  "arguments": {
+    "output": "/evidence/vendor-hook-layer-down-n1024-graph-wide-v1",
+    "runtime": "/workspace",
+    "extension_sha256": "acac5e7220b51bdd24e41352ffc52f88aac5f58dd9d262b0a43aad2ca9efd0fc",
+    "mode": "int8",
+    "timeout": 600,
+    "adapter": "/workspace/tilert/models/glm_5_2_ascend/attention_native.py",
+    "indexed_library": "/evidence/attention-wk-m1-build-v1/whole_layer_indexed_attention.so",
+    "shared_library": "/workspace/native/shared/whole_layer_full_attention.so",
+    "sfa_library": "/workspace/native/sfa/vendor_sfa_adapter.so",
+    "forward_widths": [
+      1,
+      2,
+      12,
+      32
+    ],
+    "forward_replays": 8,
+    "forward_sequence": 8192,
+    "graph_residual_modes": [
+      "provided"
+    ],
+    "ffn_library": "/decoder/complete_ffn.so",
+    "chain_library": "/decoder/layer_local_chain.so",
+    "world_size": 16
+  },
+  "exitcodes": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "success": true
+}

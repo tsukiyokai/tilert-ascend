@@ -1,0 +1,148 @@
+{
+  "status": "CPU contract passed; NPU not launched because die15 had competing compute in launch precheck",
+  "scope": "Synthetic M16/C9344 four-layer fixture using actual production SharedKVAttention; not model-captured state",
+  "NPU_launched": false,
+  "input_sha256": "96c8c5aaa295d5d6755fe65e611b9b801bc5207f338dc33c8ebffb599f0c56ec",
+  "fixture_sha256": "5b8d6bba4a1aeb286f26cfa9152fd534c4025f30f2501cb35e106796059dc9be",
+  "helper_sha256": "47503e3cd1b730cfcc3b21f27f8d1709f2bcf003cb72d3537d383d65df3417e6",
+  "cpu_source_sha256": "14e174ef971584bf3319c2c17a1100cdafaf21717af10d979ab15804dbe435b3",
+  "screen_sha256": "61b5d3964c00d3d27bc3b48f264407558419eb56570cbb4a6b4e00ac71b6f6dc",
+  "shape": {
+    "M": 16,
+    "capacity": 9344,
+    "heads": 4,
+    "topk": 2048,
+    "layers": 4
+  },
+  "causal": {
+    "written_A": 8208,
+    "written_B": 8207,
+    "rightdown_all_rows_checked": true,
+    "zero_tail_begin": 8208
+  },
+  "CPU_checks": {
+    "states": [
+      {
+        "state": "A",
+        "mask_sha256": "56ca939a3e81f337633b3aa37e2c4eeadc9a1519bb5ad93c6bbc75ef1512b76e",
+        "valid_selected_per_row": [
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048
+        ],
+        "all_bits_match_independent_set": true,
+        "actual_binder_matches_four_rebuild_calls": true,
+        "one_mask_pointer_four_distinct_q_kv": true
+      },
+      {
+        "state": "B",
+        "mask_sha256": "a157f2bc6dfb8a7e94d41336d8ed8572e5029824d863510a0b3d8abeecbebb72",
+        "valid_selected_per_row": [
+          2047,
+          2047,
+          2047,
+          2047,
+          2047,
+          2047,
+          2047,
+          2047,
+          2047,
+          2047,
+          2047,
+          2047,
+          2047,
+          2047,
+          2047,
+          2047
+        ],
+        "all_bits_match_independent_set": true,
+        "actual_binder_matches_four_rebuild_calls": true,
+        "one_mask_pointer_four_distinct_q_kv": true
+      },
+      {
+        "state": "reset",
+        "mask_sha256": "56ca939a3e81f337633b3aa37e2c4eeadc9a1519bb5ad93c6bbc75ef1512b76e",
+        "valid_selected_per_row": [
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048,
+          2048
+        ],
+        "all_bits_match_independent_set": true,
+        "actual_binder_matches_four_rebuild_calls": true,
+        "one_mask_pointer_four_distinct_q_kv": true
+      }
+    ],
+    "fp64": {
+      "layer": 0,
+      "query_row": 15,
+      "heads": 4,
+      "state": "B",
+      "selected_valid_rows": 2047,
+      "dense_vs_selected_max_abs": 2.498001805406602e-16,
+      "future_selected_id": 8207,
+      "finite_future_perturb_bit_equal": true
+    },
+    "stale_indices_counterexample_rows": 16,
+    "stale_threshold_counterexample_rows": 16
+  },
+  "planned_device_scope": {
+    "die": 15,
+    "quota_bytes": 536870912,
+    "pairing": "30 ABBA pairs; 4 independent layers/group; one mask build/shared group",
+    "attention_calls": 604,
+    "sharing_correctness": "bitexact shared versus four independent FIA mask rebuilds, and eager/Graph A/B/reset within each arm",
+    "SFA_vs_FIA": "numeric diagnostics only, no arbitrary bitexact gate",
+    "timing": "profiler off; LOG3; no TPOT claim"
+  },
+  "precheck": {
+    "eligible": false,
+    "scope": "Two bounded die15 npu-smi snapshots and container-visible process list; other dies/containers remain shared",
+    "records": [
+      {
+        "utc": "2026-10-19T20:58:05.450937+00:00",
+        "die": 15,
+        "aicore_percent": 0,
+        "used_mib": 58600,
+        "total_mib": 65536,
+        "free_mib": 6936,
+        "line": "| 1     15                  | 0000:83:00.0  | 0           0    / 0          58600/ 65536         |"
+      },
+      {
+        "utc": "2026-10-19T20:58:07.417596+00:00",
+        "die": 15,
+        "aicore_percent": 5,
+        "used_mib": 58600,
+        "total_mib": 65536,
+        "free_mib": 6936,
+        "line": "| 1     15                  | 0000:83:00.0  | 5           0    / 0          58600/ 65536         |"
+      }
+    ],
+    "mem_available": "MemAvailable:   374112868 kB"
+  }
+}

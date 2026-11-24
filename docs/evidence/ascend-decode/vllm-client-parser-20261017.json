@@ -1,0 +1,66 @@
+{
+  "source": "/home/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/bench_vllm_decode.py",
+  "source_sha256": "6915ec3809f5fd515227d9c2de12f189b74489990c714b9dfe81781927d6dd84",
+  "source_unchanged": true,
+  "scope": "Pure stdlib synthetic stream; no HTTP/model/Torch/NPU.",
+  "checks": [
+    {
+      "name": "mtp_bursts_empty_text_late_usage",
+      "passed": true,
+      "tpot_ms": 2.0,
+      "events": 257,
+      "tokens": 1024
+    },
+    {
+      "name": "early_stop",
+      "passed": true,
+      "error": "The stream did not finish at the requested length"
+    },
+    {
+      "name": "one_missing_id",
+      "passed": true,
+      "error": "Token IDs and usage must describe exactly 8K to 1K"
+    },
+    {
+      "name": "wrong_usage",
+      "passed": true,
+      "error": "Token IDs and usage must describe exactly 8K to 1K"
+    },
+    {
+      "name": "wrong_prompt",
+      "passed": true,
+      "error": "Returned prompt IDs differ from the 8192 input IDs"
+    },
+    {
+      "name": "missing_done",
+      "passed": true,
+      "error": "The stream did not finish at the requested length"
+    },
+    {
+      "name": "stream_error",
+      "passed": true,
+      "error": "SSE error: injected"
+    },
+    {
+      "name": "request_id_changed",
+      "passed": true,
+      "error": "SSE request ID changed"
+    },
+    {
+      "name": "text_without_ids",
+      "passed": true,
+      "error": "Streamed text has no token IDs"
+    },
+    {
+      "name": "boolean_token_id",
+      "passed": true,
+      "error": "The service returned invalid token IDs"
+    },
+    {
+      "name": "other_sequence",
+      "passed": true,
+      "error": "The baseline requires one sequence"
+    }
+  ],
+  "passed": true
+}

@@ -1,0 +1,766 @@
+{
+  "status": "pass",
+  "checks": 1184599,
+  "failures": [],
+  "created_at": "2026-10-17T13:36:55.074478+00:00",
+  "audit_script_sha256": "c8aeb68cf7ad6e315eaffd0b6561981cdcf2313aaef59c144c78e032977f81e5",
+  "npu_initialized": false,
+  "torch_npu_imported": false,
+  "cpu_threads": 1,
+  "torch": "2.12.0+cpu",
+  "scope": "32 M1 steps: eager/graph/reset snapshots and internal delivery",
+  "precision_verified": false,
+  "formal_1024_token_run": false,
+  "source_sha256": {
+    "/workspace/offline/cann-graph-20261017-02/source/tilert/models/glm_5_2_ascend/cann_model.py": "70dab4b62a64873291fe0f664db6235a83a2778677ecc34b43605a37477207a3",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/ascend_forward_context.py": "848112214c9f56371b4bf43a59d39fadbed0e0e864581e300a3a89778d4083cb",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/indexer.py": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/sfa_v1.py": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/models/deepseek_mtp.py": "4ed40eae69848d1fac7c901a1c73b0532a71473a045af1aa79508f9c74be0a2b",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/model_runner_v1.py": "f0a3079900c9b2628437195ef21d0631c747aa1a49b663c1b27fddf379cbf8f5",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/worker.py": "1859b05db9bdbb9fd69a86e08bb67a1de2c964ed4b7ab75abc88492c9b910abc",
+    "/workspace/src/vllm-unified/vllm/model_executor/models/deepseek_v2.py": "5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408",
+    "/workspace/offline/cann-graph-20261017-02/source/tilert/models/glm_5_2_ascend/cann_graph.py": "5d7c448560f3982180103f9244e6522ec3989f406a9bb2c87f3b916734d3cbd5",
+    "/workspace/offline/cann-graph-20261017-02/source/tests/glm52/check_cann_graph.py": "adcfc520f28d0e9a565295c2fe89fd02bb59532379ba5573e522ef22fa9a7a8b"
+  },
+  "source_manifest": {
+    "git_head": "12ae8e25a76d4f5890e1586d53b47b99f3f90f4b",
+    "overrides": {
+      "tests/glm52/bench_cann_decode.py": "2adc96268a2eb4b3eaf5c6aaa80cabf95396fdcab5d1ff83581b37a65310b897",
+      "tests/glm52/check_cann_graph.py": "adcfc520f28d0e9a565295c2fe89fd02bb59532379ba5573e522ef22fa9a7a8b",
+      "tilert/models/glm_5_2_ascend/cann_model.py": "70dab4b62a64873291fe0f664db6235a83a2778677ecc34b43605a37477207a3",
+      "tilert/models/glm_5_2_ascend/cann_graph.py": "5d7c448560f3982180103f9244e6522ec3989f406a9bb2c87f3b916734d3cbd5"
+    },
+    "archive_sha256": "baba1938cb77f67813df77f964bbdb9755d0bb21e05d68896d048509194e7ff0"
+  },
+  "bindings": {
+    "/workspace/offline/cann-graph-20261017-02/exit.json": "085ad26072000fc79f211feb84c4285a92030ad8991caa20ea63ed8c511f6bdf",
+    "/workspace/offline/cann-graph-20261017-02/launch.json": "16804ec052ac46d84579792dbc375d5a1ac50a843d1cf24fbf2954738e8b69c9",
+    "/workspace/offline/cann-graph-20261017-02/source.json": "a6460c7684103ea533e9bbf999a73c3d6d5e4742b52ed8d6dd0e5188944c0f2d",
+    "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/manifest.json": "b01cceb2d2e30564807ce9efc441ad535999b56b73d0c333e93bb18694ccda74"
+  },
+  "snapshot_files": 1536,
+  "snapshot_bytes": 725712384,
+  "ranks": [
+    {
+      "rank": 0,
+      "report": "/workspace/offline/cann-graph-20261017-02/checked/rank-0.json",
+      "report_sha256": "97580b274e91596c12f4751757fd6385da623b0c7b6c3254eb7d91d5aad9165a",
+      "snapshots": 96,
+      "comparisons": {
+        "graph_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_graph": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        }
+      },
+      "entry": {
+        "descriptor": "BatchDescriptor(num_tokens=1, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0)",
+        "aclgraph_type": "UpdatableGraph",
+        "has_aclgraph": true,
+        "input_addresses": [
+          20623373491200,
+          20623382218752
+        ]
+      },
+      "prefix_checks": 579,
+      "command_serial": 137,
+      "final_position": 0
+    },
+    {
+      "rank": 1,
+      "report": "/workspace/offline/cann-graph-20261017-02/checked/rank-1.json",
+      "report_sha256": "bb5225b469b63a7f97682c662b4b38b7e6d6979f81decf3c6a9b5aac53638271",
+      "snapshots": 96,
+      "comparisons": {
+        "graph_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_graph": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        }
+      },
+      "entry": {
+        "descriptor": "BatchDescriptor(num_tokens=1, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0)",
+        "aclgraph_type": "UpdatableGraph",
+        "has_aclgraph": true,
+        "input_addresses": [
+          20628742200320,
+          20628750927872
+        ]
+      },
+      "prefix_checks": 579,
+      "command_serial": 137,
+      "final_position": 0
+    },
+    {
+      "rank": 2,
+      "report": "/workspace/offline/cann-graph-20261017-02/checked/rank-2.json",
+      "report_sha256": "1889a835885ec2c0d999e3a61660bc74f2561455974aa8f964adff3e8c5ae73b",
+      "snapshots": 96,
+      "comparisons": {
+        "graph_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_graph": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        }
+      },
+      "entry": {
+        "descriptor": "BatchDescriptor(num_tokens=1, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0)",
+        "aclgraph_type": "UpdatableGraph",
+        "has_aclgraph": true,
+        "input_addresses": [
+          20628742200320,
+          20628750927872
+        ]
+      },
+      "prefix_checks": 579,
+      "command_serial": 137,
+      "final_position": 0
+    },
+    {
+      "rank": 3,
+      "report": "/workspace/offline/cann-graph-20261017-02/checked/rank-3.json",
+      "report_sha256": "b192eae80246c91fd72d23315fbaeb7423861d8a4a6be3c621e9b71cfe02d90e",
+      "snapshots": 96,
+      "comparisons": {
+        "graph_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_graph": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        }
+      },
+      "entry": {
+        "descriptor": "BatchDescriptor(num_tokens=1, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0)",
+        "aclgraph_type": "UpdatableGraph",
+        "has_aclgraph": true,
+        "input_addresses": [
+          20628742200320,
+          20628750927872
+        ]
+      },
+      "prefix_checks": 579,
+      "command_serial": 137,
+      "final_position": 0
+    },
+    {
+      "rank": 4,
+      "report": "/workspace/offline/cann-graph-20261017-02/checked/rank-4.json",
+      "report_sha256": "e66ea9a3affdf44fddf82cc5e98afe82084b105126b10f5093170e629aaddd0b",
+      "snapshots": 96,
+      "comparisons": {
+        "graph_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_graph": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        }
+      },
+      "entry": {
+        "descriptor": "BatchDescriptor(num_tokens=1, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0)",
+        "aclgraph_type": "UpdatableGraph",
+        "has_aclgraph": true,
+        "input_addresses": [
+          20628742200320,
+          20628750927872
+        ]
+      },
+      "prefix_checks": 579,
+      "command_serial": 137,
+      "final_position": 0
+    },
+    {
+      "rank": 5,
+      "report": "/workspace/offline/cann-graph-20261017-02/checked/rank-5.json",
+      "report_sha256": "b0495812961209a9df9bf2bb642aace3e6d8c74afc7e3b38986aeaf91765c398",
+      "snapshots": 96,
+      "comparisons": {
+        "graph_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_graph": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        }
+      },
+      "entry": {
+        "descriptor": "BatchDescriptor(num_tokens=1, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0)",
+        "aclgraph_type": "UpdatableGraph",
+        "has_aclgraph": true,
+        "input_addresses": [
+          20628742200320,
+          20628750927872
+        ]
+      },
+      "prefix_checks": 579,
+      "command_serial": 137,
+      "final_position": 0
+    },
+    {
+      "rank": 6,
+      "report": "/workspace/offline/cann-graph-20261017-02/checked/rank-6.json",
+      "report_sha256": "9e324cbbe53e6f0633469da0612b239b7d30137d9c4173f8b060619025416734",
+      "snapshots": 96,
+      "comparisons": {
+        "graph_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_graph": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        }
+      },
+      "entry": {
+        "descriptor": "BatchDescriptor(num_tokens=1, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0)",
+        "aclgraph_type": "UpdatableGraph",
+        "has_aclgraph": true,
+        "input_addresses": [
+          20628742200320,
+          20628750927872
+        ]
+      },
+      "prefix_checks": 579,
+      "command_serial": 137,
+      "final_position": 0
+    },
+    {
+      "rank": 7,
+      "report": "/workspace/offline/cann-graph-20261017-02/checked/rank-7.json",
+      "report_sha256": "7ae6b8e7d8744f1276914bafef9b04917cf1907c2c9a4c553dbef05d8f00a57d",
+      "snapshots": 96,
+      "comparisons": {
+        "graph_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_graph": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        }
+      },
+      "entry": {
+        "descriptor": "BatchDescriptor(num_tokens=1, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0)",
+        "aclgraph_type": "UpdatableGraph",
+        "has_aclgraph": true,
+        "input_addresses": [
+          20628742200320,
+          20628750927872
+        ]
+      },
+      "prefix_checks": 579,
+      "command_serial": 137,
+      "final_position": 0
+    },
+    {
+      "rank": 8,
+      "report": "/workspace/offline/cann-graph-20261017-02/checked/rank-8.json",
+      "report_sha256": "5b33ee3358be175b84ec7fce16f5f166a22116be46f1aa26ee0a8d4d11a1e57f",
+      "snapshots": 96,
+      "comparisons": {
+        "graph_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_graph": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        }
+      },
+      "entry": {
+        "descriptor": "BatchDescriptor(num_tokens=1, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0)",
+        "aclgraph_type": "UpdatableGraph",
+        "has_aclgraph": true,
+        "input_addresses": [
+          20628742200320,
+          20628750927872
+        ]
+      },
+      "prefix_checks": 579,
+      "command_serial": 137,
+      "final_position": 0
+    },
+    {
+      "rank": 9,
+      "report": "/workspace/offline/cann-graph-20261017-02/checked/rank-9.json",
+      "report_sha256": "0585bb89dd9e9242f9fa2fee4cebe6bdacf7e774fb5f399ede25920737637986",
+      "snapshots": 96,
+      "comparisons": {
+        "graph_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_graph": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        }
+      },
+      "entry": {
+        "descriptor": "BatchDescriptor(num_tokens=1, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0)",
+        "aclgraph_type": "UpdatableGraph",
+        "has_aclgraph": true,
+        "input_addresses": [
+          20628742200320,
+          20628750927872
+        ]
+      },
+      "prefix_checks": 579,
+      "command_serial": 137,
+      "final_position": 0
+    },
+    {
+      "rank": 10,
+      "report": "/workspace/offline/cann-graph-20261017-02/checked/rank-10.json",
+      "report_sha256": "a3a449b4c8b102a71cb136bed79173f9cd348f293bef2da2f3ce6dea98a1fdad",
+      "snapshots": 96,
+      "comparisons": {
+        "graph_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_graph": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        }
+      },
+      "entry": {
+        "descriptor": "BatchDescriptor(num_tokens=1, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0)",
+        "aclgraph_type": "UpdatableGraph",
+        "has_aclgraph": true,
+        "input_addresses": [
+          20628742200320,
+          20628750927872
+        ]
+      },
+      "prefix_checks": 579,
+      "command_serial": 137,
+      "final_position": 0
+    },
+    {
+      "rank": 11,
+      "report": "/workspace/offline/cann-graph-20261017-02/checked/rank-11.json",
+      "report_sha256": "509eb2b05c131d1ca3662b625d8cb804739354f5c7b4973943a451739a49ca0e",
+      "snapshots": 96,
+      "comparisons": {
+        "graph_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_graph": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        }
+      },
+      "entry": {
+        "descriptor": "BatchDescriptor(num_tokens=1, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0)",
+        "aclgraph_type": "UpdatableGraph",
+        "has_aclgraph": true,
+        "input_addresses": [
+          20628742200320,
+          20628750927872
+        ]
+      },
+      "prefix_checks": 579,
+      "command_serial": 137,
+      "final_position": 0
+    },
+    {
+      "rank": 12,
+      "report": "/workspace/offline/cann-graph-20261017-02/checked/rank-12.json",
+      "report_sha256": "76330f12c097ae842994940d2cedd69f937cae1b7df4e06f6f62cbf97c61667d",
+      "snapshots": 96,
+      "comparisons": {
+        "graph_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_graph": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        }
+      },
+      "entry": {
+        "descriptor": "BatchDescriptor(num_tokens=1, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0)",
+        "aclgraph_type": "UpdatableGraph",
+        "has_aclgraph": true,
+        "input_addresses": [
+          20628742200320,
+          20628750927872
+        ]
+      },
+      "prefix_checks": 579,
+      "command_serial": 137,
+      "final_position": 0
+    },
+    {
+      "rank": 13,
+      "report": "/workspace/offline/cann-graph-20261017-02/checked/rank-13.json",
+      "report_sha256": "a95c1e0cd5ca1b4a8b54c5e31de434546a59e819231efbe06be1d22fe615e329",
+      "snapshots": 96,
+      "comparisons": {
+        "graph_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_graph": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        }
+      },
+      "entry": {
+        "descriptor": "BatchDescriptor(num_tokens=1, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0)",
+        "aclgraph_type": "UpdatableGraph",
+        "has_aclgraph": true,
+        "input_addresses": [
+          20628742200320,
+          20628750927872
+        ]
+      },
+      "prefix_checks": 579,
+      "command_serial": 137,
+      "final_position": 0
+    },
+    {
+      "rank": 14,
+      "report": "/workspace/offline/cann-graph-20261017-02/checked/rank-14.json",
+      "report_sha256": "638bddc6eda6cbdfb047e24641def4952c72d6ce964af5d9e4a35c884f90a013",
+      "snapshots": 96,
+      "comparisons": {
+        "graph_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_graph": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        }
+      },
+      "entry": {
+        "descriptor": "BatchDescriptor(num_tokens=1, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0)",
+        "aclgraph_type": "UpdatableGraph",
+        "has_aclgraph": true,
+        "input_addresses": [
+          20628742200320,
+          20628750927872
+        ]
+      },
+      "prefix_checks": 579,
+      "command_serial": 137,
+      "final_position": 0
+    },
+    {
+      "rank": 15,
+      "report": "/workspace/offline/cann-graph-20261017-02/checked/rank-15.json",
+      "report_sha256": "abec7dc19a30c440fb01631b63839667da60b85b74c47a347e4177a104a78b3e",
+      "snapshots": 96,
+      "comparisons": {
+        "graph_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_eager": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        },
+        "reset_vs_graph": {
+          "tensors": 6272,
+          "bit_exact": 6272,
+          "value_exact": 6272,
+          "max_nrmse": 0.0,
+          "max_nrmse_field": null
+        }
+      },
+      "entry": {
+        "descriptor": "BatchDescriptor(num_tokens=1, num_reqs=1, uniform=True, has_lora=False, num_active_loras=0)",
+        "aclgraph_type": "UpdatableGraph",
+        "has_aclgraph": true,
+        "input_addresses": [
+          20628742200320,
+          20628750927872
+        ]
+      },
+      "prefix_checks": 579,
+      "command_serial": 137,
+      "final_position": 0
+    }
+  ],
+  "delivered_tokens": [
+    6500,
+    382,
+    262,
+    576,
+    2524,
+    5496,
+    64623,
+    264,
+    3210,
+    1140,
+    13,
+    19262,
+    7168,
+    24187,
+    279,
+    198,
+    262,
+    1681,
+    6337,
+    323,
+    279,
+    9249,
+    6500,
+    13,
+    19262,
+    7168,
+    594,
+    9249,
+    6500,
+    374,
+    279,
+    198,
+    262
+  ],
+  "requests": [
+    {
+      "warmup": true,
+      "tpot_ms": 44.80400578125,
+      "elapsed_ns": 1433728185
+    },
+    {
+      "warmup": false,
+      "tpot_ms": 44.703494125,
+      "elapsed_ns": 1430511812
+    },
+    {
+      "warmup": false,
+      "tpot_ms": 44.67553590625,
+      "elapsed_ns": 1429617149
+    },
+    {
+      "warmup": false,
+      "tpot_ms": 44.6390741875,
+      "elapsed_ns": 1428450374
+    }
+  ],
+  "measured_tpot_median_ms": 44.67553590625,
+  "evidence_scope": {
+    "prefix": "579 per rank = 3 phases x 193 full-prefix device equality checks; source check_cann_graph:128-130 and run_cann_model.check_prefix. Device prefix copies were not serialized; CPU snapshots contain only new rows.",
+    "pointers": "Recorded concrete entry pointers; live input pointer equality guarded by check_cann_graph:140-144.",
+    "counts": "1 capture/64 replays recorded after diagnosis; subsequent 4 requests execute 128 additional graph forwards. Final replay counter was not serialized.",
+    "inputs": "Prompt/checkpoint metadata and capture manifest rehashed; prefix hashes bound to the capture receipts."
+  }
+}

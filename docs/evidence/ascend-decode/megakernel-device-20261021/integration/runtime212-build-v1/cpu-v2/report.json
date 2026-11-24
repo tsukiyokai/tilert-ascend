@@ -1,0 +1,160 @@
+{
+  "scope": "CPU imports and co-load; no model forward or TP16 collective",
+  "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "torch_path": "/usr/local/lib/python3.11/site-packages/torch/__init__.py",
+  "torch_npu_path": "/usr/local/lib/python3.11/site-packages/torch_npu/__init__.py",
+  "libraries": [
+    {
+      "path": "/workspace/native/indexed/whole_layer_indexed_attention.so",
+      "sha256": "e957650c7def45dff8b918b74c987a8ce44eb0b2cca816e7246cbbff8a52378e"
+    },
+    {
+      "path": "/workspace/native/shared/whole_layer_full_attention.so",
+      "sha256": "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c"
+    },
+    {
+      "path": "/workspace/native/sfa/vendor_sfa_adapter.so",
+      "sha256": "bd8aff02f36dca1948b4eea1aa03805d6977b5ae8bf39573b51d73b68a61be3e"
+    }
+  ],
+  "completed": true,
+  "schemas": {
+    "indexed_attention_prepare": "tilert::indexed_attention_prepare(Tensor token_x, int pages, int table_pages, int index_pages, int index_table_pages, bool quantized, int blocks=0) -> (Tensor, Tensor, Dict(str, int), int, int)",
+    "indexed_attention_out": "tilert::indexed_attention_out(Tensor hidden, Tensor token_x, Tensor token_scale, Tensor[] main_weights, Tensor[] front_weights, Tensor[] tail_weights, Tensor? bias, Tensor[] main_metadata, Tensor[] indexer_metadata, Tensor(a!)[] caches, Tensor(b!) scratch, Tensor tiling, Tensor(c!) output, float scale, float epsilon_cq, float epsilon_ckv, int blocks, int sync_base) -> Tensor(c!)",
+    "shared_full_attention_prepare": "tilert::shared_full_attention_prepare(Tensor token_x, int pages, int table_pages, int blocks=0) -> (Tensor, Tensor, int, int)",
+    "shared_full_attention_out": "tilert::shared_full_attention_out(Tensor token_x, Tensor token_scale, Tensor weight_dq, Tensor weight_uq_qr, Tensor weight_uk, Tensor weight_dkv_kr, Tensor scale_dq, Tensor scale_uq_qr, Tensor scale_dkv_kr, Tensor gamma_cq, Tensor gamma_ckv, Tensor sin, Tensor cos, Tensor slots, Tensor(a!) kv_cache, Tensor(b!) rope_cache, Tensor topk, Tensor query_lengths, Tensor kv_lengths, Tensor page_table, Tensor value_weight, Tensor output_weight, Tensor output_scale, Tensor? bias, Tensor(c!) scratch, Tensor tiling, Tensor(d!) output, float scale, float epsilon_cq, float epsilon_ckv, int blocks, int sync_base) -> Tensor(d!)"
+  },
+  "sfa_schema": "_C_ascend::npu_sparse_flash_attention(Tensor query, Tensor key, Tensor value, Tensor sparse_indices, float scale_value, *, Tensor? block_table=None, Tensor? actual_seq_lengths_query=None, Tensor? actual_seq_lengths_kv=None, Tensor? query_rope=None, Tensor? key_rope=None, int sparse_block_size=1, str layout_query=\"BSND\", str layout_kv=\"BSND\", int sparse_mode=3, int pre_tokens=9223372036854775807, int next_tokens=9223372036854775807, int attention_mode=2, bool return_softmax_lse=False) -> (Tensor attention_out, Tensor softmax_max, Tensor softmax_sum)",
+  "classes": {
+    "DeepseekV2DecoderLayer": {
+      "module": "vllm.model_executor.models.deepseek_v2",
+      "file": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/models/deepseek_v2.py",
+      "sha256": "96f4f755f62caa85869fb884209e7f8869882ddb6efbd40c930778b27bd3e39d"
+    },
+    "AscendSFAImpl": {
+      "module": "vllm_ascend.attention.sfa_v1",
+      "file": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/attention/sfa_v1.py",
+      "sha256": "b3e7bc578fdc00cddca3dd066af49c353a5abdc75571d7fa602340a4aece1e2b"
+    },
+    "ACLGraphWrapper": {
+      "module": "vllm_ascend.compilation.acl_graph",
+      "file": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/compilation/acl_graph.py",
+      "sha256": "8e1c269e331d005f1361acc5cec24402bff7ae39b75e952ea890da7812804955"
+    },
+    "GlmMoeDsaConfig": {
+      "module": "transformers.models.glm_moe_dsa.configuration_glm_moe_dsa",
+      "file": "/workspace/vendor-hook-deps/transformers519/transformers/models/glm_moe_dsa/configuration_glm_moe_dsa.py",
+      "sha256": "24cf543686badb3b41881d8a1ff556a5ee5d966efa2886ebbebdcaa378de75e1"
+    }
+  },
+  "layer_selection": [
+    {
+      "layer_index": 6,
+      "ffn": "sparse",
+      "indexer": "full",
+      "first_k_dense_replace": 3,
+      "index_topk_freq": 4,
+      "index_skip_topk_offset": 3,
+      "index_topk_pattern": null
+    },
+    {
+      "layer_index": 7,
+      "ffn": "sparse",
+      "indexer": "shared",
+      "first_k_dense_replace": 3,
+      "index_topk_freq": 4,
+      "index_skip_topk_offset": 3,
+      "index_topk_pattern": null
+    }
+  ],
+  "actual_config_selection": {
+    "indexer_types": [
+      "full",
+      "full",
+      "full",
+      "shared",
+      "shared",
+      "shared",
+      "full",
+      "shared",
+      "shared",
+      "shared",
+      "full",
+      "shared",
+      "shared",
+      "shared",
+      "full",
+      "shared",
+      "shared",
+      "shared",
+      "full",
+      "shared",
+      "shared",
+      "shared",
+      "full",
+      "shared",
+      "shared",
+      "shared",
+      "full",
+      "shared",
+      "shared",
+      "shared",
+      "full",
+      "shared",
+      "shared",
+      "shared",
+      "full",
+      "shared",
+      "shared",
+      "shared",
+      "full",
+      "shared",
+      "shared",
+      "shared",
+      "full",
+      "shared",
+      "shared",
+      "shared",
+      "full",
+      "shared",
+      "shared",
+      "shared",
+      "full",
+      "shared",
+      "shared",
+      "shared",
+      "full",
+      "shared",
+      "shared",
+      "shared",
+      "full",
+      "shared",
+      "shared",
+      "shared",
+      "full",
+      "shared",
+      "shared",
+      "shared",
+      "full",
+      "shared",
+      "shared",
+      "shared",
+      "full",
+      "shared",
+      "shared",
+      "shared",
+      "full",
+      "shared",
+      "shared",
+      "shared"
+    ],
+    "index_topk_freq": 4,
+    "index_skip_topk_offset": 3,
+    "index_topk_pattern": null
+  },
+  "full_vendor_extension": null,
+  "norm_schema_available": false,
+  "npu_initialized": false
+}

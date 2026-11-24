@@ -1,0 +1,279 @@
+{
+  "scope": "CPU audit of frozen artifacts and reported timing samples",
+  "device_executed_by_audit": false,
+  "precision_verified": false,
+  "decoder_performance_accepted": false,
+  "boundaries": [
+    "M4 inputs in these attention jobs are synthetic, M1 is captured.",
+    "Timing is shared-device hot-input graph screening, not model TPOT.",
+    "Attention input readback booleans are source-bound runtime checks; post-call input tensors were not saved for independent rechecking.",
+    "GMM2 saves divided sample times; the /100 operation is source-bound, raw bulk event intervals were not separately saved.",
+    "Per-batch GMM2 output comparisons are source-bound runtime checks; only final timing outputs are available as tensors."
+  ],
+  "gather_pa": {
+    "m1": {
+      "input_label": "real_m1",
+      "query_count": 1,
+      "raw_comparisons_bit_exact": 16,
+      "raw_tensor_count": 12,
+      "input_unchanged_reported": {
+        "query": true,
+        "query_rope": true,
+        "indices": true,
+        "seq_lens": true,
+        "seq_offset": true,
+        "latent": true,
+        "rope": true
+      },
+      "fia_vs_frozen_sfa_diagnostic": {
+        "bit_exact": false,
+        "elements": 2048,
+        "different": 25,
+        "max_abs": 0.0078125,
+        "nrmse": 0.000520811099524228
+      }
+    },
+    "m4": {
+      "input_label": "synthetic_m4",
+      "query_count": 4,
+      "raw_comparisons_bit_exact": 16,
+      "raw_tensor_count": 12,
+      "input_unchanged_reported": {
+        "query": true,
+        "query_rope": true,
+        "indices": true,
+        "seq_lens": true,
+        "seq_offset": true,
+        "latent": true,
+        "rope": true
+      },
+      "fia_vs_frozen_sfa_diagnostic": {
+        "bit_exact": false,
+        "elements": 8192,
+        "different": 253,
+        "max_abs": 0.0078125,
+        "nrmse": 0.0008759787587681847
+      }
+    }
+  },
+  "none_offset_failure": {
+    "dump_offset_i32": 1066385309,
+    "offset_equals_workspace_first_32_bytes": true,
+    "valid_indices": [
+      0,
+      8190
+    ],
+    "seq_len": 2048,
+    "table_base_from_prior_audit": "0x12c1c0001600",
+    "derived_cacheline": "0x12c2be3f1440",
+    "fault_log_line": 20,
+    "logged_ifu_low48": "0x12c2be3f1440",
+    "scope": "Raw dump confirms nonzero offset and workspace-byte identity; address calculation reuses the prior audit table-base value. Explicit zero-offset v2 gathers are independently exact."
+  },
+  "contiguous_screen": {
+    "contiguous-screen-m1": {
+      "input_kind": "real_m1",
+      "raw_output_tensor_count": 126,
+      "raw_exact_comparisons": 122,
+      "A_B_distinct_all_pipelines": true,
+      "input_unchanged_reported": true,
+      "sample_count": 90,
+      "calls_per_graph": 10,
+      "rotating_order_and_division_verified": true,
+      "event_ms_per_call": {
+        "sfa": {
+          "count": 30,
+          "p50": 0.08793699741363525,
+          "p95": 0.46030570983886715,
+          "min": 0.08514800071716308,
+          "max": 0.46774802207946775
+        },
+        "direct_fia": {
+          "count": 30,
+          "p50": 0.04781000018119812,
+          "p95": 0.40196600198745724,
+          "min": 0.046421998739242555,
+          "max": 0.4095320224761963
+        },
+        "pa_fia": {
+          "count": 30,
+          "p50": 0.17101799845695495,
+          "p95": 0.5310121011734009,
+          "min": 0.16877399682998656,
+          "max": 0.5321720123291016
+        }
+      },
+      "direct_vs_sfa_diagnostic": {
+        "a": {
+          "bit_exact": false,
+          "elements": 2048,
+          "different": 25,
+          "max_abs": 0.0078125,
+          "nrmse": 0.000520811099524228
+        },
+        "b": {
+          "bit_exact": false,
+          "elements": 2048,
+          "different": 113,
+          "max_abs": 0.0078125,
+          "nrmse": 0.0012755132227726628
+        }
+      }
+    },
+    "contiguous-screen-m4-synthetic": {
+      "input_kind": "synthetic_m4",
+      "raw_output_tensor_count": 126,
+      "raw_exact_comparisons": 122,
+      "A_B_distinct_all_pipelines": true,
+      "input_unchanged_reported": true,
+      "sample_count": 90,
+      "calls_per_graph": 10,
+      "rotating_order_and_division_verified": true,
+      "event_ms_per_call": {
+        "sfa": {
+          "count": 30,
+          "p50": 0.08753600120544433,
+          "p95": 0.4688370084762573,
+          "min": 0.08660399913787842,
+          "max": 0.469897985458374
+        },
+        "direct_fia": {
+          "count": 30,
+          "p50": 0.06433700025081635,
+          "p95": 0.43283791780471803,
+          "min": 0.06370400190353394,
+          "max": 0.4403059959411621
+        },
+        "pa_fia": {
+          "count": 30,
+          "p50": 0.8584199905395509,
+          "p95": 0.8766931200027466,
+          "min": 0.5157279968261719,
+          "max": 0.8892399787902832
+        }
+      },
+      "direct_vs_sfa_diagnostic": {
+        "a": {
+          "bit_exact": false,
+          "elements": 8192,
+          "different": 253,
+          "max_abs": 0.0078125,
+          "nrmse": 0.0008759787587681847
+        },
+        "b": {
+          "bit_exact": false,
+          "elements": 8192,
+          "different": 302,
+          "max_abs": 0.0078125,
+          "nrmse": 0.0009398627645269414
+        }
+      }
+    }
+  },
+  "gmm2_timing": {
+    "scope": "Fixed-M1 one-die hot graph replay; no M4 or TPOT claim",
+    "raw_exact_comparisons": 41,
+    "same_input_weights_scale_counts_vs_functional_baseline": true,
+    "final_timing_source_a8_exact": true,
+    "samples": 60,
+    "batches_per_layout": 30,
+    "iterations_per_batch": 100,
+    "alternating_order_verified": true,
+    "us_per_replay": {
+      "nz": {
+        "device": {
+          "count": 30,
+          "p50": 112.0895004272461,
+          "p95": 149.12153959274292,
+          "min": 111.60579681396484,
+          "max": 159.30339813232422
+        },
+        "host": {
+          "count": 30,
+          "p50": 112.83317,
+          "p95": 149.85571,
+          "min": 112.23460999999999,
+          "max": 159.94306
+        }
+      },
+      "nd": {
+        "device": {
+          "count": 30,
+          "p50": 104.74640369415283,
+          "p95": 140.00826120376587,
+          "min": 104.10280227661133,
+          "max": 141.47199630737305
+        },
+        "host": {
+          "count": 30,
+          "p50": 105.43917,
+          "p95": 140.5915415,
+          "min": 104.71331,
+          "max": 142.08862
+        }
+      }
+    },
+    "nd_vs_nz_diagnostic": {
+      "bit_exact": true,
+      "elements": 49152,
+      "different": 0,
+      "max_abs": 0.0,
+      "nrmse": 0.0
+    },
+    "cross_layout_gate": false,
+    "format": {
+      "nz": 29,
+      "nd": 2
+    }
+  },
+  "status": "audit_pass",
+  "npu_initialized": false,
+  "raw_exact_tensor_comparisons": 317,
+  "raw_exact_element_comparisons": 43466256,
+  "artifact_sha256": {
+    "/workspace/offline/cann-attention-reuse-20261018-01/gather-pa-v2-run/exit.json": "13c4b2ca29ed1ad0af87cf8a1e420fed50669e923d5d70122b7b94ff2f6f1a80",
+    "/workspace/offline/cann-attention-reuse-20261018-01/gather-pa-v2-run/launch.json": "7c65f6ab9c8acd808810b72d9dddf43e93cc91c6e51aceef301027de1a8f202f",
+    "/workspace/offline/cann-attention-reuse-20261018-01/contiguous-screen-run/exit.json": "51db3e48be4e2c6f55c6ae15b921108fe316ee3b3d8a3dbf4ee5907c78935c7f",
+    "/workspace/offline/cann-attention-reuse-20261018-01/contiguous-screen-run/launch.json": "7e93fc68b22f04cd6ff9d41de77d3d5cb4c6e08e25b35b31ee1a7088b5ee58e9",
+    "/workspace/offline/cann-gmm2-layout-20261018-01/timing-run-01/exit.json": "290672f7c9371ad9e2f139f25143dd98d772d894087a212700d6cff0e2f45099",
+    "/workspace/offline/cann-gmm2-layout-20261018-01/timing-run-01/launch.json": "b2eec96422085c4894147ce9f8cd3c09b1cbffbf15214b1f92c038de492622f2",
+    "/workspace/offline/cann-attention-reuse-20261018-01/gather-pa-v2-device-m1/result.json": "fc7a8fb5d6cf72d7d5566a849b2254ecbbc2136501baf25768aa7adc14633170",
+    "/workspace/offline/cann-attention-reuse-20261018-01/gather_pa_fia.py": "e276aff008c550a2f05c2645e65ce44b15321c0029a887e68094c1c2b2f61ad6",
+    "/workspace/offline/cann-attention-reuse-20261018-01/compare_cann_sparse_attention.py": "57c4b56771cf3ec2f75880e223227207694a664c4c46cdc67237eda8f8c28bc0",
+    "/workspace/offline/cann-attention-reuse-20261018-01/gather-pa-v2-device-m1/outputs.pt": "9c79c1c1576acdef34530c5d07860f28fba9b6afa1d9d93d3a18f8b639802635",
+    "/workspace/offline/cann-mla8k-20261017/early-bind/result.pt": "f7ee5d9cdd6e12eb6a05a5974c1ff67d02ab246488561b8cc5cc91e0e6222fca",
+    "/workspace/offline/cann-attention-reuse-20261018-01/m1/result.json": "745283ce2ae065c2d4ab9845cf2099984950009d46c178f52838e2b800be3d27",
+    "/workspace/offline/cann-attention-reuse-20261018-01/m1/outputs.pt": "7464487d3185a199d377a990a2a32092e4a19d749f55d89936cebf08851529c2",
+    "/workspace/offline/cann-attention-reuse-20261018-01/gather-pa-v2-device-m4/result.json": "b66103757f68e1bebc9d7d2684777b5a87d15653f8b792c1aaa533c457ccb1eb",
+    "/workspace/offline/cann-attention-reuse-20261018-01/gather-pa-v2-device-m4/outputs.pt": "a9c194a55242a5225db6d301709750a49ca127c3a727cfc9f41c4a5331fdd422",
+    "/workspace/offline/cann-attention-reuse-20261018-01/synthetic-m4.pt": "09b509a310b2be8ada8751d37a416de90e4a6bcdec460055a7f672ad09c579c1",
+    "/workspace/offline/cann-attention-reuse-20261018-01/m4-synthetic/result.json": "a8ac15d4280f3c3bb1280a94595d95b2db4e06619db87a8691adcb030cba0a80",
+    "/workspace/offline/cann-attention-reuse-20261018-01/m4-synthetic/outputs.pt": "249ceadba13e55a1a6fc18f991b9e0f2959e6f4445e80dc3d662f85c0b3f66f1",
+    "/workspace/offline/cann-attention-reuse-20261018-01/gather-pa-failure.json": "16a9783b3cc39b869ccab3a2c60a8375c5554f46b5c7e5dd717d1a60a98dbd0c",
+    "/workspace/offline/cann-attention-reuse-20261018-01/gather-pa-failure.py": "6e00ffbfb83fbe0e1593087c16db689493e79881c71961ec826da3ec02823790",
+    "/workspace/offline/cann-attention-reuse-20261018-01/extra-info/data-dump/0/exception_info.40.8.20261018023806658": "b614efc6ef3ae83f408e4062c131e64eeba59febe955cffd10f7139c80ad4b8f",
+    "/workspace/offline/cann-attention-reuse-20261018-01/gather-pa-run/run.log": "08aad28d5ec6566978e369b2b7a7fb94b42da4e59e743622c100bc4116fb94c0",
+    "/workspace/offline/cann-attention-reuse-20261018-01/contiguous-screen-m1/result.json": "3ae55194f427fd667e8b49e60e1bc6490bb3472ca93eb561129de6c97d844f2b",
+    "/workspace/offline/cann-attention-reuse-20261018-01/bench_contiguous_attention.py": "06d7f4a304ced8cd30acf86d1db17cc688762f022d2426927a6836fea4841145",
+    "/workspace/offline/cann-attention-reuse-20261018-01/bench.py": "a1b6449504e1897cc7e41e24c78bce9a7f20191fb6adccdee745dde28d03451f",
+    "/workspace/offline/cann-attention-reuse-20261018-01/contiguous-screen-m1/outputs.pt": "9f07ba859ce2a0f279136199cd96e1b77f9beeee861b73067952b3541f71cec5",
+    "/workspace/offline/cann-attention-reuse-20261018-01/contiguous-screen-m4-synthetic/result.json": "55f6fdf065859a381a3f8178f7429975d8c1ffd1e44f01ffe4eb78cc085f5508",
+    "/workspace/offline/cann-attention-reuse-20261018-01/contiguous-screen-m4-synthetic/outputs.pt": "c99ede1a3d6a89872220822a4e8edbf74268f60512e61cb586ac2c561f870f1e",
+    "/workspace/offline/cann-gmm2-layout-20261018-01/timing-00/timing.json": "e08475744af4d1c2607457fe7eeba1090a704e4e870e5115cba9a0b4f9741777",
+    "/workspace/offline/cann-gmm2-layout-20261018-01/graph_timing.py": "a27f4b6dc54d7434c26a27737786413889206e9d1be0bc2c4c4cc6cede99e97f",
+    "/workspace/offline/cann-gmm2-layout-20261018-01/replay.py": "8ef920480c189c1a03e9e47887c3ae8162bac9d74993fbddacfec2e3591e8cd0",
+    "/workspace/offline/cann-routed-stage-20261017/source/tilert/models/glm_5_2_ascend/reference_weights.py": "dfc4de627cb83eebb48058334edf3c1c95a0f44a554d7083c70599041fba34df",
+    "/workspace/offline/cann-routed-stage-20261017/source/tests/glm52/check_cann_router.py": "774dcd49516a6a09c9b37943272f13e50132ae3cf7f8da6b91bbe5fc67cfd423",
+    "/workspace/offline/cann-routed-stage-20261017/source/tests/glm52/replay_cann_gmm1.py": "32e50b355e87b9a35d237f427f75fc1f43c28fb269020980834aa94661005d4b",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/quantization/methods/w4a8/w4a8.py": "d06549f45637300df3e4915823f4f71a913ce7059d1e3a4c475ab1f225e1a28a",
+    "/workspace/offline/cann-gmm2-layout-20261018-01/device-01/result.json": "961b306cc0be9060f9f71e17e41fd8ef334b2fe47d608c662043a759a053ea6f",
+    "/workspace/offline/cann-gmm2-layout-20261018-01/device-01/outputs.pt": "c9f9ee93a5e983b13f68442065363e70b3884d430ca21084061dfd29bc83366a",
+    "/workspace/offline/cann-gmm2-layout-20261018-01/timing-00/outputs.pt": "c9f9ee93a5e983b13f68442065363e70b3884d430ca21084061dfd29bc83366a",
+    "/workspace/offline/cann-gmm2-layout-20261018-01/timing-00/timing-outputs.pt": "60947147c1142202b92427a53d0d77d5ed2093a4895b85e9c91ab67cf9ef56a4",
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-0/step-08192.pt": "11ffcdbe90174b3c2942de93ac44ee2f04d4f123974cf022d572b5eca1820f28",
+    "/workspace/offline/cann-routed-stage-20261017/continuation8k/rank-0.json": "4f0f925bfdc8ca8b29e9aa54ee484dd7d35434be30eb5f4959c91c8ecb14bec6",
+    "/workspace/models/GLM-5.2-w4a8c8/config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+    "/workspace/models/GLM-5.2-w4a8c8/quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+    "/workspace/models/GLM-5.2-w4a8c8/quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+  }
+}

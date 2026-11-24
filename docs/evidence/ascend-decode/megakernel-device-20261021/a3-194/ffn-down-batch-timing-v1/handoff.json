@@ -1,0 +1,51 @@
+{
+  "comparison": "Four-tile down-overlap c83c9cb6 versus original complete FFN 3673c2a7; not against the slower unbatched overlap variant",
+  "candidate_c_abi": "ffn_down_batch_launch",
+  "control_c_abi": "ffn_composed_launch",
+  "candidate_library_sha256": "c83c9cb66f9109b810023d95794a4907734e73f66b9526ffd0c3b5987e63d984",
+  "control_library_sha256": "3673c2a73b2f4b5a4a93b3c2543a4aca35b45773d6a53fc043f27e59a2482655",
+  "benchmark_sha256": "6dd44b79ba89a359cf2ca1908223559d3e6e4a9c17df1c6636e552b06629b582",
+  "manifest_sha256": "e4c1cc1ef2702cb1db84b56909fcfbcdaa84a82f414ac134b3d6bdde1c0de824",
+  "sources_verified": 8,
+  "public_scratch_count": 32,
+  "abi_bytes": {
+    "DispatchInput": 56,
+    "SharedInput": 112
+  },
+  "header_sha256": {
+    "control": "e2a488082610c9e82066b47390988ffc748824b2890653b021efb2a925485787",
+    "candidate": "bff71332cc93e539994320187a5b8d76a5005c56a65003d2c3156ff49155ba5e"
+  },
+  "cpu_tests": {
+    "x86": 4,
+    "aarch64": 4
+  },
+  "cpu_log_sha256": {
+    "cpu-x86.log": "4255d92c9612780f9932618848ccfc4ac634d39af7f515282f52a904be733f6a",
+    "cpu-arm.log": "a4ac9fb1c0521fe3631e4d37f50c1bad93f805e81cd319fcf7c8a47cc83f1a66"
+  },
+  "actual_library_co_load": {
+    "/workspace/tests/glm52/whole_layer/ffn_composed/build-v2/ffn_composed.so": "3673c2a73b2f4b5a4a93b3c2543a4aca35b45773d6a53fc043f27e59a2482655",
+    "/workspace/logs/ffn-bridge-runtime212-v1/native/ffn_bridge.so": "57392089102d11b0d3c9389228345406e7473c50b9877876332ba147dba55e6c",
+    "/workspace/tests/glm52/whole_layer/routed_body/build-v2/routed_int4_torch.so": "6dcb8401cf722f9b3c3650d2432321ce6100d79aa98ff329d3a17a63a0f1d6c4",
+    "/workspace/tests/glm52/whole_layer/ffn_down_overlap/build-v3/ffn_down_batch.so": "c83c9cb66f9109b810023d95794a4907734e73f66b9526ffd0c3b5987e63d984"
+  },
+  "cpu_preflight_sha256": "3427cec726f0aa22a7babc5149f564eb691c07bf94a2b4bf01f242bc88078f65",
+  "npu_initialized": false,
+  "rows": 12,
+  "blocks": 24,
+  "banks": 16,
+  "calls_per_graph": 16,
+  "event_samples_per_arm_per_arena": 30,
+  "graph_replays_per_sample": 30,
+  "input_copies": "outside graph and event window",
+  "owner_arenas": [
+    "original_fused",
+    "original_separate"
+  ],
+  "shared_addresses": "All 32 exact addresses in each pair; original owner validators preserved",
+  "numerical_gate": "Eight changing fixtures per bank before and after timing, fresh-write poisoning, owning-Torch CPU snapshots",
+  "device_validation": "pending root-owned numerical and paired-event gates",
+  "remote_host_path": "/home/shanshan/tilert-megakernel-20261021/tests/glm52/whole_layer/ffn_down_overlap/timing-batch-v1",
+  "device_shell_command": "source /opt/ascend/cann-9.2.0/set_env.sh\nPYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 bash /workspace/tests/glm52/whole_layer/ffn_down_overlap/timing-batch-v1/bench_run.sh device /evidence\n"
+}

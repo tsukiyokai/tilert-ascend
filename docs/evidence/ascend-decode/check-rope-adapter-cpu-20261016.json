@@ -1,0 +1,595 @@
+{
+  "created_at": "2026-10-16T15:45:55.992891+00:00",
+  "scope": "CPU RoPE adapter arithmetic and instance isolation",
+  "device_execution": false,
+  "full_model_execution": false,
+  "oracle": "Python float64 scalar products/sums and independent BF16 RNE",
+  "input_coefficients": "Installed HF rotary embedding, BF16 before rotation",
+  "environment": {
+    "python": "3.11.12",
+    "torch": "2.12.0+cpu",
+    "autoload": "0",
+    "torch_npu_imported": true,
+    "npu_runtime_initialized": false
+  },
+  "source_sha256": {
+    "/workspace/src/TileRT-Ascend/tilert/models/glm_5_2_ascend/reference.py": "cef4c54b95f5003998c6326f3844166e7e9e716e6d71d92b53661bf93e6a2c5b",
+    "/workspace/experiments/glm52/check-rope-adapter-cpu-20261016.py": "06e2d4e2184fbd64975dcc983f03913c552f0163cfec52f656d7a15577971ccb",
+    "/opt/trt-asc/venv/lib/python3.11/site-packages/transformers/models/glm_moe_dsa/modeling_glm_moe_dsa.py": "adb8317a21716b01273046e46c807f14f0dbaf035af59b60d52bd6bc3007cf72",
+    "/workspace/models/GLM-5.2-w4a8c8/config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073"
+  },
+  "checks": [
+    {
+      "name": "coefficients.0.M1",
+      "passed": true,
+      "positions": [
+        0
+      ]
+    },
+    {
+      "name": "position0.M1.q4.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        4,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position0.M1.q4.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        4,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position0.M1.q4.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        4,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position0.M1.k1.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position0.M1.k1.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position0.M1.k1.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "coefficients.0.M4",
+      "passed": true,
+      "positions": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "position0.M4.q4.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        4,
+        64
+      ],
+      "elements": 1024,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position0.M4.q4.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        4,
+        64
+      ],
+      "elements": 1024,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position0.M4.q4.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        4,
+        64
+      ],
+      "elements": 1024,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position0.M4.k1.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        1,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position0.M4.k1.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        1,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position0.M4.k1.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        1,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "coefficients.1.M1",
+      "passed": true,
+      "positions": [
+        1
+      ]
+    },
+    {
+      "name": "position1.M1.q4.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        4,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position1.M1.q4.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        4,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position1.M1.q4.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        4,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position1.M1.k1.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position1.M1.k1.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position1.M1.k1.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "coefficients.1.M4",
+      "passed": true,
+      "positions": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "position1.M4.q4.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        4,
+        64
+      ],
+      "elements": 1024,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position1.M4.q4.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        4,
+        64
+      ],
+      "elements": 1024,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position1.M4.q4.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        4,
+        64
+      ],
+      "elements": 1024,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position1.M4.k1.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        1,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position1.M4.k1.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        1,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position1.M4.k1.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        1,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "coefficients.8192.M1",
+      "passed": true,
+      "positions": [
+        8192
+      ]
+    },
+    {
+      "name": "position8192.M1.q4.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        4,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position8192.M1.q4.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        4,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position8192.M1.q4.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        4,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position8192.M1.k1.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position8192.M1.k1.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position8192.M1.k1.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "coefficients.8192.M4",
+      "passed": true,
+      "positions": [
+        8192,
+        8193,
+        8194,
+        8195
+      ]
+    },
+    {
+      "name": "position8192.M4.q4.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        4,
+        64
+      ],
+      "elements": 1024,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position8192.M4.q4.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        4,
+        64
+      ],
+      "elements": 1024,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position8192.M4.q4.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        4,
+        64
+      ],
+      "elements": 1024,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position8192.M4.k1.main_BHMD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        1,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BHMD"
+    },
+    {
+      "name": "position8192.M4.k1.main_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        1,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "position8192.M4.k1.index_BMHD",
+      "passed": true,
+      "shape": [
+        1,
+        4,
+        1,
+        64
+      ],
+      "elements": 256,
+      "mismatches": 0,
+      "input_layout": "BMHD"
+    },
+    {
+      "name": "rounding_witness.scalar",
+      "passed": true,
+      "shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "elements": 64,
+      "mismatches": 0
+    },
+    {
+      "name": "rounding_witness.distinguishes_bf16_steps",
+      "passed": true,
+      "bf16_steps": -0.3046875,
+      "adapter": -0.302734375,
+      "independent_float64_real": -0.303131103515625
+    },
+    {
+      "name": "installation.same_code_object",
+      "passed": true
+    },
+    {
+      "name": "installation.same_call_defaults",
+      "passed": true
+    },
+    {
+      "name": "installation.instance_private_lookup",
+      "passed": true,
+      "changed_globals": [
+        "apply_rotary_pos_emb_interleave"
+      ]
+    },
+    {
+      "name": "installation.hf_module_unchanged",
+      "passed": true
+    },
+    {
+      "name": "installation.second_instance_and_class_unchanged",
+      "passed": true
+    },
+    {
+      "name": "reference_source_stable",
+      "passed": true
+    },
+    {
+      "name": "npu_runtime_not_initialized",
+      "passed": true
+    }
+  ],
+  "passed": 51,
+  "failed": 0,
+  "status": "pass"
+}

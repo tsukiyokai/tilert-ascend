@@ -1,0 +1,53 @@
+706: #ifdef ROUTED_SHARED_PIPELINE
+707:     shared.Store(pipe);
+708: #endif
+709:     if ASCEND_IS_AIC {
+710:         // Gate matmul has ended on every AIC before reusing L1 and events.
+711:         pipe.Reset();
+712:         TCubeTiling down_cube;
+713:         LoadTiling(down_cube, ((__gm__ uint8_t*)arguments.scratch[kDownTiling]));
+714:         Projection<weight_format> down_mm;
+715:         down_mm.Init(&down_cube, &pipe);
+716: #ifdef ROUTED_ACTIVE_LIST
+717:         for (int64_t ordinal = GetBlockIdx(); ordinal < active_count;
+718:              ordinal += arguments.blocks) {
+719:             const int64_t expert = active_experts.GetValue(
+720:                 kActiveHeaderElements + ordinal);
+721: #else
+722:         int64_t active = 0;
+723:         int64_t next = GetBlockIdx();
+724:         for (int64_t expert = 0; expert < ffn_bridge::kExperts; ++expert) {
+725:             if (counts.GetValue(expert) == 0) {
+726:                 continue;
+727:             }
+728:             if (active++ != next) {
+729:                 continue;
+730:             }
+731:             next += arguments.blocks;
+732: #endif
+733:             const int64_t begin = starts.GetValue(expert);
+734:             Project(down_mm, Nibbles(((__gm__ int4b_t*)arguments.scratch[kMiddle]), 2 * begin * kIntermediate),
+735:                     Nibbles(((__gm__ int4b_t*)arguments.weights[3]), expert * kHidden * kIntermediate),
+736:                     ((__gm__ RoutedProduct*)arguments.scratch[kDownProduct]) + 2 * begin * kHidden,
+737:                     ((__gm__ ScaleStorage*)arguments.weights[5]) + expert * kHidden, kHidden, kIntermediate,
+738:                     counts.GetValue(expert));
+739:         }
+740:         Publish();
+741:     }
+742:     timing.Barrier(4);
+743:     timing.Begin(5);
+744:     if ASCEND_IS_AIV {
+745:         TokenOutputs(pipe, held, ((__gm__ RoutedProduct*)arguments.scratch[kDownProduct]), ((__gm__ float*)arguments.weights[4]), ((__gm__ ScaleStorage*)arguments.weights[5]), ((__gm__ float*)arguments.scratch[kMiddleScale]),
+746:             (__gm__ int32_t*)arguments.dispatch.expert_ids, ((__gm__ bfloat16_t*)arguments.scratch[kRouteOutput]), ((__gm__ bfloat16_t*)arguments.scratch[kOutput]),
+747:             (__gm__ bfloat16_t*)arguments.shared.output, scaled_output,
+748:             combined_output, arguments.rows, arguments.blocks);
+749:         Publish();
+750:     }
+751:     timing.Begin(6);
+752:     timing.FinishFinal(6);
+753:     timing.Store(((__gm__ int64_t*)nullptr), arguments.rows, arguments.blocks);
+754: }
+755: 
+756: }  // namespace routed_body
+757: 
+758: #endif

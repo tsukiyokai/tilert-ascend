@@ -1,0 +1,53 @@
+--- token-output/bench.py
++++ token-join/bench.py
+@@ -35,9 +35,9 @@
+ class Launchers:
+     def __init__(self, fused, bridge, body, candidate):
+         self.libraries = [ctypes.CDLL(str(path.resolve())) for path in (fused, bridge, body)]
+-        self.base = self.libraries[0].ffn_composed_launch
++        self.base = self.libraries[0].ffn_token_output_launch
+         self.libraries.append(ctypes.CDLL(str(candidate.resolve())))
+-        self.fused = self.libraries[-1].ffn_token_output_launch
++        self.fused = self.libraries[-1].ffn_token_join_launch
+         array = ctypes.POINTER(ctypes.c_void_p)
+         self.fused.argtypes = ([ctypes.c_void_p, ctypes.c_uint64]
+             + [ctypes.c_void_p] * 5 + [array] * 3
+@@ -105,7 +105,7 @@
+         b, r, sync = self.arena
+         torch, bank = self.torch, self.bank
+         if owner == "fused":
+-            torch.ops.tilert_ffn_composed.forward_out(self.hidden, self.residual,
++            torch.ops.tilert_ffn_token_output.forward_out(self.hidden, self.residual,
+                 bank["gamma"], bank["gate"], bank["bias"], bank["routed"], bank["shared"],
+                 b, r, 1e-5, self.blocks, self.layout, sync)
+         else:
+@@ -206,14 +206,14 @@
+         torch.ops.load_library(str(path.resolve()))
+     launchers = Launchers(*libraries, args.candidate_library)
+     for operation in ("prepare", "forward_out"):
+-        baseline = str(getattr(torch.ops.tilert_ffn_composed, operation).default._schema)
+-        candidate = str(getattr(torch.ops.tilert_ffn_token_output, operation).default._schema)
+-        if candidate != baseline.replace("ffn_composed", "ffn_token_output"):
+-            raise RuntimeError(f"Token-output schema changed: {operation}")
++        baseline = str(getattr(torch.ops.tilert_ffn_token_output, operation).default._schema)
++        candidate = str(getattr(torch.ops.tilert_ffn_token_join, operation).default._schema)
++        if candidate != baseline.replace("ffn_token_output", "ffn_token_join"):
++            raise RuntimeError(f"Tail-join schema changed: {operation}")
+     args.output.mkdir(parents=True, exist_ok=True)
+     report = {
+-        "scope": "Matched-address token-owned output FFN versus accepted one-launch FFN, TP excluded",
+-        "arm_names": {"fused": "token_output", "separate": "base_one_launch"},
++        "scope": "Matched-address FFN tail join versus its token-output parent, TP excluded",
++        "arm_names": {"fused": "token_join", "separate": "token_output_parent"},
+         "extra_storage": "None; both C ABIs use the same 32 tensors",
+         "scratch_matching": "All 32 tensors including system workspaces and immutable tilings share exact addresses within each pair",
+         "owner_validation": "Each arena's owning Torch chain checks shapes/tiling identity/aliasing before CABI comparison",
+@@ -331,7 +331,7 @@
+ 
+     try:
+         with torch.inference_mode():
+-            cb, cr, cs = torch.ops.tilert_ffn_composed.prepare(hidden, args.blocks, 1)
++            cb, cr, cs = torch.ops.tilert_ffn_token_output.prepare(hidden, args.blocks, 1)
+             sb, ss = torch.ops.tilert_ffn_bridge.prepare(hidden, args.blocks)
+             sr, rs = torch.ops.tilert_pipeline_body.routed_shared_prepare(sb[6], 256, args.blocks, 1)
+             if cs != ss or cs != rs:

@@ -1,0 +1,54 @@
+{
+  "device_validation": "not run",
+  "checks": [
+    {
+      "argv": [
+        "/tmp/tilert-megakernel-cpu/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/glm52/whole_layer/ffn_bridge",
+        "-p",
+        "test_contract.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "test_finite_extremes_and_boundary_tie (test_contract.BridgeContract.test_finite_extremes_and_boundary_tie) ... ok\ntest_overlay_changes_only_two_capacities (test_contract.BridgeContract.test_overlay_changes_only_two_capacities) ... ok\ntest_separate_bf16_epilogue_is_observable (test_contract.BridgeContract.test_separate_bf16_epilogue_is_observable) ... ok\ntest_zero_and_cancelled_residuals (test_contract.BridgeContract.test_zero_and_cancelled_residuals) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.018s\n\nOK\n"
+    },
+    {
+      "argv": [
+        "g++",
+        "-std=c++17",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "tests/glm52/whole_layer/ffn_bridge/contract_test.cpp",
+        "-o",
+        "/tmp/ffn-bridge-contract-20261022"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/tmp/ffn-bridge-contract-20261022"
+      ],
+      "exit_code": 0,
+      "stdout": "64 geometry cases passed; M32 scratch bytes 18582272\n",
+      "stderr": ""
+    }
+  ],
+  "source_sha256": {
+    "contract.h": "f56a4bcfce45f999022012a3eb22471c59eca637b2d15e7b64b78493f0df1006",
+    "contract_test.cpp": "1aad87118a7842c80db85184ef1af6cefc6e85d830ae82ecd6e1b89a16fa2906",
+    "fixtures.py": "c0b010dadbdfe3e47918e5a84184ab295d4ac3a4da818066bee93e5e215b05f9",
+    "prepare_vendor.py": "fa3c500f746cc5dd33ecc6880c5cc707ae3978b0ec9612ae39e4bfcabf1e9655",
+    "test_contract.py": "8cc484a8f87d39b640c9992442811e3680a89ece984c54b63a92be44e566b5e7",
+    "build_runtime.py": "770a6696bb2047a53bce904e3ea2bddd39e009ec60f7b683a84e841cb3c00b99",
+    "build_oracle_package.py": "683afc6c008e3083ed3c24bcbcaeb5afdecc691fe09af67936301b2054317ae2",
+    "check.py": "a147223f48038c50e6e8b80ded18665de91e75272da8ce669cb49cd1385e2921"
+  }
+}

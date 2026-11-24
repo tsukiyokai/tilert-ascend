@@ -1,0 +1,71 @@
+{
+  "namespace": "tilert_ffn_down_batch",
+  "c_abi": "ffn_down_batch_launch",
+  "parent_library_sha256": "1d4220181c3a0235109d663aa348c4b435d9e5f91bdb8e82e0201e82c8214822",
+  "composed_ancestor_library_sha256": "3673c2a73b2f4b5a4a93b3c2543a4aca35b45773d6a53fc043f27e59a2482655",
+  "library_sha256": "c83c9cb66f9109b810023d95794a4907734e73f66b9526ffd0c3b5987e63d984",
+  "manifest_sha256": "7bdd9eeff212e989649cd5bd89d1f2b0d973bd5b44ecefa2091d367cdbb33cf9",
+  "checker_sha256": "b737d95e6bf0e955fafe19526813d670f54b9f9b80c3a4e412657f8756db7d2b",
+  "source_count": 78,
+  "artifact_count": 6,
+  "all_source_and_artifact_hashes_verified": true,
+  "cpu_contract_tests": {
+    "x86": 7,
+    "aarch64": 7
+  },
+  "parent_candidate_co_load": true,
+  "npu_initialized": false,
+  "host_tiling_checks": [
+    {
+      "layout": 0,
+      "shape": [
+        64,
+        256,
+        6144
+      ],
+      "status": 0
+    },
+    {
+      "layout": 0,
+      "shape": [
+        64,
+        6144,
+        128
+      ],
+      "status": 0
+    },
+    {
+      "layout": 1,
+      "shape": [
+        64,
+        256,
+        6144
+      ],
+      "status": 0
+    },
+    {
+      "layout": 1,
+      "shape": [
+        64,
+        6144,
+        128
+      ],
+      "status": 0
+    }
+  ],
+  "public_scratch_count": 32,
+  "additional_gm_bytes": 0,
+  "additional_ub_bytes": 0,
+  "resident_ub_bytes": 112352,
+  "body_barriers": 6,
+  "outer_end_phases": 2,
+  "consumer_batch_tiles": 4,
+  "consumer_columns_per_worker": 512,
+  "remote_host_path": "/home/shanshan/tilert-megakernel-20261021/tests/glm52/whole_layer/ffn_down_overlap/build-v3",
+  "remote_container_path": "/workspace/tests/glm52/whole_layer/ffn_down_overlap/build-v3",
+  "device_validation": "pending root-owned gate",
+  "first_device_shell_command": "source /opt/ascend/cann-9.2.0/set_env.sh\nPYTHONDONTWRITEBYTECODE=1 XDG_CACHE_HOME=/tmp/cache ASCEND_PROCESS_LOG_PATH=/evidence/driver-log OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 env -u ASCEND_DOCKER_RUNTIME python3 /workspace/tests/glm52/whole_layer/ffn_down_overlap/build-v3/check.py --library /workspace/tests/glm52/whole_layer/ffn_down_overlap/build-v3/ffn_down_batch.so --bridge-library /workspace/logs/ffn-bridge-runtime212-v1/native/ffn_bridge.so --body-library /workspace/tests/glm52/whole_layer/routed_body/build-v2/routed_int4_torch.so --bridge-helper /workspace/logs/ffn-bridge-runtime212-v1/check.py --body-helper /workspace/tests/glm52/whole_layer/routed_body/build-v2/source/routed_int4/check.py --oracle-mode both --oracle-library /workspace/logs/ffn-bridge-runtime212-v1/official_bridge_oracle.so --oracle-prefix /workspace/tests/glm52/whole_layer/ffn_bridge/oracle-package-v4/install/packages/vendors/tilert_bridge_oracle --rows 12 --blocks 24 --replays 8 --output /evidence\n",
+  "targeted_cpu_test_modules": [
+    "test_batch"
+  ]
+}

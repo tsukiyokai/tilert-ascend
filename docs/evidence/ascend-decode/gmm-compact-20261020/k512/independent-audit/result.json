@@ -1,0 +1,179 @@
+{
+  "scope": "CPU integer/address/resource model and actual CPU tiling API; no Fixpipe numerical simulation or NPU execution",
+  "npu_launched": false,
+  "arithmetic_cases": [
+    {
+      "activation": 0,
+      "weight": 0,
+      "high_dot": 393216,
+      "low_dot": 393216
+    },
+    {
+      "activation": 0,
+      "weight": 1,
+      "high_dot": -344064,
+      "low_dot": -344064
+    },
+    {
+      "activation": 0,
+      "weight": 2,
+      "high_dot": 24576,
+      "low_dot": 24576
+    },
+    {
+      "activation": 0,
+      "weight": 3,
+      "high_dot": 24576,
+      "low_dot": 24576
+    },
+    {
+      "activation": 1,
+      "weight": 0,
+      "high_dot": -344064,
+      "low_dot": -344064
+    },
+    {
+      "activation": 1,
+      "weight": 1,
+      "high_dot": 301056,
+      "low_dot": 301056
+    },
+    {
+      "activation": 1,
+      "weight": 2,
+      "high_dot": -21504,
+      "low_dot": -21504
+    },
+    {
+      "activation": 1,
+      "weight": 3,
+      "high_dot": -21504,
+      "low_dot": -21504
+    },
+    {
+      "activation": 2,
+      "weight": 0,
+      "high_dot": 24576,
+      "low_dot": 24576
+    },
+    {
+      "activation": 2,
+      "weight": 1,
+      "high_dot": -21504,
+      "low_dot": -21504
+    },
+    {
+      "activation": 2,
+      "weight": 2,
+      "high_dot": 347136,
+      "low_dot": 347136
+    },
+    {
+      "activation": 2,
+      "weight": 3,
+      "high_dot": -21504,
+      "low_dot": -21504
+    },
+    {
+      "activation": 3,
+      "weight": 0,
+      "high_dot": 24576,
+      "low_dot": 24576
+    },
+    {
+      "activation": 3,
+      "weight": 1,
+      "high_dot": -21504,
+      "low_dot": -21504
+    },
+    {
+      "activation": 3,
+      "weight": 2,
+      "high_dot": 1536,
+      "low_dot": -21504
+    },
+    {
+      "activation": 3,
+      "weight": 3,
+      "high_dot": 1536,
+      "low_dot": -82944
+    },
+    {
+      "activation": 4,
+      "weight": 0,
+      "high_dot": 88,
+      "low_dot": 392856
+    },
+    {
+      "activation": 4,
+      "weight": 1,
+      "high_dot": -77,
+      "low_dot": -343749
+    },
+    {
+      "activation": 4,
+      "weight": 2,
+      "high_dot": 403,
+      "low_dot": 24891
+    },
+    {
+      "activation": 4,
+      "weight": 3,
+      "high_dot": -72,
+      "low_dot": 24216
+    }
+  ],
+  "all_passed": true,
+  "int32_absolute_bound": 393216,
+  "resources": {
+    "N256-K256": {
+      "l0a_double_bytes": 32768,
+      "l0b_double_bytes": 65536,
+      "l0c_bytes": 131072,
+      "l1a_bytes": 131072,
+      "l1b_bytes": 262144
+    },
+    "N128-K256": {
+      "l0a_double_bytes": 32768,
+      "l0b_double_bytes": 32768,
+      "l0c_bytes": 65536,
+      "l1a_bytes": 131072,
+      "l1b_bytes": 131072
+    },
+    "N128-K512": {
+      "l0a_double_bytes": 65536,
+      "l0b_double_bytes": 65536,
+      "l0c_bytes": 65536,
+      "l1a_bytes": 131072,
+      "l1b_bytes": 131072
+    }
+  },
+  "actual_cpu_api_stdout": "rc=0\nM=256\nN=256\nKa=6144\nKb=6144\nsingleCoreM=128\nsingleCoreN=128\nsingleCoreK=6144\nbaseM=128\nbaseN=128\nbaseK=512\ndepthA1=2\ndepthB1=12\nstepM=1\nstepN=1\nstepKa=1\nstepKb=12\ndbL0A=2\ndbL0B=2\ndbL0C=1\nshareL1Size=458752\nshareL0CSize=65536\nshareUbSize=0\niterateOrder=0\ntransLength=0\n",
+  "manual_candidate": {
+    "baseM": 128,
+    "baseN": 128,
+    "baseK": 512,
+    "stepKa": 2,
+    "stepKb": 2,
+    "depthA1": 4,
+    "depthB1": 4,
+    "iterateOrder": 1,
+    "dbL0A": 2,
+    "dbL0B": 2
+  },
+  "cpu_api_does_not_validate_manual_step_depth_order": true,
+  "source_sha256": {
+    "/workspace/experiments/gmm-compact-20261020/kloop-audit/paired_nsplit_k512.cpp": "c4b55d29eaa55fda4dd358e931ab41efc5c643c507acac40f66bb60b9af7a3b5",
+    "/workspace/experiments/gmm-compact-20261020/kloop-audit/nsplit-k512-three-arm.patch": "17f0174a8531843bea7bfa37102ae9bfc8a3f13a67ea4edd33c19e9fdb9f2bf0",
+    "/workspace/experiments/gmm-compact-20261020/kloop-audit/tiling_nsplit.cpp": "a4b2bf2c0d964f3f1f90a8c5f35fce136ee4e9207f4d642b90ff521fffb46180",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/asc/include/adv_api/matmul/tiling.h": "31c650110ac7fe41a8921e403e85402987d80fc866d78c95e4bbcc8acd9d9536",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/adv_api/detail/matmul/utils/matmul_utils.h": "b54277087e2bb2ebcb6e8bdd9be21de9cac4292e65434e74f8655d7d3b67d95a",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/adv_api/detail/matmul/scheduler/base/scheduler_mdl.h": "4a892cb821bd30e570a511c32095676be9d7bf1de2269d2e8746c37c3d16906d",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/adv_api/detail/matmul/scheduler/base/scheduler_mdl_common.h": "5d67863912ab716a8391c8e396644f3eb27d4718f197b8d6053a1e45aa2de60f",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/adv_api/detail/matmul/scheduler/base/scheduler_mdl_base.h": "5417f5cec442ba475a643e9ecf98be94945ec7774f44de5b5e2177b93a5e6a83",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/adv_api/detail/matmul/scheduler/base/scheduler_base.h": "83dbb32ca92922712bf4ddb4ef0519664b225748ddcb4855cbd75c11b5204350",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/adv_api/detail/matmul/scheduler/iterator/k_loop/k_loop_mdl_base.h": "c94ac903fd7f7cd4caf1fc30d9f25d2f126a346539af59b0a9fa6c77a9301b63",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/adv_api/detail/matmul/resource/l0_buffer/tbuf_pool_l0_base.h": "9a572553706b94999ddce6fdeb570384050da84bf1021b810a404710691affeb"
+  },
+  "script_sha256": "2e29289dbf8b6af59ecb8c74c7102e0433cbf6880dd11456bcc881a436dceead"
+}

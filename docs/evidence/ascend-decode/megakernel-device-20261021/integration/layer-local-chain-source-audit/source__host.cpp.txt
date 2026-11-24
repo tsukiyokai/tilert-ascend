@@ -1,0 +1,36 @@
+53:     const void* config_record, size_t config_bytes, const void* address_record,
+54:     size_t address_bytes, bool indexed)
+55: {
+56:     error.clear();
+57:     using namespace layer_local_chain;
+58:     if (device < 0 || sync == 0 || config_record == nullptr ||
+59:         address_record == nullptr || config_bytes != sizeof(Config) ||
+60:         address_bytes != sizeof(Addresses)) {
+61:         error = "Invalid local layer submission record";
+62:         return -1;
+63:     }
+64:     Config config;
+65:     Addresses addresses;
+66:     std::memcpy(&config, config_record, sizeof(config));
+67:     std::memcpy(&addresses, address_record, sizeof(addresses));
+68:     try {
+69:         const c10::OptionalDeviceGuard guard(
+70:             c10::Device(c10::DeviceType::PrivateUse1, device));
+71:         // The default stream() call submits queued TorchNPU producers before
+72:         // the direct AscendC launch, including during ACL graph capture.
+73:         auto* stream = c10_npu::getCurrentNPUStream().stream();
+74:         const auto launch = indexed ? layer_local_indexed_launch
+75:                                     : layer_local_shared_launch;
+76:         const int status = launch(stream, sync, &config, &addresses);
+77:         if (status != 0) {
+78:             error = "The local layer launch rejected its metadata";
+79:         }
+80:         return status;
+81:     } catch (const std::exception& exception) {
+82:         error = exception.what();
+83:         return -2;
+84:     } catch (...) {
+85:         error = "Unknown failure submitting the local layer";
+86:         return -3;
+87:     }
+88: }

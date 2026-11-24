@@ -1,0 +1,103 @@
+557:     def _get_overlap_cond_list(self):
+558:         # Using condition to check whether last 2 blockdim has overlap data
+559:         # The condition consists of a non-factorial block dim cut and shift-inward enabled
+560:         m = self.cache_tiling.get("m")
+561:         n = self.cache_tiling.get("n")
+562:         close_k_shift_flag = self.cache_tiling.get("close_k_shift")
+563:         m_split = (self.cache_tiling.get("m_single_core") * self.cache_tiling.get("m_al1") *
+564:                    self.cache_tiling.get("m_l0"))
+565:         n_split = (self.cache_tiling.get("n_single_core") * self.cache_tiling.get("n_bl1") *
+566:                    self.cache_tiling.get("n_ub_l0_time") * self.cache_tiling.get("cub_n1"))
+567:         m_overlap_cond = tvm.tir.any(tvm.tir.all(m % m_split != 0, (self.mn_axis[0] + 2) * m_split > m),
+568:                                      close_k_shift_flag >= 1)
+569:         n_overlap_cond = tvm.tir.any(tvm.tir.all(n % n_split != 0, (self.mn_axis[1] + 2) * n_split > n),
+570:                                      close_k_shift_flag >= 1)
+571:         return [m_overlap_cond, n_overlap_cond]
+680:             n_dim = block_dims[1]
+681:             batch_offset = 1 if self.status_controller.have_batch else 0
+682:             m0 = self.sch[cl0].leaf_iter_vars[2 + batch_offset]
+683:             tail_strategy = "shift_inwards" if not self.para_map.get("compress_flag", False) else "guard_with_if"
+684:             n1_outer, n1_inner = self.sch[cl0].split(
+685:                 self.sch[cl0].leaf_iter_vars[batch_offset], n_l0, tail_strategy=tail_strategy)
+686:             m1_outer, m1_inner = self.sch[cl0].split(
+687:                 self.sch[cl0].leaf_iter_vars[2 + batch_offset], m_l0, tail_strategy=tail_strategy)
+688:             n0_outer, n0_inner = self.sch[cl0].split(
+689:                 self.sch[cl0].leaf_iter_vars[5 + batch_offset], 16, tail_strategy=tail_strategy)
+690:             inner_extents = [self.cache_tiling.get("kal1_16"), self.cache_tiling.get("kbl1_16")]
+691:             inner_tensors = [al1, bl1]
+692:             b_greater_than_a = abkl1_attach_flag == 2
+693:             # split
+694:             k_outer, k_inner = self.sch[cl0].split(
+695:                 self.sch[cl0].leaf_iter_vars[-2], inner_extents[b_greater_than_a], tail_strategy=tail_strategy)
+696:             k_inner_outer, k_inner_inner = self.sch[cl0].split(
+697:                 k_inner, inner_extents[1 - b_greater_than_a], tail_strategy=tail_strategy)
+698:             k_inner_inner_outer, _ = self.sch[cl0].split(k_inner_inner, k_l0, tail_strategy=tail_strategy)
+699:             split_k_flag = self.status_controller.split_k or self.status_controller.split_k_axis_by_tiling
+700:             self.support_shift_block = self.is_dynamic and self.status_controller.support_fix_pipe_l0c2out and \
+701:                 self.mn_axis != [1, 1] and not split_k_flag
+702:             if self.support_shift_block and self.status_controller.nz_fusion_mode != self.NZ_PIPELINE_NOT_ATTACH:
+703:                 overlap_cond_list = self._get_overlap_cond_list()
+704:                 self.sch.shift_block_access(self.mn_axis, [m_dim, n_dim], k_outer, overlap_cond_list)
+705:             # reorder
+706:             self.sch[cl0].reorder(n1_outer, m1_outer, n0_outer, k_outer,
+707:                                   k_inner_outer, k_inner_inner_outer, n1_inner, m1_inner, m0, n0_inner)
+708:             # compute at
+709:             self.sch[al0].compute_at(self.sch[cl0], k_inner_inner_outer)
+710:             self.sch[bl0].compute_at(self.sch[cl0], k_inner_inner_outer)
+711:             self.sch[inner_tensors[b_greater_than_a]].compute_at(self.sch[cl0], k_outer)
+712:             self.sch[inner_tensors[1 - b_greater_than_a]].compute_at(self.sch[cl0], k_inner_outer)
+713:             self.private_attach_dict.update({
+714:                 self.sch[inner_tensors[b_greater_than_a]]: self.sch[cl0],
+715:                 self.sch[inner_tensors[1 - b_greater_than_a]]: self.sch[cl0]
+716:             })
+717:             mad_dict = {
+718:                 "mad_pattern": self.para_map.get("mad_pattern"),
+719:                 "k_outer": [k_outer, k_inner_outer, k_inner_inner_outer],
+720:                 "enable_k_alignment": self.status_controller.enable_k_alignment
+721:             }
+722:             mad_dict["hf32"] = (
+723:                 get_optional_te_var("hf32_flag") if self.status_controller.ops_data_flow_mode == "fp322fp32" else 0)
+724:             if self.container.tensor_map.get("c_add_bias") is not None and self.para_map.get("compress_flag", False) \
+725:                 and not self.sparse_4to2_flag:
+726:                 self.sch[cl0].pragma(n1_inner, "replace_output", 0)
+727:                 mad_dict["init_bias"] = 1
+728:             if self.status_controller.support_bf16 and al0.dtype == "float16":
+729:                 mad_dict["datatype_bf16"] = self.cache_tiling.get("datatype_bf16")
+730:             self.sch[cl0].emit_insn(n1_inner, "mad", mad_dict)
+3266:         m_dim = block_dims[2]
+3267:         n_dim = block_dims[1]
+3268:         split_k_flag = self.status_controller.split_k or self.status_controller.split_k_axis_by_tiling
+3269:         self.support_shift_block = self.is_dynamic and self.status_controller.support_fix_pipe_l0c2out and \
+3270:             self.mn_axis != [1, 1] and not split_k_flag
+3271:         if self.support_shift_block:
+3272:             shift_k_axis = mad_dict["k_outer"][0]
+3273:             if self.status_controller.nz_fusion_mode == self.NZ_PIPELINE_NOT_ATTACH:
+3274:                 shift_k_axis = mad_dict["k_outer"][1]
+3275:             overlap_cond_list = self._get_overlap_cond_list()
+3276:             self.sch.shift_block_access(self.mn_axis, [m_dim, n_dim], shift_k_axis, overlap_cond_list)
+3277:         if self.sparse_4to2_flag:
+3278:             mad_dict["mad_type"] = 1
+3279:         mad_dict["enable_k_alignment"] = self.status_controller.enable_k_alignment
+3280:         if self.is_dynamic and self.status_controller.support_fix_pipe_l0c2out:
+3281:             # unit flag only l0c not db is usalbe
+3282:             self._do_unit_flag(mad_dict, False)
+3283:             if self.status_controller.support_bf16 and self.container.tensor_map.get("a_l0a").dtype == "float16":
+3284:                 mad_dict["datatype_bf16"] = self.cache_tiling.get("datatype_bf16")
+3285:         self.sch_agent[c_l0c].emit_insn(scope_insn, "mad", mad_dict)
+3318:     def _do_emit_insn_fixpipe_from_l0c(self, fixpipe_tensor, need_align):
+3319:         out_emit_insn_dict = {}
+3320:         tensor_l0c = self.container.tensor_map.get("c_l0c")
+3321:         if self.cache_tiling and self.status_controller.support_bf16 and fixpipe_tensor.dtype == "float16" and \
+3322:             tensor_l0c.dtype != "int32":
+3323:             out_emit_insn_dict["datatype_bf16"] = self.cache_tiling.get("datatype_bf16")
+3324:         emit_axises = self.sch_agent[fixpipe_tensor].nlast_scopes(len(fixpipe_tensor.shape))
+3325:         if len(fixpipe_tensor.shape) in (self.BATCH_MATMUL_LEN_ND, self.MATMUL_LEN_ND):
+3326:             if need_align:
+3327:                 align_factor = tbe_platform.CUBE_MKN.get(fixpipe_tensor.dtype).get("mac")[1]
+3328:                 self.sch[fixpipe_tensor].compute_align(fixpipe_tensor.op.axis[-1], align_factor)
+3329:                 self.sch[fixpipe_tensor].storage_align(fixpipe_tensor.op.axis[-2], align_factor, 0)
+3330:             out_emit_insn_dict["layout_transform"] = "nz2nd"
+3331:             self.sch_agent[fixpipe_tensor].emit_insn(emit_axises[-2], "fixpipe_op", out_emit_insn_dict)
+3332:         else:
+3333:             if fixpipe_tensor.dtype == "int8":
+3334:                 self.sch_agent[fixpipe_tensor].split(emit_axises[-1], tbe_platform_info.BLOCK_OUT)

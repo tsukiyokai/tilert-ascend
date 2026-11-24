@@ -1,0 +1,79 @@
+
+/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi.so:     file format elf64-littleaarch64
+
+
+Disassembly of section .text:
+
+0000000000b65810 <l0op::Contiguous(aclTensor const*, aclOpExecutor*)@@Base>:
+  b65810:	d2823210 	mov	x16, #0x1190                	// #4496
+  b65814:	cb3063ff 	sub	sp, sp, x16
+  b65818:	a9027bfd 	stp	x29, x30, [sp, #32]
+  b6581c:	910083fd 	add	x29, sp, #0x20
+  b65820:	a90353f3 	stp	x19, x20, [sp, #48]
+  b65824:	d0011654 	adrp	x20, 2e2f000 <std::unordered_set<long, std::hash<long>, std::equal_to<long>, std::allocator<long> >::~unordered_set()@@Base+0xc1c538>
+  b65828:	a90563f7 	stp	x23, x24, [sp, #80]
+  b6582c:	aa0003f3 	mov	x19, x0
+  b65830:	f9424282 	ldr	x2, [x20, #1152]
+  b65834:	f000d9c0 	adrp	x0, 26a0000 <_fini@@Base+0x26c14>
+  b65838:	a9045bf5 	stp	x21, x22, [sp, #64]
+  b6583c:	912a2000 	add	x0, x0, #0xa88
+  b65840:	f9400043 	ldr	x3, [x2]
+  b65844:	f908b7a3 	str	x3, [x29, #4456]
+  b65848:	d2800003 	mov	x3, #0x0                   	// #0
+  b6584c:	a9066bf9 	stp	x25, x26, [sp, #96]
+  b65850:	f9003bfb 	str	x27, [sp, #112]
+  b65854:	aa0103f9 	mov	x25, x1
+  b65858:	b000e8d7 	adrp	x23, 287e000 <typeinfo name for aclIntArray@@Base+0x71ad8>
+  b6585c:	b000da58 	adrp	x24, 26ae000 <_fini@@Base+0x34c14>
+  b65860:	97d9f72c 	bl	1e3510 <InitL0Context(char const*, aclOpExecutor*)@plt>
+  b65864:	910b2315 	add	x21, x24, #0x2c8
+  b65868:	911462e0 	add	x0, x23, #0x518
+  b6586c:	52800021 	mov	w1, #0x1                   	// #1
+  b65870:	91088000 	add	x0, x0, #0x220
+  b65874:	a90d57a0 	stp	x0, x21, [x29, #208]
+  b65878:	52804a60 	mov	w0, #0x253                 	// #595
+  b6587c:	390383a1 	strb	w1, [x29, #224]
+  b65880:	b900e7a0 	str	w0, [x29, #228]
+  b65884:	52800021 	mov	w1, #0x1                   	// #1
+  b65888:	f9004fb3 	str	x19, [x29, #152]
+  b6588c:	528007e0 	mov	w0, #0x3f                  	// #63
+  b65890:	291d7fbf 	stp	wzr, wzr, [x29, #232]
+  b65894:	f9007bbf 	str	xzr, [x29, #240]
+  b65898:	97da0d1a 	bl	1e8d00 <CheckLogLevelInner(int, int)@plt>
+  b6589c:	7100041f 	cmp	w0, #0x1
+  b658a0:	54003900 	b.eq	b65fc0 <l0op::Contiguous(aclTensor const*, aclOpExecutor*)@@Base+0x7b0>  // b.none
+  b658a4:	52800021 	mov	w1, #0x1                   	// #1
+  b658a8:	528007e0 	mov	w0, #0x3f                  	// #63
+  b658ac:	910343b6 	add	x22, x29, #0xd0
+  b658b0:	97da0d14 	bl	1e8d00 <CheckLogLevelInner(int, int)@plt>
+  b658b4:	7100041f 	cmp	w0, #0x1
+  b658b8:	54003e40 	b.eq	b66080 <l0op::Contiguous(aclTensor const*, aclOpExecutor*)@@Base+0x870>  // b.none
+  b658bc:	aa1303e0 	mov	x0, x19
+  b658c0:	97da2208 	bl	1ee0e0 <op::IsContiguous(aclTensor const*)@plt>
+  b658c4:	72001c1f 	tst	w0, #0xff
+  b658c8:	54000340 	b.eq	b65930 <l0op::Contiguous(aclTensor const*, aclOpExecutor*)@@Base+0x120>  // b.none
+  b658cc:	aa1303e0 	mov	x0, x19
+  b658d0:	97da1a80 	bl	1ec2d0 <aclTensor::GetViewShape() const@plt>
+  b658d4:	aa0003e1 	mov	x1, x0
+  b658d8:	aa1903e2 	mov	x2, x25
+  b658dc:	aa1303e0 	mov	x0, x19
+  b658e0:	97da2670 	bl	1ef2a0 <l0op::UnSafeReshape(aclTensor const*, gert::Shape const&, aclOpExecutor*)@plt>
+  b658e4:	aa0003f3 	mov	x19, x0
+  b658e8:	aa1603e0 	mov	x0, x22
+  b658ec:	97da19f5 	bl	1ec0c0 <op::OpDfxGuard::~OpDfxGuard()@plt>
+  b658f0:	f9424294 	ldr	x20, [x20, #1152]
+  b658f4:	aa1303e0 	mov	x0, x19
+  b658f8:	f948b7a2 	ldr	x2, [x29, #4456]
+  b658fc:	f9400281 	ldr	x1, [x20]
+  b65900:	ca010041 	eor	x1, x2, x1
+  b65904:	b5006a81 	cbnz	x1, b66654 <l0op::Contiguous(aclTensor const*, aclOpExecutor*)@@Base+0xe44>
+  b65908:	a94353f3 	ldp	x19, x20, [sp, #48]
+  b6590c:	d2823210 	mov	x16, #0x1190                	// #4496
+  b65910:	a9445bf5 	ldp	x21, x22, [sp, #64]
+  b65914:	a94563f7 	ldp	x23, x24, [sp, #80]
+  b65918:	a9466bf9 	ldp	x25, x26, [sp, #96]
+  b6591c:	a9427bfd 	ldp	x29, x30, [sp, #32]
+  b65920:	f9403bfb 	ldr	x27, [sp, #112]
+  b65924:	8b3063ff 	add	sp, sp, x16
+  b65928:	d65f03c0 	ret
+  b6592c:	d503201f 	nop

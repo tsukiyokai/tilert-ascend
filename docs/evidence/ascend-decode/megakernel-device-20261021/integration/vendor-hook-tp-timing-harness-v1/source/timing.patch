@@ -1,0 +1,235 @@
+--- tp_graph.py
++++ tp_timing_chain.py
+@@ -16,6 +16,7 @@
+ from local_chain_views import poison, strict_checks
+ from tp_host import Library as TPLibrary, Prepared as TPPrepared, Window
+ from tp_parent import separate
++from tp_timing_benchmark import run_timing
+ from tp_graph_runtime import CapturedChain, prepare_graph_registry, reserve_capture_stream
+ 
+ 
+@@ -65,10 +66,12 @@
+                 "reduction.output": self.output}
+ 
+ 
+-def run_tp_graph(torch, layers, config, state, args):
++def run_tp_timing(torch, layers, config, state, args):
+     import torch_npu
+     from attention_check import metric
+ 
++    if args.forward_widths != [12] or args.forward_replays != 8:
++        raise ValueError("Use M12 and eight changing timing-gate inputs")
+     rank = args.device_rank
+     if (rank not in (0, 1) or args.mode != "int8" or len(layers) != 2
+             or args.forward_sequence != 8192 or args.graph_residual_modes != ["provided"]
+@@ -111,24 +114,23 @@
+     cache_signatures = {name: signature(value) for name, value in caches.items()}
+     topk_signature = signature(topk)
+     report = {
+-        "scope": "Official ACL graph of two TP16-shaped local shards with SHMEM2; eager separate parents plus HCCL2 oracle",
++        "scope": "Two same-address native FP32 HCCL2 versus C2 SHMEM2 graph arenas; M12, two TP16-shaped shards",
+         "rank": rank, "ranks": 2, "constructor_tp_size": 16,
+         "tp16_collectives_executed": 0, "original_decoder_forward_called": False,
+-        "original_hccl_entry": "torch.distributed.all_reduce(SUM, group=actual_hccl2)",
++        "original_hccl_entry": "BF16.float / real HCCL2 FP32 SUM / bfloat16",
+         "residual_contract": "Next layer consumes reduced FFN output and separately retained residual",
+-        "script": source_identity(run_tp_graph), "actual_decoder": source_identity(type(layers[0])),
++        "script": source_identity(run_tp_timing), "actual_decoder": source_identity(type(layers[0])),
+         "parent_phases": source_identity(separate), "tp_host": source_identity(TPPrepared),
+         "libraries": {str(path): digest(path) for path in (args.chain_library,
+             args.tp_library, args.indexed_library, args.shared_library, args.ffn_library)},
+         "cache_signatures": cache_signatures, "topk_signature": topk_signature,
+         "widths": args.forward_widths, "iterations": args.forward_replays,
+-        "blocks": BLOCKS, "eager": False, "graph_capture": True, "timing": False,
+-        "captures": [], "cases": [], "pass": False,
++        "blocks": BLOCKS, "eager": False, "graph_capture": True, "timing": True,
++        "arenas": [], "pass": False,
+     }
+-    destination = args.output / "tp-chain-graph.json"
++    destination = args.output / "tp-chain-timing.json"
+     window = None
+     initialized = False
+-    current_graph = None
+     capture_owner = None
+ 
+     def persist():
+@@ -156,7 +158,9 @@
+                                 "epoch_contract": "Four device increments per explicit two-layer replay; never reset by host",
+                                 "capture_manager_retained": True}
+             persist()
+-            for rows in args.forward_widths:
++            arenas = []
++            for arena in range(2):
++                rows = 12
+                 inputs = Inputs(torch, torch_npu, layers, rows, topk.device)
+                 first = TPCase(torch, torch_npu, LayerCase(
+                     torch, torch_npu, layers[0], 6, inputs, inputs.hidden, inputs.residual,
+@@ -167,136 +171,30 @@
+                 if first.local.mode != "int8" or second.local.mode != "shared":
+                     raise RuntimeError("The actual full/shared layer selection changed")
+                 cases = (first, second)
+-                topk_copies = {f"layer{number}.persistent_topk": torch.empty_like(topk[:rows])
+-                               for number in (6, 7)}
+-                consumers = {"consumer.output": torch.empty_like(second.output),
+-                             "consumer.retained": torch.empty_like(second.local.bridge[1])}
+-                values = {**{f"layer{number}.{name}": value
+-                    for number, case in zip((6, 7), cases)
+-                    for name, value in case.values().items()},
+-                    **caches, **topk_copies, **consumers}
+-                if len(values) != 113:
+-                    raise RuntimeError("The C8 two-layer boundary set changed")
+-                owners = [case.local.owners() for case in cases]
+-                reduction_owners = [signature(value) for case in cases
+-                                    for value in (case.attention_sum, case.output)]
+                 inputs.lock_owners()
+-
+-                def reset(iteration, integer):
+-                    for name, cache in caches.items():
+-                        cache.copy_(bases[name].roll(iteration, 0))
+-                    topk.fill_(-1)
+-                    for case in cases:
+-                        poison(case.values(), integer)
+-                        case.local.norm[5].fill_(float("nan"))
+-                        case.local.body[20].fill_(1)
+-                        case.local.body[20][0].zero_()
+-                    poison(topk_copies, integer)
+-                    poison(consumers, integer)
+-
+-                def execute(combined, reductions):
+-                    for number, case in zip((6, 7), cases):
+-                        def reduce(partial, result, phase):
+-                            result.copy_(partial)
+-                            torch.distributed.all_reduce(
+-                                result, op=torch.distributed.ReduceOp.SUM,
+-                                group=args.oracle_hccl)
+-                            torch.npu.synchronize()
+-                            partials = gather(snapshot(torch, partial))
+-                            expected = ordered_sum(torch, partials)
+-                            check = metric(torch, snapshot(torch, result), expected)
+-                            if not check["pass"] or not check["bitwise_equal"]:
+-                                raise RuntimeError("HCCL2 differs from the ordered BF16-input oracle")
+-                            reductions.append({"layer": number, "phase": phase,
+-                                "check": check,
+-                                "partials": [tensor_witness(torch, value) for value in partials]})
+-
+-                        if combined:
+-                            case.combined()
+-                        else:
+-                            case.separate(reduce)
+-                        if number == 6:
+-                            publish_topk(case.local.selected, topk, rows)
+-                        topk_copies[f"layer{number}.persistent_topk"].copy_(topk[:rows])
+-                    consumers["consumer.output"].copy_(second.output)
+-                    consumers["consumer.retained"].copy_(second.local.bridge[1])
+-
+-                def collect():
+-                    torch.npu.synchronize()
+-                    return {name: snapshot(torch, value) for name, value in values.items()}
+-
+-                current_graph = CapturedChain(
+-                    torch, config, layers, inputs, cases, window, stream,
+-                    execute, consumers, values)
+-                for iteration in range(args.forward_replays):
+-                    plan = inputs.update(iteration)
+-                    original_inputs = {name: snapshot(torch, value)
+-                                       for name, value in inputs.fields().items()}
+-                    reset(iteration, 1)
+-                    reductions = []
+-                    execute(False, reductions)
+-                    expected = collect()
+-                    reset(iteration, 2)
+-                    if iteration == 0:
+-                        report["captures"].append(current_graph.capture())
+-                        persist()
+-                    torch.npu.synchronize()
+-                    torch.distributed.barrier(group=args.oracle_cpu)
+-                    if rank == iteration % 2:
+-                        time.sleep(0.01)
+-                    current_graph.replay()
+-                    actual = collect()
+-                    inputs.check_owners()
+-                    if (owners != [case.local.owners() for case in cases]
+-                            or reduction_owners != [signature(value) for case in cases
+-                                for value in (case.attention_sum, case.output)]
+-                            or signature(topk) != topk_signature
+-                            or cache_signatures != {name: signature(value) for name, value in caches.items()}):
+-                        raise RuntimeError("A live tensor or communication consumer changed owner")
+-                    for name, value in original_inputs.items():
+-                        now = snapshot(torch, inputs.fields()[name])
+-                        if not torch.equal(value.view(torch.uint8), now.view(torch.uint8)):
+-                            raise RuntimeError("A layer overwrote a live input or metadata producer")
+-                    checks, passed = strict_checks(torch, actual, expected, metric)
+-                    witness = {"rank": rank,
+-                        "input_hidden": tensor_witness(torch, original_inputs["hidden"])["sha256"],
+-                        "input_residual": tensor_witness(torch, original_inputs["residual"])["sha256"]}
+-                    for number in (6, 7):
+-                        for name, source in (("retained", "bridge.retained"),
+-                                             ("attention_partial", "attention.partial"),
+-                                             ("ffn_partial", "bridge.combined"),
+-                                             ("ar1", "reduction.attention"),
+-                                             ("ar2", "reduction.output")):
+-                            witness[f"layer{number}.{name}"] = tensor_witness(
+-                                torch, actual[f"layer{number}.{source}"])["sha256"]
+-                    peers = gather(witness)
+-                    check_rank_witnesses(peers)
+-                    record = {"rows": rows, "iteration": iteration, "pass": passed,
+-                              "checks": checks, "hccl_ordered_checks": reductions,
+-                              "rank_witnesses": peers, "inputs": inputs.witness(),
+-                              "explicit_replay": current_graph.replays,
+-                              "python_calls_during_replay": 0,
+-                              "capture_stream": current_graph.capture_stream.npu_stream,
+-                              "outputs": {name: tensor_witness(torch, actual[name])
+-                                          for name in consumers}}
+-                    report["cases"].append(record)
+-                    persist()
+-                    statuses = gather(passed)
+-                    if not all(statuses):
+-                        torch.save({"plan": plan, "inputs": original_inputs,
+-                                    "expected": expected, "actual": actual},
+-                                   args.output / f"tp-chain-graph-m{rows}-r{iteration}.pt")
+-                        raise RuntimeError("The TP graph differs from eager parents and HCCL2")
+-                observed = report["cases"][-args.forward_replays:]
+-                for name in consumers:
+-                    if any(item["outputs"][name]["nonzero_elements"] == 0 for item in observed):
+-                        raise RuntimeError("A final output or residual witness is entirely zero")
+-                    if (args.forward_replays > 1 and
+-                            len({item["outputs"][name]["sha256"] for item in observed}) < 2):
+-                        raise RuntimeError("A final output or residual did not consume changing inputs")
+-                current_graph.close()
+-                current_graph = None
+-                del cases, first, second, values, consumers, topk_copies, inputs
++                arenas.append((inputs, cases))
++            private_owners = []
++            for inputs, cases in arenas:
++                tensors = [inputs.hidden, inputs.residual]
++                for case in cases:
++                    local = case.local
++                    tensors.extend([*local.norm[3:], local.scratch, local.tiling,
++                                    local.partial, *local.bridge, *local.body,
++                                    case.attention_sum, case.output])
++                private_owners.append({value.untyped_storage().data_ptr()
++                                       for value in tensors if value.numel()})
++            if private_owners[0] & private_owners[1]:
++                raise RuntimeError("The two compute arenas share an allocation")
++            report["shared_between_arenas"] = ["caches", "persistent_topk",
++                                                 "source_model_weights", "ffn_weights"]
++            report["private_arena_allocations"] = [sorted(values) for values in private_owners]
++            for arena, (inputs, cases) in enumerate(arenas):
++                measured = run_timing(torch, config, layers, inputs, cases, caches,
++                                      bases, topk, window, stream, args, arena)
++                report["arenas"].append({"arena": arena, "pass": measured["pass"],
++                    "report": str(args.output / f"tp-pair-timing-arena{arena}.json"),
++                    "report_sha256": digest(args.output / f"tp-pair-timing-arena{arena}.json")})
++                persist()
+             torch.npu.synchronize()
+             torch.distributed.barrier(group=args.oracle_cpu)
+             window.close()
+@@ -311,8 +209,6 @@
+         persist()
+         raise
+     finally:
+-        if current_graph is not None:
+-            current_graph.close()
+         if initialized:
+             torch.npu.synchronize()
+             torch.distributed.barrier(group=args.oracle_cpu)

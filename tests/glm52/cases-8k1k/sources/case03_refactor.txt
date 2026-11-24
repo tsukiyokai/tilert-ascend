@@ -1,0 +1,750 @@
+Refactor the following monolithic, tightly coupled, stateful legacy tensor-graph compiler and multi-stream memory scheduler (`legacy_graph_monolith.py`) into a clean, modular, immutable-IR, zero-global-state Python 3.11+ architecture satisfying every requirement in the Target Architecture Contract at the end of this prompt. Preserve 100% of the domain semantics—shape and dtype inference, FLOP/byte accounting, topological validation, liveness interval computation, coalescing best-fit arena offset allocation, in-place alias eligibility, and cross-stream event barrier insertion—while eliminating all global mutable dictionaries, stringly-typed status codes, duplicated operator `if/elif` dispatch ladders, and in-place dictionary mutations.
+
+# legacy_compiler/legacy_graph_monolith.py
+"""Legacy heterogeneous NPU/GPU graph planner, memory allocator, and stream scheduler."""
+
+import copy
+import math
+
+# Legacy global mutable state shared across runs (causes cross-session pollution!)
+_GLOBAL_TENSOR_TABLE = {}
+_GLOBAL_NODE_LIST = []
+_GLOBAL_MEM_BLOCKS = []
+_GLOBAL_EVENT_COUNTER = 0
+_GLOBAL_STATS_ACCUM = {
+    "total_flops": 0,
+    "total_io_bytes": 0,
+    "peak_arena_bytes": 0,
+    "reused_inplace_count": 0,
+    "inserted_events": 0,
+}
+
+DTYPE_BYTES_MAP = {
+    "fp32": 4,
+    "fp16": 2,
+    "bf16": 2,
+    "int8": 1,
+    "int32": 4,
+    "int64": 8,
+    "bool": 1,
+}
+
+STREAM_COMPUTE = 0
+STREAM_COMM = 1
+STREAM_PREFETCH = 2
+
+
+def reset_legacy_globals():
+    global _GLOBAL_EVENT_COUNTER
+    _GLOBAL_TENSOR_TABLE.clear()
+    _GLOBAL_NODE_LIST.clear()
+    _GLOBAL_MEM_BLOCKS.clear()
+    _GLOBAL_EVENT_COUNTER = 0
+    for k in list(_GLOBAL_STATS_ACCUM.keys()):
+        _GLOBAL_STATS_ACCUM[k] = 0
+
+
+def register_raw_tensor(name, shape, dtype_str, is_input=False, is_weight=False, is_output=False):
+    if name in _GLOBAL_TENSOR_TABLE:
+        return -1
+    if dtype_str not in DTYPE_BYTES_MAP:
+        return -2
+    elem_cnt = 1
+    for dim in shape:
+        if dim <= 0:
+            return -3
+        elem_cnt = elem_cnt * dim
+    raw_bytes = elem_cnt * DTYPE_BYTES_MAP[dtype_str]
+    # Align every arena buffer to 512-byte hardware boundary
+    aligned_bytes = ((raw_bytes + 511) // 512) * 512
+    _GLOBAL_TENSOR_TABLE[name] = {
+        "name": name,
+        "shape": list(shape),
+        "dtype": dtype_str,
+        "elem_cnt": elem_cnt,
+        "raw_bytes": raw_bytes,
+        "aligned_bytes": aligned_bytes,
+        "is_input": bool(is_input),
+        "is_weight": bool(is_weight),
+        "is_output": bool(is_output),
+        "producer_idx": None,
+        "consumer_indices": [],
+        "first_step": None,
+        "last_step": None,
+        "arena_offset": -1,
+        "aliased_from": None,
+    }
+    return 0
+
+
+def add_raw_op_node(op_name, op_kind, input_names, output_name, attrs=None):
+    if attrs is None:
+        attrs = {}
+    for inp in input_names:
+        if inp not in _GLOBAL_TENSOR_TABLE:
+            raise KeyError("Unknown input tensor: " + str(inp))
+    # DUPLICATED LADDER #1: Shape & Dtype Inference Ladder
+    out_shape = None
+    out_dtype = None
+    if op_kind == "MATMUL":
+        if len(input_names) != 2:
+            raise ValueError("MATMUL requires 2 inputs")
+        a = _GLOBAL_TENSOR_TABLE[input_names[0]]
+        b = _GLOBAL_TENSOR_TABLE[input_names[1]]
+        trans_b = bool(attrs.get("transpose_b", False))
+        if len(a["shape"]) < 2 or len(b["shape"]) != 2:
+            raise ValueError("MATMUL rank mismatch")
+        k_a = a["shape"][-1]
+        k_b = b["shape"][1] if trans_b else b["shape"][0]
+        n_b = b["shape"][0] if trans_b else b["shape"][1]
+        if k_a != k_b:
+            raise ValueError(f"MATMUL K mismatch: {k_a} vs {k_b}")
+        out_shape = list(a["shape"][:-1]) + [n_b]
+        out_dtype = attrs.get("out_dtype", "bf16" if a["dtype"] == "int8" else a["dtype"])
+    elif op_kind == "RMSNORM":
+        if len(input_names) != 2:
+            raise ValueError("RMSNORM requires x and gamma")
+        x = _GLOBAL_TENSOR_TABLE[input_names[0]]
+        g = _GLOBAL_TENSOR_TABLE[input_names[1]]
+        if len(g["shape"]) != 1 or g["shape"][0] != x["shape"][-1]:
+            raise ValueError("RMSNORM gamma hidden dim mismatch")
+        out_shape = list(x["shape"])
+        out_dtype = x["dtype"]
+    elif op_kind == "SWIGLU":
+        if len(input_names) != 1:
+            raise ValueError("SWIGLU requires 1 gate_up tensor")
+        gu = _GLOBAL_TENSOR_TABLE[input_names[0]]
+        if gu["shape"][-1] % 2 != 0:
+            raise ValueError("SWIGLU last dim must be even")
+        out_shape = list(gu["shape"][:-1]) + [gu["shape"][-1] // 2]
+        out_dtype = gu["dtype"]
+    elif op_kind == "ROPE":
+        if len(input_names) != 3:
+            raise ValueError("ROPE requires qk, cos, sin")
+        qk = _GLOBAL_TENSOR_TABLE[input_names[0]]
+        cos = _GLOBAL_TENSOR_TABLE[input_names[1]]
+        sin = _GLOBAL_TENSOR_TABLE[input_names[2]]
+        if cos["shape"] != sin["shape"] or cos["shape"][-1] != qk["shape"][-1]:
+            raise ValueError("ROPE trig shape mismatch")
+        out_shape = list(qk["shape"])
+        out_dtype = qk["dtype"]
+    elif op_kind == "FLASH_ATTN":
+        if len(input_names) != 3:
+            raise ValueError("FLASH_ATTN requires q, k, v")
+        q = _GLOBAL_TENSOR_TABLE[input_names[0]]
+        k = _GLOBAL_TENSOR_TABLE[input_names[1]]
+        v = _GLOBAL_TENSOR_TABLE[input_names[2]]
+        # Shapes: q=[B, Sq, Hq, D], k=[B, Sk, Hkv, D], v=[B, Sk, Hkv, Dv]
+        if len(q["shape"]) != 4 or len(k["shape"]) != 4 or len(v["shape"]) != 4:
+            raise ValueError("FLASH_ATTN expects 4D tensors")
+        if q["shape"][0] != k["shape"][0] or k["shape"][1] != v["shape"][1]:
+            raise ValueError("FLASH_ATTN batch or kv_len mismatch")
+        if q["shape"][3] != k["shape"][3] or q["shape"][2] % k["shape"][2] != 0:
+            raise ValueError("FLASH_ATTN head_dim or GQA ratio mismatch")
+        out_shape = [q["shape"][0], q["shape"][1], q["shape"][2], v["shape"][3]]
+        out_dtype = q["dtype"]
+    elif op_kind == "ADD" or op_kind == "MUL":
+        if len(input_names) != 2:
+            raise ValueError(op_kind + " requires 2 inputs")
+        lhs = _GLOBAL_TENSOR_TABLE[input_names[0]]
+        rhs = _GLOBAL_TENSOR_TABLE[input_names[1]]
+        if lhs["shape"] != rhs["shape"] or lhs["dtype"] != rhs["dtype"]:
+            raise ValueError(op_kind + " requires identical shape and dtype")
+        out_shape = list(lhs["shape"])
+        out_dtype = lhs["dtype"]
+    elif op_kind == "ALLREDUCE" or op_kind == "ALLGATHER":
+        if len(input_names) != 1:
+            raise ValueError(op_kind + " requires 1 input")
+        src = _GLOBAL_TENSOR_TABLE[input_names[0]]
+        world_size = int(attrs.get("world_size", 8))
+        if op_kind == "ALLREDUCE":
+            out_shape = list(src["shape"])
+        else:
+            gather_dim = int(attrs.get("gather_dim", 0))
+            out_shape = list(src["shape"])
+            out_shape[gather_dim] = out_shape[gather_dim] * world_size
+        out_dtype = src["dtype"]
+    elif op_kind == "PREFETCH_WEIGHT":
+        if len(input_names) != 1:
+            raise ValueError("PREFETCH_WEIGHT requires 1 weight input")
+        w = _GLOBAL_TENSOR_TABLE[input_names[0]]
+        out_shape = list(w["shape"])
+        out_dtype = w["dtype"]
+    else:
+        raise ValueError("Unsupported legacy op_kind: " + str(op_kind))
+
+    rc = register_raw_tensor(
+        output_name, out_shape, out_dtype,
+        is_input=False, is_weight=False, is_output=bool(attrs.get("is_graph_output", False))
+    )
+    if rc != 0:
+        raise RuntimeError(f"Failed registering output {output_name}: code {rc}")
+
+    node_idx = len(_GLOBAL_NODE_LIST)
+    _GLOBAL_TENSOR_TABLE[output_name]["producer_idx"] = node_idx
+    for inp in input_names:
+        _GLOBAL_TENSOR_TABLE[inp]["consumer_indices"].append(node_idx)
+
+    node_dict = {
+        "idx": node_idx,
+        "name": op_name,
+        "op_kind": op_kind,
+        "inputs": list(input_names),
+        "output": output_name,
+        "attrs": copy.deepcopy(attrs),
+        "stream": None,
+        "flops": 0,
+        "io_bytes": 0,
+        "wait_events": [],
+        "record_events": [],
+    }
+    _GLOBAL_NODE_LIST.append(node_dict)
+    return node_idx
+
+
+class MegaGraphRunner:
+    """Monolithic god-class mixing cost modeling, scheduling, memory planning, and codegen."""
+
+    def __init__(self, arena_limit_bytes=8 * 1024 * 1024 * 1024, allow_inplace=True):
+        self.arena_limit_bytes = arena_limit_bytes
+        self.allow_inplace = allow_inplace
+        self.compiled = False
+        self.schedule_trace = []
+
+    def run_all_passes(self):
+        self._pass_assign_streams_and_costs()
+        self._pass_compute_liveness()
+        self._pass_allocate_arena_offsets()
+        self._pass_insert_stream_barriers()
+        self.compiled = True
+        return self._build_legacy_summary()
+
+    def _pass_assign_streams_and_costs(self):
+        for node in _GLOBAL_NODE_LIST:
+            kind = node["op_kind"]
+            inps = [_GLOBAL_TENSOR_TABLE[n] for n in node["inputs"]]
+            out = _GLOBAL_TENSOR_TABLE[node["output"]]
+
+            # DUPLICATED LADDER #2: Stream Assignment Ladder
+            if kind == "ALLREDUCE" or kind == "ALLGATHER":
+                node["stream"] = STREAM_COMM
+            elif kind == "PREFETCH_WEIGHT":
+                node["stream"] = STREAM_PREFETCH
+            elif kind in ("MATMUL", "RMSNORM", "SWIGLU", "ROPE", "FLASH_ATTN", "ADD", "MUL"):
+                node["stream"] = STREAM_COMPUTE
+            else:
+                node["stream"] = STREAM_COMPUTE
+
+            # DUPLICATED LADDER #3: FLOP & Memory-Traffic Cost Ladder
+            if kind == "MATMUL":
+                a_s = inps[0]["shape"]
+                b_s = inps[1]["shape"]
+                trans_b = bool(node["attrs"].get("transpose_b", False))
+                m_elems = 1
+                for d in a_s[:-1]:
+                    m_elems *= d
+                k_dim = a_s[-1]
+                n_dim = b_s[0] if trans_b else b_s[1]
+                flops = 2 * m_elems * k_dim * n_dim
+            elif kind == "RMSNORM":
+                flops = 4 * inps[0]["elem_cnt"]
+            elif kind == "SWIGLU":
+                flops = 5 * out["elem_cnt"]
+            elif kind == "ROPE":
+                flops = 6 * inps[0]["elem_cnt"]
+            elif kind == "FLASH_ATTN":
+                b, sq, hq, d = inps[0]["shape"]
+                _, sk, _, dv = inps[2]["shape"]
+                causal = bool(node["attrs"].get("causal", False))
+                eff_sk = (sk + 1) / 2.0 if causal and sq == sk else float(sk)
+                flops = int(2 * b * hq * sq * eff_sk * (d + dv))
+            elif kind == "ADD" or kind == "MUL":
+                flops = out["elem_cnt"]
+            elif kind == "ALLREDUCE":
+                ws = int(node["attrs"].get("world_size", 8))
+                flops = out["elem_cnt"] * max(1, ws - 1)
+            elif kind == "ALLGATHER" or kind == "PREFETCH_WEIGHT":
+                flops = 0
+            else:
+                flops = 0
+
+            io_bytes = out["raw_bytes"]
+            for t in inps:
+                io_bytes += t["raw_bytes"]
+
+            node["flops"] = flops
+            node["io_bytes"] = io_bytes
+            _GLOBAL_STATS_ACCUM["total_flops"] += flops
+            _GLOBAL_STATS_ACCUM["total_io_bytes"] += io_bytes
+
+    def _pass_compute_liveness(self):
+        total_steps = len(_GLOBAL_NODE_LIST)
+        for tname, tinfo in _GLOBAL_TENSOR_TABLE.items():
+            if tinfo["is_input"] or tinfo["is_weight"]:
+                tinfo["first_step"] = 0
+            else:
+                tinfo["first_step"] = tinfo["producer_idx"]
+
+            if tinfo["is_output"] or tinfo["is_weight"]:
+                tinfo["last_step"] = total_steps
+            elif tinfo["consumer_indices"]:
+                tinfo["last_step"] = max(tinfo["consumer_indices"])
+            else:
+                tinfo["last_step"] = tinfo["first_step"]
+
+    def _can_inplace_alias(self, node):
+        if not self.allow_inplace:
+            return None
+        kind = node["op_kind"]
+        # DUPLICATED LADDER #4: In-Place Eligibility Ladder
+        if kind in ("ADD", "MUL", "ROPE", "RMSNORM", "ALLREDUCE"):
+            cand_name = node["inputs"][0]
+        else:
+            return None
+
+        cand = _GLOBAL_TENSOR_TABLE[cand_name]
+        out = _GLOBAL_TENSOR_TABLE[node["output"]]
+        if cand["is_input"] or cand["is_weight"] or cand["is_output"]:
+            return None
+        if cand["aligned_bytes"] != out["aligned_bytes"]:
+            return None
+        if cand["last_step"] != node["idx"]:
+            return None
+        # Also ensure candidate was produced on the exact same stream or already synchronized!
+        prod_idx = cand["producer_idx"]
+        if prod_idx is not None and _GLOBAL_NODE_LIST[prod_idx]["stream"] != node["stream"]:
+            return None
+        return cand_name
+
+    def _pass_allocate_arena_offsets(self):
+        # Free block list entries: {"offset": int, "size": int}
+        free_list = []
+        high_water_mark = 0
+        active_by_death = {}
+
+        for step_idx, node in enumerate(_GLOBAL_NODE_LIST):
+            out_name = node["output"]
+            out_info = _GLOBAL_TENSOR_TABLE[out_name]
+
+            alias_src = self._can_inplace_alias(node)
+            if alias_src is not None:
+                src_info = _GLOBAL_TENSOR_TABLE[alias_src]
+                out_info["arena_offset"] = src_info["arena_offset"]
+                out_info["aliased_from"] = alias_src
+                _GLOBAL_STATS_ACCUM["reused_inplace_count"] += 1
+                # Transfer death step ownership from src_info to out_info!
+                old_death = src_info["last_step"]
+                if old_death in active_by_death and alias_src in active_by_death[old_death]:
+                    active_by_death[old_death].remove(alias_src)
+                new_death = out_info["last_step"]
+                active_by_death.setdefault(new_death, []).append(out_name)
+            else:
+                need = out_info["aligned_bytes"]
+                best_idx = -1
+                best_size = None
+                for idx, blk in enumerate(free_list):
+                    if blk["size"] >= need:
+                        if best_size is None or blk["size"] < best_size:
+                            best_size = blk["size"]
+                            best_idx = idx
+                if best_idx >= 0:
+                    chosen = free_list[best_idx]
+                    out_info["arena_offset"] = chosen["offset"]
+                    if chosen["size"] == need:
+                        free_list.pop(best_idx)
+                    else:
+                        chosen["offset"] += need
+                        chosen["size"] -= need
+                else:
+                    if high_water_mark + need > self.arena_limit_bytes:
+                        raise MemoryError(
+                            f"Arena OOM at op {node['name']}: need {need}, hwm {high_water_mark}"
+                        )
+                    out_info["arena_offset"] = high_water_mark
+                    high_water_mark += need
+
+                active_by_death.setdefault(out_info["last_step"], []).append(out_name)
+
+            # Reclaim any transient activation tensors whose last consumer is step_idx
+            dying = active_by_death.pop(step_idx, [])
+            for dead_name in dying:
+                dead_info = _GLOBAL_TENSOR_TABLE[dead_name]
+                if dead_info["is_output"] or dead_info["is_weight"] or dead_info["is_input"]:
+                    continue
+                free_list.append({
+                    "offset": dead_info["arena_offset"],
+                    "size": dead_info["aligned_bytes"],
+                })
+            # Coalesce adjacent free blocks sorted by offset
+            if len(free_list) > 1:
+                free_list.sort(key=lambda b: b["offset"])
+                merged = [free_list[0]]
+                for b in free_list[1:]:
+                    prev = merged[-1]
+                    if prev["offset"] + prev["size"] == b["offset"]:
+                        prev["size"] += b["size"]
+                    else:
+                        merged.append(b)
+                free_list = merged
+
+        _GLOBAL_MEM_BLOCKS.extend(free_list)
+        _GLOBAL_STATS_ACCUM["peak_arena_bytes"] = high_water_mark
+
+    def _pass_insert_stream_barriers(self):
+        global _GLOBAL_EVENT_COUNTER
+        # Track for each (src_stream, dst_stream) the highest producer step already covered
+        synced_watermark = {}
+        for node in _GLOBAL_NODE_LIST:
+            dst_stream = node["stream"]
+            for inp_name in node["inputs"]:
+                inp = _GLOBAL_TENSOR_TABLE[inp_name]
+                p_idx = inp["producer_idx"]
+                if p_idx is None:
+                    continue
+                prod_node = _GLOBAL_NODE_LIST[p_idx]
+                src_stream = prod_node["stream"]
+                if src_stream != dst_stream:
+                    pair = (src_stream, dst_stream)
+                    if synced_watermark.get(pair, -1) < p_idx:
+                        _GLOBAL_EVENT_COUNTER += 1
+                        ev_id = f"ev_{_GLOBAL_EVENT_COUNTER}"
+                        prod_node["record_events"].append(ev_id)
+                        node["wait_events"].append(ev_id)
+                        synced_watermark[pair] = p_idx
+                        _GLOBAL_STATS_ACCUM["inserted_events"] += 1
+
+    def _build_legacy_summary(self):
+        schedule_out = []
+        for node in _GLOBAL_NODE_LIST:
+            out_t = _GLOBAL_TENSOR_TABLE[node["output"]]
+            # DUPLICATED LADDER #5: Hardware Kernel Dispatch Symbol Ladder
+            kind = node["op_kind"]
+            if kind == "MATMUL":
+                kernel_sym = (
+                    "aclnnQuantMatmulV4"
+                    if _GLOBAL_TENSOR_TABLE[node["inputs"][0]]["dtype"] == "int8"
+                    else "aclnnMatmul"
+                )
+            elif kind == "RMSNORM":
+                kernel_sym = "aclnnRmsNorm"
+            elif kind == "SWIGLU":
+                kernel_sym = "aclnnSwiGlu"
+            elif kind == "ROPE":
+                kernel_sym = "aclnnInterleaveRope"
+            elif kind == "FLASH_ATTN":
+                kernel_sym = "aclnnFlashAttentionScore"
+            elif kind == "ADD":
+                kernel_sym = "aclnnAdd"
+            elif kind == "MUL":
+                kernel_sym = "aclnnMul"
+            elif kind == "ALLREDUCE":
+                kernel_sym = "HcclAllReduce"
+            elif kind == "ALLGATHER":
+                kernel_sym = "HcclAllGather"
+            elif kind == "PREFETCH_WEIGHT":
+                kernel_sym = "rtMemcpyAsyncPrefetch"
+            else:
+                kernel_sym = "unknownKernel"
+
+            schedule_out.append({
+                "step": node["idx"],
+                "op_name": node["name"],
+                "op_kind": kind,
+                "kernel_symbol": kernel_sym,
+                "stream": node["stream"],
+                "wait_events": list(node["wait_events"]),
+                "record_events": list(node["record_events"]),
+                "output_tensor": node["output"],
+                "output_shape": list(out_t["shape"]),
+                "output_dtype": out_t["dtype"],
+                "arena_offset": out_t["arena_offset"],
+                "aligned_bytes": out_t["aligned_bytes"],
+                "aliased_from": out_t["aliased_from"],
+                "flops": node["flops"],
+                "io_bytes": node["io_bytes"],
+            })
+        self.schedule_trace = schedule_out
+        return {
+            "stats": dict(_GLOBAL_STATS_ACCUM),
+            "schedule": schedule_out,
+        }
+
+
+def build_sample_transformer_block_legacy(batch=1, seq_len=128, hidden=4096, num_heads=32, kv_heads=8, inter=11008, world_size=8):
+    """Full legacy decoder block builder wiring attention, collectives, residuals, and SwiGLU MLP."""
+    reset_legacy_globals()
+    head_dim = hidden // num_heads
+    local_q_heads = num_heads // world_size
+    local_kv_heads = max(1, kv_heads // world_size)
+    local_inter = inter // world_size
+
+    register_raw_tensor("x_in", [batch, seq_len, hidden], "bf16", is_input=True)
+    register_raw_tensor("cos_tbl", [batch, seq_len, local_q_heads, head_dim], "bf16", is_input=True)
+    register_raw_tensor("sin_tbl", [batch, seq_len, local_q_heads, head_dim], "bf16", is_input=True)
+    register_raw_tensor("cos_kv_tbl", [batch, seq_len, local_kv_heads, head_dim], "bf16", is_input=True)
+    register_raw_tensor("sin_kv_tbl", [batch, seq_len, local_kv_heads, head_dim], "bf16", is_input=True)
+
+    register_raw_tensor("rms_attn_w", [hidden], "bf16", is_weight=True)
+    register_raw_tensor("wq", [hidden, local_q_heads * head_dim], "bf16", is_weight=True)
+    register_raw_tensor("wk", [hidden, local_kv_heads * head_dim], "bf16", is_weight=True)
+    register_raw_tensor("wv", [hidden, local_kv_heads * head_dim], "bf16", is_weight=True)
+    register_raw_tensor("wo", [local_q_heads * head_dim, hidden], "bf16", is_weight=True)
+    register_raw_tensor("rms_mlp_w", [hidden], "bf16", is_weight=True)
+    register_raw_tensor("w_gate_up", [hidden, 2 * local_inter], "bf16", is_weight=True)
+    register_raw_tensor("w_down", [local_inter, hidden], "bf16", is_weight=True)
+
+    add_raw_op_node("pf_wq", "PREFETCH_WEIGHT", ["wq"], "wq_pref")
+    add_raw_op_node("pf_wgu", "PREFETCH_WEIGHT", ["w_gate_up"], "wgu_pref")
+    add_raw_op_node("attn_norm", "RMSNORM", ["x_in", "rms_attn_w"], "x_norm1")
+    add_raw_op_node("q_proj", "MATMUL", ["x_norm1", "wq_pref"], "q_flat")
+    add_raw_op_node("k_proj", "MATMUL", ["x_norm1", "wk"], "k_flat")
+    add_raw_op_node("v_proj", "MATMUL", ["x_norm1", "wv"], "v_flat")
+    add_raw_op_node("o_proj", "MATMUL", ["q_flat", "wo"], "attn_partial")
+    add_raw_op_node("attn_ar", "ALLREDUCE", ["attn_partial"], "attn_reduced", {"world_size": world_size})
+    add_raw_op_node("res_add1", "ADD", ["attn_reduced", "x_in"], "h_mid")
+    add_raw_op_node("mlp_norm", "RMSNORM", ["h_mid", "rms_mlp_w"], "h_norm2")
+    add_raw_op_node("gate_up_proj", "MATMUL", ["h_norm2", "wgu_pref"], "gate_up_act")
+    add_raw_op_node("swiglu_act", "SWIGLU", ["gate_up_act"], "mlp_inter")
+    add_raw_op_node("down_proj", "MATMUL", ["mlp_inter", "w_down"], "mlp_partial")
+    add_raw_op_node("mlp_ar", "ALLREDUCE", ["mlp_partial"], "mlp_reduced", {"world_size": world_size})
+    add_raw_op_node("res_add2", "ADD", ["mlp_reduced", "h_mid"], "layer_out", {"is_graph_output": True})
+
+    runner = MegaGraphRunner()
+    return runner.run_all_passes()
+
+
+# legacy_compiler/legacy_subgraph_validators.py
+"""Additional legacy helper routines coupled to _GLOBAL_TENSOR_TABLE and _GLOBAL_NODE_LIST."""
+
+
+def verify_legacy_memory_non_overlap():
+    """O(N^2) audit ensuring no two simultaneously live arena buffers overlap in byte range."""
+    alloc_tensors = [
+        t for t in _GLOBAL_TENSOR_TABLE.values()
+        if t["arena_offset"] >= 0 and not t["is_input"] and not t["is_weight"]
+    ]
+    n = len(alloc_tensors)
+    for i in range(n):
+        ti = alloc_tensors[i]
+        for j in range(i + 1, n):
+            tj = alloc_tensors[j]
+            if ti["aliased_from"] == tj["name"] or tj["aliased_from"] == ti["name"]:
+                continue
+            live_overlap = not (
+                ti["last_step"] <= tj["first_step"] or tj["last_step"] <= ti["first_step"]
+            )
+            if not live_overlap:
+                continue
+            ri_start = ti["arena_offset"]
+            ri_end = ri_start + ti["aligned_bytes"]
+            rj_start = tj["arena_offset"]
+            rj_end = rj_start + tj["aligned_bytes"]
+            byte_overlap = not (ri_end <= rj_start or rj_end <= ri_start)
+            if byte_overlap:
+                raise AssertionError(
+                    f"Illegal memory overlap between {ti['name']} [{ri_start}, {ri_end}) "
+                    f"and {tj['name']} [{rj_start}, {rj_end})"
+                )
+    return True
+
+
+def export_legacy_execution_manifest(summary_dict):
+    """Serialize compiled schedule and bandwidth utilization metrics."""
+    stats = summary_dict["stats"]
+    sched = summary_dict["schedule"]
+    stream_counts = {STREAM_COMPUTE: 0, STREAM_COMM: 0, STREAM_PREFETCH: 0}
+    kernel_hist = {}
+    for item in sched:
+        stream_counts[item["stream"]] = stream_counts.get(item["stream"], 0) + 1
+        ks = item["kernel_symbol"]
+        kernel_hist[ks] = kernel_hist.get(ks, 0) + 1
+    arithmetic_intensity = (
+        stats["total_flops"] / float(stats["total_io_bytes"])
+        if stats["total_io_bytes"] > 0
+        else 0.0
+    )
+    return {
+        "num_ops": len(sched),
+        "total_flops": stats["total_flops"],
+        "total_io_bytes": stats["total_io_bytes"],
+        "arithmetic_intensity": round(arithmetic_intensity, 4),
+        "peak_arena_bytes": stats["peak_arena_bytes"],
+        "reused_inplace_count": stats["reused_inplace_count"],
+        "inserted_events": stats["inserted_events"],
+        "stream_histogram": stream_counts,
+        "kernel_histogram": kernel_hist,
+    }
+
+
+<<<TRIM_START>>>
+# legacy_compiler/legacy_roofline_and_graphviz.py
+"""Legacy roofline latency estimator, fragmentation analyzer, and DOT exporter."""
+
+
+def estimate_legacy_roofline_latency_us(
+    peak_tflops=320.0,
+    hbm_bw_gbps=1600.0,
+    link_bw_gbps=392.0,
+    launch_overhead_us=3.5,
+):
+    """Estimate critical-path stream timeline latency using global node table."""
+    stream_clocks_us = {
+        STREAM_COMPUTE: 0.0,
+        STREAM_COMM: 0.0,
+        STREAM_PREFETCH: 0.0,
+    }
+    event_ready_us = {}
+    per_op_timings = []
+
+    for node in _GLOBAL_NODE_LIST:
+        st = node["stream"]
+        start_us = stream_clocks_us[st]
+        for ev_id in node["wait_events"]:
+            if ev_id in event_ready_us and event_ready_us[ev_id] > start_us:
+                start_us = event_ready_us[ev_id]
+
+        kind = node["op_kind"]
+        # DUPLICATED LADDER #6: Latency Roofline Estimation Ladder
+        if kind in ("ALLREDUCE", "ALLGATHER"):
+            comm_bytes = _GLOBAL_TENSOR_TABLE[node["output"]]["raw_bytes"]
+            ws = int(node["attrs"].get("world_size", 8))
+            alg_factor = 2.0 * (ws - 1) / float(ws) if kind == "ALLREDUCE" else (ws - 1) / float(ws)
+            dur_us = launch_overhead_us + (comm_bytes * alg_factor) / (link_bw_gbps * 1e3)
+        elif kind == "PREFETCH_WEIGHT":
+            pf_bytes = _GLOBAL_TENSOR_TABLE[node["output"]]["raw_bytes"]
+            dur_us = 1.0 + pf_bytes / (hbm_bw_gbps * 1e3)
+        else:
+            comp_us = node["flops"] / (peak_tflops * 1e6)
+            mem_us = node["io_bytes"] / (hbm_bw_gbps * 1e3)
+            dur_us = launch_overhead_us + max(comp_us, mem_us)
+
+        end_us = start_us + dur_us
+        stream_clocks_us[st] = end_us
+        for ev_id in node["record_events"]:
+            event_ready_us[ev_id] = end_us
+
+        per_op_timings.append({
+            "op_name": node["name"],
+            "stream": st,
+            "start_us": round(start_us, 3),
+            "end_us": round(end_us, 3),
+            "duration_us": round(dur_us, 3),
+        })
+
+    makespan_us = max(stream_clocks_us.values()) if stream_clocks_us else 0.0
+    return {
+        "makespan_us": round(makespan_us, 3),
+        "stream_end_us": {k: round(v, 3) for k, v in stream_clocks_us.items()},
+        "op_timings": per_op_timings,
+    }
+
+
+def analyze_legacy_arena_fragmentation():
+    """Compute step-by-step live byte demand vs allocated peak arena footprint."""
+    num_steps = len(_GLOBAL_NODE_LIST)
+    live_bytes_per_step = [0] * (num_steps + 1)
+    seen_canonical = set()
+    for tname, tinfo in _GLOBAL_TENSOR_TABLE.items():
+        if tinfo["is_input"] or tinfo["is_weight"]:
+            continue
+        if tinfo["aliased_from"] is not None:
+            continue
+        seen_canonical.add(tname)
+
+    # Walk every step and sum unique allocated arena ranges live at step s
+    for s in range(num_steps):
+        occupied_offsets = {}
+        for tname, tinfo in _GLOBAL_TENSOR_TABLE.items():
+            if tinfo["is_input"] or tinfo["is_weight"]:
+                continue
+            if tinfo["first_step"] is not None and tinfo["last_step"] is not None:
+                if tinfo["first_step"] <= s <= tinfo["last_step"]:
+                    occupied_offsets[tinfo["arena_offset"]] = max(
+                        occupied_offsets.get(tinfo["arena_offset"], 0),
+                        tinfo["aligned_bytes"],
+                    )
+        live_bytes_per_step[s] = sum(occupied_offsets.values())
+
+    max_live = max(live_bytes_per_step) if live_bytes_per_step else 0
+    peak_arena = _GLOBAL_STATS_ACCUM["peak_arena_bytes"]
+    frag_ratio = (
+        (peak_arena - max_live) / float(peak_arena) if peak_arena > 0 else 0.0
+    )
+    return {
+        "max_simultaneous_live_bytes": max_live,
+        "peak_arena_bytes": peak_arena,
+        "external_fragmentation_ratio": round(frag_ratio, 4),
+        "free_tail_blocks": len(_GLOBAL_MEM_BLOCKS),
+    }
+
+
+def render_legacy_graphviz_dot(graph_title="LegacyScheduledGraph"):
+    """Generate a Graphviz DOT string directly from global node & tensor dicts."""
+    lines = [f'digraph "{graph_title}" {{', "  rankdir=TB;"]
+    stream_colors = {
+        STREAM_COMPUTE: "lightblue",
+        STREAM_COMM: "lightsalmon",
+        STREAM_PREFETCH: "palegreen",
+    }
+    for node in _GLOBAL_NODE_LIST:
+        color = stream_colors.get(node["stream"], "white")
+        out_t = _GLOBAL_TENSOR_TABLE[node["output"]]
+        label = (
+            f"{node['idx']}: {node['name']} ({node['op_kind']})\\n"
+            f"out={node['output']} {out_t['shape']} {out_t['dtype']}\\n"
+            f"off={out_t['arena_offset']}B"
+        )
+        lines.append(
+            f'  n{node["idx"]} [shape=box, style=filled, fillcolor="{color}", label="{label}"];'
+        )
+        for inp_name in node["inputs"]:
+            inp_t = _GLOBAL_TENSOR_TABLE[inp_name]
+            if inp_t["producer_idx"] is not None:
+                p_idx = inp_t["producer_idx"]
+                p_stream = _GLOBAL_NODE_LIST[p_idx]["stream"]
+                edge_style = "dashed" if p_stream != node["stream"] else "solid"
+                lines.append(
+                    f'  n{p_idx} -> n{node["idx"]} [style={edge_style}, label="{inp_name}"];'
+                )
+    lines.append("}")
+    return "\n".join(lines)
+<<<TRIM_END>>>
+# Target Architecture Contract for Refactoring
+# 1. Zero Global Mutable State:
+#    Eliminate `_GLOBAL_TENSOR_TABLE`, `_GLOBAL_NODE_LIST`, `_GLOBAL_MEM_BLOCKS`,
+#    `_GLOBAL_EVENT_COUNTER`, and `_GLOBAL_STATS_ACCUM`. Multiple `GraphBuilder`
+#    and `PipelineCompiler` instances must be 100% thread-safe and isolated.
+#
+# 2. Strongly Typed Enumerations & Immutable Domain IR (`@dataclass(frozen=True, slots=True)`):
+#    - `DType(Enum)` with `.itemsize` property (`FP32`, `FP16`, `BF16`, `INT8`, `INT32`, `INT64`, `BOOL`).
+#    - `StreamKind(IntEnum)` (`COMPUTE = 0`, `COMM = 1`, `PREFETCH = 2`).
+#    - `TensorRole(Enum)` (`INPUT`, `WEIGHT`, `ACTIVATION`, `OUTPUT`).
+#    - `TensorSpec`: immutable descriptor (`name`, `shape: tuple[int, ...]`, `dtype: DType`,
+#      `role: TensorRole`, plus computed `.numel`, `.raw_bytes`, and 512-byte `.aligned_bytes`).
+#    - `OpNode`: immutable IR operation (`index`, `name`, `op_kind`, `inputs: tuple[str, ...]`,
+#      `output: str`, `attrs: Mapping[str, Any]`).
+#    - `LivenessSpan`, `ArenaAllocation`, `ScheduledOp`, and `CompilationArtifact` immutable records.
+#
+# 3. Polymorphic Operator Semantics Registry (Single Source of Truth — Zero `if/elif` Ladders!):
+#    Replace all FIVE duplicated `if op_kind == ...` ladders (shape/dtype inference, stream
+#    assignment, FLOP estimation, in-place candidate input index selection, and hardware kernel
+#    symbol resolution) with a clean `OpSpec` / `OperatorSemantics` protocol and concrete
+#    strategy classes or concise declarative spec registrations for all 10 operators:
+#    `MATMUL`, `RMSNORM`, `SWIGLU`, `ROPE`, `FLASH_ATTN`, `ADD`, `MUL`, `ALLREDUCE`,
+#    `ALLGATHER`, and `PREFETCH_WEIGHT`. Adding an 11th operator must require registering
+#    a single `OpSemantics` object without touching any compiler pass!
+#
+# 4. Decomposed, Pure Compiler Passes:
+#    - `GraphBuilder`: ergonomic fluent builder (`add_input`, `add_weight`, `add_op`, `build() -> GraphIR`)
+#      raising descriptive Python exceptions (`ValueError`, `KeyError`) instead of negative integer codes.
+#    - `LivenessPass`: pure function/pass mapping `GraphIR -> dict[str, LivenessSpan]`.
+#    - `BestFitArenaAllocator`: clean coalescing best-fit allocator with safe same-stream last-use
+#      in-place aliasing and exact alias-chain liveness ownership transfer, plus O(N^2) non-overlap verifier.
+#    - `StreamBarrierPass`: clean watermark-tracked cross-stream event dependency synthesizer.
+#    - `PipelineCompiler`: clean orchestrator returning an immutable `CompilationArtifact` with
+#      `.to_manifest()` matching all metrics of `export_legacy_execution_manifest`, plus a clean,
+#      complete `build_transformer_layer_graph(...)` factory wiring a genuine RMSNorm -> Q/K/V -> RoPE ->
+#      FlashAttn -> O_Proj -> AllReduce -> ResidualAdd -> RMSNorm -> GateUp -> SwiGLU -> Down ->
+#      AllReduce -> ResidualAdd decoder layer!
+<<<BODY_END>>>
+Output only the complete, refactored, production-ready Python 3.11+ module source code from top to bottom. Do not wrap the code in markdown fences and do not emit any explanatory prose before or after the Python code.

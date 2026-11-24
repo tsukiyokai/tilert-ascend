@@ -1,0 +1,1082 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-10-17T06:46:27.390109+00:00",
+  "host_alias": "a3-gs",
+  "container": "trt-asc",
+  "status": "pass",
+  "scope": "TP16 HCCL AIV SUM execution-path measurement; no decoder or profiler.",
+  "validation": {
+    "rank_reports": 32,
+    "cases_per_rank": 8,
+    "raw_event_and_wall_values_checked": 15360,
+    "all_source_hashes_match_current_frozen_files": true,
+    "all_rank_max_arrays_and_statistics_recomputed_exactly": true,
+    "all_exit_and_correctness_statuses_pass": true,
+    "outlier_samples_removed": 0,
+    "timing_unit": "microseconds",
+    "quantiles": "statistics.quantiles(n=100, method=inclusive)",
+    "rank_aggregation": "Maximum across sixteen ranks for each matched sample."
+  },
+  "runs": {
+    "tp-sum": {
+      "launch": {
+        "artifact": {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-launch.json",
+          "sha256": "f1afd9c88479511bae87f264eda1aa7dbc4048c96a4ce79ddd36d05d87f9c28d"
+        },
+        "pid": 648481,
+        "command": "source /workspace/environment/activate.sh\nASCEND_CUSTOM_OPP_PATH=/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer HCCL_DETERMINISTIC=true HCCL_BUFFSIZE=200 HCCL_OP_EXPANSION_MODE=AIV HCCL_NPU_SOCKET_PORT_RANGE=auto HCCL_HOST_SOCKET_PORT_RANGE=auto ASCEND_GLOBAL_LOG_LEVEL=3 ASCEND_SLOG_PRINT_TO_STDOUT=0 OMP_NUM_THREADS=1 TASK_QUEUE_ENABLE=1 TORCH_DEVICE_BACKEND_AUTOLOAD=0 timeout 180 python -m torch.distributed.run --standalone --nproc-per-node=16 /workspace/offline/cann-layer4-default-20261017/bench_tp_sum.py --output /workspace/offline/cann-layer4-default-20261017/tp-sum",
+        "source_sha256": "d7018c19d1a39e42a463c8192f1930f541ef2fc4e5ffbf53159333f3d5a6bc3d",
+        "free_hbm_mb": {
+          "0": 62388,
+          "1": 62630,
+          "2": 62389,
+          "3": 62629,
+          "4": 62376,
+          "5": 62642,
+          "6": 62390,
+          "7": 62625,
+          "8": 62389,
+          "9": 62628,
+          "10": 62384,
+          "11": 62628,
+          "12": 62383,
+          "13": 62640,
+          "14": 62378,
+          "15": 62623
+        },
+        "clock_policy": "stock settings; no frequency override",
+        "started_at": "2026-10-17T06:31:26.896248+00:00"
+      },
+      "exit": {
+        "artifact": {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-exit.json",
+          "sha256": "ef57fbb437781bb8ffc5c3749fd0c1344d08c770dd0e9e73d3f1b2299e08eade"
+        },
+        "exit_code": 0,
+        "finished_at": "2026-10-17T06:31:55.910936+00:00"
+      },
+      "summary": {
+        "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum/summary.json",
+        "sha256": "cdf0ab0be91468bf4ffd7d4520f16ceb23ccd5359cadb46a112bfb820165b53f"
+      },
+      "rank_reports": [
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum/rank-0.json",
+          "sha256": "91822a5351b4718b455a308e4594d1134fa3677cebf47cbc8ac2dcd77626f088"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum/rank-1.json",
+          "sha256": "8e4335d9fb33ccae098668e08b2e0d02b24dc0b14b7b97a0498db8759b66b934"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum/rank-2.json",
+          "sha256": "c03e6dc6165f31489f2a664044f89fad1ca75c78e365aed5529a65e1214e40ea"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum/rank-3.json",
+          "sha256": "85a9fa9aeea2e1c564ebc5162451132a8732a599353f5bb9bab7cd38bc0f3233"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum/rank-4.json",
+          "sha256": "65ee9f065111629f2e110cadfa9faef33a88003e7eb1171a4fbe93cea324c1bb"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum/rank-5.json",
+          "sha256": "eeb534e75a88db09e226122be700295dc40860143cf354dbcf27a130c653817a"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum/rank-6.json",
+          "sha256": "1eb9923e60e47c85a1b00bf156578e42ebed600bc44b367e3fb9241d53e96a3f"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum/rank-7.json",
+          "sha256": "975fd06d2f592d621e21967565a1f08cd67384078459122788ea1a2745e813f4"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum/rank-8.json",
+          "sha256": "f009c08a83be8f4430d87873ba1dd02cb82bd040e97aa42e1b1adf926dae10a1"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum/rank-9.json",
+          "sha256": "16a0609ab70058f28491eee3cb706922770b4c725b3c55cea343ca686a069d63"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum/rank-10.json",
+          "sha256": "dac3604f7b3b89179121e104a4850d8091fcfb7c15254d31de9aeee6194f4e0e"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum/rank-11.json",
+          "sha256": "3634ba562432dbaa4838cc2485b632a63e1e7612cc4b10a9a252ee56ef661c56"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum/rank-12.json",
+          "sha256": "6237ab36180ebd240c71361bf45ebd1926a140ca94fe9afe3bcdb04622c752ae"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum/rank-13.json",
+          "sha256": "922063a2769a59c524840cd98ae03c2084d1cf9aacea8655b04c2ecb3425808f"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum/rank-14.json",
+          "sha256": "bdc8963a13c334a4b7436670b44174dd0ddc000db52170f745677c613ae89f61"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum/rank-15.json",
+          "sha256": "fbbcbe8dae8fe8b575fe87cc8af9d56a263ea658dfb0221f3665222c98d773d2"
+        }
+      ],
+      "stdout": {
+        "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum.log",
+        "sha256": "f4870f785db249ce6d4d281afed719c1bf210197c605d316c45c9bb11bd1daee"
+      },
+      "sources": {
+        "/workspace/offline/cann-layer4-default-20261017/bench_tp_sum.py": "d7018c19d1a39e42a463c8192f1930f541ef2fc4e5ffbf53159333f3d5a6bc3d"
+      },
+      "versions": {
+        "host": "trt-asc",
+        "python": "3.11.12",
+        "torch": "2.12.0+cpu",
+        "torch_npu": "2.12.0",
+        "cann": "package_name=Ascend-cann-toolkit\nversion=9.2.0\ninnerversion=V100R001C25B114\ncompatible_version=[V100R001C15],[V100R001C23],[V100R001C10],[V100R001C11],[V100R001C12]\narch=aarch64\nos=linux\npath=/opt/ascend/cann-9.2.0\n",
+        "backend": "hccl"
+      },
+      "environment": {
+        "HCCL_DETERMINISTIC": "true",
+        "HCCL_BUFFSIZE": "200",
+        "HCCL_OP_EXPANSION_MODE": "AIV",
+        "HCCL_NPU_SOCKET_PORT_RANGE": "auto",
+        "HCCL_HOST_SOCKET_PORT_RANGE": "auto",
+        "HCCL_ALGO": null,
+        "HCCL_IF_IP": null,
+        "HCCL_SOCKET_IFNAME": null,
+        "TASK_QUEUE_ENABLE": "1",
+        "OMP_NUM_THREADS": "1",
+        "TORCH_DEVICE_BACKEND_AUTOLOAD": "0",
+        "ASCEND_HOME_PATH": "/opt/ascend/cann-9.2.0",
+        "ASCEND_CUSTOM_OPP_PATH": "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer:/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib:/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer",
+        "ASCEND_RT_VISIBLE_DEVICES": null,
+        "ASCEND_VISIBLE_DEVICES": null
+      },
+      "warmup_per_case": 10,
+      "samples_per_case_per_rank": 30,
+      "timing_scope": {
+        "event": "Device start/end around calls; includes dispatch gaps.",
+        "wall": "Host submission and final device synchronization.",
+        "excluded": "Pre-sample device synchronization and Gloo barrier.",
+        "batch_average": "156-call total divided by 156; not call tails."
+      },
+      "correctness": {
+        "single_sum_expected": 136,
+        "single_sum_checks_passed": 64,
+        "single_sum_captured": false,
+        "zero_checks_passed": 64,
+        "same_buffer_for_single_and_chain": true
+      },
+      "prelaunch_occupancy": {
+        "artifact": {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-npu-before.log",
+          "sha256": "5d74a9ad533c32e81e7836faad98421bbbeb53663ae027e065ba8d2e0c07a1d1"
+        },
+        "dies": {
+          "0": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 3148,
+            "hbm_total_mb": 65536
+          },
+          "1": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 2906,
+            "hbm_total_mb": 65536
+          },
+          "2": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 3147,
+            "hbm_total_mb": 65536
+          },
+          "3": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 2907,
+            "hbm_total_mb": 65536
+          },
+          "4": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 3160,
+            "hbm_total_mb": 65536
+          },
+          "5": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 2894,
+            "hbm_total_mb": 65536
+          },
+          "6": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 3146,
+            "hbm_total_mb": 65536
+          },
+          "7": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 2911,
+            "hbm_total_mb": 65536
+          },
+          "8": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 3147,
+            "hbm_total_mb": 65536
+          },
+          "9": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 2908,
+            "hbm_total_mb": 65536
+          },
+          "10": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 3152,
+            "hbm_total_mb": 65536
+          },
+          "11": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 2908,
+            "hbm_total_mb": 65536
+          },
+          "12": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 3153,
+            "hbm_total_mb": 65536
+          },
+          "13": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 2896,
+            "hbm_total_mb": 65536
+          },
+          "14": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 3158,
+            "hbm_total_mb": 65536
+          },
+          "15": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 2913,
+            "hbm_total_mb": 65536
+          }
+        },
+        "no_running_processes_on_all_eight_modules": true,
+        "scope": "Prelaunch snapshot; no continuous occupancy recording."
+      },
+      "clock_policy": {
+        "launch_record": "stock settings; no frequency override",
+        "benchmark_changes_clock_or_power_settings": false,
+        "clock_frequency_mhz": null,
+        "scope": "Stock policy; frequency not locked or sampled."
+      },
+      "cases": [
+        {
+          "dtype": "torch.bfloat16",
+          "elements": 6144,
+          "payload_bytes": 12288,
+          "calls": 1,
+          "scope": "isolated_call",
+          "event_total_us": {
+            "p50": 288.70999813079834,
+            "p90": 406.36401176452637,
+            "p99": 1871.7166057229042,
+            "std": 388.84858698265907
+          },
+          "event_per_call_us": {
+            "meaning": "isolated_call",
+            "p50": 288.70999813079834,
+            "p90": 406.36401176452637,
+            "p99": 1871.7166057229042,
+            "std": 388.84858698265907
+          },
+          "wall_total_us": {
+            "p50": 528.0125,
+            "p90": 639.2822,
+            "p99": 2172.55759,
+            "std": 402.98895609174645
+          },
+          "wall_per_call_us": {
+            "meaning": "isolated_call",
+            "p50": 528.0125,
+            "p90": 639.2822,
+            "p99": 2172.55759,
+            "std": 402.98895609174645
+          }
+        },
+        {
+          "dtype": "torch.bfloat16",
+          "elements": 6144,
+          "payload_bytes": 12288,
+          "calls": 156,
+          "scope": "156_dependent_inplace_calls",
+          "event_total_us": {
+            "p50": 25114.330291748047,
+            "p90": 31044.045066833496,
+            "p99": 44449.05292510986,
+            "std": 4899.724704745694
+          },
+          "event_per_call_us": {
+            "meaning": "batch_average",
+            "p50": 160.98929674197467,
+            "p90": 199.0002888899583,
+            "p99": 284.92982644301196,
+            "std": 31.408491697087783
+          },
+          "wall_total_us": {
+            "p50": 29928.040999999997,
+            "p90": 34343.3785,
+            "p99": 45583.96958,
+            "std": 3869.6509784106324
+          },
+          "wall_per_call_us": {
+            "meaning": "batch_average",
+            "p50": 191.84641666666667,
+            "p90": 220.14986217948714,
+            "p99": 292.20493320512816,
+            "std": 24.805454989811743
+          }
+        },
+        {
+          "dtype": "torch.bfloat16",
+          "elements": 24576,
+          "payload_bytes": 49152,
+          "calls": 1,
+          "scope": "isolated_call",
+          "event_total_us": {
+            "p50": 288.98000717163086,
+            "p90": 464.1979932785034,
+            "p99": 750.3712171316147,
+            "std": 134.98842345874593
+          },
+          "event_per_call_us": {
+            "meaning": "isolated_call",
+            "p50": 288.98000717163086,
+            "p90": 464.1979932785034,
+            "p99": 750.3712171316147,
+            "std": 134.98842345874593
+          },
+          "wall_total_us": {
+            "p50": 523.447,
+            "p90": 696.7171000000001,
+            "p99": 967.9434299999999,
+            "std": 121.24513311207818
+          },
+          "wall_per_call_us": {
+            "meaning": "isolated_call",
+            "p50": 523.447,
+            "p90": 696.7171000000001,
+            "p99": 967.9434299999999,
+            "std": 121.24513311207818
+          }
+        },
+        {
+          "dtype": "torch.bfloat16",
+          "elements": 24576,
+          "payload_bytes": 49152,
+          "calls": 156,
+          "scope": "156_dependent_inplace_calls",
+          "event_total_us": {
+            "p50": 22909.899711608887,
+            "p90": 34727.723693847656,
+            "p99": 41750.55213928223,
+            "std": 5694.539738344653
+          },
+          "event_per_call_us": {
+            "meaning": "batch_average",
+            "p50": 146.85833148467236,
+            "p90": 222.61361342210034,
+            "p99": 267.63174448257837,
+            "std": 36.50345986118368
+          },
+          "wall_total_us": {
+            "p50": 29747.1785,
+            "p90": 39902.780999999995,
+            "p99": 47494.54031,
+            "std": 5301.070416427311
+          },
+          "wall_per_call_us": {
+            "meaning": "batch_average",
+            "p50": 190.6870416666667,
+            "p90": 255.7870576923077,
+            "p99": 304.45218147435895,
+            "std": 33.981220618123785
+          }
+        },
+        {
+          "dtype": "torch.float32",
+          "elements": 6144,
+          "payload_bytes": 24576,
+          "calls": 1,
+          "scope": "isolated_call",
+          "event_total_us": {
+            "p50": 265.3300017118454,
+            "p90": 379.0760010480881,
+            "p99": 447.8141909837723,
+            "std": 68.87094252823405
+          },
+          "event_per_call_us": {
+            "meaning": "isolated_call",
+            "p50": 265.3300017118454,
+            "p90": 379.0760010480881,
+            "p99": 447.8141909837723,
+            "std": 68.87094252823405
+          },
+          "wall_total_us": {
+            "p50": 508.192,
+            "p90": 643.5269999999999,
+            "p99": 715.1225999999999,
+            "std": 72.9294879035375
+          },
+          "wall_per_call_us": {
+            "meaning": "isolated_call",
+            "p50": 508.192,
+            "p90": 643.5269999999999,
+            "p99": 715.1225999999999,
+            "std": 72.9294879035375
+          }
+        },
+        {
+          "dtype": "torch.float32",
+          "elements": 6144,
+          "payload_bytes": 24576,
+          "calls": 156,
+          "scope": "156_dependent_inplace_calls",
+          "event_total_us": {
+            "p50": 26756.229400634766,
+            "p90": 38791.38984680176,
+            "p99": 48972.94933319092,
+            "std": 7298.834515511649
+          },
+          "event_per_call_us": {
+            "meaning": "batch_average",
+            "p50": 171.51429102971002,
+            "p90": 248.6627554282164,
+            "p99": 313.9291623922495,
+            "std": 46.78740074045929
+          },
+          "wall_total_us": {
+            "p50": 29478.620000000003,
+            "p90": 39770.3727,
+            "p99": 49609.06458,
+            "std": 5790.252433127246
+          },
+          "wall_per_call_us": {
+            "meaning": "batch_average",
+            "p50": 188.96551282051283,
+            "p90": 254.93828653846154,
+            "p99": 318.00682423076927,
+            "std": 37.11700277645671
+          }
+        },
+        {
+          "dtype": "torch.float32",
+          "elements": 24576,
+          "payload_bytes": 98304,
+          "calls": 1,
+          "scope": "isolated_call",
+          "event_total_us": {
+            "p50": 274.9500125646591,
+            "p90": 476.8600046634674,
+            "p99": 1483.1278455257416,
+            "std": 291.2112492108584
+          },
+          "event_per_call_us": {
+            "meaning": "isolated_call",
+            "p50": 274.9500125646591,
+            "p90": 476.8600046634674,
+            "p99": 1483.1278455257416,
+            "std": 291.2112492108584
+          },
+          "wall_total_us": {
+            "p50": 509.5575,
+            "p90": 716.2081,
+            "p99": 3768.5889499999994,
+            "std": 796.3253165124365
+          },
+          "wall_per_call_us": {
+            "meaning": "isolated_call",
+            "p50": 509.5575,
+            "p90": 716.2081,
+            "p99": 3768.5889499999994,
+            "std": 796.3253165124365
+          }
+        },
+        {
+          "dtype": "torch.float32",
+          "elements": 24576,
+          "payload_bytes": 98304,
+          "calls": 156,
+          "scope": "156_dependent_inplace_calls",
+          "event_total_us": {
+            "p50": 25158.750534057617,
+            "p90": 36853.30924987793,
+            "p99": 46686.684226989746,
+            "std": 6019.839313953858
+          },
+          "event_per_call_us": {
+            "meaning": "batch_average",
+            "p50": 161.27404188498474,
+            "p90": 236.23916185819186,
+            "p99": 299.2736168396779,
+            "std": 38.58871355098627
+          },
+          "wall_total_us": {
+            "p50": 29937.816,
+            "p90": 37862.295300000005,
+            "p99": 47636.79787,
+            "std": 4717.375202579437
+          },
+          "wall_per_call_us": {
+            "meaning": "batch_average",
+            "p50": 191.90907692307692,
+            "p90": 242.70702115384617,
+            "p99": 305.3640889102564,
+            "std": 30.239584631919463
+          }
+        }
+      ]
+    },
+    "tp-sum-graph": {
+      "launch": {
+        "artifact": {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph-launch.json",
+          "sha256": "73b0179d011f8a1eae5954fde11b9c8c924ee60f36ce930418eb830a8c513031"
+        },
+        "pid": 697956,
+        "command": "source /workspace/environment/activate.sh\nASCEND_CUSTOM_OPP_PATH=/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer HCCL_DETERMINISTIC=true HCCL_BUFFSIZE=200 HCCL_OP_EXPANSION_MODE=AIV HCCL_NPU_SOCKET_PORT_RANGE=auto HCCL_HOST_SOCKET_PORT_RANGE=auto ASCEND_GLOBAL_LOG_LEVEL=3 ASCEND_SLOG_PRINT_TO_STDOUT=0 OMP_NUM_THREADS=1 TASK_QUEUE_ENABLE=1 TORCH_DEVICE_BACKEND_AUTOLOAD=0 timeout 180 python -m torch.distributed.run --standalone --nproc-per-node=16 /workspace/offline/cann-layer4-default-20261017/bench_tp_sum_graph.py --output /workspace/offline/cann-layer4-default-20261017/tp-sum-graph",
+        "source_sha256": "650158a044f0c5159b77fc339ab94150e29a5bddeaab593727b49ef0097f9946",
+        "base_source_sha256": "d7018c19d1a39e42a463c8192f1930f541ef2fc4e5ffbf53159333f3d5a6bc3d",
+        "free_hbm_mb": {
+          "0": 62384,
+          "1": 62628,
+          "2": 62388,
+          "3": 62630,
+          "4": 62377,
+          "5": 62641,
+          "6": 62388,
+          "7": 62624,
+          "8": 62388,
+          "9": 62627,
+          "10": 62381,
+          "11": 62628,
+          "12": 62382,
+          "13": 62640,
+          "14": 62377,
+          "15": 62622
+        },
+        "clock_policy": "stock settings; no frequency override",
+        "started_at": "2026-10-17T06:40:16.247513+00:00"
+      },
+      "exit": {
+        "artifact": {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph-exit.json",
+          "sha256": "b9e50b04218bace6e5ae9b4989b7bf12b45d3264d43853d3d03abc9f3cc0a862"
+        },
+        "exit_code": 0,
+        "finished_at": "2026-10-17T06:40:39.003300+00:00"
+      },
+      "summary": {
+        "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph/summary.json",
+        "sha256": "2ee89850555a8973a99547e1f3aa885821bfabc1ab595f75b7a9ea5b3a94a44d"
+      },
+      "rank_reports": [
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph/rank-0.json",
+          "sha256": "19a6fbb24365f627e09312c7caad35fe1d4b8ee7c9c333b9d8fe2b37a93e55cd"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph/rank-1.json",
+          "sha256": "2711f6e31fb564389284fe1b924a2fb95f576b862bb9118f663b10be9aa1e14c"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph/rank-2.json",
+          "sha256": "c84e3e427bf907e230d74b965742d6aa22728c1065c41ac8ecfd91f8cdc6b4e5"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph/rank-3.json",
+          "sha256": "901c191bf120f9133fcc22eaa396533f0383968f8f9d5bc4c2b1995ed8af9286"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph/rank-4.json",
+          "sha256": "c57981c65f7014f2d2376eb7cbc9cfc3ae9263f706b7aa39ee2b6020ed915c58"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph/rank-5.json",
+          "sha256": "f9ec300939c472d644efbe42fdfeb3ffad576d9f9e6bc8de4a865fb531591972"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph/rank-6.json",
+          "sha256": "0ea08507ae7588940a95112c9b20cbc127ac46f1122cc99c048b5c1c5e47836d"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph/rank-7.json",
+          "sha256": "888a3d333ac657cd74682a97dd2e764a16e2c32b0376a1adc129302e4aa2adeb"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph/rank-8.json",
+          "sha256": "b211e22d7f8d03eb815e8ce8d70070cac1a2720eba99d5bcc37d8122b88537e9"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph/rank-9.json",
+          "sha256": "f8d14c54896a53e62fc7dcce8cf82b7f12ac4a8d1ddfb0f10940158ec10647b2"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph/rank-10.json",
+          "sha256": "afced07718c6956b5bfc0cb27490440702b697aeb360901d4eaff00e3a2f677e"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph/rank-11.json",
+          "sha256": "da4566ffe236452d1a3f679542454fbe9b11fce369da01ebb422e01cc22d9446"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph/rank-12.json",
+          "sha256": "e89fba777add7358c91cbbfeeb6c2d18e42e14c4cd9f0b7f21847cedfbb4e989"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph/rank-13.json",
+          "sha256": "5245906c6946b4982583a27efde704fcc78a50bbc2708fc34ffa32bf87841b6b"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph/rank-14.json",
+          "sha256": "0080e836158b856ee8dfb98d221bc3da8c3c41c6e7213dc4d68fa1cdbb1e45dc"
+        },
+        {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph/rank-15.json",
+          "sha256": "aae32069ed5ca5cb2060f3aa5faded48ceaf858ad499d2c60a97faba6ee373c2"
+        }
+      ],
+      "stdout": {
+        "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph.log",
+        "sha256": "752d6aacbb1b92b437abd23fc4694acf87191a70d53348b01ce71dd36c353a13"
+      },
+      "sources": {
+        "/workspace/offline/cann-layer4-default-20261017/bench_tp_sum_graph.py": "650158a044f0c5159b77fc339ab94150e29a5bddeaab593727b49ef0097f9946",
+        "/workspace/offline/cann-layer4-default-20261017/bench_tp_sum.py": "d7018c19d1a39e42a463c8192f1930f541ef2fc4e5ffbf53159333f3d5a6bc3d",
+        "/opt/trt-asc/venv/lib/python3.11/site-packages/torch_npu/npu/graphs.py": "7d76706e096c0249dd63a3000a625b956df3841f62a163efb8dbc1bf76b26c6a"
+      },
+      "versions": {
+        "host": "trt-asc",
+        "python": "3.11.12",
+        "torch": "2.12.0+cpu",
+        "torch_npu": "2.12.0",
+        "cann": "package_name=Ascend-cann-toolkit\nversion=9.2.0\ninnerversion=V100R001C25B114\ncompatible_version=[V100R001C15],[V100R001C23],[V100R001C10],[V100R001C11],[V100R001C12]\narch=aarch64\nos=linux\npath=/opt/ascend/cann-9.2.0\n",
+        "backend": "hccl"
+      },
+      "environment": {
+        "HCCL_DETERMINISTIC": "true",
+        "HCCL_BUFFSIZE": "200",
+        "HCCL_OP_EXPANSION_MODE": "AIV",
+        "HCCL_NPU_SOCKET_PORT_RANGE": "auto",
+        "HCCL_HOST_SOCKET_PORT_RANGE": "auto",
+        "HCCL_ALGO": null,
+        "HCCL_IF_IP": null,
+        "HCCL_SOCKET_IFNAME": null,
+        "TASK_QUEUE_ENABLE": "1",
+        "OMP_NUM_THREADS": "1",
+        "TORCH_DEVICE_BACKEND_AUTOLOAD": "0",
+        "ASCEND_HOME_PATH": "/opt/ascend/cann-9.2.0",
+        "ASCEND_CUSTOM_OPP_PATH": "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer:/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib:/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer",
+        "ASCEND_RT_VISIBLE_DEVICES": null,
+        "ASCEND_VISIBLE_DEVICES": null
+      },
+      "warmup_per_case": 10,
+      "samples_per_case_per_rank": 30,
+      "timing_scope": {
+        "event": "Start/end around one replay, including replay dispatch.",
+        "wall": "Replay submission and final device synchronization.",
+        "excluded": "Capture, correctness, pre-sync and Gloo barrier.",
+        "batch_average": "156-node total/156, not individual call tails."
+      },
+      "correctness": {
+        "single_sum_expected": 136,
+        "single_sum_checks_passed": 64,
+        "single_sum_captured": true,
+        "zero_checks_passed": 128,
+        "same_buffer_for_single_and_chain": true
+      },
+      "prelaunch_occupancy": {
+        "artifact": {
+          "path": "/workspace/offline/cann-layer4-default-20261017/tp-sum-graph-npu-before.log",
+          "sha256": "ca0fb4b307ece62359acc210bbc36e70fe735bb2f49bb8cc9aa637045d1bf60f"
+        },
+        "dies": {
+          "0": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 3152,
+            "hbm_total_mb": 65536
+          },
+          "1": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 2908,
+            "hbm_total_mb": 65536
+          },
+          "2": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 3148,
+            "hbm_total_mb": 65536
+          },
+          "3": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 2906,
+            "hbm_total_mb": 65536
+          },
+          "4": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 3159,
+            "hbm_total_mb": 65536
+          },
+          "5": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 2895,
+            "hbm_total_mb": 65536
+          },
+          "6": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 3148,
+            "hbm_total_mb": 65536
+          },
+          "7": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 2912,
+            "hbm_total_mb": 65536
+          },
+          "8": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 3148,
+            "hbm_total_mb": 65536
+          },
+          "9": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 2909,
+            "hbm_total_mb": 65536
+          },
+          "10": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 3155,
+            "hbm_total_mb": 65536
+          },
+          "11": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 2908,
+            "hbm_total_mb": 65536
+          },
+          "12": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 3154,
+            "hbm_total_mb": 65536
+          },
+          "13": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 2896,
+            "hbm_total_mb": 65536
+          },
+          "14": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 3159,
+            "hbm_total_mb": 65536
+          },
+          "15": {
+            "aicore_percent": 0,
+            "hbm_used_mb": 2914,
+            "hbm_total_mb": 65536
+          }
+        },
+        "no_running_processes_on_all_eight_modules": true,
+        "scope": "Prelaunch snapshot; no continuous occupancy recording."
+      },
+      "clock_policy": {
+        "launch_record": "stock settings; no frequency override",
+        "benchmark_changes_clock_or_power_settings": false,
+        "clock_frequency_mhz": null,
+        "scope": "Stock policy; frequency not locked or sampled."
+      },
+      "cases": [
+        {
+          "dtype": "torch.bfloat16",
+          "elements": 6144,
+          "payload_bytes": 12288,
+          "calls": 1,
+          "scope": "graph_replay_1_dependent_inplace_sums",
+          "event_total_us": {
+            "p50": 191.05999916791916,
+            "p90": 230.81199377775192,
+            "p99": 251.8092016875744,
+            "std": 26.00141992765997
+          },
+          "event_per_call_us": {
+            "meaning": "isolated_graph",
+            "p50": 191.05999916791916,
+            "p90": 230.81199377775192,
+            "p99": 251.8092016875744,
+            "std": 26.00141992765997
+          },
+          "wall_total_us": {
+            "p50": 344.68399999999997,
+            "p90": 407.69800000000004,
+            "p99": 416.61949,
+            "std": 29.717800335096584
+          },
+          "wall_per_call_us": {
+            "meaning": "isolated_graph",
+            "p50": 344.68399999999997,
+            "p90": 407.69800000000004,
+            "p99": 416.61949,
+            "std": 29.717800335096584
+          }
+        },
+        {
+          "dtype": "torch.bfloat16",
+          "elements": 6144,
+          "payload_bytes": 12288,
+          "calls": 156,
+          "scope": "graph_replay_156_dependent_inplace_sums",
+          "event_total_us": {
+            "p50": 5518.009901046753,
+            "p90": 5703.06396484375,
+            "p99": 5878.924894332886,
+            "std": 99.30479518712403
+          },
+          "event_per_call_us": {
+            "meaning": "batch_average",
+            "p50": 35.37185834004329,
+            "p90": 36.55810233874199,
+            "p99": 37.68541598931337,
+            "std": 0.6365691999174615
+          },
+          "wall_total_us": {
+            "p50": 5700.4130000000005,
+            "p90": 6230.486999999999,
+            "p99": 9874.34788,
+            "std": 981.124666909939
+          },
+          "wall_per_call_us": {
+            "meaning": "batch_average",
+            "p50": 36.54110897435898,
+            "p90": 39.93901923076923,
+            "p99": 63.29710179487179,
+            "std": 6.289260685320122
+          }
+        },
+        {
+          "dtype": "torch.bfloat16",
+          "elements": 24576,
+          "payload_bytes": 49152,
+          "calls": 1,
+          "scope": "graph_replay_1_dependent_inplace_sums",
+          "event_total_us": {
+            "p50": 192.9899975657463,
+            "p90": 228.9680004119873,
+            "p99": 366.7677976191044,
+            "std": 49.17742595927964
+          },
+          "event_per_call_us": {
+            "meaning": "isolated_graph",
+            "p50": 192.9899975657463,
+            "p90": 228.9680004119873,
+            "p99": 366.7677976191044,
+            "std": 49.17742595927964
+          },
+          "wall_total_us": {
+            "p50": 356.79499999999996,
+            "p90": 405.93809999999996,
+            "p99": 2872.1387400000003,
+            "std": 619.6717134660767
+          },
+          "wall_per_call_us": {
+            "meaning": "isolated_graph",
+            "p50": 356.79499999999996,
+            "p90": 405.93809999999996,
+            "p99": 2872.1387400000003,
+            "std": 619.6717134660767
+          }
+        },
+        {
+          "dtype": "torch.bfloat16",
+          "elements": 24576,
+          "payload_bytes": 49152,
+          "calls": 156,
+          "scope": "graph_replay_156_dependent_inplace_sums",
+          "event_total_us": {
+            "p50": 5032.989978790283,
+            "p90": 5094.279909133911,
+            "p99": 5326.406235694885,
+            "std": 76.8533103189102
+          },
+          "event_per_call_us": {
+            "meaning": "batch_average",
+            "p50": 32.262756274296684,
+            "p90": 32.6556404431661,
+            "p99": 34.14362971599285,
+            "std": 0.4926494251212188
+          },
+          "wall_total_us": {
+            "p50": 5220.2564999999995,
+            "p90": 5403.8189999999995,
+            "p99": 6594.72179,
+            "std": 329.36523913792456
+          },
+          "wall_per_call_us": {
+            "meaning": "batch_average",
+            "p50": 33.4631826923077,
+            "p90": 34.63986538461538,
+            "p99": 42.273857628205135,
+            "std": 2.1113156354995164
+          }
+        },
+        {
+          "dtype": "torch.float32",
+          "elements": 6144,
+          "payload_bytes": 24576,
+          "calls": 1,
+          "scope": "graph_replay_1_dependent_inplace_sums",
+          "event_total_us": {
+            "p50": 212.0100036263466,
+            "p90": 242.83799976110458,
+            "p99": 253.33399176597595,
+            "std": 20.826981566479244
+          },
+          "event_per_call_us": {
+            "meaning": "isolated_graph",
+            "p50": 212.0100036263466,
+            "p90": 242.83799976110458,
+            "p99": 253.33399176597595,
+            "std": 20.826981566479244
+          },
+          "wall_total_us": {
+            "p50": 384.1805,
+            "p90": 412.87200000000007,
+            "p99": 559.52403,
+            "std": 46.47541235115617
+          },
+          "wall_per_call_us": {
+            "meaning": "isolated_graph",
+            "p50": 384.1805,
+            "p90": 412.87200000000007,
+            "p99": 559.52403,
+            "std": 46.47541235115617
+          }
+        },
+        {
+          "dtype": "torch.float32",
+          "elements": 6144,
+          "payload_bytes": 24576,
+          "calls": 156,
+          "scope": "graph_replay_156_dependent_inplace_sums",
+          "event_total_us": {
+            "p50": 5027.679920196533,
+            "p90": 5072.511959075928,
+            "p99": 5093.048720359802,
+            "std": 29.383608965630703
+          },
+          "event_per_call_us": {
+            "meaning": "batch_average",
+            "p50": 32.228717437157265,
+            "p90": 32.51610230176877,
+            "p99": 32.64774820743463,
+            "std": 0.18835646772840203
+          },
+          "wall_total_us": {
+            "p50": 5184.9005,
+            "p90": 5252.178100000001,
+            "p99": 5948.60284,
+            "std": 189.1115318846526
+          },
+          "wall_per_call_us": {
+            "meaning": "batch_average",
+            "p50": 33.23654166666667,
+            "p90": 33.66780833333334,
+            "p99": 38.132069487179486,
+            "std": 1.2122534095170039
+          }
+        },
+        {
+          "dtype": "torch.float32",
+          "elements": 24576,
+          "payload_bytes": 98304,
+          "calls": 1,
+          "scope": "graph_replay_1_dependent_inplace_sums",
+          "event_total_us": {
+            "p50": 170.28000205755234,
+            "p90": 205.5999994277954,
+            "p99": 248.09320777654648,
+            "std": 23.925624262526885
+          },
+          "event_per_call_us": {
+            "meaning": "isolated_graph",
+            "p50": 170.28000205755234,
+            "p90": 205.5999994277954,
+            "p99": 248.09320777654648,
+            "std": 23.925624262526885
+          },
+          "wall_total_us": {
+            "p50": 337.695,
+            "p90": 376.78,
+            "p99": 482.42001000000005,
+            "std": 37.10368069229191
+          },
+          "wall_per_call_us": {
+            "meaning": "isolated_graph",
+            "p50": 337.695,
+            "p90": 376.78,
+            "p99": 482.42001000000005,
+            "std": 37.10368069229191
+          }
+        },
+        {
+          "dtype": "torch.float32",
+          "elements": 24576,
+          "payload_bytes": 98304,
+          "calls": 156,
+          "scope": "graph_replay_156_dependent_inplace_sums",
+          "event_total_us": {
+            "p50": 5073.639869689941,
+            "p90": 5114.285945892334,
+            "p99": 5137.872128486633,
+            "std": 27.72260167368211
+          },
+          "event_per_call_us": {
+            "meaning": "batch_average",
+            "p50": 32.52333249801245,
+            "p90": 32.783884268540604,
+            "p99": 32.93507774670919,
+            "std": 0.17770898508770547
+          },
+          "wall_total_us": {
+            "p50": 5241.246,
+            "p90": 5276.491,
+            "p99": 5304.02081,
+            "std": 25.304532901899844
+          },
+          "wall_per_call_us": {
+            "meaning": "batch_average",
+            "p50": 33.59773076923077,
+            "p90": 33.82366025641026,
+            "p99": 34.000133397435896,
+            "std": 0.1622085442429472
+          }
+        }
+      ]
+    }
+  },
+  "budget_consequence": {
+    "fp32_24kib_eager_156_event_p50_ms": 26.756229400634766,
+    "fp32_24kib_graph_156_event_p50_ms": 5.027679920196533,
+    "fp32_96kib_graph_156_event_p50_ms": 5.073639869689941,
+    "fp32_24kib_event_median_ratio": 5.321784565710551,
+    "fp32_24kib_event_median_difference_ms": 21.728549480438232,
+    "fp32_24kib_graph_batch_average_us": 32.228717437157265,
+    "fp32_96kib_graph_batch_average_us": 32.523332498012444,
+    "target_2ms_fraction_for_graph_m1_chain": 2.5138399600982666,
+    "conditional_four_delivered_tokens_target_chain_ms_per_token": 1.2684099674224854,
+    "conditional_four_token_remaining_2ms_budget_ms": 0.7315900325775146,
+    "interpretation": [
+      "Eager includes per-call host dispatch gaps; replay removes that loop.",
+      "Graph events retain replay launch, rank arrival skew, HCCL and dependent scheduling.",
+      "The difference is between execution paths, not a pure Python-overhead measurement.",
+      "This measured serialized chain exceeds 2 ms; graph replay alone does not close that budget.",
+      "With four delivered tokens, only the target 96 KiB chain amortizes to about 1.268 ms/token; computation, draft work, casts and other communication remain.",
+      "These results replace the assumed 12 us in this chain model, not a hardware lower bound.",
+      "No decoder TPOT, bare HCCL alpha, or isolated-call tail is inferred from total/156."
+    ]
+  }
+}

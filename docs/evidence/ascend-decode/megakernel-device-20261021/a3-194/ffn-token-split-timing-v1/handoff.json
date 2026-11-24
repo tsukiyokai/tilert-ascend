@@ -1,0 +1,56 @@
+{
+  "scope": "Same-address complete rank-local FFN, token-owned input split versus frozen 8430 parent; TP excluded",
+  "control_library_sha256": "8430ef17d068ce5a1cdbe4915ba189ca38c666322d8726a42091f8acb3b36f84",
+  "candidate_library_sha256": "ecbf7937796d407405dd920d6c48b7148da380b6e12e04717b049e19aed650a6",
+  "benchmark_sha256": "8276e9f7b27dbb14334768567bd38ccb13072c8a830242f39f48cd2ded80c4a2",
+  "manifest_sha256": "7ebd33fe554f01775cceba99f0632bd07123387f6dab8e114207e964baae7f5f",
+  "candidate_cabi": "ffn_token_split_launch",
+  "control_cabi": "ffn_active_token_join_launch",
+  "cpu_tests": {
+    "x86": 4,
+    "aarch64": 4
+  },
+  "cpu_preflight": {
+    "five_libraries_co_loaded": true,
+    "npu_initialized": false,
+    "numeric_pass_field": "false until device comparison; CPU preflight did not run a device gate"
+  },
+  "shape": {
+    "rows": 12,
+    "blocks": 24,
+    "shared_scale_dtype": "bfloat16"
+  },
+  "sampling": {
+    "owner_arenas": 2,
+    "weight_banks": 16,
+    "calls_per_graph": 16,
+    "independent_event_samples_per_arm_per_arena": 30,
+    "graph_replays_per_event": 30,
+    "changing_replays_per_bank": 8
+  },
+  "address_contract": "All 33 scratch tensor addresses and weights are shared within each arm pair; original owner validators remain separate",
+  "fresh_write_contract": "All logical checked outputs poisoned outside events; full 264-word active table uses nonzero padding sentinel and count zero",
+  "event_scope": "Complete FFN C ABI graph; copies and input clones outside events; no TP",
+  "expected_checks_if_all_complete": {
+    "raw_byte_boundaries": 19200,
+    "event_tail_outputs": 360,
+    "full_active_tables": 696
+  },
+  "remote_directory": "/home/shanshan/tilert-megakernel-20261021/tests/glm52/whole_layer/ffn_token_split/timing-v1",
+  "device_command_after_sdk_setup": "bash /workspace/tests/glm52/whole_layer/ffn_token_split/timing-v1/bench_run.sh device /evidence",
+  "evidence": {
+    "arm-cpu.log": "0bf8ba36345edd50b6ee616ada2dcdfa02e366b4f1e04e8a3786b0d8525c7e0f",
+    "bench.py": "8276e9f7b27dbb14334768567bd38ccb13072c8a830242f39f48cd2ded80c4a2",
+    "bench_abi_probe.cpp": "69eb70b14053e1eb2c8ab867b29c9b664d572017eb44850306f6c8dec030ca32",
+    "bench_run.sh": "9682d7265df33ad84a018643543da09dc647f7e4628cfb42df0baae9fec87da9",
+    "benchmark.patch": "73118d73a399a97de5ae2696b66667c1f47c001237b15546129e9c1e25f644f6",
+    "manifest.json": "7ebd33fe554f01775cceba99f0632bd07123387f6dab8e114207e964baae7f5f",
+    "parent/bench.py": "dd05d557d550dac139884eea73fb92a91855c2cf41ee8b2369e8ec3e2c0c33f5",
+    "parent/bench_abi_probe.cpp": "05a601e34fde28b5e0e273dcc25d37fb9ab80f808232fa1eaa4af716cc6a5449",
+    "preflight/result.json": "0da8e5b5664ac54dcdf6d3eab608ccfde57feb35387f43c88d2265dbf1312725",
+    "preflight.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "prepare_bench.py": "a4cc8310bbf71f9cc73164bbb2f5f88c8ad81c2179c429435efbbc81b22c51fe",
+    "test_bench.py": "909bdda3d17a61371acc6bea9c3f2e178064ed1f6295c3b7c4cb837040dc262c",
+    "x86-cpu.log": "ff3604542856ae06021bab4bc4399f13c2bfa60f3d8a64de9802996d1a481ff7"
+  }
+}

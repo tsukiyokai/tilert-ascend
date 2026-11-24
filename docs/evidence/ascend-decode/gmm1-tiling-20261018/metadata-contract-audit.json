@@ -1,0 +1,291 @@
+{
+  "status": "cpu_review_complete_implementation_stopped",
+  "reason": "User requested pause after a3-84 environment preparation",
+  "scope": "Read-only source review; one new offline JSON receipt",
+  "new_device_execution": false,
+  "new_compilation": false,
+  "product_files_changed": false,
+  "benchmark_driver_implemented": false,
+  "launch_implemented": false,
+  "performance_acceptance": false,
+  "source_head": "f558b58c177916424ae9dcf9bb8e66c0b9031236",
+  "fixture": {
+    "path": "/workspace/offline/cann-gmm1-m4-input-20261018-01/device-01/rank-0.pt",
+    "bytes": 1160177,
+    "sha256": "b651f877947f00b171564b2ca86b32ab9d00c2fb4fa91d7def848325aa8edb92"
+  },
+  "fixture_report": {
+    "path": "/workspace/offline/cann-gmm1-m4-input-20261018-01/device-01/rank-0.json",
+    "bytes": 224184,
+    "sha256": "04b2a4bfc0b3e999103929262ba288fbd2781b25dff78c93f93d6247b70580ee"
+  },
+  "actual_prior_bank": {
+    "source": {
+      "path": "/workspace/offline/cann-gmm1-singlechunk-changing-20261018-01/run-01/baseline.json",
+      "bytes": 11644,
+      "sha256": "ea38b0d954f2eac1c13efea511f275923fd013e2040bdf1d5ccb3de202b38fb7"
+    },
+    "w13": {
+      "shape": [
+        256,
+        6144,
+        32
+      ],
+      "dtype": "torch.int32",
+      "format": 29,
+      "storage_bytes": 201326592
+    },
+    "peak_reserved_bytes": 738197504,
+    "storage_rank": {
+      "value": 5,
+      "basis": "Successful single-bank WeightNzV2 requires rank5; this is source inference, not a new device probe"
+    }
+  },
+  "control": {
+    "elf": {
+      "path": "/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_fa3d6d3de6e1f32e170e39d2ddd3a20e.o",
+      "bytes": 78904,
+      "sha256": "2eb81546c23639026b979c93aef1ffc20132390cfc3395f1b837a1d0cdf24c3d"
+    },
+    "host_library": {
+      "path": "/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer/op_api/lib/libcust_opapi.so",
+      "bytes": 1142864,
+      "sha256": "cab8daebbbe285814636dc1839de18dc83028b69ceb28a74fcf51e2184cf0163"
+    },
+    "host_multitensor_error_strings": [
+      "[%s:%d][%s][%s][%lu] errno[%d] %saclnnGroupedMatmulSwigluQuantWeightNzV2, The dimnum of storageShape for second input (weight)must be 4. ",
+      "aclnnGroupedMatmulSwigluQuantWeightNzV2, The dimnum of storageShape for second input (weight)must be 4. "
+    ],
+    "tiling_library": {
+      "path": "/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer/op_impl/ai_core/tbe/op_tiling/liboptiling.so",
+      "bytes": 4461728,
+      "sha256": "ded74980ff29c3985de70e67e2ed5ae791a0914aa1b4b427d3a6d96d2aeba69d"
+    }
+  },
+  "metadata_configurations": [
+    {
+      "name": "dense_type1_counts",
+      "groups": 256,
+      "state": "existing_measured_control_only"
+    },
+    {
+      "name": "dense_type0_prefix",
+      "groups": 256,
+      "state": "source_contract_supported_not_implemented",
+      "precision_basis": "Same group boundaries, weights, A8 source, FP16 MSD partials, FP32 SwiGLU and requant; exact runtime gate remains unrun",
+      "minimum_future_gate": "A/B/dirty/reset/recapture, full codes and scales, identical clone per call",
+      "measurement_boundary": "A static prefix measures kernel metadata cost; a production comparison must charge dynamic cumsum preparation"
+    },
+    {
+      "name": "weight_list_256_slots",
+      "groups": 256,
+      "state": "unsupported_under_view_only_constraint"
+    },
+    {
+      "name": "active_weight_list_compact_counts",
+      "groups": 32,
+      "state": "unsupported_under_view_only_constraint",
+      "route_scope": "Offline active IDs are fixed-sample metadata; they do not implement dynamic production routes"
+    }
+  ],
+  "view_contract": {
+    "conclusion": "The actual packed NZ bank shares its rank5 NPUStorageImpl descriptor with select/unbind views; the wrapper forwards that descriptor, whereas WeightNzV2 checks each multi-tensor original storage rank equals4. A view alone cannot satisfy this API contract.",
+    "evidence_kind": "Source contract plus actual host ELF string and prior successful bank report",
+    "runtime_multitensor_rejection_observed": false,
+    "compatibility_fallback": false,
+    "weight_copy_or_repack": false,
+    "sources": [
+      {
+        "path": "/opt/trt-asc/venv/lib/python3.11/site-packages/torch_npu/include/torch_npu/csrc/core/NPUStorageImpl.h",
+        "bytes": 1719,
+        "sha256": "c4c488410e53760739c32de25dc00bcd53d0d55a55d48247d248671ccb06e9f1",
+        "excerpts": [
+          {
+            "first_line": 16,
+            "last_line": 24,
+            "text": "struct NPUStorageDesc {\npublic:\n    struct use_byte_size_t {};\n\n    c10::SmallVector<int64_t, 5> base_sizes_;\n    c10::SmallVector<int64_t, 5> base_strides_;\n    c10::SmallVector<int64_t, 5> storage_sizes_;\n    int64_t base_offset_ = 0; // no use\n    use_byte_size_t base_dtype_ = {}; // no use"
+          },
+          {
+            "first_line": 31,
+            "last_line": 48,
+            "text": "struct NPUStorageImpl : public c10::StorageImpl {\n    explicit NPUStorageImpl(\n        use_byte_size_t use_byte_size,\n        size_t size_bytes,\n        at::DataPtr data_ptr,\n        at::Allocator* allocator,\n        bool resizable);\n    ~NPUStorageImpl() override = default;\n\n    void release_resources() override;\n\n    // not private\n    NPUStorageDesc npu_desc_;\n\n    NPUStorageDesc get_npu_desc() const\n    {\n        return npu_desc_;\n    }"
+          }
+        ]
+      },
+      {
+        "path": "/workspace/src/vllm-ascend-unified/csrc/aclnn_torch_adapter/op_api_common.h",
+        "bytes": 29754,
+        "sha256": "cbd891c9fd8cfb3ad7212f425637772d2da60c21f0db8e106ccd5e5e5f4daac4",
+        "excerpts": [
+          {
+            "first_line": 411,
+            "last_line": 417,
+            "text": "  const auto dimNum = at_tensor.sizes().size();\n  aclFormat format = ACL_FORMAT_ND;\n  if (!IsOpInputBaseFormat(at_tensor)) {\n    format = vllm_ascend::NPUBridge::GetNpuStorageImpl(at_tensor)->npu_desc_.npu_format_;\n    if (acl_data_type != ACL_STRING) {\n          storageDims = vllm_ascend::NPUBridge::GetNpuStorageImpl(at_tensor)->npu_desc_.storage_sizes_;\n      }"
+          },
+          {
+            "first_line": 447,
+            "last_line": 451,
+            "text": "  auto acl_tensor = aclCreateTensor(\n      at_tensor.sizes().data(), at_tensor.sizes().size(), acl_data_type,\n      at_tensor.strides().data(), at_tensor.storage_offset(), format,\n      storageDims.data(), storageDims.size(),\n      const_cast<void *>(at_tensor.storage().data()));"
+          }
+        ]
+      },
+      {
+        "path": "/workspace/src/vllm-ascend-unified/csrc/gmm/grouped_matmul_swiglu_quant_v2/op_host/op_api/aclnn_grouped_matmul_swiglu_quant_v2.cpp",
+        "bytes": 10063,
+        "sha256": "93ea1fa022b53166d0f6bc5da8535c5799ac6c6f2fed365b1298240ab8a951aa",
+        "excerpts": [
+          {
+            "first_line": 112,
+            "last_line": 143,
+            "text": "    // weight在该场景下强制绑定StorageFormat 和 ViewFormat 为NZ\n    CHECK_RET(weight != nullptr, ACLNN_ERR_PARAM_NULLPTR);\n    size_t wLength = weight->Size();\n    if (wLength == 1) {\n        // 单Tensor场景\n        auto w = (*weight)[0];\n        auto storgeShape = w->GetStorageShape();\n        auto viewShape = w->GetViewShape();\n        aclTensor *weightNZ = const_cast<aclTensor *>(w);\n        auto storageShape = w->GetStorageShape();\n        auto groupListViewShape = groupList->GetViewShape();\n        auto expertNum = groupListViewShape[0];\n        auto weightScale0 = (*weightScale)[0];\n        auto weightScaleStorageShape = weightScale0->GetViewShape();\n        auto n = weightScaleStorageShape[1];\n        auto xViewShape = x->GetViewShape();\n        auto k = xViewShape[1];\n        storageShape = {expertNum, n / 64, k / 16, 16, 8};\n        w->SetStorageShape(storageShape);\n        CHECK_COND((storgeShape.GetDimNum() == WEIGHT_NZ_DIM_LIMIT), ACLNN_ERR_PARAM_INVALID,\n                   \"aclnnGroupedMatmulSwigluQuantWeightNzV2, The dimnum of storageShape for second input (weight)\"\n                 \"must be 5. \\n But StorageShape got %s , and dimNum is %lu.\",\n                   op::ToString(storgeShape).GetString(), storgeShape.GetDimNum());\n        // weight的StorageFormat无条件视为NZ\n        weightNZ->SetStorageFormat(op::Format::FORMAT_FRACTAL_NZ);\n        if (viewShape.GetDimNum() == WEIGHT_NZ_DIM_LIMIT) {\n            // 若weight的viewShape为5维则视为NZ\n            weightNZ->SetViewFormat(op::Format::FORMAT_FRACTAL_NZ);\n        } else if (viewShape.GetDimNum() == WEIGHT_ND_DIM_LIMIT) {\n            // 若weight的viewShape为3维则视为ND\n            weightNZ->SetViewFormat(op::Format::FORMAT_ND);\n        }"
+          },
+          {
+            "first_line": 144,
+            "last_line": 173,
+            "text": "    } else {\n        // 多Tensor场景\n        for (size_t i = 0; i < wLength; i++) {\n            auto w = (*weight)[i];\n            auto storgeShape = w->GetStorageShape();\n            auto viewShape = w->GetViewShape();\n            aclTensor *weightNZ = const_cast<aclTensor *>(w);\n            auto storageShape = w->GetStorageShape();\n            auto groupListViewShape = groupList->GetViewShape();\n            auto weightScale0 = (*weightScale)[i];\n            auto weightScaleStorageShape = weightScale0->GetViewShape();\n            auto n = weightScaleStorageShape[0];\n            auto xViewShape = x->GetViewShape();\n            auto k = xViewShape[1];\n            storageShape = {n / 64, k / 16, 16, 8};\n            w->SetStorageShape(storageShape);\n            CHECK_COND((storgeShape.GetDimNum() == MULTI_WEIGHT_NZ_DIM_LIMIT), ACLNN_ERR_PARAM_INVALID,\n                       \"aclnnGroupedMatmulSwigluQuantWeightNzV2, The dimnum of storageShape for second input (weight)\"\n                     \"must be 4. \\n But StorageShape got %s , and dimNum is %lu.\",\n                       op::ToString(storgeShape).GetString(), storgeShape.GetDimNum());\n            // weight的StorageFormat无条件视为NZ\n            weightNZ->SetStorageFormat(op::Format::FORMAT_FRACTAL_NZ);\n            if (viewShape.GetDimNum() == MULTI_WEIGHT_NZ_DIM_LIMIT) {\n                // 若weight的viewShape为4维则视为NZ\n                weightNZ->SetViewFormat(op::Format::FORMAT_FRACTAL_NZ);\n            } else if (viewShape.GetDimNum() == MULTI_WEIGHT_ND_DIM_LIMIT) {\n                // 若weight的viewShape为2维则视为ND\n                weightNZ->SetViewFormat(op::Format::FORMAT_ND);\n            }\n        }"
+          }
+        ]
+      }
+    ]
+  },
+  "mechanism": {
+    "sources": [
+      {
+        "path": "/workspace/src/vllm-ascend-unified/csrc/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_pipeline.h",
+        "bytes": 11184,
+        "sha256": "e7398287dcc06dd2a70d7c658cd4b3839367f32f34a9c6a5a6f68a8bf0077ae9",
+        "line_ranges": [
+          [
+            143,
+            153
+          ]
+        ]
+      },
+      {
+        "path": "/workspace/src/vllm-ascend-unified/csrc/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_mid.h",
+        "bytes": 13221,
+        "sha256": "1881d03e65258e846fe9bbfb736f4cbbcd770b84a6730319dd0c9d00abdc4087",
+        "line_ranges": [
+          [
+            185,
+            211
+          ],
+          [
+            245,
+            279
+          ]
+        ]
+      },
+      {
+        "path": "/workspace/src/vllm-ascend-unified/csrc/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_post.h",
+        "bytes": 23370,
+        "sha256": "8cf63fb3e34955a2ed28d4f9f56c2030e74744cbe5a63aaeb5d130eb0940758f",
+        "line_ranges": [
+          [
+            316,
+            329
+          ]
+        ]
+      },
+      {
+        "path": "/workspace/src/vllm-ascend-unified/csrc/gmm/grouped_matmul_swiglu_quant_v2/op_host/grouped_matmul_swiglu_quant_v2_base_tiling.cpp",
+        "bytes": 23544,
+        "sha256": "8e2d570efd12ddda8360fcd515c81fd50444571d47e2ed3200c10f72f7aaef97",
+        "line_ranges": [
+          [
+            314,
+            318
+          ],
+          [
+            348,
+            365
+          ]
+        ]
+      }
+    ],
+    "observation_limit": "Scalar GetValue loops are a candidate mechanism; code length does not establish latency, critical-path gain or preemption",
+    "bounded_search": {
+      "directories": [
+        "/workspace/src/vllm-ascend-unified/csrc/gmm",
+        "/workspace/src/vllm-ascend-unified/csrc/mc2",
+        "/workspace/src/vllm-ascend-unified/csrc/moe"
+      ],
+      "excluded": [
+        "build",
+        "build_out",
+        "build_cache"
+      ],
+      "anchors": [
+        "activeGroup/active_group/route_table",
+        "groupListUB/groupListLocal/DataCopy(groupList"
+      ],
+      "result": "No direct compact route/prefetch ABI found in these custom-op source directories; not a claim about all CANN implementations"
+    }
+  },
+  "ranked_routes": [
+    {
+      "rank": 1,
+      "family": "Metadata representation and traversal",
+      "next_discriminator": "Same bank type1 counts versus type0 prefix, 30 alternating AB/BA pairs, clone+GMM1 window, profiler disabled, one graph and at most1.5GiB per die",
+      "falsifier": "No paired gain rejects exposed type1 summation cost for this sample, but does not reject compact group scheduling; list compact is contract blocked",
+      "current_state": "Not implemented; pause requested"
+    },
+    {
+      "rank": 2,
+      "family": "Lossless W4 expansion to A8W8 kernels",
+      "api": "grouped_matmul_swiglu_quant_v2 A8W8 fusion plus npu_grouped_matmul for GMM2",
+      "support": "INT8 A[M,K], INT8 signed NZ W, FP32/FP16/BF16 per-channel scales; K6144/N256 satisfy local host limits; fused output INT8[M,N/2]+FP32[M]",
+      "source": {
+        "path": "/workspace/src/vllm-ascend-unified/csrc/gmm/grouped_matmul_swiglu_quant_v2/op_host/grouped_matmul_swiglu_quant_v2_fusion_tiling.cpp",
+        "bytes": 9209,
+        "sha256": "9ff6d0cea79c19795bb6dbd0bc34fbcb0c57000fae8294e3b4e07a9656dae908",
+        "line_ranges": [
+          [
+            35,
+            49
+          ],
+          [
+            121,
+            136
+          ]
+        ]
+      },
+      "integer_contract": "Unpack signed nibbles without changing weight values; remove MSD-only correction and decode FP32 scale bits, not integer cast",
+      "memory": {
+        "extra_full_weight_bytes_per_layer": 301989888,
+        "int8_active32_weight_bytes": 75497472
+      },
+      "falsifier": "On identical real rows and weight values, no improvement including activation/quant rejects the proposed net benefit; may also fail memory or numerical gate",
+      "limit": "MSD FP16 partial rounding changes; no bitwise cross-variant claim and no pure-execution PMU claim",
+      "current_state": "Source route only; expansion stopped"
+    },
+    {
+      "rank": 3,
+      "family": "Native A8W4 GMM then activation and quant",
+      "api": "npu_grouped_matmul output BF16, npu_swiglu, npu_dynamic_quant, existing GMM2",
+      "source": {
+        "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/quantization/methods/w4a8/w4a8.py",
+        "bytes": 31736,
+        "sha256": "d06549f45637300df3e4915823f4f71a913ce7059d1e3a4c475ab1f225e1a28a",
+        "line_ranges": [
+          [
+            613,
+            634
+          ]
+        ]
+      },
+      "falsifier": "Time complete GMM1+SwiGLU+quant against fused GMM1 on identical M4; no paired gain rejects this native decomposition for the sample",
+      "limit": "Additional BF16 intermediate changes numeric boundaries; prior M1 evidence already has differing INT8 codes and scales",
+      "current_state": "Source route only; expansion stopped"
+    }
+  ],
+  "rejected_fused_shortcuts": {
+    "MegaMoe": "Installed A2/A3 wrapper requires EP size in {2,4,8,16,32,48,64,96,128}; current EP1 excluded",
+    "FFN": "Installed torch_npu doc restricts SwiGLU to no-expert FP16 high-performance case, not routed A8W4"
+  },
+  "pmu_receipt": {
+    "path": "/workspace/offline/cann-mtp-chain-pmu-20261018-01/analysis-01/public-summary.json",
+    "bytes": 23927,
+    "sha256": "8ad336169df014a9ed540697f4c2368ae684e2e6b302442fd286ee1d75e0a319"
+  }
+}

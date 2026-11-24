@@ -1,0 +1,12 @@
+--- v1/tp_groups.py
++++ v2/tp_groups.py
+@@ -52,7 +52,8 @@
+                    for group in (device, cpu)):
+                 raise RuntimeError("An unrelated rank joined a singleton MC2 group")
+     device = torch.distributed.new_group(
+-        [0, 1], backend="hccl", pg_options=create_hccl_pg_options("tp"))
++        [0, 1], backend="hccl",
++        pg_options=create_hccl_pg_options("tp") if rank < 2 else None)
+     cpu = torch.distributed.new_group([0, 1], backend="gloo")
+     if rank >= 2:
+         if (singleton is not None or torch.npu.is_initialized()

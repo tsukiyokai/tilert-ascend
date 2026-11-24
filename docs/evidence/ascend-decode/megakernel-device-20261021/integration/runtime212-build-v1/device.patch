@@ -1,0 +1,91 @@
+--- vendor_hook_device.py
++++ vendor_hook_runtime212_device.py
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env python3
+-"""Construct and install a real TP16 attention shard with one NPU-owning rank."""
++"""Run the real GLM-5.2 layer-6 attention shard under TorchNPU 2.12."""
+ 
+ import argparse
+ from datetime import timedelta
+@@ -63,15 +63,17 @@
+ 
+ 
+ def make_configuration(args):
+-    from vendor_hook_cpu import MODEL_CONFIG
++    from vendor_hook_glm52_config import model_config, selection
+     from vllm.engine.arg_utils import EngineArgs
+ 
+     model = args.output / "synthetic-model"
+     model.mkdir()
+-    config_data = dict(MODEL_CONFIG)
+-    config_data["indexer_rope_interleave"] = True
++    config_data = model_config()
++    selected = selection(6)
++    if selected["ffn"] != "sparse" or selected["indexer"] != "full":
++        raise RuntimeError("Layer 6 must be a full-indexer MoE layer")
+     (model / "config.json").write_text(json.dumps(config_data, indent=2))
+-    prefix = "model.layers.0.self_attn"
++    prefix = "model.layers.6.self_attn"
+     description = {
+         f"{prefix}.{name}.weight": "W8A8_DYNAMIC"
+         for name in ("q_a_proj", "kv_a_proj_with_mqa", "fused_qkv_a_proj",
+@@ -124,7 +126,10 @@
+ def run_rank_zero(torch, args, stage):
+     import torch_npu
+     from vllm.config import set_current_vllm_config
+-
++    from vendor_hook_glm52_config import selection
++
++    if not torch.__version__.startswith("2.12.0") or torch_npu.__version__ != "2.12.0":
++        raise RuntimeError("This frozen runtime requires Torch/TorchNPU 2.12.0")
+     stage("npu_bind", lambda: (torch.npu.set_device(0), {
+         "device_count": torch.npu.device_count(), "logical_device": 0,
+         "device_name": torch.npu.get_device_name(0),
+@@ -135,7 +140,9 @@
+     config, prefix = stage("engine_config_tp16", lambda: (
+         make_configuration(args), {"tp": 16, "pp": 1, "dp": 1,
+                                    "synthetic_checkpoint": True,
+-                                   "indexer_mode": args.mode},
++                                   "indexer_mode": args.mode,
++                                   "selection": selection(6),
++                                   "shared_successor": selection(7)},
+     ))
+     with set_current_vllm_config(config):
+         from vllm_ascend.utils import adapt_patch, register_ascend_customop
+@@ -184,6 +191,8 @@
+                 torch.set_default_dtype(previous)
+             attention = layer.mla_attn.mla_attn
+             impl = attention.impl
++            if impl.skip_topk or impl.indexer is None:
++                raise RuntimeError("The real layer-6 constructor did not create its indexer")
+             return layer, {
+                 "outer": identity(type(layer)), "wrapper": identity(type(layer.mla_attn)),
+                 "attention": identity(type(attention)), "impl": identity(type(impl)),
+@@ -192,6 +201,8 @@
+                 "tp_size": impl.tp_size, "local_heads": impl.local_num_heads,
+                 "reduce_results": impl.o_proj.reduce_results,
+                 "initial_preprocess": str(impl.preprocess_type),
++                "selection": selection(6),
++                "actual_skip_topk": impl.skip_topk,
+                 "quant_config": identity(type(config.quant_config)),
+             }
+ 
+@@ -240,7 +251,7 @@
+         adapter = importlib.import_module("tilert.models.glm_5_2_ascend.attention_native")
+         if Path(adapter.__file__).resolve() != args.adapter.resolve():
+             raise RuntimeError("The imported adapter differs from the requested source")
+-        stage("load_torch210_libraries", lambda: (
++        stage("load_native_libraries", lambda: (
+             adapter.load(),
+             {"paths": [str(args.indexed_library), str(args.shared_library)],
+              "sha256": [hashlib.sha256(path.read_bytes()).hexdigest()
+@@ -322,6 +333,9 @@
+         import torch_npu
+         torch.set_num_threads(1)
+         report.update(torch=torch.__version__, torch_npu=torch_npu.__version__,
++                      python=sys.version, torch_path=torch.__file__,
++                      torch_npu_path=torch_npu.__file__,
++                      runtime_image=os.environ.get("VENDOR_HOOK_RUNTIME_IMAGE"),
+                       npu_initialized_before=torch.npu.is_initialized())
+         if rank != 0 or args.groups_only:
+             def refuse_init(*unused_args, **unused_kwargs):

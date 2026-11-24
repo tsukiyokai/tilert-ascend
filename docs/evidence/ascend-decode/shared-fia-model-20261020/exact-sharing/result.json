@@ -1,0 +1,2588 @@
+{
+  "scope": "rank 0, frozen M32/SFA trajectory, 21 producer selections",
+  "report_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0.json",
+  "report_sha256": "7deccb93e6aeb797e3b41344e8dcf614bcd776a8d929f4c28b0fb71fc38e4eba",
+  "script_sha256": "a437fe7ec81a9512e349f1c4f6d2d7fa951e1a9836d33c92a0be2f525a21b5f7",
+  "teacher_sha256": "82d011962a288b30b777fc4964d5c96c6b9784cb13b97f509322f603b263b655",
+  "inputs": {
+    "prompt_length": 8192,
+    "prompt_sha256": "fe53282d0b732f6a1cbd9b6587903127f73ba645f2303a246656286704142afa",
+    "last_prompt_token": 9249,
+    "initial_position": 8192,
+    "first_token_id": 6500,
+    "request_id": "ba210bea41854af3",
+    "generation": 1,
+    "prefix_file": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/main-prefix/rank-0.pt",
+    "prefix_sha256": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+    "capture_manifest_sha256": "b01cceb2d2e30564807ce9efc441ad535999b56b73d0c333e93bb18694ccda74"
+  },
+  "checkpoint_sha256": {
+    "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+    "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+    "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+  },
+  "query_count": 32,
+  "top_k": 2048,
+  "cache_capacity": 9344,
+  "q_heads_per_rank": 4,
+  "tensor_parallel_size": 16,
+  "config_path": "/workspace/models/GLM-5.2-w4a8c8/config.json",
+  "config_sha256": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+  "selected_pairs_per_head": 1376256,
+  "selected_pairs_four_heads": 5505024,
+  "cascade_levels": [
+    32,
+    16,
+    8,
+    4,
+    1
+  ],
+  "work_model": {
+    "logical_unit": "query-KV pairs per attention head; QK and PV counted separately",
+    "logical_no_padding": "sum(segment_query_count * segment_KV_count)",
+    "four_heads_no_padding": "4 * logical query-KV pairs",
+    "four_heads_m16_kv128": "sum(ceil(4*g/16)*16 * ceil(N/128)*128)",
+    "logical_reads": "one KV row occurrence per nonempty segment, shared by 4 Q heads; K/V not double-counted",
+    "mask": "union and full-cache rectangles compute masked pairs as dense work",
+    "effective_selected_pairs": "65536 per producer for all exact sparse plans",
+    "physical_measurement": false
+  },
+  "paper": {
+    "url": "https://arxiv.org/html/2610.11134v1#S3.SS3",
+    "mechanism": "recursive intersection removal; no clipping or tail push-down"
+  },
+  "totals_over_21_producers": {
+    "per_query": {
+      "logical_kv_rows": 1376256,
+      "qk_pairs_no_padding": 1376256,
+      "pv_pairs_no_padding": 1376256,
+      "qk_pairs_four_heads_no_padding": 5505024,
+      "pv_pairs_four_heads_no_padding": 5505024,
+      "qk_pairs_four_heads_m16_kv128": 22020096,
+      "pv_pairs_four_heads_m16_kv128": 22020096,
+      "tiles_m16_kv128": 10752,
+      "segments": 672
+    },
+    "union_mask": {
+      "logical_kv_rows": 88382,
+      "qk_pairs_no_padding": 2828224,
+      "pv_pairs_no_padding": 2828224,
+      "qk_pairs_four_heads_no_padding": 11312896,
+      "pv_pairs_four_heads_no_padding": 11312896,
+      "qk_pairs_four_heads_m16_kv128": 11452416,
+      "pv_pairs_four_heads_m16_kv128": 11452416,
+      "tiles_m16_kv128": 5592,
+      "segments": 21
+    },
+    "cascade": {
+      "logical_kv_rows": 543942,
+      "qk_pairs_no_padding": 1376256,
+      "pv_pairs_no_padding": 1376256,
+      "qk_pairs_four_heads_no_padding": 5505024,
+      "pv_pairs_four_heads_no_padding": 5505024,
+      "qk_pairs_four_heads_m16_kv128": 12412928,
+      "pv_pairs_four_heads_m16_kv128": 12412928,
+      "tiles_m16_kv128": 6061,
+      "segments": 987
+    },
+    "full_cache_reference": {
+      "logical_kv_rows": 196224,
+      "qk_pairs_no_padding": 6279168,
+      "pv_pairs_no_padding": 6279168,
+      "qk_pairs_four_heads_no_padding": 25116672,
+      "pv_pairs_four_heads_no_padding": 25116672,
+      "qk_pairs_four_heads_m16_kv128": 25116672,
+      "pv_pairs_four_heads_m16_kv128": 25116672,
+      "tiles_m16_kv128": 12264,
+      "segments": 21
+    }
+  },
+  "exact_query_sets_checked": 2016,
+  "producers": [
+    {
+      "layer": 0,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-00.pt",
+      "artifact_sha256": "334af33327f78a2989189140c98172ea330db1e8fe8625c566d5c94df5bb9ef7",
+      "selected_sets_sha256": "af08f02cdb2e74c3031fcb06be1581cbd41a42d5ac66f8a1b5c8314e5c152c0d",
+      "selected_pairs": 65536,
+      "union_rows": 2937,
+      "intersection_32_rows": 1346,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 2937,
+          "qk_pairs_no_padding": 93984,
+          "pv_pairs_no_padding": 93984,
+          "qk_pairs_four_heads_no_padding": 375936,
+          "pv_pairs_four_heads_no_padding": 375936,
+          "qk_pairs_four_heads_m16_kv128": 376832,
+          "pv_pairs_four_heads_m16_kv128": 376832,
+          "tiles_m16_kv128": 184,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 15304,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 475136,
+          "pv_pairs_four_heads_m16_kv128": 475136,
+          "tiles_m16_kv128": 232,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 1346,
+          "qk_pairs_no_padding": 43072,
+          "pv_pairs_no_padding": 43072,
+          "qk_pairs_four_heads_no_padding": 172288,
+          "pv_pairs_four_heads_no_padding": 172288,
+          "qk_pairs_four_heads_m16_kv128": 180224,
+          "pv_pairs_four_heads_m16_kv128": 180224,
+          "tiles_m16_kv128": 88,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 177,
+          "qk_pairs_no_padding": 2832,
+          "pv_pairs_no_padding": 2832,
+          "qk_pairs_four_heads_no_padding": 11328,
+          "pv_pairs_four_heads_no_padding": 11328,
+          "qk_pairs_four_heads_m16_kv128": 16384,
+          "pv_pairs_four_heads_m16_kv128": 16384,
+          "tiles_m16_kv128": 8,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 370,
+          "qk_pairs_no_padding": 2960,
+          "pv_pairs_no_padding": 2960,
+          "qk_pairs_four_heads_no_padding": 11840,
+          "pv_pairs_four_heads_no_padding": 11840,
+          "qk_pairs_four_heads_m16_kv128": 16384,
+          "pv_pairs_four_heads_m16_kv128": 16384,
+          "tiles_m16_kv128": 8,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 1087,
+          "qk_pairs_no_padding": 4348,
+          "pv_pairs_no_padding": 4348,
+          "qk_pairs_four_heads_no_padding": 17392,
+          "pv_pairs_four_heads_no_padding": 17392,
+          "qk_pairs_four_heads_m16_kv128": 24576,
+          "pv_pairs_four_heads_m16_kv128": 24576,
+          "tiles_m16_kv128": 12,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 12324,
+          "qk_pairs_no_padding": 12324,
+          "pv_pairs_no_padding": 12324,
+          "qk_pairs_four_heads_no_padding": 49296,
+          "pv_pairs_four_heads_no_padding": 49296,
+          "qk_pairs_four_heads_m16_kv128": 237568,
+          "pv_pairs_four_heads_m16_kv128": 237568,
+          "tiles_m16_kv128": 116,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 1,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-01.pt",
+      "artifact_sha256": "e8665c893572601e6b9b3c9bfb7e70d0ced3f4f713f3cf414191603f632ac6f6",
+      "selected_sets_sha256": "c744c018f91f01023a3225e68ac2e16133e07d86d27d20d435ec98f4291a46ea",
+      "selected_pairs": 65536,
+      "union_rows": 4253,
+      "intersection_32_rows": 664,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 4253,
+          "qk_pairs_no_padding": 136096,
+          "pv_pairs_no_padding": 136096,
+          "qk_pairs_four_heads_no_padding": 544384,
+          "pv_pairs_four_heads_no_padding": 544384,
+          "qk_pairs_four_heads_m16_kv128": 557056,
+          "pv_pairs_four_heads_m16_kv128": 557056,
+          "tiles_m16_kv128": 272,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 22245,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 546816,
+          "pv_pairs_four_heads_m16_kv128": 546816,
+          "tiles_m16_kv128": 267,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 664,
+          "qk_pairs_no_padding": 21248,
+          "pv_pairs_no_padding": 21248,
+          "qk_pairs_four_heads_no_padding": 84992,
+          "pv_pairs_four_heads_no_padding": 84992,
+          "qk_pairs_four_heads_m16_kv128": 98304,
+          "pv_pairs_four_heads_m16_kv128": 98304,
+          "tiles_m16_kv128": 48,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 487,
+          "qk_pairs_no_padding": 7792,
+          "pv_pairs_no_padding": 7792,
+          "qk_pairs_four_heads_no_padding": 31168,
+          "pv_pairs_four_heads_no_padding": 31168,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 1110,
+          "qk_pairs_no_padding": 8880,
+          "pv_pairs_no_padding": 8880,
+          "qk_pairs_four_heads_no_padding": 35520,
+          "pv_pairs_four_heads_no_padding": 35520,
+          "qk_pairs_four_heads_m16_kv128": 45056,
+          "pv_pairs_four_heads_m16_kv128": 45056,
+          "tiles_m16_kv128": 22,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 2544,
+          "qk_pairs_no_padding": 10176,
+          "pv_pairs_no_padding": 10176,
+          "qk_pairs_four_heads_no_padding": 40704,
+          "pv_pairs_four_heads_no_padding": 40704,
+          "qk_pairs_four_heads_m16_kv128": 51200,
+          "pv_pairs_four_heads_m16_kv128": 51200,
+          "tiles_m16_kv128": 25,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 17440,
+          "qk_pairs_no_padding": 17440,
+          "pv_pairs_no_padding": 17440,
+          "qk_pairs_four_heads_no_padding": 69760,
+          "pv_pairs_four_heads_no_padding": 69760,
+          "qk_pairs_four_heads_m16_kv128": 319488,
+          "pv_pairs_four_heads_m16_kv128": 319488,
+          "tiles_m16_kv128": 156,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 2,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-02.pt",
+      "artifact_sha256": "6c1c50661c5b80341bf9d3e6be51a2597fd9d2a1db715ebc315c952784ee080d",
+      "selected_sets_sha256": "2055945e420af2fbbcc15db9071dbc3d17bf39f85c36510e664d0d630ded54c4",
+      "selected_pairs": 65536,
+      "union_rows": 3456,
+      "intersection_32_rows": 1016,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 3456,
+          "qk_pairs_no_padding": 110592,
+          "pv_pairs_no_padding": 110592,
+          "qk_pairs_four_heads_no_padding": 442368,
+          "pv_pairs_four_heads_no_padding": 442368,
+          "qk_pairs_four_heads_m16_kv128": 442368,
+          "pv_pairs_four_heads_m16_kv128": 442368,
+          "tiles_m16_kv128": 216,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 17537,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 471040,
+          "pv_pairs_four_heads_m16_kv128": 471040,
+          "tiles_m16_kv128": 230,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 1016,
+          "qk_pairs_no_padding": 32512,
+          "pv_pairs_no_padding": 32512,
+          "qk_pairs_four_heads_no_padding": 130048,
+          "pv_pairs_four_heads_no_padding": 130048,
+          "qk_pairs_four_heads_m16_kv128": 131072,
+          "pv_pairs_four_heads_m16_kv128": 131072,
+          "tiles_m16_kv128": 64,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 426,
+          "qk_pairs_no_padding": 6816,
+          "pv_pairs_no_padding": 6816,
+          "qk_pairs_four_heads_no_padding": 27264,
+          "pv_pairs_four_heads_no_padding": 27264,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 795,
+          "qk_pairs_no_padding": 6360,
+          "pv_pairs_no_padding": 6360,
+          "qk_pairs_four_heads_no_padding": 25440,
+          "pv_pairs_four_heads_no_padding": 25440,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 1516,
+          "qk_pairs_no_padding": 6064,
+          "pv_pairs_no_padding": 6064,
+          "qk_pairs_four_heads_no_padding": 24256,
+          "pv_pairs_four_heads_no_padding": 24256,
+          "qk_pairs_four_heads_m16_kv128": 28672,
+          "pv_pairs_four_heads_m16_kv128": 28672,
+          "tiles_m16_kv128": 14,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 13784,
+          "qk_pairs_no_padding": 13784,
+          "pv_pairs_no_padding": 13784,
+          "qk_pairs_four_heads_no_padding": 55136,
+          "pv_pairs_four_heads_no_padding": 55136,
+          "qk_pairs_four_heads_m16_kv128": 245760,
+          "pv_pairs_four_heads_m16_kv128": 245760,
+          "tiles_m16_kv128": 120,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 6,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-06.pt",
+      "artifact_sha256": "05dce8144cde89425a8b0440e691737f09a7bfa2937405873e90cac38d7d7d13",
+      "selected_sets_sha256": "0db691448f62fe3984910a2dc22930d1539d027c29f069be49dbc4fba72ca89a",
+      "selected_pairs": 65536,
+      "union_rows": 3834,
+      "intersection_32_rows": 1019,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 3834,
+          "qk_pairs_no_padding": 122688,
+          "pv_pairs_no_padding": 122688,
+          "qk_pairs_four_heads_no_padding": 490752,
+          "pv_pairs_four_heads_no_padding": 490752,
+          "qk_pairs_four_heads_m16_kv128": 491520,
+          "pv_pairs_four_heads_m16_kv128": 491520,
+          "tiles_m16_kv128": 240,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 18387,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 497664,
+          "pv_pairs_four_heads_m16_kv128": 497664,
+          "tiles_m16_kv128": 243,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 1019,
+          "qk_pairs_no_padding": 32608,
+          "pv_pairs_no_padding": 32608,
+          "qk_pairs_four_heads_no_padding": 130432,
+          "pv_pairs_four_heads_no_padding": 130432,
+          "qk_pairs_four_heads_m16_kv128": 131072,
+          "pv_pairs_four_heads_m16_kv128": 131072,
+          "tiles_m16_kv128": 64,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 389,
+          "qk_pairs_no_padding": 6224,
+          "pv_pairs_no_padding": 6224,
+          "qk_pairs_four_heads_no_padding": 24896,
+          "pv_pairs_four_heads_no_padding": 24896,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 728,
+          "qk_pairs_no_padding": 5824,
+          "pv_pairs_no_padding": 5824,
+          "qk_pairs_four_heads_no_padding": 23296,
+          "pv_pairs_four_heads_no_padding": 23296,
+          "qk_pairs_four_heads_m16_kv128": 28672,
+          "pv_pairs_four_heads_m16_kv128": 28672,
+          "tiles_m16_kv128": 14,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 1543,
+          "qk_pairs_no_padding": 6172,
+          "pv_pairs_no_padding": 6172,
+          "qk_pairs_four_heads_no_padding": 24688,
+          "pv_pairs_four_heads_no_padding": 24688,
+          "qk_pairs_four_heads_m16_kv128": 34816,
+          "pv_pairs_four_heads_m16_kv128": 34816,
+          "tiles_m16_kv128": 17,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 14708,
+          "qk_pairs_no_padding": 14708,
+          "pv_pairs_no_padding": 14708,
+          "qk_pairs_four_heads_no_padding": 58832,
+          "pv_pairs_four_heads_no_padding": 58832,
+          "qk_pairs_four_heads_m16_kv128": 270336,
+          "pv_pairs_four_heads_m16_kv128": 270336,
+          "tiles_m16_kv128": 132,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 10,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-10.pt",
+      "artifact_sha256": "8f0984d263cf819889bc73b2427abac32ead8e38b0d55b6c502fa6b3d53c6f47",
+      "selected_sets_sha256": "8217176896eec298824ac8e0607584f2e6194dcd5084838afab1388fdce18198",
+      "selected_pairs": 65536,
+      "union_rows": 4096,
+      "intersection_32_rows": 777,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 4096,
+          "qk_pairs_no_padding": 131072,
+          "pv_pairs_no_padding": 131072,
+          "qk_pairs_four_heads_no_padding": 524288,
+          "pv_pairs_four_heads_no_padding": 524288,
+          "qk_pairs_four_heads_m16_kv128": 524288,
+          "pv_pairs_four_heads_m16_kv128": 524288,
+          "tiles_m16_kv128": 256,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 24154,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 569344,
+          "pv_pairs_four_heads_m16_kv128": 569344,
+          "tiles_m16_kv128": 278,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 777,
+          "qk_pairs_no_padding": 24864,
+          "pv_pairs_no_padding": 24864,
+          "qk_pairs_four_heads_no_padding": 99456,
+          "pv_pairs_four_heads_no_padding": 99456,
+          "qk_pairs_four_heads_m16_kv128": 114688,
+          "pv_pairs_four_heads_m16_kv128": 114688,
+          "tiles_m16_kv128": 56,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 380,
+          "qk_pairs_no_padding": 6080,
+          "pv_pairs_no_padding": 6080,
+          "qk_pairs_four_heads_no_padding": 24320,
+          "pv_pairs_four_heads_no_padding": 24320,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 825,
+          "qk_pairs_no_padding": 6600,
+          "pv_pairs_no_padding": 6600,
+          "qk_pairs_four_heads_no_padding": 26400,
+          "pv_pairs_four_heads_no_padding": 26400,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 1940,
+          "qk_pairs_no_padding": 7760,
+          "pv_pairs_no_padding": 7760,
+          "qk_pairs_four_heads_no_padding": 31040,
+          "pv_pairs_four_heads_no_padding": 31040,
+          "qk_pairs_four_heads_m16_kv128": 36864,
+          "pv_pairs_four_heads_m16_kv128": 36864,
+          "tiles_m16_kv128": 18,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 20232,
+          "qk_pairs_no_padding": 20232,
+          "pv_pairs_no_padding": 20232,
+          "qk_pairs_four_heads_no_padding": 80928,
+          "pv_pairs_four_heads_no_padding": 80928,
+          "qk_pairs_four_heads_m16_kv128": 352256,
+          "pv_pairs_four_heads_m16_kv128": 352256,
+          "tiles_m16_kv128": 172,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 14,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-14.pt",
+      "artifact_sha256": "3ccd5aa290d959efb663c82435e6562b8a9cbd8ff7749f89ee23c35ad2abf6f7",
+      "selected_sets_sha256": "3cc5f38ffc15e95ce89c6256d99bec28605be85afac8e45856f8a75ea88a5e23",
+      "selected_pairs": 65536,
+      "union_rows": 3436,
+      "intersection_32_rows": 1034,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 3436,
+          "qk_pairs_no_padding": 109952,
+          "pv_pairs_no_padding": 109952,
+          "qk_pairs_four_heads_no_padding": 439808,
+          "pv_pairs_four_heads_no_padding": 439808,
+          "qk_pairs_four_heads_m16_kv128": 442368,
+          "pv_pairs_four_heads_m16_kv128": 442368,
+          "tiles_m16_kv128": 216,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 19062,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 530432,
+          "pv_pairs_four_heads_m16_kv128": 530432,
+          "tiles_m16_kv128": 259,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 1034,
+          "qk_pairs_no_padding": 33088,
+          "pv_pairs_no_padding": 33088,
+          "qk_pairs_four_heads_no_padding": 132352,
+          "pv_pairs_four_heads_no_padding": 132352,
+          "qk_pairs_four_heads_m16_kv128": 147456,
+          "pv_pairs_four_heads_m16_kv128": 147456,
+          "tiles_m16_kv128": 72,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 381,
+          "qk_pairs_no_padding": 6096,
+          "pv_pairs_no_padding": 6096,
+          "qk_pairs_four_heads_no_padding": 24384,
+          "pv_pairs_four_heads_no_padding": 24384,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 587,
+          "qk_pairs_no_padding": 4696,
+          "pv_pairs_no_padding": 4696,
+          "qk_pairs_four_heads_no_padding": 18784,
+          "pv_pairs_four_heads_no_padding": 18784,
+          "qk_pairs_four_heads_m16_kv128": 28672,
+          "pv_pairs_four_heads_m16_kv128": 28672,
+          "tiles_m16_kv128": 14,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 1532,
+          "qk_pairs_no_padding": 6128,
+          "pv_pairs_no_padding": 6128,
+          "qk_pairs_four_heads_no_padding": 24512,
+          "pv_pairs_four_heads_no_padding": 24512,
+          "qk_pairs_four_heads_m16_kv128": 34816,
+          "pv_pairs_four_heads_m16_kv128": 34816,
+          "tiles_m16_kv128": 17,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 15528,
+          "qk_pairs_no_padding": 15528,
+          "pv_pairs_no_padding": 15528,
+          "qk_pairs_four_heads_no_padding": 62112,
+          "pv_pairs_four_heads_no_padding": 62112,
+          "qk_pairs_four_heads_m16_kv128": 286720,
+          "pv_pairs_four_heads_m16_kv128": 286720,
+          "tiles_m16_kv128": 140,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 18,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-18.pt",
+      "artifact_sha256": "23d453b4df45ba2f7f7062f0d376a9e1fb2638c798fe9abee618b6687e1aebac",
+      "selected_sets_sha256": "7a02cc9ef1ac83c4d47ceb060381a296d09976fa59f4f5812ff3551ed2ca026c",
+      "selected_pairs": 65536,
+      "union_rows": 3869,
+      "intersection_32_rows": 878,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 3869,
+          "qk_pairs_no_padding": 123808,
+          "pv_pairs_no_padding": 123808,
+          "qk_pairs_four_heads_no_padding": 495232,
+          "pv_pairs_four_heads_no_padding": 495232,
+          "qk_pairs_four_heads_m16_kv128": 507904,
+          "pv_pairs_four_heads_m16_kv128": 507904,
+          "tiles_m16_kv128": 248,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 24350,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 587776,
+          "pv_pairs_four_heads_m16_kv128": 587776,
+          "tiles_m16_kv128": 287,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 878,
+          "qk_pairs_no_padding": 28096,
+          "pv_pairs_no_padding": 28096,
+          "qk_pairs_four_heads_no_padding": 112384,
+          "pv_pairs_four_heads_no_padding": 112384,
+          "qk_pairs_four_heads_m16_kv128": 114688,
+          "pv_pairs_four_heads_m16_kv128": 114688,
+          "tiles_m16_kv128": 56,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 323,
+          "qk_pairs_no_padding": 5168,
+          "pv_pairs_no_padding": 5168,
+          "qk_pairs_four_heads_no_padding": 20672,
+          "pv_pairs_four_heads_no_padding": 20672,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 612,
+          "qk_pairs_no_padding": 4896,
+          "pv_pairs_no_padding": 4896,
+          "qk_pairs_four_heads_no_padding": 19584,
+          "pv_pairs_four_heads_no_padding": 19584,
+          "qk_pairs_four_heads_m16_kv128": 28672,
+          "pv_pairs_four_heads_m16_kv128": 28672,
+          "tiles_m16_kv128": 14,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 1613,
+          "qk_pairs_no_padding": 6452,
+          "pv_pairs_no_padding": 6452,
+          "qk_pairs_four_heads_no_padding": 25808,
+          "pv_pairs_four_heads_no_padding": 25808,
+          "qk_pairs_four_heads_m16_kv128": 34816,
+          "pv_pairs_four_heads_m16_kv128": 34816,
+          "tiles_m16_kv128": 17,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 20924,
+          "qk_pairs_no_padding": 20924,
+          "pv_pairs_no_padding": 20924,
+          "qk_pairs_four_heads_no_padding": 83696,
+          "pv_pairs_four_heads_no_padding": 83696,
+          "qk_pairs_four_heads_m16_kv128": 376832,
+          "pv_pairs_four_heads_m16_kv128": 376832,
+          "tiles_m16_kv128": 184,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 22,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-22.pt",
+      "artifact_sha256": "9fa28f394a18db3a5e75320fb5d8434cbe40d136828350c117a0f263a01b01c8",
+      "selected_sets_sha256": "1b764bbbed631a54abb5513c909cb59f636990d3f5c633a7aee0cc6222953f75",
+      "selected_pairs": 65536,
+      "union_rows": 4593,
+      "intersection_32_rows": 695,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 4593,
+          "qk_pairs_no_padding": 146976,
+          "pv_pairs_no_padding": 146976,
+          "qk_pairs_four_heads_no_padding": 587904,
+          "pv_pairs_four_heads_no_padding": 587904,
+          "qk_pairs_four_heads_m16_kv128": 589824,
+          "pv_pairs_four_heads_m16_kv128": 589824,
+          "tiles_m16_kv128": 288,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 24442,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 557056,
+          "pv_pairs_four_heads_m16_kv128": 557056,
+          "tiles_m16_kv128": 272,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 695,
+          "qk_pairs_no_padding": 22240,
+          "pv_pairs_no_padding": 22240,
+          "qk_pairs_four_heads_no_padding": 88960,
+          "pv_pairs_four_heads_no_padding": 88960,
+          "qk_pairs_four_heads_m16_kv128": 98304,
+          "pv_pairs_four_heads_m16_kv128": 98304,
+          "tiles_m16_kv128": 48,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 408,
+          "qk_pairs_no_padding": 6528,
+          "pv_pairs_no_padding": 6528,
+          "qk_pairs_four_heads_no_padding": 26112,
+          "pv_pairs_four_heads_no_padding": 26112,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 976,
+          "qk_pairs_no_padding": 7808,
+          "pv_pairs_no_padding": 7808,
+          "qk_pairs_four_heads_no_padding": 31232,
+          "pv_pairs_four_heads_no_padding": 31232,
+          "qk_pairs_four_heads_m16_kv128": 40960,
+          "pv_pairs_four_heads_m16_kv128": 40960,
+          "tiles_m16_kv128": 20,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 2199,
+          "qk_pairs_no_padding": 8796,
+          "pv_pairs_no_padding": 8796,
+          "qk_pairs_four_heads_no_padding": 35184,
+          "pv_pairs_four_heads_no_padding": 35184,
+          "qk_pairs_four_heads_m16_kv128": 40960,
+          "pv_pairs_four_heads_m16_kv128": 40960,
+          "tiles_m16_kv128": 20,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 20164,
+          "qk_pairs_no_padding": 20164,
+          "pv_pairs_no_padding": 20164,
+          "qk_pairs_four_heads_no_padding": 80656,
+          "pv_pairs_four_heads_no_padding": 80656,
+          "qk_pairs_four_heads_m16_kv128": 344064,
+          "pv_pairs_four_heads_m16_kv128": 344064,
+          "tiles_m16_kv128": 168,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 26,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-26.pt",
+      "artifact_sha256": "ab0af6c240b20e96896a125bc01c682f2db1687fef134f1affa45ff40964a9d1",
+      "selected_sets_sha256": "6dd0c33091bb10368bb09163898a58bef64700cfc8838f30887146498c939008",
+      "selected_pairs": 65536,
+      "union_rows": 4964,
+      "intersection_32_rows": 537,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 4964,
+          "qk_pairs_no_padding": 158848,
+          "pv_pairs_no_padding": 158848,
+          "qk_pairs_four_heads_no_padding": 635392,
+          "pv_pairs_four_heads_no_padding": 635392,
+          "qk_pairs_four_heads_m16_kv128": 638976,
+          "pv_pairs_four_heads_m16_kv128": 638976,
+          "tiles_m16_kv128": 312,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 32436,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 665600,
+          "pv_pairs_four_heads_m16_kv128": 665600,
+          "tiles_m16_kv128": 325,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 537,
+          "qk_pairs_no_padding": 17184,
+          "pv_pairs_no_padding": 17184,
+          "qk_pairs_four_heads_no_padding": 68736,
+          "pv_pairs_four_heads_no_padding": 68736,
+          "qk_pairs_four_heads_m16_kv128": 81920,
+          "pv_pairs_four_heads_m16_kv128": 81920,
+          "tiles_m16_kv128": 40,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 295,
+          "qk_pairs_no_padding": 4720,
+          "pv_pairs_no_padding": 4720,
+          "qk_pairs_four_heads_no_padding": 18880,
+          "pv_pairs_four_heads_no_padding": 18880,
+          "qk_pairs_four_heads_m16_kv128": 24576,
+          "pv_pairs_four_heads_m16_kv128": 24576,
+          "tiles_m16_kv128": 12,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 778,
+          "qk_pairs_no_padding": 6224,
+          "pv_pairs_no_padding": 6224,
+          "qk_pairs_four_heads_no_padding": 24896,
+          "pv_pairs_four_heads_no_padding": 24896,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 2194,
+          "qk_pairs_no_padding": 8776,
+          "pv_pairs_no_padding": 8776,
+          "qk_pairs_four_heads_no_padding": 35104,
+          "pv_pairs_four_heads_no_padding": 35104,
+          "qk_pairs_four_heads_m16_kv128": 43008,
+          "pv_pairs_four_heads_m16_kv128": 43008,
+          "tiles_m16_kv128": 21,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 28632,
+          "qk_pairs_no_padding": 28632,
+          "pv_pairs_no_padding": 28632,
+          "qk_pairs_four_heads_no_padding": 114528,
+          "pv_pairs_four_heads_no_padding": 114528,
+          "qk_pairs_four_heads_m16_kv128": 483328,
+          "pv_pairs_four_heads_m16_kv128": 483328,
+          "tiles_m16_kv128": 236,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 30,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-30.pt",
+      "artifact_sha256": "4836f9d61baa22c8fd2301f529582a547f04a8a0eb44adf9ce437e078dce87e3",
+      "selected_sets_sha256": "81776d8aef02e4318053144436c471a19944b0297d7c59920b0c8c26c0c9801c",
+      "selected_pairs": 65536,
+      "union_rows": 4746,
+      "intersection_32_rows": 514,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 4746,
+          "qk_pairs_no_padding": 151872,
+          "pv_pairs_no_padding": 151872,
+          "qk_pairs_four_heads_no_padding": 607488,
+          "pv_pairs_four_heads_no_padding": 607488,
+          "qk_pairs_four_heads_m16_kv128": 622592,
+          "pv_pairs_four_heads_m16_kv128": 622592,
+          "tiles_m16_kv128": 304,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 33221,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 692224,
+          "pv_pairs_four_heads_m16_kv128": 692224,
+          "tiles_m16_kv128": 338,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 514,
+          "qk_pairs_no_padding": 16448,
+          "pv_pairs_no_padding": 16448,
+          "qk_pairs_four_heads_no_padding": 65792,
+          "pv_pairs_four_heads_no_padding": 65792,
+          "qk_pairs_four_heads_m16_kv128": 81920,
+          "pv_pairs_four_heads_m16_kv128": 81920,
+          "tiles_m16_kv128": 40,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 265,
+          "qk_pairs_no_padding": 4240,
+          "pv_pairs_no_padding": 4240,
+          "qk_pairs_four_heads_no_padding": 16960,
+          "pv_pairs_four_heads_no_padding": 16960,
+          "qk_pairs_four_heads_m16_kv128": 24576,
+          "pv_pairs_four_heads_m16_kv128": 24576,
+          "tiles_m16_kv128": 12,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 724,
+          "qk_pairs_no_padding": 5792,
+          "pv_pairs_no_padding": 5792,
+          "qk_pairs_four_heads_no_padding": 23168,
+          "pv_pairs_four_heads_no_padding": 23168,
+          "qk_pairs_four_heads_m16_kv128": 36864,
+          "pv_pairs_four_heads_m16_kv128": 36864,
+          "tiles_m16_kv128": 18,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 2446,
+          "qk_pairs_no_padding": 9784,
+          "pv_pairs_no_padding": 9784,
+          "qk_pairs_four_heads_no_padding": 39136,
+          "pv_pairs_four_heads_no_padding": 39136,
+          "qk_pairs_four_heads_m16_kv128": 49152,
+          "pv_pairs_four_heads_m16_kv128": 49152,
+          "tiles_m16_kv128": 24,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 29272,
+          "qk_pairs_no_padding": 29272,
+          "pv_pairs_no_padding": 29272,
+          "qk_pairs_four_heads_no_padding": 117088,
+          "pv_pairs_four_heads_no_padding": 117088,
+          "qk_pairs_four_heads_m16_kv128": 499712,
+          "pv_pairs_four_heads_m16_kv128": 499712,
+          "tiles_m16_kv128": 244,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 34,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-34.pt",
+      "artifact_sha256": "073e08cbb2436c1b367ed114c8aac3fe25cf9f9cf039cf627f846633e25470a5",
+      "selected_sets_sha256": "2848639be19abaa60a9ab12218b19a7d1d0eb55e29a300d35ac4dc1a042845c8",
+      "selected_pairs": 65536,
+      "union_rows": 4680,
+      "intersection_32_rows": 454,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 4680,
+          "qk_pairs_no_padding": 149760,
+          "pv_pairs_no_padding": 149760,
+          "qk_pairs_four_heads_no_padding": 599040,
+          "pv_pairs_four_heads_no_padding": 599040,
+          "qk_pairs_four_heads_m16_kv128": 606208,
+          "pv_pairs_four_heads_m16_kv128": 606208,
+          "tiles_m16_kv128": 296,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 35198,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 690176,
+          "pv_pairs_four_heads_m16_kv128": 690176,
+          "tiles_m16_kv128": 337,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 454,
+          "qk_pairs_no_padding": 14528,
+          "pv_pairs_no_padding": 14528,
+          "qk_pairs_four_heads_no_padding": 58112,
+          "pv_pairs_four_heads_no_padding": 58112,
+          "qk_pairs_four_heads_m16_kv128": 65536,
+          "pv_pairs_four_heads_m16_kv128": 65536,
+          "tiles_m16_kv128": 32,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 276,
+          "qk_pairs_no_padding": 4416,
+          "pv_pairs_no_padding": 4416,
+          "qk_pairs_four_heads_no_padding": 17664,
+          "pv_pairs_four_heads_no_padding": 17664,
+          "qk_pairs_four_heads_m16_kv128": 24576,
+          "pv_pairs_four_heads_m16_kv128": 24576,
+          "tiles_m16_kv128": 12,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 715,
+          "qk_pairs_no_padding": 5720,
+          "pv_pairs_no_padding": 5720,
+          "qk_pairs_four_heads_no_padding": 22880,
+          "pv_pairs_four_heads_no_padding": 22880,
+          "qk_pairs_four_heads_m16_kv128": 28672,
+          "pv_pairs_four_heads_m16_kv128": 28672,
+          "tiles_m16_kv128": 14,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 2373,
+          "qk_pairs_no_padding": 9492,
+          "pv_pairs_no_padding": 9492,
+          "qk_pairs_four_heads_no_padding": 37968,
+          "pv_pairs_four_heads_no_padding": 37968,
+          "qk_pairs_four_heads_m16_kv128": 47104,
+          "pv_pairs_four_heads_m16_kv128": 47104,
+          "tiles_m16_kv128": 23,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 31380,
+          "qk_pairs_no_padding": 31380,
+          "pv_pairs_no_padding": 31380,
+          "qk_pairs_four_heads_no_padding": 125520,
+          "pv_pairs_four_heads_no_padding": 125520,
+          "qk_pairs_four_heads_m16_kv128": 524288,
+          "pv_pairs_four_heads_m16_kv128": 524288,
+          "tiles_m16_kv128": 256,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 38,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-38.pt",
+      "artifact_sha256": "92054df89bd45ab20342035fe0425e1370b8a4fe8d0ce34764be340370923494",
+      "selected_sets_sha256": "adf0abfe1b0178ef84f5196f464df9081d1dd08a04ebb8c55d0570bce9d14c90",
+      "selected_pairs": 65536,
+      "union_rows": 4585,
+      "intersection_32_rows": 601,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 4585,
+          "qk_pairs_no_padding": 146720,
+          "pv_pairs_no_padding": 146720,
+          "qk_pairs_four_heads_no_padding": 586880,
+          "pv_pairs_four_heads_no_padding": 586880,
+          "qk_pairs_four_heads_m16_kv128": 589824,
+          "pv_pairs_four_heads_m16_kv128": 589824,
+          "tiles_m16_kv128": 288,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 30989,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 659456,
+          "pv_pairs_four_heads_m16_kv128": 659456,
+          "tiles_m16_kv128": 322,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 601,
+          "qk_pairs_no_padding": 19232,
+          "pv_pairs_no_padding": 19232,
+          "qk_pairs_four_heads_no_padding": 76928,
+          "pv_pairs_four_heads_no_padding": 76928,
+          "qk_pairs_four_heads_m16_kv128": 81920,
+          "pv_pairs_four_heads_m16_kv128": 81920,
+          "tiles_m16_kv128": 40,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 281,
+          "qk_pairs_no_padding": 4496,
+          "pv_pairs_no_padding": 4496,
+          "qk_pairs_four_heads_no_padding": 17984,
+          "pv_pairs_four_heads_no_padding": 17984,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 655,
+          "qk_pairs_no_padding": 5240,
+          "pv_pairs_no_padding": 5240,
+          "qk_pairs_four_heads_no_padding": 20960,
+          "pv_pairs_four_heads_no_padding": 20960,
+          "qk_pairs_four_heads_m16_kv128": 28672,
+          "pv_pairs_four_heads_m16_kv128": 28672,
+          "tiles_m16_kv128": 14,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 2372,
+          "qk_pairs_no_padding": 9488,
+          "pv_pairs_no_padding": 9488,
+          "qk_pairs_four_heads_no_padding": 37952,
+          "pv_pairs_four_heads_no_padding": 37952,
+          "qk_pairs_four_heads_m16_kv128": 49152,
+          "pv_pairs_four_heads_m16_kv128": 49152,
+          "tiles_m16_kv128": 24,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 27080,
+          "qk_pairs_no_padding": 27080,
+          "pv_pairs_no_padding": 27080,
+          "qk_pairs_four_heads_no_padding": 108320,
+          "pv_pairs_four_heads_no_padding": 108320,
+          "qk_pairs_four_heads_m16_kv128": 466944,
+          "pv_pairs_four_heads_m16_kv128": 466944,
+          "tiles_m16_kv128": 228,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 42,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-42.pt",
+      "artifact_sha256": "564e5184acd875fa8886cdf2de9db63300ae6492b762fa59f23b7ca2b42e67fa",
+      "selected_sets_sha256": "6c93660acae254e0546ae58dab34b93bc16777e4d6173ebaac0a2ffa73ecba4c",
+      "selected_pairs": 65536,
+      "union_rows": 4803,
+      "intersection_32_rows": 396,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 4803,
+          "qk_pairs_no_padding": 153696,
+          "pv_pairs_no_padding": 153696,
+          "qk_pairs_four_heads_no_padding": 614784,
+          "pv_pairs_four_heads_no_padding": 614784,
+          "qk_pairs_four_heads_m16_kv128": 622592,
+          "pv_pairs_four_heads_m16_kv128": 622592,
+          "tiles_m16_kv128": 304,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 33939,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 690176,
+          "pv_pairs_four_heads_m16_kv128": 690176,
+          "tiles_m16_kv128": 337,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 396,
+          "qk_pairs_no_padding": 12672,
+          "pv_pairs_no_padding": 12672,
+          "qk_pairs_four_heads_no_padding": 50688,
+          "pv_pairs_four_heads_no_padding": 50688,
+          "qk_pairs_four_heads_m16_kv128": 65536,
+          "pv_pairs_four_heads_m16_kv128": 65536,
+          "tiles_m16_kv128": 32,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 314,
+          "qk_pairs_no_padding": 5024,
+          "pv_pairs_no_padding": 5024,
+          "qk_pairs_four_heads_no_padding": 20096,
+          "pv_pairs_four_heads_no_padding": 20096,
+          "qk_pairs_four_heads_m16_kv128": 24576,
+          "pv_pairs_four_heads_m16_kv128": 24576,
+          "tiles_m16_kv128": 12,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 823,
+          "qk_pairs_no_padding": 6584,
+          "pv_pairs_no_padding": 6584,
+          "qk_pairs_four_heads_no_padding": 26336,
+          "pv_pairs_four_heads_no_padding": 26336,
+          "qk_pairs_four_heads_m16_kv128": 36864,
+          "pv_pairs_four_heads_m16_kv128": 36864,
+          "tiles_m16_kv128": 18,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 2950,
+          "qk_pairs_no_padding": 11800,
+          "pv_pairs_no_padding": 11800,
+          "qk_pairs_four_heads_no_padding": 47200,
+          "pv_pairs_four_heads_no_padding": 47200,
+          "qk_pairs_four_heads_m16_kv128": 55296,
+          "pv_pairs_four_heads_m16_kv128": 55296,
+          "tiles_m16_kv128": 27,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 29456,
+          "qk_pairs_no_padding": 29456,
+          "pv_pairs_no_padding": 29456,
+          "qk_pairs_four_heads_no_padding": 117824,
+          "pv_pairs_four_heads_no_padding": 117824,
+          "qk_pairs_four_heads_m16_kv128": 507904,
+          "pv_pairs_four_heads_m16_kv128": 507904,
+          "tiles_m16_kv128": 248,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 46,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-46.pt",
+      "artifact_sha256": "3d522f7e9acd4d8bb4acd4dbf8cda167481b659810a9a9a3cc8b1726997f58f9",
+      "selected_sets_sha256": "aae462e75adf0eb2c4e0117f632b575661c55a805544903e473b3c547692f35b",
+      "selected_pairs": 65536,
+      "union_rows": 4563,
+      "intersection_32_rows": 547,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 4563,
+          "qk_pairs_no_padding": 146016,
+          "pv_pairs_no_padding": 146016,
+          "qk_pairs_four_heads_no_padding": 584064,
+          "pv_pairs_four_heads_no_padding": 584064,
+          "qk_pairs_four_heads_m16_kv128": 589824,
+          "pv_pairs_four_heads_m16_kv128": 589824,
+          "tiles_m16_kv128": 288,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 30321,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 632832,
+          "pv_pairs_four_heads_m16_kv128": 632832,
+          "tiles_m16_kv128": 309,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 547,
+          "qk_pairs_no_padding": 17504,
+          "pv_pairs_no_padding": 17504,
+          "qk_pairs_four_heads_no_padding": 70016,
+          "pv_pairs_four_heads_no_padding": 70016,
+          "qk_pairs_four_heads_m16_kv128": 81920,
+          "pv_pairs_four_heads_m16_kv128": 81920,
+          "tiles_m16_kv128": 40,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 372,
+          "qk_pairs_no_padding": 5952,
+          "pv_pairs_no_padding": 5952,
+          "qk_pairs_four_heads_no_padding": 23808,
+          "pv_pairs_four_heads_no_padding": 23808,
+          "qk_pairs_four_heads_m16_kv128": 24576,
+          "pv_pairs_four_heads_m16_kv128": 24576,
+          "tiles_m16_kv128": 12,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 678,
+          "qk_pairs_no_padding": 5424,
+          "pv_pairs_no_padding": 5424,
+          "qk_pairs_four_heads_no_padding": 21696,
+          "pv_pairs_four_heads_no_padding": 21696,
+          "qk_pairs_four_heads_m16_kv128": 28672,
+          "pv_pairs_four_heads_m16_kv128": 28672,
+          "tiles_m16_kv128": 14,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 2644,
+          "qk_pairs_no_padding": 10576,
+          "pv_pairs_no_padding": 10576,
+          "qk_pairs_four_heads_no_padding": 42304,
+          "pv_pairs_four_heads_no_padding": 42304,
+          "qk_pairs_four_heads_m16_kv128": 55296,
+          "pv_pairs_four_heads_m16_kv128": 55296,
+          "tiles_m16_kv128": 27,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 26080,
+          "qk_pairs_no_padding": 26080,
+          "pv_pairs_no_padding": 26080,
+          "qk_pairs_four_heads_no_padding": 104320,
+          "pv_pairs_four_heads_no_padding": 104320,
+          "qk_pairs_four_heads_m16_kv128": 442368,
+          "pv_pairs_four_heads_m16_kv128": 442368,
+          "tiles_m16_kv128": 216,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 50,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-50.pt",
+      "artifact_sha256": "ea4ffca3501bcd872356acdb76d246a5b59dbb5690f995a9e80bd4fc4b69b3ea",
+      "selected_sets_sha256": "e2c0f52dba6a8791ff54aa7e8c620297d5b57f1abb3fac922e99d112b5e7ffdf",
+      "selected_pairs": 65536,
+      "union_rows": 4385,
+      "intersection_32_rows": 587,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 4385,
+          "qk_pairs_no_padding": 140320,
+          "pv_pairs_no_padding": 140320,
+          "qk_pairs_four_heads_no_padding": 561280,
+          "pv_pairs_four_heads_no_padding": 561280,
+          "qk_pairs_four_heads_m16_kv128": 573440,
+          "pv_pairs_four_heads_m16_kv128": 573440,
+          "tiles_m16_kv128": 280,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 28411,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 608256,
+          "pv_pairs_four_heads_m16_kv128": 608256,
+          "tiles_m16_kv128": 297,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 587,
+          "qk_pairs_no_padding": 18784,
+          "pv_pairs_no_padding": 18784,
+          "qk_pairs_four_heads_no_padding": 75136,
+          "pv_pairs_four_heads_no_padding": 75136,
+          "qk_pairs_four_heads_m16_kv128": 81920,
+          "pv_pairs_four_heads_m16_kv128": 81920,
+          "tiles_m16_kv128": 40,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 386,
+          "qk_pairs_no_padding": 6176,
+          "pv_pairs_no_padding": 6176,
+          "qk_pairs_four_heads_no_padding": 24704,
+          "pv_pairs_four_heads_no_padding": 24704,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 733,
+          "qk_pairs_no_padding": 5864,
+          "pv_pairs_no_padding": 5864,
+          "qk_pairs_four_heads_no_padding": 23456,
+          "pv_pairs_four_heads_no_padding": 23456,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 2669,
+          "qk_pairs_no_padding": 10676,
+          "pv_pairs_no_padding": 10676,
+          "qk_pairs_four_heads_no_padding": 42704,
+          "pv_pairs_four_heads_no_padding": 42704,
+          "qk_pairs_four_heads_m16_kv128": 51200,
+          "pv_pairs_four_heads_m16_kv128": 51200,
+          "tiles_m16_kv128": 25,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 24036,
+          "qk_pairs_no_padding": 24036,
+          "pv_pairs_no_padding": 24036,
+          "qk_pairs_four_heads_no_padding": 96144,
+          "pv_pairs_four_heads_no_padding": 96144,
+          "qk_pairs_four_heads_m16_kv128": 409600,
+          "pv_pairs_four_heads_m16_kv128": 409600,
+          "tiles_m16_kv128": 200,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 54,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-54.pt",
+      "artifact_sha256": "24f9ea5cf7e7cf5562219a74a018bae2528b24fa3a41a856c3161d7d5652f2af",
+      "selected_sets_sha256": "469dac89deeea7c4f1c9fe280081bedb272ad6f027472910a7e92c082ddafbdb",
+      "selected_pairs": 65536,
+      "union_rows": 4304,
+      "intersection_32_rows": 603,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 4304,
+          "qk_pairs_no_padding": 137728,
+          "pv_pairs_no_padding": 137728,
+          "qk_pairs_four_heads_no_padding": 550912,
+          "pv_pairs_four_heads_no_padding": 550912,
+          "qk_pairs_four_heads_m16_kv128": 557056,
+          "pv_pairs_four_heads_m16_kv128": 557056,
+          "tiles_m16_kv128": 272,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 27938,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 614400,
+          "pv_pairs_four_heads_m16_kv128": 614400,
+          "tiles_m16_kv128": 300,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 603,
+          "qk_pairs_no_padding": 19296,
+          "pv_pairs_no_padding": 19296,
+          "qk_pairs_four_heads_no_padding": 77184,
+          "pv_pairs_four_heads_no_padding": 77184,
+          "qk_pairs_four_heads_m16_kv128": 81920,
+          "pv_pairs_four_heads_m16_kv128": 81920,
+          "tiles_m16_kv128": 40,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 396,
+          "qk_pairs_no_padding": 6336,
+          "pv_pairs_no_padding": 6336,
+          "qk_pairs_four_heads_no_padding": 25344,
+          "pv_pairs_four_heads_no_padding": 25344,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 773,
+          "qk_pairs_no_padding": 6184,
+          "pv_pairs_no_padding": 6184,
+          "qk_pairs_four_heads_no_padding": 24736,
+          "pv_pairs_four_heads_no_padding": 24736,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 2518,
+          "qk_pairs_no_padding": 10072,
+          "pv_pairs_no_padding": 10072,
+          "qk_pairs_four_heads_no_padding": 40288,
+          "pv_pairs_four_heads_no_padding": 40288,
+          "qk_pairs_four_heads_m16_kv128": 49152,
+          "pv_pairs_four_heads_m16_kv128": 49152,
+          "tiles_m16_kv128": 24,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 23648,
+          "qk_pairs_no_padding": 23648,
+          "pv_pairs_no_padding": 23648,
+          "qk_pairs_four_heads_no_padding": 94592,
+          "pv_pairs_four_heads_no_padding": 94592,
+          "qk_pairs_four_heads_m16_kv128": 417792,
+          "pv_pairs_four_heads_m16_kv128": 417792,
+          "tiles_m16_kv128": 204,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 58,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-58.pt",
+      "artifact_sha256": "3ea23aedae5726a104b302db157c3dd02f59116fd683f3b9050a6d8bc1c8f473",
+      "selected_sets_sha256": "324c4a02aee7a2e01e06648d5d5aad44188fb21c9185aeb83fa1b213b75aad44",
+      "selected_pairs": 65536,
+      "union_rows": 4261,
+      "intersection_32_rows": 591,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 4261,
+          "qk_pairs_no_padding": 136352,
+          "pv_pairs_no_padding": 136352,
+          "qk_pairs_four_heads_no_padding": 545408,
+          "pv_pairs_four_heads_no_padding": 545408,
+          "qk_pairs_four_heads_m16_kv128": 557056,
+          "pv_pairs_four_heads_m16_kv128": 557056,
+          "tiles_m16_kv128": 272,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 27333,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 598016,
+          "pv_pairs_four_heads_m16_kv128": 598016,
+          "tiles_m16_kv128": 292,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 591,
+          "qk_pairs_no_padding": 18912,
+          "pv_pairs_no_padding": 18912,
+          "qk_pairs_four_heads_no_padding": 75648,
+          "pv_pairs_four_heads_no_padding": 75648,
+          "qk_pairs_four_heads_m16_kv128": 81920,
+          "pv_pairs_four_heads_m16_kv128": 81920,
+          "tiles_m16_kv128": 40,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 466,
+          "qk_pairs_no_padding": 7456,
+          "pv_pairs_no_padding": 7456,
+          "qk_pairs_four_heads_no_padding": 29824,
+          "pv_pairs_four_heads_no_padding": 29824,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 748,
+          "qk_pairs_no_padding": 5984,
+          "pv_pairs_no_padding": 5984,
+          "qk_pairs_four_heads_no_padding": 23936,
+          "pv_pairs_four_heads_no_padding": 23936,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 2552,
+          "qk_pairs_no_padding": 10208,
+          "pv_pairs_no_padding": 10208,
+          "qk_pairs_four_heads_no_padding": 40832,
+          "pv_pairs_four_heads_no_padding": 40832,
+          "qk_pairs_four_heads_m16_kv128": 49152,
+          "pv_pairs_four_heads_m16_kv128": 49152,
+          "tiles_m16_kv128": 24,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 22976,
+          "qk_pairs_no_padding": 22976,
+          "pv_pairs_no_padding": 22976,
+          "qk_pairs_four_heads_no_padding": 91904,
+          "pv_pairs_four_heads_no_padding": 91904,
+          "qk_pairs_four_heads_m16_kv128": 401408,
+          "pv_pairs_four_heads_m16_kv128": 401408,
+          "tiles_m16_kv128": 196,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 62,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-62.pt",
+      "artifact_sha256": "78e42903712bde6957c11e338e1c89fcbd385a1bb74280137d48fe4618b56f9a",
+      "selected_sets_sha256": "377d9d8e34c09612b05dd73ecf3c4a5f9ba8338e9b54a167a07a70d41937ba0c",
+      "selected_pairs": 65536,
+      "union_rows": 4520,
+      "intersection_32_rows": 538,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 4520,
+          "qk_pairs_no_padding": 144640,
+          "pv_pairs_no_padding": 144640,
+          "qk_pairs_four_heads_no_padding": 578560,
+          "pv_pairs_four_heads_no_padding": 578560,
+          "qk_pairs_four_heads_m16_kv128": 589824,
+          "pv_pairs_four_heads_m16_kv128": 589824,
+          "tiles_m16_kv128": 288,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 30445,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 657408,
+          "pv_pairs_four_heads_m16_kv128": 657408,
+          "tiles_m16_kv128": 321,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 538,
+          "qk_pairs_no_padding": 17216,
+          "pv_pairs_no_padding": 17216,
+          "qk_pairs_four_heads_no_padding": 68864,
+          "pv_pairs_four_heads_no_padding": 68864,
+          "qk_pairs_four_heads_m16_kv128": 81920,
+          "pv_pairs_four_heads_m16_kv128": 81920,
+          "tiles_m16_kv128": 40,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 343,
+          "qk_pairs_no_padding": 5488,
+          "pv_pairs_no_padding": 5488,
+          "qk_pairs_four_heads_no_padding": 21952,
+          "pv_pairs_four_heads_no_padding": 21952,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 737,
+          "qk_pairs_no_padding": 5896,
+          "pv_pairs_no_padding": 5896,
+          "qk_pairs_four_heads_no_padding": 23584,
+          "pv_pairs_four_heads_no_padding": 23584,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 2703,
+          "qk_pairs_no_padding": 10812,
+          "pv_pairs_no_padding": 10812,
+          "qk_pairs_four_heads_no_padding": 43248,
+          "pv_pairs_four_heads_no_padding": 43248,
+          "qk_pairs_four_heads_m16_kv128": 51200,
+          "pv_pairs_four_heads_m16_kv128": 51200,
+          "tiles_m16_kv128": 25,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 26124,
+          "qk_pairs_no_padding": 26124,
+          "pv_pairs_no_padding": 26124,
+          "qk_pairs_four_heads_no_padding": 104496,
+          "pv_pairs_four_heads_no_padding": 104496,
+          "qk_pairs_four_heads_m16_kv128": 458752,
+          "pv_pairs_four_heads_m16_kv128": 458752,
+          "tiles_m16_kv128": 224,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 66,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-66.pt",
+      "artifact_sha256": "d08354998efd37b8cac832562a1bdb7bba6dc8f0c54fe3b4e09bb641b99a0fc1",
+      "selected_sets_sha256": "168d03a524434b599166d1cf7d41661289278f499f3ead22c0d7b46a45bd61c3",
+      "selected_pairs": 65536,
+      "union_rows": 3729,
+      "intersection_32_rows": 911,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 3729,
+          "qk_pairs_no_padding": 119328,
+          "pv_pairs_no_padding": 119328,
+          "qk_pairs_four_heads_no_padding": 477312,
+          "pv_pairs_four_heads_no_padding": 477312,
+          "qk_pairs_four_heads_m16_kv128": 491520,
+          "pv_pairs_four_heads_m16_kv128": 491520,
+          "tiles_m16_kv128": 240,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 19576,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 530432,
+          "pv_pairs_four_heads_m16_kv128": 530432,
+          "tiles_m16_kv128": 259,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 911,
+          "qk_pairs_no_padding": 29152,
+          "pv_pairs_no_padding": 29152,
+          "qk_pairs_four_heads_no_padding": 116608,
+          "pv_pairs_four_heads_no_padding": 116608,
+          "qk_pairs_four_heads_m16_kv128": 131072,
+          "pv_pairs_four_heads_m16_kv128": 131072,
+          "tiles_m16_kv128": 64,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 451,
+          "qk_pairs_no_padding": 7216,
+          "pv_pairs_no_padding": 7216,
+          "qk_pairs_four_heads_no_padding": 28864,
+          "pv_pairs_four_heads_no_padding": 28864,
+          "qk_pairs_four_heads_m16_kv128": 40960,
+          "pv_pairs_four_heads_m16_kv128": 40960,
+          "tiles_m16_kv128": 20,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 724,
+          "qk_pairs_no_padding": 5792,
+          "pv_pairs_no_padding": 5792,
+          "qk_pairs_four_heads_no_padding": 23168,
+          "pv_pairs_four_heads_no_padding": 23168,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 1962,
+          "qk_pairs_no_padding": 7848,
+          "pv_pairs_no_padding": 7848,
+          "qk_pairs_four_heads_no_padding": 31392,
+          "pv_pairs_four_heads_no_padding": 31392,
+          "qk_pairs_four_heads_m16_kv128": 38912,
+          "pv_pairs_four_heads_m16_kv128": 38912,
+          "tiles_m16_kv128": 19,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 15528,
+          "qk_pairs_no_padding": 15528,
+          "pv_pairs_no_padding": 15528,
+          "qk_pairs_four_heads_no_padding": 62112,
+          "pv_pairs_four_heads_no_padding": 62112,
+          "qk_pairs_four_heads_m16_kv128": 286720,
+          "pv_pairs_four_heads_m16_kv128": 286720,
+          "tiles_m16_kv128": 140,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 70,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-70.pt",
+      "artifact_sha256": "b4429f0cf1a821fec4776f28140d277ee40b925fa0919b0d9abc7adb3bf8c2d7",
+      "selected_sets_sha256": "37a7dd1179bd32aa9159f9ea62b95b15f23c940f263de9be05150bc48a758a71",
+      "selected_pairs": 65536,
+      "union_rows": 4025,
+      "intersection_32_rows": 773,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 4025,
+          "qk_pairs_no_padding": 128800,
+          "pv_pairs_no_padding": 128800,
+          "qk_pairs_four_heads_no_padding": 515200,
+          "pv_pairs_four_heads_no_padding": 515200,
+          "qk_pairs_four_heads_m16_kv128": 524288,
+          "pv_pairs_four_heads_m16_kv128": 524288,
+          "tiles_m16_kv128": 256,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 22910,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 555008,
+          "pv_pairs_four_heads_m16_kv128": 555008,
+          "tiles_m16_kv128": 271,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 773,
+          "qk_pairs_no_padding": 24736,
+          "pv_pairs_no_padding": 24736,
+          "qk_pairs_four_heads_no_padding": 98944,
+          "pv_pairs_four_heads_no_padding": 98944,
+          "qk_pairs_four_heads_m16_kv128": 114688,
+          "pv_pairs_four_heads_m16_kv128": 114688,
+          "tiles_m16_kv128": 56,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 409,
+          "qk_pairs_no_padding": 6544,
+          "pv_pairs_no_padding": 6544,
+          "qk_pairs_four_heads_no_padding": 26176,
+          "pv_pairs_four_heads_no_padding": 26176,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 822,
+          "qk_pairs_no_padding": 6576,
+          "pv_pairs_no_padding": 6576,
+          "qk_pairs_four_heads_no_padding": 26304,
+          "pv_pairs_four_heads_no_padding": 26304,
+          "qk_pairs_four_heads_m16_kv128": 36864,
+          "pv_pairs_four_heads_m16_kv128": 36864,
+          "tiles_m16_kv128": 18,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 2258,
+          "qk_pairs_no_padding": 9032,
+          "pv_pairs_no_padding": 9032,
+          "qk_pairs_four_heads_no_padding": 36128,
+          "pv_pairs_four_heads_no_padding": 36128,
+          "qk_pairs_four_heads_m16_kv128": 43008,
+          "pv_pairs_four_heads_m16_kv128": 43008,
+          "tiles_m16_kv128": 21,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 18648,
+          "qk_pairs_no_padding": 18648,
+          "pv_pairs_no_padding": 18648,
+          "qk_pairs_four_heads_no_padding": 74592,
+          "pv_pairs_four_heads_no_padding": 74592,
+          "qk_pairs_four_heads_m16_kv128": 327680,
+          "pv_pairs_four_heads_m16_kv128": 327680,
+          "tiles_m16_kv128": 160,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    },
+    {
+      "layer": 74,
+      "artifact_path": "/workspace/experiments/m32-full-teacher-20261020/sfa-78/rank-0/layer-74.pt",
+      "artifact_sha256": "246fc02da111f743398c3415c762a76a7a727daf87291732e5a2b17fa8d22461",
+      "selected_sets_sha256": "8be3b2f760c82380e9756b7de30c4b2e1b2fe646de56956e57e29b8264df1e29",
+      "selected_pairs": 65536,
+      "union_rows": 4343,
+      "intersection_32_rows": 661,
+      "models": {
+        "per_query": {
+          "logical_kv_rows": 65536,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 1048576,
+          "pv_pairs_four_heads_m16_kv128": 1048576,
+          "tiles_m16_kv128": 512,
+          "segments": 32
+        },
+        "union_mask": {
+          "logical_kv_rows": 4343,
+          "qk_pairs_no_padding": 138976,
+          "pv_pairs_no_padding": 138976,
+          "qk_pairs_four_heads_no_padding": 555904,
+          "pv_pairs_four_heads_no_padding": 555904,
+          "qk_pairs_four_heads_m16_kv128": 557056,
+          "pv_pairs_four_heads_m16_kv128": 557056,
+          "tiles_m16_kv128": 272,
+          "segments": 1
+        },
+        "cascade": {
+          "logical_kv_rows": 25744,
+          "qk_pairs_no_padding": 65536,
+          "pv_pairs_no_padding": 65536,
+          "qk_pairs_four_heads_no_padding": 262144,
+          "pv_pairs_four_heads_no_padding": 262144,
+          "qk_pairs_four_heads_m16_kv128": 583680,
+          "pv_pairs_four_heads_m16_kv128": 583680,
+          "tiles_m16_kv128": 285,
+          "segments": 47
+        },
+        "full_cache_reference": {
+          "logical_kv_rows": 9344,
+          "qk_pairs_no_padding": 299008,
+          "pv_pairs_no_padding": 299008,
+          "qk_pairs_four_heads_no_padding": 1196032,
+          "pv_pairs_four_heads_no_padding": 1196032,
+          "qk_pairs_four_heads_m16_kv128": 1196032,
+          "pv_pairs_four_heads_m16_kv128": 1196032,
+          "tiles_m16_kv128": 584,
+          "segments": 1
+        }
+      },
+      "cascade_by_group": [
+        {
+          "query_group": 32,
+          "logical_kv_rows": 661,
+          "qk_pairs_no_padding": 21152,
+          "pv_pairs_no_padding": 21152,
+          "qk_pairs_four_heads_no_padding": 84608,
+          "pv_pairs_four_heads_no_padding": 84608,
+          "qk_pairs_four_heads_m16_kv128": 98304,
+          "pv_pairs_four_heads_m16_kv128": 98304,
+          "tiles_m16_kv128": 48,
+          "segments": 1
+        },
+        {
+          "query_group": 16,
+          "logical_kv_rows": 375,
+          "qk_pairs_no_padding": 6000,
+          "pv_pairs_no_padding": 6000,
+          "qk_pairs_four_heads_no_padding": 24000,
+          "pv_pairs_four_heads_no_padding": 24000,
+          "qk_pairs_four_heads_m16_kv128": 32768,
+          "pv_pairs_four_heads_m16_kv128": 32768,
+          "tiles_m16_kv128": 16,
+          "segments": 2
+        },
+        {
+          "query_group": 8,
+          "logical_kv_rows": 860,
+          "qk_pairs_no_padding": 6880,
+          "pv_pairs_no_padding": 6880,
+          "qk_pairs_four_heads_no_padding": 27520,
+          "pv_pairs_four_heads_no_padding": 27520,
+          "qk_pairs_four_heads_m16_kv128": 36864,
+          "pv_pairs_four_heads_m16_kv128": 36864,
+          "tiles_m16_kv128": 18,
+          "segments": 4
+        },
+        {
+          "query_group": 4,
+          "logical_kv_rows": 2552,
+          "qk_pairs_no_padding": 10208,
+          "pv_pairs_no_padding": 10208,
+          "qk_pairs_four_heads_no_padding": 40832,
+          "pv_pairs_four_heads_no_padding": 40832,
+          "qk_pairs_four_heads_m16_kv128": 47104,
+          "pv_pairs_four_heads_m16_kv128": 47104,
+          "tiles_m16_kv128": 23,
+          "segments": 8
+        },
+        {
+          "query_group": 1,
+          "logical_kv_rows": 21296,
+          "qk_pairs_no_padding": 21296,
+          "pv_pairs_no_padding": 21296,
+          "qk_pairs_four_heads_no_padding": 85184,
+          "pv_pairs_four_heads_no_padding": 85184,
+          "qk_pairs_four_heads_m16_kv128": 368640,
+          "pv_pairs_four_heads_m16_kv128": 368640,
+          "tiles_m16_kv128": 180,
+          "segments": 32
+        }
+      ],
+      "exact_query_sets_checked": 96
+    }
+  ],
+  "cpu": {
+    "torch": "2.12.0+cpu",
+    "threads": 1,
+    "interop_threads": 1,
+    "backend_autoload": "0"
+  },
+  "torch_npu_imported": false
+}

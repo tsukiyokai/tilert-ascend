@@ -1,0 +1,197 @@
+{
+  "scope": "Frozen original M1 run and M32 SFA8 numerical compatibility, not a one-variable timing experiment",
+  "hosts": {
+    "m1": "a3-gs:trt-asc (now stopped; files read without starting)",
+    "m32": "a3-194:trt-asc",
+    "comparison": "a3-194:trt-asc CPU only"
+  },
+  "old_origin": "a3-gs:/home/shanshan/trt-asc/offline/cann-layer-major-20261018-02/device-78x32-sfa-01",
+  "current_origin": "/workspace/experiments/layer-major-m32-20261020/sfa-8",
+  "checkpoint_metadata_same": true,
+  "checkpoint_metadata": {
+    "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+    "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+    "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+  },
+  "checkpoint_limit": "Three checkpoint metadata file hashes and identical loading recipe; 404GB weight payload was not rehashed in this comparison.",
+  "inputs_same": true,
+  "inputs": {
+    "prompt_length": 8192,
+    "prompt_sha256": "fe53282d0b732f6a1cbd9b6587903127f73ba645f2303a246656286704142afa",
+    "last_prompt_token": 9249,
+    "initial_position": 8192,
+    "first_token_id": 6500,
+    "request_id": "ba210bea41854af3",
+    "generation": 1,
+    "prefix_file": "/workspace/offline/prefix8k-allocation-20261017/capture/case-00/main-prefix/rank-0.pt",
+    "prefix_sha256": "e8aa3e0e190c24d171c0ae9da22b63ad7d8928541427e47adf13dbd9c9bdd7f6",
+    "capture_manifest_sha256": "b01cceb2d2e30564807ce9efc441ad535999b56b73d0c333e93bb18694ccda74"
+  },
+  "teacher_same_except_paths": {
+    "sha256": true,
+    "baseline_request_id": true,
+    "prompt_file_sha256": true,
+    "prompt_identity": true,
+    "teacher_tokens": true,
+    "expected_next_tokens": true,
+    "scope": true
+  },
+  "teacher_sha256": "82d011962a288b30b777fc4964d5c96c6b9784cb13b97f509322f603b263b655",
+  "fp32_tp_policy_same": true,
+  "tp_reduce_ast_identical": true,
+  "common_source_sha256": {
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/ascend_forward_context.py": "848112214c9f56371b4bf43a59d39fadbed0e0e864581e300a3a89778d4083cb",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/indexer.py": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/sfa_v1.py": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/models/deepseek_mtp.py": "4ed40eae69848d1fac7c901a1c73b0532a71473a045af1aa79508f9c74be0a2b",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/model_runner_v1.py": "f0a3079900c9b2628437195ef21d0631c747aa1a49b663c1b27fddf379cbf8f5",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/worker.py": "1859b05db9bdbb9fd69a86e08bb67a1de2c964ed4b7ab75abc88492c9b910abc",
+    "/workspace/src/vllm-unified/vllm/model_executor/models/deepseek_v2.py": "5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408",
+    "tilert/models/glm_5_2_ascend/weights.py": "5056e25fb26d45e4321b8e6045d505d095802ce74cc2add449ed16bccfda3f33",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/layernorm.py": "d2fda42ad99935725c98b9505a8d2e94696d9cdb2906e5cb2f1e37bf21fb27bc",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/eplb/adaptor/vllm_adaptor.py": "881ed7e562d59fb60f08c39a01593a37a3cea2a06316a137955711d44c0e1b94",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/quantization/methods/kv_cache/kv_c8.py": "1e85e37adbf497f934642ec80823cef566010806f3a930b53a1ef914e561b78f",
+    "/workspace/src/vllm-unified/vllm/model_executor/model_loader/utils.py": "e6e3477d926deb12fd1b50d4e6a7d649f97a5c2b6524cc2e4a604c80bb653f20"
+  },
+  "different_source_sha256": {
+    "tilert/models/glm_5_2_ascend/cann_model.py": {
+      "m1": "cd860f60a9b6fc314af750df3d605be79e23ddaeff8e1eae4a4793539028c25e",
+      "m32": "cdeefb6f5c31c76c1967373200de9612c237045547545b89421a6bcab7bf22a6"
+    },
+    "tests/glm52/run_cann_layer_major.py": {
+      "m1": "8c5b0e700a2aa584bce3d23589f13df8a25a1e1e77021bd290a34bc547a58767",
+      "m32": "dcc5f99e2c0cef8285fba363ee707a98355c3b8b95b65ff8c816e85b961b544e"
+    },
+    "tests/glm52/run_cann_streamed.py": {
+      "m1": "b61baf8299a816f0de541ee0e62917800358771bcdc4f36b6b7bc45d51bd70a3",
+      "m32": "6280a078c2ed762f525a7a81937a9e9a2169589403520d618f34fd34c499a816"
+    },
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/rotary_embedding.py": {
+      "m1": "403e1d0c0cac58a82898fa2596b923b60f19392d23560f4609967e4dfc8a411a",
+      "m32": "d8b2e4e654ef7b524e6382eee474fb4634e05e3697c1a22eab2f4b646535ba74"
+    }
+  },
+  "packages_same": true,
+  "packages": {
+    "torch": "2.12.0+cpu",
+    "torch-npu": "2.12.0",
+    "vllm": "0.30.1rc1.dev447+gc4df37dfc.d20261015.empty",
+    "vllm-ascend": "0.19.1rc2.dev2828+gf558b58c1.d20261015"
+  },
+  "runtime_differences": {
+    "capacity": [
+      8320,
+      9344
+    ],
+    "query_width": [
+      1,
+      32
+    ],
+    "layers": [
+      78,
+      8
+    ],
+    "fp32_head": [
+      false,
+      true
+    ],
+    "TASK_QUEUE_ENABLE": [
+      "1",
+      null
+    ],
+    "rotary": "Only two .contiguous() additions to derived cos/sin caches; exact diff saved.",
+    "GMM": "Old owner/barrier overlay first, M32 prepends gmm-fastpath prod overlay; device object differs.",
+    "compiler": "Both layer-major runners execute eager decoder calls; static compile cache not used."
+  },
+  "native_quant_div": {
+    "operation": "Both use installed native CANN DynamicQuant; CPU Div calibration changes only the CPU reference, not these runner calls.",
+    "cann_package": "9.2.0 / V100R001C25B114 on both saved environments",
+    "install_info_sha256": "0391193a0a405d26775cc56eeced6fd9560ebe11873205d3aec77486c5bd319e",
+    "loaded_specific_DynamicQuant_ELF_same": "Not established: old execution did not save an ELF-open receipt."
+  },
+  "GMM_overlay": {
+    "m1_recorded_ELF_sha256": "2eb81546c23639026b979c93aef1ffc20132390cfc3395f1b837a1d0cdf24c3d",
+    "m1_binding": "Saved overlay manifest/source audit and launch OPP order; no old per-run open receipt.",
+    "m32_actual_access": {
+      "binary": "/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/grouped_matmul_swiglu_quant_v2/GroupedMatmulSwigluQuantV2_fa3d6d3de6e1f32e170e39d2ddd3a20e.o",
+      "sha256": "baaa18e24c44695737b414d3196414152f1324caf0087c00cfc102162cf16bc5",
+      "event_masks": [
+        32,
+        1,
+        32,
+        1,
+        32,
+        1,
+        32,
+        1,
+        32,
+        1,
+        1,
+        1,
+        1,
+        32,
+        1,
+        32,
+        1,
+        1,
+        32,
+        1,
+        32,
+        1,
+        1,
+        1,
+        1,
+        32,
+        1,
+        1,
+        32,
+        1,
+        32,
+        1,
+        1,
+        1,
+        1
+      ],
+      "opened": true,
+      "accessed": true,
+      "returncode": 0
+    }
+  },
+  "m32_mapped_libraries": {
+    "pid": 39224,
+    "paths": [
+      {
+        "path": "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib/libcust_opapi.so",
+        "sha256": "f81c882edadb261acdce7f85bf4aa7c7cc7e4a94571a665ffc8a41cb150238a6"
+      },
+      {
+        "path": "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/libcust_opmaster_rt2.0.so",
+        "sha256": "d06d3f127e2c179ed5f4d3dc366b39f829e0c5e3ec39df63ccb1993befcd3f39"
+      },
+      {
+        "path": "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_proto/lib/linux/aarch64/libcust_opsproto_rt2.0.so",
+        "sha256": "18234b52e3976060032d238b1ce13ebd3653da524a4c3babe7b38878c713d6e3"
+      },
+      {
+        "path": "/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/libcust_opmaster_rt2.0.so",
+        "sha256": "ded74980ff29c3985de70e67e2ed5ae791a0914aa1b4b427d3a6d96d2aeba69d"
+      },
+      {
+        "path": "/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer/op_proto/lib/linux/aarch64/libcust_opsproto_rt2.0.so",
+        "sha256": "c05c4210d32218e10588ec82b3ca4e5f8df520cc876e90fae56964f79bc59b0f"
+      },
+      {
+        "path": "/workspace/offline/cann-workspace-owner-20261017/kernel-overlay/vendors/custom_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/libcust_opmaster_rt2.0.so",
+        "sha256": "ded74980ff29c3985de70e67e2ed5ae791a0914aa1b4b427d3a6d96d2aeba69d"
+      },
+      {
+        "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/_cann_ops_custom/vendors/custom_transformer/op_impl/ai_core/tbe/op_tiling/lib/linux/aarch64/libcust_opmaster_rt2.0.so",
+        "sha256": "ded74980ff29c3985de70e67e2ed5ae791a0914aa1b4b427d3a6d96d2aeba69d"
+      }
+    ]
+  },
+  "old_cross_rank_coverage": "Existing full audit verified final logits across16 ranks and within-rank handoffs, not first8 hidden tensors across ranks. Only old rank0 tensors were copied.",
+  "new_cross_rank_coverage": "Existing independent SFA8 audit: hidden/residual/indices at all8 layers bitexact across16 ranks.",
+  "tensor_transfer_bytes": 20945401,
+  "torch_npu_imported": false
+}

@@ -1,0 +1,271 @@
+{
+  "timestamp_utc": "2026-10-16T18:11:21.389855+00:00",
+  "checks": [
+    {
+      "name": "torch",
+      "torch": "2.12.0+cpu",
+      "torch_npu": "2.12.0",
+      "initialized": false
+    },
+    {
+      "name": "imports",
+      "initialized": false
+    },
+    {
+      "name": "signature",
+      "object": "EngineArgs",
+      "signature": "(model: str = 'Qwen/Qwen3-0.6B', enable_return_routed_experts: bool = False, return_sampling_mask: bool = False, model_weights: str = '', served_model_name: str | list[str] | None = None, tokenizer: str | None = None, hf_config_path: str | None = None, runner: Literal['auto', 'generate', 'pooling', 'draft'] = 'auto', convert: Literal['auto', 'none', 'embed', 'classify'] = 'auto', skip_tokenizer_init: bool = False, enable_prompt_embeds: bool = False, tokenizer_mode: Union[Literal['auto', 'hf', 'mistral', 'deepseek_v32', 'deepseek_v4', 'inkling', 'kimi_k3', 'cohere'], str] = 'auto', trust_remote_code: bool = False, allowed_local_media_path: str = '', allowed_media_domains: list[str] | None = None, download_dir: str | None = None, safetensors_load_strategy: Optional[Literal['lazy', 'eager', 'prefetch', 'torchao']] = None, safetensors_prefetch_num_threads: int = 8, safetensors_prefetch_block_size: int = 16777216, load_format: str = 'auto', config_format: str = 'auto', dtype: Literal['auto', 'half', 'float16', 'bfloat16', 'float', 'float32'] = 'auto', kv_cache_dtype: Literal['auto', 'float16', 'bfloat16', 'fp8', 'fp8_e4m3', 'fp8_e5m2', 'fp8_inc', 'fp8_ds_mla', 'nvfp4_ds_mla', 'turboquant_k8v4', 'turboquant_4bit_nc', 'turboquant_k3v4_nc', 'turboquant_3bit_nc', 'int4_per_token_head', 'int8_per_token_head', 'fp8_per_token_head', 'nvfp4', 'nvfp4_4over6'] = 'auto', seed: int = 0, max_model_len: int = None, cudagraph_capture_sizes: list[int] | None = None, max_cudagraph_capture_size: int | None = None, ir_op_priority: vllm.config.kernel.IrOpPriorityConfig = <factory>, distributed_executor_backend: Union[str, Literal['ray', 'mp', 'uni', 'external_launcher'], type[Any], NoneType] = None, pipeline_parallel_size: int = 1, master_addr: str = '127.0.0.1', master_port: int = 29501, nnodes: int = 1, node_rank: int = 0, distributed_timeout_seconds: int | None = None, cpu_distributed_timeout_seconds: int | None = None, numa_bind: bool = False, numa_bind_nodes: list[int] | None = None, numa_bind_cpus: list[str] | None = None, device_ids: list[int | str] | None = None, tensor_parallel_size: int = 1, prefill_context_parallel_size: int = 1, decode_context_parallel_size: int = 1, dcp_comm_backend: Optional[Literal['ag_rs', 'a2a']] = None, dcp_q_replicate: bool | None = None, dcp_kv_cache_interleave_size: int = 1, cp_kv_cache_interleave_size: int | None = None, data_parallel_size: int = 1, data_parallel_rank: int | None = None, data_parallel_start_rank: int | None = None, data_parallel_size_local: int | None = None, data_parallel_address: str | None = None, data_parallel_rpc_port: int | None = None, data_parallel_hybrid_lb: bool = False, data_parallel_external_lb: bool = False, data_parallel_multi_port_external_lb: bool = False, data_parallel_backend: Literal['ray', 'mp'] = 'mp', enable_expert_parallel: bool = False, enable_batch_sharded_sampling: bool | None = None, enable_ep_weight_filter: bool = False, moe_backend: Literal['auto', 'triton', 'batched_triton', 'deep_gemm', 'deep_gemm_mega_moe', 'cutlass', 'flashinfer_trtllm', 'flashinfer_cutlass', 'flashinfer_cutedsl', 'flashinfer_b12x', 'b12x', 'flashinfer_moe_ep_mega_deep_gemm', 'flashinfer_moe_ep_mega_cutedsl', 'marlin', 'humming', 'triton_unfused', 'aiter', 'aiter_triton_mxfp4_bf16', 'flydsl', 'hpc', 'emulation', 'rdna3'] = 'auto', linear_backend: Literal['auto', 'cutlass', 'flashinfer_cutlass', 'flashinfer_cutedsl', 'flashinfer_trtllm', 'flashinfer_cudnn', 'flashinfer_b12x', 'b12x', 'marlin', 'humming', 'triton', 'deep_gemm', 'torch', 'aiter', 'machete', 'fbgemm', 'conch', 'exllama', 'emulation', 'xpu', 'xpu_woq'] = 'auto', sparse_indexer_topk_backend: Literal['auto', 'deep_select', 'cooperative', 'persistent', 'per_row', 'flashinfer', 'torch'] = 'auto', all2all_backend: Literal['naive', 'pplx', 'deepep_high_throughput', 'deepep_low_latency', 'deepep_v2', 'mori_high_throughput', 'mori_low_latency', 'moonep', 'nixl_ep', 'allgather_reducescatter', 'flashinfer_all2allv', 'flashinfer_nvlink_two_sided', 'flashinfer_nvlink_one_sided'] = 'allgather_reducescatter', enable_elastic_ep: bool = False, elastic_ep_max_dp_size: int = None, enable_dbo: bool = False, ubatch_size: int = 0, dbo_decode_token_threshold: int = 32, dp_sync_interval: int = 16, dbo_prefill_token_threshold: int = 512, disable_nccl_for_dp_synchronization: bool | None = None, eplb_config: vllm.config.parallel.EPLBConfig = <factory>, enable_eplb: bool = False, expert_placement_strategy: Literal['linear', 'round_robin'] = 'linear', _api_process_count: int = 1, _api_process_rank: int = 0, max_parallel_loading_workers: int | None = None, block_size: int | None = None, enable_prefix_caching: bool | None = None, prefix_caching_hash_algo: Literal['sha256', 'sha256_cbor', 'xxhash', 'xxhash_cbor'] = 'sha256', prefix_cache_retention_interval: int | None = 0, disable_sliding_window: bool = False, disable_cascade_attn: bool = True, offload_backend: str = 'auto', cpu_offload_gb: float = 0, cpu_offload_params: set[str] = <factory>, offload_group_size: int = 0, offload_num_in_group: int = 1, offload_prefetch_step: int = 1, offload_params: set[str] = <factory>, gpu_memory_utilization: float = 0.92, kv_cache_memory_bytes: int | None = None, max_num_batched_tokens: int | None = None, max_num_scheduled_tokens: int | None = None, long_prefill_token_threshold: int = 0, long_prefill_token_threshold_adaptive: bool = False, max_num_seqs: int | None = None, max_num_active_seqs: int | None = None, max_num_queued_reqs: int | None = None, max_num_queued_tokens: int | None = None, max_logprobs: int = 20, logprobs_mode: Literal['raw_logits', 'raw_logprobs', 'processed_logits', 'processed_logprobs'] = 'raw_logprobs', use_fp64_gumbel: bool = False, enable_trace_replay: bool = False, disable_log_stats: bool = False, aggregate_engine_logging: bool = False, revision: str | None = None, code_revision: str | None = None, hf_token: bool | str | None = None, hf_overrides: dict[str, typing.Any] | collections.abc.Callable[[typing.Any], typing.Any] = <factory>, model_class_overrides: dict[str, str] = <factory>, tokenizer_revision: str | None = None, quantization: str | None = None, quantization_config: 'dict[str, Any] | QuantizationConfigArgs | None' = None, allow_deprecated_quantization: bool = False, enforce_eager: bool = False, disable_custom_all_reduce: bool = False, language_model_only: bool = False, limit_mm_per_prompt: dict[str, int | dict[str, int]] = <factory>, enable_mm_embeds: bool = False, interleave_mm_strings: bool = False, media_io_kwargs: dict[str, dict[str, typing.Any]] = <factory>, mm_processor_kwargs: dict[str, typing.Any] | None = None, mm_processor_cache_gb: float = 4, mm_processor_cache_type: Optional[Literal['shm', 'lru']] = 'lru', mm_hasher_algorithm: Literal['blake3', 'sha256', 'sha512'] = 'blake3', mm_shm_cache_max_object_size_mb: int = 128, mm_encoder_only: bool = False, mm_encoder_tp_mode: Literal['weights', 'data'] = 'weights', mm_encoder_attn_backend: vllm.v1.attention.backends.registry.AttentionBackendEnum | str | None = None, mm_encoder_attn_dtype: str | None = None, mm_encoder_fp8_scale_path: str | None = None, mm_encoder_fp8_scale_save_path: str | None = None, mm_encoder_fp8_scale_save_margin: float = 1.5, io_processor_plugin: str | None = None, renderer_num_workers: int = 1, skip_mm_profiling: bool = False, video_pruning_rate: float | None = None, video_pruning_method: str = 'evs', mm_tensor_ipc: Literal['direct_rpc', 'torch_shm'] = 'direct_rpc', mm_processor_device: str = 'auto', mm_ipc_gpu_memory_gb: float = 0, mm_device_do_normalize: bool | None = True, enable_lora: bool = False, max_loras: int = 1, max_lora_rank: Literal[1, 8, 16, 32, 64, 128, 256, 320, 512] = 16, default_mm_loras: dict[str, str] | None = None, fully_sharded_loras: bool = False, max_cpu_loras: int | None = None, lora_dtype: str | torch.dtype | None = 'auto', lora_target_modules: list[str] | None = None, enable_tower_connector_lora: bool = False, specialize_active_lora: bool = False, enable_mixed_moe_lora_format: bool = False, enable_moe_shared_loras: bool = False, max_lora_cls_labels: int | None = None, ray_workers_use_nsight: bool = False, num_gpu_blocks_override: int | None = None, model_loader_extra_config: dict = <factory>, ignore_patterns: str | list[str] = <factory>, enable_chunked_prefill: bool | None = None, disable_chunked_mm_input: bool = False, scheduler_reserve_full_isl: bool = True, prefill_schedule_interval: int = 1, watermark: float = 0.0, disable_hybrid_kv_cache_manager: bool | None = None, structured_outputs_config: vllm.config.structured_outputs.StructuredOutputsConfig = <factory>, aux_output_config: vllm.config.aux_output.AuxOutputConfig = <factory>, reasoning_parser: str = '', reasoning_parser_plugin: str | None = None, speculative_config: dict[str, typing.Any] | None = None, spec_method: str | None = None, spec_model: str | None = None, spec_tokens: int | None = None, watermark_config: dict[str, typing.Any] | None = None, diffusion_config: dict[str, typing.Any] | None = None, show_hidden_metrics_for_version: str | None = None, otlp_traces_endpoint: str | None = None, collect_detailed_traces: list[typing.Literal['model', 'worker', 'all']] | None = None, per_request_spec_decode_metrics: Literal['none', 'summary', 'detailed'] = 'none', kv_cache_metrics: bool = False, kv_cache_metrics_sample: float = 0.01, cudagraph_metrics: bool = False, enable_layerwise_nvtx_tracing: bool = False, enable_mfu_metrics: bool = False, enable_logging_iteration_details: bool = False, jit_monitor_mode: Literal['warn', 'error'] = 'warn', jit_monitor_verbose: bool = False, enable_mm_processor_stats: bool = False, scheduling_policy: Literal['fcfs', 'priority'] = 'fcfs', scheduler_cls: str | type[object] | None = None, pooler_config: vllm.config.pooler.PoolerConfig | None = None, compilation_config: vllm.config.compilation.CompilationConfig = <factory>, attention_config: vllm.config.attention.AttentionConfig = <factory>, engram_config: vllm.config.engram.EngramConfig | None = None, mamba_config: vllm.config.mamba.MambaConfig = <factory>, kernel_config: vllm.config.kernel.KernelConfig = <factory>, enable_flashinfer_autotune: bool = None, worker_cls: str = 'auto', worker_extension_cls: str = '', profiler_config: vllm.config.profiler.ProfilerConfig = <factory>, logging_config: vllm.config.logging.LoggingConfig | None = None, log_level: Optional[Literal['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET']] = None, log_config_file: str | None = None, kv_transfer_config: vllm.config.kv_transfer.KVTransferConfig | None = None, kv_events_config: vllm.config.kv_events.KVEventsConfig | None = None, ec_transfer_config: vllm.config.ec_transfer.ECTransferConfig | None = None, ec_manager_config: vllm.config.ec_manager_config.EncoderCacheManagerConfig = <factory>, reasoning_config: vllm.config.reasoning.ReasoningConfig = None, generation_config: str = 'auto', enable_sleep_mode: bool = False, sleep_preserve_parameter_names: list[str] = <factory>, enable_cumem_allocator: bool = False, enable_nccl_comm_suspend: bool = False, override_generation_config: dict[str, typing.Any] = <factory>, model_impl: str = 'auto', attention_backend: vllm.v1.attention.backends.registry.AttentionBackendEnum | None = None, kv_cache_dtype_skip_layers: list[str] = <factory>, mamba_cache_dtype: Literal['auto', 'float32', 'float16', 'bfloat16'] = 'auto', mamba_ssm_cache_dtype: Literal['auto', 'float32', 'float16', 'bfloat16'] = 'auto', mamba_block_size: int | None = None, prefix_match_unit: int | None = None, mamba_cache_mode: Literal['all', 'align', 'none'] = 'none', enable_mamba_shared_prefix_checkpoint: bool = False, replayssm_buffer_len: int = 16, use_replayssm: bool = False, mamba_backend: vllm.config.mamba.MambaBackendEnum = <MambaBackendEnum.TRITON: 'triton'>, mamba_ssu_algorithm: Optional[Literal['auto', 'simple', 'vertical', 'horizontal']] = None, enable_mamba_cache_stochastic_rounding: bool = False, mamba_cache_philox_rounds: int = 0, additional_config: dict[str, typing.Any] = <factory>, use_tqdm_on_load: bool = True, pt_load_map_location: str | dict[str, str] = 'cpu', logits_processors: list[str | type[vllm.v1.sample.logits_processor.interface.LogitsProcessor]] | None = None, async_scheduling: bool | None = None, stream_interval: int = 1, kv_sharing_fast_prefill: bool = False, swa_bounded_replay: bool = True, optimization_level: vllm.config.vllm.OptimizationLevel = <OptimizationLevel.O2: 2>, performance_mode: Literal['balanced', 'interactivity', 'throughput'] = 'balanced', fault_tolerance_config: vllm.config.fault_tolerance.FaultToleranceConfig = <factory>, enable_fault_tolerance: bool = False, kv_offloading_size: float | None = None, kv_offloading_backend: Literal['native', 'lmcache'] = 'native', tokens_only: bool = False, shutdown_timeout: int = 0, weight_transfer_config: vllm.config.weight_transfer.WeightTransferConfig | None = None, fail_on_environ_validation: bool = False, gdn_prefill_backend: Optional[Literal['flashinfer', 'triton', 'cutedsl']] = None, kda_prefill_backend: Optional[Literal['auto', 'triton', 'flashkda', 'flashinfer', 'fused']] = None, kda_decode_backend: Optional[Literal['auto', 'native', 'flashinfer', 'triton']] = None) -> None",
+      "path": "/workspace/src/vllm-unified/vllm/engine/arg_utils.py",
+      "sha256": "95be1adb96f55933f6a52260c8cb2181d04707401ca21d97c33108c5ab58f3ac"
+    },
+    {
+      "name": "signature",
+      "object": "AscendCommonAttentionMetadata",
+      "signature": "(query_start_loc: torch.Tensor, query_start_loc_cpu: torch.Tensor, seq_lens: torch.Tensor, num_reqs: int, num_actual_tokens: int, max_query_len: int, max_seq_len: int, block_table_tensor: torch.Tensor, slot_mapping: torch.Tensor, causal: bool | torch.Tensor = True, logits_indices_padded: torch.Tensor | None = None, num_logits_indices: int | None = None, max_logits_per_req: int | None = None, encoder_seq_lens: torch.Tensor | None = None, encoder_seq_lens_cpu: numpy.ndarray | None = None, dcp_local_seq_lens: torch.Tensor | None = None, dcp_local_seq_lens_cpu_upper_bound: torch.Tensor | None = None, positions: torch.Tensor = None, is_prefilling: torch.Tensor | None = None, seq_lens_cpu_upper_bound: torch.Tensor | None = None, req_idx: numpy.ndarray | None = None, mm_req_doc_ranges: dict[int, list[tuple[int, int]]] | None = None, rswa_prefix_lens: torch.Tensor | None = None, replayssm_decode_base_cpu: torch.Tensor | None = None, _num_computed_tokens_cache: torch.Tensor | None = None, _token_to_req_indices_cache: torch.Tensor | None = None, seq_lens_cpu: torch.Tensor = None, num_computed_tokens_cpu: torch.Tensor = None, decode_token_per_req: int = 1, actual_seq_lengths_q: list[int] = <factory>, positions_cpu: torch.Tensor = None, attn_state: Any = None, graph_pad_size: int = -1, num_input_tokens: int = 0, context_parallel_metadata: vllm_ascend.attention.utils.AscendDCPMetadata | None = None, req_ids_tensor: torch.Tensor | None = None, token_to_req: torch.Tensor | None = None, req_topk_buffer_slots: torch.Tensor | None = None, req_topk_buffer_active: torch.Tensor | None = None, copy_sfa_draft_index: int | None = None, copy_sfa_restore_tails: bool = False, offload_dummy: bool = False, _seq_lens_cpu: torch.Tensor | None = None, _num_computed_tokens_cpu: torch.Tensor | None = None, dcp_local_seq_lens_cpu: torch.Tensor | None = None, replay_start: torch.Tensor | None = None) -> None",
+      "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/utils.py",
+      "sha256": "6afa8083b509f3e076f59fe40f3cf85a534dbdc8b3290c547639ef752fba1772"
+    },
+    {
+      "name": "signature",
+      "object": "AscendSFAMetadataBuilder",
+      "signature": "(kv_cache_spec, layer_names: list[str], vllm_config: vllm.config.vllm.VllmConfig, device: torch.device, metadata_cls: type[vllm_ascend.attention.sfa_v1.AscendSFAMetadata] | None = None, supports_dcp_with_varlen: bool = False)",
+      "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/sfa_v1.py",
+      "sha256": "b5ad39a05b1323ac5048962f137969158298e4f637b5bd3e401cb4c4248ecfa0"
+    },
+    {
+      "name": "signature",
+      "object": "AscendSFAIndexerMetadataBuilder",
+      "signature": "(kv_cache_spec: vllm.v1.kv_cache_interface.AttentionSpec, layer_names: list[str], vllm_config: vllm.config.vllm.VllmConfig, device: torch.device)",
+      "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/indexer.py",
+      "sha256": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1"
+    },
+    {
+      "name": "signature",
+      "object": "set_ascend_forward_context",
+      "signature": "(attn_metadata: Any, vllm_config: vllm.config.vllm.VllmConfig, num_tokens: int = 0, num_tokens_across_dp: torch.Tensor | None = None, in_profile_run: bool = False, num_actual_tokens: int | None = None, aclgraph_runtime_mode: vllm.config.compilation.CUDAGraphMode = <CUDAGraphMode.NONE: 0>, batch_descriptor: vllm.forward_context.BatchDescriptor | None = None, model_instance: torch.nn.modules.module.Module = None, is_draft_model=False, skip_compiled: bool = False, max_tokens_across_pcp: int = 0, draft_attn_metadatas=None, device_metadata_executor=None, has_sinks=False, eplb_heat_collection_status: bool = False)",
+      "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/ascend_forward_context.py",
+      "sha256": "848112214c9f56371b4bf43a59d39fadbed0e0e864581e300a3a89778d4083cb"
+    },
+    {
+      "name": "signature",
+      "object": "NPUWorker",
+      "signature": "(vllm_config: vllm.config.vllm.VllmConfig, local_rank: int, rank: int, distributed_init_method: str, is_driver_worker: bool = False, **kwargs)",
+      "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/worker.py",
+      "sha256": "1859b05db9bdbb9fd69a86e08bb67a1de2c964ed4b7ab75abc88492c9b910abc"
+    },
+    {
+      "name": "signature",
+      "object": "AscendMLAAttentionSpec",
+      "signature": "(block_size: 'int', *, dcp_sharded: 'bool' = True, block_stride_alignment: 'int | None' = None, max_tp_shards: 'int | None' = None, num_kv_heads: 'int', head_size: 'int', dtype: 'torch.dtype', head_size_v: 'int' = 0, kv_quant_mode: 'KVQuantMode' = <KVQuantMode.NONE: 0>, page_size_padded: 'int | None' = None, num_head_slots: 'int | None' = None, state_content_bytes: 'int | None' = None, tokens_per_state: 'int | Fraction' = 1, sliding_window: 'int | None' = None, attention_chunk_size: 'int | None' = None, non_causal: 'bool' = False, cache_dtype_str: 'str | None' = None, alignment: 'int | None' = None, model_version: 'str | None' = None, cache_role: 'SparseCacheRole' = <SparseCacheRole.SPARSE: 'sparse'>, is_index_group_leader: 'bool' = False, storage_block_size: 'int | None' = None, non_causal_multi_token_decode: 'bool' = False, num_heads: int = 1, scale_dim: int = 0, scale_dtype: torch.dtype = torch.int8, cache_sparse_sfa_c8: bool = False, cache_sparse_sfa_turboquant: bool = False, store_on_host: bool = False, indexes_kv_by_block_stride: bool = False) -> None",
+      "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/core/kv_cache_interface.py",
+      "sha256": "46888315206b2ee5265007f413e0d321e99506c5181592000b40b8f2355fac51"
+    },
+    {
+      "name": "signature",
+      "object": "AscendSFAIndexerCacheSpec",
+      "signature": "(block_size: 'int', *, dcp_sharded: 'bool' = True, block_stride_alignment: 'int | None' = None, max_tp_shards: 'int | None' = None, num_kv_heads: 'int', head_size: 'int', dtype: 'torch.dtype', head_size_v: 'int' = 0, kv_quant_mode: 'KVQuantMode' = <KVQuantMode.NONE: 0>, page_size_padded: 'int | None' = None, num_head_slots: 'int | None' = None, state_content_bytes: 'int | None' = None, tokens_per_state: 'int | Fraction' = 1, sliding_window: 'int | None' = None, attention_chunk_size: 'int | None' = None, non_causal: 'bool' = False, cache_dtype_str: str | None = None, alignment: 'int | None' = None, model_version: 'str | None' = None, cache_role: 'SparseCacheRole' = <SparseCacheRole.SPARSE: 'sparse'>, is_index_group_leader: 'bool' = False, storage_block_size: 'int | None' = None, non_causal_multi_token_decode: 'bool' = False, scale_dim: int = 0, scale_dtype: torch.dtype = torch.int8, cache_sparse_li_c8: bool = False, cache_sparse_li_c4: bool = False, sfa_dcp_replicated_indexer_size: int = 1) -> None",
+      "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/core/kv_cache_interface.py",
+      "sha256": "46888315206b2ee5265007f413e0d321e99506c5181592000b40b8f2355fac51"
+    },
+    {
+      "name": "signature",
+      "object": "bind_kv_cache_to_layers",
+      "signature": "(kv_caches: dict[str, torch.Tensor], forward_context: dict[str, vllm.model_executor.layers.attention.attention.Attention], num_attn_module: int = 1, kv_cache_groups: collections.abc.Sequence[vllm.v1.kv_cache_interface.KVCacheGroupSpec] | None = None) -> None",
+      "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/patch/worker/patch_bind_kv_cache.py",
+      "sha256": "3076e899374cb26848f1360eaa2584161c9c97a2e6bcbeb91ac833c889046974"
+    },
+    {
+      "name": "signature",
+      "object": "AscendRotaryEmbedding",
+      "signature": "(head_size: int, rotary_dim: int, max_position_embeddings: int, base: float, is_neox_style: bool, dtype: torch.dtype, init_cache: bool = True) -> None",
+      "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/rotary_embedding.py",
+      "sha256": "403e1d0c0cac58a82898fa2596b923b60f19392d23560f4609967e4dfc8a411a"
+    },
+    {
+      "name": "engine_args",
+      "attention_config_type": "AttentionConfig",
+      "initialized": false
+    },
+    {
+      "name": "engine_config",
+      "architecture": [
+        "GlmMoeDsaForCausalLM"
+      ],
+      "model_type": "glm_moe_dsa",
+      "use_mla": true,
+      "tp": 16,
+      "use_v2": false,
+      "initialized": false
+    },
+    {
+      "name": "common_metadata",
+      "position": 8192,
+      "seq_lens": [
+        8193
+      ],
+      "slot_dtype": "torch.int32",
+      "prolog_slot_dtype": "torch.int64",
+      "initialized": false
+    },
+    {
+      "name": "tuple_cache_binding",
+      "identity_preserved": true,
+      "shapes": {
+        "model.layers.0.self_attn.attn": [
+          [
+            1,
+            128,
+            1,
+            512
+          ],
+          [
+            1,
+            128,
+            1,
+            64
+          ]
+        ],
+        "model.layers.0.self_attn.indexer": [
+          [
+            1,
+            128,
+            1,
+            128
+          ],
+          [
+            1,
+            128,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "name": "rope_lookup_cpu",
+      "cos_shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "cos_dtype": "torch.bfloat16",
+      "position": 8192,
+      "cpu_tensors": true,
+      "initialized": false
+    },
+    {
+      "name": "sfa_builder_cpu",
+      "num_decodes": 1,
+      "num_prefills": 0,
+      "num_decode_tokens": 1,
+      "seq_lens": [
+        8193
+      ],
+      "query_lengths": [
+        1
+      ],
+      "cos_shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "sin_shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "slot_dtype": "torch.int32",
+      "initialized": false,
+      "stub": "Only SFA TP world-size query returns 1; real CPU AscendMLAAttention uses unused CPU nn.Linear projections, no checkpoint weights"
+    },
+    {
+      "name": "indexer_builder_cpu",
+      "query_lengths": [
+        1
+      ],
+      "key_lengths": [
+        8193
+      ],
+      "slots": [
+        8192
+      ],
+      "cos_shape": [
+        1,
+        1,
+        1,
+        64
+      ],
+      "initialized": false
+    },
+    {
+      "name": "actual_cann_metadata_cpu",
+      "cases": [
+        {
+          "position": 0,
+          "kv_length": 1,
+          "query_length": 1,
+          "decode_count": 1
+        },
+        {
+          "position": 1,
+          "kv_length": 2,
+          "query_length": 1,
+          "decode_count": 1
+        },
+        {
+          "position": 8192,
+          "kv_length": 8193,
+          "query_length": 1,
+          "decode_count": 1
+        },
+        {
+          "position": 8193,
+          "kv_length": 8194,
+          "query_length": 1,
+          "decode_count": 1
+        }
+      ],
+      "path": "/workspace/src/TileRT-Ascend/tilert/models/glm_5_2_ascend/cann_model.py",
+      "sha256": "7a71ed46b521e0dd7c97814d503dec29c579d562c889d7b2cee9c375fa2bfb93",
+      "initialized": false,
+      "scope": "Actual _allocate_inputs and _metadata methods; constructor bypassed, device=cpu, real builders, no weights or forward"
+    },
+    {
+      "name": "runner_source",
+      "path": "/workspace/src/TileRT-Ascend/tests/glm52/run_cann_model.py",
+      "sha256": "9be402fe32411d06bdeebb0f3771697508a423252a41b23d8071c9cdadd654f8"
+    },
+    {
+      "name": "forward_context_cpu",
+      "num_tokens": 1,
+      "padded_num_tokens": 1,
+      "is_first_layer": true,
+      "initialized": false,
+      "stub": "Only TP world-size and DP group world-size queries return 1; no communication or model forward"
+    }
+  ],
+  "scope": "CPU API verification with real installed packages and CPU tensors; parallel world-size stubs only; no checkpoint weights, NPU initialization or model forward",
+  "not_executed": [
+    "NPUWorker constructor/init_device/load_model",
+    "checkpoint weight loading",
+    "HCCL TP16 execution",
+    "NPU tensors/kernels or model forward",
+    "numerical parity and performance"
+  ],
+  "stubs": [
+    "vllm_ascend.attention.sfa_v1.get_tensor_model_parallel_world_size returns 1",
+    "ascend_forward_context.get_tensor_model_parallel_world_size returns 1",
+    "ascend_forward_context.get_dp_group returns world_size=1"
+  ],
+  "cpu_fixture": [
+    "Real AscendMLAAttention with unused CPU torch.nn.Linear projection modules",
+    "RoPE table uses checkpoint theta=8000000 and truncated 9344-position capacity",
+    "Actual CannModel._allocate_inputs/_metadata on device=cpu; constructor bypassed",
+    "No distributed process group initialized"
+  ],
+  "status": "pass",
+  "npu_initialized_final": false
+}

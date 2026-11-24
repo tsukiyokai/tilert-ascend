@@ -1,0 +1,881 @@
+{
+  "created_at": "2026-10-27T16:42:14.142252+00:00",
+  "scope": "CPU torch staging and scalar target; no NPU/H2D/TPOT timing",
+  "hostname": "fanshanshandeMacBook-Pro.local",
+  "platform": "macOS-27.0.1-arm64-arm-64bit",
+  "python": "3.11.15",
+  "torch": "2.9.0",
+  "torch_threads": 1,
+  "command": [
+    "experiments/token-staging/bench.py",
+    "--baseline-ref",
+    "ff2ab6c",
+    "--output",
+    "docs/evidence/ascend-decode/token-staging-20261028/cpu-benchmark.json"
+  ],
+  "baseline_commit": "ff2ab6cdb9d17f34b2d0402680783eba6b00d824",
+  "candidate_parent": "ff2ab6cdb9d17f34b2d0402680783eba6b00d824",
+  "source_sha256": {
+    "experiments/token-staging/bench.py": "e92f5e8ff696654b2b5d2ae8be0667ea7130e935dc6be651771c04be74f5a988",
+    "tilert/models/glm_5_2_ascend/cann_model.py": "1131290c3c2eb2ef1b2e5eccfab96589afbc8689f40b55699f2e52d2065c5044",
+    "tilert/models/glm_5_2_ascend/mtp_round.py": "79d3181e416e764add11507102cea03c08bc0d7e26ad6c421939a468ccd2c416",
+    "tilert/models/glm_5_2_ascend/mtp_state.py": "863e5e649c13cf4b9b5db78e8f49de7e515c096d17301af0d093c65828364f3f"
+  },
+  "warmup_batches": 3,
+  "samples": 30,
+  "rounds_per_sample": 100,
+  "outlier_rule": "none; alternating paired arms, all samples retained",
+  "precision_verified": false,
+  "performance_measured": false,
+  "results": [
+    {
+      "width": 8,
+      "structure": {
+        "baseline": {
+          "torch_calls": {
+            "as_tensor": 16,
+            "stack": 2,
+            "cat": 1
+          },
+          "candidates": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "predictions": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ],
+          "accepted": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ]
+        },
+        "candidate": {
+          "torch_calls": {
+            "tensor": 1
+          },
+          "candidates": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "predictions": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ],
+          "accepted": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ]
+        }
+      },
+      "round_cpu_us": {
+        "baseline": {
+          "p50": 55.502085,
+          "p90": 57.902089999999994,
+          "p99": 60.050830000000005,
+          "std": 2.009039069244603
+        },
+        "candidate": {
+          "p50": 15.71417,
+          "p90": 16.98291,
+          "p99": 17.97625,
+          "std": 0.7811333772473745
+        }
+      },
+      "paired_saving_us": {
+        "p50": 39.477289999999996,
+        "p90": 42.38626,
+        "p99": 43.92250000000001,
+        "std": 2.404480403110826
+      },
+      "samples_us": [
+        {
+          "candidate": 16.0975,
+          "baseline": 53.6025
+        },
+        {
+          "baseline": 60.050830000000005,
+          "candidate": 16.12833
+        },
+        {
+          "candidate": 15.87167,
+          "baseline": 57.902089999999994
+        },
+        {
+          "baseline": 53.49875,
+          "candidate": 16.556669999999997
+        },
+        {
+          "candidate": 15.84875,
+          "baseline": 53.574580000000005
+        },
+        {
+          "baseline": 53.87791,
+          "candidate": 14.97375
+        },
+        {
+          "candidate": 15.64708,
+          "baseline": 56.39125
+        },
+        {
+          "baseline": 55.48209,
+          "candidate": 15.21
+        },
+        {
+          "candidate": 14.93916,
+          "baseline": 57.32542
+        },
+        {
+          "baseline": 57.51542,
+          "candidate": 16.841669999999997
+        },
+        {
+          "candidate": 16.98291,
+          "baseline": 53.793330000000005
+        },
+        {
+          "baseline": 55.0275,
+          "candidate": 15.29
+        },
+        {
+          "candidate": 15.34666,
+          "baseline": 57.33459
+        },
+        {
+          "baseline": 51.84416,
+          "candidate": 17.069580000000002
+        },
+        {
+          "candidate": 15.039579999999999,
+          "baseline": 58.20125
+        },
+        {
+          "baseline": 55.52208,
+          "candidate": 16.33292
+        },
+        {
+          "candidate": 15.49542,
+          "baseline": 58.32333
+        },
+        {
+          "baseline": 54.886669999999995,
+          "candidate": 15.66959
+        },
+        {
+          "candidate": 15.22875,
+          "baseline": 56.50084
+        },
+        {
+          "baseline": 53.43708,
+          "candidate": 16.978330000000003
+        },
+        {
+          "candidate": 16.643330000000002,
+          "baseline": 54.36
+        },
+        {
+          "baseline": 55.59125,
+          "candidate": 15.38208
+        },
+        {
+          "candidate": 15.3975,
+          "baseline": 57.12708
+        },
+        {
+          "baseline": 56.145,
+          "candidate": 14.95083
+        },
+        {
+          "candidate": 17.97625,
+          "baseline": 56.39958
+        },
+        {
+          "baseline": 52.76083,
+          "candidate": 16.0075
+        },
+        {
+          "candidate": 15.75875,
+          "baseline": 54.95458
+        },
+        {
+          "baseline": 52.283339999999995,
+          "candidate": 17.24542
+        },
+        {
+          "candidate": 15.55292,
+          "baseline": 57.829589999999996
+        },
+        {
+          "baseline": 53.78125,
+          "candidate": 15.29459
+        }
+      ]
+    },
+    {
+      "width": 16,
+      "structure": {
+        "baseline": {
+          "torch_calls": {
+            "as_tensor": 32,
+            "stack": 2,
+            "cat": 1
+          },
+          "candidates": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "predictions": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ],
+          "accepted": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ]
+        },
+        "candidate": {
+          "torch_calls": {
+            "tensor": 1
+          },
+          "candidates": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "predictions": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ],
+          "accepted": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ]
+        }
+      },
+      "round_cpu_us": {
+        "baseline": {
+          "p50": 93.61104499999999,
+          "p90": 96.05875,
+          "p99": 98.02167,
+          "std": 1.835602041449708
+        },
+        "candidate": {
+          "p50": 19.17396,
+          "p90": 20.606669999999998,
+          "p99": 21.25625,
+          "std": 0.7681790525244313
+        }
+      },
+      "paired_saving_us": {
+        "p50": 74.62833,
+        "p90": 76.61,
+        "p99": 77.99583000000001,
+        "std": 1.7530420922844387
+      },
+      "samples_us": [
+        {
+          "candidate": 19.92583,
+          "baseline": 95.60375
+        },
+        {
+          "baseline": 93.595,
+          "candidate": 19.25375
+        },
+        {
+          "candidate": 18.855,
+          "baseline": 91.6175
+        },
+        {
+          "baseline": 91.19416,
+          "candidate": 18.72875
+        },
+        {
+          "candidate": 18.5375,
+          "baseline": 96.2375
+        },
+        {
+          "baseline": 96.05875,
+          "candidate": 19.642919999999997
+        },
+        {
+          "candidate": 20.06041,
+          "baseline": 93.42875
+        },
+        {
+          "baseline": 93.33417,
+          "candidate": 21.25625
+        },
+        {
+          "candidate": 19.55209,
+          "baseline": 92.9
+        },
+        {
+          "baseline": 94.415,
+          "candidate": 19.216669999999997
+        },
+        {
+          "candidate": 21.165830000000003,
+          "baseline": 93.16958
+        },
+        {
+          "baseline": 93.39292,
+          "candidate": 20.462919999999997
+        },
+        {
+          "candidate": 19.12208,
+          "baseline": 94.48625
+        },
+        {
+          "baseline": 91.08834,
+          "candidate": 18.72708
+        },
+        {
+          "candidate": 18.475830000000002,
+          "baseline": 93.50958
+        },
+        {
+          "baseline": 95.73375,
+          "candidate": 19.12375
+        },
+        {
+          "candidate": 18.6875,
+          "baseline": 92.18417
+        },
+        {
+          "baseline": 94.86375,
+          "candidate": 19.55334
+        },
+        {
+          "candidate": 19.00291,
+          "baseline": 94.4675
+        },
+        {
+          "baseline": 98.02167,
+          "candidate": 20.606669999999998
+        },
+        {
+          "candidate": 18.878330000000002,
+          "baseline": 91.4975
+        },
+        {
+          "baseline": 93.62709,
+          "candidate": 19.35792
+        },
+        {
+          "candidate": 19.13125,
+          "baseline": 97.12708
+        },
+        {
+          "baseline": 94.33791000000001,
+          "candidate": 19.07084
+        },
+        {
+          "candidate": 20.89834,
+          "baseline": 95.81375
+        },
+        {
+          "baseline": 94.75917,
+          "candidate": 18.88709
+        },
+        {
+          "candidate": 18.768330000000002,
+          "baseline": 91.40333
+        },
+        {
+          "baseline": 95.86958,
+          "candidate": 20.21583
+        },
+        {
+          "candidate": 19.05291,
+          "baseline": 91.35
+        },
+        {
+          "baseline": 92.34291,
+          "candidate": 19.53
+        }
+      ]
+    },
+    {
+      "width": 32,
+      "structure": {
+        "baseline": {
+          "torch_calls": {
+            "as_tensor": 64,
+            "stack": 2,
+            "cat": 1
+          },
+          "candidates": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32
+          ],
+          "predictions": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33
+          ],
+          "accepted": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33
+          ]
+        },
+        "candidate": {
+          "torch_calls": {
+            "tensor": 1
+          },
+          "candidates": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32
+          ],
+          "predictions": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33
+          ],
+          "accepted": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33
+          ]
+        }
+      },
+      "round_cpu_us": {
+        "baseline": {
+          "p50": 170.25479,
+          "p90": 172.94541,
+          "p99": 177.0825,
+          "std": 2.289115364220403
+        },
+        "candidate": {
+          "p50": 26.839375,
+          "p90": 28.60167,
+          "p99": 30.86083,
+          "std": 1.203183368623789
+        }
+      },
+      "paired_saving_us": {
+        "p50": 143.36396,
+        "p90": 146.43082,
+        "p99": 151.16916,
+        "std": 2.689316348641398
+      },
+      "samples_us": [
+        {
+          "candidate": 25.72709,
+          "baseline": 172.15791000000002
+        },
+        {
+          "baseline": 169.09791,
+          "candidate": 27.245
+        },
+        {
+          "candidate": 27.22584,
+          "baseline": 168.60208
+        },
+        {
+          "baseline": 171.39625,
+          "candidate": 26.91875
+        },
+        {
+          "candidate": 27.18916,
+          "baseline": 167.82625
+        },
+        {
+          "baseline": 168.04375,
+          "candidate": 26.69
+        },
+        {
+          "candidate": 27.53167,
+          "baseline": 171.65917000000002
+        },
+        {
+          "baseline": 169.39167,
+          "candidate": 28.60958
+        },
+        {
+          "candidate": 26.55625,
+          "baseline": 166.64083
+        },
+        {
+          "baseline": 177.0825,
+          "candidate": 25.91334
+        },
+        {
+          "candidate": 28.60167,
+          "baseline": 172.94541
+        },
+        {
+          "baseline": 170.00625,
+          "candidate": 25.96
+        },
+        {
+          "candidate": 25.7425,
+          "baseline": 172.18875
+        },
+        {
+          "baseline": 173.25041000000002,
+          "candidate": 27.207919999999998
+        },
+        {
+          "candidate": 27.015,
+          "baseline": 170.26917
+        },
+        {
+          "baseline": 172.275,
+          "candidate": 30.86083
+        },
+        {
+          "candidate": 26.27166,
+          "baseline": 169.41625
+        },
+        {
+          "baseline": 171.21582999999998,
+          "candidate": 26.67583
+        },
+        {
+          "candidate": 29.94542,
+          "baseline": 168.6775
+        },
+        {
+          "baseline": 174.36709,
+          "candidate": 26.658330000000003
+        },
+        {
+          "candidate": 25.7975,
+          "baseline": 169.27125
+        },
+        {
+          "baseline": 169.07083,
+          "candidate": 26.96416
+        },
+        {
+          "candidate": 26.49166,
+          "baseline": 171.85792
+        },
+        {
+          "baseline": 168.14458,
+          "candidate": 27.03959
+        },
+        {
+          "candidate": 28.513330000000003,
+          "baseline": 170.93666000000002
+        },
+        {
+          "baseline": 172.6625,
+          "candidate": 26.76
+        },
+        {
+          "candidate": 27.92917,
+          "baseline": 167.31582999999998
+        },
+        {
+          "baseline": 170.24041,
+          "candidate": 26.1325
+        },
+        {
+          "candidate": 25.66833,
+          "baseline": 172.0725
+        },
+        {
+          "baseline": 168.08083,
+          "candidate": 26.3525
+        }
+      ]
+    }
+  ]
+}

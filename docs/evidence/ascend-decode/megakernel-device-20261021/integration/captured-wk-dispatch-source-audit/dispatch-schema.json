@@ -1,0 +1,514 @@
+{
+  "scope": "Installed CANN 9.2 dispatch and 152-byte MatMulV2 schema; captured M32/N160/K6144 only",
+  "cases": {
+    "full-bf16": {
+      "raw_log": "/tmp/tilert-megakernel-validation-20261021/a3-194/captured-wk-dispatch-full-bf16-v1/driver-log/debug/plog/plog-215_20261022012940497.log",
+      "raw_log_sha256": "133cd1f41cded9821823ff9914a39cf5a9be8d40216da1021d0d67209573a03e",
+      "raw_log_bytes": 11844131,
+      "launch_lines": [
+        [
+          62910,
+          "[INFO] RUNTIME(215,python3):2026-10-22-01:29:41.202.097 [aix_stars.cc:682] 229 StreamLaunchKernelV2: kernel info : device_id=0, stream_id=47, task_id=0, kernelAttrType=KERNEL_ATTR_TYPE_CUBE(1), kernel_name=MatMulV2_NDNZ_ND_FP16_FP16_false_true_all_230097, arg_size=200, coreDim=20, taskRation=2, funcType=2, addr1=0x124000121cb8, addr2=0x0, mixType=0, kernelFlag=0x0, qos=0, partId=0, schemMode=0, infoAddr=(nil), atomicIndex=0, prefetchCnt1=2, prefetchCnt2=0, isNoNeedH2DCopy=0."
+        ]
+      ],
+      "payload_line": 62903,
+      "tiling_bytes": 152,
+      "uint32_payload": [
+        6144,
+        32,
+        160,
+        384,
+        2,
+        10,
+        1,
+        1,
+        1,
+        1,
+        10,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        8,
+        1,
+        2,
+        2,
+        24,
+        24,
+        16,
+        16,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0,
+        2436677665,
+        1,
+        1,
+        1,
+        1,
+        8,
+        0
+      ],
+      "dfx_trailer_uint32": [
+        18,
+        2779096485
+      ],
+      "decoded": {
+        "k_ori": 6144,
+        "m_ori": 32,
+        "n_ori": 160,
+        "k": 384,
+        "m": 2,
+        "n": 10,
+        "batch_single_core": 1,
+        "m_single_core": 1,
+        "n_single_core": 1,
+        "batch_dim": 1,
+        "n_dim": 10,
+        "m_dim": 2,
+        "k_dim": 1,
+        "m_al1": 1,
+        "n_bl1": 1,
+        "cub_n1": 1,
+        "m_l0": 1,
+        "k_l0": 8,
+        "n_ub_l0_time": 1,
+        "kal0_factor": 2,
+        "kbl0_factor": 2,
+        "kal1_factor": 24,
+        "kbl1_factor": 24,
+        "kal1_16": 16,
+        "kbl1_16": 16,
+        "kl1_times": 1,
+        "batch_l1_factor": 1,
+        "batch_ub_l0_time": 1,
+        "batch_cub": 1,
+        "out_branch_flag": 1,
+        "bias_flag": 0,
+        "hf32_flag": 2436677665,
+        "datatype_bf16": 1,
+        "al1_db": 1,
+        "bl1_db": 1,
+        "l0c_db": 1,
+        "l2_cache_flag": 8,
+        "close_k_shift": 0
+      }
+    },
+    "full-fp32": {
+      "raw_log": "/tmp/tilert-megakernel-validation-20261021/a3-194/captured-wk-dispatch-full-fp32-v1/driver-log/debug/plog/plog-215_20261022013012691.log",
+      "raw_log_sha256": "baf55535922e55eee6ccfc600d718ff9f11c06ab5b45d805bea3eb44ebe06ebc",
+      "raw_log_bytes": 9975006,
+      "launch_lines": [
+        [
+          55178,
+          "[INFO] RUNTIME(215,python3):2026-10-22-01:30:13.241.705 [aix_stars.cc:682] 229 StreamLaunchKernelV2: kernel info : device_id=0, stream_id=47, task_id=0, kernelAttrType=KERNEL_ATTR_TYPE_CUBE(1), kernel_name=MatMulV3_ND_NZ_ND_ND_BF16_BF16_BF16_FP32_high_performance_65536, arg_size=360, coreDim=24, taskRation=2, funcType=2, addr1=0x12c083e4ded8, addr2=0x0, mixType=0, kernelFlag=0x0, qos=0, partId=0, schemMode=1, infoAddr=(nil), atomicIndex=0, prefetchCnt1=16, prefetchCnt2=0, isNoNeedH2DCopy=0."
+        ]
+      ],
+      "payload_line": 55171,
+      "tiling_bytes": 280,
+      "uint32_payload": [
+        24,
+        32,
+        160,
+        6144,
+        6144,
+        32,
+        16,
+        6144,
+        32,
+        16,
+        256,
+        16,
+        32,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        393216,
+        1024,
+        0,
+        1,
+        1,
+        1,
+        1,
+        8,
+        16,
+        0,
+        0,
+        2,
+        2,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        10,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "dfx_trailer_uint32": [
+        18,
+        2779096485
+      ]
+    },
+    "split-bf16": {
+      "raw_log": "/tmp/tilert-megakernel-validation-20261021/a3-194/captured-wk-dispatch-split-bf16-v1/driver-log/debug/plog/plog-215_20261022013044229.log",
+      "raw_log_sha256": "8b31aacfc302e63687aeba6d7c465bb3b0f4b08bc6e1a239f59e9f780e987277",
+      "raw_log_bytes": 11839822,
+      "launch_lines": [
+        [
+          62900,
+          "[INFO] RUNTIME(215,python3):2026-10-22-01:30:44.894.276 [aix_stars.cc:682] 229 StreamLaunchKernelV2: kernel info : device_id=0, stream_id=47, task_id=0, kernelAttrType=KERNEL_ATTR_TYPE_CUBE(1), kernel_name=MatMulV2_NDNZ_ND_FP16_FP16_false_true_all_230097, arg_size=200, coreDim=4, taskRation=2, funcType=2, addr1=0x124000121cb8, addr2=0x0, mixType=0, kernelFlag=0x0, qos=0, partId=0, schemMode=0, infoAddr=(nil), atomicIndex=0, prefetchCnt1=2, prefetchCnt2=0, isNoNeedH2DCopy=0."
+        ]
+      ],
+      "payload_line": 62893,
+      "tiling_bytes": 152,
+      "uint32_payload": [
+        6144,
+        32,
+        32,
+        384,
+        2,
+        2,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        8,
+        1,
+        2,
+        2,
+        24,
+        24,
+        16,
+        16,
+        1,
+        1,
+        1,
+        1,
+        1,
+        0,
+        2836724836,
+        1,
+        1,
+        1,
+        1,
+        8,
+        0
+      ],
+      "dfx_trailer_uint32": [
+        18,
+        2779096485
+      ],
+      "decoded": {
+        "k_ori": 6144,
+        "m_ori": 32,
+        "n_ori": 32,
+        "k": 384,
+        "m": 2,
+        "n": 2,
+        "batch_single_core": 1,
+        "m_single_core": 1,
+        "n_single_core": 1,
+        "batch_dim": 1,
+        "n_dim": 2,
+        "m_dim": 2,
+        "k_dim": 1,
+        "m_al1": 1,
+        "n_bl1": 1,
+        "cub_n1": 1,
+        "m_l0": 1,
+        "k_l0": 8,
+        "n_ub_l0_time": 1,
+        "kal0_factor": 2,
+        "kbl0_factor": 2,
+        "kal1_factor": 24,
+        "kbl1_factor": 24,
+        "kal1_16": 16,
+        "kbl1_16": 16,
+        "kl1_times": 1,
+        "batch_l1_factor": 1,
+        "batch_ub_l0_time": 1,
+        "batch_cub": 1,
+        "out_branch_flag": 1,
+        "bias_flag": 0,
+        "hf32_flag": 2836724836,
+        "datatype_bf16": 1,
+        "al1_db": 1,
+        "bl1_db": 1,
+        "l0c_db": 1,
+        "l2_cache_flag": 8,
+        "close_k_shift": 0
+      }
+    }
+  },
+  "sources": {
+    "gemm_tiling_util.py": {
+      "local_path": "/tmp/tilert-cann92-wk-audit/ops_legacy/gemm_tiling_util.py",
+      "sha256": "05e033838e714b2648f75f09ae193b73206c825712a55fa5d70c9b7ff1029b39",
+      "bytes": 135887,
+      "excerpts": [
+        [
+          1053,
+          1068
+        ],
+        [
+          1183,
+          1210
+        ]
+      ]
+    },
+    "gemm_integrated_schedule.py": {
+      "local_path": "/tmp/tilert-cann92-wk-audit/ops_legacy/gemm_integrated_schedule.py",
+      "sha256": "66530bca26f4b6087fa9e430f92575d7cc22012ab908bcc488ef72670176ff2c",
+      "bytes": 275282,
+      "excerpts": [
+        [
+          557,
+          571
+        ],
+        [
+          680,
+          730
+        ],
+        [
+          3266,
+          3285
+        ],
+        [
+          3318,
+          3334
+        ]
+      ]
+    },
+    "gemm_integrated_schedule_util.py": {
+      "local_path": "/tmp/tilert-cann92-wk-audit/ops_legacy/gemm_integrated_schedule_util.py",
+      "sha256": "2fa4a181878d24b40b77c826cb2ead81ee2b87abc7f809fb8294fbbe6f5f475c",
+      "bytes": 115230,
+      "excerpts": [
+        [
+          1598,
+          1631
+        ],
+        [
+          1636,
+          1683
+        ]
+      ]
+    },
+    "wk-v2-objdump.txt": {
+      "local_path": "/tmp/tilert-cann92-wk-audit/ops_legacy/wk-v2-objdump.txt",
+      "sha256": "8e5e92c8d8bba1cea3f12edb2de8f4e998e81705f3b00e4ab84f01af7477919a",
+      "bytes": 12130994,
+      "excerpts": [
+        [
+          72041,
+          72142
+        ],
+        [
+          72552,
+          72558
+        ]
+      ]
+    }
+  },
+  "device_execution": "Three separate root-run TorchNPU 2.12 processes; all exact reproduction gates passed",
+  "arithmetic_limit": "FP32-output MatMulV3 accumulators are not observations of the BF16-output MatMulV2 internal L0C.",
+  "installed_binaries": {
+    "libophost_legacy.so": "e82fbcef6be2a3aadf89cad37e0cc0c1446d1a736f4a4ab8c813a2ebc1318617",
+    "MatMulV2_NDNZ_ND_FP16_FP16_false_true_all.o": "6355186a6a31d61fcdb3f635ec781f87e93f4ce9e40e0491f185cf3cf2daa56c"
+  },
+  "witness_core_mapping": [
+    {
+      "coordinate": [
+        0,
+        29
+      ],
+      "m_tile": 0,
+      "n_tile": 1,
+      "core": 2,
+      "k256_order": [
+        23,
+        22,
+        21,
+        20,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2,
+        1,
+        0
+      ]
+    },
+    {
+      "coordinate": [
+        6,
+        153
+      ],
+      "m_tile": 0,
+      "n_tile": 9,
+      "core": 18,
+      "k256_order": [
+        15,
+        14,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2,
+        1,
+        0,
+        23,
+        22,
+        21,
+        20,
+        19,
+        18,
+        17,
+        16
+      ]
+    },
+    {
+      "coordinate": [
+        19,
+        51
+      ],
+      "m_tile": 1,
+      "n_tile": 3,
+      "core": 7,
+      "k256_order": [
+        3,
+        2,
+        1,
+        0,
+        23,
+        22,
+        21,
+        20,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
+        4
+      ]
+    },
+    {
+      "coordinate": [
+        31,
+        25
+      ],
+      "m_tile": 1,
+      "n_tile": 1,
+      "core": 3,
+      "k256_order": [
+        23,
+        22,
+        21,
+        20,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
+        4,
+        3,
+        2,
+        1,
+        0
+      ]
+    }
+  ],
+  "derived_order": {
+    "full_bf16": "q_i = ((n_tile % 2 ? 23-i : i) + floor(n_tile/2)*floor(24/5)) mod 24",
+    "split_bf16": "q_i=i because max(m_dim,n_dim)=2 < 4",
+    "core_mapping": "core=n_tile*2+m_tile; m_tile=floor(row/16), n_tile=floor(column/16)",
+    "scope": "Exact recorded tilings: no overlap, total core count <=24, close_k_shift=0. Not a general MatMulV2 formula.",
+    "instruction_addresses": "0x4639c..0x4652c: axis/extent selection, disable predicates, parity reversal, rotation; 0x46ba0: MMAD.bf162f32",
+    "hf32_word": "Word31 is hf32_flag, not a hash. Its observed values differ but the BF16 source passes hf32=0 and datatype_bf16=1."
+  }
+}

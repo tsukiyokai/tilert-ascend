@@ -1,0 +1,55 @@
+{
+  "rank": 7,
+  "stages": [
+    {
+      "name": "platform_registration",
+      "success": true,
+      "class": "vllm_ascend.platform.NPUPlatform",
+      "path": "/decoder/python/vllm_ascend/platform.py",
+      "sha256": "686eb5c4d7e744053def9fe51caf743e79e6a3cbeddebd3c47949d6f13e503cd"
+    },
+    {
+      "name": "actual_tp16_gloo_groups",
+      "success": true,
+      "tp_world_size": 16,
+      "tp_rank": 7,
+      "cpu_rank_sum": 120,
+      "expected_rank_sum": 120,
+      "coordinator": {
+        "class": "vllm.distributed.parallel_state.GroupCoordinator",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/distributed/parallel_state.py",
+        "sha256": "0e47cff9a89717183bdce6403f0454961848247f51306a0f1dfbe3d6e1b93336"
+      },
+      "device_communicator": null,
+      "registration": "actual coordinators assigned to version-scoped parallel_state fields",
+      "singleton_fields": [
+        "_DCP",
+        "_PCP",
+        "_PP",
+        "_DP",
+        "_EP"
+      ]
+    },
+    {
+      "name": "nonmember_hccl_group_participation",
+      "success": true,
+      "ranks": [
+        0
+      ],
+      "device_backend": "hccl",
+      "device_nonmember": true,
+      "cpu_nonmember": true
+    }
+  ],
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+  "runtime_image": "sha256:1910b1acedb37acc42beda9cb695c2cf84c57c81d8dd8b5191a98a97bc6d5fe6",
+  "npu_initialized_before": false,
+  "rank_zero_status": {
+    "success": false,
+    "error": "Traceback (most recent call last):\n  File \"/decoder/device_ffn_diagnostic.py\", line 352, in worker\n    report[\"result\"] = run_rank_zero(torch, args, state, stage, sent)\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/device_ffn_diagnostic.py\", line 296, in run_rank_zero\n    stage(\"actual_local_complete_ffn\", lambda: (\n  File \"/decoder/device_ffn_diagnostic.py\", line 319, in stage\n    result, details = action()\n                      ^^^^^^^^\n  File \"/decoder/device_ffn_diagnostic.py\", line 297, in <lambda>\n    run_decoder_forward(torch, layers, config, state, args),\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/decoder_storage_ffn_diagnostic.py\", line 93, in run_decoder_forward\n    return original_forward(torch, layers, config, state, args)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/decoder_ffn_diagnostic.py\", line 197, in run_decoder_forward\n    result = decoder_ffn.run_decoder_forward(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/decoder/decoder_ffn.py\", line 217, in run_decoder_forward\n    raise RuntimeError(\"The complete native FFN differs from the original FFN\")\nRuntimeError: The complete native FFN differs from the original FFN\n"
+  },
+  "npu_initialized_after": false,
+  "maximum_rss_kib": 1507472
+}

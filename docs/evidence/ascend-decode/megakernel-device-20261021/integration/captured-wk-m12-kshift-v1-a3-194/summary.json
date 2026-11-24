@@ -1,0 +1,60 @@
+{
+  "pass": true,
+  "scope": "Captured M12 N160 K6144 only; natural/shifted BF16 Mmad with 48 updates of one FP32 L0C tile",
+  "geometry": {
+    "blocks": 10,
+    "M": 12,
+    "N": 160,
+    "K": 6144,
+    "single_core_M": 12,
+    "single_core_N": 16,
+    "mmad_K": 128,
+    "K_segment": 512,
+    "K_segments": 12
+  },
+  "original_f_linear_reproduced": true,
+  "natural_control_full_fp32_and_bf16_byte_equal": true,
+  "shifted_full_vendor_bf16_byte_equal": true,
+  "interleaved_repeats_per_arm": 3,
+  "elements_per_arm": 1920,
+  "four_guard_rows_unchanged_per_call": true,
+  "direct_bf16_matches_same_l0c_fp32_rne_cast": true,
+  "shifted_witnesses": [
+    {
+      "coordinate": [
+        5,
+        95
+      ],
+      "accumulator": {
+        "value": -0.05603045970201492,
+        "bits": "0xbd658032"
+      },
+      "projection": {
+        "value": -0.05615234375,
+        "bits": "0xbd66"
+      }
+    },
+    {
+      "coordinate": [
+        6,
+        115
+      ],
+      "accumulator": {
+        "value": -0.0002813730388879776,
+        "bits": "0xb9938540"
+      },
+      "projection": {
+        "value": -0.00028228759765625,
+        "bits": "0xb994"
+      }
+    }
+  ],
+  "candidate_library_sha256": "b84efa3b74fd87881d245988935a42f281291de00632984fd283c4f72e55e86b",
+  "report_sha256": "a610e183f1deede7dd1323ad8ad16558d6eed8bf10ad70990a9d0e90ff953c82",
+  "raw_outputs_sha256": "f539547b4354dbfd004e5166aa3c4b0171f6f086c673e67dc5da17600ef825d9",
+  "physical_dies": 1,
+  "physical_die": 4,
+  "timing": false,
+  "full_indexed_attention_executed": false,
+  "next_gate": "Integrate the measured M12-only K order into indexed attention and replay the actual Decoder."
+}

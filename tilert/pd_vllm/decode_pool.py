@@ -112,7 +112,7 @@ class NodeLease:
             return
         self._released = True
         self.pool.release(self.node)
-        if self.dispatched and (not terminated) and (self.rid is not None):
+        if (not terminated) and (self.rid is not None):
             threading.Thread(target=cancel_decode, args=(self.node, self.rid), daemon=True).start()
 
     def __enter__(self) -> NodeLease:

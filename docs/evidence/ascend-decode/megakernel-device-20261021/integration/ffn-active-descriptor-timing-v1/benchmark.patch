@@ -1,0 +1,103 @@
+--- variant-timing-v3/bench.py
++++ active-descriptor/bench.py
+@@ -33,11 +33,12 @@
+ 
+ 
+ class Launchers:
+-    def __init__(self, fused, bridge, body, candidate, kind):
++    def __init__(self, fused, bridge, body, candidate, kind, active):
+         self.libraries = [ctypes.CDLL(str(path.resolve())) for path in (fused, bridge, body)]
+-        self.base = self.libraries[0].ffn_composed_launch
++        self.libraries.append(ctypes.CDLL(str(active.resolve())))
++        self.base = self.libraries[-1].ffn_active_launch
+         self.libraries.append(ctypes.CDLL(str(candidate.resolve())))
+-        self.fused = getattr(self.libraries[-1], "ffn_" + kind + "_launch")
++        self.fused = self.libraries[-1].ffn_active_descriptor_launch
+         self.kind = kind
+         self.extra_by_arena = {}
+         array = ctypes.POINTER(ctypes.c_void_p)
+@@ -114,7 +115,7 @@
+     def separate(self):
+         stream = self.torch.npu.current_stream().npu_stream
+         self.launchers.base(stream, self.sync, *self.input_arguments(), self.weight_ptrs,
+-            self.bridge_ptrs, self.body_ptrs, self.shared, self.rows, self.blocks, self.layout, 1e-5)
++            self.bridge_ptrs, self.candidate_body_ptrs, self.shared, self.rows, self.blocks, self.layout, 1e-5)
+ 
+     def owning_torch(self, owner):
+         b, r, sync = self.arena
+@@ -177,7 +178,8 @@
+                  "bridge-helper", "body-helper", "output"):
+         parser.add_argument("--" + name, type=Path, required=True)
+     parser.add_argument("--candidate-library", type=Path, required=True)
+-    parser.add_argument("--candidate-kind", choices=("active", "profile"), required=True)
++    parser.add_argument("--candidate-kind", choices=("active",), required=True)
++    parser.add_argument("--active-library", type=Path, required=True)
+     parser.add_argument("--device", default="npu:0")
+     parser.add_argument("--rows", type=int, default=12)
+     parser.add_argument("--blocks", type=int, choices=(16, 24), default=24)
+@@ -218,22 +220,23 @@
+         else:
+             sys.modules["check"] = previous
+     libraries = (args.library, args.bridge_library, args.body_library)
+-    for path in libraries:
++    for path in (*libraries, args.active_library, args.candidate_library):
+         torch.ops.load_library(str(path.resolve()))
+-    launchers = Launchers(*libraries, args.candidate_library, args.candidate_kind)
++    launchers = Launchers(*libraries, args.candidate_library,
++                          args.candidate_kind, args.active_library)
+     args.output.mkdir(parents=True, exist_ok=True)
+     report = {
+-        "scope": "Matched-address candidate FFN versus accepted one-launch FFN, TP excluded",
+-        "arm_names": {"fused": args.candidate_kind, "separate": "base_one_launch"},
++        "scope": "Matched-address active-descriptor FFN versus active FFN, TP excluded",
++        "arm_names": {"fused": "active_descriptor", "separate": "active"},
+         "candidate_library": {"path": str(args.candidate_library), "sha256": digest(args.candidate_library)},
+-        "scratch_matching": "All 32 tensors including system workspaces and immutable tilings share exact addresses within each pair",
++        "scratch_matching": "All 33 tensors, including the INT32[264] active table, share exact addresses within each pair",
+         "owner_validation": "Each arena's owning Torch chain checks shapes/tiling identity/aliasing before CABI comparison",
+         "utc": datetime.now(timezone.utc).isoformat(),
+         "hostname": socket.gethostname(), "command": sys.argv,
+         "arguments": {key: str(value) if isinstance(value, Path) else value
+                       for key, value in vars(args).items()},
+         "torch": torch.__version__, "torch_npu": torch_npu.__version__,
+-        "libraries": {str(path): digest(path) for path in (*libraries, args.candidate_library)},
++        "libraries": {str(path): digest(path) for path in (*libraries, args.active_library, args.candidate_library)},
+         "sources": {str(path): digest(path) for path in (Path(__file__), args.checker,
+             args.bridge_helper, args.bridge_helper.with_name("fixtures.py"),
+             args.bridge_helper.with_name("gate_probe.py"), args.body_helper,
+@@ -414,9 +417,8 @@
+                             torch.npu.synchronize()
+                             label = f"{owner}-bank{index}-r{iteration}-{arm}"
+                             checks = checked(snapshot(arena), expected, label)
+-                            if arm == "fused":
+-                                result["extra_checks"].append({"name": label,
+-                                    "checks": check_extra(arena, expected)})
++                            result["extra_checks"].append({"arm": arm, "name": label,
++                                "checks": check_extra(arena, expected)})
+                             result["prechecks"].append({"name": label, "checks": checks, "pass": True})
+                         persist()
+ 
+@@ -474,9 +476,8 @@
+                         actual_tail = {"bridge.combined": arena[0][10], "bridge.retained": arena[0][1],
+                                        "body.counts": arena[1][12]}
+                         checked(actual_tail, expected_tail, f"{owner}-sample{sample}-{arm}-tail")
+-                        if arm == "fused":
+-                            result["extra_checks"].append({"name": f"sample{sample}-tail",
+-                                "checks": check_extra(arena, expected_tail)})
++                        result["extra_checks"].append({"arm": arm, "name": f"sample{sample}-tail",
++                            "checks": check_extra(arena, expected_tail)})
+                     record["paired_saving_us"] = record["per_call_us"]["separate"] - record["per_call_us"]["fused"]
+                     record["post_event_tail_byte_equal"] = True
+                     result["samples"].append(record)
+@@ -487,9 +488,8 @@
+                         graphs[index][arm].replay()
+                         torch.npu.synchronize()
+                         checks = checked(snapshot(arena), expected_banks[index], f"{owner}-{arm}-bank{index}-post")
+-                        if arm == "fused":
+-                            result["extra_checks"].append({"name": f"bank{index}-post",
+-                                "checks": check_extra(arena, expected_banks[index])})
++                        result["extra_checks"].append({"arm": arm, "name": f"bank{index}-post",
++                            "checks": check_extra(arena, expected_banks[index])})
+                         result["postchecks"].append({"arm": arm, "bank": index, "checks": checks, "pass": True})
+                         # Re-enter the owner validator after timing, then compare a
+                         # new CPU snapshot; never compare aliased live outputs.

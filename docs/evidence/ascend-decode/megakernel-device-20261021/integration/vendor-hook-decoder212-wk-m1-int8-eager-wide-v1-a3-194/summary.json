@@ -1,0 +1,42 @@
+{
+  "pass": true,
+  "scope": "Original DecoderLayer.forward for layers 6 then 7; native attention versus original attention; both arms use the official FFN",
+  "rows": [
+    1,
+    2,
+    12,
+    32
+  ],
+  "iterations": 8,
+  "layers": [
+    6,
+    7
+  ],
+  "raw_byte_checks": 816,
+  "corrected_weight_banks": 4,
+  "weight_raw_bytes_preserved": true,
+  "diagnostic_pre_post_sync_retained": false,
+  "gloo_ranks_completed": 16,
+  "npu_ranks": [
+    0
+  ],
+  "physical_dies": 1,
+  "tp_geometry": 16,
+  "tp_collectives_executed": 0,
+  "native_libraries": [
+    {
+      "path": "/evidence/attention-wk-m1-build-v1/whole_layer_indexed_attention.so",
+      "sha256": "8deff750464e23bb871302c8626b86d37b60c28a00991d550f95dfcfd47ecb6f"
+    },
+    {
+      "path": "/workspace/native/shared/whole_layer_full_attention.so",
+      "sha256": "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c"
+    }
+  ],
+  "alias_library_sha256": "d420080a55500e4d908161bcd23b6bf92f4a5c9ee8d8f0d3020a1ba2a2a9ad4a",
+  "report_sha256": {
+    "decoder-forward.json": "c2dc582ab34263781a92fed5e205935b2695b5c7de52611124dcd0d14324f45c",
+    "nz-storage-correction.json": "8eba938cc667fca4bdd804022c07b2ebe376580af1edfacc1be879115b823815"
+  },
+  "next_gate": "Whole-layer graph replay with changing inputs and original FFN."
+}

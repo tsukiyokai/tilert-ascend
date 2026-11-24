@@ -1,0 +1,151 @@
+{
+  "scope": "real outer layer eager forward, one TP16 local shard before TP reduction",
+  "raw": "vendor-hook-forward-m1-v9/outer-forward.json",
+  "pass": true,
+  "rows": 1,
+  "mode": "int8",
+  "iterations": 1,
+  "six_boundaries": {
+    "output": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 6144
+    },
+    "topk": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 65536
+    },
+    "main_cache": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 4325376
+    },
+    "rope_cache": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 540672
+    },
+    "index_cache": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 1081344
+    },
+    "index_scale": {
+      "pass": true,
+      "exact": true,
+      "bitwise_equal": true,
+      "bitwise_different_bytes": 0,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "different_elements": 0,
+      "elements": 8448
+    }
+  },
+  "native_calls": [
+    {
+      "rows": 1,
+      "mode": "int8"
+    }
+  ],
+  "exitcodes": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "helper_npu_initialized_after": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+  ],
+  "device_script_sha256": "3975ac675651864d095d2ffcabd0324f5aa283372e9237458c45f9c2a732bbfe",
+  "adapter": {
+    "path": "/workspace/tilert/models/glm_5_2_ascend/attention_native.py",
+    "sha256": "336eaff0de153d32439d4d2b0557522b313a24a7e5bef82b8dc11f1257511c01"
+  },
+  "forward_fixture": {
+    "path": "/workspace/tests/glm52/whole_layer/vendor_hook_forward.py",
+    "sha256": "376411d2c57501ac1661fb81b0d6f7c2ec571c9d83d2e8b65ddcbb0a68ba4b58"
+  },
+  "sfa_adapter": {
+    "path": "/workspace/logs/vendor-sfa-torch210-v1/vendor_sfa_adapter.so",
+    "sha256": "956e5382e4629d63e4a2e9f8b9381063c6dd70921cf0b32c879e53fbf939fdad",
+    "schema": "_C_ascend::npu_sparse_flash_attention(Tensor query, Tensor key, Tensor value, Tensor sparse_indices, float scale_value, *, Tensor? block_table=None, Tensor? actual_seq_lengths_query=None, Tensor? actual_seq_lengths_kv=None, Tensor? query_rope=None, Tensor? key_rope=None, int sparse_block_size=1, str layout_query=\"BSND\", str layout_kv=\"BSND\", int sparse_mode=3, int pre_tokens=9223372036854775807, int next_tokens=9223372036854775807, int attention_mode=2, bool return_softmax_lse=False) -> (Tensor attention_out, Tensor softmax_max, Tensor softmax_sum)",
+    "resolved_api_libraries": {
+      "aclnnSparseFlashAttentionGetWorkspaceSize": {
+        "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_transformer.so",
+        "sha256": "3eebcd29e93860ea2aafaf9dfe269e98a28dc90c7cc325914e479be43bd247cf"
+      },
+      "aclnnSparseFlashAttention": {
+        "path": "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_transformer.so",
+        "sha256": "3eebcd29e93860ea2aafaf9dfe269e98a28dc90c7cc325914e479be43bd247cf"
+      }
+    }
+  },
+  "native_libraries": {
+    "name": "load_torch210_libraries",
+    "success": true,
+    "paths": [
+      "/workspace/logs/attention-torch210-v2/indexed/whole_layer_indexed_attention.so",
+      "/workspace/logs/attention-torch210-v2/shared/whole_layer_full_attention.so"
+    ],
+    "sha256": [
+      "5d5e8ddb6527bcf50ee4e90507723d2b37cd66ea5f7a4734f7ce5995b13e46f7",
+      "245ae243c779594664ebe80ce91b5f84bc133457d47da56734261bce2347ee0f"
+    ]
+  },
+  "provenance_manifest": "vendor-hook-forward-v8-v9-manifest.json",
+  "graph_capture": false,
+  "tp_device_collective": false,
+  "checkpoint": "synthetic seed41021"
+}

@@ -1,0 +1,44 @@
+{
+  "rank": 5,
+  "stages": [
+    {
+      "name": "platform_registration",
+      "success": true,
+      "class": "vllm_ascend.platform.NPUPlatform",
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/platform.py",
+      "sha256": "686eb5c4d7e744053def9fe51caf743e79e6a3cbeddebd3c47949d6f13e503cd"
+    },
+    {
+      "name": "real_groups",
+      "success": true,
+      "tp_world_size": 16,
+      "tp_rank": 5,
+      "cpu_rank_sum": 120,
+      "expected_rank_sum": 120,
+      "coordinator": {
+        "class": "vllm.distributed.parallel_state.GroupCoordinator",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982/vllm/distributed/parallel_state.py",
+        "sha256": "0e47cff9a89717183bdce6403f0454961848247f51306a0f1dfbe3d6e1b93336"
+      },
+      "device_communicator": null,
+      "registration": "actual coordinators assigned to version-scoped parallel_state fields",
+      "singleton_fields": [
+        "_DCP",
+        "_PCP",
+        "_PP",
+        "_DP",
+        "_EP"
+      ]
+    }
+  ],
+  "scope": "real Gloo groups, rank-0 local attention shard",
+  "torch": "2.10.0+cpu",
+  "torch_npu": "2.10.0.post2",
+  "npu_initialized_before": false,
+  "rank_zero_status": {
+    "success": true
+  },
+  "npu_initialized_after": false,
+  "maximum_rss_kib": 1480032,
+  "memory_snapshot": "26cd0000000-ffffc60ce000 ---p 00000000 00:00 0                           [rollup]\nRss:             1474100 kB\nPss:             1049730 kB\nPss_Anon:        1022260 kB\nPss_File:          27346 kB\nPss_Shmem:           124 kB\nShared_Clean:     451716 kB\nShared_Dirty:          0 kB\nPrivate_Clean:         0 kB\nPrivate_Dirty:   1022384 kB\nReferenced:      1474100 kB\nAnonymous:       1022260 kB\nLazyFree:              0 kB\nAnonHugePages:    401408 kB\nShmemPmdMapped:        0 kB\nFilePmdMapped:         0 kB\nShared_Hugetlb:        0 kB\nPrivate_Hugetlb:       0 kB\nSwap:                  0 kB\nSwapPss:               0 kB\nLocked:                0 kB\n"
+}

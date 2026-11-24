@@ -1,0 +1,60 @@
+{
+  "scope": "Two N512 local layers, same owners: three native norm/attention/FFN launches versus one 609 launch per layer",
+  "host": "a3-194",
+  "physical_die": 4,
+  "rows": 12,
+  "blocks": 24,
+  "unit": "us per indexed/shared two-layer pair",
+  "numerical_pass": true,
+  "whole_layer_faster_in_both_arenas": true,
+  "norm_output_owner_copies_inside_timing": 0,
+  "topk_copies_per_pair_in_both_arms": 1,
+  "candidate_library_sha256": "609c973e92b61637f7768ccefb0fbd84b2e13fcfb066b241a41cd5d8376fdd0f",
+  "norm_library_sha256": "40a9e3c04d22355cd51228c1dff7d3dc516d3442253ee3310a6cf95c01182027",
+  "attention_library_sha256": {
+    "/evidence/attention-wk-m1-build-v1/whole_layer_indexed_attention.so": "8deff750464e23bb871302c8626b86d37b60c28a00991d550f95dfcfd47ecb6f",
+    "/workspace/native/shared/whole_layer_full_attention.so": "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c"
+  },
+  "ffn_library_sha256": "c90b3666a1697070eda19d5b3e133e9ed58f36fe429abefceae6ffe102a6a032",
+  "raw_checks": {
+    "eager_raw": 1744,
+    "native_component_raw": 1744,
+    "captured_raw": 1744,
+    "event_tail_raw": 600,
+    "down_tiling_200_byte": 404
+  },
+  "arenas": [
+    {
+      "arena": 0,
+      "control_p50_us": 1006.8167686462402,
+      "candidate_p50_us": 986.7795626322429,
+      "paired_saving_p50_us": 20.21646499633789,
+      "candidate_wins": 30,
+      "pairs": 30,
+      "resident_weight_bytes": 704482816,
+      "active_routed_matrix_bytes": [
+        100270080,
+        27131904
+      ]
+    },
+    {
+      "arena": 1,
+      "control_p50_us": 1020.191764831543,
+      "candidate_p50_us": 999.7361501057942,
+      "paired_saving_p50_us": 21.212132771809877,
+      "candidate_wins": 30,
+      "pairs": 30,
+      "resident_weight_bytes": 704482816,
+      "active_routed_matrix_bytes": [
+        100270080,
+        27131904
+      ]
+    }
+  ],
+  "weight_banks": 1,
+  "shared_between_arenas": "Weights, persistent Top-K owner and caches",
+  "tp_contract": "Both reductions are identity",
+  "checkpoint_loaded": false,
+  "report_sha256": "18b9744f7b004c52ac375adaa41e36db7b65db6169080ac98ac8ebb29972e3e2",
+  "fixture_manifest_sha256": "a69b6cae51cb0435b5756599772bc98d22546c9e2531a3d435dd1f4796ca990f"
+}

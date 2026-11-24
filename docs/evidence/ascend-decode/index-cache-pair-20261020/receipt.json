@@ -1,0 +1,916 @@
+{
+  "scope": "Prepared standalone CPU/source-backed C8 paired-cache probe; no NPU launches by this agent",
+  "server": "a3-194:trt-asc",
+  "directory": "/workspace/experiments/index-cache-pair-20261020",
+  "probe_sha256": "18df66d94d4c0cdb3e6be684762001885bf6e713cbb9595279813f763d062c27",
+  "cpu_contract": "CPU byte-view tensor check: 9 A/B/reset cases M1/8/32, full original FP16 cache bytes equal; npu_initialized false. Raw result embedded as cpu_byteview below.",
+  "cpu_api": "cpu-api.json; both schemas imported, torch.npu.is_initialized()==False",
+  "mechanism": "One existing ScatterPaKvCache Norm call. K stays INT8; FP16 scale input[M,1] and cache[73,128,1,1] are dtype views as INT8[M,1,2] and INT8[73,128,1,2]. Views are created once before graph capture and preserve storage/address/bytes. No numerical cast, scale recomputation, quantization or allocation for scale views.",
+  "actual_tensor_contract": {
+    "key_input": [
+      "M",
+      128,
+      "INT8"
+    ],
+    "scale_input": [
+      "M",
+      1,
+      "FP16"
+    ],
+    "key_cache": [
+      73,
+      128,
+      1,
+      128
+    ],
+    "scale_cache": [
+      73,
+      128,
+      1,
+      1
+    ],
+    "slots": [
+      "M",
+      "INT32"
+    ],
+    "candidate_views": {
+      "key": [
+        "M",
+        1,
+        128,
+        "INT8"
+      ],
+      "value": [
+        "M",
+        1,
+        2,
+        "INT8; alias of original FP16 scale input"
+      ],
+      "value_cache": [
+        73,
+        128,
+        1,
+        2,
+        "INT8; alias of original FP16 scale cache"
+      ],
+      "value_stride": [
+        2,
+        2,
+        1
+      ],
+      "value_cache_stride": [
+        256,
+        2,
+        2,
+        1
+      ]
+    },
+    "widths": [
+      1,
+      8,
+      32
+    ]
+  },
+  "source_anchors": [
+    "vllm_ascend/attention/indexer.py SHA6513151e...:282-300 existing two writes",
+    "Local official ops-transformer HEAD e027a008be2766fa5cb6198bebbc7b9dcc08310b, op_host/op_api/aclnn_scatter_pa_kv_cache.cpp SHA5cc69ad8b034a92a3bddeb68aef5f6c6efeedfd0a6422c3f614004f3d5d706b5:146-163 requires input/cache dtype equality and non-PA_NZ key/value dtype equality. This is a source contract, not an identity claim for installed host binary. Installed runtime failure below witnesses the equality check.",
+    "Same official HEAD, op_host/scatter_pa_kv_cache_tiling.cpp SHA11469d2f62d33b34a18be4a853ecfac1c7e761108dadf766ec2e7f072b43cffa:357-379 permits distinct kHeadSize/vHeadSize; :618-623 enforces32B head alignment only for NZ, not Norm.",
+    "Installed CANN9.2 scatter_pa_kv_cache_normal.h SHAe133ed28c80f0662fc164305bca0815f7a47927364da169a215c9be1fe181123:83-100 vCopyParam length=vHeadSize*sizeof(T2)=2B; :120-125 exact raw paired copy; :132-140 vOffset=slot*2 elements of INT8, same FP16 byte address.",
+    "Official asc-devkit DataCopyPad_UBToGM.md:65-66 dummy padding discarded at GM; :102 destination has no address alignment constraint; :113 blockLen byte units; :148 A3 int8 supported; :170 GM destination1B aligned. Source identity recorded below.",
+    "Installed A3 descriptor /opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/kernel/ascend910_93/ops_transformer/scatter_pa_kv_cache/ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6.json SHAd13cee9c37f02e0c4c7730ef3d3c4df2f2fba8ed5c9ae632a2a24d95ccc4b848; INT8 K/INT8 V/INT32 slots; ELF SHA4548b3a8758c11d7c5a2278d056936303a11aa41843026e5f239130b10b127ff actual CPU hash matches descriptor."
+  ],
+  "measured_budget": {
+    "scope": "Saved M8 target graph, seven ranks, two hot replays per rank; serial main-stream task sum, not M32 or TPOT",
+    "samples": [
+      {
+        "rank": 0,
+        "round": 1,
+        "calls": 32,
+        "sum_us": 332.871
+      },
+      {
+        "rank": 0,
+        "round": 2,
+        "calls": 32,
+        "sum_us": 335.034
+      },
+      {
+        "rank": 1,
+        "round": 1,
+        "calls": 32,
+        "sum_us": 378.192
+      },
+      {
+        "rank": 1,
+        "round": 2,
+        "calls": 32,
+        "sum_us": 379.791
+      },
+      {
+        "rank": 15,
+        "round": 1,
+        "calls": 32,
+        "sum_us": 374.431
+      },
+      {
+        "rank": 15,
+        "round": 2,
+        "calls": 32,
+        "sum_us": 376.313
+      },
+      {
+        "rank": 2,
+        "round": 1,
+        "calls": 32,
+        "sum_us": 343.29200000000003
+      },
+      {
+        "rank": 2,
+        "round": 2,
+        "calls": 32,
+        "sum_us": 341.693
+      },
+      {
+        "rank": 3,
+        "round": 1,
+        "calls": 32,
+        "sum_us": 364.04
+      },
+      {
+        "rank": 3,
+        "round": 2,
+        "calls": 32,
+        "sum_us": 363.5799999999999
+      },
+      {
+        "rank": 7,
+        "round": 1,
+        "calls": 32,
+        "sum_us": 378.655
+      },
+      {
+        "rank": 7,
+        "round": 2,
+        "calls": 32,
+        "sum_us": 377.97299999999996
+      },
+      {
+        "rank": 8,
+        "round": 1,
+        "calls": 32,
+        "sum_us": 361.252
+      },
+      {
+        "rank": 8,
+        "round": 2,
+        "calls": 32,
+        "sum_us": 360.573
+      }
+    ],
+    "median_us": 363.80999999999995,
+    "min_us": 332.871,
+    "max_us": 379.791
+  },
+  "ranking": "Most direct surviving local candidate, but small: the entire old M8 32-scatter budget is 0.364ms/target round median, not a predicted saving. Leader-only replicated indexer is not a latency win without overlap because leader still executes full selection plus broadcast. Routing already has a quantize-once-per-original-row Gather path; no 8x redundant quant claim.",
+  "falsifiable_inequality": "T(one paired Norm call) < T(two current Sk scatter calls), including both cache writes; graph replay event and wall recorded. Geometry/API failure or any full-cache byte mismatch stops the script immediately.",
+  "device_plan": {
+    "torch_allocator_quota_bytes": 268435456,
+    "live_tensor_bytes_max": 3657024,
+    "widths": [
+      1,
+      8,
+      32
+    ],
+    "pairs_per_width": 30,
+    "calls_per_sample": 10,
+    "warm_calls_per_arm": 10,
+    "max_store_invocations": 1962,
+    "max_store_kernel_tasks": 2943,
+    "reset_scope": "Both arms reset outside timed events; same A inputs and hot addresses; AB/BA alternates by pair. Each sample replays one graph containing 10 updates; event and wall divided by10.",
+    "validation_graph_calls": 1,
+    "timing_graph_calls": 10,
+    "timing_graph_replays_per_sample": 1
+  },
+  "commands_after_root_device_gate": [
+    "source /workspace/environment/activate.sh",
+    "export ASCEND_CUSTOM_OPP_PATH=/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer:$ASCEND_CUSTOM_OPP_PATH",
+    "ASCEND_GLOBAL_LOG_LEVEL=3 TORCH_DEVICE_BACKEND_AUTOLOAD=0 python /workspace/experiments/index-cache-pair-20261020/probe.py --run-npu --device 2 --output /workspace/experiments/index-cache-pair-20261020/device-screen-02"
+  ],
+  "launch_audit": {
+    "watcher": "/workspace/experiments/gmm-compact-20261020/watch_kernel.py",
+    "usage": "python watch_kernel.py ELF OUTPUT_JSON COMMAND...",
+    "scope": "Nest three watches around the LOG3 probe process: two baseline dtype ELFs and one candidate ELF. Each watcher hashes its own file before installing inotify. The probe in --run-npu mode reads descriptors but does not read any .o; CPU mode verifies each actual .o against descriptor SHA.",
+    "targets": [
+      {
+        "path": "/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/scatter_nd_update_sk/ScatterNdUpdateSk_38f6c0f42e6dd25f1ba132d7ecf7990f.o",
+        "sha256": "30abdfd0f8ecb0b7cd89975d76fc7c929b5c9c0ab002699be93f3d39267dcb64"
+      },
+      {
+        "path": "/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/scatter_nd_update_sk/ScatterNdUpdateSk_0be86e3b56504af1b118b0d1a2a8e1bc.o",
+        "sha256": "64227ad8528127bb999c21034fa28b35caf4ec4e56e213348be787df35f6e7ee"
+      },
+      {
+        "path": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/kernel/ascend910_93/ops_transformer/scatter_pa_kv_cache/ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6.o",
+        "sha256": "4548b3a8758c11d7c5a2278d056936303a11aa41843026e5f239130b10b127ff"
+      }
+    ],
+    "key_boundary": "Candidate now watches ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6.o SHA4548b3a8..., replacing rejected mixed-dtype f61d875c... variant. ELF access does not reveal actual Norm key1000/1001.",
+    "cpu_noelf_check": {
+      "scope": "Exact revised source_receipt(False) guarded on CPU against all Path.open(.o)",
+      "passed": true,
+      "elf_files_opened": 0
+    }
+  },
+  "cpu_contract_sha256": "a24c8fe241404ea730823cda69ef5b8f6ce0fb4a2b69c71ddbf136f0e59e492a",
+  "original_mixed_dtype_failure": {
+    "probe_sha256": "e0846d8f9554e1501ed841816fcab0b89fb1ebfa41799b7ba741056d9f367054",
+    "log_path": "/workspace/experiments/index-cache-pair-20261020/device-screen-01.log",
+    "log_sha256": "91907d2c7f5e2359ebb460f4a0ee874dd1b0ff529793e2b7598a836a8a7b767a",
+    "candidate_watch": {
+      "binary": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/kernel/ascend910_93/ops_transformer/scatter_pa_kv_cache/ScatterPaKvCache_b3c3e1cda47780a37382a1ea8849d0af.o",
+      "sha256": "f61d875cc7cfcbf3c9dca9caa69adb80630c678b1cf58806ce644fe76814bae4",
+      "event_masks": [],
+      "opened": false,
+      "accessed": false,
+      "returncode": 1
+    },
+    "reason": "Non-PA_NZ key/value dtype equality at aclnn host validation"
+  },
+  "cpu_byteview": {
+    "scope": "CPU tensor byte-view/address contract only; no aclnn call or NPU launch",
+    "torch_version": "2.12.0+cpu",
+    "torch_npu_version": "2.12.0",
+    "npu_initialized": false,
+    "passed": true,
+    "cases": [
+      {
+        "width": 1,
+        "state": "A",
+        "slots": [
+          128
+        ],
+        "full_cache_byte_equal": true,
+        "cache_sha256": [
+          "5b29571e83ddbe639898b55f48cd969bf14e282ba97ac11ae3bf09ab7f143d0e",
+          "ebc04bfddb019297db7627ee728861953786b764702ce46b69c5a5720f515fa2"
+        ],
+        "value_shape": [
+          1,
+          1,
+          2
+        ],
+        "value_stride": [
+          2,
+          2,
+          1
+        ],
+        "value_cache_shape": [
+          73,
+          128,
+          1,
+          2
+        ],
+        "value_cache_stride": [
+          256,
+          2,
+          2,
+          1
+        ],
+        "input_alias": true,
+        "cache_alias": true
+      },
+      {
+        "width": 1,
+        "state": "B",
+        "slots": [
+          9343
+        ],
+        "full_cache_byte_equal": true,
+        "cache_sha256": [
+          "8fba397615951b0127257fe4b4cf070f3248856c014c190c90179e30c06cd997",
+          "6d9586605d4b8d2b3e56d51c9aaafc91a8bce92e47fc898b25789cc8478e0dcd"
+        ],
+        "value_shape": [
+          1,
+          1,
+          2
+        ],
+        "value_stride": [
+          2,
+          2,
+          1
+        ],
+        "value_cache_shape": [
+          73,
+          128,
+          1,
+          2
+        ],
+        "value_cache_stride": [
+          256,
+          2,
+          2,
+          1
+        ],
+        "input_alias": true,
+        "cache_alias": true
+      },
+      {
+        "width": 1,
+        "state": "reset",
+        "slots": [
+          128
+        ],
+        "full_cache_byte_equal": true,
+        "cache_sha256": [
+          "5b29571e83ddbe639898b55f48cd969bf14e282ba97ac11ae3bf09ab7f143d0e",
+          "ebc04bfddb019297db7627ee728861953786b764702ce46b69c5a5720f515fa2"
+        ],
+        "value_shape": [
+          1,
+          1,
+          2
+        ],
+        "value_stride": [
+          2,
+          2,
+          1
+        ],
+        "value_cache_shape": [
+          73,
+          128,
+          1,
+          2
+        ],
+        "value_cache_stride": [
+          256,
+          2,
+          2,
+          1
+        ],
+        "input_alias": true,
+        "cache_alias": true
+      },
+      {
+        "width": 8,
+        "state": "A",
+        "slots": [
+          124,
+          125,
+          126,
+          127,
+          128,
+          129,
+          130,
+          131
+        ],
+        "full_cache_byte_equal": true,
+        "cache_sha256": [
+          "fe0752474712e6c0809a83688dafa01322baf92bfbc1d6f78b3c17e81d0cbf69",
+          "5724faaf5a0d4f0cf41886433946ed0ade3e966f98416004163c13e60a23128b"
+        ],
+        "value_shape": [
+          8,
+          1,
+          2
+        ],
+        "value_stride": [
+          2,
+          2,
+          1
+        ],
+        "value_cache_shape": [
+          73,
+          128,
+          1,
+          2
+        ],
+        "value_cache_stride": [
+          256,
+          2,
+          2,
+          1
+        ],
+        "input_alias": true,
+        "cache_alias": true
+      },
+      {
+        "width": 8,
+        "state": "B",
+        "slots": [
+          9336,
+          9337,
+          9338,
+          9339,
+          9340,
+          9341,
+          9342,
+          9343
+        ],
+        "full_cache_byte_equal": true,
+        "cache_sha256": [
+          "05de580755d0746a98a9de2463cdda3fc23718a52c151d080976fcf92c4c9e21",
+          "468a3b16c206155c8ab0731b3d9d9008dd570deb6283af11e4e5e014d34a2fd6"
+        ],
+        "value_shape": [
+          8,
+          1,
+          2
+        ],
+        "value_stride": [
+          2,
+          2,
+          1
+        ],
+        "value_cache_shape": [
+          73,
+          128,
+          1,
+          2
+        ],
+        "value_cache_stride": [
+          256,
+          2,
+          2,
+          1
+        ],
+        "input_alias": true,
+        "cache_alias": true
+      },
+      {
+        "width": 8,
+        "state": "reset",
+        "slots": [
+          124,
+          125,
+          126,
+          127,
+          128,
+          129,
+          130,
+          131
+        ],
+        "full_cache_byte_equal": true,
+        "cache_sha256": [
+          "fe0752474712e6c0809a83688dafa01322baf92bfbc1d6f78b3c17e81d0cbf69",
+          "5724faaf5a0d4f0cf41886433946ed0ade3e966f98416004163c13e60a23128b"
+        ],
+        "value_shape": [
+          8,
+          1,
+          2
+        ],
+        "value_stride": [
+          2,
+          2,
+          1
+        ],
+        "value_cache_shape": [
+          73,
+          128,
+          1,
+          2
+        ],
+        "value_cache_stride": [
+          256,
+          2,
+          2,
+          1
+        ],
+        "input_alias": true,
+        "cache_alias": true
+      },
+      {
+        "width": 32,
+        "state": "A",
+        "slots": [
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          124,
+          125,
+          126,
+          127,
+          128,
+          129,
+          130,
+          131,
+          132,
+          133,
+          134,
+          135,
+          136,
+          137,
+          138,
+          139,
+          140,
+          141,
+          142,
+          143
+        ],
+        "full_cache_byte_equal": true,
+        "cache_sha256": [
+          "6643d5eba1ef1f83ceaea8c92f258334eed36472368ea64b3ea0ed703ebdcd1c",
+          "c36d8a30bf9b779b7081226fda58eb8f087d73bc4fb3f6b1f5ed9528a1adab2f"
+        ],
+        "value_shape": [
+          32,
+          1,
+          2
+        ],
+        "value_stride": [
+          2,
+          2,
+          1
+        ],
+        "value_cache_shape": [
+          73,
+          128,
+          1,
+          2
+        ],
+        "value_cache_stride": [
+          256,
+          2,
+          2,
+          1
+        ],
+        "input_alias": true,
+        "cache_alias": true
+      },
+      {
+        "width": 32,
+        "state": "B",
+        "slots": [
+          9312,
+          9313,
+          9314,
+          9315,
+          9316,
+          9317,
+          9318,
+          9319,
+          9320,
+          9321,
+          9322,
+          9323,
+          9324,
+          9325,
+          9326,
+          9327,
+          9328,
+          9329,
+          9330,
+          9331,
+          9332,
+          9333,
+          9334,
+          9335,
+          9336,
+          9337,
+          9338,
+          9339,
+          9340,
+          9341,
+          9342,
+          9343
+        ],
+        "full_cache_byte_equal": true,
+        "cache_sha256": [
+          "56e829a506608309fc91459bd234e3f6062fbcb8544f625b42174841e146c9fd",
+          "b46acb33772e1172ab68b253f50e332e11958b6b9f70513b2e71f443f98fed1a"
+        ],
+        "value_shape": [
+          32,
+          1,
+          2
+        ],
+        "value_stride": [
+          2,
+          2,
+          1
+        ],
+        "value_cache_shape": [
+          73,
+          128,
+          1,
+          2
+        ],
+        "value_cache_stride": [
+          256,
+          2,
+          2,
+          1
+        ],
+        "input_alias": true,
+        "cache_alias": true
+      },
+      {
+        "width": 32,
+        "state": "reset",
+        "slots": [
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          124,
+          125,
+          126,
+          127,
+          128,
+          129,
+          130,
+          131,
+          132,
+          133,
+          134,
+          135,
+          136,
+          137,
+          138,
+          139,
+          140,
+          141,
+          142,
+          143
+        ],
+        "full_cache_byte_equal": true,
+        "cache_sha256": [
+          "6643d5eba1ef1f83ceaea8c92f258334eed36472368ea64b3ea0ed703ebdcd1c",
+          "c36d8a30bf9b779b7081226fda58eb8f087d73bc4fb3f6b1f5ed9528a1adab2f"
+        ],
+        "value_shape": [
+          32,
+          1,
+          2
+        ],
+        "value_stride": [
+          2,
+          2,
+          1
+        ],
+        "value_cache_shape": [
+          73,
+          128,
+          1,
+          2
+        ],
+        "value_cache_stride": [
+          256,
+          2,
+          2,
+          1
+        ],
+        "input_alias": true,
+        "cache_alias": true
+      }
+    ],
+    "cpu_indices_dtype": "torch.int64; this index_copy model is not a device API test",
+    "view_dtype_privateuse1_dispatch": "PrivateUse1: registered at /pytorch/build/aten/src/ATen/RegisterCompositeExplicitAutograd_0.cpp:15204 [default backend kernel]",
+    "noncontiguous_input_rejected": true,
+    "numeric_cast_counterexample": {
+      "input_fp16": 1.0,
+      "view_int8_hex": "003c",
+      "cast_int8_hex": "01"
+    },
+    "npu_receipt_branch_elf_opens": 0,
+    "source": {
+      "files": [
+        {
+          "path": "/workspace/experiments/index-cache-pair-20261020/probe.py",
+          "sha256": "18df66d94d4c0cdb3e6be684762001885bf6e713cbb9595279813f763d062c27"
+        },
+        {
+          "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/attention/indexer.py",
+          "sha256": "6513151ea1baa0a806abdbecbf776016ab16dd0cf6c75d9c5cd4aa02892b7dd1"
+        },
+        {
+          "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/device/device_op.py",
+          "sha256": "0488cb2578df5075a73245a0d540ee8de93ea71972ae8b636cc7cdef83823b8e"
+        },
+        {
+          "path": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc/scatter_pa_kv_cache/op_kernel/scatter_pa_kv_cache.cpp",
+          "sha256": "2fbd82777ec1bdfdf230e32aaeab41464906317584342cddba256d888f410b05"
+        },
+        {
+          "path": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc/scatter_pa_kv_cache/op_kernel/scatter_pa_kv_cache_normal.h",
+          "sha256": "e133ed28c80f0662fc164305bca0815f7a47927364da169a215c9be1fe181123"
+        },
+        {
+          "path": "/opt/ascend/cann-9.2.0/include/aclnnop/aclnn_scatter_pa_kv_cache.h",
+          "sha256": "af23e40c36e2f414617ac934111767b0d0e37f3bc0df067873856b48f0d9c696"
+        },
+        {
+          "path": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/config/ascend910_93/aic-ascend910_93-ops-info-transformer.json",
+          "sha256": "41c724311cbb8aca00594663c697c6cbfa23ece737ec8822ca4cf84b9a9538f0"
+        }
+      ],
+      "candidate_descriptor": {
+        "path": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/kernel/ascend910_93/ops_transformer/scatter_pa_kv_cache/ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6.json",
+        "sha256": "d13cee9c37f02e0c4c7730ef3d3c4df2f2fba8ed5c9ae632a2a24d95ccc4b848"
+      },
+      "candidate_elf": {
+        "path": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/kernel/ascend910_93/ops_transformer/scatter_pa_kv_cache/ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6.o",
+        "sha256": "4548b3a8758c11d7c5a2278d056936303a11aa41843026e5f239130b10b127ff"
+      },
+      "baseline_descriptors": [
+        {
+          "path": "/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/scatter_nd_update_sk/ScatterNdUpdateSk_38f6c0f42e6dd25f1ba132d7ecf7990f.json",
+          "sha256": "994faef67ba313fb76910d630e2264b56e8e2dce4d4c8571c82f2f0e0acec4a0"
+        },
+        {
+          "path": "/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/scatter_nd_update_sk/ScatterNdUpdateSk_0be86e3b56504af1b118b0d1a2a8e1bc.json",
+          "sha256": "287b1d13b6d1f69e3d683e9b22a74d9eb430c2c8226fd6868331202adfef90c3"
+        }
+      ],
+      "baseline_elfs": [
+        {
+          "path": "/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/scatter_nd_update_sk/ScatterNdUpdateSk_38f6c0f42e6dd25f1ba132d7ecf7990f.o",
+          "sha256": "30abdfd0f8ecb0b7cd89975d76fc7c929b5c9c0ab002699be93f3d39267dcb64"
+        },
+        {
+          "path": "/workspace/experiments/gmm-fastpath-20261018/prod-kernel/overlay/vendors/custom_transformer/op_impl/ai_core/tbe/kernel/ascend910_93/scatter_nd_update_sk/ScatterNdUpdateSk_0be86e3b56504af1b118b0d1a2a8e1bc.o",
+          "sha256": "64227ad8528127bb999c21034fa28b35caf4ec4e56e213348be787df35f6e7ee"
+        }
+      ],
+      "elf_hashes_verified_in_process": true,
+      "descriptor_is_loaded_elf_proof": false,
+      "candidate_signature": [
+        {
+          "name": "key",
+          "index": 0,
+          "dtype": "int8",
+          "format": "ND",
+          "paramType": "required",
+          "shape": [
+            -2
+          ],
+          "format_match_mode": "FormatAgnostic"
+        },
+        {
+          "name": "key_cache",
+          "index": 1,
+          "dtype": "int8",
+          "format": "ND",
+          "paramType": "required",
+          "shape": [
+            -2
+          ],
+          "format_match_mode": "FormatAgnostic"
+        },
+        {
+          "name": "slot_mapping",
+          "index": 2,
+          "dtype": "int32",
+          "format": "ND",
+          "paramType": "required",
+          "shape": [
+            -2
+          ],
+          "format_match_mode": "FormatAgnostic"
+        },
+        {
+          "name": "value",
+          "index": 3,
+          "dtype": "int8",
+          "format": "ND",
+          "paramType": "required",
+          "shape": [
+            -2
+          ],
+          "format_match_mode": "FormatAgnostic"
+        },
+        {
+          "name": "value_cache",
+          "index": 4,
+          "dtype": "int8",
+          "format": "ND",
+          "paramType": "required",
+          "shape": [
+            -2
+          ],
+          "format_match_mode": "FormatAgnostic"
+        },
+        {
+          "name": "compress_lens",
+          "index": 5,
+          "dtype": "int32",
+          "format": "ND",
+          "paramType": "optional",
+          "shape": [
+            -2
+          ],
+          "format_match_mode": "FormatAgnostic"
+        },
+        {
+          "name": "compress_seq_offset",
+          "index": 6,
+          "dtype": "int32",
+          "format": "ND",
+          "paramType": "optional",
+          "shape": [
+            -2
+          ],
+          "format_match_mode": "FormatAgnostic"
+        },
+        {
+          "name": "seq_lens",
+          "index": 7,
+          "dtype": "int32",
+          "format": "ND",
+          "paramType": "optional",
+          "shape": [
+            -2
+          ],
+          "format_match_mode": "FormatAgnostic"
+        }
+      ],
+      "candidate_kernels": [
+        {
+          "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_1001"
+        },
+        {
+          "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_1000"
+        },
+        {
+          "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_2001"
+        },
+        {
+          "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_2000"
+        },
+        {
+          "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_3000"
+        },
+        {
+          "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_5001"
+        },
+        {
+          "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_5000"
+        },
+        {
+          "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_7001"
+        },
+        {
+          "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_7000"
+        },
+        {
+          "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_8001"
+        },
+        {
+          "kernelName": "ScatterPaKvCache_346b9fee4db79c17fefad5dfbb199fc6_8000"
+        }
+      ],
+      "custom_opp_path": "/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer:/opt/trt-asc/venv/lib/python3.11/site-packages/fla_npu/opp/vendors/fla_npu_transformer/op_api/lib",
+      "process_log_path": ""
+    },
+    "original_failure": {
+      "probe_sha256": "e0846d8f9554e1501ed841816fcab0b89fb1ebfa41799b7ba741056d9f367054",
+      "log_path": "/workspace/experiments/index-cache-pair-20261020/device-screen-01.log",
+      "log_sha256": "91907d2c7f5e2359ebb460f4a0ee874dd1b0ff529793e2b7598a836a8a7b767a",
+      "candidate_watch": {
+        "binary": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/kernel/ascend910_93/ops_transformer/scatter_pa_kv_cache/ScatterPaKvCache_b3c3e1cda47780a37382a1ea8849d0af.o",
+        "sha256": "f61d875cc7cfcbf3c9dca9caa69adb80630c678b1cf58806ce644fe76814bae4",
+        "event_masks": [],
+        "opened": false,
+        "accessed": false,
+        "returncode": 1
+      },
+      "reason": "Non-PA_NZ key/value dtype equality at aclnn host validation"
+    }
+  },
+  "cpu_byteview_reproduction": {
+    "local_command_path": "/tmp/index-cache-pair-20261020/cpu-byteview-command.py",
+    "command_sha256": "378be3778fbf18ca4658a328ece7c4c8c4e58b23d9f161a3f1cee27c98fe08fc",
+    "local_result_path": "/tmp/index-cache-pair-20261020/cpu-byteview-result.json",
+    "result_sha256": "a24c8fe241404ea730823cda69ef5b8f6ce0fb4a2b69c71ddbf136f0e59e492a"
+  },
+  "counterexamples_and_boundary": [
+    "Numeric cast FP16(1.0)->INT8 gives01 rather than the original003c bytes and has only one element. It cannot replace this dtype view.",
+    "A last-dimension-strided or noncontiguous scale/cache is outside this probe contract; helper rejects it rather than allocating a contiguous replacement.",
+    "Views must expose two INT8 elements per slot. Keeping Dv=1 after reinterpretation copies only one byte and corrupts the FP16 scale.",
+    "Only unique valid nonnegative physical slots are covered. Negative-slot skip and duplicate-slot races are not asserted equivalent to baseline.",
+    "CPU check establishes byte/storage/address equivalence and installed PrivateUse1 view.dtype composite dispatch registration. No aclnn call, NPU typed-view execution, new tiling-key observation or performance result exists for this revised arm yet."
+  ],
+  "datacopy_doc_identity": {
+    "path": "/home/shanshan/repo/cann/asc-devkit/docs/zh/api/SIMD-API/basic_api/memory_vector_compute/data_move/DataCopyPad_UBToGM.md",
+    "sha256": "e13404199f2ad48924e1af548d2b6c8256905a38584c270dcc40b6740de831db",
+    "commit": "6a51d0b167dd8f5555456a0ebb783ef0427e366e"
+  }
+}

@@ -1,0 +1,850 @@
+{
+  "created_at": "2026-10-16T15:44:41.929927+00:00",
+  "scope": "Frozen native hidden; CPU key projection, RoPE and C8",
+  "changed_variable": "BF16 stepwise versus FP32 rotary intermediates",
+  "source_sha256": {
+    "/workspace/src/TileRT-Ascend/tests/glm52/check_saved_rope.py": "9bba22801510920f200d139afaa318c820e29ab9a6d838cffe4d2ccc4ea704f3",
+    "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc/interleave_rope/op_kernel/interleave_rope_b11d.h": "96028ea9c3f2b5426b60c00e03951fafbcd4903ceff5880b4ad31482d37e0a8a"
+  },
+  "artifact_sha256": {
+    "/workspace/experiments/glm52/short-native-20261016-07/rank-0.json": "8268e4ccb937c30438d3f019efb331b3e99b6387d3b370f8acbe55f9bebaf209",
+    "/workspace/experiments/glm52/short-native-20261016-07/trace/step-00000.pt": "04e1d39d1239e3fb9b45ee58abdfd0000a6553c3b462adebed9062e2b55d26cf",
+    "/workspace/experiments/glm52/same-input-layers-20261016/step-00000.pt": "19d404c7740347c597a3122952946ee852b87aeec9a4ff1e49e32b3d55a04a98",
+    "/workspace/experiments/glm52/short-native-20261016-07/trace/step-00001.pt": "3e5f96f9227a4b9760084b91fa1ff49d45ae656656d564b825085a61aba0aab3",
+    "/workspace/experiments/glm52/same-input-layers-20261016/step-00001.pt": "6bd0dc146d82b72532fe6f582fa1dc0de35ebb0bacc1628869d03fd17251f33f"
+  },
+  "weight_arithmetic": {
+    "tp_size": 16,
+    "activation_quantization": "RINT(x * FP32 Div(127,amax)); scale=amax*FP32(1/127)",
+    "a8_source_sha256": "fd0fb30d924b48ed4455cb505d2d530e822fa48d78b526db663d0bee69ffaefc",
+    "integer_projection": "W8: INT32 dot * FP32 weight scale * FP32 A8 scale; W4: CANN 9.2.0 API-dequant MSD with FP16 partials",
+    "projection_output": "BF16 before TP reduction",
+    "tp_sum": "FP32 rank-order sum, final BF16; not bitwise HCCL",
+    "w4_scale_bias": "Checkpoint correction added once after 16H+L",
+    "w4_msd_source_sha256": "a8b7c446d5373f5f50d3ee22bdf6631a8468973da420791bb97ccf0e2f351fbb",
+    "c8_quantization": "128-channel NPU operation order uncalibrated",
+    "fused_rounding": "W4 FP16 partials; activation boundaries set by HF adapters",
+    "metadata_sha256": {
+      "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+      "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+      "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+    }
+  },
+  "rows": [
+    {
+      "position": 0,
+      "layer": 0,
+      "quantized": false,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 1,
+      "quantized": false,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 2,
+      "quantized": false,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 6,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 10,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 14,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 18,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 22,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 26,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 30,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 34,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 38,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 42,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 46,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 50,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 54,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 58,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 62,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 66,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 70,
+      "quantized": false,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 0,
+      "layer": 74,
+      "quantized": false,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 0,
+      "quantized": false,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 2,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 2,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 1,
+      "quantized": false,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 1,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 1,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 2,
+      "quantized": false,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 5,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 5,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 6,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 10,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 5,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 5,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 14,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 4,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 4,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 18,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 3,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 3,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 22,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 21,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 1,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 21,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 1
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 26,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 2,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 2,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 30,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 2,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 2,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 34,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 1,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 1,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 38,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 1,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 1,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 42,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 2,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 2,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 46,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 50,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 54,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 58,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 62,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 2,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 2,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 66,
+      "quantized": true,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 2,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 2,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 70,
+      "quantized": false,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 9,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 9,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    },
+    {
+      "position": 1,
+      "layer": 74,
+      "quantized": false,
+      "variants": {
+        "bf16_steps": {
+          "native_key_unequal": 3,
+          "local_key_unequal": 0,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        },
+        "fp32_fused": {
+          "native_key_unequal": 0,
+          "local_key_unequal": 3,
+          "native_scale_unequal": 0,
+          "local_scale_unequal": 0
+        }
+      }
+    }
+  ],
+  "summary": {
+    "bf16_steps": {
+      "native_key_unequal": 65,
+      "local_key_unequal": 0,
+      "native_scale_unequal": 1,
+      "local_scale_unequal": 0
+    },
+    "fp32_fused": {
+      "native_key_unequal": 0,
+      "local_key_unequal": 65,
+      "native_scale_unequal": 0,
+      "local_scale_unequal": 1
+    }
+  },
+  "timed": false,
+  "profiled": false,
+  "status": "pass"
+}

@@ -1,0 +1,337 @@
+{
+  "created_at": "2026-10-16T18:46:29.356731+00:00",
+  "scope": "Synthetic host-validator fixtures with real CPU tensors; not HF/NPU precision or model execution",
+  "torch": "2.12.0+cpu",
+  "torch_npu": "2.12.0",
+  "npu_initialized_before": false,
+  "npu_initialized_after": false,
+  "source_sha256": {
+    "check_compare_saved_cann.py": "a2d98c30b93427d82f9b3808a5ec0ae95f46118b1c1b780df1d5053322192260",
+    "compare_saved_cann.py": "ff94fa761125c35d00c780bdb9db03e915c60b7a68edd3aff869dd7fec3c5778",
+    "run_cann_model.py": "c0bc3f5e8e08e066cde7af7cca88b6c299a33a85ce005755296ec2963a0c3f8d",
+    "run_native_decode.py": "bc40b579824eb6def8fa9fc7fb2acd045774088f1e841e514279aa6818870adc"
+  },
+  "checks": [
+    {
+      "name": "actual_cli_complete_tp16_8k",
+      "passed": true,
+      "checks_total": 9364,
+      "stdout": "{\"status\": \"pass\", \"checks_total\": 9364, \"checks_failed\": 0, \"completed_rank_steps\": 16, \"layerwise_logits_parity\": true, \"precision_verified\": false}\n",
+      "stderr": ""
+    },
+    {
+      "name": "missing_rank15",
+      "passed": true,
+      "failures": [
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "FileNotFoundError: [Errno 2] No such file or directory: '/workspace/experiments/glm52/tmpklfeynwn/missing_rank15/native/rank-15.json'"
+        }
+      ]
+    },
+    {
+      "name": "rank_report_hash",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.report_hash",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.report_hash"
+        }
+      ]
+    },
+    {
+      "name": "rank15_trace_hash",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.step-08192.pt.hash",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.step-08192.pt.hash"
+        }
+      ]
+    },
+    {
+      "name": "hf_trace_hash",
+      "passed": true,
+      "failures": [
+        {
+          "name": "hf.step-08192.pt.hash",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: hf.step-08192.pt.hash"
+        }
+      ]
+    },
+    {
+      "name": "checkpoint",
+      "passed": true,
+      "failures": [
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: HF reference TP layout or checkpoint mismatch"
+        }
+      ]
+    },
+    {
+      "name": "teacher",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.0.teacher_tokens_and_positions",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.0.teacher_tokens_and_positions"
+        }
+      ]
+    },
+    {
+      "name": "initial_position",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.0.teacher_tokens_and_positions",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.0.teacher_tokens_and_positions"
+        }
+      ]
+    },
+    {
+      "name": "prefix_hash",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.prefix_hash",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.prefix_hash"
+        }
+      ]
+    },
+    {
+      "name": "prompt_hash",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.0.original_prompt_identity",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.0.original_prompt_identity"
+        }
+      ]
+    },
+    {
+      "name": "prompt_length",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.0.original_prompt_identity",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.0.original_prompt_identity"
+        }
+      ]
+    },
+    {
+      "name": "last_prompt_token",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.0.original_prompt_identity",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.0.original_prompt_identity"
+        }
+      ]
+    },
+    {
+      "name": "capture_generation",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.capture_agreement",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.capture_agreement"
+        }
+      ]
+    },
+    {
+      "name": "reset_not_completed",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.reset_completed",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.reset_completed"
+        }
+      ]
+    },
+    {
+      "name": "missing_reset_hidden",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.reset.0.complete",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.reset.0.complete"
+        }
+      ]
+    },
+    {
+      "name": "reset_not_exact",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.reset.0.exact",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.reset.0.exact"
+        }
+      ]
+    },
+    {
+      "name": "reset_failed",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.device_checks_passed",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.15.device_checks_passed"
+        }
+      ]
+    },
+    {
+      "name": "hf_reset_failed",
+      "passed": true,
+      "failures": [
+        {
+          "name": "hf.reset_passed",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: hf.reset_passed"
+        }
+      ]
+    },
+    {
+      "name": "final_only",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.0.step.8192.complete_hidden_states",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.0.step.8192.complete_hidden_states"
+        }
+      ]
+    },
+    {
+      "name": "missing_layer_logits",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.0.step.8192.complete_layer_logits",
+          "passed": false
+        },
+        {
+          "name": "validation_error",
+          "passed": false,
+          "error": "ValueError: rank.0.step.8192.complete_layer_logits"
+        }
+      ]
+    },
+    {
+      "name": "rank15_layer3_numeric_difference",
+      "passed": true,
+      "failures": [
+        {
+          "name": "rank.15.step.8192.hidden_states.3",
+          "passed": false,
+          "exact": false,
+          "shape": [
+            1,
+            6144
+          ],
+          "expected_shape": [
+            1,
+            6144
+          ],
+          "dtype": "torch.bfloat16",
+          "expected_dtype": "torch.bfloat16",
+          "nrmse": 98.99999503596733,
+          "cosine": 0.9999998807907104,
+          "max_abs": 99.0
+        }
+      ]
+    },
+    {
+      "name": "old_hf_failure_recompared",
+      "passed": true
+    },
+    {
+      "name": "original_files_unchanged",
+      "passed": true
+    },
+    {
+      "name": "no_npu_initialization",
+      "passed": true
+    }
+  ],
+  "passed": true
+}

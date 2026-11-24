@@ -1,0 +1,505 @@
+{
+  "status": "pass",
+  "command": [
+    "/opt/homebrew/opt/python@3.11/bin/python3.11",
+    "experiments/lookup-index/radix_probe.py",
+    "--root",
+    "/Users/shanshan/repo/tile-ai/TileRT-Ascend",
+    "--baseline-ref",
+    "1ef8a8d",
+    "--output",
+    "/tmp/tilert-radix-repository-source.json"
+  ],
+  "scope": "Local CPU proposer calls only; synthetic token streams, no target inference, orchestration, I/O or NPU/TPOT claim",
+  "python": "3.11.15",
+  "machine": "arm64",
+  "hostname": "fanshanshandeMacBook-Pro.local",
+  "width": 32,
+  "longest": 32,
+  "shortest": 2,
+  "warmup": 2,
+  "samples": 30,
+  "clock": "perf_counter_ns; nanoseconds in raw samples",
+  "control": "Alternate baseline/radix order; independent reverse scan is outside timed arms",
+  "environment_control": "No CPU affinity or clock locking",
+  "garbage_collection": {
+    "enabled": true,
+    "thresholds": [
+      700,
+      10,
+      10
+    ]
+  },
+  "baseline_ref": "1ef8a8d425f9bb0646e7661ea538a4f0eb1bad16",
+  "baseline_source_sha256": "8f363b3ce4817a705de4ef619e2466978685c977af20c3ae10a8d3ce81c94ea0",
+  "source_sha256": {
+    "/Users/shanshan/repo/tile-ai/TileRT-Ascend/experiments/lookup-index/radix_probe.py": "0c6b653c1fb0ac997669bba8cb9bfa68bf26e6c55b806ccb2ef5878ad9322d5e",
+    "/Users/shanshan/repo/tile-ai/TileRT-Ascend/experiments/lookup-index/rfind_probe.py": "1789e560e91387c4ababebdf815dbb1f3616113955cb1461a2d52df97f710b96",
+    "/Users/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/bench_lookup.py": "6ef8d51c78a3d413f7df78e5c3f2ce2cb131d3ac3b50f2794089636a0d154813",
+    "/Users/shanshan/repo/tile-ai/TileRT-Ascend/tests/glm52/ngram_acceptance.py": "157d24af3a0e376537ea58b075356867a3b02786b67a8cbf408066566d18231b",
+    "/Users/shanshan/repo/tile-ai/TileRT-Ascend/tilert/models/glm_5_2_ascend/lookup_draft.py": "4d7c8502aeba3ade42742dbc447230ab8c3765085a048073c80a427101073891"
+  },
+  "collision_case": {
+    "context": [
+      30000,
+      30712,
+      30000,
+      32048,
+      30503,
+      111,
+      30306,
+      30000,
+      30004,
+      30000,
+      30000,
+      222,
+      30712,
+      30000,
+      32048,
+      30503,
+      333,
+      30000,
+      30712,
+      30000,
+      32048,
+      30503
+    ],
+    "longest": 5,
+    "expected": [
+      111
+    ],
+    "candidate": [
+      111
+    ],
+    "baseline": [
+      333
+    ]
+  },
+  "source_stable": true,
+  "raw_artifact": {
+    "file": "paired-cpu.json.gz",
+    "sha256": "883894b95049a3e3cfd46d66b037ba8eb1e2a99192a9bad4491245ef0ec542e6",
+    "uncompressed_sha256": "15c981ff4376b5a05a734c8457ed1ca8e8ec2d4e25a9cb1b799431a27920e578"
+  },
+  "repeat_run": {
+    "raw_file": "repeat-paired-cpu.json.gz",
+    "raw_sha256": "7a1357f4508b02d71dde1c3b07847b1466e32570dc73f931555295f494b955f4",
+    "source_file": "repeat-source.txt",
+    "source_sha256": "8cf521fa28ff3ccdb230f4c10ee6d3916919b97a3e6ea6f803a4d44b1579ca36",
+    "source_ast_equal": true
+  },
+  "results": [
+    {
+      "name": "exact_copy",
+      "prompt_tokens": 8192,
+      "output_tokens": 1024,
+      "rounds": 32,
+      "oracle_signature_sha256": "241770d4d280f7fd6c4e5f849ec2f3fdd5c1f7a890f3c81c7908903b4858a157",
+      "samples_per_arm": {
+        "baseline": 30,
+        "radix": 30
+      },
+      "summary": {
+        "baseline": {
+          "setup_ms": {
+            "p50": 42.299708,
+            "p95": 44.927792,
+            "p99": 46.501292,
+            "std": 0.9509140352784546
+          },
+          "steady_request_cpu_ms": {
+            "p50": 5.71033,
+            "p95": 5.911541,
+            "p99": 6.002252,
+            "std": 0.11161078297329616
+          },
+          "total_request_cpu_ms": {
+            "p50": 47.9882275,
+            "p95": 50.800871,
+            "p99": 52.503544,
+            "std": 1.0212059562782843
+          },
+          "propose_us": {
+            "p50": 5.708,
+            "p95": 6.625,
+            "p99": 10.834,
+            "std": 0.8282029766216891
+          },
+          "commit_us": {
+            "p50": 172.208,
+            "p95": 183.167,
+            "p99": 188.542,
+            "std": 6.412634590651866
+          }
+        },
+        "radix": {
+          "setup_ms": {
+            "p50": 5.7261665,
+            "p95": 5.9185,
+            "p99": 6.039667,
+            "std": 0.07849814867017908
+          },
+          "steady_request_cpu_ms": {
+            "p50": 0.764894,
+            "p95": 0.820749,
+            "p99": 0.836915,
+            "std": 0.01700462380138609
+          },
+          "total_request_cpu_ms": {
+            "p50": 6.49148,
+            "p95": 6.683546,
+            "p99": 6.860416,
+            "std": 0.08759538801500276
+          },
+          "propose_us": {
+            "p50": 0.833,
+            "p95": 1.25,
+            "p99": 2.5,
+            "std": 0.4525521865049562
+          },
+          "commit_us": {
+            "p50": 21.875,
+            "p95": 31.625,
+            "p99": 32.833,
+            "std": 3.385275254220244
+          }
+        }
+      },
+      "paired_saving_ms": {
+        "setup_ms": {
+          "p50": 36.50868749999999,
+          "p95": 38.888125,
+          "p99": 40.809875,
+          "std": 0.9315302881953025
+        },
+        "steady_ms": {
+          "p50": 4.9472895,
+          "p95": 5.147873,
+          "p99": 5.239002,
+          "std": 0.11554838490654998
+        },
+        "total_ms": {
+          "p50": 41.470577,
+          "p95": 43.940455,
+          "p99": 46.048877,
+          "std": 1.000979124965242
+        }
+      },
+      "radix_faster_pairs": {
+        "setup": 30,
+        "steady": 30,
+        "total": 30
+      },
+      "all_round_signatures_equal_independent_reverse_scan": true
+    },
+    {
+      "name": "copy_5pct_edits",
+      "prompt_tokens": 8192,
+      "output_tokens": 1024,
+      "rounds": 173,
+      "oracle_signature_sha256": "ff92a0cb36bc92ce49d89bb7b93ead0ee41b3211dafdb6ef9bc9a2b8961c5391",
+      "samples_per_arm": {
+        "baseline": 30,
+        "radix": 30
+      },
+      "summary": {
+        "baseline": {
+          "setup_ms": {
+            "p50": 42.549853999999996,
+            "p95": 43.538417,
+            "p99": 45.393167,
+            "std": 0.6367752749364749
+          },
+          "steady_request_cpu_ms": {
+            "p50": 7.3727245,
+            "p95": 8.046153,
+            "p99": 10.227164,
+            "std": 0.5275209891321061
+          },
+          "total_request_cpu_ms": {
+            "p50": 49.921237500000004,
+            "p95": 52.764624,
+            "p99": 52.875997,
+            "std": 0.8535580592559466
+          },
+          "propose_us": {
+            "p50": 8.25,
+            "p95": 16.833,
+            "p99": 19.542,
+            "std": 3.2567375750953658
+          },
+          "commit_us": {
+            "p50": 6.0,
+            "p95": 165.708,
+            "p99": 190.291,
+            "std": 61.85434855313991
+          }
+        },
+        "radix": {
+          "setup_ms": {
+            "p50": 5.7413125,
+            "p95": 5.850167,
+            "p99": 5.861625,
+            "std": 0.052762933401742054
+          },
+          "steady_request_cpu_ms": {
+            "p50": 2.238326,
+            "p95": 4.707814,
+            "p99": 4.887583,
+            "std": 0.8557095382874839
+          },
+          "total_request_cpu_ms": {
+            "p50": 7.968798,
+            "p95": 10.479668,
+            "p99": 10.56675,
+            "std": 0.8507773881589057
+          },
+          "propose_us": {
+            "p50": 1.0,
+            "p95": 1.667,
+            "p99": 2.0,
+            "std": 35.250997255805814
+          },
+          "commit_us": {
+            "p50": 1.833,
+            "p95": 52.667,
+            "p99": 102.666,
+            "std": 64.28310685157791
+          }
+        }
+      },
+      "paired_saving_ms": {
+        "setup_ms": {
+          "p50": 36.827,
+          "p95": 37.734084,
+          "p99": 39.727042,
+          "std": 0.647049733400424
+        },
+        "steady_ms": {
+          "p50": 5.192963499999999,
+          "p95": 5.865744,
+          "p99": 7.895494,
+          "std": 1.043963517967914
+        },
+        "total_ms": {
+          "p50": 41.7710505,
+          "p95": 44.817327,
+          "p99": 44.98883,
+          "std": 1.2619966877866295
+        }
+      },
+      "radix_faster_pairs": {
+        "setup": 30,
+        "steady": 30,
+        "total": 30
+      },
+      "all_round_signatures_equal_independent_reverse_scan": true
+    },
+    {
+      "name": "ambiguous_bigram",
+      "prompt_tokens": 8192,
+      "output_tokens": 1024,
+      "rounds": 1023,
+      "oracle_signature_sha256": "61d77af3855058bad298d919d3f5a271476d7799c066bfb4089dee8102aa7c4f",
+      "samples_per_arm": {
+        "baseline": 30,
+        "radix": 30
+      },
+      "summary": {
+        "baseline": {
+          "setup_ms": {
+            "p50": 48.938291500000005,
+            "p95": 55.078125,
+            "p99": 55.513209,
+            "std": 2.597467432498111
+          },
+          "steady_request_cpu_ms": {
+            "p50": 15.706937499999999,
+            "p95": 32.952733,
+            "p99": 36.324046,
+            "std": 5.188711690887213
+          },
+          "total_request_cpu_ms": {
+            "p50": 64.81306000000001,
+            "p95": 81.182149,
+            "p99": 89.751129,
+            "std": 5.991334859296667
+          },
+          "propose_us": {
+            "p50": 9.417,
+            "p95": 14.833,
+            "p99": 21.167,
+            "std": 117.01745072901821
+          },
+          "commit_us": {
+            "p50": 5.334,
+            "p95": 6.0,
+            "p99": 7.125,
+            "std": 0.6219534415996869
+          }
+        },
+        "radix": {
+          "setup_ms": {
+            "p50": 8.0187705,
+            "p95": 15.363667,
+            "p99": 15.860833,
+            "std": 3.073108707766873
+          },
+          "steady_request_cpu_ms": {
+            "p50": 2.3436075,
+            "p95": 7.619621,
+            "p99": 10.576709,
+            "std": 1.7335764675941967
+          },
+          "total_request_cpu_ms": {
+            "p50": 10.458921,
+            "p95": 18.502501,
+            "p99": 18.538308,
+            "std": 3.271860261498757
+          },
+          "propose_us": {
+            "p50": 0.833,
+            "p95": 0.959,
+            "p99": 1.25,
+            "std": 55.9715492741649
+          },
+          "commit_us": {
+            "p50": 1.292,
+            "p95": 1.5,
+            "p99": 1.625,
+            "std": 0.522163726021742
+          }
+        }
+      },
+      "paired_saving_ms": {
+        "setup_ms": {
+          "p50": 40.201458,
+          "p95": 46.086501,
+          "p99": 46.548125,
+          "std": 4.116609942482112
+        },
+        "steady_ms": {
+          "p50": 13.445248,
+          "p95": 30.696358,
+          "p99": 34.010795,
+          "std": 5.662776207983916
+        },
+        "total_ms": {
+          "p50": 54.221429,
+          "p95": 70.873816,
+          "p99": 78.630586,
+          "std": 7.468186966942997
+        }
+      },
+      "radix_faster_pairs": {
+        "setup": 30,
+        "steady": 30,
+        "total": 30
+      },
+      "all_round_signatures_equal_independent_reverse_scan": true
+    },
+    {
+      "name": "random_no_match",
+      "prompt_tokens": 8192,
+      "output_tokens": 1024,
+      "rounds": 1023,
+      "oracle_signature_sha256": "41719323a976945d1b28f4aca858cd6d3df3fa3b6db64f88dcbdc0f3c185e5b2",
+      "samples_per_arm": {
+        "baseline": 30,
+        "radix": 30
+      },
+      "summary": {
+        "baseline": {
+          "setup_ms": {
+            "p50": 48.626521,
+            "p95": 50.257125,
+            "p99": 60.863375,
+            "std": 2.3019078876966828
+          },
+          "steady_request_cpu_ms": {
+            "p50": 15.370483,
+            "p95": 17.881573,
+            "p99": 18.340734,
+            "std": 0.9453839203266464
+          },
+          "total_request_cpu_ms": {
+            "p50": 64.12151399999999,
+            "p95": 68.247151,
+            "p99": 75.901555,
+            "std": 2.4672578746188645
+          },
+          "propose_us": {
+            "p50": 9.084,
+            "p95": 15.458,
+            "p99": 20.0,
+            "std": 2.885805501489758
+          },
+          "commit_us": {
+            "p50": 5.375,
+            "p95": 6.0,
+            "p99": 7.542,
+            "std": 0.5308231637526787
+          }
+        },
+        "radix": {
+          "setup_ms": {
+            "p50": 6.5999795,
+            "p95": 18.705375,
+            "p99": 18.856584,
+            "std": 4.912831928434322
+          },
+          "steady_request_cpu_ms": {
+            "p50": 1.8379189999999999,
+            "p95": 13.992543,
+            "p99": 16.080631,
+            "std": 3.679873164220235
+          },
+          "total_request_cpu_ms": {
+            "p50": 8.5898405,
+            "p95": 20.689933,
+            "p99": 22.64009,
+            "std": 5.446126152624509
+          },
+          "propose_us": {
+            "p50": 0.5,
+            "p95": 0.625,
+            "p99": 3.25,
+            "std": 121.26395603058391
+          },
+          "commit_us": {
+            "p50": 0.959,
+            "p95": 1.083,
+            "p99": 1.166,
+            "std": 0.17820717554413462
+          }
+        }
+      },
+      "paired_saving_ms": {
+        "setup_ms": {
+          "p50": 41.8502295,
+          "p95": 43.830334,
+          "p99": 54.448709,
+          "std": 5.841433808668027
+        },
+        "steady_ms": {
+          "p50": 13.516135,
+          "p95": 16.198208,
+          "p99": 16.492934,
+          "std": 3.9528830297051747
+        },
+        "total_ms": {
+          "p50": 54.838293,
+          "p95": 58.387168,
+          "p99": 67.678753,
+          "std": 6.502577534150517
+        }
+      },
+      "radix_faster_pairs": {
+        "setup": 30,
+        "steady": 29,
+        "total": 30
+      },
+      "all_round_signatures_equal_independent_reverse_scan": true
+    }
+  ]
+}

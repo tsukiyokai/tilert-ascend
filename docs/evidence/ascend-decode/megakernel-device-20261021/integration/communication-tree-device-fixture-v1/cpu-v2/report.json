@@ -1,0 +1,479 @@
+{
+  "pass": true,
+  "scope": "No-device dual-probe ABI and original driver arithmetic",
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "fixture_manifest_sha256": "18d57bafa45fb629965916d0d380e014686dd322c575c469ee6327caa4cc98e8",
+  "driver_sha256": "9973741bbf0ecb5ab330607733ad8895d68bd8d8a38904e58dea572496c0d5b3",
+  "parent_sha256": "1be5fa375d0d6e7a2a6dcf7f5265cf886317108398aeec940e2b1ce0de04e22f",
+  "candidate_sha256": "a0bd2462e2f999280720fa5060466159a2eab13ce5541639ddc7afef35a45ebf",
+  "frozen_file_count": 42,
+  "frozen_build_source_count": 22,
+  "compile_dependency_count": 859,
+  "shmem_libraries": {
+    "libshmem.so": "cf9b853bb7612ce1e44853b1d16851016c4a2c279bdc9bb32da0640bc411f532",
+    "libshmem_utils.so": "743ea9661dbc6707fba5030967a22c59ebfdd0daed4884fdff39da12ae008ac0",
+    "aclshmem_bootstrap_config_store.so": "ef9160f3706a7eac573ff0a83160ae2d38579550dd923f45b330f309a33d6541"
+  },
+  "c_abi_addresses": {
+    "communication_probe_": {
+      "initialize": 281468699769332,
+      "prepare": 281468699770052,
+      "execute": 281468699771280,
+      "destroy": 281468699771760,
+      "finalize": 281468699772244,
+      "last_error": 281468699769184
+    },
+    "communication_tree_probe_": {
+      "initialize": 281468687514164,
+      "prepare": 281468687514884,
+      "execute": 281468687516112,
+      "destroy": 281468687516592,
+      "finalize": 281468687517076,
+      "last_error": 281468687514016
+    }
+  },
+  "shared_shmem_status_function_addresses": [
+    281468697314508,
+    281468697314508
+  ],
+  "same_shmem_instance": true,
+  "shmem_initialize_calls": 0,
+  "driver_cpu_contract": {
+    "pass": true,
+    "order_contract": {
+      "pass": true,
+      "ranks": 3,
+      "rows": [
+        1,
+        12
+      ],
+      "iterations": 6,
+      "different_elements_per_row": 4096,
+      "fixture_columns": [
+        "1 + epsilon - 1",
+        "1 - 1 + epsilon",
+        "exact integer control"
+      ],
+      "epsilon": 2.9802322387695312e-08
+    },
+    "edge_columns": [
+      {
+        "name": "cancellation",
+        "rank_input_bf16_bits": [
+          16256,
+          13056,
+          49024
+        ]
+      },
+      {
+        "name": "reversed_cancellation",
+        "rank_input_bf16_bits": [
+          16256,
+          49024,
+          13056
+        ]
+      },
+      {
+        "name": "integer_control",
+        "rank_input_bf16_bits": [
+          16256,
+          16384,
+          16448
+        ]
+      },
+      {
+        "name": "positive_zero",
+        "rank_input_bf16_bits": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "negative_zero",
+        "rank_input_bf16_bits": [
+          32768,
+          32768,
+          32768
+        ]
+      },
+      {
+        "name": "mixed_zero",
+        "rank_input_bf16_bits": [
+          32768,
+          0,
+          32768
+        ]
+      },
+      {
+        "name": "two_min_subnormals",
+        "rank_input_bf16_bits": [
+          1,
+          1,
+          0
+        ]
+      },
+      {
+        "name": "normal_cancellation_tiny",
+        "rank_input_bf16_bits": [
+          128,
+          32896,
+          1
+        ]
+      },
+      {
+        "name": "subnormal_to_normal",
+        "rank_input_bf16_bits": [
+          127,
+          1,
+          0
+        ]
+      },
+      {
+        "name": "subnormal_cancellation",
+        "rank_input_bf16_bits": [
+          32769,
+          1,
+          32768
+        ]
+      },
+      {
+        "name": "positive_overflow",
+        "rank_input_bf16_bits": [
+          32639,
+          32639,
+          0
+        ]
+      },
+      {
+        "name": "large_cancellation",
+        "rank_input_bf16_bits": [
+          32639,
+          65407,
+          65407
+        ]
+      },
+      {
+        "name": "serial_positive_overflow",
+        "rank_input_bf16_bits": [
+          32639,
+          32639,
+          65407
+        ]
+      },
+      {
+        "name": "serial_negative_overflow",
+        "rank_input_bf16_bits": [
+          65407,
+          65407,
+          32639
+        ]
+      },
+      {
+        "name": "tree_positive_overflow",
+        "rank_input_bf16_bits": [
+          32639,
+          65407,
+          32639
+        ]
+      },
+      {
+        "name": "tree_negative_overflow",
+        "rank_input_bf16_bits": [
+          65407,
+          32639,
+          65407
+        ]
+      },
+      {
+        "name": "three_min_subnormals",
+        "rank_input_bf16_bits": [
+          1,
+          1,
+          1
+        ]
+      },
+      {
+        "name": "three_negative_subnormals",
+        "rank_input_bf16_bits": [
+          32769,
+          32769,
+          32769
+        ]
+      },
+      {
+        "name": "negative_tiny_after_cancellation",
+        "rank_input_bf16_bits": [
+          128,
+          32769,
+          32896
+        ]
+      },
+      {
+        "name": "positive_small_after_cancellation",
+        "rank_input_bf16_bits": [
+          16256,
+          13056,
+          49024
+        ]
+      },
+      {
+        "name": "negative_small_after_cancellation",
+        "rank_input_bf16_bits": [
+          16256,
+          45824,
+          49024
+        ]
+      },
+      {
+        "name": "largest_subnormal_after_cancellation",
+        "rank_input_bf16_bits": [
+          128,
+          127,
+          32896
+        ]
+      },
+      {
+        "name": "power_of_two_overflow",
+        "rank_input_bf16_bits": [
+          32512,
+          32512,
+          65280
+        ]
+      },
+      {
+        "name": "even_bf16_tie",
+        "rank_input_bf16_bits": [
+          16256,
+          15232,
+          0
+        ]
+      },
+      {
+        "name": "odd_bf16_tie",
+        "rank_input_bf16_bits": [
+          16257,
+          15232,
+          0
+        ]
+      },
+      {
+        "name": "negative_even_bf16_tie",
+        "rank_input_bf16_bits": [
+          49024,
+          48000,
+          32768
+        ]
+      },
+      {
+        "name": "negative_odd_bf16_tie",
+        "rank_input_bf16_bits": [
+          49025,
+          48000,
+          0
+        ]
+      },
+      {
+        "name": "minimum_normal",
+        "rank_input_bf16_bits": [
+          128,
+          128,
+          32896
+        ]
+      },
+      {
+        "name": "three_ones",
+        "rank_input_bf16_bits": [
+          16256,
+          16256,
+          16256
+        ]
+      },
+      {
+        "name": "three_negative_ones",
+        "rank_input_bf16_bits": [
+          49024,
+          49024,
+          49024
+        ]
+      },
+      {
+        "name": "maximum_cancel_zero",
+        "rank_input_bf16_bits": [
+          32639,
+          0,
+          65407
+        ]
+      },
+      {
+        "name": "negative_maximum_cancel_zero",
+        "rank_input_bf16_bits": [
+          65407,
+          0,
+          32639
+        ]
+      }
+    ],
+    "serial_bits": [
+      0,
+      13056,
+      16576,
+      0,
+      32768,
+      0,
+      2,
+      1,
+      128,
+      0,
+      32640,
+      65407,
+      32640,
+      65408,
+      32639,
+      65407,
+      3,
+      32771,
+      32769,
+      0,
+      0,
+      127,
+      32640,
+      16256,
+      16258,
+      49024,
+      49026,
+      128,
+      16448,
+      49216,
+      0,
+      0
+    ],
+    "tree_bits": [
+      13056,
+      0,
+      16576,
+      0,
+      32768,
+      0,
+      2,
+      1,
+      128,
+      0,
+      32640,
+      65407,
+      32639,
+      65407,
+      32640,
+      65408,
+      3,
+      32771,
+      32769,
+      13056,
+      45824,
+      127,
+      32512,
+      16256,
+      16258,
+      49024,
+      49026,
+      128,
+      16448,
+      49216,
+      0,
+      0
+    ],
+    "ranks": 3,
+    "rows": [
+      1,
+      12
+    ],
+    "iterations_per_family": 6
+  },
+  "mapped_dependencies": {
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libruntime_v100.so": "3ea97a12f786d270b284a9fec1c6b695aae144ea067723efdd9ed8b21c5dee68",
+    "/shmem/libshmem_utils.so": "743ea9661dbc6707fba5030967a22c59ebfdd0daed4884fdff39da12ae008ac0",
+    "/shmem/libshmem.so": "cf9b853bb7612ce1e44853b1d16851016c4a2c279bdc9bb32da0640bc411f532",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_cv.so": "06074c70f58f5af0702c6326dcf98289584eef65f3996690229587119c488521",
+    "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/op_host/lib/linux/aarch64/libophost_comm_legacy.so": "2e9a3b133ff9229aaf6c5843764be1bcbc556f17cb6d13609779345c7207cf15",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_transformer.so": "3eebcd29e93860ea2aafaf9dfe269e98a28dc90c7cc325914e479be43bd247cf",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libnnopbase.so": "5c65cb9aca8d9940156a8498e83a51a1c087a85f579fb9344cf1186c1d705ed5",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_nn.so": "336946436f1e8d71670137a9b43fc6b9ca87fbb3f52b5a2c65663e8b589936c8",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_math.so": "93972cb9266eb1e0ff1d29b767c1e13e1f6023b80c07ffaf77bc75e557b8b045",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libtls_adp.so": "65503191c54d119008dcad500b69f1b8ba8abb1e558423f6fcb91a405d4bc40e",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/librs.so": "26e0dec4f1a9c234316cb6d3d45bcd84f96bab9fc3aa059d24eb7568f49f1758",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libra_peer.so": "03a85d214bfc0a1cf230a5d820cf039c0f8885320fe96fb57e1ecd4d3c18b21a",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libra_hdc.so": "1e55f95d80d39eff03b9665a73f499670a7dc8909d6a71550c6278216fe623f9",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libaihac_symbolizer_af.so": "b7265864eec8d9faf750a267f088d794715e11dfdac84fb92b1a4a3bf7874d00",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libaihac_ir.so": "eda441a06963772b34ad87007b03c77b768c59bfc44107f92a2cd3665b572001",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libaihac_ir_register.so": "a2bc876b94645338b5eb98ac64e8d382c66f4ad113d52ab8dc4a899236edc45d",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libacl_mdl_impl_om2.so": "3381386e1d3a4b0a5c2dec219e27d3429afdd853a3e2db956a487c93cb57af43",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libra.so": "2aca10e8a9cda2c56e3a87940763a598f32f7399ffd05b7fb6046899beb53bd2",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libtsdclient.so": "51a83a735be94652458b8b7d20b66d219232b583a6c088457106deac1a9e716b",
+    "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/dpu/libccl_dpu.so": "002a7807d60ad6ba54ecf870954e8dfb2b8baa1cc0fc629bf5d46df17fe862f4",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libhccl_legacy.so": "741553bb23c5b8b62394df532b448f6f5e30d711e99afd47a1ab06a1a3284a58",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libacl_rt_impl.so": "562f5c4c6fc77afbcb6cc1f63a6262cdb4d0260942e1d49067725166f69250fa",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libhybrid_executor.so": "85e19c20d30d80660e238729f971af44a32fbd7e3796da67e5fd5a8427541af3",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libdata_flow_base.so": "e1e206ab71c33d18775217789d84fa7c8e8c142b003cdc3211bb28310736e9b8",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libruntime_common.so": "aea3a9705c62ef15c32c0b8f7b02fc41aee77bea293e1cc2224b3de7b53301bf",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libascend_trace.so": "cb780d3579acabf0875591553d023a68911cc89b61b6936b1e2841c667e75c2d",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libexe_graph.so": "e0b4a7c7c484800b4046c7c3f56a933a504e3e3627dde76f0e41c9e88c89730c",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/liblowering.so": "4bbc5639ed9841aea3ddcb59c0f572266dc5ee0d1acab3501040ff2f0dde219a",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libcustom_op_runtime.so": "0d729bceabdefe845e5a221eb7d0a5c710a0e03c2fddf103a67122b5b63ca67c",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libgraph_base_af.so": "a50a26063cefd76235359f79b78397a8696bfd443153cffe8cb68d869158af58",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libgraph_af.so": "a0a2bd33c4a39ee64cea42c194b6d3b4fac931ef552ff7a5b0b292b3e4f4765b",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libaihac_codegen.so": "a0cb431ecf22667daff2ba359d6881512ad24863e845440048f9b11c4f3028f6",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libaihac_symbolizer.so": "2cac6ea814bbeebbbd6a5a59a8764cc2cc740db483e356bb5690255589df96a6",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libaihac_autofusion.so": "9da1390fd584fde930c815daaf0f03636fe06b025438aa98ca868673060097b9",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libflow_graph.so": "4e99ee561dc76c022fff91c3b0b41cee822a7e130b6af598b4da126ff7d58a11",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libascend_watchdog.so": "91a1abac1d93129536c226dd41714649e8c927039387a4976a52f174959e7a52",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libacl_mdl_impl.so": "ccc50b8b4673965b3a7e485946dde63dcde9136c04ce8299685431cffdf598ee",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libacl_mdl.so": "a05e43f4a0b7e3af3bf37448289d934541acdf71150455b5ce0eacccf9ed111b",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libtopoaddrinfo.so": "20f78ec27229b9ed765ede8f7dd9d3a592cab5d701973b7b645182f9d866feec",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libhccl_v2.so": "2a4e0efc08e444058d20e454ab05b0b93238c319f8887024166456d2d612f96c",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libhccl_plf.so": "86f6158955771e246f38bf74e48abcf22c689f85d0a250acb9a3798797c09db3",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libhccl_alg.so": "9662caf979f889655d98278805fae701d29040b0b87a2fc21702ba11633c2956",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libacl_tdt_channel.so": "545151da568436cecb669f74d77c51cdf602c18138b4c91c9887dcdae6ddff99",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libascend_protobuf.so.3.13.0.0": "586861624bb475ad73a2ab16ca772b8e61a661ddc7c771c260929fede022a183",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libmetadef.so": "6b3cf5b08098a9ce916d83c7daabd68927edc86a8f5252341b933246491d0495",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libascendalog.so": "131d6eb995080b9b12e29ec4146fb02f05576ca99965ae94dbd6d059b7d29758",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libplatform.so": "324f595d468896e855a10a836c06a4cab90fba6ec8c53124827bd266d65bd597",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopp_registry.so": "d800e0352ac7cff7449da8c4dd23db0fa08b3ecb686b8ad30d1a943e83f9fe4b",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libregister.so": "74c9b1a2edbcf2858763911035b04fc42f5a6e14e147fb4768cb855a5d28233a",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libdavinci_executor.so": "eef88a3b927d8eee8f84aca587092506091155f4db2f41112b38ba612d948dd8",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libom2_executor.so": "80392b5768227c10a0246a9e57f403e5949a058588c3555134cc5f8cfa7068ee",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libge_executor.so": "4a8c5dd52f1626712e70cf3e31c4aef0f190cafa9c2debdff20e4fc2be81e686",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libgert.so": "ee08452ef8bf21ac772c853693b620383162525f916079adb8af40c71720b5f0",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libge_runner_v2.so": "6d383f49d38652cfb4f64b6857cdd58f15226c5c7ff7a6702c36c773470438ae",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libdflow_runner.so": "dbca3478e03949611fe7a0f023db71be9e88ea2bd783c381355309c770f0b7d8",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libmmpa.so": "7cd9af70451076933bb4a4b29d024b8a7855939e7aceb60442ba65bb0f160878",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/liberror_manager.so": "7cb3330537e3a4e272f94166e22bfc2968ab93197ced04e7eba84ecd9cb9bae0",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libprofapi.so": "8f74be9b50054013898f800cd7129bfdec5582a6b07cb60cb1e55560abb540e8",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libgraph_base.so": "66ff2f1c2c12a1538f49cb23a395bf5668bedfd6cfbfc153fcc4c42a052e7c5d",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libruntime.so": "f664ffa8934e702e7d8858d7b301bd8c610365f38ce2e12ab9a631114e45b3bb",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libge_common_base.so": "a07889a57a83ebbe0a4cc7756defd64819343d8cdb2a17e23cd2920ffda1b013",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libge_common.so": "cb1210ff6d202c1f2c6330d4b18f238c8c4b97796c61b7f3325c8b5dea31c888",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libge_compiler.so": "b845924a73da527d21a6656c561a820d4a0d05af3a5c1ef5ca07b0104e4c915b",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libacl_op_executor_impl.so": "5d9584146720f09f6f1905978889f06bdf4dd922d45c85e371b8fa2af64cf29d",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libacl_op_executor.so": "2309b3c02a43fbaa8f5064f57b1bdbd0bca9ba0277d7011d8a40659c256d62c3",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libascend_dump.so": "f3a80571ad42109c22d0493623e35b5e6d446486fe284af23edcce615b35fb74",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libmsprofiler.so": "db0f55e479645d83c4bd7f6a4cf77cc697f32a8ade37b00907599f769f535e37",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libunified_dlog.so": "9a37ffc6df70c91a19448bb39c2ed607b57a141f87478cf5049b1a6c621b9ec1",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libc_sec.so": "964df648e2dc8e04516b3919e259ca5a933d48dc3c4b88d4d558e7de212342e6",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libacl_rt.so": "e7018c0522116713331d1d6ca9935ded976e394a9e5af4066159e52f9782fbfa",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libhccl_compat.so": "b786e42aa4123c29d6037bc80fe608b367e1a5946c8127bbfbd0d7456a5d6973",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libhcomm.so": "36f7cc559ff5a76aae022bc24ab5ca83ae0ca1eadf38b8e8555e5c706bc13d4d",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libgraph.so": "888d8b9576df0383890e8a29739891b9453af8f0b446191a4368c6f86a1ee3b6",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libge_runner.so": "c6efdd7dd56af059acafe68c7cf4f0e5d90ffa5ae10ed2a0928cb69d31e36ffd",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libacl_op_compiler.so": "b9ec0ebf68264468605c0b17fb47586411b2cde4fe91ac70cd01dc2006d3c66a",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libascendcl.so": "1c06b9c4a8910cfb585eab4ed0066bc09e28a0cf273dfcb15458f7cc49a78cea",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libhccl.so": "ba20f5f304904b0958c8f18056bfccdbde9059a591a02d803b6a4a6a25e7cb6d",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_ras.so": "4ef4862b1c4f20037b84ed3afdde3c907b18bd459852a09ceacf6de1a22ffc86",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libdummy_tls.so": "9b7ca13bfa379069601d3541c2adf04bacfbf1b75d63e427c86dc8bf4bf76380",
+    "/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libopapi_oam.so": "c4bd82763ebb67dfb517575047480b24e8e6c134b6ee840a3f3bff2a443371f3"
+  },
+  "npu_initialized_before": false,
+  "npu_initialized_after": false,
+  "mapped_davinci_devices": [],
+  "device_execution": false
+}

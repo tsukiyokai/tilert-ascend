@@ -1,0 +1,97 @@
+--- parent/local_chain.py
++++ candidate/local_chain.py
+@@ -19,7 +19,7 @@
+ )
+ 
+ 
+-CHAIN_SHA = "609c973e92b61637f7768ccefb0fbd84b2e13fcfb066b241a41cd5d8376fdd0f"
++CHAIN_SHA = "6a326292287a17254b48376400e1b852093ebfe10fbf228938336693402aa528"
+ INDEXED_SHA = "8deff750464e23bb871302c8626b86d37b60c28a00991d550f95dfcfd47ecb6f"
+ SHARED_SHA = "64108f6f1eefe286c999dd11fa52bd1cef90535c0888f89915c209cbcc5c8a7c"
+ BLOCKS = 24
+@@ -219,7 +219,7 @@
+         self.prepared = Prepared(
+             chain_library, self.norm, slots, [ffn.gamma, ffn.gate, ffn.bias],
+             ffn.weights, self.bridge, self.body, ffn.shared,
+-            self.selected if self.mode == "shared" else None, geometry,
++            topk[:self.rows].view(self.rows, 1, 2048), geometry,
+             (*self.scalars, self.input_norm.variance_epsilon, ffn.epsilon),
+             self.sync, self.mode != "shared")
+         self.values = {
+@@ -232,6 +232,10 @@
+             **ffn_values(torch, self.bridge, self.body, self.rows),
+             "body.active_list": self.body[20],
+         }
++
++        self.persistent_topk = topk[:self.rows].view(self.rows, 1, 2048)
++        if self.mode != "shared":
++            self.values["attention.topk"] = self.persistent_topk
+ 
+     def separate(self):
+         normalized, retained = self.input_norm(self.norm[0], self.norm[1])
+@@ -270,6 +274,9 @@
+                 "attention_partial": signature(self.partial),
+                 "bridge": [signature(value) for value in self.bridge],
+                 "body": [signature(value) for value in self.body],
++                "persistent_topk": signature(self.persistent_topk),
++                "internal_topk": (None if self.mode == "shared"
++                                  else signature(self.selected)),
+                 "attention_mode": self.mode, "sync": self.sync}
+ 
+ 
+@@ -330,12 +337,13 @@
+         "tp_geometry": 16, "tp_collectives_executed": 0,
+         "tp_contract": "Both reductions are identity; local attention partial directly feeds FFN",
+         "successor_contract": "Layer7 consumes layer6 combined output and separately retained FFN residual",
+-        "topk_contract": "Layer6 selected indices copy into the actual persistent owner before shared layer7",
++        "topk_contract": "The indexed candidate writes directly into the persistent owner; only the separate parent copies its selected indices",
+         "reference": "Original input norm module and npu_dynamic_quant; indexed8deff/shared64108; completeFFN381",
+         "input_rstd_contract": "Candidate diagnostic only; no invented original-rstd oracle",
+         "same_addresses": True, "fresh_output_poison": True,
+-        "poison_contract": "Floating NaN in both arms; non-address integers 1/2; bounded indices/counts zero",
++        "poison_contract": "Floating NaN; non-address integers 1/2; bounded indices/counts zero except active_list fills 1 with E=0",
+         "timing": False,
++        "topk_write_guards": "Candidate internal slice stays at 2; inactive persistent rows stay at -1",
+         "cache_signatures": cache_signatures, "topk_signature": topk_signature,
+         "prepared": [], "cases": [], "pass": False,
+     }
+@@ -374,15 +382,28 @@
+                     for case in cases:
+                         poison(case.values, 1 if arm == "separate" else 2)
+                         case.norm[5].fill_(float("nan"))
++                        case.body[20].fill_(1)
++                        case.body[20][0].zero_()
++                    if arm == "combined":
++                        first.selected.fill_(2)
++                    topk_copy_calls = 0
+                     topk_copies = {}
+                     for number, case in zip((6, 7), cases):
+                         getattr(case, arm)()
+-                        if number == 6:
++                        if number == 6 and arm == "separate":
+                             publish_topk(case.selected, topk, rows)
++                            topk_copy_calls += 1
+                         topk_copies[f"layer{number}.persistent_topk"] = topk[:rows].clone()
+                     consumers = {"consumer.output": second.bridge[10].clone(),
+                                  "consumer.retained": second.bridge[1].clone()}
+                     torch.npu.synchronize()
++                    inactive_unchanged = bool((topk[rows:] == -1).all())
++                    if not inactive_unchanged:
++                        raise RuntimeError("The selector overwrote inactive persistent rows")
++                    if arm == "combined":
++                        internal_unchanged = bool((first.selected == 2).all())
++                        if not internal_unchanged:
++                            raise RuntimeError("The candidate still writes the internal top-k slice")
+                     values = {f"layer{number}.{name}": snapshot(torch, value)
+                               for number, case in zip((6, 7), cases)
+                               for name, value in case.values.items()}
+@@ -407,6 +428,9 @@
+                 record = {"rows": rows, "iteration": iteration,
+                           "checks": checks, "pass": passed,
+                           "inputs": inputs.witness(), "candidate_diagnostics": diagnostics,
++                          "unused_internal_topk_unchanged": internal_unchanged,
++                          "inactive_persistent_rows_unchanged": inactive_unchanged,
++                          "candidate_topk_copy_calls": topk_copy_calls,
+                           "outputs": {name: tensor_witness(torch, value)
+                                       for name, value in observed["combined"].items()
+                                       if name.startswith("consumer.")}}

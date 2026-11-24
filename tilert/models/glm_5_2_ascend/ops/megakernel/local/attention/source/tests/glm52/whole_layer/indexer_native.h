@@ -1,0 +1,195 @@
+#ifndef TESTS_GLM52_WHOLE_LAYER_INDEXER_NATIVE_H
+#define TESTS_GLM52_WHOLE_LAYER_INDEXER_NATIVE_H
+
+#include "kernel_operator.h"
+#include "indexer_contract.h"
+#include "indexer_tiling.h"
+
+#define EVENT_ID4 4U
+#define EVENT_ID5 5U
+#include "attention/quant_lightning_indexer/op_kernel/arch22/quant_lightning_indexer_kernel_arch22.h"
+#include "attention/lightning_indexer/op_kernel/arch22/lightning_indexer_kernel_arch22.h"
+#undef EVENT_ID4
+#undef EVENT_ID5
+
+namespace whole_layer_indexer {
+
+struct DeviceArgs {
+    using Address = GM_ADDR;
+    Address query, new_keys, weights, query_scale, new_key_scale, slots;
+    Address key_cache, scale_cache, query_lengths, key_lengths, page_table;
+    Address scratch, output;
+};
+
+__aicore__ inline void EndPhase(AscendC::TPipe& pipe)
+{
+#ifdef K112722_NO_DDR_EXTRA
+    AscendC::PipeBarrier<PIPE_ALL>();
+#elif defined(K112176_PHASE_DSB_OPT)
+    if ASCEND_IS_AIV {
+        AscendC::PipeBarrier<PIPE_ALL>();
+        AscendC::DataSyncBarrier<AscendC::MemDsbT::DDR>();
+    } else {
+        AscendC::PipeBarrier<PIPE_ALL>();
+    }
+#else
+    AscendC::PipeBarrier<PIPE_ALL>();
+    AscendC::DataSyncBarrier<AscendC::MemDsbT::DDR>();
+#endif
+    AscendC::SyncAll<false>();
+    pipe.Reset();
+}
+
+template <typename Key, bool Quantized>
+__aicore__ inline void WriteCache(AscendC::TPipe& pipe, const Config& config,
+                                  const DeviceArgs& args)
+{
+    if ASCEND_IS_AIV {
+        AscendC::TBuf<AscendC::TPosition::VECCALC> buffer;
+        pipe.InitBuffer(buffer, 768);
+        auto key = buffer.Get<Key>();
+        auto scale = buffer.Get<half>()[128];
+        auto slot_values = buffer.Get<int64_t>()[64];
+        AscendC::GlobalTensor<Key> source, cache;
+        AscendC::GlobalTensor<half> source_scale, cache_scale;
+        AscendC::GlobalTensor<int64_t> slots;
+        source.SetGlobalBuffer((__gm__ Key*)args.new_keys);
+        cache.SetGlobalBuffer((__gm__ Key*)args.key_cache);
+        slots.SetGlobalBuffer((__gm__ int64_t*)args.slots);
+
+
+        AscendC::DataCopyPad(slot_values, slots,
+            {1, config.rows * 8U, 0, 0, 0}, {false, 0, 0, 0});
+        const auto slot_event = pipe.FetchEventID(AscendC::HardEvent::MTE2_S);
+        AscendC::SetFlag<AscendC::HardEvent::MTE2_S>(slot_event);
+        AscendC::WaitFlag<AscendC::HardEvent::MTE2_S>(slot_event);
+        if constexpr (Quantized) {
+            source_scale.SetGlobalBuffer((__gm__ half*)args.new_key_scale);
+            cache_scale.SetGlobalBuffer((__gm__ half*)args.scale_cache);
+        }
+        const auto load_event = pipe.FetchEventID(AscendC::HardEvent::MTE2_MTE3);
+        const auto store_event = pipe.FetchEventID(AscendC::HardEvent::MTE3_MTE2);
+        for (uint32_t row = AscendC::GetBlockIdx(); row < config.rows;
+             row += 2 * config.blocks) {
+            const int64_t slot = slot_values.GetValue(row);
+            if (slot < 0 || slot >= static_cast<int64_t>(config.pages) * kPage) {
+                continue;
+            }
+            AscendC::DataCopy(key, source[row * kHeadDim], kHeadDim);
+            if constexpr (Quantized) {
+                AscendC::DataCopyPad(scale, source_scale[row],
+                    {1, sizeof(half), 0, 0, 0}, {false, 0, 0, 0});
+            }
+            AscendC::SetFlag<AscendC::HardEvent::MTE2_MTE3>(load_event);
+            AscendC::WaitFlag<AscendC::HardEvent::MTE2_MTE3>(load_event);
+            AscendC::DataCopy(cache[slot * kHeadDim], key, kHeadDim);
+            if constexpr (Quantized) {
+                AscendC::DataCopyPad(cache_scale[slot], scale,
+                    {1, sizeof(half), 0, 0, 0});
+            }
+            AscendC::SetFlag<AscendC::HardEvent::MTE3_MTE2>(store_event);
+            AscendC::WaitFlag<AscendC::HardEvent::MTE3_MTE2>(store_event);
+        }
+    }
+}
+
+__aicore__ inline QLITilingData QuantTiling(const Config& config)
+{
+    QLITilingData tiling{};
+    tiling.bSize = 1;
+    tiling.tSize = tiling.s1Size = config.rows;
+    tiling.n2Size = 1;
+    tiling.gSize = kHeads;
+    tiling.s2Size = config.table_pages * kPage;
+    tiling.sparseCount = kTopK;
+    tiling.keyStride0 = kPage * kHeadDim;
+    tiling.keyDequantScaleStride0 = kPage;
+    tiling.usedCoreNum = config.blocks;
+    tiling.blockSize = kPage;
+    tiling.maxBlockNumPerBatch = config.table_pages;
+    tiling.sparseMode = 3;
+    return tiling;
+}
+
+__aicore__ inline LITilingData Bf16Tiling(const Config& config)
+{
+    LITilingData tiling{};
+    tiling.bSize = 1;
+    tiling.n2Size = 1;
+    tiling.gSize = kHeads;
+    tiling.s1Size = config.rows;
+    tiling.s2Size = config.table_pages * kPage;
+    tiling.sparseCount = kTopK;
+    tiling.usedCoreNum = config.blocks;
+    tiling.blockSize = kPage;
+    tiling.maxBlockNumPerBatch = config.table_pages;
+    tiling.sparseMode = 3;
+    tiling.preTokens = tiling.nextTokens = INT64_MAX;
+    tiling.returnValue = 0;
+    tiling.keyStride0 = kPage * kHeadDim;
+    return tiling;
+}
+
+
+__aicore__ inline void Forward(AscendC::TPipe& pipe, const Config& config,
+                               const DeviceArgs& args,
+                               bool cache_written = false,
+                               uint64_t tree_mask_gm = 0)
+{
+    if (!cache_written) {
+        if (config.quantized) {
+            WriteCache<int8_t, true>(pipe, config, args);
+        } else {
+            WriteCache<bfloat16_t, false>(pipe, config, args);
+        }
+        EndPhase(pipe);
+    }
+#ifndef K112120_CLEAN_DCCI
+    AscendC::GlobalTensor<int32_t> query_lengths;
+    AscendC::GlobalTensor<int32_t> key_lengths;
+    query_lengths.SetGlobalBuffer((__gm__ int32_t*)args.query_lengths, 1);
+    key_lengths.SetGlobalBuffer((__gm__ int32_t*)args.key_lengths, 1);
+    AscendC::DataCacheCleanAndInvalid<int32_t,
+        AscendC::CacheLine::SINGLE_CACHE_LINE,
+        AscendC::DcciDst::CACHELINE_OUT>(query_lengths);
+    AscendC::DataCacheCleanAndInvalid<int32_t,
+        AscendC::CacheLine::SINGLE_CACHE_LINE,
+        AscendC::DcciDst::CACHELINE_OUT>(key_lengths);
+    if ((tree_mask_gm & ~1ULL) != 0ULL && (tree_mask_gm & 1ULL) == 0ULL) {
+        AscendC::GlobalTensor<uint32_t> mask_gm;
+        mask_gm.SetGlobalBuffer((__gm__ uint32_t*)tree_mask_gm, 32);
+        AscendC::DataCacheCleanAndInvalid<uint32_t,
+            AscendC::CacheLine::SINGLE_CACHE_LINE,
+            AscendC::DcciDst::CACHELINE_OUT>(mask_gm[0]);
+        AscendC::DataCacheCleanAndInvalid<uint32_t,
+            AscendC::CacheLine::SINGLE_CACHE_LINE,
+            AscendC::DcciDst::CACHELINE_OUT>(mask_gm[16]);
+    }
+#endif
+    if (config.quantized) {
+        const auto tiling = QuantTiling(config);
+        using Type = QLICommon::QLIType<int8_t, int8_t, int32_t, true,
+            QLICommon::LI_LAYOUT::TND, QLICommon::LI_LAYOUT::PA_BSND>;
+        QLIKernel::QLIPreload<Type> selector;
+        selector.Init(args.query, args.key_cache, args.weights, args.query_scale,
+            args.scale_cache, args.query_lengths, args.key_lengths,
+            args.page_table, args.output, args.scratch, &tiling, &pipe);
+        selector.vectorService.treeMaskGmAddr_ = tree_mask_gm;
+        selector.Process();
+    } else {
+        const auto tiling = Bf16Tiling(config);
+        using Type = LICommon::LIType<bfloat16_t, bfloat16_t, int32_t, true,
+            LICommon::LI_LAYOUT::TND, LICommon::LI_LAYOUT::PA_BSND, false>;
+        LIKernel::LightningIndexerKernel<Type> selector;
+        selector.Init(args.query, args.key_cache, args.weights,
+            args.query_lengths, args.key_lengths, args.page_table, args.output,
+            nullptr, args.scratch, &tiling, &pipe);
+        selector.vectorService.treeMaskGmAddr_ = tree_mask_gm;
+        selector.Process();
+    }
+    EndPhase(pipe);
+}
+
+}
+
+#endif

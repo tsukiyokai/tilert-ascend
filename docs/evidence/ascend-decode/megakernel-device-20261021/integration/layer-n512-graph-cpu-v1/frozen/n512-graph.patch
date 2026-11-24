@@ -1,0 +1,118 @@
+--- parent/local_chain_graph.py
++++ candidate/local_chain_graph.py
+@@ -14,6 +14,7 @@
+     signature, snapshot, source_identity, successor_inputs, tensor_witness,
+ )
+ from local_chain_views import poison, strict_checks
++from down_tiling import check_down_tiling
+ 
+ 
+ class Observation:
+@@ -23,6 +24,7 @@
+         self.torch, self.cases, self.inputs = torch, cases, inputs
+         self.topk, self.caches = topk, caches
+         self.calls = 0
++        self.topk_copy_calls = 0
+         self.capture_stream = None
+         self.launch_modes = []
+         self.topk_copies = {
+@@ -39,8 +41,9 @@
+                 self.launch_modes.append(case.mode)
+             else:
+                 case.separate()
+-            if number == 6:
++            if number == 6 and not combined:
+                 publish_topk(case.selected, self.topk, self.inputs.rows)
++                self.topk_copy_calls += 1
+             self.topk_copies[f"layer{number}.persistent_topk"].copy_(
+                 self.topk[:self.inputs.rows])
+         for target, source in zip(self.output,
+@@ -70,6 +73,8 @@
+             case.norm[5].fill_(float("nan"))
+             case.body[20].fill_(1)
+             case.body[20][0].zero_()
++        if integer == 2:
++            self.cases[0].selected.fill_(2)
+         poison(self.topk_copies, integer)
+         poison(self.consumers, integer)
+ 
+@@ -137,7 +142,7 @@
+     cache_signatures = {name: signature(value) for name, value in caches.items()}
+     topk_signature = signature(topk)
+     report = {
+-        "scope": "Official ACLGraphWrapper: two local layer launches plus persistent top-k copy and immediate consumers; eager separate parents as oracle",
++        "scope": "Official ACLGraphWrapper: two N512 local layer launches with direct persistent top-k and immediate consumers; eager separate parents as oracle",
+         "script": source_identity(run_local_graph),
+         "component_fixture": source_identity(LayerCase),
+         "actual_decoder_class": source_identity(type(layers[0])),
+@@ -157,6 +162,7 @@
+         "input_rstd_contract": "Candidate diagnostic; excluded from strict oracle",
+         "cache_signatures": cache_signatures, "topk_signature": topk_signature,
+         "timing": False, "captures": [], "cases": [], "pass": False,
++        "down_tiling_checks": [],
+     }
+     destination = args.output / "local-chain-graph.json"
+     current_wrapper = None
+@@ -227,6 +233,7 @@
+                 caller = torch.npu.current_stream(topk.device)
+                 counter = compilation_counter.num_cudagraph_captured
+                 reset(0, observation, 2)
++                copies_before_capture = observation.topk_copy_calls
+                 with context(inputs, CUDAGraphMode.FULL):
+                     enabled = monitor.cudagraph_capturing_enabled
+                     monitor.set_cudagraph_capturing_enabled(True)
+@@ -244,6 +251,8 @@
+                         or observation.calls != 1
+                         or observation.launch_modes != [args.mode, "shared"]):
+                     raise RuntimeError("The official wrapper did not capture the two local launches once")
++                if observation.topk_copy_calls != copies_before_capture:
++                    raise RuntimeError("The candidate graph copied its top-k output")
+                 if ([value.data_ptr() for value in output] != output_pointers
+                         or [value.data_ptr() for value in entry.output] != output_pointers):
+                     raise RuntimeError("Capture lost the preallocated strong output owners")
+@@ -263,6 +272,9 @@
+                     "graph_type": type(entry.aclgraph).__name__,
+                     "graph_tasks": len(entry.aclgraph.tasks),
+                     "workspace_preallocated": True,
++                    "candidate_topk_copy_calls": 0,
++                    "down_tiling": [case.down_tiling_before
++                                    for case in observation.cases],
+                 })
+                 persist()
+                 for iteration in range(args.forward_replays):
+@@ -273,6 +285,10 @@
+                     with context(inputs, CUDAGraphMode.NONE):
+                         observation.execute(False)
+                     expected = collect(torch, observation)
++                    report["down_tiling_checks"].append({
++                        "rows": rows, "iteration": iteration, "arm": "separate",
++                        "layers": [check_down_tiling(torch, case.body[7])
++                                   for case in observation.cases]})
+                     reset(iteration, observation, 2)
+                     calls = observation.calls
+                     modes = observation.launch_modes.copy()
+@@ -285,6 +301,14 @@
+                     if [value.data_ptr() for value in result] != output_pointers:
+                         raise RuntimeError("Replay replaced a preallocated output owner")
+                     actual = collect(torch, observation)
++                    internal_unchanged = bool((first.selected == 2).all())
++                    inactive_unchanged = bool((topk[rows:] == -1).all())
++                    if not internal_unchanged or not inactive_unchanged:
++                        raise RuntimeError("Replay wrote outside the active persistent top-k owner")
++                    report["down_tiling_checks"].append({
++                        "rows": rows, "iteration": iteration, "arm": "combined",
++                        "layers": [check_down_tiling(torch, case.body[7])
++                                   for case in observation.cases]})
+                     inputs.check_owners()
+                     if (owners != [case.owners() for case in observation.cases]
+                             or signature(topk) != topk_signature
+@@ -300,6 +324,9 @@
+                         "rows": rows, "iteration": iteration, "pass": passed,
+                         "checks": checks, "explicit_replay": iteration + 1,
+                         "python_calls_during_replay": 0,
++                        "candidate_topk_copy_calls": 0,
++                        "unused_internal_topk_unchanged": internal_unchanged,
++                        "inactive_persistent_rows_unchanged": inactive_unchanged,
+                         "inputs": inputs.witness(),
+                         "output": tensor_witness(torch, actual["consumer.output"]),
+                         "retained": tensor_witness(torch, actual["consumer.retained"]),

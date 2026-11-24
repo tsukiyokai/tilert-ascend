@@ -1,0 +1,43 @@
+{
+  "scope": "Frozen graph fixture and CPU gate; device execution is scheduled separately by the root runner",
+  "image": "sha256:1910b1acedb37acc42beda9cb695c2cf84c57c81d8dd8b5191a98a97bc6d5fe6",
+  "deployed_directory": "a3-194:/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-graph-v1",
+  "complete_local_snapshot": "/tmp/tilert-decoder212-graph-staging-v1",
+  "proposed_device_command": [
+    "bash",
+    "/home/shanshan/tilert-megakernel-20261021/vendor-hook-decoder212-graph-v1/device_graph_run.sh",
+    "4",
+    "vendor-hook-decoder212-graph-int8-m12-v1",
+    "--mode",
+    "int8",
+    "--forward-widths",
+    "12",
+    "--forward-replays",
+    "2",
+    "--graph-residual-modes",
+    "none",
+    "provided",
+    "--indexed-library",
+    "/evidence/attention-wk-m12-build-v1/whole_layer_indexed_attention.so"
+  ],
+  "source_sha256": {
+    "source/decoder_graph.py": "12bd361bdf9fd8b7890dadafaf701e260eb38124553b8e0a3d477039b2b07016",
+    "source/decoder_storage_graph.py": "a5d655d7ec2bfb1a2c583056fdaf825c7fa2780a3b96eb8db2b4c1c3a28cc853",
+    "source/device_graph.py": "efdc1209c4cf38c9c5f94607770de5d4a3cd276ce1df1f210cd63cd3be3e9e3c",
+    "source/device_graph_run.sh": "a7c7de2814147e1e6283ff9634cba0044f65370a99b88b183c74400049d0dd95",
+    "source/graph_cpu_check.py": "2fa50f9202fab16dba44421cce03de72b93f65fec1f68a15f598a2379a2c537c",
+    "source/stage_graph.py": "32e9d5f1726e9c71720fa7729bb09040470e8d631e6e2fbadf18e3a19bafc6d5",
+    "source/test_decoder_graph.py": "48bea116d240d31ba3691d314a4bb5d82f71e6825bf457bb58da02a5597dc9e7"
+  },
+  "cpu_report_sha256": "74967b8996243edc0df8d3127d95b6b00f9c1e6f809698ea7011db4e9a044eb1",
+  "device_validated": false,
+  "capture_host_observation": "Unchanged TPCuts.reduce records traceback.extract_stack(limit=10) during capture; no tensor-value CPU snapshot occurs until explicit replay completes.",
+  "actual_decoder_class_source": {
+    "relative_path": "vllm/model_executor/models/deepseek_v2.py",
+    "sha256": "96f4f755f62caa85869fb884209e7f8869882ddb6efbd40c930778b27bd3e39d"
+  },
+  "retained_fixture_helper": {
+    "path": "decoder_forward.py",
+    "sha256": "c802ae9371103bb75c1f8f5df39e3c9b2e49d77fd3a86ef23ad5d58781fcb207"
+  }
+}

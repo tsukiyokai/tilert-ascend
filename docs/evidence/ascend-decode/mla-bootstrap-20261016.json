@@ -1,0 +1,87 @@
+{
+  "host": "a3-187",
+  "container": "trt-asc",
+  "timed": false,
+  "profiled": false,
+  "invariant": "For one valid key and finite query, each head's latent output equals that key's value.",
+  "before_mla_sha256": "431c496d6e84300b90236592bd2938b50133b158f9622b60d149e41a62162b9c",
+  "after_mla": {
+    "path": "/home/shanshan/trt-asc/src/TileRT-Ascend/tilert/models/glm_5_2_ascend/ops/mla.py",
+    "sha256": "85e412d99f41ce6b1716304062a8faad6ec24dc60cb3d7acf3216367ff18cdf7"
+  },
+  "differential_cases": {
+    "early_binding_without_pre_kernel_cpu_reads": {
+      "log": {
+        "path": "/home/shanshan/trt-asc/logs/mla-producer-early-no-read-20261016.log",
+        "sha256": "0ff7c25987439bd7e0a3310e69ab69b95126362d96760e4a8a5ada41f9cbd244"
+      },
+      "results": [
+        {
+          "single_key_before_bmm": true,
+          "key_matches_record": true
+        }
+      ]
+    },
+    "late_binding_without_pre_kernel_cpu_reads": {
+      "log": {
+        "path": "/home/shanshan/trt-asc/logs/mla-producer-late-no-read-20261016.log",
+        "sha256": "3c53702f287a8f5f4557326f45b6a18a2186453b75ddd52539a0e36d78603db9"
+      },
+      "results": [
+        {
+          "single_key_before_bmm": false,
+          "key_matches_record": true
+        }
+      ]
+    }
+  },
+  "before_tp16": {
+    "checks": 128,
+    "failed": 32,
+    "report": {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/layer0-boundaries-20261016/comparison.json",
+      "sha256": "a80868e808258e3ae91b42650a0612eb6ee6d86e0df1da6c9e305c8fe8889aca"
+    }
+  },
+  "after_tp16": {
+    "checks": 128,
+    "failed": 0,
+    "status": "pass",
+    "report": {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/layer0-boundaries-20261016-fixed/comparison.json",
+      "sha256": "342e6e1500a6b7830dc6f2d51198f794b31099d6734a6fbdf0bb26d08e1ca653"
+    }
+  },
+  "diagnostic_environment": {
+    "TORCH_DEVICE_BACKEND_AUTOLOAD": "0",
+    "ASCEND_LAUNCH_BLOCKING": "1",
+    "ACL_OP_INIT_MODE": "1",
+    "OMP_NUM_THREADS": "1"
+  },
+  "reproducer_sources": [
+    {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/mla-producer-early-no-read-20261016.py",
+      "sha256": "b43950d0b1f04d30868f4587026bf46c096802c81eaaabf93345304c94a05709"
+    },
+    {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/mla-producer-late-no-read-20261016.py",
+      "sha256": "eb60683fae8321e9c18a44a53571a7cf9407d039fd049f9ef7faad3c0a41f154"
+    },
+    {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/layer0-boundaries-20261016.py",
+      "sha256": "6ed00823d5ba69c14079f8dba739a6cafa601ad3a266e63f71ec8ab8743d2a8b"
+    },
+    {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/layer0-boundaries-fixed-20261016.py",
+      "sha256": "d72dcae7555182155fefd1e1fb6ed4e89a044b008fcf25f40e518b657bdb6df7"
+    },
+    {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/layer0-compare-20261016.py",
+      "sha256": "f27334a3ba30729d5ad426e164c6485af62498f291d61d97565041a76d93c52e"
+    },
+    {
+      "path": "/home/shanshan/trt-asc/experiments/glm52/layer0-compare-fixed-20261016.py",
+      "sha256": "d510aa13de816d20a2970a9fd8310858529bd3858c6ae4000ccc594ebe0b3306"
+    }
+  ]
+}

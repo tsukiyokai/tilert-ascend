@@ -1,0 +1,51 @@
+--- v1/kshift_check.py
++++ v2/kshift_check.py
+@@ -16,6 +16,27 @@
+         return list(range(12))
+     return [((11 - i if column_tile & 1 else i) + (column_tile // 2) * 2) % 12
+             for i in range(12)]
++
++
++def retain_raw_outputs(torch, accumulators, projection, path):
++    """Persist all physical output rows before validating the active row."""
++    values = {"accumulators": accumulators, "projection": projection}
++    saved, summary = {}, {}
++    for name, value in values.items():
++        owned = value.detach().cpu().contiguous().clone()
++        finite = torch.isfinite(owned)
++        guard = owned[1:].view(torch.uint8) == 0xa5
++        saved[name] = owned
++        saved[name + "_finite"] = finite
++        saved[name + "_guard_bytes_equal"] = guard
++        summary[name] = {
++            "tensor": check.tensor_identity(torch, owned),
++            "nonfinite_active_coordinates": (~finite[:1]).nonzero().tolist(),
++            "finite_elements_per_row": finite.sum(dim=1).tolist(),
++            "guard_different_bytes": int((~guard).sum()),
++        }
++    torch.save(saved, path)
++    return {"dump": check.file_identity(path), "outputs": summary}
+ 
+ 
+ def main():
+@@ -123,13 +144,19 @@
+                 torch.npu.synchronize()
+                 all_acc = accumulators.cpu().clone()
+                 all_bf16 = output.cpu().clone()
++                name = "shifted" if shifted else "natural"
++                raw = retain_raw_outputs(
++                    torch, all_acc, all_bf16,
++                    args.output / f"wk-kshift-raw-{name}-r{repeat}.pt")
++                raw.update(arm=name, repeat=repeat)
++                report.setdefault("raw_calls", []).append(raw)
++                persist()
+                 if not (bool((all_acc[1:].view(torch.uint8) == 0xa5).all())
+                         and bool((all_bf16[1:].view(torch.uint8) == 0xa5).all())):
+                     raise RuntimeError("Kernel overwrote the fifteen guard rows after M1")
+                 actual_acc, actual_bf16 = all_acc[:1], all_bf16[:1]
+                 if not torch.isfinite(actual_acc).all() or not torch.isfinite(actual_bf16).all():
+                     raise RuntimeError("Kernel left nonfinite output elements")
+-                name = "shifted" if shifted else "natural"
+                 case = {"arm": name, "repeat": repeat, "fifteen_guard_rows_unchanged": True,
+                         "accumulators": check.tensor_identity(torch, actual_acc),
+                         "projection": check.tensor_identity(torch, actual_bf16),

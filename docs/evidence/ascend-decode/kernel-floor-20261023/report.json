@@ -1,0 +1,107 @@
+{
+  "status": "pass",
+  "created_at": "2026-10-22T17:41:33.503719+00:00",
+  "command": [
+    "/usr/local/bin/python3",
+    "/tree/tests/glm52/bench_kernel_floor.py",
+    "--output",
+    "/out/floor/report.json",
+    "--device",
+    "0"
+  ],
+  "hostname": "devserver-hps-41f23766-00036.novalocal",
+  "device": 0,
+  "calls": 50,
+  "warmup": 50,
+  "batches": 20,
+  "hidden": 6144,
+  "scope": "one die, one rank, shared with another tenant",
+  "issue_note": "calls are back to back with one synchronize per batch",
+  "results": [
+    {
+      "operation": "add_1_element",
+      "median_us": 11.50008,
+      "min_us": 10.61764,
+      "p90_us": 12.75432
+    },
+    {
+      "operation": "add_1_row",
+      "median_us": 11.61928,
+      "min_us": 10.96226,
+      "p90_us": 12.64172
+    },
+    {
+      "operation": "add_4_rows",
+      "median_us": 11.56588,
+      "min_us": 10.69524,
+      "p90_us": 12.93392
+    },
+    {
+      "operation": "rms_norm_1_row",
+      "median_us": 32.66724,
+      "min_us": 32.0275,
+      "p90_us": 34.3106
+    },
+    {
+      "operation": "index_select_1_row",
+      "median_us": 13.00734,
+      "min_us": 12.0897,
+      "p90_us": 14.27518
+    },
+    {
+      "operation": "empty_like_1_row",
+      "median_us": 4.882300000000001,
+      "min_us": 4.8122,
+      "p90_us": 4.985
+    },
+    {
+      "operation": "foreach_add_1_row",
+      "median_us": 52.15804,
+      "min_us": 49.249019999999994,
+      "p90_us": 54.36042
+    },
+    {
+      "operation": "add_8_rows",
+      "median_us": 11.906490000000002,
+      "min_us": 10.875459999999999,
+      "p90_us": 12.94692
+    },
+    {
+      "operation": "foreach_add_8_rows",
+      "median_us": 51.41521,
+      "min_us": 50.18606,
+      "p90_us": 54.04982
+    },
+    {
+      "operation": "add_32_rows",
+      "median_us": 11.83628,
+      "min_us": 10.75144,
+      "p90_us": 12.4005
+    },
+    {
+      "operation": "foreach_add_32_rows",
+      "median_us": 51.752219999999994,
+      "min_us": 50.62628,
+      "p90_us": 53.38118
+    },
+    {
+      "operation": "cast_round_trip_8_rows",
+      "median_us": 26.96531,
+      "min_us": 25.81766,
+      "p90_us": 29.13538
+    },
+    {
+      "operation": "scale_then_add_8_rows",
+      "median_us": 27.634929999999997,
+      "min_us": 26.237659999999998,
+      "p90_us": 29.78782
+    },
+    {
+      "operation": "fused_axpy_8_rows",
+      "median_us": 15.08342,
+      "min_us": 13.655959999999999,
+      "p90_us": 15.595040000000001
+    }
+  ],
+  "combine_bit_exact": true
+}

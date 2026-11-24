@@ -1,0 +1,94 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 1393308..9f34beb 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -21,9 +21,8 @@ find_package(Torch REQUIRED)
+ 
+ run_python(TORCH_VERSION
+   "import torch; print(torch.__version__)" "Failed to locate torch path")
+-# check torch version is 2.10.0
+-if(NOT ${TORCH_VERSION} VERSION_EQUAL "2.10.0")
+-  message(FATAL_ERROR "Expected PyTorch version 2.10.0, but found ${TORCH_VERSION}")
++if(NOT (TORCH_VERSION VERSION_EQUAL "2.10.0" OR TORCH_VERSION VERSION_EQUAL "2.12.0"))
++  message(FATAL_ERROR "Expected PyTorch version 2.10.0 or 2.12.0, but found ${TORCH_VERSION}")
+ endif()
+ 
+ set(RUN_MODE "npu" CACHE STRING "cpu/sim/npu")
+diff --git a/csrc/build_aclnn.sh b/csrc/build_aclnn.sh
+index fb71ee5..725b039 100755
+--- a/csrc/build_aclnn.sh
++++ b/csrc/build_aclnn.sh
+@@ -267,7 +267,7 @@ log_selected_ops
+ 
+   log "build command: bash build.sh --pkg --ops=\"${CUSTOM_OPS}\" --soc=\"${SOC_ARG}\""
+   log "building custom ops ${CUSTOM_OPS} for ${SOC_VERSION}"
+-  bash build.sh --pkg --ops="${CUSTOM_OPS}" --soc="${SOC_ARG}"
++  bash build.sh --pkg --ops="${CUSTOM_OPS}" --soc="${SOC_ARG}" --build-type=Release
+   log "build.sh finished"
+ 
+   custom_ops_install_dir="${ROOT_DIR}/vllm_ascend/_cann_ops_custom"
+diff --git a/csrc/cmake/config.cmake b/csrc/cmake/config.cmake
+index 12ddb70..430923f 100644
+--- a/csrc/cmake/config.cmake
++++ b/csrc/cmake/config.cmake
+@@ -258,8 +258,8 @@ if (BUILD_OPEN_PROJECT)
+                 --enable_experimental ${ENABLE_EXPERIMENTAL}
+                 --enable_ccache ${ENABLE_CCACHE}
+                 --cann_3rd_lib_path ${CANN_3RD_LIB_PATH}
+-                --build_type ${BUILD_TYPE}
+-                --version ${VERSION}
++                --build_type "${CMAKE_BUILD_TYPE}"
++                --version "${VERSION}"
+                 --enable_oom ${ENABLE_OOM}
+                 RESULT_VARIABLE result
+                 OUTPUT_STRIP_TRAILING_WHITESPACE
+diff --git a/pyproject.toml b/pyproject.toml
+index dc72e26..6fa50c0 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -18,15 +18,15 @@ requires = [
+     "setuptools>=64",
+     "setuptools-scm>=8",
+     "transformers==5.14.1",
+-    "torch-npu==2.10.0.post4",
+-    "torch==2.10.0",
+-    "torchvision",
++    "torch-npu==2.12.0",
++    "torch==2.12.0",
++    "torchvision==0.27.0",
+     "wheel",
+     "msgpack",
+     "quart",
+     "numba",
+     "xgrammar>=0.1.30",
+-    "fastapi<0.124.0",
++    "fastapi>=0.133.0,<0.137.0",
+     "fastokens==0.2.0",
+     "compressed_tensors>=0.11.0",
+     "arctic-inference==0.1.1",
+diff --git a/requirements.txt b/requirements.txt
+index f02aa1e..1ac5ed1 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -13,10 +13,10 @@ pandas
+ psutil
+ setuptools>=64
+ setuptools-scm>=8
+-torch==2.10.0
+-torch-npu==2.10.0.post4
+-torchvision==0.25.0
+-torchaudio==2.10.0
++torch==2.12.0
++torch-npu==2.12.0
++torchvision==0.27.0
++torchaudio==2.11.0
+ triton-ascend==3.2.2
+ wheel
+ xgrammar>=0.1.30
+@@ -36,5 +36,5 @@ memcache_hybrid==1.2.0
+ 
+ arctic-inference==0.1.1
+ transformers==5.14.1
+-fastapi<0.124.0
++fastapi>=0.133.0,<0.137.0
+ fastokens==0.2.0

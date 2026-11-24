@@ -1,0 +1,554 @@
+{
+  "scope": "MLA tail with eight-row output DMA batches",
+  "queued_producer": true,
+  "queued_producer_scope": "all three arms",
+  "provenance": {
+    "utc": "2026-10-21T11:09:19.696564+00:00",
+    "host": "8d7663b5fa05",
+    "platform": "Linux-5.10.0-182.0.0.95.r2220_157.hce2.aarch64-aarch64-with-glibc2.34",
+    "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+    "device_name": "Ascend910_9392",
+    "device_properties": "_NPUDeviceProperties(name='Ascend910_9392', total_memory=62740MB, cube_core_num=24, vector_core_num=48, uuid=00cc0800-d001-0000-0000-60109ef917a8, L2_cache_size=192MB)",
+    "visible_devices": null,
+    "versions": {
+      "CANN": "9.2.0",
+      "RUNTIME": "9.2.0",
+      "DRIVER": "9.2.0"
+    },
+    "library_sha256": "1aed70d67aaa8ffe400a6200095cd4771434f6bed8c8510ba0d2006f22c77658",
+    "source_sha256": {
+      "mla_tail.h": "ca13e082d775154ea9357c2b12968da0a234b180f2ce6621675602414a8c7e9e",
+      "mla_tail_native.h": "4f7bd2fc2305b939955297dfb8d0703969e763f5458c7ab10de90a594dc1f790",
+      "mla_tail_kernel.cpp": "7de92574fbec6f88e0334a2da3964e2330a3e8cb7544841e04071429c2a6b364",
+      "mla_tail_tiling.cpp": "3bffe7fe39cb268da01a88625c335ad3940efc71da6fd86760c5d6ba31938ff2",
+      "mla_tail_binding.cpp": "657d06c4ff97b44067b9abdcd4643874f685e3493aa80380c9d9133e8c1d98f4",
+      "build_so.sh": "88391958cf0d678786e86601259c4227710a6fc5a2929d2a0294b7de6925bf7f",
+      "check.py": "5a87fd247dc5cc5575bb01b60abd5211e3f7bbf41f8f273cac3333b0b3271c89"
+    },
+    "fixture_sha256": "e098dcce49abdc3c00dfe7e6dc20020c122aaab42cd9b8246511c72ce0bd5bb7"
+  },
+  "candidate_library_sha256": "4a9304fe9342733d3078943592f2671083400d086a1b6eecb54baca2794beabb",
+  "harness_sha256": "c0919e6fd4dd13d49aacd7cef9fa43148992b01a26811ea6c9cd7c1fa916ce90",
+  "candidate_build_manifest": {
+    "kind": "dequant",
+    "cann_root": "/opt/ascend/cann-9.2.0",
+    "compiler": "2026-09-15T22:19:26+08:00 clang version 15.0.5 (clang-5c68a1cb1231 flang-5c68a1cb1231)\nTarget: aarch64-unknown-linux-gnu\nThread model: posix\nInstalledDir: /opt/ascend/cann-9.2.0/bin\n",
+    "cann_versions": {
+      "opp/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+      "opp/built-in/op_impl/ai_core/tbe/kernel/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nops_version=9.2.0\nadk_version=9.2.0\n",
+      "share/info/dvpp/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+      "share/info/mstx/version.info": "[PACKAGE]\nName=mindstudio-TX\nVersion=26.2.0\n",
+      "share/info/dflow-executor/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_hcomm_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+      "share/info/oam_tools/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=9.0\"\nrequired_package_bisheng-compiler_version=\">=9.0\"\nrequired_package_ops-cv_version=\">=9.0\"\nrequired_package_ops-math_version=\">=9.0\"\nrequired_package_ops-legacy_version=\">=9.0\"\nrequired_package_metadef_version=\">=9.0\"\nrequired_package_hcomm_version=\">=9.0\"\nrequired_package_hccl_version=\">=9.0\"\nrequired_package_ge-executor_version=\">=9.0\"\nrequired_package_ge-compiler_version=\">=9.0\"\nrequired_package_tbe-tik_version=\">=9.0\"\nrequired_package_asc-devkit_version=\">=9.0\"\nrequired_package_graph-autofusion_version=\">=9.0\"\nrequired_package_opbase_version=\">=9.0\"\nrequired_package_ops-nn_version=\">=9.0\"\nrequired_package_ops-transformer_version=\">=9.0\"\ntimestamp=20260917_111743075\n",
+      "share/info/graph_autofusion/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_asc-devkit_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+      "share/info/pto_isa/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_opbase_version=\"9.2\"\nrequired_package_asc-devkit_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_asc-tools_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+      "share/info/pypto/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_driver_version=\">=25.5.0\"\ntimestamp=20260917_111743075\n",
+      "share/info/mindstudio-sanitizer/version.info": "[PACKAGE]\nName=mindstudio-sanitizer\nVersion=26.2.0",
+      "share/info/ops_transformer/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_hcomm_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_ge-compiler_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_ops-nn_version=\">=8.5\"\nrequired_package_hccl_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+      "share/info/runtime/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\n",
+      "share/info/platform_profiler/version.info": "[PACKAGE]\nName=platform-profiler\nVersion=1.0.0",
+      "share/info/mindstudio-opprof/version.info": "[PACKAGE]\nName=mindstudio-opprof\nVersion=26.2.0",
+      "share/info/ops_cv/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_ops-legacy_version=\">=8.5\"\nrequired_package_ops-math_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+      "share/info/mindstudio-debugger/version.info": "[PACKAGE]\nName=mindstudio-debugger\nVersion=26.2.0\n",
+      "share/info/ncs/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nrequired_package_acl-extend_version=\"9.2\"\nrequired_package_aoe_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_opbase_version=\"9.2\"\nrequired_package_runtime_version=\"9.2\"\nrequired_package_tbe-tik_version=\"9.2\"\n",
+      "share/info/bisheng-compiler/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\n",
+      "share/info/asc-devkit/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_tbe-tik_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+      "share/info/ops_math/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_ops-legacy_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+      "share/info/ops_nn/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_ops_legacy_version=\">=8.5\"\nrequired_package_ops_math_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+      "share/info/mspti/version.info": "[PACKAGE]\nName=mindstudio-profiler-tools-interface\nVersion=26.2.0",
+      "share/info/opbase/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+      "share/info/ge-compiler/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_hcomm_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+      "share/info/mindstudio-operator-tools/version.info": "[PACKAGE]\nName=mindstudio-operator-tools\nVersion=26.2.0",
+      "share/info/simulator/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\n",
+      "share/info/ge-executor/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_hcomm_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+      "share/info/pyACL/version.info": "Version=9.2.0\n",
+      "share/info/ms_fmk_transplt/version.info": "[PACKAGE]\nName=mindstudio-transplt\nVersion=26.2.0",
+      "share/info/ops_ras/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_opbase_version=\">=8.5\"\nrequired_package_bisheng-compiler_version=\">=8.5\"\nrequired_package_asc-devkit_version=\">=8.5\"\nrequired_package_asc-tools_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_ge-executor_version=\">=8.5\"\nrequired_package_ops_legacy_version=\">=8.5\"\nrequired_package_ops_math_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+      "share/info/ops_legacy/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nops_version=9.2.0\nadk_version=9.2.0\n",
+      "share/info/hixl/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\nrequired_package_hcomm_version=\">=8.5\"\ntimestamp=20260917_111743075\n",
+      "share/info/acl_extend/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+      "share/info/ascendnpu-ir/version.info": "Version=1.2.0\n",
+      "share/info/asc-tools/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_asc-devkit_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+      "share/info/aoe/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nrequired_package_acl-extend_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_ncs_version=\"9.2\"\nrequired_package_opbase_version=\"9.2\"\nrequired_package_runtime_version=\"9.2\"\nrequired_package_tbe-tik_version=\"9.2\"\n",
+      "share/info/operator_cmp/version.info": "[PACKAGE]\nName=mindstudio-accucmp\nVersion=26.2.0",
+      "share/info/msmemscope/version.info": "[PACKAGE]\nName=mindstudio-memscope\nVersion=26.2.0\n",
+      "share/info/metadef/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+      "share/info/msboost/version.info": "[PACKAGE]\nName=mindstudio-boost\nVersion=26.2.0\n",
+      "share/info/msprof/version.info": "[PACKAGE]\nName=mindstudio-profiler\nVersion=26.2.0",
+      "share/info/hccl/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_hcomm_version=\">=8.5\"\nrequired_package_runtime_version=\">=8.5\"\nrequired_package_metadef_version=\">=8.5\"\ntimestamp=20260917_111743075\nhost_only=false\n",
+      "share/info/test-ops/version.info": "Version=9.2.0\n",
+      "share/info/msserviceprofiler/version.info": "[PACKAGE]\nName=mindstudio-serviceprofiler\nVersion=26.2.0",
+      "share/info/pto_as/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_opbase_version=\"9.2\"\nrequired_package_asc-devkit_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_asc-tools_version=\"9.2\"\nrequired_package_ge-compiler_version=\"9.2\"\ntimestamp=20260917_111743075\n",
+      "share/info/hcomm/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\ntimestamp=20260917_111743075\nhost_only=true\n",
+      "share/info/tbe-tik/version.info": "Version=9.2.0\nversion_dir=cann\ntimestamp=20260917_111743075\nrequired_opp_abi_version=tbe-tik\nrequired_package_ge-compiler_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_runtime_version=\"9.2\"\n",
+      "compiler/version.info": "Version=9.2.0\nversion_dir=cann\nrequired_package_runtime_version=\"9.2\"\nrequired_package_ge-executor_version=\"9.2\"\nrequired_package_metadef_version=\"9.2\"\nrequired_package_bisheng-compiler_version=\"9.2\"\nrequired_package_tbe-tik_version=\"9.2\"\ntimestamp=20260917_111743075\n"
+    },
+    "sources": {
+      "/workspace/tests/glm52/mla_tail/mla_tail.h": "ca13e082d775154ea9357c2b12968da0a234b180f2ce6621675602414a8c7e9e",
+      "/workspace/tests/glm52/mla_tail/mla_tail_native.h": "4f7bd2fc2305b939955297dfb8d0703969e763f5458c7ab10de90a594dc1f790",
+      "/workspace/tests/glm52/mla_tail/build_profile.sh": "6aae8d35028b7b7de1122403b4321e7402c1c6a46fe25dbaa9a2f714617f2e11",
+      "/workspace/tests/glm52/mla_tail/profile_provenance.py": "7d20e6c4fe24f7cdb91942c8780db0c28af6ba6065c10f0b5975f1894fcaa921",
+      "/workspace/tests/glm52/mla_tail/mla_tail_dequant.h": "007592c6f33952c637ab708fd27afab87caaecd77cf3326f88aec310881037eb",
+      "/workspace/tests/glm52/mla_tail/mla_tail_dequant_kernel.cpp": "eb0da5bc27d78539e2e9f4045ddce1a344ea313181712b4196d0e5ce90d5f22a",
+      "/workspace/tests/glm52/mla_tail/build_dequant.sh": "0d6c8e64d21d6a89d3cb0978e4d3bde6f8ae3200da2b8faae983e9e1e8fd99f6",
+      "/workspace/tests/glm52/mla_tail/dequant_check.py": "898ced0f816e71443745da30c023a0ef492b10f8a8118cc306d40d1ac06acb81"
+    },
+    "source_snapshot": "/workspace/tests/glm52/mla_tail/build-dequant/sources",
+    "sdk_headers": {
+      "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/basic_api/dav_c220/kernel_operator_sys_var_impl.h": "3f3326c799a4b0758f425cac3691f3dcf14e2ec04424761ecdac7485cd12a624",
+      "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/basic_api/dav_c220/kernel_operator_sync_impl.h": "695bb46047f853dd4219c731ee25cf831ea964fde778e03e07df298d3ae72c1e",
+      "/opt/ascend/cann-9.2.0/aarch64-linux/asc/include/basic_api/kernel_operator_cache_intf.h": "b86d9a711cf3353475608ad80d52603dde09547a6b86320ec14c440cb07b0ee4",
+      "/opt/ascend/cann-9.2.0/aarch64-linux/asc/include/adv_api/matmul/matmul_intf.h": "ce35e100b3903095b95328834e7cee188d5df9712c51ecd99a89858b99ce77a2"
+    },
+    "artifacts": {
+      "/workspace/tests/glm52/mla_tail/build-dequant/mla_tail_dequant.so": "4a9304fe9342733d3078943592f2671083400d086a1b6eecb54baca2794beabb"
+    }
+  },
+  "cases": [
+    {
+      "rows": 1,
+      "capacity": 16,
+      "blocks": 8,
+      "pass": true,
+      "checks": [
+        {
+          "replay": 0,
+          "comparisons": {
+            "ordinary": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 6144
+            },
+            "vendor": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 6144
+            }
+          }
+        },
+        {
+          "replay": 1,
+          "comparisons": {
+            "ordinary": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 6144
+            },
+            "vendor": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 6144
+            }
+          }
+        },
+        {
+          "replay": 2,
+          "comparisons": {
+            "ordinary": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 6144
+            },
+            "vendor": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 6144
+            }
+          }
+        },
+        {
+          "replay": 3,
+          "comparisons": {
+            "ordinary": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 6144
+            },
+            "vendor": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 6144
+            }
+          }
+        }
+      ],
+      "timing": null,
+      "bias_kind": 0,
+      "scratch_bytes_per_arm": 17318400
+    },
+    {
+      "rows": 2,
+      "capacity": 16,
+      "blocks": 8,
+      "pass": true,
+      "checks": [
+        {
+          "replay": 0,
+          "comparisons": {
+            "ordinary": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 12288
+            },
+            "vendor": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 12288
+            }
+          }
+        },
+        {
+          "replay": 1,
+          "comparisons": {
+            "ordinary": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 12288
+            },
+            "vendor": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 12288
+            }
+          }
+        },
+        {
+          "replay": 2,
+          "comparisons": {
+            "ordinary": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 12288
+            },
+            "vendor": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 12288
+            }
+          }
+        },
+        {
+          "replay": 3,
+          "comparisons": {
+            "ordinary": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 12288
+            },
+            "vendor": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 12288
+            }
+          }
+        }
+      ],
+      "timing": null,
+      "bias_kind": 0,
+      "scratch_bytes_per_arm": 17318400
+    },
+    {
+      "rows": 12,
+      "capacity": 16,
+      "blocks": 8,
+      "pass": true,
+      "checks": [
+        {
+          "replay": 0,
+          "comparisons": {
+            "ordinary": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 73728
+            },
+            "vendor": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 73728
+            }
+          }
+        },
+        {
+          "replay": 1,
+          "comparisons": {
+            "ordinary": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 73728
+            },
+            "vendor": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 73728
+            }
+          }
+        },
+        {
+          "replay": 2,
+          "comparisons": {
+            "ordinary": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 73728
+            },
+            "vendor": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 73728
+            }
+          }
+        },
+        {
+          "replay": 3,
+          "comparisons": {
+            "ordinary": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 73728
+            },
+            "vendor": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 73728
+            }
+          }
+        }
+      ],
+      "timing": null,
+      "bias_kind": 0,
+      "scratch_bytes_per_arm": 17318400
+    },
+    {
+      "rows": 32,
+      "capacity": 32,
+      "blocks": 8,
+      "pass": true,
+      "checks": [
+        {
+          "replay": 0,
+          "comparisons": {
+            "ordinary": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 196608
+            },
+            "vendor": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 196608
+            }
+          }
+        },
+        {
+          "replay": 1,
+          "comparisons": {
+            "ordinary": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 196608
+            },
+            "vendor": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 196608
+            }
+          }
+        },
+        {
+          "replay": 2,
+          "comparisons": {
+            "ordinary": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 196608
+            },
+            "vendor": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 196608
+            }
+          }
+        },
+        {
+          "replay": 3,
+          "comparisons": {
+            "ordinary": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 196608
+            },
+            "vendor": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 196608
+            }
+          }
+        }
+      ],
+      "timing": null,
+      "bias_kind": 0,
+      "scratch_bytes_per_arm": 17859584
+    }
+  ],
+  "pass": true
+}

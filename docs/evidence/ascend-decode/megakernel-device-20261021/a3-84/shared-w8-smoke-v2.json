@@ -1,0 +1,436 @@
+{
+  "timestamp_utc": "2026-10-21T10:56:47.788318+00:00",
+  "scope": "shared W8A8 TP16 shard from quantized input through local down",
+  "reference": "stock CANN QuantMatmul INT32 -> DequantSwigluQuant mode0 dynamic -> QuantMatmul BF16",
+  "arguments": {
+    "library": "tests/glm52/shared_w8/build-v3/shared_w8.so",
+    "device": "npu:0",
+    "widths": [
+      1,
+      2,
+      12,
+      32
+    ],
+    "blocks": 24,
+    "replays": 4,
+    "seed": 20261021,
+    "iterations": 30,
+    "timing_pairs": 5,
+    "queued_producer": true,
+    "no_timing": true,
+    "output": "logs/shared-w8-smoke-v2.json"
+  },
+  "torch": "2.12.0+cu130",
+  "torch_npu": "2.12.0",
+  "device": "_NPUDeviceProperties(name='Ascend910_9392', total_memory=62740MB, cube_core_num=24, vector_core_num=48, uuid=00cc0800-d001-0000-0000-60109ef917a8, L2_cache_size=192MB)",
+  "library_sha256": "57a8e4eb7be7d8c74d4792df3c8a1a351a12bb8e904185928465124a80a0157e",
+  "harness_sha256": "9bfce0094580a3077c4b6606bdf4bdb4fe71ca22df300e946fd9fc84dc3a2bf1",
+  "build_manifest": {
+    "timestamp_utc": "2026-10-21T10:54:56.784713+00:00",
+    "cann_root": "/opt/ascend/cann-9.2.0",
+    "compiler": "/opt/ascend/cann-9.2.0/bin/bisheng",
+    "compiler_version": "2026-09-15T22:19:26+08:00 clang version 15.0.5 (clang-5c68a1cb1231 flang-5c68a1cb1231)\nTarget: aarch64-unknown-linux-gnu\nThread model: posix\nInstalledDir: /opt/ascend/cann-9.2.0/bin\n",
+    "source_sha256": {
+      "sources/mla_tail/mla_tail.h": "ca13e082d775154ea9357c2b12968da0a234b180f2ce6621675602414a8c7e9e",
+      "sources/mla_tail/mla_tail_dequant.h": "f0557964f075db75987e5df8fff87d28718595ac1f8c654a292e47d34bc3c362",
+      "sources/mla_tail/mla_tail_native.h": "69e31791e869b65a1046486901cea028abe38c75c0e8bcba0e324e1ccab282c6",
+      "sources/shared_w8/build.sh": "b1507825940f03da0737ee8c61c8fdcad92eb9785bd511f457268b28966d5b9f",
+      "sources/shared_w8/shared_w8.h": "b0415c8b661e8376acc97d577915a1192546dddbc5092425b250c8c628ba3389",
+      "sources/shared_w8/shared_w8_host.cpp": "2a401fab77f70327f410c44393216901fa09ccf829ce8170a06d36a0fbcd2274",
+      "sources/shared_w8/shared_w8_kernel.cpp": "7d6f4c873fed3e36ddac664536800fbd0ba7d77dccce8757c4451d520be50bcd"
+    },
+    "library_sha256": "57a8e4eb7be7d8c74d4792df3c8a1a351a12bb8e904185928465124a80a0157e"
+  },
+  "cases": [
+    {
+      "rows": 1,
+      "capacity": 16,
+      "blocks": 24,
+      "scratch_bytes": 17369600,
+      "pass": true,
+      "checks": [
+        {
+          "replay": 0,
+          "pass": true,
+          "boundaries": {
+            "gate_up_int32": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 256
+            },
+            "middle_codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 128
+            },
+            "middle_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 1
+            },
+            "output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 6144
+            }
+          }
+        },
+        {
+          "replay": 1,
+          "pass": true,
+          "boundaries": {
+            "gate_up_int32": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 256
+            },
+            "middle_codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 128
+            },
+            "middle_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 1
+            },
+            "output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 6144
+            }
+          }
+        },
+        {
+          "replay": 2,
+          "pass": true,
+          "boundaries": {
+            "gate_up_int32": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 256
+            },
+            "middle_codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 128
+            },
+            "middle_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 1
+            },
+            "output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 6144
+            }
+          }
+        },
+        {
+          "replay": 3,
+          "pass": true,
+          "boundaries": {
+            "gate_up_int32": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 256
+            },
+            "middle_codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 128
+            },
+            "middle_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 1
+            },
+            "output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 6144
+            }
+          }
+        }
+      ],
+      "timing": null,
+      "vendor_weight_formats": [
+        29,
+        29
+      ]
+    },
+    {
+      "rows": 2,
+      "pass": false,
+      "checks": [
+        {
+          "replay": 0,
+          "pass": true,
+          "boundaries": {
+            "gate_up_int32": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 512
+            },
+            "middle_codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 256
+            },
+            "middle_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2
+            },
+            "output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 12288
+            }
+          }
+        },
+        {
+          "replay": 1,
+          "pass": true,
+          "boundaries": {
+            "gate_up_int32": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 512
+            },
+            "middle_codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 256
+            },
+            "middle_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2
+            },
+            "output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 12288
+            }
+          }
+        },
+        {
+          "replay": 2,
+          "pass": true,
+          "boundaries": {
+            "gate_up_int32": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 512
+            },
+            "middle_codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 256
+            },
+            "middle_scale": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 2
+            },
+            "output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 12288
+            }
+          }
+        },
+        {
+          "replay": 3,
+          "pass": false,
+          "boundaries": {
+            "gate_up_int32": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 512
+            },
+            "middle_codes": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 256
+            },
+            "middle_scale": {
+              "pass": false,
+              "exact": false,
+              "bitwise_equal": false,
+              "bitwise_different_bytes": 1,
+              "max_abs": 4.76837158203125e-07,
+              "rms": 3.3717478231665154e-07,
+              "different_elements": 1,
+              "elements": 2
+            },
+            "output": {
+              "pass": true,
+              "exact": true,
+              "bitwise_equal": true,
+              "bitwise_different_bytes": 0,
+              "max_abs": 0.0,
+              "rms": 0.0,
+              "different_elements": 0,
+              "elements": 12288
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "pass": false,
+  "error": "RuntimeError: shared W8A8 differential failed"
+}

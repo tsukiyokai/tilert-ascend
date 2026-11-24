@@ -1,0 +1,93 @@
+{
+  "intervention_sha256": "43e94a9ad1539e3ff0088e9e21019e4f58b26604ef4ce1a2c2077a99860084a6",
+  "scope": "Read-only installed-source contract inspection; no NPU launch",
+  "sources": [
+    {
+      "path": "/workspace/src/vllm-unified/vllm/model_executor/models/deepseek_v2.py",
+      "sha256": "5cd8c8883b18cac91979781a8b191703781971d8c59cb9823167cd3e0dfc2408",
+      "fragments": [
+        {
+          "first_line": 284,
+          "last_line": 288,
+          "code": "    def forward(self, x):\n        gate_up, _ = self.gate_up_proj(x)\n        x = self.act_fn(gate_up)\n        x, _ = self.down_proj(x)\n        return x"
+        },
+        {
+          "first_line": 1404,
+          "last_line": 1412,
+          "code": "        # Fully Connected\n        hidden_states, residual = self.post_attention_layernorm(hidden_states, residual)\n        if self.use_sequence_parallel_moe:\n            hidden_states = self.mlp(\n                hidden_states,\n                already_sequence_parallel=True,\n            )\n        else:\n            hidden_states = self.mlp(hidden_states)"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/linear.py",
+      "sha256": "7654777d9252fc6a3cc2c95f92b67a42410a0de24a5912ef20e807cf64ab74e6",
+      "fragments": [
+        {
+          "first_line": 295,
+          "last_line": 302,
+          "code": "    def forward(\n        self,\n        input_,\n    ) -> torch.Tensor | tuple[torch.Tensor, Parameter | None]:\n        if self.custom_op is not None:\n            return self.custom_op.apply(input_)\n\n        return super().forward(input_)"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/src/vllm-unified/vllm/model_executor/layers/linear.py",
+      "sha256": "7a9b90937865fa35d955ffc2017f23d3997bc4fba954e2667870b1b4854a38e0",
+      "fragments": [
+        {
+          "first_line": 603,
+          "last_line": 624,
+          "code": "    def forward(\n        self,\n        input_,\n    ) -> torch.Tensor | tuple[torch.Tensor, Parameter | None]:\n        bias = self.bias if not self.skip_bias_add else None\n\n        # Matrix multiply.\n        output_parallel = self.quant_method.apply(self, input_, bias)\n\n        if self.gather_output and self.tp_size > 1:\n            # All-gather across the partitions.\n            output = tensor_model_parallel_all_gather(output_parallel)\n        else:\n            output = output_parallel\n\n        if not self.return_bias:\n            return output\n        output_bias = self.bias if self.skip_bias_add else None\n        return output, output_bias\n\n    def extra_repr(self) -> str:\n        s = f\"in_features={self.input_size}\""
+        }
+      ]
+    },
+    {
+      "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/quantization/method_adapters.py",
+      "sha256": "341d93cae5774414a810444a50eb752cd425330156f404d1b9a10381e6bc0138",
+      "fragments": [
+        {
+          "first_line": 209,
+          "last_line": 224,
+          "code": "    def apply(\n        self,\n        layer: torch.nn.Module,\n        x: torch.Tensor | PreparedLinearInput | tuple[torch.Tensor, torch.Tensor],\n        bias: torch.Tensor | None = None,\n    ) -> torch.Tensor:\n        if isinstance(layer, RowParallelLinear):\n            if layer.prefix.find(\"o_proj\") != -1 and oproj_tp_enable():\n                tp_rank = get_otp_group().rank_in_group\n            elif layer.prefix.find(\"down_proj\") != -1 and mlp_tp_enable():\n                tp_rank = get_mlp_tp_group().rank_in_group\n            else:\n                tp_rank = get_tensor_model_parallel_rank()\n        else:\n            tp_rank = 0\n        return self.quant_method.apply(layer, x, bias, tp_rank)"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/quantization/methods/w8a8/w8a8_dynamic.py",
+      "sha256": "47444be0a5017d012401685d89134200f39c5e706f7941797fa7ecfccf1bba0d",
+      "fragments": [
+        {
+          "first_line": 60,
+          "last_line": 78,
+          "code": "@register_scheme(\"W8A8_DYNAMIC\", \"linear\")\nclass AscendW8A8DynamicLinearMethod(AscendLinearScheme):\n    \"\"\"Linear method for Ascend W8A8_DYNAMIC.\n\n    This scheme uses dynamic per-token quantization for activations\n    and per-channel quantization for weights.\n    \"\"\"\n\n    act_quant_type: torch.dtype = torch.int8\n    weight_switch_gather_specs = (WeightSwitchGatherSpec(\"weight\"),)\n    weight_switch_output_gather_specs = (\n        WeightSwitchGatherSpec(\"weight\", gather_dim=1),\n        WeightSwitchGatherSpec(\"weight_scale\"),\n        WeightSwitchGatherSpec(\"weight_offset\"),\n    )\n    supports_weight_switch = True\n\n    def __init__(self):\n        pass"
+        },
+        {
+          "first_line": 104,
+          "last_line": 134,
+          "code": "    def apply(\n        self,\n        layer: torch.nn.Module,\n        x: torch.Tensor | PreparedLinearInput,\n        bias: torch.Tensor | None = None,\n        tp_rank: int | None = 0,\n    ) -> torch.Tensor:\n        if isinstance(x, PreparedLinearInput):\n            quantized_x = x.quantized\n            assert x.scale is not None\n            pertoken_scale = x.scale\n            output_dtype = x.output_dtype\n        else:\n            quantized_x, pertoken_scale = torch_npu.npu_dynamic_quant(x, dst_type=self.act_quant_type)\n            output_dtype = x.dtype\n        need_unsqz = False\n        if pertoken_scale.dim() == 2:\n            need_unsqz = True\n            quantized_x = quantized_x.squeeze(dim=1)\n            pertoken_scale = pertoken_scale.squeeze(dim=1)\n        output = torch_npu.npu_quant_matmul(\n            quantized_x,\n            layer.weight,\n            layer.weight_scale,\n            pertoken_scale=pertoken_scale,\n            bias=bias if self.act_quant_type == torch.int8 else None,\n            output_dtype=output_dtype,\n        )\n        if need_unsqz:\n            output = output.unsqueeze(dim=1)\n        return output"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/quantization/prepared_linear_input.py",
+      "sha256": "1f70a1aacdfd6c5627b22628355333646c5cefb8f62dcda28c88d8759996610e",
+      "fragments": [
+        {
+          "first_line": 24,
+          "last_line": 30,
+          "code": "@dataclass(frozen=True)\nclass PreparedLinearInput:\n    \"\"\"Quantized input prepared before a multistream scheduling barrier.\"\"\"\n\n    quantized: torch.Tensor\n    scale: torch.Tensor | None\n    output_dtype: torch.dtype"
+        }
+      ]
+    },
+    {
+      "path": "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/layernorm.py",
+      "sha256": "d2fda42ad99935725c98b9505a8d2e94696d9cdb2906e5cb2f1e37bf21fb27bc",
+      "fragments": [
+        {
+          "first_line": 83,
+          "last_line": 103,
+          "code": "    def forward_oot(\n        self,\n        x: torch.Tensor,\n        residual: torch.Tensor | None = None,\n    ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:\n        import torch_npu\n\n        if residual is not None:\n            import vllm_ascend.vllm_ascend_C  # type: ignore[import-untyped]  # noqa: F401, PLC0415\n\n            enable_custom_op()\n            x, _, residual = torch.ops._C_ascend.npu_add_rms_norm_bias(\n                x, residual, self.weight, self.bias, self.variance_epsilon\n            )\n            return x, residual\n\n        x, residual = torch_npu.npu_rms_norm(x, self.weight, self.variance_epsilon)\n        if self.bias_loaded:\n            x.add_(self.bias)\n\n        return x"
+        }
+      ]
+    }
+  ]
+}

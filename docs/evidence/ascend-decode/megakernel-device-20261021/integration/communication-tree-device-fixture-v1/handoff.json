@@ -1,0 +1,61 @@
+{
+  "ready": true,
+  "fixture_local": "/tmp/tilert-megakernel-validation-20261021/communication-tree-device-v1",
+  "fixture_host": "a3-194",
+  "fixture_remote": "/home/shanshan/tilert-megakernel-20261021/communication-tree-device-v1",
+  "manifest_sha256": "18d57bafa45fb629965916d0d380e014686dd322c575c469ee6327caa4cc98e8",
+  "frozen_inputs_sha256": "8c8d7a1623c552b7d5ea42f4f5f780c4c22ae936697a5afd7a11b30a640319c0",
+  "frozen_count": 43,
+  "cpu_report": "/tmp/tilert-megakernel-validation-20261021/communication-tree-device-cpu-v2/report.json",
+  "cpu_report_sha256": "30898f1ca654512e7ae62247388a143929c272ee049ff20f2fe63d30ccc52348",
+  "cpu_report_remote": "/home/shanshan/tilert-megakernel-20261021/communication-tree-device-cpu-v2/report.json",
+  "cpu_image": "sha256:1910b1acedb37acc42beda9cb695c2cf84c57c81d8dd8b5191a98a97bc6d5fe6",
+  "parent": {
+    "relative": "parent_probe.so",
+    "sha256": "1be5fa375d0d6e7a2a6dcf7f5265cf886317108398aeec940e2b1ce0de04e22f"
+  },
+  "candidate": {
+    "relative": "candidate_probe.so",
+    "sha256": "a0bd2462e2f999280720fa5060466159a2eab13ce5541639ddc7afef35a45ebf"
+  },
+  "driver": {
+    "relative": "communication_tree_devicecheck.py",
+    "sha256": "9973741bbf0ecb5ab330607733ad8895d68bd8d8a38904e58dea572496c0d5b3"
+  },
+  "driver_arguments": [
+    "--parent",
+    "/candidate/parent_probe.so",
+    "--candidate",
+    "/candidate/candidate_probe.so",
+    "--candidate-sha256",
+    "a0bd2462e2f999280720fa5060466159a2eab13ce5541639ddc7afef35a45ebf",
+    "--endpoint",
+    "tcp://127.0.0.1:28765",
+    "--physical-devices",
+    "4",
+    "6",
+    "7",
+    "--output",
+    "/evidence/communication-tree-three-rank-v1"
+  ],
+  "shmem_libraries": {
+    "libshmem.so": "cf9b853bb7612ce1e44853b1d16851016c4a2c279bdc9bb32da0640bc411f532",
+    "libshmem_utils.so": "743ea9661dbc6707fba5030967a22c59ebfdd0daed4884fdff39da12ae008ac0",
+    "aclshmem_bootstrap_config_store.so": "ef9160f3706a7eac573ff0a83160ae2d38579550dd923f45b330f309a33d6541"
+  },
+  "same_shmem_instance_cpu": true,
+  "cpu_driver_contract": true,
+  "no_device_mapping": true,
+  "no_npu_initialization": true,
+  "shmem_initialize_calls_cpu": 0,
+  "required_device_environment": {
+    "HCCL_OP_EXPANSION_MODE": "AIV",
+    "HCCL_DETERMINISTIC": "true",
+    "HCCL_ALGO": null,
+    "HCCL_ALGO_CONFIG": null,
+    "ASCEND_GLOBAL_LOG_LEVEL": "0",
+    "ASCEND_SLOG_PRINT_TO_STDOUT": "0"
+  },
+  "scope": "Root only launches device after fresh3die admission; CPU co-load is not numerical device acceptance",
+  "cpu_v1_failure": "Only CPU launcher omitted host driver mounts; SDK devlib HAL stub was rejected by dependency identity gate. Preserved v1. v2 adds two readonly host library mounts; frozen fixture unchanged."
+}

@@ -1,0 +1,145 @@
+{
+  "created_utc": "2026-10-16T09:58:08.235280+00:00",
+  "implementation": "transformers.GlmMoeDsaDecoderLayer.MTP",
+  "status": "metadata_only",
+  "source_commit": "f554fa57d0a69e7a44ac4f3134d0134b4964e848",
+  "hostname": "liteserver-hps-c180-00044",
+  "versions": {
+    "python": "3.13.13"
+  },
+  "command": [
+    "/root/miniconda3/bin/python3",
+    "tests/glm52/run_mtp_reference.py",
+    "--checkpoint",
+    "/data/shanshan/trt-asc/models/GLM-5.2-w4a8c8",
+    "--metadata-only",
+    "--hf-source",
+    "/home/shanshan/trt-asc/experiments/glm52/hf-reference-source",
+    "--source-commit",
+    "f554fa57d0a69e7a44ac4f3134d0134b4964e848",
+    "--output",
+    "/home/shanshan/trt-asc/experiments/glm52/mtp-reference-metadata"
+  ],
+  "tp_size": 16,
+  "position_convention": "parent",
+  "checks": [
+    {
+      "name": "GlmMoeDsaDecoderLayer.forward_return",
+      "passed": true,
+      "line": 621,
+      "values": [
+        "hidden_states",
+        "topk_indices"
+      ]
+    },
+    {
+      "name": "GlmMoeDsaAttention.forward_return",
+      "passed": true,
+      "line": 453,
+      "values": [
+        "attn_output",
+        "attn_weights",
+        "topk_indices"
+      ]
+    },
+    {
+      "name": "DynamicIndexedLayer.update_indexer",
+      "passed": true
+    }
+  ],
+  "rank_sha256": {},
+  "prefix_files_sha256": {},
+  "scope": "CPU HF oracle and reset replay; native parity pending",
+  "timed": false,
+  "profiled": false,
+  "execution": "M=1 causal rows for each M=1/2/4 input",
+  "rank_layout": "replicated logits, stages, indices and compressed KV",
+  "rounding": "HF expanded BF16 KV and eager attention; FP32 rank-order TP sum; CANN absorbed-MLA and HCCL rounding are not reproduced",
+  "source_sha256": {
+    "tests/glm52/run_mtp_reference.py": "5f94258f2202a0ea30a82635cdfb33a3677ee262117e80672057ee57f4b75bfb",
+    "tilert/models/glm_5_2_ascend/mtp_reference.py": "471fa571e83aef6defae7311457e01ffc369b71b142de1a2fc28b59d32671814",
+    "tilert/models/glm_5_2_ascend/reference.py": "97500e50fa0a71e267486fb7223ce964cadf9a04fda19310839c227d76b6fe3e",
+    "tilert/models/glm_5_2_ascend/reference_weights.py": "a1fa15d2c15b6e0c819996ab44d6bccdb1a6189fb6c6a684867f812deec3dbf1"
+  },
+  "checkpoint_sha256": {
+    "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+    "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+    "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+  },
+  "input_sha256": null,
+  "contract": {
+    "layer": 78,
+    "hf_layer_index": 0,
+    "tp_size": 16,
+    "position_convention": "parent",
+    "epsilon": 1e-05,
+    "embedding": "model.embed_tokens; PP1 without compression",
+    "head": "layer-78 shared_head.head, independently read",
+    "index_cache_dtype": "BF16",
+    "tensors": {
+      "rot.weight": {
+        "file": "rot.safetensors",
+        "shape": [
+          6144,
+          6144
+        ],
+        "dtype": "BF16"
+      },
+      "model.embed_tokens.weight": {
+        "file": "quant_model_weights-00094-of-00095.safetensors",
+        "shape": [
+          154880,
+          6144
+        ],
+        "dtype": "BF16"
+      },
+      "model.layers.78.enorm.weight": {
+        "file": "quant_model_weights-00093-of-00095.safetensors",
+        "shape": [
+          6144
+        ],
+        "dtype": "BF16"
+      },
+      "model.layers.78.hnorm.weight": {
+        "file": "quant_model_weights-00093-of-00095.safetensors",
+        "shape": [
+          6144
+        ],
+        "dtype": "BF16"
+      },
+      "model.layers.78.eh_proj.weight": {
+        "file": "quant_model_weights-00093-of-00095.safetensors",
+        "shape": [
+          6144,
+          12288
+        ],
+        "dtype": "BF16"
+      },
+      "model.layers.78.shared_head.norm.weight": {
+        "file": "quant_model_weights-00093-of-00095.safetensors",
+        "shape": [
+          6144
+        ],
+        "dtype": "BF16"
+      },
+      "model.layers.78.shared_head.head.weight": {
+        "file": "quant_model_weights-00093-of-00095.safetensors",
+        "shape": [
+          154880,
+          6144
+        ],
+        "dtype": "BF16"
+      }
+    },
+    "arithmetic": "HF expanded BF16 KV; independent CPU TP16 adapters"
+  },
+  "copied_hf_source_sha256": {
+    "/home/shanshan/trt-asc/experiments/glm52/hf-reference-source/modeling_glm_moe_dsa.py": "adb8317a21716b01273046e46c807f14f0dbaf035af59b60d52bd6bc3007cf72",
+    "/home/shanshan/trt-asc/experiments/glm52/hf-reference-source/configuration_glm_moe_dsa.py": "5a81164be746307431ad998f789b6b0bca20eb4c14a726552eb3730268413997",
+    "/home/shanshan/trt-asc/experiments/glm52/hf-reference-source/cache_utils.py": "ee7902fbd031ed332b5e26d07756a33f09b5c90a435b8363b9330876dc33ce0e"
+  },
+  "torch_imported": false,
+  "numerical_execution": false,
+  "checks_total": 3,
+  "checks_failed": 0
+}

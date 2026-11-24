@@ -1,0 +1,64 @@
+{
+  "scope": "K128 versus accepted N1024/K64; 32 common scratch addresses and private immutable body[7]",
+  "local_path": "/tmp/tilert-megakernel-validation-20261021/ffn-down-k128-timing-v1",
+  "remote_host": "a3-194",
+  "remote_path": "/home/shanshan/tilert-megakernel-20261021/tests/glm52/whole_layer/ffn_down_k128/timing-v1",
+  "container_path": "/workspace/tests/glm52/whole_layer/ffn_down_k128/timing-v1",
+  "source_manifest_sha256": "2c159253196069a8ffc7a28e3f030e2c12d719ec8807b030306afe2efad4d6ab",
+  "benchmark_sha256": "b85e7d69bca2ae1636617ae44fe06d27f3aa1f5134cd8eaffaebc08b396589fe",
+  "candidate_library_sha256": "0842cd0f3a946c39aefb3e926e01eb870a61d6d1ad8689aebcf52a1b3daa2b65",
+  "control_library_sha256": "bbd52e425a1e94bb199e464e3bf6001c4420e8238afe993e8741e38af50b77ef",
+  "cpu_checks": {
+    "x86_contracts": 8,
+    "arm_contracts": 8,
+    "actual_torch_libraries": 5,
+    "cpu_preflight": true,
+    "exit_code": 0,
+    "npu_initialized": false,
+    "device_pass_field": "false until a device run completes"
+  },
+  "geometry": {
+    "rows": 12,
+    "blocks": 24,
+    "active_experts": 65,
+    "banks": 16,
+    "calls_per_graph": 16,
+    "samples_per_arm_per_arena": 30,
+    "graph_replays_per_event_sample": 30,
+    "owner_arenas": 2,
+    "common_scratch_addresses": 32,
+    "private_scratch": "body[7]"
+  },
+  "expected_device_checks": {
+    "raw_boundaries": 19200,
+    "event_tails": 360,
+    "active_tables": 696,
+    "full_tilings": 20
+  },
+  "tiling_oracle_sha256": "e38658450524412748944004eba186c93736305b2584cb6dc221ec89a3c446af",
+  "command": "source /opt/ascend/cann-9.2.0/set_env.sh\nbash /workspace/tests/glm52/whole_layer/ffn_down_k128/timing-v1/bench_run.sh device /workspace/logs/ffn-down-k128-timing-v1",
+  "numerical_prerequisites": [
+    "integration/vendor-hook-decoder212-ffn-down-k128-wide-v1-a3-194/summary.json",
+    "integration/ffn-down-k128-hot-b24-v1-a3-194/summary.json",
+    "integration/ffn-down-k128-hot-b16-v1-a3-194/summary.json"
+  ],
+  "device_execution": "Root only; not run by this agent",
+  "files": {
+    "bench.py": "b85e7d69bca2ae1636617ae44fe06d27f3aa1f5134cd8eaffaebc08b396589fe",
+    "bench_abi_probe.cpp": "1d073c9cea901f22967254addb54eb23edd5f6b91b367209fbd4f701e4503e79",
+    "bench_run.sh": "8ad11afe3330c0edc685bc267963aa22c706ec32244a26674e682eef1d566294",
+    "benchmark.patch": "877812227c5b5e3a0bf93b2b1a45339244b98da6ec4da367bd52df197e936451",
+    "cpu-preflight/arm-command.json": "1f3ff21130bc68e1b96b4b193b4097611ab1acfcb321ae94ad807f2d791b54d6",
+    "cpu-preflight/arm-command.txt": "b91fed13a6bd08043a576c08e07fdc3a776f80d63a28154231531b80f87a617e",
+    "cpu-preflight/arm-contract-coload.log": "b5c71c3f6ab98cd8cf71b31e15ce4e97dcb8bd7ea6aaa232dc217c41e398c0b7",
+    "cpu-preflight/coload/result.json": "9889944c4272d2f3474caeee27d9d7b45376dd6c7ea07f35560d171b94c71974",
+    "cpu-preflight/exit-code.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "cpu-preflight/x86-contract.log": "3a0b03fa0e8e7bac41a3fa548cdda660a9efe31c8ea50c1bf91e14c0fb46b34c",
+    "expected-tilings.json": "e38658450524412748944004eba186c93736305b2584cb6dc221ec89a3c446af",
+    "manifest.json": "2c159253196069a8ffc7a28e3f030e2c12d719ec8807b030306afe2efad4d6ab",
+    "parent/bench.py": "477b3172c12134c2e87545ca7195ed49ad0160d257e0bf8550c15ae66b2519db",
+    "parent/bench_abi_probe.cpp": "05a601e34fde28b5e0e273dcc25d37fb9ab80f808232fa1eaa4af716cc6a5449",
+    "prepare_bench.py": "3570688eb29ef1e29357adbc9d2026920f356f2275c73506cce81ea24e8a8793",
+    "test_bench.py": "9c0cfebd2a57355352ff7d8a5c575d09224753a83f7e22582601250d7992f227"
+  }
+}

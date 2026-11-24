@@ -1,0 +1,141 @@
+{
+  "recorded_at": "2026-10-17T03:02:30+0800",
+  "scope": "Static source contract for one eager, full-prompt, batch1, PP1, TP16 GLM-5.2 prefill; no device execution",
+  "npu_execution": false,
+  "pinned_revisions": {
+    "vllm": "c4df37dfcc7f72ca41cd43801a468526ecf99a2b",
+    "vllm_ascend": "f558b58c177916424ae9dcf9bb8e66c0b9031236"
+  },
+  "checks": [
+    {
+      "source": "/workspace/src/vllm-unified/vllm/v1/worker/kv_connector_model_runner_mixin.py",
+      "first_line": 53,
+      "last_line": 107,
+      "required": [
+        "kv_connector.bind_connector_metadata(scheduler_output.kv_connector_metadata)",
+        "yield output",
+        "if not defer_finalize:",
+        "kv_connector.wait_for_save()",
+        "kv_connector.clear_connector_metadata()"
+      ],
+      "passed": true
+    },
+    {
+      "source": "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/model_runner_v1.py",
+      "first_line": 2639,
+      "last_line": 2689,
+      "required": [
+        "defer_kv_connector_finalize = self.speculative_config is not None",
+        "model_instance=self.model",
+        "self.maybe_get_kv_connector_output(",
+        "hidden_states = self._model_forward("
+      ],
+      "passed": true
+    },
+    {
+      "source": "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/model_runner_v1.py",
+      "first_line": 2143,
+      "last_line": 2162,
+      "required": [
+        "target_hidden_states = hidden_states[:num_scheduled_tokens]"
+      ],
+      "passed": true
+    },
+    {
+      "source": "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/model_runner_v1.py",
+      "first_line": 2981,
+      "last_line": 2999,
+      "required": [
+        "propose_draft_token_ids",
+        "self.finalize_kv_connector()"
+      ],
+      "passed": true
+    },
+    {
+      "source": "/workspace/src/vllm-ascend-unified/vllm_ascend/patch/worker/patch_deepseek_v2.py",
+      "first_line": 440,
+      "last_line": 446,
+      "required": [
+        "hidden_states, _ = self.norm(hidden_states, residual)",
+        "return hidden_states",
+        "DeepseekV2Model.forward = _patched_forward"
+      ],
+      "passed": true
+    },
+    {
+      "source": "/workspace/src/vllm-ascend-unified/vllm_ascend/spec_decode/llm_base_proposer.py",
+      "first_line": 1793,
+      "last_line": 1838,
+      "required": [
+        "self.input_ids[: num_tokens - 1] = target_token_ids[1:]",
+        "self.input_ids[token_indices_to_sample] = next_token_ids",
+        "self._set_positions(num_tokens, target_positions)",
+        "self.hidden_states[:num_tokens] = target_hidden_states.view(num_tokens, -1)"
+      ],
+      "passed": true
+    },
+    {
+      "source": "/workspace/src/vllm-ascend-unified/vllm_ascend/models/deepseek_mtp.py",
+      "first_line": 23,
+      "last_line": 34,
+      "required": [
+        "hidden_states = self.rot(hidden_states)",
+        "return super().forward("
+      ],
+      "passed": true
+    },
+    {
+      "source": "/workspace/src/vllm-unified/vllm/model_executor/models/deepseek_mtp.py",
+      "first_line": 121,
+      "last_line": 144,
+      "required": [
+        "inputs_embeds = self.enorm(inputs_embeds)",
+        "previous_hidden_states = self.hnorm(previous_hidden_states)",
+        "return hidden_states, self.shared_head(hidden_states)"
+      ],
+      "passed": true
+    },
+    {
+      "source": "/workspace/src/vllm-unified/vllm/v1/core/sched/scheduler.py",
+      "first_line": 1446,
+      "last_line": 1451,
+      "required": [
+        "num_spec_tokens_to_schedule = self.num_spec_tokens",
+        "if self.dynamic_sd_lookup is not None"
+      ],
+      "passed": true
+    }
+  ],
+  "source_sha256": {
+    "/workspace/src/vllm-unified/vllm/v1/worker/kv_connector_model_runner_mixin.py": "c201b6f21e100bc6fa56b39b5c3e5b8e52e4a77511d730ca98afccecdc2a1317",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/model_runner_v1.py": "f0a3079900c9b2628437195ef21d0631c747aa1a49b663c1b27fddf379cbf8f5",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/patch/worker/patch_deepseek_v2.py": "eff4dc9ab181b5f3cdbe34e2df71334522093362dba30834f51b8db81b540b9c",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/spec_decode/llm_base_proposer.py": "b4925648562de8cffd7bf678bf695d512c184d70484b949c42a40897793b8b07",
+    "/workspace/src/vllm-ascend-unified/vllm_ascend/models/deepseek_mtp.py": "4ed40eae69848d1fac7c901a1c73b0532a71473a045af1aa79508f9c74be0a2b",
+    "/workspace/src/vllm-unified/vllm/model_executor/models/deepseek_mtp.py": "aae80e30b2dbfd1df41b83f51aaba4722e9f2dc3b4479d2a38ce1e32926fac11",
+    "/workspace/src/vllm-unified/vllm/v1/core/sched/scheduler.py": "8f833ef99943e69802de1b16f6b4b84c2f99d9732767865d9e46a8fa51bf1c79"
+  },
+  "handoff": {
+    "main_rows": "P",
+    "mtp_rows": "P-1",
+    "main_pending": "g0 at position P",
+    "parent": "unrotated main final-norm hidden[P-1], BF16[1,6144]",
+    "parent_bytes_per_rank": 12288,
+    "mtp_seed_inputs": [
+      "g0",
+      "parent",
+      "position P-1"
+    ],
+    "mtp_seed_output": [
+      "draft token",
+      "normalized recycle hidden",
+      "index top-2048"
+    ]
+  },
+  "remaining_device_work": [
+    "observe actual 8K target output and hook shape",
+    "verify all-rank KV and parent completion visibility",
+    "execute MTP seed and target M4 with HF parity"
+  ],
+  "status": "pass"
+}

@@ -1,0 +1,129 @@
+GLM5.2 native shape/topology checks, TileRT 0.1.6.post3
+SHA256 4f9b74ef16e479042616cb43c0389078bd5bd7a3069f4ef63b7d186d8e1f98de
+Addresses are ELF virtual addresses; static host disassembly only.
+Command: objdump -d -C -M intel --no-show-raw-insn libtilert_glm52_rocm.so
+
+0x1cf62: register_glm52_e2e.hip
+0x1f02f: : npes must be 8 (the model is TP8; the collectives support npes 1 or 8)
+0x187a3: : num_mtp must be 0 (plain), 1 (seq-2 verify) or 3 (seq-4 verify)
+0x19d29: glm52 MoE: S must be 1, 2 or 4 (got 
+0x1db75: : max_seq_len out of range (got 
+0x1743d: : ki_cache8/ki_scale/iq_rt8/iq_scale must all be given (fp8 arm) or all omitted
+0x19143: : draft_tokens and next_draft_tokens must not alias
+0x2639b: : x_out must not alias out (unproj_o)
+
+Native code [0x733038, 0x7330b4)
+  733038:	lea    rax,[rip+0x39c11]        # 76cc50 <__register_frame_info@plt-0x470c0>
+  73303f:	mov    QWORD PTR [rsp+0x18],rax
+  733044:	xorps  xmm0,xmm0
+  733047:	movaps XMMWORD PTR [rsp],xmm0
+  73304b:	mov    QWORD PTR [rsp+0x10],0x0
+  733054:	lea    rsi,[rip+0xffffffffff8ebc8e]        # 1ece9 <__register_frame_info@plt-0x795027>
+  73305b:	lea    rdx,[rsp+0x18]
+  733060:	mov    rcx,rsp
+  733063:	mov    rdi,rbx
+  733066:	call   734a50 <__register_frame_info@plt-0x7f2c0>
+  73306b:	mov    rdi,QWORD PTR [rsp]
+  73306f:	test   rdi,rdi
+  733072:	je     733081 <__register_frame_info@plt-0x80c8f>
+  733074:	mov    rsi,QWORD PTR [rsp+0x10]
+  733079:	sub    rsi,rdi
+  73307c:	call   7b3d40 <operator delete(void*, unsigned long)@plt>
+  733081:	lea    rax,[rip+0x39eb8]        # 76cf40 <__register_frame_info@plt-0x46dd0>
+  733088:	mov    QWORD PTR [rsp+0x18],rax
+  73308d:	xorps  xmm0,xmm0
+  733090:	movaps XMMWORD PTR [rsp],xmm0
+  733094:	mov    QWORD PTR [rsp+0x10],0x0
+  73309d:	lea    rsi,[rip+0xffffffffff8e191c]        # 149c0 <__register_frame_info@plt-0x79f350>
+  7330a4:	lea    rdx,[rsp+0x18]
+  7330a9:	mov    rcx,rsp
+  7330ac:	mov    rdi,rbx
+  7330af:	call   734cc0 <__register_frame_info@plt-0x7f050>
+
+Native code [0x76cf40, 0x76d069)
+  76cf40:	push   rbp
+  76cf41:	push   r15
+  76cf43:	push   r14
+  76cf45:	push   r13
+  76cf47:	push   r12
+  76cf49:	push   rbx
+  76cf4a:	sub    rsp,0xc8
+  76cf51:	mov    ebp,r8d
+  76cf54:	mov    QWORD PTR [rsp+0x60],rcx
+  76cf59:	mov    r15,rdx
+  76cf5c:	mov    QWORD PTR [rsp+0x50],rsi
+  76cf61:	mov    r14,rdi
+  76cf64:	mov    QWORD PTR [rsp+0x88],rdx
+  76cf6c:	movsd  QWORD PTR [rsp+0x68],xmm0
+  76cf72:	movsd  QWORD PTR [rsp+0xc0],xmm0
+  76cf7b:	movsd  QWORD PTR [rsp+0x70],xmm1
+  76cf81:	movsd  QWORD PTR [rsp+0xb8],xmm1
+  76cf8a:	lea    rax,[rip+0xffffffffff8ba80d]        # 2779e <__register_frame_info@plt-0x78c572>
+  76cf91:	mov    QWORD PTR [rsp+0x48],rax
+  76cf96:	lea    rdi,[rip+0xffffffffff8aedc6]        # 1bd63 <__register_frame_info@plt-0x797fad>
+  76cf9d:	mov    esi,0x1
+  76cfa2:	call   77fea0 <__register_frame_info@plt-0x33e70>
+  76cfa7:	mov    r12d,eax
+  76cfaa:	lea    rdi,[rip+0xffffffffff8a8143]        # 150f4 <__register_frame_info@plt-0x79ec1c>
+  76cfb1:	xor    esi,esi
+  76cfb3:	call   77fea0 <__register_frame_info@plt-0x33e70>
+  76cfb8:	mov    r13d,eax
+  76cfbb:	lea    rdi,[rip+0xffffffffff8b5186]        # 22148 <__register_frame_info@plt-0x791bc8>
+  76cfc2:	xor    esi,esi
+  76cfc4:	call   77fea0 <__register_frame_info@plt-0x33e70>
+  76cfc9:	mov    BYTE PTR [rip+0x4de28],r12b        # 7badf8 <hipDeviceEnablePeerAccess@plt+0x6708>
+  76cfd0:	mov    BYTE PTR [rip+0x4de22],r13b        # 7badf9 <hipDeviceEnablePeerAccess@plt+0x6709>
+  76cfd7:	mov    BYTE PTR [rip+0x4de1d],al        # 7badfa <hipDeviceEnablePeerAccess@plt+0x670a>
+  76cfdd:	cmp    BYTE PTR [rip+0x4d174],0x1        # 7ba158 <hipDeviceEnablePeerAccess@plt+0x5a68>
+  76cfe4:	je     76f136 <__register_frame_info@plt-0x44bda>
+  76cfea:	cmp    r14,0x8
+  76cfee:	jne    76f171 <__register_frame_info@plt-0x44b9f>
+  76cff4:	mov    r13,QWORD PTR [rsp+0x50]
+  76cff9:	lea    rax,[r13-0x1]
+  76cffd:	cmp    rax,0x4e
+  76d001:	movq   xmm1,QWORD PTR [rsp+0x70]
+  76d007:	movq   xmm2,QWORD PTR [rsp+0x68]
+  76d00d:	jae    76f1ac <__register_frame_info@plt-0x44b64>
+  76d013:	cmp    QWORD PTR [rsp+0x60],0x2
+  76d019:	jb     76d027 <__register_frame_info@plt-0x46ce9>
+  76d01b:	cmp    QWORD PTR [rsp+0x60],0x3
+  76d021:	jne    76f2e3 <__register_frame_info@plt-0x44a2d>
+  76d027:	lea    rax,[r15-0x80000000]
+  76d02e:	cmp    rax,0xffffffff80000000
+  76d034:	jbe    76f1e7 <__register_frame_info@plt-0x44b29>
+  76d03a:	mov    QWORD PTR [rip+0x4d0b3],0x8        # 7ba0f8 <hipDeviceEnablePeerAccess@plt+0x5a08>
+  76d045:	mov    QWORD PTR [rip+0x4d0b4],r13        # 7ba100 <hipDeviceEnablePeerAccess@plt+0x5a10>
+  76d04c:	mov    QWORD PTR [rip+0x4d0bd],r15        # 7ba110 <hipDeviceEnablePeerAccess@plt+0x5a20>
+  76d053:	mov    rax,QWORD PTR [rsp+0x60]
+  76d058:	mov    QWORD PTR [rip+0x4d0b9],rax        # 7ba118 <hipDeviceEnablePeerAccess@plt+0x5a28>
+  76d05f:	inc    rax
+  76d062:	mov    QWORD PTR [rip+0x4d0b7],rax        # 7ba120 <hipDeviceEnablePeerAccess@plt+0x5a30>
+
+Native code [0x76f171, 0x76f1ac)
+  76f171:	lea    rax,[rip+0xffffffffff8afeb7]        # 1f02f <__register_frame_info@plt-0x794ce1>
+  76f178:	mov    QWORD PTR [rsp],rax
+  76f17c:	lea    rbx,[rsp+0x10]
+  76f181:	lea    rsi,[rsp+0x48]
+  76f186:	mov    rdx,rsp
+  76f189:	mov    rdi,rbx
+  76f18c:	call   749660 <__register_frame_info@plt-0x6a6b0>
+  76f191:	lea    rdi,[rip+0xffffffffff8b8606]        # 2779e <__register_frame_info@plt-0x78c572>
+  76f198:	lea    rsi,[rip+0xffffffffff8addc3]        # 1cf62 <__register_frame_info@plt-0x796dae>
+  76f19f:	mov    edx,0x651
+  76f1a4:	mov    rcx,rbx
+  76f1a7:	call   7b40a0 <c10::detail::torchCheckFail(char const*, char const*, unsigned int, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)@plt>
+
+Native code [0x76f2e3, 0x76f31e)
+  76f2e3:	lea    rax,[rip+0xffffffffff8a94b9]        # 187a3 <__register_frame_info@plt-0x79b56d>
+  76f2ea:	mov    QWORD PTR [rsp],rax
+  76f2ee:	lea    rbx,[rsp+0x10]
+  76f2f3:	lea    rsi,[rsp+0x48]
+  76f2f8:	mov    rdx,rsp
+  76f2fb:	mov    rdi,rbx
+  76f2fe:	call   749660 <__register_frame_info@plt-0x6a6b0>
+  76f303:	lea    rdi,[rip+0xffffffffff8b8494]        # 2779e <__register_frame_info@plt-0x78c572>
+  76f30a:	lea    rsi,[rip+0xffffffffff8adc51]        # 1cf62 <__register_frame_info@plt-0x796dae>
+  76f311:	mov    edx,0x659
+  76f316:	mov    rcx,rbx
+  76f319:	call   7b40a0 <c10::detail::torchCheckFail(char const*, char const*, unsigned int, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)@plt>
+

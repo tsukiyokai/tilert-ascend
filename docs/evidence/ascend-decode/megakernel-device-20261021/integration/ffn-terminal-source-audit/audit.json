@@ -1,0 +1,453 @@
+{
+  "scope": "Read-only audit of the terminal standalone FFN entry; no kernel, build, device or performance changes",
+  "parent_library_sha256": "8430ef17d068ce5a1cdbe4915ba189ca38c666322d8726a42091f8acb3b36f84",
+  "parent_manifest": "docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-active-token-join-build-v1/build-v1/manifest.json",
+  "parent_manifest_sha256": "0b0333e6d0d171e8688f5acded5ce4998540729b589d4962b98cfcdde672a303",
+  "verified_parent_source_count": 83,
+  "sources": [
+    {
+      "path": "docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-active-token-join-build-v1/build-v1/source/kernel.cpp",
+      "sha256": "27f719ce3fac0071967f1c7f7575fcedf95537dbfca10c5631b0011ca9dcc2a4",
+      "ranges": [
+        [
+          1,
+          8
+        ],
+        [
+          21,
+          39
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 8,
+          "text": "1: #ifndef ASCENDC_CUBE_ONLY\n2: #define ASCENDC_CUBE_ONLY\n3: #endif\n4: \n5: #include \"contract.h\"\n6: #include \"descriptor.h\"\n7: #include \"../bridge/source/ffn_bridge/body_native.h\"\n8: #include \"../body/source/routed_int4/routed_body_native.h\""
+        },
+        {
+          "start": 21,
+          "end": 39,
+          "text": "21:     KERNEL_TASK_TYPE_DEFAULT(KERNEL_TYPE_MIX_AIC_1_2);\n22:     InitSocState();\n23:     SetSyncBaseAddr(sync);\n24:     SetSysWorkspace(bridge.values[ffn_bridge::kSystem]);\n25:     TPipe pipe;\n26:     ffn_bridge::Forward(pipe, input, residual, gamma, gate, bias,\n27:                         bridge, arguments.rows, arguments.blocks, epsilon);\n28: \n29:     // The bridge's final EndPhase has drained all CUBE work and reset UB.\n30:     // Only its GM outputs survive into the unchanged routed/shared body.\n31:     SetSysWorkspace((GM_ADDR)arguments.scratch[kMatmulWorkspace]);\n32:     routed_body::Forward<format, true>(pipe, arguments,\n33:         (__gm__ bfloat16_t*)bridge.values[ffn_bridge::kScaledRouted],\n34:         (__gm__ bfloat16_t*)bridge.values[ffn_bridge::kCombined]);\n35:     // NoTrace::FinishFinal is empty. This is the required publication seam,\n36:     // after every body-local TBuf and matrix object has left scope.\n37:     ffn_bridge::device::EndPhase(pipe);\n38: \n39: }"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-active-token-join-build-v1/build-v1/source/output_native.h",
+      "sha256": "9af24a72942ef536f0c826266e7901166a5cd802a7c9bd618f14aa52a630cc17",
+      "ranges": [
+        [
+          17,
+          40
+        ],
+        [
+          48,
+          57
+        ],
+        [
+          71,
+          94
+        ],
+        [
+          97,
+          123
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 17,
+          "end": 40,
+          "text": "17:     const int64_t routes = tokens * kTopK;\n18:     if (GetBlockIdx() >= tokens * kOutputTiles) {\n19:         return;\n20:     }\n21:     TBuf<TPosition::VECCALC> metadata;\n22:     pipe.InitBuffer(metadata, kOutputMetadataBytes);\n23:     auto words = metadata.Get<int32_t>();\n24:     auto inverse = words;\n25:     auto expert_ids = words[kOutputRoutes];\n26:     auto activation = words[2 * kOutputRoutes].ReinterpretCast<float>();\n27:     GlobalTensor<int32_t> ids;\n28:     GlobalTensor<float> activation_gm;\n29:     ids.SetGlobalBuffer(original_experts, routes);\n30:     activation_gm.SetGlobalBuffer(middle_scales, routes);\n31:     DataCopy(expert_ids, ids, routes);\n32:     DataCopy(activation, activation_gm, routes);\n33:     Fence<HardEvent::MTE2_S>();\n34:     for (int64_t route = 0; route < routes; ++route) {\n35:         const int64_t original = held.source.GetValue(route) * kTopK\n36:                                  + held.slot.GetValue(route);\n37:         inverse.SetValue(original, int32_t(route));\n38:     }\n39:     // Both the producer and consumer of inverse are scalar UB operations.\n40:     DataSyncBarrier<MemDsbT::UB>();"
+        },
+        {
+          "start": 48,
+          "end": 57,
+          "text": "48:     auto narrow = held.half_buf.Get<bfloat16_t>();\n49:     constexpr int64_t span = kOutputTile;\n50:     for (int64_t task = GetBlockIdx(); task < tokens * kOutputTiles;\n51:          task += 2 * blocks) {\n52:         const int64_t token = OutputToken(task);\n53:         const int64_t column = OutputColumn(task);\n54:         const int64_t output_offset = token * kHidden + column;\n55:         Duplicate(held.other, 0.0F, span);\n56:         PipeBarrier<PIPE_V>();\n57:         for (int64_t slot = 0; slot < kTopK; ++slot) {"
+        },
+        {
+          "start": 71,
+          "end": 94,
+          "text": "71:             Recombine(held, dots, bias, row, count, kHidden, column, span);\n72:             Muls(held.value, held.value, activation.GetValue(route), span);\n73:             PipeBarrier<PIPE_V>();\n74:             Cast(narrow, held.value, RoundMode::CAST_RINT, span);\n75:             Fence<HardEvent::V_MTE3>();\n76:             DataCopy(route_values[original * kHidden + column], narrow, span);\n77:             Fence<HardEvent::MTE3_V>();\n78: \n79:             // Route diagnostics are produced even for a zero probability.\n80:             // Such routes do not participate in the weighted sum, including NaNs.\n81:             const float probability = held.original_weight.GetValue(original);\n82:             if (probability == 0.0F) {\n83:                 continue;\n84:             }\n85:             Cast(held.value, narrow, RoundMode::CAST_NONE, span);\n86:             PipeBarrier<PIPE_V>();\n87:             Muls(held.value, held.value, probability, span);\n88:             PipeBarrier<PIPE_V>();\n89:             if (slot == 0) {\n90:                 DataCopy(held.other, held.value, span);\n91:             } else {\n92:                 Add(held.other, held.other, held.value, span);\n93:             }\n94:             PipeBarrier<PIPE_V>();"
+        },
+        {
+          "start": 97,
+          "end": 123,
+          "text": "97:         Cast(narrow, held.other, RoundMode::CAST_RINT, span);\n98:         Fence<HardEvent::V_MTE3>();\n99:         DataCopy(routed[output_offset], narrow, span);\n100:         Fence<HardEvent::MTE3_V>();\n101:         Cast(held.value, narrow, RoundMode::CAST_NONE, span);\n102:         PipeBarrier<PIPE_V>();\n103:         Muls(held.value, held.value, 2.5F, span);\n104:         PipeBarrier<PIPE_V>();\n105:         Cast(narrow, held.value, RoundMode::CAST_RINT, span);\n106:         Fence<HardEvent::V_MTE3>();\n107:         DataCopy(scaled[output_offset], narrow, span);\n108:         Fence<HardEvent::MTE3_V>();\n109:         Cast(held.value, narrow, RoundMode::CAST_NONE, span);\n110:         PipeBarrier<PIPE_V>();\n111:         Fence<HardEvent::V_MTE2>();\n112:         Fence<HardEvent::MTE3_MTE2>();\n113:         DataCopy(narrow, shared[output_offset], span);\n114:         Fence<HardEvent::MTE2_V>();\n115:         Cast(held.work, narrow, RoundMode::CAST_NONE, span);\n116:         PipeBarrier<PIPE_V>();\n117:         Add(held.value, held.value, held.work, span);\n118:         PipeBarrier<PIPE_V>();\n119:         Cast(narrow, held.value, RoundMode::CAST_RINT, span);\n120:         Fence<HardEvent::V_MTE3>();\n121:         DataCopy(combined[output_offset], narrow, span);\n122:         Fence<HardEvent::MTE3_V>();\n123:     }"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-active-token-join-build-v1/build-v1/body/source/routed_int4/routed_body_native.h",
+      "sha256": "645300f17d8ee943da781b8e079e32818603d59f0223dbe4528bed23a30d8502",
+      "ranges": [
+        [
+          1,
+          7
+        ],
+        [
+          88,
+          95
+        ],
+        [
+          175,
+          201
+        ],
+        [
+          739,
+          790
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 1,
+          "end": 7,
+          "text": "1: #ifndef TILERT_ROUTED_BODY_NATIVE_H\n2: #define TILERT_ROUTED_BODY_NATIVE_H\n3: \n4: #ifdef ROUTED_ENABLE_PROFILE\n5: #error \"Token tail join requires the uninstrumented NoTrace body\"\n6: #endif\n7: "
+        },
+        {
+          "start": 88,
+          "end": 95,
+          "text": "88:     WaitFlag<event>(EVENT_ID0);\n89: }\n90: \n91: __aicore__ inline void Publish()\n92: {\n93:     DataSyncBarrier<MemDsbT::DDR>();\n94: }\n95: "
+        },
+        {
+          "start": 175,
+          "end": 201,
+          "text": "175: \n176: template <bool pad_rows = false, class MatmulType>\n177: __aicore__ inline void Project(MatmulType& mm, __gm__ int4b_t* rows,\n178:                                __gm__ int4b_t* weight,\n179:                                __gm__ RoutedProduct* product,\n180:                                __gm__ ScaleStorage* weight_scale, int64_t columns,\n181:                                int64_t inner, int64_t count)\n182: {\n183:     const int64_t matrix_rows = pad_rows ? GateMatrixRows(count) : 2 * count;\n184:     GlobalTensor<int4b_t> a, b;\n185:     GlobalTensor<RoutedProduct> c;\n186:     a.SetGlobalBuffer(rows, matrix_rows * inner);\n187:     b.SetGlobalBuffer(weight, inner * columns);\n188:     c.SetGlobalBuffer(product, matrix_rows * columns);\n189:     mm.SetOrgShape(matrix_rows, columns, inner);\n190:     mm.SetSingleShape(matrix_rows, columns, inner);\n191:     mm.SetTensorA(a);\n192:     mm.SetTensorB(b, false);\n193: #ifdef ROUTED_FIXPIPE_HALF\n194:     GlobalTensor<uint64_t> scale;\n195:     scale.SetGlobalBuffer(weight_scale, columns);\n196:     mm.SetQuantVector(scale);\n197: #endif\n198:     mm.IterateAll(c);\n199:     mm.End();\n200: }\n201: "
+        },
+        {
+          "start": 739,
+          "end": 790,
+          "text": "739:     }\n740:     timing.Barrier(3);\n741:     timing.Begin(4);\n742: #ifdef ROUTED_SHARED_PIPELINE\n743:     shared.Store(pipe);\n744: #endif\n745:     if ASCEND_IS_AIC {\n746:         // Gate matmul has ended on every AIC before reusing L1 and events.\n747:         pipe.Reset();\n748:         TCubeTiling down_cube;\n749:         LoadTiling(down_cube, ((__gm__ uint8_t*)arguments.scratch[kDownTiling]));\n750:         Projection<weight_format> down_mm;\n751:         down_mm.Init(&down_cube, &pipe);\n752: #ifdef ROUTED_ACTIVE_LIST\n753:         for (int64_t ordinal = GetBlockIdx(); ordinal < active_count;\n754:              ordinal += arguments.blocks) {\n755:             const int64_t expert = active_experts.GetValue(\n756:                 kActiveHeaderElements + ordinal);\n757: #else\n758:         int64_t active = 0;\n759:         int64_t next = GetBlockIdx();\n760:         for (int64_t expert = 0; expert < ffn_bridge::kExperts; ++expert) {\n761:             if (counts.GetValue(expert) == 0) {\n762:                 continue;\n763:             }\n764:             if (active++ != next) {\n765:                 continue;\n766:             }\n767:             next += arguments.blocks;\n768: #endif\n769:             const int64_t begin = starts.GetValue(expert);\n770:             Project(down_mm, Nibbles(((__gm__ int4b_t*)arguments.scratch[kMiddle]), 2 * begin * kIntermediate),\n771:                     Nibbles(((__gm__ int4b_t*)arguments.weights[3]), expert * kHidden * kIntermediate),\n772:                     ((__gm__ RoutedProduct*)arguments.scratch[kDownProduct]) + 2 * begin * kHidden,\n773:                     ((__gm__ ScaleStorage*)arguments.weights[5]) + expert * kHidden, kHidden, kIntermediate,\n774:                     counts.GetValue(expert));\n775:         }\n776:         Publish();\n777:     }\n778:     timing.Barrier(4);\n779:     timing.Begin(5);\n780:     if ASCEND_IS_AIV {\n781:         TokenOutputs(pipe, held, ((__gm__ RoutedProduct*)arguments.scratch[kDownProduct]), ((__gm__ float*)arguments.weights[4]), ((__gm__ ScaleStorage*)arguments.weights[5]), ((__gm__ float*)arguments.scratch[kMiddleScale]),\n782:             (__gm__ int32_t*)arguments.dispatch.expert_ids, ((__gm__ bfloat16_t*)arguments.scratch[kRouteOutput]), ((__gm__ bfloat16_t*)arguments.scratch[kOutput]),\n783:             (__gm__ bfloat16_t*)arguments.shared.output, scaled_output,\n784:             combined_output, arguments.rows, arguments.blocks);\n785:         Publish();\n786:     }\n787:     timing.Begin(6);\n788:     timing.FinishFinal(6);\n789:     timing.Store(((__gm__ int64_t*)nullptr), arguments.rows, arguments.blocks);\n790: }"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-active-token-join-build-v1/build-v1/body/source/routed_int4/routed_int4_front.h",
+      "sha256": "eb11c5ea3191301b7c9bd550399ba65ba1541bd7a167df9ce36f91b847bb7e06",
+      "ranges": [
+        [
+          51,
+          70
+        ],
+        [
+          99,
+          130
+        ],
+        [
+          175,
+          180
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 51,
+          "end": 70,
+          "text": "51:         TBuf<TPosition::VECCALC> active_buf;\n52:         pipe.InitBuffer(active_buf, kActiveListBytes);\n53: #endif\n54: \n55:         if (GetBlockIdx() == 0) {\n56:             auto count = count_buf.Get<int32_t>();\n57:             auto start = start_buf.Get<int32_t>();\n58:             auto cursor = cursor_buf.Get<int32_t>();\n59:             auto choice = choice_buf.Get<int32_t>();\n60:             auto source = source_buf.Get<int32_t>();\n61:             auto slot = slot_buf.Get<int32_t>();\n62:             auto probability = probability_buf.Get<float>();\n63:             auto weight = weight_buf.Get<float>();\n64:             auto narrow = narrow_buf.Get<bfloat16_t>();\n65: #ifdef ROUTED_ACTIVE_LIST\n66:             auto active = active_buf.Get<int32_t>();\n67:             GlobalTensor<int32_t> active_gm;\n68:             active_gm.SetGlobalBuffer((__gm__ int32_t*)input.active_list,\n69:                                       kActiveListElements);\n70:             Duplicate(active, int32_t(0), kActiveListElements);"
+        },
+        {
+          "start": 99,
+          "end": 130,
+          "text": "99: #ifdef ROUTED_ACTIVE_LIST\n100:             int32_t active_count = 0;\n101: #endif\n102:             for (int64_t expert = 0; expert < kMaxExperts; ++expert) {\n103:                 start.SetValue(expert, prefix);\n104:                 cursor.SetValue(expert, prefix);\n105:                 prefix += count.GetValue(expert);\n106: #ifdef ROUTED_ACTIVE_LIST\n107:                 active_count = AppendActiveExpert(\n108:                     active, active_count, expert, count.GetValue(expert));\n109: #endif\n110:             }\n111:             for (int64_t original = 0; original < tokens * kTopK; ++original) {\n112:                 const int32_t expert = choice.GetValue(original);\n113:                 const int32_t position = cursor.GetValue(expert);\n114:                 cursor.SetValue(expert, position + 1);\n115:                 source.SetValue(position, original / kTopK);\n116:                 slot.SetValue(position, original % kTopK);\n117:                 weight.SetValue(position, probability.GetValue(original));\n118:             }\n119: #ifdef ROUTED_ACTIVE_LIST\n120:             active.SetValue(0, active_count);\n121: #endif\n122:             Fence<HardEvent::S_MTE3>();\n123: #ifdef ROUTED_ACTIVE_LIST\n124:             DataCopy(active_gm, active, kActiveListElements);\n125: #endif\n126:             DataCopy(count_gm, count, kMaxExperts);\n127:             DataCopy(start_gm, start, kMaxExperts);\n128:             DataCopy(source_gm, source, kMaxRoutes);\n129:             DataCopy(slot_gm, slot, kMaxRoutes);\n130:             DataCopy(weight_gm, weight, kMaxRoutes);"
+        },
+        {
+          "start": 175,
+          "end": 180,
+          "text": "175:         }\n176:     }\n177:     PipeBarrier<PIPE_ALL>();\n178:     DataSyncBarrier<MemDsbT::DDR>();\n179:     timing.Barrier(0);\n180:     pipe.Reset();"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-active-token-join-build-v1/build-v1/body/source/routed_int4/routed_int4_pipeline_native.h",
+      "sha256": "cedc8b1f3440da10b3b641a230c27a8517e2972d292a7c08de18f09f007bf3e9",
+      "ranges": [
+        [
+          74,
+          101
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 74,
+          "end": 101,
+          "text": "74:     __aicore__ inline void Down(AscendC::TPipe& pipe)\n75:     {\n76:         if ASCEND_IS_AIC {\n77:             // The preceding routed gate object has ended and left scope.\n78:             pipe.Reset();\n79:             shared_w8::device::Project(pipe, Payload<int8_t>(input.middle_offset),\n80:                 reinterpret_cast<__gm__ int8_t*>(input.down_weight),\n81:                 Payload<int32_t>(input.down_offset),\n82:                 reinterpret_cast<__gm__ uint8_t*>(\n83:                     input.tiling + shared_w8::kTilingStride),\n84:                 input.capacity, blocks, false);\n85:             shared_w8::device::Publish();\n86:         }\n87:     }\n88: \n89:     __aicore__ inline void Store(AscendC::TPipe& pipe)\n90:     {\n91:         if ASCEND_IS_AIV {\n92:             mla_tail::device::DequantizeOutputRows<\n93:                 mla_tail::device::ScaleOrder::CombinedScales>(\n94:                 pipe, Payload<int32_t>(input.down_offset),\n95:                 reinterpret_cast<__gm__ float*>(input.down_scale),\n96:                 Payload<float>(input.scale_offset), nullptr, 0,\n97:                 reinterpret_cast<__gm__ bfloat16_t*>(input.output),\n98:                 rows, input.capacity, AscendC::GetBlockIdx(), 2 * blocks);\n99:             shared_w8::device::Publish();\n100:         }\n101:     }"
+        }
+      ]
+    },
+    {
+      "path": "docs/evidence/ascend-decode/megakernel-device-20261021/integration/ffn-active-token-join-build-v1/build-v1/body/source/routed_int4/routed_int4_trace.h",
+      "sha256": "cab822760d5ea544d8ba0666b548b4dd16a0bcf29252fea6e26a6b83d14f9749",
+      "ranges": [
+        [
+          9,
+          16
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 9,
+          "end": 16,
+          "text": "9: struct NoTrace {\n10:     __aicore__ inline void Begin(int) {}\n11:     __aicore__ inline void Barrier(int) { AscendC::SyncAll<false>(); }\n12:     __aicore__ inline void FinishFinal(int) {}\n13:     __aicore__ inline void Store(__gm__ int64_t*, int64_t, int64_t) {}\n14: };\n15: \n16: #ifdef ROUTED_ENABLE_PROFILE"
+        }
+      ]
+    }
+  ],
+  "installed_sdk_evidence_origin": {
+    "path": "/tmp/tilert-megakernel-validation-20261021/attention-terminal-join-audit/audit.json",
+    "sha256": "37f05c9034a9df6901a7bb1efa45eae58d486d8a1db22e8a1f9145194419481a"
+  },
+  "installed_sdk_excerpts": [
+    {
+      "installed_path": "/opt/ascend/cann-9.2.0/aarch64-linux/asc/include/basic_api/kernel_tpipe.h",
+      "sha256": "a39f8da6a6d7d35ea8700ad80b153a536bdca78cb1a7eb5d261a08bd0a16fa48",
+      "ranges": [
+        [
+          453,
+          463
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 453,
+          "end": 463,
+          "text": "453: \n454: class TPipe : public TPipeBase {\n455: public:\n456: #if defined(__NPU_ARCH__)\n457:     __aicore__ inline TPipe();\n458:     __aicore__ inline ~TPipe();\n459: #else\n460:     __aicore__ inline TPipe() {}\n461:     __aicore__ inline ~TPipe() {}\n462: #endif\n463:     __aicore__ inline void Init();"
+        }
+      ]
+    },
+    {
+      "installed_path": "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/basic_api/kernel_tpipe_impl.h",
+      "sha256": "f5085e9d904f716a2058f040a6756f9c48e8a000f1afee58b2ba780848c33070",
+      "ranges": [
+        [
+          73,
+          86
+        ],
+        [
+          541,
+          611
+        ],
+        [
+          999,
+          1016
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 73,
+          "end": 86,
+          "text": "73: // begin impl of tpipe\n74: __aicore__ inline TPipe::TPipe()\n75: {\n76:     InitSocState();\n77:     Init();\n78: }\n79: \n80: __aicore__ inline TPipe::~TPipe()\n81: {\n82:     if (g_tpipeImpl.isDestroy) {\n83:         return;\n84:     }\n85:     Destroy();\n86: };"
+        },
+        {
+          "start": 541,
+          "end": 611,
+          "text": "541: }\n542: \n543: __aicore__ inline void TPipe::DestroyWithoutPipeAll()\n544: {\n545:     // disabled on CPU mode for compatiablilty\n546: #if defined(ASCENDC_DEBUG) && !defined(ASCENDC_CPU_DEBUG)\n547:     Internal::ResetTPipePtr(); // Reset global tpipe ptr to nullptr for next Initialazation.\n548: #endif\n549:     g_tpipeImpl.isDestroy = true;\n550:     auto ptr = this->g_tpipeImpl.buf_;\n551:     for (uint8_t i = 0; i < this->g_tpipeImpl.curBufSize_; i++, ptr++) {\n552:         if (ptr->freeBufEvtID != INVALID_TEVENTID && ptr->state == TBufState::FREE) {\n553:             WaitFlagImpl(ptr->freeBufEvt, ptr->freeBufEvtID);\n554:             ptr->freeBufEvtID = INVALID_TEVENTID;\n555:         }\n556:     }\n557:     // for matmul macro, release M_MTE1 0 1 event id.\n558: #if __NPU_ARCH__ == 2201\n559:     if ASCEND_IS_AIC {\n560:         WaitFlag<HardEvent::M_MTE1>(0);\n561:         ReleaseEventID<HardEvent::M_MTE1>(0);\n562:         WaitFlag<HardEvent::M_MTE1>(1);\n563:         ReleaseEventID<HardEvent::M_MTE1>(1);\n564:         // For Bias\n565:         WaitFlag<HardEvent::M_MTE1>(2);\n566:         ReleaseEventID<HardEvent::M_MTE1>(2);\n567:     }\n568: #elif __NPU_ARCH__ == 3002 || __NPU_ARCH__ == 5101 || __NPU_ARCH__ == 5161 || __NPU_ARCH__ == 5165 || \\\n569:     __NPU_ARCH__ == 5163\n570:     WaitFlag<HardEvent::M_MTE1>(0);\n571:     ReleaseEventID<HardEvent::M_MTE1>(0);\n572:     WaitFlag<HardEvent::M_MTE1>(1);\n573:     ReleaseEventID<HardEvent::M_MTE1>(1);\n574:     WaitFlag<HardEvent::M_MTE1>(2);\n575:     ReleaseEventID<HardEvent::M_MTE1>(2);\n576: #endif\n577: }\n578: \n579: __aicore__ inline void TPipe::Destroy()\n580: {\n581:     DestroyWithoutPipeAll();\n582: #ifndef __ASCENDC_ENABLE_SUPER_KERNEL__\n583:     pipe_barrier(PIPE_ALL);\n584: #endif\n585: #if __NPU_ARCH__ == 2002\n586:     dcci((__gm__ int64_t*)0, cache_line_t::ENTIRE_DATA_CACHE);\n587: #endif\n588: }\n589: \n590: __aicore__ inline void TPipe::Reset()\n591: {\n592:     auto ptr = this->g_tpipeImpl.buf_;\n593:     for (uint8_t i = 0; i < this->g_tpipeImpl.curBufSize_; i++, ptr++) {\n594:         if (ptr->freeBufEvtID != INVALID_TEVENTID && ptr->state == TBufState::FREE) {\n595:             WaitFlagImpl(ptr->freeBufEvt, ptr->freeBufEvtID);\n596:             ptr->freeBufEvtID = INVALID_TEVENTID;\n597:         }\n598:     }\n599:     InitSocState();\n600:     ResetPool();\n601: #if defined(ASCENDC_CPU_DEBUG) && ASCENDC_CPU_DEBUG == 1\n602:     auto bufferInitLen = ConstDefiner::Instance().bufferInitLen;\n603:     for (int32_t i = 0; i < static_cast<int32_t>(Hardware::MAX); i++) {\n604:         if (bufferInitLen.find((Hardware)i) != bufferInitLen.end()) {\n605:             SetBufferCtx((Hardware)i, &g_tpipeImpl.bufPoolBaseAddr_[i]);\n606:         }\n607:     }\n608: #endif\n609: }\n610: \n611: __aicore__ inline void InitShareBufStart("
+        },
+        {
+          "start": 999,
+          "end": 1016,
+          "text": "999: __aicore__ inline void TPipe::InitSocState() const { AscendCUtils::InitSocStateImpl(); }\n1000: \n1001: __aicore__ inline void TPipe::ResetPool()\n1002: {\n1003:     g_tpipeImpl.tscmBufferPtr_ = TOTAL_L1_SIZE;\n1004:     g_tpipeImpl.curBufSize_ = 0;\n1005:     auto buf = g_tpipeImpl.bufPool_;\n1006:     for (int32_t i = 0; i < static_cast<int32_t>(Hardware::MAX); i++, buf++) {\n1007:         buf->maxAddr = 0;\n1008:     }\n1009:     auto evt = g_tpipeImpl.eventPool_;\n1010:     for (int32_t i = 0; i < EVENT_NUM; i++, evt++) {\n1011:         evt->eventOccupy = 0;\n1012:     }\n1013:     g_tpipeImpl.shareBufPool_.start[static_cast<uint8_t>(TShareBuf::ShareHard::L1)] = -1;\n1014:     g_tpipeImpl.shareBufPool_.start[static_cast<uint8_t>(TShareBuf::ShareHard::UB)] = -1;\n1015:     g_tpipeImpl.shareBufPool_.start[static_cast<uint8_t>(TShareBuf::ShareHard::L0C)] = -1;\n1016: }"
+        }
+      ]
+    },
+    {
+      "installed_path": "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/basic_api/kernel_tensor_impl.h",
+      "sha256": "18f7a88f582fb75bbf61f34f3cc9850d32d42a77f487aa8f4b126ef903e256b5",
+      "ranges": [
+        [
+          1418,
+          1437
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 1418,
+          "end": 1437,
+          "text": "1418: __aicore__ inline GlobalTensor<T>::GlobalTensor()\n1419: {\n1420: #ifdef __ASCENDC_SUPER_KERNEL_ENABLE_GM_GET_SET_VALUE_DCCI__\n1421:     this->lastWriteCacheAddr = 0;\n1422:     this->lastReadCacheAddr = 0;\n1423: #endif\n1424: }\n1425: \n1426: #ifdef __ASCENDC_SUPER_KERNEL_ENABLE_GM_GET_SET_VALUE_DCCI__\n1427: template <typename T>\n1428: __aicore__ inline GlobalTensor<T>::~GlobalTensor()\n1429: {\n1430:     if (lastWriteCacheAddr != 0) {\n1431:         DcciCacheLine(lastWriteCacheAddr);\n1432:     }\n1433: }\n1434: #endif\n1435: \n1436: template <typename T>\n1437: __aicore__ inline uint64_t GlobalTensor<T>::GetSize() const"
+        }
+      ]
+    },
+    {
+      "installed_path": "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/basic_api/dav_c220/kernel_operator_sync_impl.h",
+      "sha256": "695bb46047f853dd4219c731ee25cf831ea964fde778e03e07df298d3ae72c1e",
+      "ranges": [
+        [
+          363,
+          403
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 363,
+          "end": 403,
+          "text": "363: template <bool isAIVOnly = true>\n364: __aicore__ inline void SyncAllImpl()\n365: {\n366: #if defined(__ASCENDC_SUPERKERNEL_AUTO_SYNC_ALL__)\n367:     if (g_superKernelAutoSyncAllEnable) {\n368:         if (GetBlockIdxImpl() == 0) {\n369:             g_superKernelAutoSyncAllSyncIdx += 1;\n370:             // |    32bits  |   16bits  |   8bits   |   8bits   |\n371:             // |  sync idx  | sync type |   is end  | is valid  |\n372:             *reinterpret_cast<__gm__ uint64_t*>(g_superKernelAutoSyncAllConfigGmAddr) =\n373:                 (static_cast<uint64_t>(g_superKernelAutoSyncAllSyncIdx)\n374:                  << SK_AUTO_SYNC_ALL_SYNC_IDX_CONFIG_BIT_OFFSET) |\n375:                 (static_cast<uint64_t>(isAIVOnly) << SK_AUTO_SYNC_ALL_SYNC_TYPE_CONFIG_BIT_OFFSET) |\n376:                 static_cast<uint64_t>(SK_AUTO_SYNC_ALL_VALID_MAGIC_NUM);\n377:             dcci(\n378:                 reinterpret_cast<__gm__ uint64_t*>(g_superKernelAutoSyncAllConfigGmAddr),\n379:                 cache_line_t::SINGLE_CACHE_LINE, dcci_dst_t::CACHELINE_OUT);\n380:         }\n381:     }\n382: #endif\n383: \n384:     PipeBarrier<PIPE_ALL>();\n385:     if constexpr (isAIVOnly) {\n386:         ffts_cross_core_sync(PIPE_MTE3, GetffstMsg(0x0, SYNC_AIV_ONLY_ALL));\n387:         wait_flag_dev(SYNC_AIV_ONLY_ALL);\n388:         return;\n389:     }\n390:     // trans software sync to hardware sync\n391:     if ASCEND_IS_AIC {\n392:         wait_flag_dev(SYNC_AIV_FLAG);\n393:         ffts_cross_core_sync(PIPE_FIX, GetffstMsg(0x0, SYNC_AIC_FLAG));\n394:         wait_flag_dev(SYNC_AIC_FLAG);\n395:         ffts_cross_core_sync(PIPE_MTE3, GetffstMsg(0x02, SYNC_AIC_AIV_FLAG));\n396:         return;\n397:     }\n398:     if ASCEND_IS_AIV {\n399:         ffts_cross_core_sync(PIPE_MTE3, GetffstMsg(0x02, SYNC_AIV_FLAG));\n400:         wait_flag_dev(SYNC_AIC_AIV_FLAG);\n401:         return;\n402:     }\n403: }"
+        }
+      ]
+    },
+    {
+      "installed_path": "/opt/ascend/cann-9.2.0/aarch64-linux/asc/impl/basic_api/kernel_utils_base.h",
+      "sha256": "7cb27b129d72e402106f2a531ea5813b1563c49e2c0180197ef7772459258bc2",
+      "ranges": [
+        [
+          64,
+          89
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 64,
+          "end": 89,
+          "text": "64:     __aicore__ static inline void InitSocStateImpl()\n65:     {\n66: #if defined(__NPU_ARCH__) && \\\n67:     (__NPU_ARCH__ == 5101 || __NPU_ARCH__ == 5161 || __NPU_ARCH__ == 5165 || __NPU_ARCH__ == 5163)\n68: #else\n69:         set_atomic_none();\n70: #endif\n71: #if __NPU_ARCH__ == 2201\n72:         set_mask_norm();\n73:         if ASCEND_IS_AIC {\n74:             set_l1_3d_size(static_cast<uint64_t>(0));\n75:             set_padding(static_cast<uint64_t>(0));\n76:         } else {\n77:             set_vector_mask(static_cast<uint64_t>(-1), static_cast<uint64_t>(-1));\n78:         }\n79: #elif (__NPU_ARCH__ == 3510)\n80:         set_mask_norm();\n81:         Internal::g_deqValue = static_cast<half>(1);\n82:         uint64_t prevCtrl = get_ctrl() & 0x1000000000000;\n83:         uint64_t val = 0x1000000000000008 | prevCtrl;\n84:         set_ctrl(val);\n85:         InitSplitArchSpr();\n86: #elif __NPU_ARCH__ == 3002\n87:         set_padding(static_cast<uint64_t>(0));\n88: #endif\n89:     }"
+        }
+      ]
+    },
+    {
+      "installed_path": "/opt/ascend/cann-9.2.0/aarch64-linux/include/acl/acl_rt.h",
+      "sha256": "5ffca8a8cd22258c587a0a1c6c66e8a8605deac00005d9de896be0ab1f7c3769",
+      "ranges": [
+        [
+          2807,
+          2817
+        ],
+        [
+          2893,
+          2905
+        ]
+      ],
+      "excerpts": [
+        {
+          "start": 2807,
+          "end": 2817,
+          "text": "2807: /**\n2808:  * @ingroup AscendCL\n2809:  * @brief block the host until all tasks\n2810:  * in the specified stream have completed\n2811:  *\n2812:  * @param  stream [IN]   the stream to wait\n2813:  *\n2814:  * @retval ACL_SUCCESS The function is successfully executed.\n2815:  * @retval OtherValues Failure\n2816:  */\n2817: ACL_FUNC_VISIBILITY aclError aclrtSynchronizeStream(aclrtStream stream);"
+        },
+        {
+          "start": 2893,
+          "end": 2905,
+          "text": "2893: /**\n2894:  * @ingroup AscendCL\n2895:  * @brief Blocks the operation of the specified Stream until\n2896:  * the specified Event is completed.\n2897:  * Support for multiple streams waiting for the same event.\n2898:  *\n2899:  * @param  stream [IN]   the wait stream If using thedefault Stream, set NULL\n2900:  * @param  event [IN]    the event to wait\n2901:  *\n2902:  * @retval ACL_SUCCESS The function is successfully executed.\n2903:  * @retval OtherValues Failure\n2904:  */\n2905: ACL_FUNC_VISIBILITY aclError aclrtStreamWaitEvent(aclrtStream stream, aclrtEvent event);"
+        }
+      ]
+    }
+  ],
+  "primary_source_documentation": [
+    {
+      "path": "/home/shanshan/repo/cann/runtime/docs/zh/quick_start/Runtime_programming_model.md",
+      "repository_commit": "453711acf235e78022452a39d6467233a4986144",
+      "sha256": "933e51e2d8832d3d2946ce070c9ee15a55db6b62193eb29dadf2006cbe006941",
+      "ranges": [
+        [
+          27,
+          32
+        ]
+      ],
+      "version_boundary": "Local primary-source checkout; not asserted identical to installed SDK documentation",
+      "excerpts": [
+        {
+          "start": 27,
+          "end": 32,
+          "text": "27: 3. **\u5f02\u6b65\u4efb\u52a1\u4e0b\u53d1\u5230Stream\u4e2d\u4efb\u52a1\u7684\u6267\u884c\u65b9\u5f0f**\n28: \n29:    Stream\u4e2d\u7684\u4efb\u52a1\u4fdd\u5e8f\u6267\u884c\uff0cStream\u95f4\u7684\u4efb\u52a1\u5e76\u884c\u6267\u884c\u3002\u4f8b\u5982\u4e0b\u56fe\u4e2d\u4e3b\u673a\u4fa7\u987a\u5e8f\u542f\u52a8Kernel1\u3001Kernel2\u548cKernel3\u4efb\u52a1\uff0c\u5177\u4f53\u6267\u884c\u987a\u5e8f\u5982\u4e0b\uff1a\n30: \n31:    -   Kernel1\u548cKernel3\u4f4d\u4e8e\u540c\u4e00\u4e2aStream\u4e2d\uff0c\u56e0\u6b64Kernel3\u9700\u8981\u7b49\u5f85Kernel1\u6267\u884c\u5b8c\u6bd5\u624d\u80fd\u5f00\u59cb\u6267\u884c\u3002\n32:    -   Kernel2\u4e0eKernel1\u3001Kernel3\u4e0d\u5728\u540c\u4e00\u4e2aStream\u4e2d\uff0c\u56e0\u6b64Kernel2\u53ef\u4ee5\u4e0eKernel1\u3001Kernel3\u5e76\u884c\u6267\u884c\u3002"
+        }
+      ]
+    },
+    {
+      "path": "/home/shanshan/repo/cann/runtime/docs/zh/dev_guide/03-02_stream_management.md",
+      "repository_commit": "453711acf235e78022452a39d6467233a4986144",
+      "sha256": "7a4f71443ec5fa952e093a41efeec9fb1cd4e747bcc85c6820bc532719ac01c8",
+      "ranges": [
+        [
+          3,
+          15
+        ]
+      ],
+      "version_boundary": "Local primary-source checkout; not asserted identical to installed SDK documentation",
+      "excerpts": [
+        {
+          "start": 3,
+          "end": 15,
+          "text": "3: ## Stream\u6982\u5ff5\n4: \n5: Stream\u63cf\u8ff0\u4e86\u4e00\u4e2a\u5728Host\u4e0b\u53d1\u5e76\u5728Device\u4e0a\u6267\u884c\u7684\u4efb\u52a1\u961f\u5217\u3002\n6: \n7: \u5728\u540c\u4e00\u4e2aStream\u4e2d\uff0c\u4efb\u52a1\u6309\u7167\u8fdb\u5165\u961f\u5217\u7684\u987a\u5e8f\u4f9d\u6b21\u6267\u884c\u3002\u5f53\u786c\u4ef6\u8d44\u6e90\u5145\u8db3\u65f6\uff0c\u4e0d\u540cStream\u4e0a\u7684\u4efb\u52a1\u4f1a\u88ab\u8c03\u5ea6\u5230\u4e0d\u540c\u7684\u786c\u4ef6\u8d44\u6e90\u4e0a\u5e76\u884c\u6267\u884c\u3002\u5f53\u786c\u4ef6\u8d44\u6e90\u4e0d\u8db3\u65f6\uff0c\u4e0d\u540cStream\u4e0a\u7684\u4efb\u52a1\u53ef\u80fd\u4e32\u884c\u6267\u884c\u3002\n8: \n9: Stream\u53ef\u4ee5\u914d\u7f6e\u4f18\u5148\u7ea7\u3001\u9047\u9519\u5373\u505c\u3001persistent\u7b49\u591a\u79cd\u5c5e\u6027\u3002\u4f18\u5148\u7ea7\u4f1a\u5f71\u54cd\u4e0d\u540cStream\u4e0a\u7684\u4efb\u52a1\u7684\u6267\u884c\u987a\u5e8f\u3002\u901a\u5e38\u60c5\u51b5\u4e0b\uff0c\u9ad8\u4f18\u5148\u7ea7Stream\u4e0a\u7684\u4efb\u52a1\u4f1a\u4f18\u5148\u4e8e\u4f4e\u4f18\u5148\u7ea7Stream\u4e0a\u7684\u4efb\u52a1\u6267\u884c\u3002\u5982\u679cStream\u914d\u7f6e\u4e86persistent\u5c5e\u6027\uff0c\u5219\u4e0b\u53d1\u5728\u5176\u4e0a\u7684\u4efb\u52a1\u4e0d\u4f1a\u88ab\u7acb\u5373\u6267\u884c\uff0c\u6267\u884c\u5b8c\u6210\u540e\u4e5f\u4e0d\u4f1a\u88ab\u7acb\u5373\u9500\u6bc1\u3002Persistent Stream\u9002\u7528\u4e8e\u6a21\u578b\u8fd0\u884c\u5b9e\u4f8b\u6784\u5efa\u573a\u666f\u3002\n10: \n11: \u76f8\u5bf9\u4e8e\u4e3b\u673a\u7ebf\u7a0b\uff0cStream\u4e0a\u7684\u4efb\u52a1\u662f\u5f02\u6b65\u6267\u884c\u7684\u3002\u4e3b\u673a\u7ebf\u7a0b\u53ef\u4ee5\u4f7f\u7528Device\u540c\u6b65\u63a5\u53e3\u6765\u7b49\u5f85\u5f53\u524dContext\u4e0b\u6240\u6709Stream\u4e0a\u7684\u4efb\u52a1\u5168\u90e8\u6267\u884c\u5b8c\u6210\uff0c\u6216\u8005\u4f7f\u7528Stream\u540c\u6b65\u63a5\u53e3\u6765\u7b49\u5f85Stream\u4e0a\u7684\u4efb\u52a1\u5168\u90e8\u6267\u884c\u5b8c\u6210\u3002\n12: \n13: Runtime\u4e2d\u7684Stream\u5747\u4e3a\u975e\u963b\u585e\u5f0fStream\uff0c\u9ed8\u8ba4Stream\u4e0d\u4f1a\u8ddf\u663e\u5f0f\u521b\u5efa\u7684Stream\u8fdb\u884c\u9690\u5f0f\u540c\u6b65\u3002\n14: \n15: <br>"
+        }
+      ]
+    },
+    {
+      "path": "/home/shanshan/repo/cann/asc-devkit/docs/zh/api/SIMD-API/basic_api/cache_control/DataCacheCleanAndInvalid.md",
+      "repository_commit": "6a51d0b167dd8f5555456a0ebb783ef0427e366e",
+      "sha256": "ab554bc07f8c09abfaf175fe0ece7a014143e943e854dfac6a4006741fa1d28a",
+      "ranges": [
+        [
+          39,
+          61
+        ]
+      ],
+      "version_boundary": "Local primary-source checkout; not asserted identical to installed SDK documentation",
+      "excerpts": [
+        {
+          "start": 39,
+          "end": 61,
+          "text": "39: - DMA\u642c\u8fd0\u5355\u5143\u8bfb\u5199GM\uff0c\u6570\u636e\u901a\u8fc7DataCopy\u7b49\u63a5\u53e3\u5728Unified Buffer\uff08UB\uff09\u7b49Local Memory\u548cGM\u95f4\u4ea4\u4e92\uff0c\u6ca1\u6709Cache\u4e00\u81f4\u6027\u95ee\u9898\u3002\n40: - Scalar\u5355\u5143\u8bbf\u95eeGM\uff0c\u9996\u5148\u4f1a\u8bbf\u95ee\u6bcf\u4e2a\u6838\u5185\u7684Data Cache\uff0c\u56e0\u6b64\u5b58\u5728Data Cache\u4e0eGM\u7684Cache\u4e00\u81f4\u6027\u95ee\u9898\u3002\n41: \n42: **\u56fe1**  DataCache\u5185\u5b58\u5c42\u6b21\u793a\u610f\u56fe<a name=\"zh-cn_topic_0000002530021782_fig1161014168448\"></a>  \n43: \n44: ![](../../../figures/datacache.png)\n45: \n46: DataCacheCleanAndInvalid\u63a5\u53e3\u7528\u4e8e\u89e3\u51b3\u4e0a\u8ff0\u4e00\u81f4\u6027\u95ee\u9898\uff0c\u5176\u529f\u80fd\u53ef\u4ee5\u62c6\u89e3\u4e3a\u4e24\u90e8\u5206\uff1a\n47: \n48: - Clean\uff1a\u5c06\u7f13\u5b58\u4e2d\u88ab\u4fee\u6539\u8fc7\u7684\u6570\u636e\uff08\u810f\u6570\u636e\uff0cDirty Data\uff09\u5199\u56de\u5230GM\u4e2d\uff0c\u907f\u514d\u6570\u636e\u4e22\u5931\u3002\n49: - Invalid\uff1a\n50:     - \u5c06\u6307\u5b9a\u5730\u5740\u8303\u56f4\u7684Cache Line\u6807\u8bb0\u4e3a\u201c\u65e0\u6548\u201d\uff0c\u4f7f\u5176\u4ece\u7f13\u5b58\u4e2d\u79fb\u9664\u3002\n51:     - \u4fdd\u8bc1\u4e0b\u4e00\u6b21\u8bbf\u95ee\u8fd9\u4e9b\u5185\u5b58\u5730\u5740\u65f6\uff0c\u4f1a\u4eceGM\u91cd\u65b0\u52a0\u8f7d\u6570\u636e\uff0c\u800c\u4e0d\u662f\u4f7f\u7528\u53ef\u80fd\u8fc7\u671f\u7684\u7f13\u5b58\u6570\u636e\u3002\n52: \n53: \u8be5\u63a5\u53e3\u7684\u5178\u578b\u4f7f\u7528\u573a\u666f\u5982\u4e0b\uff1a\n54: \n55: - \u8bfb\u53d6GM\u7684\u6570\u636e\uff0c\u4f46\u8be5\u6570\u636e\u53ef\u80fd\u5728\u5916\u90e8\u88ab\u5176\u4f59\u6838\u4fee\u6539\uff0c\u6b64\u65f6\u9700\u8981\u4f7f\u7528DataCacheCleanAndInvalid\u63a5\u53e3\uff0c\u76f4\u63a5\u8bbf\u95eeGM\uff0c\u83b7\u53d6\u6700\u65b0\u6570\u636e\u3002\n56: - \u7528\u6237\u901a\u8fc7Scalar\u5355\u5143\u5199GM\u7684\u6570\u636e\uff0c\u5e0c\u671b\u7acb\u523b\u5199\u51fa\uff0c\u4e5f\u9700\u8981\u4f7f\u7528DataCacheCleanAndInvalid\u63a5\u53e3\u3002\n57: \n58: <!-- npu=\"950\" id15 -->\n59: - \u9488\u5bf9Ascend 950PR/Ascend 950DT\uff0c\u539f\u5b50\u64cd\u4f5c\u8fc7\u7a0b\u4e2d\uff0c\u5982\u679c\u5e0c\u671b\u6539\u53d8\u540e\u7eed\u6570\u636e\u7684\u9971\u548c\u6a21\u5f0f\uff0c\u9700\u8981\u5148\u4f7f\u7528DataCacheCleanAndInvalid\u63a5\u53e3\u5c06Cache Line\u4e2d\u73b0\u5b58\u7684\u6570\u636e\u7acb\u523b\u5199\u51fa\uff0c\u518d\u8c03\u7528[SetCtrlSpr](../special_register_access/SetCtrlSpr_ISASI.md)\u8bbe\u7f6e\u540e\u7eed\u6570\u636e\u7684\u9971\u548c\u6a21\u5f0f\u3002\n60: <!-- end id15 -->\n61: "
+        }
+      ]
+    },
+    {
+      "path": "/home/shanshan/repo/cann/asc-devkit/docs/zh/api/SIMD-API/basic_api/sync_control/intra_core_sync/PipeBarrier_ISASI.md",
+      "repository_commit": "6a51d0b167dd8f5555456a0ebb783ef0427e366e",
+      "sha256": "85c4293125bc4df45673fb26d0b2f22f0bf5f0589e17797431f08f8c194faebb",
+      "ranges": [
+        [
+          41,
+          78
+        ]
+      ],
+      "version_boundary": "Local primary-source checkout; not asserted identical to installed SDK documentation",
+      "excerpts": [
+        {
+          "start": 41,
+          "end": 78,
+          "text": "41: \n42: ## \u51fd\u6570\u539f\u578b<a name=\"section620mcpsimp\"></a>\n43: \n44: ```cpp\n45: template <pipe_t pipe>\n46: __aicore__ inline void PipeBarrier()\n47: ```\n48: \n49: ## \u53c2\u6570\u8bf4\u660e<a name=\"section622mcpsimp\"></a>\n50: \n51: **\u88681** \u6a21\u677f\u53c2\u6570\u8bf4\u660e\n52: \n53: | \u53c2\u6570\u540d | \u63cf\u8ff0 |\n54: | -------- | -------- |\n55: | pipe | \u6a21\u677f\u53c2\u6570\uff0c\u8868\u793a\u963b\u585e\u7684\u6d41\u6c34\u7c7b\u522b\u3002<br>\u652f\u6301\u7684\u6d41\u6c34\u53c2\u8003[\u786c\u4ef6\u6d41\u6c34\u7c7b\u578b](intra_core_sync_overview.md#zh-cn_topic_0000002542725361_section1272612276459)\uff0c\u5176\u4e2d\u4e0d\u652f\u6301PIPE_S\u3002<br>\u5982\u679c\u4e0d\u5173\u6ce8\u6d41\u6c34\u7c7b\u522b\uff0c\u5e0c\u671b\u963b\u585e\u6240\u6709\u6d41\u6c34\uff0c\u53ef\u4ee5\u4f20\u5165PIPE_ALL\u3002 |\n56: \n57: ## \u8fd4\u56de\u503c\u8bf4\u660e<a name=\"section640mcpsimp\"></a>\n58: \n59: \u65e0\n60: \n61: ## \u7ea6\u675f\u8bf4\u660e<a name=\"section633mcpsimp\"></a>\n62: \n63: - Scalar\u6d41\u6c34\u4e4b\u95f4\u7684\u540c\u6b65\u7531\u786c\u4ef6\u81ea\u52a8\u4fdd\u8bc1\uff0cPipeBarrier\u63a5\u53e3\u4e0d\u652f\u6301PIPE\\_S\u5355\u6d41\u6c34\u7684\u540c\u6b65\u3002\n64: \n65: - `PipeBarrier<PIPE_ALL>()`\u4f1a\u7b49\u5f85\u6240\u6709\u6d41\u6c34\u7ebf\u4e2d\u6240\u6709\u5148\u524d\u63d0\u4ea4\u7684\u63a5\u53e3\u5b8c\u6210\uff0c\u8fd9\u4f1a\u5bf9\u6027\u80fd\u4ea7\u751f\u5f71\u54cd\u3002\u82e5\u4ec5\u963b\u585e\u5355\u6761\u6d41\u6c34\u7ebf\u5373\u53ef\u89e3\u51b3\u95ee\u9898\uff0c\u5e94\u907f\u514d\u968f\u610f\u8c03\u7528`PipeBarrier<PIPE_ALL>()`\u3002\n66: \n67: - PIPE\\_MTE2/PIPE\\_MTE3\u5728\u642c\u8fd0\u5730\u5740\u6709\u91cd\u53e0\u7684\u60c5\u51b5\u4e0b\u9700\u8981\u5f00\u53d1\u8005\u63d2\u5165\u540c\u6b65\u3002\u4f8b\u5982\uff0c\u5f53\u9700\u8981\u6267\u884c\u591a\u4e2aDataCopy\u6307\u4ee4\uff0c\u4e14DataCopy\u7684\u76ee\u7684\u5730\u5740\u5b58\u5728\u91cd\u53e0\u65f6\uff0c\u9700\u8981\u8c03\u7528PipeBarrier\u63a5\u53e3\u63d2\u5165\u5355\u6d41\u6c34\u540c\u6b65\u6307\u4ee4\uff0c\u4fdd\u8bc1\u591a\u4e2aDataCopy\u6307\u4ee4\u7684\u4e32\u884c\u5316\uff0c\u9632\u6b62\u51fa\u73b0\u5f02\u5e38\u6570\u636e\u3002\u5982\u4e0b\u56fe\u5de6\u4fa7\u793a\u610f\u56fe\uff0c\u6267\u884c\u4e24\u4e2aDataCopy\u6307\u4ee4\uff0c\u642c\u8fd0\u7684\u76ee\u7684GM\u5730\u5740\u5b58\u5728\u91cd\u53e0\uff0c\u4e24\u6761\u642c\u8fd0\u6307\u4ee4\u4e4b\u95f4\u9700\u8981\u901a\u8fc7\u8c03\u7528`PipeBarrier<PIPE_MTE3>()`\u6dfb\u52a0MTE3\u642c\u51fa\u6d41\u6c34\u7684\u540c\u6b65\uff1b\u5982\u4e0b\u56fe\u53f3\u4fa7\u793a\u610f\u56fe\u6240\u793a\uff0c\u642c\u8fd0\u7684\u76ee\u7684\u5730\u5740Unified Buffer\uff08UB\uff09\u5b58\u5728\u91cd\u53e0\uff0c\u4e24\u6761\u642c\u8fd0\u6307\u4ee4\u4e4b\u95f4\u9700\u8981\u8c03\u7528`PipeBarrier<PIPE_MTE2>()`\u6dfb\u52a0MTE2\u642c\u5165\u6d41\u6c34\u7684\u540c\u6b65\u3002\n68: \n69: ![](../../../../figures/datacopy_address_overlap_pipebarrier.png \"DataCopy_\u5730\u5740\u91cd\u53e0_PipeBarrier_\u540c\u6b65\u793a\u610f\u56fe\")\n70: \n71: ## \u8c03\u7528\u793a\u4f8b<a name=\"section837496171220\"></a>\n72: \n73: \u5982\u4e0b\u793a\u4f8b\uff0cMul\u6307\u4ee4\u7684\u8f93\u5165dst0Local\u662fAdd\u6307\u4ee4\u7684\u8f93\u51fa\uff0c\u4e24\u4e2a\u77e2\u91cf\u8fd0\u7b97\u6307\u4ee4\u4ea7\u751f\u4f9d\u8d56\uff0c\u9700\u8981\u63d2\u5165PipeBarrier\u4fdd\u8bc1\u4e24\u6761\u6307\u4ee4\u7684\u6267\u884c\u987a\u5e8f\u3002\n74: \n75: \u6ce8\uff1a\u4ec5\u4f5c\u4e3a\u793a\u4f8b\u53c2\u8003\uff0c\u4ee5\u4e0b\u60c5\u51b5\u4e0bPIPE\\_V\u540c\u6b65\u65e0\u9700\u5f00\u53d1\u8005\u624b\u52a8\u63d2\u5165\uff1a\n76: <!-- npu=\"A3,910b\" id10 -->\n77: - \u5f00\u542f[cce-auto-sync\u7f16\u8bd1\u9009\u9879](key_features.md#cce-compiler-auto-sync)\u65f6\uff0c\u6bd5\u6607\u7f16\u8bd1\u5668\u81ea\u52a8\u63d2\u5165PIPE\\_V\u4e4b\u95f4\u7684\u540c\u6b65\u3002\n78: <!-- end id10 -->"
+        }
+      ]
+    },
+    {
+      "path": "/home/shanshan/repo/cann/asc-devkit/docs/zh/api/SIMD-API/basic_api/sync_control/intra_core_sync/DataSyncBarrier_ISASI.md",
+      "repository_commit": "6a51d0b167dd8f5555456a0ebb783ef0427e366e",
+      "sha256": "98d5487966e9caeb00c7592dddaef5e8afc9a18c64754635d1c7105ae55d9b72",
+      "ranges": [
+        [
+          33,
+          54
+        ]
+      ],
+      "version_boundary": "Local primary-source checkout; not asserted identical to installed SDK documentation",
+      "excerpts": [
+        {
+          "start": 33,
+          "end": 54,
+          "text": "33: ## \u51fd\u6570\u539f\u578b<a name=\"section620mcpsimp\"></a>\n34: \n35: ```cpp\n36: template <MemDsbT arg0>\n37: __aicore__ inline void DataSyncBarrier()\n38: ```\n39: \n40: ## \u53c2\u6570\u8bf4\u660e<a name=\"section622mcpsimp\"></a>\n41: \n42: **\u88681**  \u6a21\u677f\u53c2\u6570\u8bf4\u660e\n43: \n44: | \u53c2\u6570\u540d | \u63cf\u8ff0 |\n45: | --- | --- |\n46: | arg0 | \u6a21\u677f\u53c2\u6570\uff0c\u8868\u793a\u9700\u8981\u7b49\u5f85\u7684\u5185\u5b58\u4f4d\u7f6e\uff0c\u7c7b\u578b\u4e3aMemDsbT\uff0c\u53ef\u53d6\u503c\u4e3a\uff1a<br>&bull; ALL\uff0c\u7b49\u5f85GM\u548cUB\u7684\u8bbf\u95ee\u6307\u4ee4\uff08\u4e0d\u5305\u62ec\u5176\u4ed6\u5185\u5b58\u4f4d\u7f6e\uff0c\u4f8b\u5982L0C Buffer\u3001L1 Buffer\uff09\u3002<br>&bull; DDR\uff0c\u7b49\u5f85GM\u8bbf\u95ee\u6307\u4ee4\u3002<br>&bull; UB\uff0c\u7b49\u5f85UB\u8bbf\u95ee\u6307\u4ee4\u3002<br>&bull; SEQ\uff0c\u7b49\u5f85SEQ\u8bbf\u95ee\u6307\u4ee4\u3002 |\n47: \n48: ## \u8fd4\u56de\u503c\u8bf4\u660e<a name=\"section640mcpsimp\"></a>\n49: \n50: \u65e0\n51: \n52: ## \u7ea6\u675f\u8bf4\u660e<a name=\"section633mcpsimp\"></a>\n53: \n54: \u7b49\u5f85\u7684\u5185\u5b58\u4f4d\u7f6e\u53d6\u503c\u4e3aALL\u65f6\uff0c\u53ea\u80fd\u7b49\u5f85GM\u548cUnified Buffer\uff08UB\uff09\u7684\u8bbf\u95ee\u6307\u4ee4\uff0c\u4e0d\u5305\u62ec\u5176\u4ed6\u5185\u5b58\u4f4d\u7f6e\uff0c\u4f8b\u5982L0C Buffer\u3001L1 Buffer\u3002"
+        }
+      ]
+    },
+    {
+      "path": "/home/shanshan/repo/cann/asc-devkit/examples/01_simd_cpp_api/03_basic_api/05_sync_control/cross_core_set_wait_flag/cross_core_set_wait_flag.asc",
+      "repository_commit": "6a51d0b167dd8f5555456a0ebb783ef0427e366e",
+      "sha256": "cf295cb91acdf17bd4542814d819267d1fb96402c90ac6c3f5c58bd423e6949e",
+      "ranges": [
+        [
+          35,
+          47
+        ]
+      ],
+      "version_boundary": "Local primary-source checkout; not asserted identical to installed SDK documentation",
+      "excerpts": [
+        {
+          "start": 35,
+          "end": 47,
+          "text": "35: __global__ __mix__(1, 2) __aicore__ void cross_core_set_wait_flag_custom(\n36:     __gm__ uint8_t* x, __gm__ uint8_t* z, uint32_t dataLength)\n37: {\n38:     // \u9759\u6001Tensor\u7f16\u7a0b\u65b9\u5f0f\u4e2d\u9700\u8981\u5f00\u53d1\u8005\u624b\u52a8\u8c03\u7528InitSocState()\u63a5\u53e3\u521d\u59cb\u5316\u5168\u5c40\u72b6\u6001\u5bc4\u5b58\u5668\u3002\n39:     AscendC::InitSocState();\n40:     KernelCrossCoreSetFlag op;\n41:     if ASCEND_IS_AIV {\n42:         op.Init(x, z, dataLength);\n43:         op.Process();\n44:     }\n45:     AscendC::PipeBarrier<PIPE_ALL>();\n46: }\n47: "
+        }
+      ]
+    }
+  ],
+  "required_unchanged_obligations": [
+    "All existing joins through body barrier4 remain, including active metadata publication at barrier0",
+    "Every final route/routed/scaled/combined element has one AIV writer and no subsequent reader within this global entry",
+    "PIPE_ALL then DDR remains before global return; ordinary TPipe destruction remains enabled",
+    "No scalar GM producers or trace stores are added to the terminal region; current active table scalar writes are to UB followed by DMA",
+    "All final consumers are later tasks on the same actual stream or wait on an event after this mixed task",
+    "Callable entry still requires a cross-core completion edge before any following reader or allocator reuse"
+  ],
+  "conclusion": "No source-level counterexample found for removing only the standalone final SyncAll and Reset with the listed obligations; no latency claim",
+  "callable_counterexample": "An AIC can return before a delayed AIV writes a token tile. A following norm, TP publication or scratch reuse inside the same global kernel can consume stale values unless it retains a mixed-core join or an equivalent explicit dependency."
+}

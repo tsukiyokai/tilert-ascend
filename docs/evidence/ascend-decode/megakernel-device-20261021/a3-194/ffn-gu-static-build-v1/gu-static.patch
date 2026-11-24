@@ -1,0 +1,30 @@
+--- parent/body/source/routed_int4/routed_body_native.h
++++ candidate/body/source/routed_int4/routed_body_native.h
+@@ -22,6 +22,7 @@
+ #include "routed_int4_trace.h"
+ #include "kernel_operator.h"
+ #include "lib/matmul_intf.h"
++#include "../../../source/gu_static_tiling.h"
+ #ifdef ROUTED_INPUT_FRONT
+ #include "routed_int4_front.h"
+ #endif
+@@ -65,15 +66,13 @@
+ template <CubeFormat format>
+ using Projection = Matmul<APacked,
+     MatmulType<TPosition::GM, format, int4b_t, false>, CProduct, BiasNone>;
+-#ifdef ROUTED_GU_MDL
++#if defined(ROUTED_GU_MDL) || defined(ROUTED_GU_PAD16) || defined(ROUTED_FIXPIPE_HALF)
++#error "GU constant tiling preserves the parent INT32 Norm geometry"
++#endif
+ template <CubeFormat format>
+ using GateProjection = Matmul<APacked,
+     MatmulType<TPosition::GM, format, int4b_t, false>, CProduct, BiasNone,
+-    CFG_MDL>;
+-#else
+-template <CubeFormat format>
+-using GateProjection = Projection<format>;
+-#endif
++    ffn_gu_static::kGateTiling>;
+ 
+ // int4b_t is a storage wrapper; physical pointer arithmetic uses bytes.
+ __aicore__ inline __gm__ int4b_t* Nibbles(__gm__ int4b_t* base,

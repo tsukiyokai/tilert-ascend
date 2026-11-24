@@ -1,0 +1,32 @@
+{
+  "host": "a3-78",
+  "docker_command": [
+    "docker",
+    "run",
+    "--rm",
+    "--read-only",
+    "--network",
+    "none",
+    "--cpus",
+    "2",
+    "--memory",
+    "4g",
+    "--tmpfs",
+    "/tmp:rw,size=512m",
+    "--name",
+    "tilert-wk-kshift-link-cpu-20261022-v1",
+    "-v",
+    "/home/shanshan/tilert-megakernel-20261021:/workspace:ro",
+    "-v",
+    "/home/shanshan/tilert-megakernel-20261021/tests/glm52/whole_layer/attention_wk_kshift_build-v1:/workspace/tests/glm52/whole_layer/attention_wk_kshift_build-v1:rw",
+    "-v",
+    "/home/shanshan/megamoe-mask-only-20261021/sdk/cann-9.2.0:/opt/ascend/cann-9.2.0:ro",
+    "--entrypoint",
+    "/bin/bash",
+    "sha256:9afbed90a0f92e228cc1ba13adf3cee2e89e34f1dd4cad1ed8eb5ce8c091b4af",
+    "-lc",
+    "source /opt/ascend/cann-9.2.0/set_env.sh\n/usr/local/python3.12.13/bin/python3.12 /workspace/tests/glm52/whole_layer/attention_wk_kshift_build-v1/build.py link --output /workspace/tests/glm52/whole_layer/attention_wk_kshift_build-v1"
+  ],
+  "npu_device_flags": [],
+  "image_id": "sha256:9afbed90a0f92e228cc1ba13adf3cee2e89e34f1dd4cad1ed8eb5ce8c091b4af"
+}

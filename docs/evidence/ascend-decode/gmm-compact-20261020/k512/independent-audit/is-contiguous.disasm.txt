@@ -1,0 +1,258 @@
+
+/opt/ascend/cann-9.2.0/aarch64-linux/lib64/libnnopbase.so:     file format elf64-littleaarch64
+
+
+Disassembly of section .text:
+
+000000000025cf68 <op::IsContiguous(aclTensor const*)@@Base>:
+  25cf68:	d10243ff 	sub	sp, sp, #0x90
+  25cf6c:	a9027bfd 	stp	x29, x30, [sp, #32]
+  25cf70:	910083fd 	add	x29, sp, #0x20
+  25cf74:	a90353f3 	stp	x19, x20, [sp, #48]
+  25cf78:	f0000f13 	adrp	x19, 43f000 <vtable for std::_V2::error_category@@Base+0x53d8>
+  25cf7c:	f9420e61 	ldr	x1, [x19, #1048]
+  25cf80:	f9400022 	ldr	x2, [x1]
+  25cf84:	f90037a2 	str	x2, [x29, #104]
+  25cf88:	d2800002 	mov	x2, #0x0                   	// #0
+  25cf8c:	b4000ce0 	cbz	x0, 25d128 <op::IsContiguous(aclTensor const*)@@Base+0x1c0>
+  25cf90:	f90013b5 	str	x21, [x29, #32]
+  25cf94:	aa0003f5 	mov	x21, x0
+  25cf98:	97f875f6 	bl	7a770 <aclTensor::GetStorageFormat() const@plt>
+  25cf9c:	97f898b1 	bl	83260 <op::IsPrivateFormat(ge::Format)@plt>
+  25cfa0:	72001c14 	ands	w20, w0, #0xff
+  25cfa4:	540001a0 	b.eq	25cfd8 <op::IsContiguous(aclTensor const*)@@Base+0x70>  // b.none
+  25cfa8:	f94013b5 	ldr	x21, [x29, #32]
+  25cfac:	52800034 	mov	w20, #0x1                   	// #1
+  25cfb0:	f9420e73 	ldr	x19, [x19, #1048]
+  25cfb4:	2a1403e0 	mov	w0, w20
+  25cfb8:	f94037a2 	ldr	x2, [x29, #104]
+  25cfbc:	f9400261 	ldr	x1, [x19]
+  25cfc0:	ca010041 	eor	x1, x2, x1
+  25cfc4:	b50016c1 	cbnz	x1, 25d29c <op::IsContiguous(aclTensor const*)@@Base+0x334>
+  25cfc8:	a94353f3 	ldp	x19, x20, [sp, #48]
+  25cfcc:	a9427bfd 	ldp	x29, x30, [sp, #32]
+  25cfd0:	910243ff 	add	sp, sp, #0x90
+  25cfd4:	d65f03c0 	ret
+  25cfd8:	f90017b6 	str	x22, [x29, #40]
+  25cfdc:	aa1503e0 	mov	x0, x21
+  25cfe0:	97f89050 	bl	81120 <aclTensor::GetViewShape() const@plt>
+  25cfe4:	f9400005 	ldr	x5, [x0]
+  25cfe8:	aa0003f6 	mov	x22, x0
+  25cfec:	b4000285 	cbz	x5, 25d03c <op::IsContiguous(aclTensor const*)@@Base+0xd4>
+  25cff0:	f9400406 	ldr	x6, [x0, #8]
+  25cff4:	91004007 	add	x7, x0, #0x10
+  25cff8:	aa0703e4 	mov	x4, x7
+  25cffc:	d2800001 	mov	x1, #0x0                   	// #0
+  25d000:	d2800028 	mov	x8, #0x1                   	// #1
+  25d004:	aa0603e2 	mov	x2, x6
+  25d008:	14000009 	b	25d02c <op::IsContiguous(aclTensor const*)@@Base+0xc4>
+  25d00c:	d503201f 	nop
+  25d010:	f8408480 	ldr	x0, [x4], #8
+  25d014:	9b007c43 	mul	x3, x2, x0
+  25d018:	9b407c40 	smulh	x0, x2, x0
+  25d01c:	aa0303e2 	mov	x2, x3
+  25d020:	eb83fc1f 	cmp	x0, x3, asr #63
+  25d024:	9a8803e0 	csel	x0, xzr, x8, eq  // eq = none
+  25d028:	b5000100 	cbnz	x0, 25d048 <op::IsContiguous(aclTensor const*)@@Base+0xe0>
+  25d02c:	91000421 	add	x1, x1, #0x1
+  25d030:	eb0100bf 	cmp	x5, x1
+  25d034:	54fffee1 	b.ne	25d010 <op::IsContiguous(aclTensor const*)@@Base+0xa8>  // b.any
+  25d038:	b5000082 	cbnz	x2, 25d048 <op::IsContiguous(aclTensor const*)@@Base+0xe0>
+  25d03c:	a9425bb5 	ldp	x21, x22, [x29, #32]
+  25d040:	17ffffdb 	b	25cfac <op::IsContiguous(aclTensor const*)@@Base+0x44>
+  25d044:	d503201f 	nop
+  25d048:	d2800001 	mov	x1, #0x0                   	// #0
+  25d04c:	d2800023 	mov	x3, #0x1                   	// #1
+  25d050:	14000009 	b	25d074 <op::IsContiguous(aclTensor const*)@@Base+0x10c>
+  25d054:	d503201f 	nop
+  25d058:	f84084e0 	ldr	x0, [x7], #8
+  25d05c:	9b007cc2 	mul	x2, x6, x0
+  25d060:	9b407cc0 	smulh	x0, x6, x0
+  25d064:	aa0203e6 	mov	x6, x2
+  25d068:	eb82fc1f 	cmp	x0, x2, asr #63
+  25d06c:	9a8303e0 	csel	x0, xzr, x3, eq  // eq = none
+  25d070:	b50000c0 	cbnz	x0, 25d088 <op::IsContiguous(aclTensor const*)@@Base+0x120>
+  25d074:	91000421 	add	x1, x1, #0x1
+  25d078:	eb0100bf 	cmp	x5, x1
+  25d07c:	54fffee1 	b.ne	25d058 <op::IsContiguous(aclTensor const*)@@Base+0xf0>  // b.any
+  25d080:	f10004df 	cmp	x6, #0x1
+  25d084:	54fffdc0 	b.eq	25d03c <op::IsContiguous(aclTensor const*)@@Base+0xd4>  // b.none
+  25d088:	a903e7b8 	stp	x24, x25, [x29, #56]
+  25d08c:	aa1503e0 	mov	x0, x21
+  25d090:	97f88588 	bl	7e6b0 <aclTensor::GetViewStrides() const@plt>
+  25d094:	f9406819 	ldr	x25, [x0, #208]
+  25d098:	aa0003f8 	mov	x24, x0
+  25d09c:	92800001 	mov	x1, #0xffffffffffffffff    	// #-1
+  25d0a0:	aa1903e0 	mov	x0, x25
+  25d0a4:	97f895eb 	bl	82850 <__addvdi3@plt>
+  25d0a8:	aa0003f5 	mov	x21, x0
+  25d0ac:	b7f809e0 	tbnz	x0, #63, 25d1e8 <op::IsContiguous(aclTensor const*)@@Base+0x280>
+  25d0b0:	f9001bb7 	str	x23, [x29, #48]
+  25d0b4:	8b000ed7 	add	x23, x22, x0, lsl #3
+  25d0b8:	f90027ba 	str	x26, [x29, #72]
+  25d0bc:	d280003a 	mov	x26, #0x1                   	// #1
+  25d0c0:	f94006e1 	ldr	x1, [x23, #8]
+  25d0c4:	f100043f 	cmp	x1, #0x1
+  25d0c8:	540001a0 	b.eq	25d0fc <op::IsContiguous(aclTensor const*)@@Base+0x194>  // b.none
+  25d0cc:	eb1902bf 	cmp	x21, x25
+  25d0d0:	540013a2 	b.cs	25d344 <op::IsContiguous(aclTensor const*)@@Base+0x3dc>  // b.hs, b.nlast
+  25d0d4:	f9407300 	ldr	x0, [x24, #224]
+  25d0d8:	cb1602e2 	sub	x2, x23, x22
+  25d0dc:	f100001f 	cmp	x0, #0x0
+  25d0e0:	9a981000 	csel	x0, x0, x24, ne  // ne = any
+  25d0e4:	f8626800 	ldr	x0, [x0, x2]
+  25d0e8:	eb1a001f 	cmp	x0, x26
+  25d0ec:	54000761 	b.ne	25d1d8 <op::IsContiguous(aclTensor const*)@@Base+0x270>  // b.any
+  25d0f0:	aa1a03e0 	mov	x0, x26
+  25d0f4:	97f874ff 	bl	7a4f0 <__mulvdi3@plt>
+  25d0f8:	aa0003fa 	mov	x26, x0
+  25d0fc:	aa1503e0 	mov	x0, x21
+  25d100:	92800001 	mov	x1, #0xffffffffffffffff    	// #-1
+  25d104:	d10022f7 	sub	x23, x23, #0x8
+  25d108:	97f895d2 	bl	82850 <__addvdi3@plt>
+  25d10c:	aa0003f5 	mov	x21, x0
+  25d110:	b100041f 	cmn	x0, #0x1
+  25d114:	54fffd61 	b.ne	25d0c0 <op::IsContiguous(aclTensor const*)@@Base+0x158>  // b.any
+  25d118:	a9425bb5 	ldp	x21, x22, [x29, #32]
+  25d11c:	a94363b7 	ldp	x23, x24, [x29, #48]
+  25d120:	a9446bb9 	ldp	x25, x26, [x29, #64]
+  25d124:	17ffffa2 	b	25cfac <op::IsContiguous(aclTensor const*)@@Base+0x44>
+  25d128:	52800061 	mov	w1, #0x3                   	// #3
+  25d12c:	528007e0 	mov	w0, #0x3f                  	// #63
+  25d130:	97f89614 	bl	82980 <CheckLogLevelInner(int, int)@plt>
+  25d134:	7100041f 	cmp	w0, #0x1
+  25d138:	54fff3a1 	b.ne	25cfac <op::IsContiguous(aclTensor const*)@@Base+0x44>  // b.any
+  25d13c:	a9025bb5 	stp	x21, x22, [x29, #32]
+  25d140:	d2801640 	mov	x0, #0xb2                  	// #178
+  25d144:	910163b5 	add	x21, x29, #0x58
+  25d148:	97f883f2 	bl	7e110 <syscall@plt>
+  25d14c:	aa1503e8 	mov	x8, x21
+  25d150:	aa0003f6 	mov	x22, x0
+  25d154:	97f8776b 	bl	7af00 <op::internal::GetLogApiInfo()@plt>
+  25d158:	d0000f14 	adrp	x20, 43f000 <vtable for std::_V2::error_category@@Base+0x53d8>
+  25d15c:	f9402fa1 	ldr	x1, [x29, #88]
+  25d160:	f85e8020 	ldur	x0, [x1, #-24]
+  25d164:	b5000480 	cbnz	x0, 25d1f4 <op::IsContiguous(aclTensor const*)@@Base+0x28c>
+  25d168:	5291ed02 	mov	w2, #0x8f68                	// #36712
+  25d16c:	900008e0 	adrp	x0, 379000 <typeinfo name for aclFloatArray@@Base+0x358>
+  25d170:	72a00102 	movk	w2, #0x8, lsl #16
+  25d174:	91232000 	add	x0, x0, #0x8c8
+  25d178:	b90003e2 	str	w2, [sp]
+  25d17c:	d0000aa6 	adrp	x6, 3b3000 <typeinfo name for std::_Sp_counted_ptr_inplace<gert::OpImplSpaceRegistryV2, std::allocator<gert::OpImplSpaceRegistryV2>, (__gnu_cxx::_Lock_policy)2>@@Base+0x8>
+  25d180:	a90083e1 	stp	x1, x0, [sp, #8]
+  25d184:	900008e5 	adrp	x5, 379000 <typeinfo name for aclFloatArray@@Base+0x358>
+  25d188:	f00009a3 	adrp	x3, 394000 <typeinfo name for aclFloatArray@@Base+0x1b358>
+  25d18c:	900008e2 	adrp	x2, 379000 <typeinfo name for aclFloatArray@@Base+0x358>
+  25d190:	aa1603e7 	mov	x7, x22
+  25d194:	9118c0c6 	add	x6, x6, #0x630
+  25d198:	9108c0a5 	add	x5, x5, #0x230
+  25d19c:	528004c4 	mov	w4, #0x26                  	// #38
+  25d1a0:	91342063 	add	x3, x3, #0xd08
+  25d1a4:	910a0042 	add	x2, x2, #0x280
+  25d1a8:	52800061 	mov	w1, #0x3                   	// #3
+  25d1ac:	528007e0 	mov	w0, #0x3f                  	// #63
+  25d1b0:	97f87a54 	bl	7bb00 <DlogRecordInner(int, int, char const*, ...)@plt>
+  25d1b4:	f9402fa0 	ldr	x0, [x29, #88]
+  25d1b8:	f9415294 	ldr	x20, [x20, #672]
+  25d1bc:	d1006000 	sub	x0, x0, #0x18
+  25d1c0:	eb14001f 	cmp	x0, x20
+  25d1c4:	54000681 	b.ne	25d294 <op::IsContiguous(aclTensor const*)@@Base+0x32c>  // b.any
+  25d1c8:	52800034 	mov	w20, #0x1                   	// #1
+  25d1cc:	a9425bb5 	ldp	x21, x22, [x29, #32]
+  25d1d0:	17ffff78 	b	25cfb0 <op::IsContiguous(aclTensor const*)@@Base+0x48>
+  25d1d4:	d503201f 	nop
+  25d1d8:	a9425bb5 	ldp	x21, x22, [x29, #32]
+  25d1dc:	a94363b7 	ldp	x23, x24, [x29, #48]
+  25d1e0:	a9446bb9 	ldp	x25, x26, [x29, #64]
+  25d1e4:	17ffff73 	b	25cfb0 <op::IsContiguous(aclTensor const*)@@Base+0x48>
+  25d1e8:	a9425bb5 	ldp	x21, x22, [x29, #32]
+  25d1ec:	a943e7b8 	ldp	x24, x25, [x29, #56]
+  25d1f0:	17ffff6f 	b	25cfac <op::IsContiguous(aclTensor const*)@@Base+0x44>
+  25d1f4:	910183b4 	add	x20, x29, #0x60
+  25d1f8:	900008e0 	adrp	x0, 379000 <typeinfo name for aclFloatArray@@Base+0x358>
+  25d1fc:	aa1403e8 	mov	x8, x20
+  25d200:	aa1503e1 	mov	x1, x21
+  25d204:	9106e000 	add	x0, x0, #0x1b8
+  25d208:	97f8819e 	bl	7d880 <std::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(char const*, std::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)@plt>
+  25d20c:	900008e1 	adrp	x1, 379000 <typeinfo name for aclFloatArray@@Base+0x358>
+  25d210:	d2800042 	mov	x2, #0x2                   	// #2
+  25d214:	91072021 	add	x1, x1, #0x1c8
+  25d218:	aa1403e0 	mov	x0, x20
+  25d21c:	97f88e05 	bl	80a30 <std::string::append(char const*, unsigned long)@plt>
+  25d220:	d0000f14 	adrp	x20, 43f000 <vtable for std::_V2::error_category@@Base+0x53d8>
+  25d224:	f9001fb8 	str	x24, [x29, #56]
+  25d228:	f9415282 	ldr	x2, [x20, #672]
+  25d22c:	f9400001 	ldr	x1, [x0]
+  25d230:	91006042 	add	x2, x2, #0x18
+  25d234:	f9000002 	str	x2, [x0]
+  25d238:	f9402fa0 	ldr	x0, [x29, #88]
+  25d23c:	d1002002 	sub	x2, x0, #0x8
+  25d240:	b9400042 	ldr	w2, [x2]
+  25d244:	36f80042 	tbz	w2, #31, 25d24c <op::IsContiguous(aclTensor const*)@@Base+0x2e4>
+  25d248:	b81f801f 	stur	wzr, [x0, #-8]
+  25d24c:	d1002020 	sub	x0, x1, #0x8
+  25d250:	b9400000 	ldr	w0, [x0]
+  25d254:	36f80040 	tbz	w0, #31, 25d25c <op::IsContiguous(aclTensor const*)@@Base+0x2f4>
+  25d258:	b81f803f 	stur	wzr, [x1, #-8]
+  25d25c:	f9402fb5 	ldr	x21, [x29, #88]
+  25d260:	f9415280 	ldr	x0, [x20, #672]
+  25d264:	f9002fa1 	str	x1, [x29, #88]
+  25d268:	d10062b8 	sub	x24, x21, #0x18
+  25d26c:	eb00031f 	cmp	x24, x0
+  25d270:	54000381 	b.ne	25d2e0 <op::IsContiguous(aclTensor const*)@@Base+0x378>  // b.any
+  25d274:	f94033b5 	ldr	x21, [x29, #96]
+  25d278:	f9415280 	ldr	x0, [x20, #672]
+  25d27c:	d10062b8 	sub	x24, x21, #0x18
+  25d280:	eb00031f 	cmp	x24, x0
+  25d284:	54000141 	b.ne	25d2ac <op::IsContiguous(aclTensor const*)@@Base+0x344>  // b.any
+  25d288:	f9401fb8 	ldr	x24, [x29, #56]
+  25d28c:	f9402fa1 	ldr	x1, [x29, #88]
+  25d290:	17ffffb6 	b	25d168 <op::IsContiguous(aclTensor const*)@@Base+0x200>
+  25d294:	97fffe7d 	bl	25cc88 <op::TrimWith(std::string&, char)@@Base+0x1d0>
+  25d298:	17ffffcc 	b	25d1c8 <op::IsContiguous(aclTensor const*)@@Base+0x260>
+  25d29c:	a9025bb5 	stp	x21, x22, [x29, #32]
+  25d2a0:	a90363b7 	stp	x23, x24, [x29, #48]
+  25d2a4:	a9046bb9 	stp	x25, x26, [x29, #64]
+  25d2a8:	97f87892 	bl	7b4f0 <__stack_chk_fail@plt>
+  25d2ac:	d0000f00 	adrp	x0, 43f000 <vtable for std::_V2::error_category@@Base+0x53d8>
+  25d2b0:	f9001bb7 	str	x23, [x29, #48]
+  25d2b4:	f941a800 	ldr	x0, [x0, #848]
+  25d2b8:	b40002e0 	cbz	x0, 25d314 <op::IsContiguous(aclTensor const*)@@Base+0x3ac>
+  25d2bc:	d10022b5 	sub	x21, x21, #0x8
+  25d2c0:	885ffeb7 	ldaxr	w23, [x21]
+  25d2c4:	510006e0 	sub	w0, w23, #0x1
+  25d2c8:	8801fea0 	stlxr	w1, w0, [x21]
+  25d2cc:	35ffffa1 	cbnz	w1, 25d2c0 <op::IsContiguous(aclTensor const*)@@Base+0x358>
+  25d2d0:	710002ff 	cmp	w23, #0x0
+  25d2d4:	5400090d 	b.le	25d3f4 <op::IsContiguous(aclTensor const*)@@Base+0x48c>
+  25d2d8:	f9401bb7 	ldr	x23, [x29, #48]
+  25d2dc:	17ffffeb 	b	25d288 <op::IsContiguous(aclTensor const*)@@Base+0x320>
+  25d2e0:	d0000f00 	adrp	x0, 43f000 <vtable for std::_V2::error_category@@Base+0x53d8>
+  25d2e4:	f9001bb7 	str	x23, [x29, #48]
+  25d2e8:	f941a800 	ldr	x0, [x0, #848]
+  25d2ec:	b4000200 	cbz	x0, 25d32c <op::IsContiguous(aclTensor const*)@@Base+0x3c4>
+  25d2f0:	d10022b5 	sub	x21, x21, #0x8
+  25d2f4:	885ffeb7 	ldaxr	w23, [x21]
+  25d2f8:	510006e0 	sub	w0, w23, #0x1
+  25d2fc:	8801fea0 	stlxr	w1, w0, [x21]
+  25d300:	35ffffa1 	cbnz	w1, 25d2f4 <op::IsContiguous(aclTensor const*)@@Base+0x38c>
+  25d304:	710002ff 	cmp	w23, #0x0
+  25d308:	540007ed 	b.le	25d404 <op::IsContiguous(aclTensor const*)@@Base+0x49c>
+  25d30c:	f9401bb7 	ldr	x23, [x29, #48]
+  25d310:	17ffffd9 	b	25d274 <op::IsContiguous(aclTensor const*)@@Base+0x30c>
+  25d314:	b85f82b7 	ldur	w23, [x21, #-8]
+  25d318:	12800001 	mov	w1, #0xffffffff            	// #-1
+  25d31c:	2a1703e0 	mov	w0, w23
+  25d320:	97f888b8 	bl	7f600 <__addvsi3@plt>
+  25d324:	b81f82a0 	stur	w0, [x21, #-8]
+  25d328:	17ffffea 	b	25d2d0 <op::IsContiguous(aclTensor const*)@@Base+0x368>
+  25d32c:	b85f82b7 	ldur	w23, [x21, #-8]
+  25d330:	12800001 	mov	w1, #0xffffffff            	// #-1
+  25d334:	2a1703e0 	mov	w0, w23
+  25d338:	97f888b2 	bl	7f600 <__addvsi3@plt>
+  25d33c:	b81f82a0 	stur	w0, [x21, #-8]
+  25d340:	17fffff1 	b	25d304 <op::IsContiguous(aclTensor const*)@@Base+0x39c>
+  25d344:	d2800200 	mov	x0, #0x10                  	// #16
+  25d348:	97f87b66 	bl	7c0e0 <__cxa_allocate_exception@plt>
+  25d34c:	900008e1 	adrp	x1, 379000 <typeinfo name for aclFloatArray@@Base+0x358>
+  25d350:	aa0003f3 	mov	x19, x0

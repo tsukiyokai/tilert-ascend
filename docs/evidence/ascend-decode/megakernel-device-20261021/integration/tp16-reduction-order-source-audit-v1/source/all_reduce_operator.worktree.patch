@@ -1,0 +1,16 @@
+diff --git i/src/legacy/ascend910/algorithm/impl/operator/all_reduce_operator.cc w/src/legacy/ascend910/algorithm/impl/operator/all_reduce_operator.cc
+index 7bc3b57e2..234905384 100644
+--- i/src/legacy/ascend910/algorithm/impl/operator/all_reduce_operator.cc
++++ w/src/legacy/ascend910/algorithm/impl/operator/all_reduce_operator.cc
+@@ -598,9 +598,10 @@ HcclResult AllReduceOperator::SelectAlgfor91093(const OpParam& param, std::strin
+     u64 dataSizePerRank = dataSize / deviceNumPerAggregation_;
+     bool isOpbase = workflowMode_ == HcclWorkflowMode::HCCL_WORKFLOW_MODE_OP_BASE;
+     bool isOnlyAiv = topoMatcher_->GetIsOnlyAivConfig();
+-    // A3 AIV确定性 超节点内(单机与跨机) 支持单算子与图模式 限制单卡数据量8MB
++    // A3 AIV确定性 超节点内(单机与跨机HCCS) 支持单算子与图模式 限制单卡数据量8MB
+     bool isBarrierOp = param.syncMode == SyncMode::UNLIMITED_TIMEWAITSYNCMODE;   // Barrier算子不使能AIV
+     bool isSupportAivDeter = (superPodNum_ == 1)
++                        && (serverNum_ == 1 || !GetExternalInputInterHccsDisable())
+                         && (topoMatcher_->GetAivModeConfig() && !isBarrierOp)
+                         && IsSupportAIVReduce(param.DataDes.dataType, param.reduceType)
+                         && ((topoMatcher_->GetDeterministicConfig() != DETERMINISTIC_DISABLE) || (serverNum_ > 1))

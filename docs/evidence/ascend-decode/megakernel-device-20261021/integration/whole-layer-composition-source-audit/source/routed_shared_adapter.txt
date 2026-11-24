@@ -1,0 +1,65 @@
+Original lines 175-237
+  175     from vllm_ascend.ops.fused_moe.moe_comm_method import (
+  176         AllGatherCommImpl,
+  177         FusedExpertsResult,
+  178     )
+  179     from vllm_ascend.ops.fused_moe.moe_mlp import maybe_record_event
+  180 
+  181     _validate_runner(runner)
+  182     shared_weights = _shared_weights(runner.ascend_shared_experts)
+  183     original = runner._forward_impl
+  184 
+  185     def forward(self, hidden_states, router_logits, shared_experts_input,
+  186                 input_ids=None):
+  187         shared_input = (hidden_states if shared_experts_input is None
+  188                         else shared_experts_input)
+  189         if (not 1 <= hidden_states.shape[0] <= MAX_TOKENS
+  190                 or hidden_states.dtype != torch.bfloat16
+  191                 or shared_input.shape != hidden_states.shape
+  192                 or shared_input.dtype != torch.bfloat16
+  193                 or self.ascend_shared_experts.lora_context is not None
+  194                 or getattr(self.routed_experts, "_ascend_moe_lora_context", None)
+  195                 is not None):
+  196             return original(hidden_states, router_logits, shared_experts_input,
+  197                             input_ids)
+  198         shared_output = None
+  199 
+  200         def body(layer, x, topk_weights, topk_ids, shared_experts,
+  201                  shared_experts_input):
+  202             nonlocal shared_output
+  203             if (not isinstance(_EXTRA_CTX.moe_comm_method, AllGatherCommImpl)
+  204                     or layer.ascend_pertoken_scale is not None):
+  205                 raise ValueError("Routed/shared requires unquantized AllGather input")
+  206             start = maybe_record_event()
+  207             routed, shared_output, counts = run_body(
+  208                 x, topk_weights, topk_ids, shared_input, routed_weights,
+  209                 shared_weights, pool,
+  210             )
+  211             end = maybe_record_event()
+  212             return FusedExpertsResult(
+  213                 routed_out=routed, before_dispatch_evt=start,
+  214                 before_gmm2_evt=end, before_combine_evt=end,
+  215                 shared_activation_overlap_start_evt=end,
+  216                 group_list_type=1, expert_tokens=counts,
+  217             )
+  218 
+  219         with self._sequence_parallel_context():
+  220             if self.is_internal_router:
+  221                 router_logits = self._compute_router_logits(
+  222                     shared_input, router_logits,
+  223                 )
+  224             routed_output, _ = self.routed_experts.forward_impl(
+  225                 hidden_states=hidden_states, router_logits=router_logits,
+  226                 input_ids=input_ids, fused_experts=body,
+  227             )
+  228         if shared_output is None:
+  229             raise RuntimeError("The routed forward did not call its fused body")
+  230         return shared_output, routed_output
+  231 
+  232     runner._forward_impl = MethodType(forward, runner)
+  233 
+  234     def restore():
+  235         runner._forward_impl = original
+  236 
+  237     return restore
+

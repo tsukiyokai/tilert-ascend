@@ -1,0 +1,72 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: shanshan <samsom0409@gmail.com>
+Date: Sun, 19 Oct 2026 02:00:00 +0800
+Subject: [PATCH 3/3] take the row count from the tiling when one chunk holds every row
+
+`InitWorkSpaceSplitConfig` recovers M by summing the whole group list on every
+core. The tiling already carries that number: the host reads it from the
+activation's first dimension (base_tiling.cpp:201) and stores it (:434), and
+postProcess sizes the output scale buffer by it (post.h:106).
+
+The substitution is not free of assumptions and should not be read as such.
+It requires `sum(group_list)` and the tiling's M to agree. They are already
+required to agree: with the activation indexed and the output scale buffer
+sized by the tiling's M while the chunking is derived from the table, feeding
+the operator a group list whose sum differs from the row count is accepted
+without complaint and produces a wrong answer today. So the change picks which
+of two quantities that must already match to read, rather than introducing a
+new way to be wrong. It is gated on the one-chunk case so every other loop
+count keeps deriving M from the table exactly as before, and it is a separate
+commit so it can be dropped on its own.
+
+Measured on one Ascend910_93 die, A8W4 MSD, K=6144 N=256, 8 active experts of
+256 each holding one row, applied on top of the straight-line path and the
+closed-form chunk span. Both forms were built into one binary selected at run
+time, so the pair shares a process, a device context, one HBM allocation and
+one set of weight banks; six 192.75 MiB banks rotate with the active expert
+window so each batch of 32 calls touches 202.1 MB of distinct weight addresses
+against a 192 MiB L2. The batch is captured into an ACL graph and replayed,
+because eager calls to this operator cost as much on the host as the kernel
+costs on the device. Three runs of 40 rounds, arms replayed A,B,B,A per round:
+
+  sum the table    89.148   88.853   90.255 us per call
+  tiling's M       85.211   88.208   88.157
+  saved             3.882    0.663    2.127   (sd 0.207, 1.530, 0.264)
+
+The first and third runs are 0 positive against 40 negative; the second has a
+standard deviation an order of magnitude larger than the other two and a mixed
+sign count, and a neighbouring tenant was active on the die, so read 2 to 4 us
+rather than the mean of the three.
+
+One caveat on what this does not buy. Most of what the group list costs is not
+any single traversal but the first one: with this operator's four readers of
+the table, eliding one hands the cost to the next. Cutting the kernel entry
+just after `op.Init` prices that Init at 38.55 us with a 256-slot table and at
+zero with an 8-slot one, and eliding the two pipeline-level traversals moves
+the same 38 us out of Init and into `Process` while leaving the call's total
+unchanged at 88 to 93 us. What this commit removes is one traversal's worth of
+warm-cache reads, not that first-traversal cost.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+--- a/csrc/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_pipeline.h
++++ b/csrc/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_pipeline.h
+@@ -170,6 +170,15 @@
+ {
+     if (gmmSwigluQuantV2BaseParams->groupListType == 0) {
+         workspaceSplitConfig.M = groupListGM.GetValue(gmmSwigluQuantV2->groupListLen - 1);
++    } else if (Ceil(gmmSwigluQuantV2BaseParams->M, gmmSwigluQuantV2BaseParams->mLimit) == 1) {
++        // One chunk holds every row, so take the count from the tiling instead
++        // of summing the table. The two quantities must already agree: the host
++        // takes the tiling's M from the activation's first dimension
++        // (base_tiling.cpp:201), postProcess sizes the output scale buffer by it
++        // (post.h:106), and the chunking is derived from the table, so a
++        // disagreement is a wrong answer today rather than a new failure mode.
++        // Every other loop count still sums the table.
++        workspaceSplitConfig.M = gmmSwigluQuantV2BaseParams->M;
+     } else {
+         int64_t totalTmp = 0;
+         for (uint32_t i = 0; i < gmmSwigluQuantV2->groupListLen; i++) {
+-- 
+2.43.0
+

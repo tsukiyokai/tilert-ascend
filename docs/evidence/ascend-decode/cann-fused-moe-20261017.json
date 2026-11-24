@@ -1,0 +1,385 @@
+{
+  "scope": "CANN routed W4 GMM1-SwiGLU-A8 rounding and frozen CPU reference",
+  "environment": "a3-gs:trt-asc",
+  "precision_verified": false,
+  "frozen_reference": {
+    "scope": "Two frozen routed-MoE rows; CPU reference versus CANN",
+    "status": "pass",
+    "capture_sha256": "b2674cae439a3f3a90c9ed90085c0758d1ebe78143d8b00505fd3044d2b02a24",
+    "capture_report_sha256": "56ac0ecc24c057f47a04e4b862f670a1a7bb6ce469d5aec5e56e8131e8e17789",
+    "source_sha256": {
+      "tests/glm52/check_fused_moe_reference.py": "ee79db08639249c3e970e23d5699b1993c3e70dd026de2838625b7e4180b4ec4",
+      "tilert/models/glm_5_2_ascend/reference_weights.py": "dfc4de627cb83eebb48058334edf3c1c95a0f44a554d7083c70599041fba34df"
+    },
+    "checkpoint_sha256": {
+      "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+      "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+      "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+    },
+    "layer": 4,
+    "rank": 13,
+    "checks": [
+      {
+        "position": 0,
+        "down": {
+          "passed": true,
+          "exact": true,
+          "unequal": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000014305114746
+        },
+        "combine": {
+          "passed": true,
+          "exact": true,
+          "unequal": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000011920928955
+        }
+      },
+      {
+        "position": 1,
+        "down": {
+          "passed": true,
+          "exact": true,
+          "unequal": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000025033950806
+        },
+        "combine": {
+          "passed": true,
+          "exact": true,
+          "unequal": 0,
+          "nrmse": 0.0,
+          "cosine": 1.0000014305114746
+        }
+      }
+    ]
+  },
+  "device_replay": {
+    "path": "/workspace/offline/cann-local-moe-20261017/device-v2-13.json",
+    "sha256": "56ac0ecc24c057f47a04e4b862f670a1a7bb6ce469d5aec5e56e8131e8e17789",
+    "device": "npu:13",
+    "status": "pass",
+    "repeat_exact": true,
+    "inputs_valid": true,
+    "peak_reserved_bytes": 736100352,
+    "source_sha256": {
+      "/workspace/offline/cann-local-moe-20261017/replay-v2.py": "2c0add54a4c6fc7d92e05ec983a319c68fbe498a199f8ff7945eca70bc47ba8a",
+      "/workspace/offline/cann-tp-reduction-20261017/source-layer4/tilert/models/glm_5_2_ascend/weights.py": "5056e25fb26d45e4321b8e6045d505d095802ce74cc2add449ed16bccfda3f33",
+      "/workspace/offline/hf-cann-arithmetic-20261017/source/tests/glm52/check_cann_router.py": "774dcd49516a6a09c9b37943272f13e50132ae3cf7f8da6b91bbe5fc67cfd423",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/router/fused_topk_router.py": "06c47fd91e8c36f6f5465cea0b32a184280f842833c2bff27a18fc6d17fcb838",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/quantization/methods/w4a8/w4a8.py": "d06549f45637300df3e4915823f4f71a913ce7059d1e3a4c475ab1f225e1a28a",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/dataclass/fused_experts.py": "02c344b5a234da681ef5d8d78c1666750f443c58ba2ca73766d76b350924a9fd",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/dataclass/token_dispatcher.py": "9f0841fcea304267b39a3c2bdfdace3177185ec1497055d083d06e0dd4e28284",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/dataclass/moe_mlp.py": "88d648e6accf00f4cb661a3e33d5b9dcdbd96a3d21246bd2948ef2bcc515ecaf",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/utils.py": "2cc5992b79d507f302615bee2228302c0d99fe9de7b02fbb825b76689974a115",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/token_dispatcher.py": "1dcfd8181cb2d34c584d8336c3379dbeefba75c0bf664f924063701b93295cbb",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/ops/fused_moe/gate_linear.py": "b4cafe1e79b13f3561c53765cc1e33a312c67052e5a54c927a6f229ddd70d0bf",
+      "/workspace/src/vllm-ascend-unified/vllm_ascend/worker/model_runner_v1.py": "f0a3079900c9b2628437195ef21d0631c747aa1a49b663c1b27fddf379cbf8f5"
+    }
+  },
+  "cann_source_sha256": {
+    "/workspace/src/vllm-ascend-unified/csrc/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_a8w4_msd_post.h": "8cf63fb3e34955a2ed28d4f9f56c2030e74744cbe5a63aaeb5d130eb0940758f",
+    "/workspace/src/vllm-ascend-unified/csrc/gmm/grouped_matmul_swiglu_quant_v2/op_kernel/grouped_matmul_swiglu_quant_v2_utils.h": "114eb710ba0a4f51e718a9e229b1e90c9b4ebdb41b50ebca88c9c7a8ddcf7039"
+  },
+  "hf_reference": {
+    "path": "/workspace/offline/hf-fused-moe-20261017/two-step/manifest.json",
+    "sha256": "314235852a0508ffb73100b10f893f0fe618d816c75f4c95e392ab63f79b4610",
+    "status": "pass",
+    "checks": 1273,
+    "failed": 0,
+    "teacher_tokens": [
+      154820,
+      198
+    ],
+    "generated_tokens": [
+      17351
+    ],
+    "source_sha256": {
+      "tests/glm52/run_hf_reference.py": "a2c261470f9baf1c141746035da8950f61c1f81ac99af3bf86a3c31936d4fa01",
+      "tests/glm52/run_native_decode.py": "bc40b579824eb6def8fa9fc7fb2acd045774088f1e841e514279aa6818870adc",
+      "tests/glm52/prefix_io.py": "b0f1a76b565d6d97b3ef1e64b7810d1efe7c22470e2b1c46bd64911341559c90",
+      "tilert/models/glm_5_2_ascend/reference.py": "1074977dc263e7e45290280aa423c5e1072b8a63bdbebc11225e6f83ed3ab827",
+      "tilert/models/glm_5_2_ascend/reference_weights.py": "dfc4de627cb83eebb48058334edf3c1c95a0f44a554d7083c70599041fba34df",
+      "tilert/models/glm_5_2_ascend/ops/indexer.py": "b8536fd5f41fe1f194ef4f3f34d30d4090c3b943c69d69a0445666d41396172a",
+      "tilert/models/glm_5_2_ascend/reference_prolog.py": "3a53834ff4a612183f0f35c09e5e30d7620ed7e303a122dc01215a6e6a3aacff"
+    },
+    "trace_sha256": {
+      "step-00000.pt": "6b94a26cf8483b676e78125254a3ad1d7b92f7168d20e828cf40562a7519fe80",
+      "step-00001.pt": "d3ac54b0246cee9dac28e31a28b02141c2b5f639656f44917467e5637ebbf239"
+    },
+    "arithmetic": {
+      "tp_size": 16,
+      "activation_quantization": "RINT(x * FP32 Div(127,amax)); scale=amax*FP32(1/127)",
+      "a8_source_sha256": "fd0fb30d924b48ed4455cb505d2d530e822fa48d78b526db663d0bee69ffaefc",
+      "integer_projection": "W8: INT32 dot * FP32 weight scale * FP32 A8 scale; W4: CANN 9.2.0 API-dequant MSD with FP16 partials",
+      "projection_output": "BF16 before TP reduction",
+      "tp_sum": "FP32 rank-order sum, final BF16; not bitwise HCCL",
+      "w4_scale_bias": "Checkpoint correction added once after 16H+L",
+      "w4_msd_source_sha256": "a8b7c446d5373f5f50d3ee22bdf6631a8468973da420791bb97ccf0e2f351fbb",
+      "c8_quantization": "128-channel NPU operation order uncalibrated",
+      "fused_rounding": "W4 FP16 partials; activation boundaries set by HF adapters",
+      "metadata_sha256": {
+        "config.json": "817f5fb39ca5d4c4b5648de89ca00deaea7537d8c2f130172a459252a05c1073",
+        "quant_model_description.json": "a8242dd24f993b914ce567d6850ac86f044651d098a0b463a83ce63623c51985",
+        "quant_model_weights.safetensors.index.json": "0e69a90937d7b14d4c699bbfbe0d86f1c476f4ee90c38b2b91236f1a25cfed82"
+      },
+      "rotary": {
+        "intermediates": "FP32 products and sum; one BF16 output cast",
+        "angles": "HF FP32 generation followed by BF16 cast",
+        "main_basis": "real half, imaginary half",
+        "index_basis": "alternating real and imaginary",
+        "cann_source_sha256": "96028ea9c3f2b5426b60c00e03951fafbcd4903ceff5880b4ad31482d37e0a8a",
+        "hf_adapter": "Instance forward globals; HF bytecode unchanged"
+      },
+      "c8_index_scoring": {
+        "implementation": "CANN-9.2.0-QuantLightningIndexer-arch22",
+        "source_sha256": {
+          "quant_lightning_indexer_service_cube_arch22.h": "75b676cd308c2b8c573798f9a5ec16636122af85cb626e59dcefbe8b01147252",
+          "quant_lightning_indexer_service_vector_arch22.h": "55098dd4589260d526c3ede3decf6d0757fc8458c9a74253849a63dfa6ace1ae"
+        },
+        "source_verified": true,
+        "reference_module": "tilert.models.glm_5_2_ascend.ops.indexer",
+        "reference_source_sha256": "b8536fd5f41fe1f194ef4f3f34d30d4090c3b943c69d69a0445666d41396172a",
+        "formula": "FP32_MATMUL(FP16(weight*q_scale), FP16(ReLU(INT32(QK)/1024))) * FP32(k_scale)",
+        "scale_restoration": "none; scores retain the common 1/1024 factor",
+        "cpu_fp16": "IEEE nearest-even with subnormals",
+        "device_validation": "pending",
+        "unverified_device_boundaries": [
+          "FP16 subnormal handling and overflow saturation",
+          "FP32 Cube accumulation order"
+        ],
+        "accepted_fp16_domain": "finite normal values or zero for wire operands and weight*q_scale",
+        "source_directory": "/opt/ascend/cann-9.2.0/opp/built-in/op_impl/ai_core/tbe/impl/ops_transformer/ascendc/quant_lightning_indexer/op_kernel/arch22"
+      },
+      "mla_preprocess": {
+        "implementation": "CPU W8 MLA Prolog V3; unabsorbed HF query",
+        "projection": "INT32 dot; FP32 token scale then channel scale",
+        "rms": "FP32 64-lane fold; Div by sqrt(mean+1e-5); FP32 gamma",
+        "query_quant": "FP32 Div(amax,127) and Div(127,amax); RINT to INT8",
+        "q_nope": "BF16 after Q-B dequantization",
+        "rope": "FP32 dequantization/products/addition; final BF16 half basis",
+        "latent": "BF16 after weighted FP32 RMS",
+        "index_query": "Reuse Prolog query codes/scale; channel then token scale",
+        "index_query_boundary": "Scale order retains the existing W8 reference",
+        "input_norm": "Layer0 FP32 norm and gamma; one BF16 output"
+      },
+      "expert_combine": "Unscaled BF16 probabilities; FP32 weighted sum; BF16 output; BF16 routed scale; BF16 shared add; FP32 TP sum; BF16 output",
+      "fused_expert_quantization": "FP32 GMM1 and SwiGLU; scale=amax/127; reciprocal scale; FP16 then INT8 nearest-even; BF16 GMM2"
+    },
+    "completion": {
+      "returncode": 0,
+      "elapsed_seconds": 253.0099916504696
+    }
+  },
+  "full_model_diagnostic": {
+    "path": "/workspace/offline/hf-fused-moe-20261017/compare-rank0.json",
+    "sha256": "88101223a0a828fc477499127383e54b54fdf061852e91a0e326ed408649d796",
+    "scope": "Saved rank0 first-pass comparison; CANN reset already failed",
+    "native_report": {
+      "path": "/workspace/offline/cann-tp-reduction-20261017/float32-deterministic-layer4/rank-0.json",
+      "sha256": "1427ce3df3d98646673f559dec8297044e78842d8ccd521b045e86e943333cc6"
+    },
+    "comparator_source_sha256": {
+      "/workspace/offline/hf-fused-moe-20261017/compare-rank0.py": "af761e6e1a3aa33ebcf7fc16b5f1d3b78fe0ca5f52aa08a752a67c1a1ba677b7",
+      "/workspace/offline/cann-tp-reduction-20261017/source-layer4/tests/glm52/run_cann_model.py": "413c1ec0019233aecaff8d8617abf46dd26637576db6a74bfca1fe7ac82a1ce6",
+      "/workspace/offline/cann-tp-reduction-20261017/source-layer4/tests/glm52/run_native_decode.py": "bc40b579824eb6def8fa9fc7fb2acd045774088f1e841e514279aa6818870adc"
+    },
+    "thresholds": {
+      "nrmse_max": 0.01,
+      "cosine_min": 0.999,
+      "logits_max_abs": 0.1,
+      "logits_top1_equal": true
+    },
+    "references": {
+      "old": {
+        "path": "/workspace/offline/hf-cann-arithmetic-20261017/two-step",
+        "manifest_sha256": "889f149f7eac588af20c700afa1cc78d8d28d073be1949c5009dc72cad75bb4f",
+        "steps": [
+          {
+            "step": 0,
+            "token": 154820,
+            "trace_sha256": {
+              "cann": "aca775046eb93e9311be1c54e71e64702ff299643cfd753628fa7a6b150ca629",
+              "hf": "4ce7fc5e9c7e3d57df8af6ac8e1a65c87c82b1965863d716ca1ce02c1a1902a2"
+            },
+            "checks": {
+              "total": 1092,
+              "failed": 78
+            },
+            "hidden": {
+              "failed": 14,
+              "total": 79,
+              "first": {
+                "name": "step0.hidden_states.5",
+                "passed": false,
+                "nrmse": 0.011057570547169555,
+                "cosine": 0.9999399781227112,
+                "max_abs": 0.0003662109375
+              }
+            },
+            "layer_logits": {
+              "failed": 17,
+              "total": 78,
+              "first": {
+                "name": "step0.layer_logits.3",
+                "passed": false,
+                "nrmse": 0.010017231924141355,
+                "cosine": 0.9999389052391052,
+                "max_abs": 0.09375
+              }
+            },
+            "final_logits": {
+              "passed": false,
+              "nrmse": 0.14832369470119375,
+              "cosine": 0.9897105693817139,
+              "max_abs": 1.1875
+            },
+            "top1": {
+              "cann": 198,
+              "hf": 198
+            }
+          },
+          {
+            "step": 1,
+            "token": 198,
+            "trace_sha256": {
+              "cann": "2a96a2c555c836138273b8a836de72e6eca82ba15104c58357faedeb4aa13719",
+              "hf": "3a28ee91fba6e699dd3283d59fb8485cbe887678f03c9950bb2470e30a8d5904"
+            },
+            "checks": {
+              "total": 1092,
+              "failed": 352
+            },
+            "hidden": {
+              "failed": 75,
+              "total": 79,
+              "first": {
+                "name": "step1.hidden_states.3",
+                "passed": false,
+                "nrmse": 0.01052329101555567,
+                "cosine": 0.9999462366104126,
+                "max_abs": 0.000152587890625
+              }
+            },
+            "layer_logits": {
+              "failed": 75,
+              "total": 78,
+              "first": {
+                "name": "step1.layer_logits.2",
+                "passed": false,
+                "nrmse": 0.010885558290664727,
+                "cosine": 0.9999363422393799,
+                "max_abs": 0.078125
+              }
+            },
+            "final_logits": {
+              "passed": false,
+              "nrmse": 3.343039933079607,
+              "cosine": 0.6730257272720337,
+              "max_abs": 18.78125
+            },
+            "top1": {
+              "cann": 154820,
+              "hf": 17351
+            }
+          }
+        ]
+      },
+      "new": {
+        "path": "/workspace/offline/hf-fused-moe-20261017/two-step",
+        "manifest_sha256": "314235852a0508ffb73100b10f893f0fe618d816c75f4c95e392ab63f79b4610",
+        "steps": [
+          {
+            "step": 0,
+            "token": 154820,
+            "trace_sha256": {
+              "cann": "aca775046eb93e9311be1c54e71e64702ff299643cfd753628fa7a6b150ca629",
+              "hf": "6b94a26cf8483b676e78125254a3ad1d7b92f7168d20e828cf40562a7519fe80"
+            },
+            "checks": {
+              "total": 1092,
+              "failed": 176
+            },
+            "hidden": {
+              "failed": 74,
+              "total": 79,
+              "first": {
+                "name": "step0.hidden_states.5",
+                "passed": false,
+                "nrmse": 0.010989304743098708,
+                "cosine": 0.9999409914016724,
+                "max_abs": 0.0003662109375
+              }
+            },
+            "layer_logits": {
+              "failed": 36,
+              "total": 78,
+              "first": {
+                "name": "step0.layer_logits.3",
+                "passed": false,
+                "nrmse": 0.010021010152271982,
+                "cosine": 0.9999397397041321,
+                "max_abs": 0.09375
+              }
+            },
+            "final_logits": {
+              "passed": false,
+              "nrmse": 0.2685684484717118,
+              "cosine": 0.97263103723526,
+              "max_abs": 1.56640625
+            },
+            "top1": {
+              "cann": 198,
+              "hf": 198
+            }
+          },
+          {
+            "step": 1,
+            "token": 198,
+            "trace_sha256": {
+              "cann": "2a96a2c555c836138273b8a836de72e6eca82ba15104c58357faedeb4aa13719",
+              "hf": "d3ac54b0246cee9dac28e31a28b02141c2b5f639656f44917467e5637ebbf239"
+            },
+            "checks": {
+              "total": 1092,
+              "failed": 362
+            },
+            "hidden": {
+              "failed": 75,
+              "total": 79,
+              "first": {
+                "name": "step1.hidden_states.3",
+                "passed": false,
+                "nrmse": 0.01052329101555567,
+                "cosine": 0.9999462366104126,
+                "max_abs": 0.000152587890625
+              }
+            },
+            "layer_logits": {
+              "failed": 75,
+              "total": 78,
+              "first": {
+                "name": "step1.layer_logits.2",
+                "passed": false,
+                "nrmse": 0.010885558290664727,
+                "cosine": 0.9999363422393799,
+                "max_abs": 0.078125
+              }
+            },
+            "final_logits": {
+              "passed": false,
+              "nrmse": 3.434277830379647,
+              "cosine": 0.6566343903541565,
+              "max_abs": 18.15625
+            },
+            "top1": {
+              "cann": 154820,
+              "hf": 17351
+            }
+          }
+        ]
+      }
+    }
+  }
+}

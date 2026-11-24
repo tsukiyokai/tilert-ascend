@@ -1,0 +1,194 @@
+{
+  "scope": "Captured full Decoder M1 WK only; one original F.linear call, no timing",
+  "script": {
+    "path": "/probe/dispatch.py",
+    "sha256": "06ac0e7661c60d093540cb6ed06c9465aed15f2f741a56350f83197d70db360a"
+  },
+  "contract_source": {
+    "path": "/probe/contract.py",
+    "sha256": "5d7ee7a53c76c4512553642c21edc96fc4ee98986cab12f4652df6573fa015db"
+  },
+  "capture": {
+    "path": "/capture/decoder-graph-index-diagnostic.pt",
+    "sha256": "a95e0c289c7e8b4f0808f185aecffc8739e602d6a72896894baf79c640e54c41"
+  },
+  "capture_report": {
+    "path": "/capture/decoder-graph-index-diagnostic.json",
+    "sha256": "6b10c24c9754b8084699905dcbfd12c2b3abcf6a56f55d0d1488c65187e50a87"
+  },
+  "python": "3.11.12 (main, Jul 30 2026, 09:44:26) [GCC 10.3.1]",
+  "platform": "Linux-5.10.0-182.0.0.95.r2220_157.hce2.aarch64-aarch64-with-glibc2.34",
+  "environment": {
+    "ASCEND_GLOBAL_LOG_LEVEL": null,
+    "ASCEND_SLOG_PRINT_TO_STDOUT": null,
+    "ASCEND_PROCESS_LOG_PATH": null,
+    "ASCEND_DOCKER_RUNTIME": null
+  },
+  "completed": true,
+  "cpu_only": true,
+  "call_count": 0,
+  "operator": "torch.nn.functional.linear(hidden, ND_weight, bias=None)",
+  "cpu_oracle_scope": "Auxiliary FP64 dot; numerical acceptance targets captured vendor BF16 bytes",
+  "captured_device_descriptors": {
+    "key_hidden": {
+      "shape": [
+        1,
+        6144
+      ],
+      "stride": [
+        6144,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "data_ptr": 20618829221888,
+      "storage_ptr": 20618829221888,
+      "storage_offset": 0,
+      "format": 2
+    },
+    "key_weight": {
+      "shape": [
+        160,
+        6144
+      ],
+      "stride": [
+        6144,
+        1
+      ],
+      "dtype": "torch.bfloat16",
+      "data_ptr": 20618187637248,
+      "storage_ptr": 20618187637248,
+      "storage_offset": 0,
+      "format": 2
+    }
+  },
+  "captured_operator_sources": {
+    "adapter_run_body": {
+      "path": "/workspace/tilert/models/glm_5_2_ascend/attention_native.py",
+      "sha256": "336eaff0de153d32439d4d2b0557522b313a24a7e5bef82b8dc11f1257511c01"
+    },
+    "indexer_forward": {
+      "path": "/decoder/python/vllm_ascend/attention/indexer.py",
+      "sha256": "47a47b06cf144bda4a87e80ef632144eeb86a4547e17d09f69f011ef565baefa"
+    },
+    "indexer_forward_k": {
+      "path": "/decoder/python/vllm_ascend/attention/indexer.py",
+      "sha256": "47a47b06cf144bda4a87e80ef632144eeb86a4547e17d09f69f011ef565baefa"
+    },
+    "indexer_quantize": {
+      "path": "/decoder/python/vllm_ascend/attention/indexer.py",
+      "sha256": "47a47b06cf144bda4a87e80ef632144eeb86a4547e17d09f69f011ef565baefa"
+    },
+    "rope": {
+      "path": "/decoder/python/vllm_ascend/ops/triton/rope.py",
+      "sha256": "82422c46f93c0962673ad51bc77fdd5caef412f45f2ff8b20bbeb20a4407f64b"
+    },
+    "key_projection_class": {
+      "path": "/decoder/python/vllm_ascend/ops/linear.py",
+      "sha256": "7654777d9252fc6a3cc2c95f92b67a42410a0de24a5912ef20e807cf64ab74e6"
+    },
+    "key_norm_class": {
+      "path": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/layers/layernorm.py",
+      "sha256": "7be031e88921fb21661f3b9ee28b4ccb7746405e0ff32ed5895d75b43d3357ed"
+    },
+    "key_norm_dispatch": {
+      "path": "/workspace/vendor-hook-pinned/vllm-a982-py311-compatible/vllm/model_executor/custom_op.py",
+      "sha256": "caaa422b914d74a58c3d7a1653af76e2834f41cc2d4fbe65d10d4ad50dbb4d38"
+    }
+  },
+  "torch": "2.12.0+cu130",
+  "witnesses": [
+    {
+      "coordinate": [
+        0,
+        25
+      ],
+      "vendor": {
+        "value": -0.3359375,
+        "bits": "0xbeac"
+      },
+      "native": {
+        "value": -0.333984375,
+        "bits": "0xbeab"
+      },
+      "native_accumulator": {
+        "value": -0.33496055006980896,
+        "bits": "0xbeab7ff3"
+      },
+      "cpu_fp64_dot": -0.3349605367548065,
+      "cpu_fp64_cast_fp32": {
+        "value": -0.33496055006980896,
+        "bits": "0xbeab7ff3"
+      },
+      "cpu_fp64_cast_bfloat16": {
+        "value": -0.333984375,
+        "bits": "0xbeab"
+      },
+      "bf16_midpoint": -0.3349609375,
+      "native_accumulator_minus_fp64": -1.331500243395567e-08,
+      "native_accumulator_minus_midpoint": 3.8743019104003906e-07,
+      "fp64_minus_midpoint": 4.0074519347399473e-07
+    }
+  ],
+  "input": {
+    "shape": [
+      1,
+      6144
+    ],
+    "dtype": "torch.bfloat16",
+    "sha256": "e2dce262a40c5acd19006dfcf5e278bceb173bbd54b19a22c11f53b73e3c1408"
+  },
+  "weight": {
+    "shape": [
+      160,
+      6144
+    ],
+    "dtype": "torch.bfloat16",
+    "sha256": "7603cd9fa93def32472a3e7b28d00c9cc88421588f1acf1ac70b03fc070a813b"
+  },
+  "expected": {
+    "shape": [
+      1,
+      160
+    ],
+    "dtype": "torch.bfloat16",
+    "sha256": "959a98b9e1f4fb24a8c4817c616c420b82481881d257cbd146a31af177b94bb0"
+  },
+  "cpu_checks": {
+    "native_accumulator_rne": {
+      "bitwise_equal": true,
+      "different_elements": 0,
+      "different_bytes": 0,
+      "elements": 160,
+      "first_differences": []
+    },
+    "fp64_cast_native": {
+      "bitwise_equal": true,
+      "different_elements": 0,
+      "different_bytes": 0,
+      "elements": 160,
+      "first_differences": []
+    },
+    "fp64_cast_vendor": {
+      "bitwise_equal": false,
+      "different_elements": 1,
+      "different_bytes": 1,
+      "elements": 160,
+      "first_differences": [
+        {
+          "coordinate": [
+            0,
+            25
+          ],
+          "actual": {
+            "value": -0.333984375,
+            "bits": "0xbeab"
+          },
+          "expected": {
+            "value": -0.3359375,
+            "bits": "0xbeac"
+          }
+        }
+      ]
+    }
+  }
+}

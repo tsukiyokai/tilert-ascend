@@ -1,0 +1,45 @@
+{
+  "rank": 3,
+  "stages": [
+    {
+      "name": "platform_registration",
+      "success": true,
+      "class": "vllm_ascend.platform.NPUPlatform",
+      "path": "/workspace/vendor-hook-pinned/ascend-python-build/vllm_ascend/platform.py",
+      "sha256": "686eb5c4d7e744053def9fe51caf743e79e6a3cbeddebd3c47949d6f13e503cd"
+    },
+    {
+      "name": "real_groups",
+      "success": true,
+      "tp_world_size": 16,
+      "tp_rank": 3,
+      "cpu_rank_sum": 120,
+      "expected_rank_sum": 120,
+      "coordinator": {
+        "class": "vllm.distributed.parallel_state.GroupCoordinator",
+        "path": "/workspace/vendor-hook-pinned/vllm-a982/vllm/distributed/parallel_state.py",
+        "sha256": "0e47cff9a89717183bdce6403f0454961848247f51306a0f1dfbe3d6e1b93336"
+      },
+      "device_communicator": null,
+      "registration": "actual coordinators assigned to version-scoped parallel_state fields",
+      "singleton_fields": [
+        "_DCP",
+        "_PCP",
+        "_PP",
+        "_DP",
+        "_EP"
+      ]
+    }
+  ],
+  "scope": "real Gloo groups, rank-0 local attention shard",
+  "torch": "2.10.0+cpu",
+  "torch_npu": "2.10.0.post2",
+  "npu_initialized_before": false,
+  "rank_zero_status": {
+    "success": false,
+    "error": "Traceback (most recent call last):\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 289, in worker\n    else run_rank_zero(torch, args, stage))\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 128, in run_rank_zero\n    stage(\"npu_bind\", lambda: (torch.npu.set_device(0), {\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 257, in stage\n    value, detail = action()\n                    ^^^^^^^^\n  File \"/workspace/tests/glm52/whole_layer/vendor_hook_device.py\", line 128, in <lambda>\n    stage(\"npu_bind\", lambda: (torch.npu.set_device(0), {\n                               ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/npu/utils.py\", line 91, in set_device\n    torch_npu._C._npu_setDevice(device_id)\n  File \"/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/npu/__init__.py\", line 276, in _lazy_init\n    torch_npu._C._npu_init()\nRuntimeError: Initialize:../torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.cpp:165 NPU function error: aclInit, error code is 507899\n[ERROR] 2026-10-21-14:18:59 (PID:167, Device:0, RankID:-1) ERR00100 PTA call acl api failed\n[Error]: An internal error occurs in the Driver module. \n        Rectify the fault based on the error information in the ascend log.\n[PID: 167] 2026-10-21-14:18:46.828.674 Resource_Busy(EL0005): The resources are busy.\n        Possible Cause: 1. The resources have been occupied. 2. The device is being reset. 3. Software is not ready.\n        Solution: 1. Close applications not in use. 2. Wait for a while and try again.\nTraceBack (most recent call last):\n        rtGetDeviceCount execution failed, reason=driver error:internal error[FUNC:FuncErrorReason][FILE:error_message_manage.cc][LINE:72]\n        Get device cnt failed, retCode=0x7020010[FUNC:CheckDeviceIdIsValid][FILE:api_error.cc][LINE:5918]\n        drv devId is invalid, drv devId=0, retCode=0x7020010[FUNC:SetDefaultDeviceId][FILE:api_error.cc][LINE:6640]\n        rtSetDefaultDeviceId execution failed, reason=driver error:internal error[FUNC:FuncErrorReason][FILE:error_message_manage.cc][LINE:72]\n        [Process][DefaultDevice]process HandleDefaultDevice failed[FUNC:ReportInnerError][FILE:log_inner.cpp][LINE:133]\n        chipType=CHIP_MINI(0) does not support get device msg feature.[FUNC:GetDevMsg][FILE:api_impl_standard_soc.cc][LINE:887]\n        The argument is invalid. Reason: rtGetDevMsg execution failed, the feature is not supported.\n\n"
+  },
+  "npu_initialized_after": false,
+  "maximum_rss_kib": 1171156,
+  "memory_snapshot": "5a3b4000000-ffffda25f000 ---p 00000000 00:00 0                           [rollup]\nRss:             1169344 kB\nPss:              746091 kB\nPss_Anon:         717564 kB\nPss_File:          28403 kB\nPss_Shmem:           124 kB\nShared_Clean:     451656 kB\nShared_Dirty:          0 kB\nPrivate_Clean:         0 kB\nPrivate_Dirty:    717688 kB\nReferenced:      1169344 kB\nAnonymous:        717564 kB\nLazyFree:              0 kB\nAnonHugePages:      2048 kB\nShmemPmdMapped:        0 kB\nFilePmdMapped:         0 kB\nShared_Hugetlb:        0 kB\nPrivate_Hugetlb:       0 kB\nSwap:                  0 kB\nSwapPss:               0 kB\nLocked:                0 kB\n"
+}

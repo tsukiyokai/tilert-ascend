@@ -1,0 +1,95 @@
+{
+  "scope": "Official ACLGraphWrapper local-shard replay gate, frozen before device execution",
+  "sources": {
+    "vendor_hook_device.py": "6ed776535ce327e2392eee4001005cd9d40e9a02171be82b86345406093dbdae",
+    "vendor_hook_graph.py": "17fa65a25911db777e10ed335400e772f4a336d94255f92ae419a26e3eee992c",
+    "vendor_hook_graph_test.py": "ea3f5478e38538ac040088a3f81b85b14fc32492c38b43cfd4b9f0387e6a0414",
+    "vendor_hook_forward.py": "376411d2c57501ac1661fb81b0d6f7c2ec571c9d83d2e8b65ddcbb0a68ba4b58",
+    "vendor_hook_diagnostic.py": "d797c12d06fa714f9aa4756115020b3ae822d76e8ba17497aeec3b350c5e76b3",
+    "vendor_hook_run.sh": "a18be18f28fbc2bab670052edb0f3ed80606f6e5f0f9aed6302e3e8a4ed7d495"
+  },
+  "unchanged_eager_sha256": "376411d2c57501ac1661fb81b0d6f7c2ec571c9d83d2e8b65ddcbb0a68ba4b58",
+  "unchanged_diagnostic_sha256": "d797c12d06fa714f9aa4756115020b3ae822d76e8ba17497aeec3b350c5e76b3",
+  "pinned_vllm": "a98247ab4db686ee03c66d5feb3c761e52a2f8ab",
+  "pinned_ascend": "8237ee6d690d1399bc6eb48ef5977ac2bd470f3f",
+  "source_audit": {
+    "vllm_ascend/attention/sfa_v1.py": {
+      "lines": "1763-1773,1940,2115",
+      "contract": "SFA actual_seq_lengths_key is the persistent GPU seq_lens tensor",
+      "sha256": "b3e7bc578fdc00cddca3dd066af49c353a5abdc75571d7fa602340a4aece1e2b"
+    },
+    "vllm_ascend/attention/indexer.py": {
+      "lines": "504-517",
+      "contract": "LI/QLI consumes its independent GPU actual_seq_lengths_key",
+      "sha256": "47a47b06cf144bda4a87e80ef632144eeb86a4547e17d09f69f011ef565baefa"
+    },
+    "vllm_ascend/device/device_op.py": {
+      "lines": "462-515,521-575",
+      "contract": "Actual length tensors are passed to stock CANN operators without tolist on this path",
+      "sha256": "0ac4b6438788365128641dacf552b1eed7d418ccd342b4325c9737556b11c267"
+    },
+    "csrc/attention/sparse_flash_attention/sparse_flash_attention_torch_adpt.h": {
+      "lines": "125-132",
+      "contract": "Official bridge passes the optional actual_seq_lengths_kv tensor to EXEC_NPU_CMD",
+      "sha256": "78a0a9695efa8680f447766cd8bcef326a398b7f7f55037917c60f2256bbf737"
+    },
+    "vllm_ascend/compilation/acl_graph.py": {
+      "lines": "157-319",
+      "contract": "Actual mode dispatch, capture, weak output, and replay",
+      "sha256": "8e1c269e331d005f1361acc5cec24402bff7ae39b75e952ea890da7812804955"
+    },
+    "vllm_ascend/worker/model_runner_v1.py": {
+      "lines": "322-349",
+      "contract": "Official graph_capture creates a separate stream and waits for caller initialization",
+      "sha256": "a6c51c8bf24d676816f0d4450d24520abd6029cd3a1031a2b8d9140eed40407f"
+    },
+    "vllm_ascend/ascend_forward_context.py": {
+      "lines": "115-254",
+      "contract": "Actual Ascend forward context sets runtime mode, batch descriptor and capturing flag",
+      "sha256": "b8baf98e6708bf9d79ff8101ce74e94122ce43450033ab82889955676889cf8d"
+    },
+    "vllm_ascend/utils.py": {
+      "lines": "1914-1919",
+      "contract": "SFA backend does not select the updatable graph branch",
+      "sha256": "5212ebb9e1ca8d35d76a38d4c9f1f180343763955d6bcfd917b4c9085ee79978"
+    }
+  },
+  "cpu_checks": {
+    "local_torch": "2.9.1+cpu",
+    "matched_arm_torch": "2.10.0+cpu",
+    "contract_tests": 4,
+    "matched_npu_initialized": false,
+    "python_compile": true,
+    "cli_help": true,
+    "matched_source_report": "../vendor-hook-graph-cpu-v2/report.json"
+  },
+  "graph_contract": {
+    "real_outer_layer": true,
+    "real_mla_custom_op": true,
+    "official_wrapper": true,
+    "official_forward_context": true,
+    "official_capture_stream_context": true,
+    "collective": false,
+    "full_checkpoint": false,
+    "fixed_geometry": "Exact M and 64 page-table columns; host max_seq_len=8192 is an upper bound",
+    "actual_lengths": "GPU tensors and CPU mirrors updated to 8192-iteration%11",
+    "slots": "Independent main/indexer INT32 producers; main persistent INT64 cache refreshed outside every replay; native captures live casts",
+    "cache_reset": "Equal page-rolled base cache per iteration, restored before each of three arms",
+    "output_owner": "Strong actual outer output retained in runnable before official wrapper weak alias conversion",
+    "execution_gates": "Nonempty actual graph, capture counter +1, no captured-output read before replay, unchanged Python/native call counters on replay",
+    "reserve_gate": "Default-stream warmup then actual inner capture stream recorded inside runnable; workspace and slot allocations must be claimed by identity on that stream",
+    "comparison": "Vendor eager versus vendor wrapper replay versus native wrapper replay; final output, ordered topk and complete caches, raw-byte equality",
+    "consumption_witness": "Per-iteration SHA, finite and nonzero count; dynamic actual lengths and output hashes must vary",
+    "replay_order": "Vendor then native, matching capture order in the shared platform graph pool"
+  },
+  "device_status": "not run at freeze",
+  "library_selection": "Explicit CLI paths to independent O combined candidate; default accepted libraries are unchanged",
+  "parent_preflight_manifest": "../vendor-hook-graph-v12/manifest.json",
+  "torch_npu_graph_source": {
+    "image": "sha256:9afbed90a0f92e228cc1ba13adf3cee2e89e34f1dd4cad1ed8eb5ce8c091b4af",
+    "path": "/usr/local/python3.12.13/lib/python3.12/site-packages/torch_npu/npu/graphs.py",
+    "sha256": "5ed98b6b5bbbaa162513801e877a24671b58ec2b8eaba3c8d446357efe0e5dc1",
+    "lines": "504-513",
+    "contract": "Without explicit stream, the actual graph context uses its class default capture stream, not the outer worker context stream"
+  }
+}
