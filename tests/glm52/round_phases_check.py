@@ -1,8 +1,9 @@
 """Checks for RoundPhases, on the host."""
 import sys
+from pathlib import Path
 import time
 
-sys.path.insert(0, "/home/shanshan/repo/tile-ai/TileRT-Ascend")
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from tilert.models.glm_5_2_ascend.round_phases import RoundPhases
 
 

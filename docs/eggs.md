@@ -8,7 +8,7 @@
 |---|---|---|---|
 |GitCode CANN|`https://gitcode.com/cann/*`|`https://gitcode.com/fan33/*`|`~/.gemini/antigravity-cli/skills/vibe-pr/`|
 |vLLM Ascend|`https://github.com/vllm-project/vllm-ascend`|`https://github.com/tsukiyokai/vllm-ascend`|标准 GitHub PR|
-|TileLang Ascend|`https://github.com/tile-ai/tilelang-ascend`|`~/repo/tile-ai/tilelang-ascend`|标准 GitHub PR|
+|TileLang Ascend|`https://github.com/tile-ai/tilelang-ascend`|`~/repo/work/tilelang-ascend`|标准 GitHub PR|
 |TileRT|`https://github.com/tile-ai/TileRT`|`https://github.com/tsukiyokai/tilert-ascend`|标准 GitHub PR|
 
 ## 1. 成果全景总表
@@ -66,14 +66,14 @@
 ### `EGG-CANN-SFA-002`：双编译流弱符号碰撞规避与指令体积压缩
 
 - 目标仓库：GitCode `cann/ops-transformer`
-- 载体文档：[`docs/probe.md#L62`](file:///home/shanshan/repo/tile-ai/tilert-ascend/docs/probe.md#L62)
+- 载体文档：[`docs/probe.md#L62`](file:///home/shanshan/repo/work/tilert-ascend/docs/probe.md#L62)
 - 物理机制：MIX 算子分 `aic.o` 与 `aiv.o` 两次编译后由 `ld.lld -r` 链接合并。未按 `g_coreType` 模板特化的 `__attribute__((noinline))` 产生同名 WEAK 符号，ld.lld 丢弃 `aiv.o` 版本导致 Vector 核跳转至 Cube 指令流引发 507015 异常。通过消除重复调用点替代 noinline，规避符号碰撞并保障标量提升。
 - 验证收据：AIV 代码体积从 34,608 B 压缩 36.3% 至 22,048 B，`mtp_m1` 降至 55.22 µs，`target_m32` 降至 127.58 µs。
 
 ### `EGG-CANN-SFA-003`：邻接双 Token 分核与两阶段辅助核卸载均衡
 
 - 目标仓库：GitCode `cann/ops-transformer`
-- 载体源码：[`docs/probe.md#L62`](file:///home/shanshan/repo/tile-ai/tilert-ascend/docs/probe.md#L62)
+- 载体源码：[`docs/probe.md#L62`](file:///home/shanshan/repo/work/tilert-ascend/docs/probe.md#L62)
 - 物理机制：原分块映射将 32 个 query token 连续分配给 Cores 0..15，导致 Cores 16..23 完全闲置。改为邻接双 token 分核映射（`2*c, 2*c+1`），并利用 PreloadPipeline 在 gloop=5 前卸载 4 块、在 gloop=5..8 间再卸载 2 块，实现 16 主核算 5 块 + 8 辅助核算 6 块的精确极值平衡。
 - 验证收据：`target_m32` 耗时从 142.39 µs 压至 127.58 µs（净减 26.40 µs），`max_diff = 0.00e+00`。
 
@@ -115,7 +115,7 @@
 ### `EGG-CANN-MEGAMOE-001`：MegaMoE A3 掩码路由专用 Tiling Key 5188
 
 - 目标仓库：GitCode `cann/ops-transformer`
-- 载体仓库：[`/home/shanshan/repo/cann/ops-transformer`](file:///home/shanshan/repo/cann/ops-transformer)（分支 `feat/mega-moe-a3-mask-only`）
+- 载体仓库：[`/home/shanshan/repo/work/ops-transformer`](file:///home/shanshan/repo/work/ops-transformer)（分支 `feat/mega-moe-a3-mask-only`）
 - 物理机制：在 A3 架构的 MegaMoE 掩码路由场景下，通用动态 shape 分发逻辑易触发低效兜底路径；引入独立的专有 tiling key 5188 绑定专有内联流水。
 - 验证收据：PR !4 已在 GitCode 创建，通过静态检查与基础测试。
 
@@ -124,7 +124,7 @@
 ### `EGG-VLLM-MOE-001`：消除单张量 MoE Combine 对 ForeachAdd 的滥用
 
 - 目标仓库：GitHub `vllm-project/vllm-ascend`
-- 载体源码：[`tilert/models/glm_5_2_ascend/moe_combine.py#L1-L15`](file:///home/shanshan/repo/tile-ai/tilert-ascend/tilert/models/glm_5_2_ascend/moe_combine.py#L1-L15)
+- 载体源码：[`tilert/models/glm_5_2_ascend/moe_combine.py#L1-L15`](file:///home/shanshan/repo/work/tilert-ascend/tilert/models/glm_5_2_ascend/moe_combine.py#L1-L15)
 - 物理机制：vLLM-Ascend 为执行 MoE 输出求和，错误调用了 `torch._foreach_add` 并传入仅 1 个张量的列表。该多张量 kernel 具有 21.282 µs 的固定结构性下发开销；而普通的 elementwise `Add` 仅耗时 1.820 µs。
 - 验证收据：替换为普通加法后，75 层 MoE 单轮净省 1.4 ms，输出 BF16 张量严格位等。
 
@@ -168,21 +168,21 @@
 ### `EGG-FUSED-MLA-001`：MLA Tail 单核融合算子
 
 - 目标仓库：`tile-ai/tilelang-ascend` / TileRT
-- 载体源码：[`tests/glm52/mla_tail/mla_tail.h`](file:///home/shanshan/repo/tile-ai/tilert-ascend/tests/glm52/mla_tail/mla_tail.h) 与 [`tilert/models/glm_5_2_ascend/mla_tail.py`](file:///home/shanshan/repo/tile-ai/tilert-ascend/tilert/models/glm_5_2_ascend/mla_tail.py)
+- 载体源码：[`tests/glm52/mla_tail/mla_tail.h`](file:///home/shanshan/repo/work/tilert-ascend/tests/glm52/mla_tail/mla_tail.h) 与 [`tilert/models/glm_5_2_ascend/mla_tail.py`](file:///home/shanshan/repo/work/tilert-ascend/tilert/models/glm_5_2_ascend/mla_tail.py)
 - 物理机制：将 SFA 之后的 V up-projection (4×256)、门控 Sigmoid、O-projection (6144) 与 Residual Add 融合成单一常驻核，消除多算子调度、中间张量 GM 往返与 3 次 kernel 启动。
 - 验证收据：78 层 TP16 静态核数减少 3 个（244 -> 241），verify 发射开销降至 1.28 ms，16-rank 输出逐位一致。
 
 ### `EGG-COMM-PUSH-001`：单边对称内存 Push 与本端有序规约
 
 - 目标仓库：GitCode `cann/shmem` / TileRT
-- 载体源码：[`tilert/models/glm_5_2_ascend/onesided_reduce.py`](file:///home/shanshan/repo/tile-ai/tilert-ascend/tilert/models/glm_5_2_ascend/onesided_reduce.py)
+- 载体源码：[`tilert/models/glm_5_2_ascend/onesided_reduce.py`](file:///home/shanshan/repo/work/tilert-ascend/tilert/models/glm_5_2_ascend/onesided_reduce.py)
 - 物理机制：用单边 push 到对端 symmetric window 并在本端按 rank 顺序求和，替代阻塞式 HCCL AllReduce，消除 rendezvous 握手延迟。
 - 验证收据：单次规约耗时从 63.5 µs 压至 22.3 µs，157 次规约单轮可节省 6.47 ms，严格 rank 顺序相加保障浮点加法位等。
 
 ### `EGG-HOST-PACKED-001`：宿主零同步静态信封与批量发射
 
 - 目标仓库：TileRT / `vllm-ascend`
-- 载体源码：[`tilert/models/glm_5_2_ascend/cann_head.py`](file:///home/shanshan/repo/tile-ai/tilert-ascend/tilert/models/glm_5_2_ascend/cann_head.py) 与 [`docs/probe.md#时间余量的证据边界`](file:///home/shanshan/repo/tile-ai/tilert-ascend/docs/probe.md#时间余量的证据边界)
+- 载体源码：[`tilert/models/glm_5_2_ascend/cann_head.py`](file:///home/shanshan/repo/work/tilert-ascend/tilert/models/glm_5_2_ascend/cann_head.py) 与 [`docs/probe.md#时间余量的证据边界`](file:///home/shanshan/repo/work/tilert-ascend/docs/probe.md#时间余量的证据边界)
 - 物理机制：将解码轮内的 token、position、slot 映射、有效序列长度槽等全部绑定到预分配固定设备地址与锁页主机内存，消除每步分页 H2D 拷贝、事件创建与 `.tolist()` 阻塞。
 - 验证收据：78 层 width32 的 verify 主机发射时间从 2.136 ms 压至 1.200～1.370 ms。
 
@@ -198,20 +198,20 @@
 ### `EGG-INFRA-AXIOM-001`：A3 硬件数值公理门禁系统
 
 - 目标仓库：昇腾算子精度基建
-- 载体文档：[`docs/lesson.md#3-确认硬件实际执行的数值规则`](file:///home/shanshan/repo/tile-ai/tilert-ascend/docs/lesson.md#3-确认硬件实际执行的数值规则) 与 [`tests/experiments/cann-precision/check.py`](../tests/experiments/cann-precision/check.py)
+- 载体文档：[`docs/lesson.md#3-确认硬件实际执行的数值规则`](file:///home/shanshan/repo/work/tilert-ascend/docs/lesson.md#3-确认硬件实际执行的数值规则) 与 [`tests/experiments/cann-precision/check.py`](../tests/experiments/cann-precision/check.py)
 - 物理机制：确立 A3 硬件不可逾越的三大算术公理：1) Fixpipe 反量化前清除 FP32 scale 低 13 位；2) Norm 与 Quant 之间的 BF16 中间舍入；3) 确定性 HCCL `[8,4,2,1]` 规约树加法结合序。
 - 验证收据：解释并消除了 CPU 参考实现与真实 NPU 的系统性漂移，建立 16-rank 位等精度门禁标准。
 
 ### `EGG-TOOL-FREE-001`：基于 Die Strip 与真实物理进程的精准调度探针
 
 - 目标仓库：集群调度工具 / 开发者基建
-- 载体脚本：[`scripts/free_dies.sh`](file:///home/shanshan/repo/tile-ai/tilert-ascend/scripts/free_dies.sh)
+- 载体脚本：[`scripts/free_dies.sh`](file:///home/shanshan/repo/work/tilert-ascend/scripts/free_dies.sh)
 - 物理机制：解决 `npu-smi` 状态因系统内存缓存低于 15% 虚假报告“占用”的问题，通过解析卡空闲 die strip 与实际运行进程，精准识别可用 die。
 - 验证收据：支持单 die/少 die 实验免等待快速入场，大幅提升集群卡位周转效率。
 
 ### `EGG-TILELANG-CARVER-A3`：Carver 硬件求解器适配 A3 架构与资源规约
 
 - 目标仓库：`tile-ai/tilelang-ascend`
-- 载体代码：[`tilelang/carver/arch/ascend.py`](file:///home/shanshan/repo/tile-ai/tilelang-ascend/tilelang/carver/arch/ascend.py)、[`tilelang/carver/arch/ascend_specs.py`](file:///home/shanshan/repo/tile-ai/tilelang-ascend/tilelang/carver/arch/ascend_specs.py) 与 [`testing/python/carver/test_ascend_specs.py`](file:///home/shanshan/repo/tile-ai/tilelang-ascend/testing/python/carver/test_ascend_specs.py)
+- 载体代码：[`tilelang/carver/arch/ascend.py`](file:///home/shanshan/repo/work/tilelang-ascend/tilelang/carver/arch/ascend.py)、[`tilelang/carver/arch/ascend_specs.py`](file:///home/shanshan/repo/work/tilelang-ascend/tilelang/carver/arch/ascend_specs.py) 与 [`testing/python/carver/test_ascend_specs.py`](file:///home/shanshan/repo/work/tilelang-ascend/testing/python/carver/test_ascend_specs.py)
 - 物理机制：Carver 自动调优布局求解器此前仅支持 910A/910B/310P，缺乏 A3（9392/9382，架构 2201）的硬件模型。本成果从 SDK INI 规范中解析并注入 A3 的 24 Cube / 48 Vector 核数、192MB L2 缓存、UB/L1/L0 内存预算与 BF16 张量核能力。
 - 验证收据：`test_ascend_specs.py` 完整单元测试全部通过，准确建立 A3 硬件空间拓扑约束。

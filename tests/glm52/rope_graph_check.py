@@ -6,9 +6,10 @@ never run at all. These checks exercise that branch with a stand-in graph, so a
 wrong condition shows here rather than on sixteen ranks.
 """
 import sys
+from pathlib import Path
 import types
 
-ROOT = "/home/shanshan/repo/tile-ai/TileRT-Ascend"
+ROOT = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, ROOT)
 
 

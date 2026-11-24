@@ -1,7 +1,8 @@
 """The tree resolution, against hand-worked cases."""
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "/home/shanshan/repo/tile-ai/TileRT-Ascend")
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from tilert.models.glm_5_2_ascend.tree_resolve import (
     accepted_path, accepted_tokens,
 )

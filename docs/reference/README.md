@@ -462,7 +462,7 @@ empirical allowance for compute/comm memory-bandwidth contention.
 
 Everything in `ascend-fusion-mechanics.md` §42-§56, `fused-moe-expert.md` §B7-§B8 and
 `low-latency-tp-reduce.md` Part 8 that is attributed to "the shipped AscendC implementation" or "the shipped
-devkit" comes from the local clone at **`/home/shanshan/repo/cann/asc-devkit/`**, HEAD
+devkit" comes from the local clone at **`/home/shanshan/repo/work/asc-devkit/`**, HEAD
 `6a51d0b167dd8f5555456a0ebb783ef0427e366e`, dated **2026-08-21**. The devkit's tags map 1:1 to CANN releases
 (its own `CHANGELOG_en.md` carries a 「CANN Version | Version Source Tag」 table: `v9.1.0-beta.2` ↔ CANN
 9.1.0-beta.2, and so on), and the clone's HEAD is a master commit **three weeks newer than the local

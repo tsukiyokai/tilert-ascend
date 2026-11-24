@@ -9,7 +9,7 @@ import statistics
 
 
 ROOT = Path('/tmp/tilert-megakernel-validation-20261021')
-REPO = Path('/home/shanshan/repo/tile-ai/TileRT-Ascend')
+REPO = Path(__file__).resolve().parents[4]
 NAME = 'layer-down-k128-timing-v1'
 RAW = ROOT / (NAME + '-raw')
 REPORT = RAW / NAME

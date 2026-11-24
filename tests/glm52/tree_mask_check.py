@@ -1,7 +1,8 @@
 """The tree mask's construction, checked against the tree's own structure."""
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "/home/shanshan/repo/tile-ai/TileRT-Ascend")
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from tilert.models.glm_5_2_ascend.tree_mask import ancestor_rows, visible
 
 
@@ -105,7 +106,7 @@ def check_buffer_reuse():
     """
     import sys
 
-    sys.path.insert(0, "/home/shanshan/repo/tile-ai/TileRT-Ascend")
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     from tilert.models.glm_5_2_ascend.tree_mask import ancestor_rows
 
     first = ancestor_rows([-1, 0, 0], 50, 6)

@@ -36,7 +36,7 @@ preload2、`0<s2BaseSize<=512`、`0<maxBlockNumPerBatch<=1024`
 
 ```bash
 python3 tests/experiments/sfa-metadata/check.py \
-  --source /home/shanshan/repo/cann/ops-transformer \
+  --source /home/shanshan/repo/work/ops-transformer \
   --output /tmp/trt-sfa-metadata-host.json
 ```
 

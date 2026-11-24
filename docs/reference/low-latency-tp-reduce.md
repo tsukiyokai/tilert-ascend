@@ -12763,7 +12763,7 @@ NOTHING: tile-ai/tilelang-ascend, Ascend/AscendNPU-IR, ByteDance-Seed/Triton-dis
 
 ## Part 8. ★★ The vendor's own MC2 tuning case — 32.7% measured on MatmulAllReduce, and the three reasons none of it is reachable at batch=1
 
-Source: `/home/shanshan/repo/cann/asc-devkit/docs/zh/guide/operator_practice/best_practices/mc_operator_tuning.md`,
+Source: `/home/shanshan/repo/work/asc-devkit/docs/zh/guide/operator_practice/best_practices/mc_operator_tuning.md`,
 「MC²算子性能调优案例」, in the shipped devkit on this machine. Read 2026-10-20. The sample operators it points
 at are `https://gitcode.com/cann/ops-transformer/tree/master/mc2/matmul_all_reduce`,
 `.../mc2/matmul_reduce_scatter_v2` and `.../mc2/all_gather_matmul_v2`.

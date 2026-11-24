@@ -17339,7 +17339,7 @@ What was looked for and not found, or found only partially.
 ## 42. ★ Sub-byte (`int4b_t`) tensor addressing on dav-2201, read off the shipped AscendC headers — and the hard negative on `SetGlobalBuffer`'s length argument
 
 Source: the AscendC devkit source tree present on this machine,
-`/home/shanshan/repo/cann/asc-devkit/` (the `hicann/asc-devkit` tree — the same one quoted in §35 and §A11).
+`/home/shanshan/repo/work/asc-devkit/` (the `hicann/asc-devkit` tree — the same one quoted in §35 and §A11).
 This is the implementation, not a doc page, so it settles the question rather than describing it.
 Read 2026-10-20.
 
@@ -17841,7 +17841,7 @@ Sources, all read 2026-10-20:
 - 「PipeBarrier」, same book — `.../atlasascendc_api_07_0264.html`
 - 「SetFlag/WaitFlag」, same book — `.../atlasascendc_api_07_0263.html`; the newer ISASI copy is
   `https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/80RC3alpha003/apiref/opdevgapi/atlasascendc_api_07_0260.html`
-- the shipped AscendC implementation on this machine, `/home/shanshan/repo/cann/asc-devkit/` — which settles
+- the shipped AscendC implementation on this machine, `/home/shanshan/repo/work/asc-devkit/` — which settles
   everything the doc pages leave open
 
 ### 43.1 The official rule: `PipeBarrier` is SAME-pipe only. It is not a cross-pipe primitive at all.
@@ -18467,7 +18467,7 @@ CANN or driver change rather than assumed to carry over.
 
 ## 44. ★ The vendor's two shipped `int4b_t` kernels, start to finish — and what they say about aliasing two int4 tensors over one allocation, and about the 950PR unzip tax
 
-Source: `/home/shanshan/repo/cann/asc-devkit/examples/01_simd_cpp_api/06_compatibility_guide/matmul_s4/matmul_s4.asc`
+Source: `/home/shanshan/repo/work/asc-devkit/examples/01_simd_cpp_api/06_compatibility_guide/matmul_s4/matmul_s4.asc`
 and `.../04_advanced_api/00_matmul/matmul_int4/matmul_int4.asc`, with their READMEs. Read 2026-10-20.
 Copyright header: "Copyright (c) 2025 Huawei Technologies Co., Ltd.", CANN Open Software License Agreement
 Version 2.0. `matmul_s4` is the arch-compatibility sample and is the more informative of the two: it is a
@@ -19005,7 +19005,7 @@ direct int4↔float32 or int4↔int8.
 
 ## 46. ★ The mechanical `PipeBarrier<PIPE_ALL>` → `HardEvent` conversion table, as the library itself computes it — `GetQueEvt`
 
-Source: `/home/shanshan/repo/cann/asc-devkit/impl/basic_api/kernel_event.h:540-670`. Read 2026-10-20.
+Source: `/home/shanshan/repo/work/asc-devkit/impl/basic_api/kernel_event.h:540-670`. Read 2026-10-20.
 
 This exists because a `PipeBarrier<PIPE_ALL>` site is only ever standing in for a specific pipe pair, and
 AscendC already contains the function that names it. `GetQueEvt` is what `TQue`/`TQueBind` use to decide which
@@ -19198,7 +19198,7 @@ kernel around queue positions rather than raw `LocalTensor`s.
 
 ## 47. ★★★ `Cast` is AIC-guarded and plain `DataCopy` to GM is NOT — a `Cast → Cast → DataCopy(GM)` function compiled into both halves of a MIX kernel has a second, uncoordinated writer
 
-Source: the shipped AscendC implementation, `/home/shanshan/repo/cann/asc-devkit/`. Read 2026-10-20.
+Source: the shipped AscendC implementation, `/home/shanshan/repo/work/asc-devkit/`. Read 2026-10-20.
 This is the same tree as §42-§46 and the finding is a two-line difference between two functions in it.
 
 ### 47.1 Every `Cast` on 2201 is wrapped in `if ASCEND_IS_AIV` and does nothing on the cube half
@@ -19448,7 +19448,7 @@ and rejects `CAST_ODD` with 「CAST_ODD from half to int4b_t is not supported on
 
 ## 48. ★ The official constraint list for hand-written ISASI kernels, and the exact API allowlist that applies once you allocate event ids yourself
 
-Source: `/home/shanshan/repo/cann/asc-devkit/docs/zh/guide/programming_guide/programming_model/ai_core_simd_programming/cpp_tensor_programming/cpp_tensor_programming_overview.md`,
+Source: `/home/shanshan/repo/work/asc-devkit/docs/zh/guide/programming_guide/programming_model/ai_core_simd_programming/cpp_tensor_programming/cpp_tensor_programming_overview.md`,
 §「编程约束和限制」 (lines 388-395), §「支持的API范围」 (表1-表4) and §「使用预留UB空间的API范围」 (表5-表6).
 Read 2026-10-20. This is the chapter that governs exactly our regime: a hand-written kernel that calls
 `SetFlag`/`WaitFlag(ISASI)` and `PipeBarrier(ISASI)` directly instead of letting `TQue` do it.
@@ -19587,7 +19587,7 @@ gives the allocation a second, uncoordinated writer.
 
 ## 49. ★ The Fixpipe dtype matrix on A3 — int32→int8 requant is free on the cube's drain, int4 is NOT, and the architecture doc contradicts the API doc on that
 
-Source: `/home/shanshan/repo/cann/asc-devkit/docs/zh/api/SIMD-API/basic_api/cube_compute_ISASI/cube_compute_store/Fixpipe_L0CToGM.md`
+Source: `/home/shanshan/repo/work/asc-devkit/docs/zh/api/SIMD-API/basic_api/cube_compute_ISASI/cube_compute_store/Fixpipe_L0CToGM.md`
 and `Fixpipe_L0CToUB.md`, plus
 `docs/zh/api/SIMD-API/basic_api/cube_compute_TensorAPI/cube_store_key_features/quant_pre.md` for the newer
 Tensor-API form. Read 2026-10-20. This matters because our `Cast` family costs 2.300 ms a round against
@@ -20634,7 +20634,7 @@ before counting whatever the handoff through GM costs.
 ## 56. ★★ `Mutex` / `Lock` / `Unlock` — the sanctioned alternative to `SetFlag`/`WaitFlag`, which compiles to NOTHING on 2201, and the production kernel that has a dead arm because of it
 
 Sources, read 2026-10-20:
-`/home/shanshan/repo/cann/asc-devkit/docs/zh/api/SIMD-API/basic_api/sync_control/intra_core_sync/Mutex_ISASI.md`
+`/home/shanshan/repo/work/asc-devkit/docs/zh/api/SIMD-API/basic_api/sync_control/intra_core_sync/Mutex_ISASI.md`
 and its siblings `Lock.md`, `Unlock.md`, `AllocMutexID_ISASI.md`, `ReleaseMutexID_ISASI.md`;
 `include/basic_api/kernel_common.h:136-180`; and
 https://github.com/vllm-project/vllm-ascend — `csrc/attention/common/op_kernel/init_output.h`.
@@ -20801,7 +20801,7 @@ the code to work.
 
 ## 57. ★ `GetTaskRatio()`'s return table — a third independent statement of which halves each kernel type launches, and the licence to alternate AIVs over any loop
 
-Source: `/home/shanshan/repo/cann/asc-devkit/docs/zh/api/SIMD-API/basic_api/tool_interface/system_resources_and_variables/GetTaskRatio.md`.
+Source: `/home/shanshan/repo/work/asc-devkit/docs/zh/api/SIMD-API/basic_api/tool_interface/system_resources_and_variables/GetTaskRatio.md`.
 Read 2026-10-20.
 
 产品支持情况, verbatim — note A3:
@@ -20873,7 +20873,7 @@ the correct objection to `PipeBarrier<PIPE_ALL>()` is cost, not coverage. What *
 reaching for, is narrower and sharper: **`PipeBarrier` cannot name `PIPE_S` at all**, so the Scalar edge is the one
 edge no quantity of `PipeBarrier` reaches.
 
-Source: the local devkit clone `/home/shanshan/repo/cann/asc-devkit/`, HEAD `6a51d0b167dd8f5555456a0ebb783ef0427e366e`,
+Source: the local devkit clone `/home/shanshan/repo/work/asc-devkit/`, HEAD `6a51d0b167dd8f5555456a0ebb783ef0427e366e`,
 whose version is CANN 9.2.0 (`version.cmake:11`). All paths below are relative to it.
 
 ### 58.1 An AIV has exactly four pipes, and the doc names `GetValue` as one of them
@@ -21369,7 +21369,7 @@ A `Cast` with `RoundMode::CAST_RINT` does not round to an integer unless the des
 conversion is `float → float`. For `float → half` it rounds onto the half grid. The two cases differ in exactly one
 word of the vendor's prose, their worked examples use the same input and the same mode and disagree, and a
 quantisation epilogue that reaches for the wrong one of the two is silently off by one code unit on a few percent
-of its outputs. Paths below are relative to `/home/shanshan/repo/cann/asc-devkit/` (CANN 9.2.0, HEAD `6a51d0b`).
+of its outputs. Paths below are relative to `/home/shanshan/repo/work/asc-devkit/` (CANN 9.2.0, HEAD `6a51d0b`).
 
 ### 59.1 The two statements, side by side, from one page
 

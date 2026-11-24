@@ -5589,7 +5589,7 @@ that does not appear at TP1 and is not in any byte count.
 
 ### 21.1 The measured before/after, with the five levers and their yields
 
-/home/shanshan/repo/cann/asc-devkit/docs/zh/guide/operator_practice/best_practices/flash_attention_tuning.md
+/home/shanshan/repo/work/asc-devkit/docs/zh/guide/operator_practice/best_practices/flash_attention_tuning.md
 (CANN `asc-devkit`, local clone, file dated 2026-08-21, 226 lines; published as
 https://www.hiascend.com/developer/techArticles/20240607-1 and
 https://www.cnblogs.com/huaweiyun/p/18243836, 昇腾CANN, 2024-06-12,
